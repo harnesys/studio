@@ -26,6 +26,7 @@
 | `prompt_missing` | `llm:generate.prompt` ∈ `prompts` |
 | `tool_call_shape` | XOR fixed/batch |
 | `spawn_shape` | `calls` Expr; `concurrency` Expr или литерал |
+| `barrier_policy` | `tool:call` batch / `control:spawn`: `barrier.policy` задан и ≠ `'all'` (v1) |
 | `goto_target` | `target` Expr |
 | `expr_syntax` | `when`, path-поля, `{$…}` парсятся |
 | `expr_path` | path выводим из schema/state → ошибка если нет |

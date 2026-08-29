@@ -37,7 +37,7 @@ Snapshot без функций, сокетов, промисов, клиенто
 
 ### Cursor
 
-Держит исполнение: активные узлы с фазой шага, pending work, interrupt, cancellation, budget, tool-call ids, timers (`fireAt`) когда появятся.
+Держит исполнение: активные узлы с фазой шага, pending work, interrupt, cancellation, budget, tool-call ids, barrier-слоты spawn/tool batch (`policy`, `results[i]`), timers (`fireAt`) когда появятся.
 
 Фаза шага:
 
@@ -56,7 +56,7 @@ scheduled → intent? → executing → recorded | unknown | failed
 ## Инварианты
 
 - Повторный `commit` с тем же `sequence`: host upsert/ignore.
-- Reducers на top-level ключах `$state`: `'replace' | 'merge'`. Ключ без записи → `merge`. `merge(a, b)`: оба массива → `[...a, ...b]`; оба plain object → рекурсивный merge по ключам; иначе `b`. `replace` → всегда `b`. `createRuntime({ mergeState?(key, a, b) })` перекрывает named reducer для ключа.
+- Reducers на top-level ключах `$state`: `'replace' | 'merge'`. Ключ без записи → `merge`. `merge(a, b)`: оба массива → `[...a, ...b]`; оба plain object → рекурсивный merge по ключам; иначе `b`. На конфликте листа (оба задали одно path-значение по-разному) побеждает `b` (ветка позже в `calls`). Ошибки `concurrent_write` нет: только при `replace` и ≥2 писателях (`08`, `11`). `replace` → всегда `b`. `createRuntime({ mergeState?(key, a, b) })` перекрывает named reducer для ключа.
 - Spawn/handoff: `state.child(spawnId)`.
 - `commit` для host = граница unit of work (snapshot + events + outbox, если есть).
 

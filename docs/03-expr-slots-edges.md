@@ -23,6 +23,7 @@
 - Функции: `exists($path)` → boolean; `length($path)` → number (массивы и строки). Идентификаторы вне `$…` запрещены.
 - Подстановка в `prompts.*.instructions`: `{$input.orderId}`. Рендер = `JSON.stringify(value)`. Это не защита от prompt injection; trust boundary на host.
 - Неизвестный path при evaluate → `unknown_path`. При compile, если path выводим из schema/state → `expr_path`.
+- Evaluate без `eval` / `new Function`; синтаксис ловит `expr_syntax` на `defineAgent` / `compile`.
 
 ## Рёбра
 

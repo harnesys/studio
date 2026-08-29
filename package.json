@@ -3,6 +3,9 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "docs:merge": "bun run scripts/docs-merge.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

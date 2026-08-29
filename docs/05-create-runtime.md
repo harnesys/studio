@@ -17,6 +17,7 @@ const rt = await createRuntime({
   artifacts?: ArtifactStore,             // 19
   nodes?: Record<string, CustomNodeImpl>, // custom:*
   middleware?: Middleware[],
+  toolMessages?: 'barrier' | 'ordered', // default 'barrier'; flush в $state.messages, 10
   // stream?, mergeState?, …
 })
 ```

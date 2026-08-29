@@ -73,7 +73,12 @@ type Node =
   | ToolCallFixed
   | ToolCallBatch
   | { type: 'control:assign'; patch: Record<string, Expr | unknown> }
-  | { type: 'control:spawn'; calls: Expr; concurrency: Expr | 'parallel' | 'sequential' }
+  | {
+      type: 'control:spawn'
+      calls: Expr
+      concurrency: Expr | 'parallel' | 'sequential'
+      barrier?: { policy: 'all' } // omit = { policy: 'all' }; post-v1: any | n-of-m (13, 23)
+    }
   | { type: 'control:goto'; target: Expr }
   | { type: 'control:interrupt'; reason: string; resumeSchema: JsonSchema }
   | {
@@ -96,6 +101,7 @@ type ToolCallBatch = {
   type: 'tool:call'
   calls: Expr
   concurrency: Expr | 'parallel' | 'sequential'
+  barrier?: { policy: 'all' } // omit = all; тот же predicate, что у spawn (10, 13)
   approve?: {
     tools: string[]
     reason: string
@@ -113,9 +119,9 @@ XOR `tool:call`: ровно `name`+`args` или `calls`+`concurrency`. Инач
 | `core:start` | `{ input }` (копия run input) |
 | `core:end` | финальный return (12-hitl-run-result) |
 | `llm:generate` | `{ finishReason, text?, toolCalls?, ...structured }` |
-| `tool:call` | `{ results: [{ id, name, result, isError, skipped? }] }` |
+| `tool:call` | `{ results: [{ id, name, result, isError, skipped?, cancelled? }] }` |
 | `control:assign` | `{ patched: string[] }` |
-| `control:spawn` | `{ results: [{ target, output, isError? }] }` порядок = `calls` |
+| `control:spawn` | `{ results: [{ target, output, isError?, cancelled? }] }` порядок = `calls` |
 | `control:goto` | не пишется |
 | `control:interrupt` | не пишется; после resume `$resume` = payload |
 | `control:handoff` | `{ agentId, output }` = return child run |

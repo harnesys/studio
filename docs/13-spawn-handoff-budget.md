@@ -10,6 +10,7 @@
   type: 'control:spawn',
   calls: '$state.queries', // -> [{ target: string, input?: unknown }, ...]
   concurrency: 'parallel' | 'sequential' | Expr,
+  barrier?: { policy: 'all' }, // omit = { policy: 'all' }
 }
 ```
 
@@ -24,16 +25,27 @@
 **In-graph branch:**
 
 - Локальный `$input` = `call.input` или копия parent `$input`.
-- `$state` ветки: `state.child(spawnId)`; на barrier в parent по `reducers` (`replace` | `merge`; ключ без записи → `merge`).
-- Старт с ноды `target`, рёбра first-wins. Терминал: любой `core:end` (cursor ветки независим).
+- `$state` ветки: `state.child(spawnId)`; на barrier в parent по `reducers` (`replace` | `merge`; ключ без записи → `merge`; leaf conflict → later в `calls`, см. `04`).
+- Старт с ноды `target`, рёбра first-wins. Терминал ветки: `core:end` | failed | cancelled (cursor ветки независим).
 - `output` ветки = `core:end.output` или последний `$output` ветки.
 - Parent рёбра после spawn: только после barrier.
 
 **Agent branch:** полный child `run` на `state.child(spawnId)`; права ⊆ parent ∩ host (VISION).
 
-Барьер ждёт все ветки. `calls.length` > `spawn_call_limit` (default 32) → `spawn_call_limit`. Лимиты ядра: `maxSpawnDepth`, `maxChildrenPerParent` (в runtime, не в definition).
+### Barrier (spawn и тот же predicate у `tool:call` batch)
 
-`$output = { results: [{ target, output, isError? }] }` порядок = `calls`.
+Слоты = массив по `calls`. Ветка/call пишет в `results[i]` при terminal; закрытие узла = `barrierDone(policy, slots)`.
+
+| `policy` | v1 | Закрытие барьера |
+|---|---|---|
+| `all` (default) | да | каждый слот terminal: ok \| error \| skipped \| cancelled |
+| `any` / `n-of-m` | нет (`23`) | тот же слот-буфер; меняется только predicate |
+
+`calls.length` > `spawn_call_limit` (default 32) → `spawn_call_limit`. Лимиты ядра: `maxSpawnDepth`, `maxChildrenPerParent` (в runtime, не в definition).
+
+Долгий хвост при `all`: cancel зависшего child (`Command.cancel` + `spawnId`, `12`) → слот `cancelled` → если остальные terminal, барьер закрывается. Отдельный `n-of-m` для этого не нужен.
+
+`$output = { results: [{ target, output, isError?, cancelled? }] }` порядок = `calls`.
 
 ## control:handoff
 
@@ -64,4 +76,4 @@ Hard-stop: `maxSteps` / `maxTokens` / `deadlineMs`. `Usage.cost?` опциона
 
 ## Out of scope
 
-Session UI для child ask (20), detached spawn / `control:join` (23).
+Session UI для child ask (20), detached spawn, `barrier.policy` кроме `all` (`23`).

@@ -69,7 +69,7 @@ type SendInput =
     schema: JsonSchema
     source: 'permission' | 'approve' | 'middleware' | 'interrupt' | 'ask_user'
     prompt?: string
-    tool?: { name: string; input: unknown; toolCallId: string }
+    tool?: { name: string; input: unknown; toolCallId: string } // обязателен при source approve|permission
   }
 | { type: 'done'; text?: string }
 | { type: 'error'; code: string; message: string }

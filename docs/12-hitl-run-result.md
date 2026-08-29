@@ -73,7 +73,12 @@ type RunResult = RunSuccess | RunInterrupted | RunFailed | RunCancelled
 type Command =
   | { type: 'resume'; interruptId: string; payload: unknown }
   | { type: 'reject'; interruptId: string; note?: string }
-  | { type: 'cancel'; mode: 'graceful' | 'hard' }
+  | {
+      type: 'cancel'
+      mode: 'graceful' | 'hard'
+      /** omit = весь run; spawnId = одна ветка control:spawn → слот cancelled (13) */
+      spawnId?: string
+    }
 // post-v1: deadline | repair | workItemFailure | signal → 23-later.md
 ```
 
@@ -112,7 +117,7 @@ rt.resume(state, command, { definition }) // definition обязателен
 | `reject` (default) | ошибка `resume_hash` / `HNS-RESUME-HASH`; run не двигается |
 | `compile-new-and-map-cursor` | новый compile; cursor по `node id`; несмапившиеся → `needs_input` (`definition_migrated`) |
 
-Старое поведение висящего interrupt: host передаёт definition того же hash (из своего каталога definitions).
+Host обязан хранить `AgentDefinition` по `definitionHash` (или эквивалент) и на `resume` при политике `reject` передавать ту же версию. Свежий код бэкенда сам по себе snapshot не оживляет.
 
 Permission/approve schema (фиксированная для gate):
 

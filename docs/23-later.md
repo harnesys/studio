@@ -4,7 +4,8 @@
 
 ## Post-v1 graph
 
-- `control:join` (`all` | `any` | `n-of-m`), `control:loop` (bounded)
+- `barrier.policy`: `any` | `n-of-m` (+ cancel остальных слотов) на `control:spawn` / `tool:call`; слот-буфер и `barrierDone` уже в v1 (`13`, `10`), `all` работает сейчас
+- отдельный `control:join` не обязателен, если policy живёт на barrier spawn/batch; loop (bounded) отдельно
 - `tool:mcp` как тип ноды (сейчас MCP = tools в registry, 18)
 - subgraph ports, detached spawn
 - fan-out «все истинные when» отклоняем: first-wins (03)
@@ -35,6 +36,7 @@
 
 - `hashDefinition`, `inspect`, `replay`, mermaid visualize
 - `harnesys/builder`, `harnesys/observability` (`eventsToSpans`)
+- optional `zodToJsonSchema` / typed helper рядом с `tool()` (ядро остаётся на JsonSchema)
 - RetryPolicy как данные на узле; `onError` → узел; dead_lettered
 - `envelopeVersion` / миграции snapshot (позже)
 - MCP schema pin / `HNS-MCP-SCHEMA` drift

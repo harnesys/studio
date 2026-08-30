@@ -4,9 +4,9 @@ import { bootstrapDatabase } from '../adapters/store/sqlite/bootstrap.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
 import { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
-import { SqliteJournalRepo } from '../adapters/store/sqlite/repos/sqlite-journal.repo.ts';
 import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
+import { SqliteRuntimeState } from '../adapters/store/sqlite/repos/sqlite-runtime-state.repo.ts';
 import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
 import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
 import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
@@ -15,8 +15,8 @@ import * as schema from '../adapters/store/sqlite/schema/index.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { AttachmentRepository } from '../domain/attachment.port.ts';
-import type { JournalRepository } from '../domain/journal.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
+import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
 import type { ScheduleRepository } from '../domain/schedule.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
 import type { UnitOfWork } from '../domain/unit-of-work.port.ts';
@@ -31,7 +31,7 @@ export type TestStoreRepos = {
   schedule: ScheduleRepository;
   webhook: WebhookRepository;
   thread: ThreadRepository;
-  journal: JournalRepository;
+  runtimeState: RuntimeStateRepository;
   attachment: AttachmentRepository;
 };
 
@@ -53,6 +53,15 @@ export function createSqliteTestStore(seed: Seed = {}): Promise<TestStore> {
   const db = drizzle(sqlite, { schema }) as TestStoreDb;
   bootstrapDatabase(db);
 
+  const runtimeStateFactory: RuntimeStateRepository = {
+    forState(threadId: string) {
+      return new SqliteRuntimeState(db, threadId);
+    },
+    deleteByThread(_threadId: string) {
+      // cleanup handled by CASCADE
+    },
+  };
+
   const repos: TestStoreRepos = {
     workspace: new SqliteWorkspaceRepo(db),
     agent: new SqliteAgentRepo(db),
@@ -61,7 +70,7 @@ export function createSqliteTestStore(seed: Seed = {}): Promise<TestStore> {
     schedule: new SqliteScheduleRepo(db),
     webhook: new SqliteWebhookRepo(db),
     thread: new SqliteThreadRepo(db),
-    journal: new SqliteJournalRepo(db),
+    runtimeState: runtimeStateFactory,
     attachment: new SqliteAttachmentRepo(db),
   };
 

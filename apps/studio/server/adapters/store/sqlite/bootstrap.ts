@@ -3,6 +3,13 @@ import { bootstrapMemory } from './bootstrap-memory.ts';
 import type { StudioDb } from './connection.ts';
 
 export function bootstrap(db: StudioDb): void {
+  // Drop journal tables (0.5.0 cutover)
+  for (const table of ['journal_steps', 'journal_entries']) {
+    try {
+      db.run(sql.raw(`DROP TABLE IF EXISTS ${table};`));
+    } catch {}
+  }
+
   const statements = [
     `CREATE TABLE IF NOT EXISTS workspaces (
       id TEXT PRIMARY KEY,
@@ -56,29 +63,26 @@ export function bootstrap(db: StudioDb): void {
       last_read_at TEXT NOT NULL,
       CHECK(kind IN ('chat', 'schedule'))
     );`,
-    `CREATE TABLE IF NOT EXISTS journal_entries (
-      id TEXT PRIMARY KEY,
+    `CREATE TABLE IF NOT EXISTS snapshots (
+      session_id TEXT PRIMARY KEY,
       thread_id TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
-      seq INTEGER NOT NULL,
-      role TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      body TEXT NOT NULL DEFAULT '{}'
+      snapshot TEXT NOT NULL,
+      sequence INTEGER NOT NULL,
+      updated_at TEXT NOT NULL
     );`,
-    `CREATE TABLE IF NOT EXISTS journal_steps (
-      id TEXT PRIMARY KEY,
-      entry_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
-      seq INTEGER NOT NULL,
+    `CREATE TABLE IF NOT EXISTS events (
+      event_id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      thread_id TEXT NOT NULL,
       type TEXT NOT NULL,
-      status TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      started_at TEXT,
-      completed_at TEXT,
-      body TEXT NOT NULL DEFAULT '{}'
+      sequence INTEGER NOT NULL,
+      timestamp INTEGER NOT NULL,
+      metadata TEXT
     );`,
     `CREATE TABLE IF NOT EXISTS attachments (
       id TEXT PRIMARY KEY,
       thread_id TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
-      entry_id TEXT REFERENCES journal_entries(id) ON DELETE SET NULL,
+      entry_id TEXT,
       name TEXT NOT NULL,
       media_type TEXT NOT NULL,
       path TEXT NOT NULL,
@@ -145,10 +149,8 @@ export function bootstrap(db: StudioDb): void {
     );`,
     `CREATE INDEX IF NOT EXISTS thread_plan_items_plan_idx ON thread_plan_items(plan_id);`,
     `CREATE INDEX IF NOT EXISTS thread_plan_items_plan_order_idx ON thread_plan_items(plan_id, "order");`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS journal_entries_thread_seq_idx ON journal_entries(thread_id, seq);`,
-    `CREATE INDEX IF NOT EXISTS journal_entries_thread_idx ON journal_entries(thread_id);`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS journal_steps_entry_seq_idx ON journal_steps(entry_id, seq);`,
-    `CREATE INDEX IF NOT EXISTS journal_steps_entry_idx ON journal_steps(entry_id);`,
+    `CREATE INDEX IF NOT EXISTS events_session_idx ON events(session_id, sequence);`,
+    `CREATE INDEX IF NOT EXISTS events_thread_idx ON events(thread_id);`,
     `CREATE INDEX IF NOT EXISTS attachments_thread_idx ON attachments(thread_id);`,
   ];
 

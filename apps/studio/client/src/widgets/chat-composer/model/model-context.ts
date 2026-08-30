@@ -1,5 +1,5 @@
 import type { ModelPricing, ProviderPublic, SessionEvent, TokenUsage } from '@studio/shared';
-import { type MessageUsage } from '@/entities/session';
+import type { MessageUsage } from '@/entities/session';
 
 import { findModel } from './model-input';
 

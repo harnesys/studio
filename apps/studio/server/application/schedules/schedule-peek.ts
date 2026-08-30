@@ -67,7 +67,6 @@ export function compactScheduleRun(events: Event[]): SchedulePeekFire {
     if (event.type === EVENT_TYPES.CONTROL_INTERRUPT) {
       const reason = (meta?.reason as string) ?? 'interrupt';
       fire.texts.push(`[interrupt: ${reason}]`);
-      continue;
     }
   }
 

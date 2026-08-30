@@ -1,15 +1,16 @@
+import { createMcpResourceTools } from '../application/mcp/create-mcp-resource-tools.ts';
+import { createMcpTool } from '../application/mcp/create-mcp-tool.ts';
+import type { McpConnection, McpConnector } from '../application/mcp/mcp-connector.port.ts';
+import type { McpResourceInfo, McpServerConfig } from '../domain/mcp.ts';
 import type {
   CursorMcpJson,
   McpRegistry as McpRegistryPort,
+  McpServerInfo,
   StdioEntry,
   UrlEntry,
 } from '../ports/mcp.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import type { McpConnection, McpConnector } from '../application/mcp/mcp-connector.port.ts';
-import type { McpServerConfig } from '../domain/mcp.ts';
 import { AiSdkMcpConnector } from './mcp/ai-sdk-mcp-connector.ts';
-import { createMcpTool } from '../application/mcp/create-mcp-tool.ts';
-import { createMcpResourceTools } from '../application/mcp/create-mcp-resource-tools.ts';
 
 type EnabledEntry = {
   config: McpServerConfig;
@@ -28,7 +29,9 @@ export class McpRegistry implements McpRegistryPort {
 
   async loadJson(json: CursorMcpJson): Promise<void> {
     for (const [id, entry] of Object.entries(json.mcpServers)) {
-      if (entry.enabled === false) continue;
+      if (entry.enabled === false) {
+        continue;
+      }
       const config = toServerConfig(id, entry);
       this.#configs.set(id, config);
       await this.enable(id);
@@ -36,9 +39,13 @@ export class McpRegistry implements McpRegistryPort {
   }
 
   async enable(id: string): Promise<void> {
-    if (this.#enabled.has(id)) return;
+    if (this.#enabled.has(id)) {
+      return;
+    }
     const config = this.#configs.get(id);
-    if (!config) throw new Error(`MCP server config not found: ${id}`);
+    if (!config) {
+      throw new Error(`MCP server config not found: ${id}`);
+    }
     const connection = await this.#connector.connect(config);
     try {
       const listed = await connection.listTools();
@@ -47,7 +54,7 @@ export class McpRegistry implements McpRegistryPort {
       for (const raw of listed) {
         tools.push(createMcpTool({ serverId: config.serverId, prefix, raw, conn: connection }));
       }
-      appendResourceTools(tools, {
+      await appendResourceTools(tools, {
         serverId: config.serverId,
         prefix,
         conn: connection,
@@ -62,7 +69,9 @@ export class McpRegistry implements McpRegistryPort {
 
   async disable(id: string): Promise<void> {
     const entry = this.#enabled.get(id);
-    if (!entry) return;
+    if (!entry) {
+      return;
+    }
     this.#enabled.delete(id);
     try {
       await entry.connection.close();
@@ -77,24 +86,55 @@ export class McpRegistry implements McpRegistryPort {
       await this.enable(id);
     } else {
       const ids = [...this.#enabled.keys()];
-      for (const sid of ids) await this.disable(sid);
-      for (const sid of this.#configs.keys()) await this.enable(sid);
+      for (const sid of ids) {
+        await this.disable(sid);
+      }
+      for (const sid of this.#configs.keys()) {
+        await this.enable(sid);
+      }
     }
   }
 
-  list(): string[] {
-    return [...this.#enabled.keys()];
+  async list(): Promise<McpServerInfo[]> {
+    const out: McpServerInfo[] = [];
+    for (const [id, entry] of this.#enabled) {
+      let resources: McpResourceInfo[] = [];
+      try {
+        const page = await entry.connection.listResources();
+        resources = page.resources.map((r) => ({
+          uri: r.uri,
+          name: r.name,
+          title: r.title,
+          description: r.description,
+          mimeType: r.mimeType,
+        }));
+      } catch {
+        // server doesn't support resources
+      }
+      out.push({
+        serverId: id,
+        transport: entry.config.transport.type,
+        connected: true,
+        tools: entry.tools.map((t) => ({ name: t.name, description: t.description })),
+        resources,
+      });
+    }
+    return out;
   }
 
   tools(): ToolDefinition[] {
     const out: ToolDefinition[] = [];
-    for (const entry of this.#enabled.values()) out.push(...entry.tools);
+    for (const entry of this.#enabled.values()) {
+      out.push(...entry.tools);
+    }
     return out;
   }
 
   async closeAll(): Promise<void> {
     const ids = [...this.#enabled.keys()];
-    for (const id of ids) await this.disable(id);
+    for (const id of ids) {
+      await this.disable(id);
+    }
   }
 }
 
@@ -107,7 +147,11 @@ function toServerConfig(id: string, entry: StdioEntry | UrlEntry): McpServerConf
   }
   return {
     serverId: id,
-    transport: { type: (entry.type ?? 'http') as 'sse' | 'http', url: entry.url, headers: entry.headers },
+    transport: {
+      type: (entry.type ?? 'http') as 'sse' | 'http',
+      url: entry.url,
+      headers: entry.headers,
+    },
   };
 }
 
@@ -118,7 +162,9 @@ function assertNoCollisions(
 ): void {
   const claimed = new Map<string, string>();
   for (const entry of enabled.values()) {
-    for (const item of entry.tools) claimed.set(item.name, entry.config.serverId);
+    for (const item of entry.tools) {
+      claimed.set(item.name, entry.config.serverId);
+    }
   }
   for (const item of tools) {
     const owner = claimed.get(item.name);
@@ -135,7 +181,9 @@ async function appendResourceTools(
   const claimed = new Set(tools.map((item) => item.name));
   try {
     for (const item of createMcpResourceTools(params)) {
-      if (claimed.has(item.name)) continue;
+      if (claimed.has(item.name)) {
+        continue;
+      }
       claimed.add(item.name);
       tools.push(item);
     }

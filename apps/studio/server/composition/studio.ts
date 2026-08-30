@@ -18,8 +18,8 @@ import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.rep
 import { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
 import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
-import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
+import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
 import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
 import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
@@ -55,6 +55,7 @@ import { GetThreadAttachmentUseCase } from '../application/threads/get-thread-at
 import { ListThreadPendingAttachmentsUseCase } from '../application/threads/list-thread-pending-attachments.use-case.ts';
 import { ListThreadsUseCase } from '../application/threads/list-threads.use-case.ts';
 import { MarkThreadReadUseCase } from '../application/threads/mark-thread-read.use-case.ts';
+import { RespondRunUseCase } from '../application/threads/respond-run.use-case.ts';
 import { ResumeThreadRunUseCase } from '../application/threads/resume-thread-run.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { StreamRunEventsUseCase } from '../application/threads/stream-run-events.use-case.ts';
@@ -136,8 +137,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     filesWatcher,
   });
-  const workspaceHarnesys =
-    options.workspaceHarnesys ?? new WorkspaceHarnesysRegistry(modelsPort);
+  const workspaceHarnesys = options.workspaceHarnesys ?? new WorkspaceHarnesysRegistry(modelsPort);
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
   const getWorkspaceMcpConfig = new GetWorkspaceMcpConfigUseCase(workspaceRepo, workspaceHarnesys);
 
@@ -300,6 +300,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     }),
     streamRunEvents: new StreamRunEventsUseCase(activeRuns),
     cancelRun: new CancelRunUseCase(activeRuns),
+    respondRun: new RespondRunUseCase(activeRuns),
     createThreadAttachment: new CreateThreadAttachmentUseCase({
       threads: threadRepo,
       agents: agentRepo,

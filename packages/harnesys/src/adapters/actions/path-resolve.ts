@@ -10,7 +10,9 @@ function realpathOrResolve(target: string): string {
 }
 
 function isWithin(workdir: string, resolved: string): boolean {
-  if (resolved === workdir) return true;
+  if (resolved === workdir) {
+    return true;
+  }
   const prefix = workdir.endsWith(path.sep) ? workdir : `${workdir}${path.sep}`;
   return resolved.startsWith(prefix);
 }

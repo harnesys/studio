@@ -1,6 +1,6 @@
 import path from 'node:path';
-import { tool } from '../../ports/tools.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
+import { tool } from '../../ports/tools.ts';
 import { DEFAULT_PATH_BLOCKLIST } from './constants.ts';
 import type { FilesOptions } from './files-options.ts';
 import { createSearchFilter } from './path-blocklist.ts';
@@ -23,9 +23,14 @@ export function globTool(options: FilesOptions = {}): ToolDefinition {
       const workdir = resolveWorkdirPath(ctx.cwd, '.', options.root);
       const hidden = await createSearchFilter(workdir, blocklist);
       const matches: string[] = [];
-      for await (const match of new Bun.Glob(parsed.pattern).scan({ cwd: workdir, onlyFiles: true })) {
+      for await (const match of new Bun.Glob(parsed.pattern).scan({
+        cwd: workdir,
+        onlyFiles: true,
+      })) {
         const absolute = path.resolve(workdir, match);
-        if (hidden(absolute)) continue;
+        if (hidden(absolute)) {
+          continue;
+        }
         matches.push(match.split(path.sep).join('/'));
       }
       matches.sort((a, b) => a.localeCompare(b));

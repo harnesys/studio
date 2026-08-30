@@ -10,7 +10,17 @@ export const DEFAULT_HTTP_TIMEOUT_MS = 30_000;
 export const MAX_HTTP_TIMEOUT_MS = 600_000;
 
 export const DEFAULT_PATH_BLOCKLIST = [
-  '.env', '.env.*', '**/.ssh/**', '**/.gnupg/**', '**/.aws/**',
-  '**/id_rsa', '**/id_ed25519', '**/*.pem',
-  '.git', '.svn', '.hg', 'node_modules', 'dist',
+  '.env',
+  '.env.*',
+  '**/.ssh/**',
+  '**/.gnupg/**',
+  '**/.aws/**',
+  '**/id_rsa',
+  '**/id_ed25519',
+  '**/*.pem',
+  '.git',
+  '.svn',
+  '.hg',
+  'node_modules',
+  'dist',
 ];

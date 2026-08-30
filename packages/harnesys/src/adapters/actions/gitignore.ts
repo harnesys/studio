@@ -31,15 +31,28 @@ function parseGitignore(text: string): Rule[] {
   const rules: Rule[] = [];
   for (const raw of text.split('\n')) {
     const line = raw.trim();
-    if (line.length === 0 || line.startsWith('#')) continue;
+    if (line.length === 0 || line.startsWith('#')) {
+      continue;
+    }
     let pattern = line;
     let negated = false;
-    if (pattern.startsWith('!')) { negated = true; pattern = pattern.slice(1); }
+    if (pattern.startsWith('!')) {
+      negated = true;
+      pattern = pattern.slice(1);
+    }
     let dirOnly = false;
-    if (pattern.endsWith('/')) { dirOnly = true; pattern = pattern.slice(0, -1); }
+    if (pattern.endsWith('/')) {
+      dirOnly = true;
+      pattern = pattern.slice(0, -1);
+    }
     let rooted = false;
-    if (pattern.startsWith('/')) { rooted = true; pattern = pattern.slice(1); }
-    if (pattern.length === 0) continue;
+    if (pattern.startsWith('/')) {
+      rooted = true;
+      pattern = pattern.slice(1);
+    }
+    if (pattern.length === 0) {
+      continue;
+    }
     rules.push({ negated, dirOnly, rooted, pattern });
   }
   return rules;
@@ -48,20 +61,29 @@ function parseGitignore(text: string): Rule[] {
 function isIgnored(relative: string, rules: Rule[]): boolean {
   let ignored = false;
   for (const rule of rules) {
-    if (ruleMatches(rule, relative)) ignored = !rule.negated;
+    if (ruleMatches(rule, relative)) {
+      ignored = !rule.negated;
+    }
   }
-  if (ignored) return true;
+  if (ignored) {
+    return true;
+  }
   const parent = parentOf(relative);
   return parent !== undefined && isIgnored(parent, rules);
 }
 
 function ruleMatches(rule: Rule, relative: string): boolean {
-  const targets = rule.rooted || rule.pattern.includes('/')
-    ? [relative]
-    : [relative, path.posix.basename(relative)];
+  const targets =
+    rule.rooted || rule.pattern.includes('/')
+      ? [relative]
+      : [relative, path.posix.basename(relative)];
   for (const target of targets) {
-    if (globMatch(rule.pattern, target)) return true;
-    if (rule.dirOnly && globMatch(`${rule.pattern}/**`, target)) return true;
+    if (globMatch(rule.pattern, target)) {
+      return true;
+    }
+    if (rule.dirOnly && globMatch(`${rule.pattern}/**`, target)) {
+      return true;
+    }
   }
   return false;
 }

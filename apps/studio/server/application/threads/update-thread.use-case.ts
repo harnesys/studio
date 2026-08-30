@@ -1,8 +1,8 @@
 import type { ThreadRecord } from '../../../shared/types.ts';
+import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
-import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import { GetThreadUseCase } from './get-thread.use-case.ts';
 
 export type UpdateThreadRequest = {

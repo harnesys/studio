@@ -1,4 +1,9 @@
-import { type AgentMemoryConfig, type AgentProjectPaths, defaultAgentMemory, type PortRef } from '@studio/shared';
+import {
+  type AgentMemoryConfig,
+  type AgentProjectPaths,
+  defaultAgentMemory,
+  type PortRef,
+} from '@studio/shared';
 
 export const MEMORY_OFF = 'off' as const;
 

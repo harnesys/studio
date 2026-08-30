@@ -59,7 +59,11 @@ export class AskUserInterrupt extends Error {
   readonly options?: Array<{ id: string; label: string }>;
   readonly multi?: boolean;
 
-  constructor(input: { prompt: string; options?: Array<{ id: string; label: string }>; multi?: boolean }) {
+  constructor(input: {
+    prompt: string;
+    options?: Array<{ id: string; label: string }>;
+    multi?: boolean;
+  }) {
     super('ask_user interrupt');
     this.name = 'AskUserInterrupt';
     this.prompt = input.prompt;

@@ -11,7 +11,9 @@ export type ResolvedToolOutputSettings = {
 };
 
 function positiveInt(value: number | undefined | null, fallback: number): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return fallback;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return fallback;
+  }
   return Math.floor(value);
 }
 

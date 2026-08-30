@@ -1,18 +1,15 @@
-import type { ModelsPort, ToolDefinition } from 'harnesys';
+import type { CursorMcpJson, ModelsPort, RuntimeHandle, ToolDefinition } from 'harnesys';
 import { createRuntime } from 'harnesys';
 import { askUser, fetch, files, shell } from 'harnesys/actions';
-import type { RuntimeHandle } from 'harnesys';
 import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
-import { loadWorkspaceMcpServers } from './mcp-json.adapter.ts';
+import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
 
 export class WorkspaceHarnesysRegistry {
   private readonly cache = new Map<string, Promise<RuntimeHandle>>();
   private extraTools: ToolDefinition[] = [];
 
-  constructor(
-    private readonly models: ModelsPort,
-  ) {}
+  constructor(private readonly models: ModelsPort) {}
 
   setExtraTools(tools: ToolDefinition[]): void {
     this.extraTools = tools;
@@ -23,7 +20,9 @@ export class WorkspaceHarnesysRegistry {
 
   get(workspace: Workspace): Promise<RuntimeHandle> {
     const cached = this.cache.get(workspace.id);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
 
     const pending = this.create(workspace);
     this.cache.set(workspace.id, pending);
@@ -42,7 +41,9 @@ export class WorkspaceHarnesysRegistry {
   async forget(workspaceId: string): Promise<void> {
     const pending = this.cache.get(workspaceId);
     this.cache.delete(workspaceId);
-    if (!pending) return;
+    if (!pending) {
+      return;
+    }
     try {
       const rt = await pending;
       await rt.close();
@@ -52,9 +53,9 @@ export class WorkspaceHarnesysRegistry {
   }
 
   private create(workspace: Workspace): Promise<RuntimeHandle> {
-    let mcpJson;
+    let mcpJson: CursorMcpJson;
     try {
-      mcpJson = { mcpServers: loadWorkspaceMcpServers(workspace.path) };
+      mcpJson = { mcpServers: readWorkspaceMcpJson(workspace.path) };
     } catch (err) {
       return Promise.reject(new ValidationError(err instanceof Error ? err.message : String(err)));
     }

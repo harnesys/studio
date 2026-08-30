@@ -57,7 +57,7 @@ export class UpsertWorkspaceMcpServerUseCase implements UpsertWorkspaceMcpServer
     await this.workspaceHarnesys.invalidate(workspace.id);
     const hx = await this.workspaceHarnesys.get(workspace);
     const fields = mcpEntryToFields(entry);
-    const snap = hx.mcpSnapshot().servers.find((s) => s.serverId === request.serverId);
+    const snap = (await hx.mcp.list()).find((s) => s.serverId === request.serverId);
 
     return {
       server: {

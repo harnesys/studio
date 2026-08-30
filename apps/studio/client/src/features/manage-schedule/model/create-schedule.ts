@@ -1,10 +1,10 @@
-import { useSessionStore } from '@/entities/session';
 import {
   type Schedule,
   type ScheduleDraft,
   toClientSchedule,
   useScheduleStore,
 } from '@/entities/schedule';
+import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { createScheduleRecord } from '@/shared/api';
 

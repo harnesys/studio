@@ -1,7 +1,7 @@
 import type { DeskEvent } from '@studio/shared';
-import { useSessionStore } from '@/entities/session';
 import { usePlanStore } from '@/entities/plan';
 import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
+import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 
 export function applyDeskEvent(event: DeskEvent): void {

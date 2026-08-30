@@ -18,11 +18,7 @@ import {
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
 
-import {
-  ActivityBlock,
-  AssistantMessageView,
-  FailedMessageView,
-} from './agent-turn';
+import { AssistantMessageView, FailedMessageView } from './agent-turn';
 import { ChatSkeleton } from './chat-skeleton';
 import { CompactionPendingCard } from './compaction-card';
 import { ThreadEmpty } from './thread-empty';
@@ -63,7 +59,10 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
         <MessageScrollerViewport>
           <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 text-[length:var(--chat-font-size)]">
             {runs.map((run, index) => (
-              <MessageScrollerItem key={run.id ?? `run-${index}`} messageId={run.id ?? `run-${index}`}>
+              <MessageScrollerItem
+                key={run.id ?? `run-${index}`}
+                messageId={run.id ?? `run-${index}`}
+              >
                 {run.error ? <FailedMessageView text={run.error} /> : null}
                 <AssistantMessageView
                   events={run.events}
@@ -154,7 +153,7 @@ function useFollowLive(threadId: string): void {
   const liveRunId = useSessionStore((state) => {
     const events = state.events[threadId] ?? [];
     const hasDone = events.some((ev) => ev.type === 'done' || ev.type === 'error');
-    return hasDone ? null : (events[0]?.type === 'tool' ? events[0].toolCallId : null);
+    return hasDone ? null : events[0]?.type === 'tool' ? events[0].toolCallId : null;
   });
 
   useEffect(() => {

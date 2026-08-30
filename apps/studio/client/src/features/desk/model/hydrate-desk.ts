@@ -1,6 +1,6 @@
 import { toClientAgent, useAgentStore } from '@/entities/agent';
-import { useSessionStore } from '@/entities/session';
 import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
+import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread, listAgents, listSchedules, listThreads } from '@/shared/api';
 import { useDeskStore } from './desk.store';

@@ -39,7 +39,7 @@ export class CreateWorkspaceSkillUseCase implements CreateWorkspaceSkillInput {
 
     await this.workspaceHarnesys.invalidate(workspace.id);
     const hx = await this.workspaceHarnesys.get(workspace);
-    const skill = hx.listSkills().find((s) => s.name === request.name);
+    const skill = (await hx.skills.list()).find((s) => s.name === request.name);
     if (!skill) {
       throw new ValidationError(`skill ${request.name} was written but not loaded`);
     }

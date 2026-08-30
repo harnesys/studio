@@ -30,7 +30,7 @@ export class GetWorkspaceMcpConfigUseCase implements GetWorkspaceMcpConfigInput 
 
     const raw = readWorkspaceMcpJson(workspace.path);
     const hx = await this.workspaceHarnesys.get(workspace);
-    const live = new Map(hx.mcpSnapshot().servers.map((s) => [s.serverId, s]));
+    const live = new Map((await hx.mcp.list()).map((s) => [s.serverId, s]));
 
     const servers: WorkspaceMcpConfigServer[] = [];
     for (const [serverId, entry] of Object.entries(raw)) {

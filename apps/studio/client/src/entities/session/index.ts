@@ -1,4 +1,4 @@
-export { useSessionStore, type ActiveRun, type RunFailure } from './model/session.store.ts';
+export { type ActiveRun, type RunFailure, useSessionStore } from './model/session.store.ts';
 export {
   contextUsedRatio,
   contextWindowForModel,
@@ -7,9 +7,9 @@ export {
   formatTokenCount,
   type MessageUsage,
   rollupUsage,
+  type ToolRunStat,
   tokensLeft,
   tokensUsed,
-  type ToolRunStat,
   type UsageRollup,
   usageFromGeneration,
 } from './model/usage.ts';

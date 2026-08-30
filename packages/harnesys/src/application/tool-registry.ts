@@ -14,10 +14,15 @@ export function createToolRegistry(tools: ToolDefinition[] = []): Map<string, To
   return map;
 }
 
-export function mergeTools(base: Map<string, ToolDefinition>, extra: ToolDefinition[]): Map<string, ToolDefinition> {
+export function mergeTools(
+  base: Map<string, ToolDefinition>,
+  extra: ToolDefinition[],
+): Map<string, ToolDefinition> {
   const merged = new Map(base);
   for (const t of extra) {
-    if (merged.has(t.name)) throw new Error(`tool collision: ${t.name}`);
+    if (merged.has(t.name)) {
+      throw new Error(`tool collision: ${t.name}`);
+    }
     merged.set(t.name, t);
   }
   return merged;

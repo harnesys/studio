@@ -1,6 +1,6 @@
 import type { PortRef } from 'harnesys';
-import type { AgentProjectPaths, AgentSpec } from '../../../shared/harnesys-bridge.ts';
 import { composeAgentSystem } from '../../../shared/default-agent-instructions.ts';
+import type { AgentProjectPaths, AgentSpec } from '../../../shared/harnesys-bridge.ts';
 import type { Agent } from '../../domain/agent.port.ts';
 
 export type AgentModelBinding = {
@@ -8,7 +8,7 @@ export type AgentModelBinding = {
   modelName: string;
 };
 
-type AgentProjectConfig = PortRef | AgentProjectPaths | null | undefined;
+type AgentProjectConfig = PortRef | AgentProjectPaths | { paths: string[] } | null | undefined;
 
 /** Map persisted agent row into harnesys AgentSpec for send/resume. */
 export function agentSpecFromRow(agent: Agent, model: AgentModelBinding): AgentSpec {
@@ -37,14 +37,19 @@ export function agentSpecFromRow(agent: Agent, model: AgentModelBinding): AgentS
 }
 
 function projectPathsFromMemory(project: AgentProjectConfig): string[] | undefined {
-  if (!isAgentProjectPaths(project) || project.paths.length === 0) {
+  if (!isAgentProjectPaths(project)) {
     return undefined;
   }
-  return project.paths;
+  const list = project.allow ?? (project as { paths?: string[] }).paths;
+  return Array.isArray(list) && list.length > 0 ? list : undefined;
 }
 
 function isAgentProjectPaths(value: AgentProjectConfig): value is AgentProjectPaths {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
   return (
-    typeof value === 'object' && value !== null && 'paths' in value && Array.isArray(value.paths)
+    ('allow' in value && Array.isArray((value as AgentProjectPaths).allow)) ||
+    ('paths' in value && Array.isArray((value as { paths?: string[] }).paths))
   );
 }

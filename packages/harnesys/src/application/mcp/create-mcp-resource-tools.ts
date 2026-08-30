@@ -1,5 +1,5 @@
-import { tool } from '../../ports/tools.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
+import { tool } from '../../ports/tools.ts';
 import type { McpConnection } from './mcp-connector.port.ts';
 
 export type CreateMcpResourceToolsParams = {

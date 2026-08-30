@@ -1,6 +1,6 @@
-import { tool } from '../../ports/tools.ts';
-import type { ToolDefinition } from '../../ports/tools.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
+import type { ToolDefinition } from '../../ports/tools.ts';
+import { tool } from '../../ports/tools.ts';
 
 export function createLoadSkillTool(registry: SkillRegistry): ToolDefinition {
   return tool('load_skill', {
@@ -17,7 +17,11 @@ export function createLoadSkillTool(registry: SkillRegistry): ToolDefinition {
         const doc = registry.load(name) as { instructions: string };
         return Promise.resolve({ instructions: doc.instructions });
       } catch (error) {
-        return Promise.resolve({ error: true, code: 'UNKNOWN_SKILL', message: error instanceof Error ? error.message : String(error) });
+        return Promise.resolve({
+          error: true,
+          code: 'UNKNOWN_SKILL',
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
     },
   });

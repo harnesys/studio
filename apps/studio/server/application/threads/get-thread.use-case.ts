@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm';
 import type { SessionEvent } from 'harnesys';
 import type { ThreadRecord } from '../../../shared/types.ts';
+import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
+import { eventsTable } from '../../adapters/store/sqlite/schema/events.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
-import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
-import { eventsTable } from '../../adapters/store/sqlite/schema/events.ts';
 import { readFields } from './thread.helpers.ts';
 
 export type GetThreadRequest = {

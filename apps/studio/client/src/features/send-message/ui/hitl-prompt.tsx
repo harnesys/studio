@@ -40,18 +40,21 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState('');
   const name = pending.tool?.name ?? 'tool';
-  const inputStr = pending.tool?.input != null
-    // biome-ignore lint/style/noNestedTernary: <explanation>
-    ? typeof pending.tool.input === 'string'
-      ? pending.tool.input
-      : JSON.stringify(pending.tool.input)
-    : '';
+  const inputStr =
+    pending.tool?.input != null
+      ? // biome-ignore lint/style/noNestedTernary: <explanation>
+        typeof pending.tool.input === 'string'
+        ? pending.tool.input
+        : JSON.stringify(pending.tool.input)
+      : '';
   const summary = summarizeToolInput(name, inputStr);
   const pathLine = summary.lines.find((line) => line.label === 'path')?.value;
   const detailLines = summary.lines.filter((line) => line.label !== 'path');
 
   const decide = async (allow: boolean) => {
-    if (busy) { return; }
+    if (busy) {
+      return;
+    }
     setBusy(true);
     try {
       await respondToAsk(
@@ -143,12 +146,20 @@ function AskCard({ pending, threadId }: { pending: PendingHitl; threadId: string
   };
 
   const submit = async () => {
-    if (busy) { return; }
+    if (busy) {
+      return;
+    }
     const trimmed = text.trim();
     const payload: Record<string, unknown> = {};
-    if (selected.length > 0) { payload.optionIds = selected; }
-    if (trimmed) { payload.text = trimmed; }
-    if (!payload.optionIds && !payload.text) { return; }
+    if (selected.length > 0) {
+      payload.optionIds = selected;
+    }
+    if (trimmed) {
+      payload.text = trimmed;
+    }
+    if (!payload.optionIds && !payload.text) {
+      return;
+    }
     setBusy(true);
     try {
       await respondToAsk(threadId, pending.askId, payload);

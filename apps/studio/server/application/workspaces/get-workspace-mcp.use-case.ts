@@ -1,4 +1,4 @@
-import type { WorkspaceMcpServer } from '../../../shared/types.ts';
+import type { WorkspaceMcpServer, WorkspaceMcpTransport } from '../../../shared/types.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
@@ -27,11 +27,11 @@ export class GetWorkspaceMcpUseCase implements GetWorkspaceMcpInput {
       throw new NotFoundError('workspace not found');
     }
     const hx = await this.workspaceHarnesys.get(workspace);
-    const snapshot = hx.mcpSnapshot();
+    const snapshot = await hx.mcp.list();
     return {
-      servers: snapshot.servers.map((server) => ({
+      servers: snapshot.map((server) => ({
         serverId: server.serverId,
-        transport: server.transport,
+        transport: server.transport as WorkspaceMcpTransport,
         connected: server.connected,
         toolCount: server.tools.length,
         tools: server.tools.map((tool) => ({

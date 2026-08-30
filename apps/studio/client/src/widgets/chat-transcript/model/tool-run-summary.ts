@@ -1,6 +1,6 @@
 import type { SessionEvent } from '@studio/shared';
 
-import { type ToolEventPair, groupToolPairs } from './session-event-groups';
+import { groupToolPairs, type ToolEventPair } from './session-event-groups';
 import { toolCaption } from './tool-caption';
 
 export type ToolRunSummary = {
@@ -38,7 +38,9 @@ export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
   let toolEvents: SessionEvent[] = [];
 
   const flushTools = () => {
-    if (toolEvents.length === 0) return;
+    if (toolEvents.length === 0) {
+      return;
+    }
     const pairs = groupToolPairs(toolEvents);
     if (pairs.length > 0) {
       chunks.push({ type: 'tools', pairs });
@@ -59,7 +61,6 @@ export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
     }
     if (ev.type === 'tool') {
       toolEvents.push(ev);
-      continue;
     }
   }
   flushTools();

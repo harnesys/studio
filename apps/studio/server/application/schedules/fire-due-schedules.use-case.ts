@@ -102,7 +102,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     this.publishSchedule(schedule.id);
   }
 
-  private noteError(threadId: string, message: string): void {
+  private noteError(threadId: string, _message: string): void {
     if (!this.threads.findById(threadId)) {
       return;
     }

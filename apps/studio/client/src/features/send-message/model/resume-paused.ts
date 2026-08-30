@@ -1,4 +1,3 @@
-import type { SessionEvent } from '@studio/shared';
 import { useSessionStore } from '@/entities/session';
 import { resumeThread } from '@/shared/api';
 import { trace } from '@/shared/lib/trace';
@@ -8,7 +7,8 @@ import { drainRunStream } from './drain-run-stream';
 export async function resumePausedThread(threadId: string): Promise<string | null> {
   const store = useSessionStore.getState();
   const events = store.eventsOf(threadId);
-  const hasPendingAsk = events.some((ev) => ev.type === 'ask') &&
+  const hasPendingAsk =
+    events.some((ev) => ev.type === 'ask') &&
     !events.some((ev) => ev.type === 'done' || ev.type === 'error');
 
   if (!hasPendingAsk) {

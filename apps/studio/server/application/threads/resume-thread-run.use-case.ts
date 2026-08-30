@@ -1,7 +1,4 @@
-import {
-  type AgentRun,
-  ThreadBusyError,
-} from 'harnesys';
+import { type AgentRun, ThreadBusyError } from 'harnesys';
 import type { AcceptedRunResponse } from '../../../shared/types.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
@@ -99,12 +96,7 @@ export class ResumeThreadRunUseCase implements ResumeThreadRunInput {
       { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
       async () => {
         const hx = await this.workspaceHarnesys.get(workspace);
-        const handle = await this.registry.threadOf(
-          thread.id,
-          hx,
-          agentRow.name,
-          workspace.path,
-        );
+        const handle = await this.registry.threadOf(thread.id, hx, agentRow.name, workspace.path);
 
         const controller = new AbortController();
         let run: AgentRun;

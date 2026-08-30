@@ -27,7 +27,9 @@ export function withChatGenerationParameters(params: string[] | undefined): stri
   const out = [...(params ?? [])];
   const seen = new Set(out);
   for (const name of CHAT_GENERATION_PARAMETERS) {
-    if (seen.has(name)) continue;
+    if (seen.has(name)) {
+      continue;
+    }
     out.push(name);
     seen.add(name);
   }
@@ -38,14 +40,20 @@ export function filterGenerationSettings(
   settings: AgentGenerationSettings | undefined,
   supportedParameters: string[] | undefined,
 ): AgentGenerationSettings | undefined {
-  if (!settings) return undefined;
+  if (!settings) {
+    return undefined;
+  }
   const supported = new Set(withChatGenerationParameters(supportedParameters));
   const out: AgentGenerationSettings = {};
   let wrote = false;
   for (const { field, params } of FIELD_PARAMS) {
     const value = settings[field];
-    if (value === undefined) continue;
-    if (!params.some((name) => supported.has(name))) continue;
+    if (value === undefined) {
+      continue;
+    }
+    if (!params.some((name) => supported.has(name))) {
+      continue;
+    }
     (out as Record<string, unknown>)[field] = value;
     wrote = true;
   }

@@ -20,8 +20,12 @@ function buildTransport(config: McpServerConfig) {
       env?: Record<string, string>;
       stderr?: 'inherit' | 'ignore' | 'pipe' | number;
     } = { command: transport.command, stderr: 'ignore' };
-    if (transport.args !== undefined) options.args = [...transport.args];
-    if (transport.env !== undefined) options.env = { ...transport.env };
+    if (transport.args !== undefined) {
+      options.args = [...transport.args];
+    }
+    if (transport.env !== undefined) {
+      options.env = { ...transport.env };
+    }
     return new Experimental_StdioMCPTransport(options);
   }
   if (transport.type === 'http') {
@@ -29,13 +33,17 @@ function buildTransport(config: McpServerConfig) {
       type: 'http',
       url: transport.url,
     };
-    if (transport.headers !== undefined) http.headers = { ...transport.headers };
+    if (transport.headers !== undefined) {
+      http.headers = { ...transport.headers };
+    }
     return http;
   }
   const sse: { type: 'sse'; url: string; headers?: Record<string, string> } = {
     type: 'sse',
     url: transport.url,
   };
-  if (transport.headers !== undefined) sse.headers = { ...transport.headers };
+  if (transport.headers !== undefined) {
+    sse.headers = { ...transport.headers };
+  }
   return sse;
 }

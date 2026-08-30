@@ -1,7 +1,6 @@
 import type { SessionEvent } from '@studio/shared';
 import { AlertCircleIcon } from 'lucide-react';
 
-import { type MessageUsage, usageFromGeneration } from '@/entities/session';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
 import { useStudioLocation } from '@/shared/config/location';
@@ -21,7 +20,6 @@ import { ActivityRail } from './activity-rail';
 import { AskLine } from './ask-line';
 import { MessageActions } from './message-actions';
 import { ThinkingLine } from './thinking-line';
-import { StepStats, TurnStats } from './turn-stats';
 
 export function FailedMessageView({ text }: { text: string }) {
   return (
@@ -36,7 +34,9 @@ export function FailedMessageView({ text }: { text: string }) {
 }
 
 export function SystemMessageView({ text }: { text: string }) {
-  if (!text) return null;
+  if (!text) {
+    return null;
+  }
   return (
     <div
       data-testid="system-message-view"
@@ -124,7 +124,9 @@ export function AssistantMessageView({
               toast.add({ title: 'Copied.' });
             }}
             onBranch={() => {
-              if (!agent || !thread || !workspaceId) return;
+              if (!agent || !thread || !workspaceId) {
+                return;
+              }
               const nextId = branchThread(runId, agent.id, thread.id);
               if (nextId) {
                 useDeskStore.getState().setFocusedThreadId(nextId);

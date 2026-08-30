@@ -1,18 +1,9 @@
-import type { Modality } from '../../../shared/types.ts';
+import type { AttachmentKind, Modality, ThreadAttachment } from '../../../shared/types.ts';
 import { MAX_ATTACHMENT_BYTES } from '../../config/constants.ts';
-import type { Attachment, AttachmentKind } from '../../domain/attachment.port.ts';
+import type { Attachment } from '../../domain/attachment.port.ts';
 
+export type { ThreadAttachment };
 export { MAX_ATTACHMENT_BYTES };
-
-export type ThreadAttachmentKind = AttachmentKind;
-
-export type ThreadAttachment = {
-  id: string;
-  kind: ThreadAttachmentKind;
-  name: string;
-  mediaType: string;
-  path: string;
-};
 
 export function toThreadAttachment(row: Attachment): ThreadAttachment {
   return {
@@ -24,7 +15,7 @@ export function toThreadAttachment(row: Attachment): ThreadAttachment {
   };
 }
 
-export function kindFromMediaType(mediaType: string): ThreadAttachmentKind {
+export function kindFromMediaType(mediaType: string): AttachmentKind {
   if (mediaType.startsWith('image/')) {
     return 'image';
   }
@@ -39,9 +30,9 @@ export function kindFromMediaType(mediaType: string): ThreadAttachmentKind {
 
 export function modelAccepts(
   input: Modality[] | undefined,
-  kind: ThreadAttachmentKind,
-  mediaType: string,
-  name: string,
+  kind: AttachmentKind,
+  _mediaType: string,
+  _name: string,
 ): boolean {
   return Boolean(input?.includes(kind));
 }

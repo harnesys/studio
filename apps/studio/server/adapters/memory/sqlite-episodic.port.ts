@@ -1,5 +1,11 @@
 import { and, eq, gte, lte } from 'drizzle-orm';
-import type { EpisodicHit, EpisodicIndexInput, EpisodicPort, EpisodicSearchInput, SessionEvent } from 'harnesys';
+import type {
+  EpisodicHit,
+  EpisodicIndexInput,
+  EpisodicPort,
+  EpisodicSearchInput,
+  SessionEvent,
+} from 'harnesys';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { StudioDb } from '../store/sqlite/connection.ts';
 import { eventsTable } from '../store/sqlite/schema/events.ts';
@@ -86,9 +92,12 @@ export class SqliteEpisodicPort implements EpisodicPort {
       } as SessionEvent;
 
       const pieces = chunkText(eventIndexText(event));
-      if (pieces.length === 0) continue;
+      if (pieces.length === 0) {
+        continue;
+      }
 
-      const vectors = wantVector && this.embeddings ? await this.embeddings.embed(pieces) : undefined;
+      const vectors =
+        wantVector && this.embeddings ? await this.embeddings.embed(pieces) : undefined;
       for (let i = 0; i < pieces.length; i++) {
         const text = pieces[i] ?? '';
         this.db

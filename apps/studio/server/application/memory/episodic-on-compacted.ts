@@ -12,9 +12,15 @@ export function createEpisodicOnCompacted(
 ): (range: { fromSeq: number; toSeq: number; compactionEntryId?: string }) => Promise<void> {
   return async (range) => {
     const ref = input.episodicRef;
-    if (ref == null) return;
-    if (!indexOnCompactEnabled(ref)) return;
-    if (!input.episodic.index) return;
+    if (ref == null) {
+      return;
+    }
+    if (!indexOnCompactEnabled(ref)) {
+      return;
+    }
+    if (!input.episodic.index) {
+      return;
+    }
     await input.episodic.index({
       workspaceId: input.workspaceId,
       threadId: input.threadId,

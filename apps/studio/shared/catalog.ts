@@ -1,25 +1,7 @@
-export const DRIVERS = [
-  'openai',
-  'openai-compatible',
-  'anthropic',
-  'openrouter',
-  'google',
-  'groq',
-  'mistral',
-  'xai',
-  'together',
-  'kimi',
-  'zai',
-  'ollama',
-  'ollama-cloud',
-  'nvidia',
-  'cerebras',
-  'minimax',
-  'xiaomi',
-  'qwen',
-] as const;
+import type { Driver } from 'harnesys';
 
-export type Driver = (typeof DRIVERS)[number];
+export type { Driver } from 'harnesys';
+export { DRIVERS, isDriver } from 'harnesys';
 
 export type DriverEndpoint = {
   id: string;
@@ -122,10 +104,6 @@ export type StudioModel = ModelRecord & {
 
 export type StudioModelView = StudioModel & ModelHints;
 export type DiscoveredModelView = DiscoveredModel & ModelHints;
-
-export function isDriver(value: string): value is Driver {
-  return (DRIVERS as readonly string[]).includes(value);
-}
 
 export function isEffort(value: string): value is Effort {
   return (EFFORTS as readonly string[]).includes(value);

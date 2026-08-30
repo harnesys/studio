@@ -1,6 +1,6 @@
-import type { Snapshot, Event, SessionEvent } from 'harnesys';
+import type { Event, SessionEvent, Snapshot } from 'harnesys';
 
-export type { Snapshot, Event, SessionEvent };
+export type { Event, SessionEvent, Snapshot };
 
 export const THREAD_KINDS = ['chat', 'schedule'] as const;
 export type ThreadKind = (typeof THREAD_KINDS)[number];

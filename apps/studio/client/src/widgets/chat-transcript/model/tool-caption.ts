@@ -15,25 +15,49 @@ export function toolCaption(
   const outputStr = result ? toolOutput(result) : '';
   const fields = fieldsOf(inputStr || outputStr);
   if (name === 'shell') {
-    return { kind: 'terminal', title: 'Terminal', hint: fields.command ?? firstLine(inputStr, outputStr) };
+    return {
+      kind: 'terminal',
+      title: 'Terminal',
+      hint: fields.command ?? firstLine(inputStr, outputStr),
+    };
   }
   if (name === 'read_file') {
-    return { kind: 'file', title: 'Read File', hint: baseName(fields.path ?? firstLine(inputStr, outputStr)) };
+    return {
+      kind: 'file',
+      title: 'Read File',
+      hint: baseName(fields.path ?? firstLine(inputStr, outputStr)),
+    };
   }
   if (name === 'write_file') {
-    return { kind: 'pencil', title: 'Write File', hint: baseName(fields.path ?? firstLine(inputStr, outputStr)) };
+    return {
+      kind: 'pencil',
+      title: 'Write File',
+      hint: baseName(fields.path ?? firstLine(inputStr, outputStr)),
+    };
   }
   if (name === 'edit_file') {
-    return { kind: 'pencil', title: 'Edit File', hint: baseName(fields.path ?? firstLine(inputStr, outputStr)) };
+    return {
+      kind: 'pencil',
+      title: 'Edit File',
+      hint: baseName(fields.path ?? firstLine(inputStr, outputStr)),
+    };
   }
   if (name === 'list_dir') {
     return { kind: 'file', title: 'List Dir', hint: fields.path ?? firstLine(inputStr, outputStr) };
   }
   if (name === 'glob') {
-    return { kind: 'search', title: 'Glob', hint: fields.pattern ?? firstLine(inputStr, outputStr) };
+    return {
+      kind: 'search',
+      title: 'Glob',
+      hint: fields.pattern ?? firstLine(inputStr, outputStr),
+    };
   }
   if (name === 'grep') {
-    return { kind: 'search', title: 'Grep', hint: fields.pattern ?? firstLine(inputStr, outputStr) };
+    return {
+      kind: 'search',
+      title: 'Grep',
+      hint: fields.pattern ?? firstLine(inputStr, outputStr),
+    };
   }
   if (name === 'http' || name === 'fetch') {
     return { kind: 'globe', title: 'Fetch', hint: fields.url ?? firstLine(inputStr, outputStr) };
@@ -43,13 +67,17 @@ export function toolCaption(
 
 function toolInput(call: SessionEvent & { type: 'tool' }): string {
   const input = call.input;
-  if (input == null) return '';
+  if (input == null) {
+    return '';
+  }
   return typeof input === 'string' ? input : JSON.stringify(input);
 }
 
 function toolOutput(result: SessionEvent & { type: 'tool' }): string {
   const output = result.output;
-  if (output == null) return '';
+  if (output == null) {
+    return '';
+  }
   return typeof output === 'string' ? output : JSON.stringify(output);
 }
 

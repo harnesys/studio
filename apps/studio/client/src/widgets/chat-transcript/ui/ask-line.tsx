@@ -4,7 +4,14 @@ import { MessageCircleQuestionIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 /** Transcript projection for ask events. Interactive answer lives in HitlPrompt. */
-export function AskLine({ event, live }: { event: SessionEvent & { type: 'ask' }; runId?: string; live?: boolean }) {
+export function AskLine({
+  event,
+  live,
+}: {
+  event: SessionEvent & { type: 'ask' };
+  runId?: string;
+  live?: boolean;
+}) {
   const active = Boolean(live);
 
   return (

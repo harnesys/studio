@@ -1,4 +1,4 @@
-import type { AgentRun, SessionEvent } from 'harnesys';
+import type { AgentRun } from 'harnesys';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 

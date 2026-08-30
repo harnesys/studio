@@ -23,27 +23,12 @@ export const sendThreadRunBody = z
     message: 'text or attachments required',
   });
 
-export const confirmRunBody = z.object({
-  /** Provider `toolCallId` on tool_call steps — not a library UUID. */
-  stepId: z.string().trim().min(1),
-  decision: z.union([
-    z.object({
-      allow: z.literal(true),
-      modifiedInput: z.unknown().optional(),
-    }),
-    z.object({
-      deny: z.literal(true),
-      reason: z.string().optional(),
-    }),
-  ]),
+export const respondRunBody = z.object({
+  askId: z.string().trim().min(1),
+  payload: z.unknown().optional(),
 });
 
-export const answerRunBody = z
-  .object({
-    stepId: z.string().uuid(),
-    optionIds: z.array(z.string().min(1)).optional(),
-    text: z.string().trim().optional(),
-  })
-  .refine((value) => (value.optionIds?.length ?? 0) > 0 || (value.text?.length ?? 0) > 0, {
-    message: 'optionIds or text required',
-  });
+export const rejectRunBody = z.object({
+  askId: z.string().trim().min(1),
+  note: z.string().trim().optional(),
+});

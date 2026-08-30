@@ -1,5 +1,7 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
+import { PendingHitlError, ThreadBusyError } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
+import type { Middleware } from '../domain/middleware.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
@@ -8,10 +10,8 @@ import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { AgentRun, SendInput, SessionEvent, SessionHandle } from '../ports/session.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import { PendingHitlError, ThreadBusyError } from '../domain/errors.ts';
-import type { Middleware } from '../domain/middleware.ts';
 import { compile } from './compile.ts';
-import { startGraph, type GraphOpts } from './graph.ts';
+import { type GraphOpts, startGraph } from './graph.ts';
 import { resolvePaths } from './paths.ts';
 import { resolvePermissions } from './permissions.ts';
 
@@ -30,7 +30,9 @@ export type RuntimeContext = {
 type SessionStatus = 'idle' | 'running' | 'needs_input' | 'completed' | 'failed' | 'cancelled';
 
 function normalizeInput(input: SendInput): unknown {
-  if (typeof input === 'string') return { text: input };
+  if (typeof input === 'string') {
+    return { text: input };
+  }
   return input;
 }
 
@@ -83,9 +85,13 @@ export function createSession(
   let pendingAsk: { askId: string; schema: JsonSchema } | null = null;
 
   const resolveAgent = (): AgentDefinition => {
-    if (typeof agent !== 'string') return agent;
+    if (typeof agent !== 'string') {
+      return agent;
+    }
     const resolved = ctx.agents.resolve(agent);
-    if (!resolved) throw new Error(`agent "${agent}" not found`);
+    if (!resolved) {
+      throw new Error(`agent "${agent}" not found`);
+    }
     return resolved;
   };
 
@@ -121,11 +127,7 @@ export function createSession(
       opts.permissions,
       ctx.permissions,
     );
-    const effectivePaths = resolvePaths(
-      def.paths,
-      ctx.paths,
-      runOpts?.paths ?? opts.paths,
-    );
+    const effectivePaths = resolvePaths(def.paths, ctx.paths, runOpts?.paths ?? opts.paths);
 
     const graphOpts: GraphOpts = {
       agent: def,
@@ -162,9 +164,10 @@ export function createSession(
           status = 'completed';
           const st = snap?.state as Record<string, unknown> | undefined;
           const msgs = st?.messages;
-          const lastText = Array.isArray(msgs) && msgs.length > 0
-            ? String((msgs[msgs.length - 1] as Record<string, unknown>)?.content ?? '')
-            : '';
+          const lastText =
+            Array.isArray(msgs) && msgs.length > 0
+              ? String((msgs[msgs.length - 1] as Record<string, unknown>)?.content ?? '')
+              : '';
           resolveOutput({ text: lastText });
         } else if (finalStatus === 'needs_input') {
           // already set
@@ -181,7 +184,9 @@ export function createSession(
     const consumePromise = consume().catch(() => {});
 
     respondFn = async (askId: string, payload: unknown): Promise<void> => {
-      if (!pendingAsk || pendingAsk.askId !== askId) return;
+      if (!pendingAsk || pendingAsk.askId !== askId) {
+        return;
+      }
       pendingAsk = null;
       status = 'running';
       await consumePromise;
@@ -210,7 +215,9 @@ export function createSession(
     };
 
     rejectFn = async (askId: string, rejectOpts?: { note?: string }): Promise<void> => {
-      if (!pendingAsk || pendingAsk.askId !== askId) return;
+      if (!pendingAsk || pendingAsk.askId !== askId) {
+        return;
+      }
       pendingAsk = null;
       status = 'failed';
       resolveOutput({ text: rejectOpts?.note ?? '' });
@@ -232,11 +239,7 @@ export function createSession(
           if (idx < events.length) {
             yield events[idx] as SessionEvent;
             idx += 1;
-          } else if (
-            status === 'completed' ||
-            status === 'failed' ||
-            status === 'cancelled'
-          ) {
+          } else if (status === 'completed' || status === 'failed' || status === 'cancelled') {
             break;
           } else {
             await new Promise((r) => setTimeout(r, 10));
@@ -264,7 +267,12 @@ export function createSession(
         sessionId: crypto.randomUUID(),
         load: async () => null,
         commit: async () => {},
-        child: () => ({ sessionId: '', load: async () => null, commit: async () => {}, child: () => null as never }),
+        child: () => ({
+          sessionId: '',
+          load: async () => null,
+          commit: async () => {},
+          child: () => null as never,
+        }),
       };
       return createRun(state, input, sendOpts);
     },
@@ -276,7 +284,12 @@ export function createSession(
         sessionId: crypto.randomUUID(),
         load: async () => null,
         commit: async () => {},
-        child: () => ({ sessionId: '', load: async () => null, commit: async () => {}, child: () => null as never }),
+        child: () => ({
+          sessionId: '',
+          load: async () => null,
+          commit: async () => {},
+          child: () => null as never,
+        }),
       };
       return createRun(state, null, resumeOpts);
     },

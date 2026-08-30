@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpIcon, SquareIcon, TriangleAlertIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { rollupUsage } from '@/entities/session';
-import { useSessionStore } from '@/entities/session';
 import { useScheduleStore } from '@/entities/schedule';
+import { rollupUsage, useSessionStore } from '@/entities/session';
 import { useSelectedAgent, useSelectedThread, useThreadEvents } from '@/features/desk';
 import { ModelSelect } from '@/features/manage-agent';
 import { pendingHitl } from '@/features/send-message';

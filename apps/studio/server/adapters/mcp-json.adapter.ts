@@ -1,20 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { McpServerConfig, McpTransport } from 'harnesys';
+import type { McpServerConfig, McpTransport, StdioEntry, UrlEntry } from 'harnesys';
 import { z } from 'zod';
 import type { UpsertWorkspaceMcpServerRequest, WorkspaceMcpTransport } from '../../shared/types.ts';
 import { ValidationError } from '../domain/studio.error.ts';
 import { studioDir } from './store/studio-layout.ts';
-
-export type WorkspaceMcpJsonEntry = {
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  url?: string;
-  type?: string;
-  headers?: Record<string, string>;
-  enabled?: boolean;
-};
 
 const mcpEntrySchema = z
   .object({
@@ -39,7 +29,7 @@ function mcpJsonPath(workspacePath: string): string {
 }
 
 /** Read `<workspace>/.studio/mcp.json` including disabled entries. */
-export function readWorkspaceMcpJson(workspacePath: string): Record<string, WorkspaceMcpJsonEntry> {
+export function readWorkspaceMcpJson(workspacePath: string): Record<string, StdioEntry | UrlEntry> {
   const path = mcpJsonPath(workspacePath);
   if (!existsSync(path)) {
     return {};
@@ -59,13 +49,13 @@ export function readWorkspaceMcpJson(workspacePath: string): Record<string, Work
     throw new ValidationError(`Invalid .studio/mcp.json: ${result.error.message}`);
   }
 
-  return result.data.mcpServers;
+  return result.data.mcpServers as Record<string, StdioEntry | UrlEntry>;
 }
 
 /** Write `<workspace>/.studio/mcp.json` (2-space pretty JSON). */
 export function writeWorkspaceMcpJson(
   workspacePath: string,
-  mcpServers: Record<string, WorkspaceMcpJsonEntry>,
+  mcpServers: Record<string, StdioEntry | UrlEntry>,
 ): void {
   mkdirSync(studioDir(workspacePath), { recursive: true });
   writeFileSync(mcpJsonPath(workspacePath), `${JSON.stringify({ mcpServers }, null, 2)}\n`, 'utf8');
@@ -84,7 +74,7 @@ export function loadWorkspaceMcpServers(workspacePath: string): McpServerConfig[
   return out;
 }
 
-export function mcpEntryToFields(entry: WorkspaceMcpJsonEntry): {
+export function mcpEntryToFields(entry: StdioEntry | UrlEntry): {
   enabled: boolean;
   transport: WorkspaceMcpTransport;
   command?: string;
@@ -94,7 +84,7 @@ export function mcpEntryToFields(entry: WorkspaceMcpJsonEntry): {
   headers?: Record<string, string>;
 } {
   const enabled = entry.enabled !== false;
-  if (entry.command !== undefined) {
+  if ('command' in entry) {
     return {
       enabled,
       transport: 'stdio',
@@ -102,9 +92,6 @@ export function mcpEntryToFields(entry: WorkspaceMcpJsonEntry): {
       ...(entry.args !== undefined ? { args: entry.args } : {}),
       ...(entry.env !== undefined ? { env: entry.env } : {}),
     };
-  }
-  if (entry.url === undefined) {
-    throw new ValidationError('MCP server entry requires command or url');
   }
   const transport: WorkspaceMcpTransport = entry.type === 'sse' ? 'sse' : 'http';
   return {
@@ -115,7 +102,7 @@ export function mcpEntryToFields(entry: WorkspaceMcpJsonEntry): {
   };
 }
 
-export function fieldsToMcpEntry(fields: UpsertWorkspaceMcpServerRequest): WorkspaceMcpJsonEntry {
+export function fieldsToMcpEntry(fields: UpsertWorkspaceMcpServerRequest): StdioEntry | UrlEntry {
   const enabled = fields.enabled !== false;
   if (fields.transport === 'stdio') {
     if (fields.command === undefined || fields.command.length === 0) {
@@ -139,17 +126,14 @@ export function fieldsToMcpEntry(fields: UpsertWorkspaceMcpServerRequest): Works
   };
 }
 
-function toTransport(entry: WorkspaceMcpJsonEntry): McpTransport {
-  if (entry.command !== undefined) {
+function toTransport(entry: StdioEntry | UrlEntry): McpTransport {
+  if ('command' in entry) {
     return {
       type: 'stdio',
       command: entry.command,
       ...(entry.args !== undefined ? { args: entry.args } : {}),
       ...(entry.env !== undefined ? { env: entry.env } : {}),
     };
-  }
-  if (entry.url === undefined) {
-    throw new Error('MCP server entry requires command or url');
   }
   if (entry.type === 'sse') {
     return {

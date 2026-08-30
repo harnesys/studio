@@ -49,14 +49,24 @@ export class AiSdkMcpConnection implements McpConnection {
         uri: item.uri,
         name: item.name,
       };
-      if (item.title !== undefined) resource.title = item.title;
-      if (item.description !== undefined) resource.description = item.description;
-      if (item.mimeType !== undefined) resource.mimeType = item.mimeType;
-      if (item.size !== undefined) resource.size = item.size;
+      if (item.title !== undefined) {
+        resource.title = item.title;
+      }
+      if (item.description !== undefined) {
+        resource.description = item.description;
+      }
+      if (item.mimeType !== undefined) {
+        resource.mimeType = item.mimeType;
+      }
+      if (item.size !== undefined) {
+        resource.size = item.size;
+      }
       resources.push(resource);
     }
     const page: ListResourcesPage = { resources };
-    if (listed.nextCursor !== undefined) page.nextCursor = listed.nextCursor;
+    if (listed.nextCursor !== undefined) {
+      page.nextCursor = listed.nextCursor;
+    }
     return page;
   }
 
@@ -99,9 +109,15 @@ function assignResourceMeta(
   content: RawResourceContent,
   item: { name?: string; title?: string; mimeType?: string },
 ): void {
-  if (item.name !== undefined) content.name = item.name;
-  if (item.title !== undefined) content.title = item.title;
-  if (item.mimeType !== undefined) content.mimeType = item.mimeType;
+  if (item.name !== undefined) {
+    content.name = item.name;
+  }
+  if (item.title !== undefined) {
+    content.title = item.title;
+  }
+  if (item.mimeType !== undefined) {
+    content.mimeType = item.mimeType;
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -109,11 +125,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function toInputSchema(value: unknown): Record<string, unknown> {
-  if (!isRecord(value)) return { type: 'object' };
+  if (!isRecord(value)) {
+    return { type: 'object' };
+  }
   return value;
 }
 
 function toCallArguments(input: unknown): Record<string, unknown> {
-  if (!isRecord(input)) return {};
+  if (!isRecord(input)) {
+    return {};
+  }
   return { ...input };
 }

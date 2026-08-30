@@ -1,5 +1,4 @@
 import { type ToolDefinition, tool } from 'harnesys';
-import { z } from 'zod';
 import type { PermissionMode, ScheduleHistory } from '../../../shared/types.ts';
 import { requireHostToolScope } from '../../adapters/host-tool-scope.ts';
 import type { CreateScheduleInput } from '../schedules/create-schedule.use-case.ts';
@@ -50,7 +49,7 @@ export function createScheduleTools(deps: ScheduleToolsDeps): ToolDefinition[] {
     tool('schedule_list', {
       group: 'schedules',
       description: 'List cron schedules in this workspace.',
-      input: z.object({}),
+      input: { type: 'object' },
       execute: async () =>
         runHostTool(async () => {
           const scope = requireHostToolScope();
@@ -75,7 +74,7 @@ export function createScheduleTools(deps: ScheduleToolsDeps): ToolDefinition[] {
       group: 'schedules',
       description:
         'List threads in this workspace. Use the id with schedule_set threadId to wake that conversation. current=true is THIS chat. hasSchedule=true already has a cron (one schedule per thread).',
-      input: z.object({}),
+      input: { type: 'object' },
       execute: async () =>
         runHostTool(async () => {
           const scope = requireHostToolScope();
@@ -99,10 +98,14 @@ export function createScheduleTools(deps: ScheduleToolsDeps): ToolDefinition[] {
       group: 'schedules',
       description:
         'Read the last fire run(s) from this schedule thread journal (human detail, agent texts, tools, errors). last defaults to 1, max 99.',
-      input: z.object({
-        id: z.string(),
-        last: z.number().int().min(1).max(99).optional(),
-      }),
+      input: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          last: { type: 'integer', minimum: 1, maximum: 99 },
+        },
+        required: ['id'],
+      },
       execute: async (raw) =>
         runHostTool(async () => {
           const scope = requireHostToolScope();
@@ -118,17 +121,20 @@ export function createScheduleTools(deps: ScheduleToolsDeps): ToolDefinition[] {
       group: 'schedules',
       description:
         'Create a cron schedule, or update it when id is set. Defaults to this agent as target. threadId chooses WHERE the fire lands: omit = new dedicated schedule thread (isolated cron log); "self" = THIS chat (wake yourself here); uuid from thread_list = that existing conversation. Thread agent must match targetAgentId. One schedule per thread. history=none|last|all folds prior fires only on dedicated schedule threads; historyLast is how many when history=last (1–99).',
-      input: z.object({
-        id: z.string().optional(),
-        name: z.string().optional(),
-        cron: z.string().optional(),
-        detail: z.string().optional(),
-        targetAgentId: z.string().optional(),
-        mode: z.enum(['ask', 'auto', 'dont_ask', 'bypass']).optional(),
-        history: z.enum(['none', 'last', 'all']).optional(),
-        historyLast: z.number().int().min(1).max(99).optional(),
-        threadId: z.union([z.literal('self'), z.string().uuid()]).optional(),
-      }),
+      input: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          cron: { type: 'string' },
+          detail: { type: 'string' },
+          targetAgentId: { type: 'string' },
+          mode: { type: 'string', enum: ['ask', 'auto', 'dont_ask', 'bypass'] },
+          history: { type: 'string', enum: ['none', 'last', 'all'] },
+          historyLast: { type: 'integer', minimum: 1, maximum: 99 },
+          threadId: { type: 'string' },
+        },
+      },
       execute: async (raw) =>
         runHostTool(async () => {
           const scope = requireHostToolScope();
@@ -174,10 +180,14 @@ export function createScheduleTools(deps: ScheduleToolsDeps): ToolDefinition[] {
     tool('schedule_pause', {
       group: 'schedules',
       description: 'Pause or resume a schedule by id.',
-      input: z.object({
-        id: z.string(),
-        paused: z.boolean(),
-      }),
+      input: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          paused: { type: 'boolean' },
+        },
+        required: ['id', 'paused'],
+      },
       execute: async (raw) =>
         runHostTool(async () => {
           const scope = requireHostToolScope();
@@ -192,7 +202,7 @@ export function createScheduleTools(deps: ScheduleToolsDeps): ToolDefinition[] {
     tool('schedule_delete', {
       group: 'schedules',
       description: 'Delete a schedule by id.',
-      input: z.object({ id: z.string() }),
+      input: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
       execute: async (raw) =>
         runHostTool(async () => {
           const scope = requireHostToolScope();

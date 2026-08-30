@@ -29,7 +29,7 @@ export class ReloadWorkspaceSkillsUseCase implements ReloadWorkspaceSkillsInput 
     await this.workspaceHarnesys.invalidate(workspace.id);
     const hx = await this.workspaceHarnesys.get(workspace);
     return {
-      skills: hx.listSkills().map((skill) => ({
+      skills: (await hx.skills.list()).map((skill) => ({
         name: skill.name,
         description: skill.description,
         whenToUse: skill.whenToUse,

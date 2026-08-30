@@ -1,5 +1,4 @@
 import { type ToolDefinition, tool } from 'harnesys';
-import { z } from 'zod';
 import { requireHostToolScope } from '../../adapters/host-tool-scope.ts';
 import type { WebhookStatus } from '../../domain/webhook.port.ts';
 import type { CreateWebhookInput } from '../webhooks/create-webhook.use-case.ts';
@@ -32,7 +31,7 @@ export function createWebhookTools(deps: WebhookToolsDeps): ToolDefinition[] {
     tool('webhook_list', {
       group: 'webhooks',
       description: 'List inbound webhooks in this workspace.',
-      input: z.object({}),
+      input: { type: 'object' },
       execute: async () =>
         runHostTool(async () => {
           const scope = requireHostToolScope();
@@ -52,13 +51,16 @@ export function createWebhookTools(deps: WebhookToolsDeps): ToolDefinition[] {
       group: 'webhooks',
       description:
         'Create a webhook, or update it when id is set. Defaults to this agent as target.',
-      input: z.object({
-        id: z.string().optional(),
-        name: z.string().optional(),
-        detail: z.string().optional(),
-        targetAgentId: z.string().optional(),
-        status: z.enum(['active', 'paused', 'failed']).optional(),
-      }),
+      input: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          detail: { type: 'string' },
+          targetAgentId: { type: 'string' },
+          status: { type: 'string', enum: ['active', 'paused', 'failed'] },
+        },
+      },
       execute: async (raw) =>
         runHostTool(async () => {
           const scope = requireHostToolScope();
@@ -87,7 +89,7 @@ export function createWebhookTools(deps: WebhookToolsDeps): ToolDefinition[] {
     tool('webhook_delete', {
       group: 'webhooks',
       description: 'Delete a webhook by id.',
-      input: z.object({ id: z.string() }),
+      input: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
       execute: async (raw) =>
         runHostTool(async () => {
           const scope = requireHostToolScope();

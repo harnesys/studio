@@ -1,9 +1,8 @@
 import { eq } from 'drizzle-orm';
 import type { Event } from 'harnesys';
-import { EVENT_TYPES } from 'harnesys';
+import type { ScheduleHistory } from '../../../shared/types.ts';
 import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import { eventsTable } from '../../adapters/store/sqlite/schema/events.ts';
-import type { ScheduleHistory } from '../../../shared/types.ts';
 
 export function loadThreadEvents(db: StudioDb, threadId: string): Event[] {
   const rows = db

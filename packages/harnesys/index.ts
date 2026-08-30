@@ -69,7 +69,7 @@ export { DEFAULT_PERMISSIONS, resolveToolPermission } from './src/ports/permissi
 export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
 export type { PathsConfig } from './src/ports/paths.ts';
 export type { SkillRegistry } from './src/ports/skills.ts';
-export type { CursorMcpJson, StdioEntry, UrlEntry } from './src/ports/mcp.ts';
+export type { CursorMcpJson, McpServerInfo, McpServerToolInfo, StdioEntry, UrlEntry } from './src/ports/mcp.ts';
 export type { ArtifactStore, SendFile } from './src/ports/artifacts.ts';
 export type { AgentRun, SendInput, SessionEvent, SessionHandle } from './src/ports/session.ts';
 export { createRuntime } from './src/application/create-runtime.ts';

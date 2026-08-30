@@ -1,4 +1,5 @@
 // biome-ignore-all lint/suspicious/noConfusingVoidType: McpRegistry host port uses void|Promise<void> verbatim
+import type { McpResourceInfo } from '../domain/mcp.ts';
 import type { ToolDefinition } from './tools.ts';
 
 export type StdioEntry = {
@@ -19,12 +20,25 @@ export type CursorMcpJson = {
   mcpServers: Record<string, StdioEntry | UrlEntry>;
 };
 
+export type McpServerToolInfo = {
+  name: string;
+  description: string;
+};
+
+export type McpServerInfo = {
+  serverId: string;
+  transport: string;
+  connected: boolean;
+  tools: McpServerToolInfo[];
+  resources: McpResourceInfo[];
+};
+
 export type McpRegistry = {
   loadJson(json: CursorMcpJson): void | Promise<void>;
   enable(id: string): void | Promise<void>;
   disable(id: string): void | Promise<void>;
   reload(id?: string): void | Promise<void>;
-  list(): string[] | Promise<string[]>;
+  list(): McpServerInfo[] | Promise<McpServerInfo[]>;
   tools(): ToolDefinition[] | Promise<ToolDefinition[]>;
   closeAll(): void | Promise<void>;
 };

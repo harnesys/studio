@@ -1,8 +1,4 @@
-import {
-  ModelLookupError,
-  PendingHitlError,
-  ThreadBusyError,
-} from 'harnesys';
+import { ModelLookupError, PendingHitlError, ThreadBusyError } from 'harnesys';
 import type { ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
@@ -48,10 +44,7 @@ function toStudioError(err: unknown): { status: ContentfulStatusCode; error: str
   if (err instanceof GitTimeoutError) {
     return { status: 504, error: err.message };
   }
-  if (
-    err instanceof ModelLookupError ||
-    err instanceof PendingHitlError
-  ) {
+  if (err instanceof ModelLookupError || err instanceof PendingHitlError) {
     return { status: 400, error: err.message };
   }
   if (err instanceof HTTPException) {

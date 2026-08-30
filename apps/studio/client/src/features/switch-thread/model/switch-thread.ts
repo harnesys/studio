@@ -46,7 +46,7 @@ export async function openNewThread(agentId: string, workspaceId: string): Promi
 }
 
 export function branchThread(
-  entryId: string,
+  _entryId: string,
   agentId: string,
   currentThreadId: string,
 ): string | null {

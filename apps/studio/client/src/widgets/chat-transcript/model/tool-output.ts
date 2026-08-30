@@ -41,13 +41,17 @@ export { detectLanguage, toolMeta } from './tool-detail-types';
 
 function toolInput(call: SessionEvent & { type: 'tool' }): string {
   const input = call.input;
-  if (input == null) return '';
+  if (input == null) {
+    return '';
+  }
   return typeof input === 'string' ? input : JSON.stringify(input);
 }
 
 function toolOutput(result: SessionEvent & { type: 'tool' }): string {
   const output = result.output;
-  if (output == null) return '';
+  if (output == null) {
+    return '';
+  }
   return typeof output === 'string' ? output : JSON.stringify(output);
 }
 

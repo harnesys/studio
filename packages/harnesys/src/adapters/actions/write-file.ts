@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { tool } from '../../ports/tools.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
+import { tool } from '../../ports/tools.ts';
 import { DEFAULT_PATH_BLOCKLIST } from './constants.ts';
 import type { FilesOptions } from './files-options.ts';
 import { firstBlockingPattern } from './path-blocklist.ts';
@@ -27,10 +27,14 @@ export function writeFileTool(options: FilesOptions = {}): ToolDefinition {
       const parsed = input as { path: string; content: string; overwrite?: boolean };
       const absolute = resolveWorkdirPath(ctx.cwd, parsed.path, options.root);
       const blocking = firstBlockingPattern(absolute, blocklist);
-      if (blocking) throw new Error(`Path is blocked (${blocking}): ${parsed.path}`);
+      if (blocking) {
+        throw new Error(`Path is blocked (${blocking}): ${parsed.path}`);
+      }
       const file = Bun.file(absolute);
       const exists = await file.exists();
-      if (exists && parsed.overwrite === false) throw new Error(`File exists and overwrite is false: ${parsed.path}`);
+      if (exists && parsed.overwrite === false) {
+        throw new Error(`File exists and overwrite is false: ${parsed.path}`);
+      }
       await mkdir(path.dirname(absolute), { recursive: true });
       await Bun.write(absolute, parsed.content);
       return { path: parsed.path, bytes: parsed.content.length, created: !exists };

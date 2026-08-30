@@ -21,15 +21,13 @@ export class SqliteRuntimeState implements RuntimeState {
       .from(snapshotsTable)
       .where(eq(snapshotsTable.sessionId, this.sessionId))
       .get();
-    if (!row) return null;
+    if (!row) {
+      return null;
+    }
     return JSON.parse(row.snapshot) as Snapshot;
   }
 
-  async commit(
-    snapshot: Snapshot,
-    events: readonly Event[],
-    meta: CommitMeta,
-  ): Promise<void> {
+  async commit(snapshot: Snapshot, events: readonly Event[], meta: CommitMeta): Promise<void> {
     const now = new Date().toISOString();
     this.db
       .insert(snapshotsTable)

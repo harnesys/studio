@@ -1,5 +1,6 @@
 import Ajv from 'ajv';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
+import { AskUserInterrupt } from '../domain/errors.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
@@ -12,7 +13,6 @@ import { evalExpr, evalWhen } from './expr-eval.ts';
 import { applyReducer, findBind, isPort, type MergeStateFn } from './graph-helpers.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
 import { runLlmGenerate } from './llm.ts';
-import { AskUserInterrupt } from '../domain/errors.ts';
 import { executeToolCall } from './tool-call.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
@@ -89,15 +89,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
 
     if (interrupt?.resumeSchema && opts.resumePayload !== undefined) {
       const ajv = new Ajv();
-      const valid = ajv.validate(
-        interrupt.resumeSchema as object,
-        opts.resumePayload,
-      );
+      const valid = ajv.validate(interrupt.resumeSchema as object, opts.resumePayload);
       if (!valid) {
-        throw Object.assign(
-          new Error(`resume payload validation failed: ${ajv.errorsText()}`),
-          { code: 'resume_validation_failed' },
-        );
+        throw Object.assign(new Error(`resume payload validation failed: ${ajv.errorsText()}`), {
+          code: 'resume_validation_failed',
+        });
       }
     }
 
@@ -375,7 +371,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
       continue;
     } else if (node.type === 'control:interrupt') {
-      const ir = node as { type: 'control:interrupt'; reason: string; resumeSchema: import('../domain/json-schema.ts').JsonSchema };
+      const ir = node as {
+        type: 'control:interrupt';
+        reason: string;
+        resumeSchema: import('../domain/json-schema.ts').JsonSchema;
+      };
       const interruptId = crypto.randomUUID();
       st.$resume = null;
       const snap = mkSnap(ctx(), 'needs_input');

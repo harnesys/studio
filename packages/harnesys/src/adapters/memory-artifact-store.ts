@@ -6,7 +6,10 @@ export class MemoryArtifactStore implements ArtifactStore {
   put(input: SendFile): { uri: string } {
     const uri = `mem://${crypto.randomUUID()}`;
     if ('path' in input) {
-      this.store.set(uri, { bytes: new TextEncoder().encode(input.path), mediaType: input.mediaType });
+      this.store.set(uri, {
+        bytes: new TextEncoder().encode(input.path),
+        mediaType: input.mediaType,
+      });
     } else {
       this.store.set(uri, { bytes: input.bytes, mediaType: input.mediaType });
     }

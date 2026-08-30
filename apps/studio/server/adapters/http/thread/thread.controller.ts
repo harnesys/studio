@@ -1,6 +1,6 @@
+import type { SessionEvent } from 'harnesys';
 import type { Context, Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import type { SessionEvent } from 'harnesys';
 import type { GetThreadPlanInput } from '../../../application/plans/get-thread-plan.use-case.ts';
 import type { CancelRunInput } from '../../../application/threads/cancel-run.use-case.ts';
 import type { CompactThreadInput } from '../../../application/threads/compact-thread.use-case.ts';
@@ -12,13 +12,20 @@ import type { GetThreadAttachmentInput } from '../../../application/threads/get-
 import type { ListThreadPendingAttachmentsInput } from '../../../application/threads/list-thread-pending-attachments.use-case.ts';
 import type { ListThreadsInput } from '../../../application/threads/list-threads.use-case.ts';
 import type { MarkThreadReadInput } from '../../../application/threads/mark-thread-read.use-case.ts';
+import type { RespondRunInput } from '../../../application/threads/respond-run.use-case.ts';
 import type { ResumeThreadRunInput } from '../../../application/threads/resume-thread-run.use-case.ts';
 import type { SendThreadRunInput } from '../../../application/threads/send-thread-run.use-case.ts';
 import type { StreamRunEventsInput } from '../../../application/threads/stream-run-events.use-case.ts';
 import type { UpdateThreadInput } from '../../../application/threads/update-thread.use-case.ts';
 import { SSE_KEEP_ALIVE_MS } from '../../../config/constants.ts';
 import { preview, trace } from '../../../trace.ts';
-import { createThreadBody, sendThreadRunBody, updateThreadBody } from './thread.body.ts';
+import {
+  createThreadBody,
+  rejectRunBody,
+  respondRunBody,
+  sendThreadRunBody,
+  updateThreadBody,
+} from './thread.body.ts';
 
 export type ThreadControllerDeps = {
   listThreads: ListThreadsInput;
@@ -30,6 +37,7 @@ export type ThreadControllerDeps = {
   sendThreadRun: SendThreadRunInput;
   compactThread: CompactThreadInput;
   resumeThreadRun: ResumeThreadRunInput;
+  respondRun: RespondRunInput;
   streamRunEvents: StreamRunEventsInput;
   cancelRun: CancelRunInput;
   createThreadAttachment: CreateThreadAttachmentInput;
@@ -151,6 +159,20 @@ export class ThreadController {
     app.post('/api/runs/:id/cancel', async (c) => {
       const runId = c.req.param('id');
       await this.deps.cancelRun.execute({ runId });
+      return c.json({ ok: true });
+    });
+
+    app.post('/api/runs/:id/respond', async (c) => {
+      const runId = c.req.param('id');
+      const body = respondRunBody.parse(await c.req.json());
+      await this.deps.respondRun.respond({ runId, askId: body.askId, payload: body.payload });
+      return c.json({ ok: true });
+    });
+
+    app.post('/api/runs/:id/reject', async (c) => {
+      const runId = c.req.param('id');
+      const body = rejectRunBody.parse(await c.req.json());
+      await this.deps.respondRun.reject({ runId, askId: body.askId, note: body.note });
       return c.json({ ok: true });
     });
 

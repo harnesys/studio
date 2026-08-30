@@ -1,19 +1,9 @@
-import {
-  type AgentRun,
-  type SendFile,
-  type SendInput,
-  type SessionHandle,
-} from 'harnesys';
+import type { SendFile, SendInput } from 'harnesys';
 import type { AcceptedRunResponse, ThreadPlanRecord } from '../../../shared/types.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
-import {
-  isRunMode,
-  type PermissionMode,
-  type RunMode,
-  toolPermissionFor,
-} from '../../adapters/tool-confirm-policy.ts';
+import { isRunMode, permissionMapFor, type RunMode } from '../../adapters/tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
@@ -116,7 +106,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
 
     const input = buildSendInput(request, this.attachments, request.threadId);
     const runMode = resolveRunMode(request.mode);
-    const mode = toPermissionMode(runMode);
     input.text = await this.decorateText(request.threadId, runMode, input.text);
     return await runInHostToolScope(
       { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
@@ -127,9 +116,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
         const controller = new AbortController();
         const run = handle.send(input, {
           signal: controller.signal,
-          toolPermission: toolPermissionFor(runMode),
-          permissionMode: mode,
-          foldHistory: request.foldHistory,
+          permissions: permissionMapFor(runMode),
         });
         this.activeRuns.register(run.id, thread.id, run, controller);
 
@@ -190,11 +177,6 @@ function resolveRunMode(mode: RunMode | undefined): RunMode {
     return mode;
   }
   return 'ask';
-}
-
-/** Plan never reaches the run snapshot: the library sees a runnable permission mode. */
-function toPermissionMode(mode: RunMode): PermissionMode {
-  return mode === 'plan' ? 'ask' : mode;
 }
 
 type SendInputObject = Exclude<SendInput, string>;

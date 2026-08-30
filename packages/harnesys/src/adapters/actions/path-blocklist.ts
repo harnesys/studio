@@ -21,17 +21,23 @@ export function firstBlockingPattern(
 ): string | undefined {
   const normalized = path.resolve(absolutePath);
   for (const pattern of blocklist) {
-    if (matchesPattern(normalized, pattern)) return pattern;
+    if (matchesPattern(normalized, pattern)) {
+      return pattern;
+    }
   }
   return undefined;
 }
 
 function matchesPattern(absolutePath: string, pattern: string): boolean {
   const trimmed = pattern.trim();
-  if (trimmed.length === 0) return false;
+  if (trimmed.length === 0) {
+    return false;
+  }
   const hasMagic = trimmed.includes('*') || trimmed.includes('?') || trimmed.includes('[');
   const hasSlash = trimmed.includes('/');
-  if (!hasMagic && !hasSlash) return absolutePath.split('/').includes(trimmed);
+  if (!hasMagic && !hasSlash) {
+    return absolutePath.split('/').includes(trimmed);
+  }
   const relative = absolutePath.startsWith('/') ? absolutePath.slice(1) : absolutePath;
   return new Bun.Glob(trimmed).match(relative);
 }

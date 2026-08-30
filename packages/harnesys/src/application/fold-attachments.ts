@@ -12,16 +12,28 @@ const AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg'];
 
 function classify(mediaType?: string): 'image' | 'audio' | 'video' | 'file' {
-  if (!mediaType) return 'file';
-  if (IMAGE_TYPES.includes(mediaType)) return 'image';
-  if (AUDIO_TYPES.includes(mediaType)) return 'audio';
-  if (VIDEO_TYPES.includes(mediaType)) return 'video';
+  if (!mediaType) {
+    return 'file';
+  }
+  if (IMAGE_TYPES.includes(mediaType)) {
+    return 'image';
+  }
+  if (AUDIO_TYPES.includes(mediaType)) {
+    return 'audio';
+  }
+  if (VIDEO_TYPES.includes(mediaType)) {
+    return 'video';
+  }
   return 'file';
 }
 
 export async function foldAttachments(
   files: SendFile[],
-  readFn: (uri: string) => Promise<{ bytes: Uint8Array; mediaType?: string }> | { bytes: Uint8Array; mediaType?: string },
+  readFn: (
+    uri: string,
+  ) =>
+    | Promise<{ bytes: Uint8Array; mediaType?: string }>
+    | { bytes: Uint8Array; mediaType?: string },
 ): Promise<FoldResult[]> {
   const results: FoldResult[] = [];
   for (const file of files) {

@@ -31,21 +31,15 @@ export {
 } from './catalog.ts';
 
 import type {
+  McpResourceInfo as WorkspaceMcpResource,
+  ToolCatalogEntry as WorkspaceTool,
+} from 'harnesys';
+import type {
   AgentGenerationSettings,
   AgentMemoryConfig,
   PortRef,
   ToolOutputSettings,
 } from './harnesys-bridge.ts';
-import type {
-  McpResourceInfo as WorkspaceMcpResource,
-  ToolCatalogEntry as WorkspaceTool,
-  KnowledgeHit,
-  MemoryRecord,
-  MemoryRecordSource,
-  PinRecord,
-  PinSource,
-  SemanticScope,
-} from 'harnesys';
 import type { ThreadPlanRecord } from './plan-types.ts';
 
 import type { ThreadRecord as ThreadRecordType } from './thread.ts';
@@ -61,6 +55,21 @@ export type {
   ToolCatalogEntry as WorkspaceTool,
 } from 'harnesys';
 export { defaultAgentCompaction, defaultAgentMemory } from './agent-runtime-defaults.ts';
+export type {
+  AgentGenerationSettings,
+  AgentMemoryConfig,
+  AgentProjectPaths,
+  PortRef,
+  ToolOutputSettings,
+} from './harnesys-bridge.ts';
+export {
+  DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
+  DEFAULT_TOOL_OUTPUT_MAX_CHARS,
+  DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
+  filterGenerationSettings,
+  THRESHOLD_SUMMARY_NAME,
+  withChatGenerationParameters,
+} from './harnesys-bridge.ts';
 export type {
   KnowledgeFileRecord,
   KnowledgeFileStatus,
@@ -85,9 +94,9 @@ export {
 export type {
   AcceptedRunResponse,
   CompactThreadResponse,
-  Snapshot,
   Event,
   SessionEvent,
+  Snapshot,
   ThreadKind,
   ThreadRecord,
   ThreadSummary,
@@ -95,16 +104,6 @@ export type {
 export { THREAD_KINDS } from './thread.ts';
 export type { TranscriptItem } from './transcript.ts';
 export { toTranscript } from './transcript.ts';
-export type { AgentGenerationSettings, AgentMemoryConfig, AgentProjectPaths, PortRef, ToolOutputSettings } from './harnesys-bridge.ts';
-export {
-  DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
-  DEFAULT_TOOL_OUTPUT_MAX_CHARS,
-  DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
-  filterGenerationSettings,
-  THRESHOLD_SUMMARY_NAME,
-  withChatGenerationParameters,
-} from './harnesys-bridge.ts';
-export type { AgentProjectPaths } from './harnesys-bridge.ts';
 
 export type AgentRecord = {
   id: string;
@@ -126,6 +125,16 @@ export type AgentRecord = {
   tools?: string[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type AttachmentKind = 'image' | 'audio' | 'video' | 'file';
+
+export type ThreadAttachment = {
+  id: string;
+  kind: AttachmentKind;
+  name: string;
+  mediaType: string;
+  path: string;
 };
 
 export const SCHEDULE_STATUSES = ['active', 'paused', 'failed'] as const;

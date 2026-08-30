@@ -22,7 +22,9 @@ export async function followLiveThread(threadId: string): Promise<void> {
   if (lastRunEvent.type === 'text-delta' || lastRunEvent.type === 'tool') {
     // Run is still streaming — attach drain
     const runId = store.runIdOf(threadId);
-    if (!runId) return;
+    if (!runId) {
+      return;
+    }
     const controller = new AbortController();
     store.startRun(threadId, controller, runId);
     await drainRunStream(threadId, runId, controller);
@@ -33,8 +35,12 @@ export async function followLiveThread(threadId: string): Promise<void> {
 function findLastRunEvent(events: SessionEvent[]): SessionEvent | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
     const ev = events[i]!;
-    if (ev.type === 'done' || ev.type === 'error') return undefined;
-    if (ev.type === 'text-delta' || ev.type === 'tool' || ev.type === 'ask') return ev;
+    if (ev.type === 'done' || ev.type === 'error') {
+      return undefined;
+    }
+    if (ev.type === 'text-delta' || ev.type === 'tool' || ev.type === 'ask') {
+      return ev;
+    }
   }
   return undefined;
 }

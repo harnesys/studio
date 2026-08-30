@@ -1,5 +1,5 @@
-import { useSessionStore } from '@/entities/session';
 import { useScheduleStore } from '@/entities/schedule';
+import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { deleteScheduleRecord } from '@/shared/api';
 

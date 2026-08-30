@@ -1,8 +1,8 @@
 import type { SessionEvent } from '@studio/shared';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/entities/agent';
-import { useSessionStore } from '@/entities/session';
 import { useScheduleStore } from '@/entities/schedule';
+import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { useWebhookStore } from '@/entities/webhook';
 import { useWorkspaces } from '@/entities/workspace';

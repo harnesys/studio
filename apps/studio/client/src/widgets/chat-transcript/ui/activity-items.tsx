@@ -1,13 +1,10 @@
 import type { SessionEvent } from '@studio/shared';
 
-import { usageFromGeneration } from '@/entities/session';
-
 import { chunkEvents } from '../model/tool-run-summary';
 import { ActivityRail } from './activity-rail';
 import { AskLine } from './ask-line';
 import { ThinkingLine } from './thinking-line';
 import { ToolRun } from './tool-run';
-import { StepStats } from './turn-stats';
 
 export function ActivityItems({
   events,

@@ -67,9 +67,13 @@ export class FsArtifactStore implements ArtifactStore {
 }
 
 function guessExt(mediaType?: string): string {
-  if (!mediaType) return '';
+  if (!mediaType) {
+    return '';
+  }
   for (const [ext, mime] of Object.entries(MIME_MAP)) {
-    if (mime === mediaType) return ext;
+    if (mime === mediaType) {
+      return ext;
+    }
   }
   return '';
 }

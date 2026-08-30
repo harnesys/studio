@@ -4,9 +4,7 @@ import type { SqliteRuntimeState } from './store/sqlite/repos/sqlite-runtime-sta
 export class ThreadRuntimeRegistry {
   private readonly threads = new Map<string, Promise<SessionHandle>>();
 
-  constructor(
-    private readonly stateFactory: { forState(threadId: string): SqliteRuntimeState },
-  ) {}
+  constructor(private readonly stateFactory: { forState(threadId: string): SqliteRuntimeState }) {}
 
   threadOf(
     threadId: string,
@@ -15,7 +13,9 @@ export class ThreadRuntimeRegistry {
     _cwd?: string,
   ): Promise<SessionHandle> {
     const cached = this.threads.get(threadId);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
 
     const pending = Promise.resolve().then(() => {
       const state = this.stateFactory.forState(threadId);

@@ -75,8 +75,12 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   finishRun(threadId, runId) {
     set((state) => {
       const active = state.activeRuns[threadId];
-      if (!active) return state;
-      if (runId && active.runId && active.runId !== runId) return state;
+      if (!active) {
+        return state;
+      }
+      if (runId && active.runId && active.runId !== runId) {
+        return state;
+      }
       const { [threadId]: _, ...rest } = state.activeRuns;
       return { activeRuns: rest };
     });
@@ -96,7 +100,9 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   setRunId(threadId, runId) {
     set((state) => {
       const active = state.activeRuns[threadId];
-      if (!active) return state;
+      if (!active) {
+        return state;
+      }
       return {
         activeRuns: {
           ...state.activeRuns,

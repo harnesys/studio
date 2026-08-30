@@ -8,7 +8,9 @@ export type ToolEventPair = {
 export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
   const pairs = new Map<string, ToolEventPair>();
   for (const ev of events) {
-    if (ev.type !== 'tool') continue;
+    if (ev.type !== 'tool') {
+      continue;
+    }
     const existing = pairs.get(ev.toolCallId);
     if (ev.phase === 'requested') {
       pairs.set(ev.toolCallId, { call: ev, result: existing?.result });
@@ -23,14 +25,20 @@ export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
 
 export function toolInput(pair: ToolEventPair): string {
   const input = pair.call.input;
-  if (input == null) return '';
+  if (input == null) {
+    return '';
+  }
   return typeof input === 'string' ? input : JSON.stringify(input);
 }
 
 export function toolOutput(pair: ToolEventPair): string {
-  if (!pair.result) return '';
+  if (!pair.result) {
+    return '';
+  }
   const output = pair.result.output;
-  if (output == null) return '';
+  if (output == null) {
+    return '';
+  }
   return typeof output === 'string' ? output : JSON.stringify(output);
 }
 

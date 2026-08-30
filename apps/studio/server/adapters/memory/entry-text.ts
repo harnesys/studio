@@ -7,9 +7,15 @@ export function eventIndexText(event: SessionEvent): string {
   }
   if (event.type === 'tool') {
     const parts: string[] = [];
-    if (event.name) parts.push(event.name);
-    if (event.input) parts.push(JSON.stringify(event.input));
-    if (event.output) parts.push(JSON.stringify(event.output));
+    if (event.name) {
+      parts.push(event.name);
+    }
+    if (event.input) {
+      parts.push(JSON.stringify(event.input));
+    }
+    if (event.output) {
+      parts.push(JSON.stringify(event.output));
+    }
     return parts.join(': ');
   }
   if (event.type === 'ask') {

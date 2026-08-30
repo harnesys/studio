@@ -1,5 +1,5 @@
 import type { ScheduleRepository } from '../../domain/schedule.port.ts';
-import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
 export type PeekScheduleRequest = {

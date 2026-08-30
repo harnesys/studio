@@ -28,7 +28,7 @@ export class ListWorkspaceSkillsUseCase implements ListWorkspaceSkillsInput {
     }
     const hx = await this.workspaceHarnesys.get(workspace);
     return {
-      skills: hx.listSkills().map((skill) => ({
+      skills: (await hx.skills.list()).map((skill) => ({
         name: skill.name,
         description: skill.description,
         whenToUse: skill.whenToUse,

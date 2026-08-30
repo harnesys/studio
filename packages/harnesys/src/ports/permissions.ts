@@ -10,16 +10,19 @@ export const DEFAULT_PERMISSIONS: PermissionMap = {
   mcp: 'ask',
 };
 
-export function resolveToolPermission(
-  operations: string[],
-  map: PermissionMap,
-): PermissionGate {
-  if (operations.length === 0) return 'allow';
+export function resolveToolPermission(operations: string[], map: PermissionMap): PermissionGate {
+  if (operations.length === 0) {
+    return 'allow';
+  }
   let result: PermissionGate = 'allow';
   for (const op of operations) {
     const gate = map[op];
-    if (gate === 'deny') return 'deny';
-    if (gate === 'ask') result = 'ask';
+    if (gate === 'deny') {
+      return 'deny';
+    }
+    if (gate === 'ask') {
+      result = 'ask';
+    }
   }
   return result;
 }

@@ -1,4 +1,3 @@
-import type { SessionEvent } from '@studio/shared';
 import {
   Code2Icon,
   FileTextIcon,
@@ -14,11 +13,10 @@ import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
-
-import { toolCaption } from '../model/tool-caption';
-import { toolDetail, toolMeta } from '../model/tool-output';
 import type { ToolEventPair } from '../model/session-event-groups';
 import { toolInput } from '../model/session-event-groups';
+import { toolCaption } from '../model/tool-caption';
+import { toolDetail, toolMeta } from '../model/tool-output';
 import { ToolDetailView } from './tool-detail';
 import { ToolInputDialog } from './tool-input-dialog';
 
@@ -30,14 +28,7 @@ const ICONS = {
   pencil: PencilIcon,
 } as const;
 
-export function ToolLine({
-  pair,
-  live,
-}: {
-  pair: ToolEventPair;
-  live: boolean;
-  runId?: string;
-}) {
+export function ToolLine({ pair, live }: { pair: ToolEventPair; live: boolean; runId?: string }) {
   const expandTools = useChatPreferences((state) => state.expandTools);
   const [manual, setManual] = useState<boolean | undefined>(undefined);
   const [inputOpen, setInputOpen] = useState(false);

@@ -28,7 +28,7 @@ export class ListWorkspaceToolsUseCase implements ListWorkspaceToolsInput {
     }
     const hx = await this.workspaceHarnesys.get(workspace);
     return {
-      tools: hx.toolCatalog().map((entry) => ({
+      tools: hx.tools.list().map((entry) => ({
         name: entry.name,
         description: entry.description,
         ...(entry.group !== undefined ? { group: entry.group } : {}),

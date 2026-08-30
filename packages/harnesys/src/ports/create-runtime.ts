@@ -2,16 +2,17 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Middleware } from '../domain/middleware.ts';
 import type { Command, RunResult } from '../domain/run-result.ts';
+import type { SkillSummary } from '../domain/skill.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from './artifacts.ts';
-import type { CursorMcpJson, McpRegistry } from './mcp.ts';
+import type { CursorMcpJson, McpRegistry, McpServerInfo } from './mcp.ts';
 import type { ModelsPort, ProviderConfig } from './models.ts';
 import type { PathsConfig } from './paths.ts';
 import type { PermissionMap } from './permissions.ts';
 import type { RuntimeState } from './runtime-state.ts';
 import type { SessionHandle } from './session.ts';
 import type { SkillRegistry } from './skills.ts';
-import type { CustomNodeImpl, ToolDefinition } from './tools.ts';
+import type { CustomNodeImpl, ToolCatalogEntry, ToolDefinition } from './tools.ts';
 
 export type AgentsResolve = {
   resolve: (id: string) => AgentDefinition | undefined;
@@ -66,6 +67,15 @@ export type RuntimeHandle = {
       paths?: PathsConfig;
     },
   ): SessionHandle;
+  skills: {
+    list(): SkillSummary[] | Promise<SkillSummary[]>;
+  };
+  tools: {
+    list(): ToolCatalogEntry[];
+  };
+  mcp: {
+    list(): McpServerInfo[] | Promise<McpServerInfo[]>;
+  };
   reloadSkills(): Promise<void> | void;
   reloadMcp(): Promise<void> | void;
   close(): Promise<void> | void;

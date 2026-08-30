@@ -1,5 +1,5 @@
 import { resolveModel } from 'harnesys';
-import type { ThreadAttachment } from '../../../shared/types.ts';
+import type { Modality, ThreadAttachment } from '../../../shared/types.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
 import type { AttachmentsPort } from '../../domain/attachments.port.ts';
@@ -73,7 +73,12 @@ export class CreateThreadAttachmentUseCase implements CreateThreadAttachmentInpu
     const kind = kindFromMediaType(request.mediaType);
     const resolved = resolveModel(model.metadata as never);
     if (
-      !modelAccepts(resolved.architecture?.input_modalities, kind, request.mediaType, request.name)
+      !modelAccepts(
+        resolved.architecture?.input_modalities as Modality[] | undefined,
+        kind,
+        request.mediaType,
+        request.name,
+      )
     ) {
       throw new ValidationError(`model does not accept ${kind}`);
     }

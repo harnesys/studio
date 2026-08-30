@@ -1,11 +1,9 @@
 import type { Context, Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import type { StreamEvent } from '../../../../shared/types.ts';
+import type { SessionEvent } from 'harnesys';
 import type { GetThreadPlanInput } from '../../../application/plans/get-thread-plan.use-case.ts';
-import type { AnswerRunInput } from '../../../application/threads/answer-run.use-case.ts';
 import type { CancelRunInput } from '../../../application/threads/cancel-run.use-case.ts';
 import type { CompactThreadInput } from '../../../application/threads/compact-thread.use-case.ts';
-import type { ConfirmRunInput } from '../../../application/threads/confirm-run.use-case.ts';
 import type { CreateThreadInput } from '../../../application/threads/create-thread.use-case.ts';
 import type { CreateThreadAttachmentInput } from '../../../application/threads/create-thread-attachment.use-case.ts';
 import type { DeleteThreadInput } from '../../../application/threads/delete-thread.use-case.ts';
@@ -21,13 +19,7 @@ import type { StreamRunEventsInput } from '../../../application/threads/stream-r
 import type { UpdateThreadInput } from '../../../application/threads/update-thread.use-case.ts';
 import { SSE_KEEP_ALIVE_MS } from '../../../config/constants.ts';
 import { preview, trace } from '../../../trace.ts';
-import {
-  answerRunBody,
-  confirmRunBody,
-  createThreadBody,
-  sendThreadRunBody,
-  updateThreadBody,
-} from './thread.body.ts';
+import { createThreadBody, sendThreadRunBody, updateThreadBody } from './thread.body.ts';
 
 export type ThreadControllerDeps = {
   listThreads: ListThreadsInput;
@@ -42,8 +34,6 @@ export type ThreadControllerDeps = {
   resumeThreadRun: ResumeThreadRunInput;
   streamRunEvents: StreamRunEventsInput;
   cancelRun: CancelRunInput;
-  confirmRun: ConfirmRunInput;
-  answerRun: AnswerRunInput;
   createThreadAttachment: CreateThreadAttachmentInput;
   getThreadAttachment: GetThreadAttachmentInput;
   listThreadPendingAttachments?: ListThreadPendingAttachmentsInput;
@@ -166,33 +156,6 @@ export class ThreadController {
       return c.json({ ok: true });
     });
 
-    app.post('/api/runs/:id/confirm', async (c) => {
-      const runId = c.req.param('id');
-      const body = confirmRunBody.parse(await c.req.json());
-      trace('http', 'POST /confirm', { runId, stepId: body.stepId });
-      const snapshot = await this.deps.confirmRun.execute({
-        runId,
-        stepId: body.stepId,
-        decision: body.decision,
-      });
-      return c.json(snapshot);
-    });
-
-    app.post('/api/runs/:id/answer', async (c) => {
-      const runId = c.req.param('id');
-      const body = answerRunBody.parse(await c.req.json());
-      trace('http', 'POST /answer', { runId, stepId: body.stepId });
-      const snapshot = await this.deps.answerRun.execute({
-        runId,
-        stepId: body.stepId,
-        input: {
-          optionIds: body.optionIds,
-          text: body.text,
-        },
-      });
-      return c.json(snapshot);
-    });
-
     app.delete('/api/runs/:id', async (c) => {
       const runId = c.req.param('id');
       await this.deps.cancelRun.execute({ runId });
@@ -230,7 +193,7 @@ export class ThreadController {
   }
 }
 
-function streamSse(c: Context, events: AsyncIterable<StreamEvent>) {
+function streamSse(c: Context, events: AsyncIterable<SessionEvent>) {
   c.header('Cache-Control', 'no-cache, no-transform');
   c.header('X-Accel-Buffering', 'no');
   c.header('Connection', 'keep-alive');
@@ -248,9 +211,9 @@ function streamSse(c: Context, events: AsyncIterable<StreamEvent>) {
       try {
         for await (const ev of events) {
           count += 1;
-          trace('http', `sse write #${count} ${ev.type}`, { seq: ev.seq });
+          trace('http', `sse write #${count} ${ev.type}`);
           await stream.writeSSE({
-            id: String(ev.seq),
+            id: String(count),
             event: ev.type,
             data: JSON.stringify(ev),
           });

@@ -46,10 +46,8 @@ import { GetProviderUseCase } from '../application/providers/get-provider.use-ca
 import { ListProvidersUseCase } from '../application/providers/list-providers.use-case.ts';
 import { UpdateProviderUseCase } from '../application/providers/update-provider.use-case.ts';
 import { UpdateProviderModelUseCase } from '../application/providers/update-provider-model.use-case.ts';
-import { AnswerRunUseCase } from '../application/threads/answer-run.use-case.ts';
 import { CancelRunUseCase } from '../application/threads/cancel-run.use-case.ts';
 import { CompactThreadUseCase } from '../application/threads/compact-thread.use-case.ts';
-import { ConfirmRunUseCase } from '../application/threads/confirm-run.use-case.ts';
 import { CreateThreadUseCase } from '../application/threads/create-thread.use-case.ts';
 import { CreateThreadAttachmentUseCase } from '../application/threads/create-thread-attachment.use-case.ts';
 import { DeleteThreadUseCase } from '../application/threads/delete-thread.use-case.ts';
@@ -321,8 +319,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     }),
     streamRunEvents: new StreamRunEventsUseCase(activeRuns),
     cancelRun: new CancelRunUseCase(activeRuns),
-    confirmRun: new ConfirmRunUseCase(activeRuns),
-    answerRun: new AnswerRunUseCase(activeRuns),
     createThreadAttachment: new CreateThreadAttachmentUseCase({
       threads: threadRepo,
       agents: agentRepo,

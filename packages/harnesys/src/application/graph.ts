@@ -1,3 +1,4 @@
+import Ajv from 'ajv';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
@@ -74,6 +75,31 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
   }
   if (opts.resumePayload !== undefined && opts.startNodeId) {
+    const interrupt = (loaded?.cursor as Record<string, unknown>)?.interrupt as
+      | Record<string, unknown>
+      | undefined;
+
+    if (interrupt && opts.resumePayload !== undefined) {
+      const existingPayload = (loaded?.state as Record<string, unknown>)?.$resume;
+      if (JSON.stringify(existingPayload) === JSON.stringify(opts.resumePayload)) {
+        return;
+      }
+    }
+
+    if (interrupt?.resumeSchema && opts.resumePayload !== undefined) {
+      const ajv = new Ajv();
+      const valid = ajv.validate(
+        interrupt.resumeSchema as object,
+        opts.resumePayload,
+      );
+      if (!valid) {
+        throw Object.assign(
+          new Error(`resume payload validation failed: ${ajv.errorsText()}`),
+          { code: 'resume_validation_failed' },
+        );
+      }
+    }
+
     cur = opts.startNodeId;
     st.$resume = opts.resumePayload;
   }

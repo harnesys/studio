@@ -1,5 +1,5 @@
 import { type Agent, type AgentDraft, toClientAgent, useAgentStore } from '@/entities/agent';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { createAgentRecord, createThreadRecord } from '@/shared/api';
 
@@ -21,6 +21,6 @@ export async function createAgent(workspaceId: string, draft: AgentDraft): Promi
   useAgentStore.getState().upsert(agent);
   const thread = await createThreadRecord({ workspaceId, agentId: record.id });
   useThreadStore.getState().upsert(toClientThread(thread));
-  useJournalStore.getState().replaceJournal(thread.id, thread.journal);
+  useSessionStore.getState().replaceEvents(thread.id, thread.events);
   return agent;
 }

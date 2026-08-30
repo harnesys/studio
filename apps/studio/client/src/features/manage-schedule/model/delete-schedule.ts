@@ -1,4 +1,4 @@
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { useScheduleStore } from '@/entities/schedule';
 import { useThreadStore } from '@/entities/thread';
 import { deleteScheduleRecord } from '@/shared/api';
@@ -13,7 +13,7 @@ export async function deleteSchedule(workspaceId: string, scheduleId: string): P
   useScheduleStore.getState().remove(scheduleId);
   const thread = useThreadStore.getState().byId(current.threadId);
   if (thread?.kind === 'schedule') {
-    useJournalStore.getState().removeForThreads([current.threadId]);
+    useSessionStore.getState().removeForThreads([current.threadId]);
     useThreadStore.getState().remove(current.threadId);
   }
   return true;

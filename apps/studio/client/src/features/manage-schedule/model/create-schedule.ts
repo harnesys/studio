@@ -1,4 +1,4 @@
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import {
   type Schedule,
   type ScheduleDraft,
@@ -25,7 +25,7 @@ export async function createSchedule(
   useScheduleStore.getState().upsert(schedule);
   useThreadStore.getState().upsert(toClientThread(created.thread));
   if (created.thread.kind !== 'chat') {
-    useJournalStore.getState().replaceJournal(created.thread.id, created.thread.journal);
+    useSessionStore.getState().replaceEvents(created.thread.id, created.thread.events);
   }
   return schedule;
 }

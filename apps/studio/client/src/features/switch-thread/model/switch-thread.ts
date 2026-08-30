@@ -1,5 +1,5 @@
 import { useAgentStore } from '@/entities/agent';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import {
   clearActiveThreadId,
   setActiveThreadId,
@@ -22,7 +22,7 @@ export async function closeThread(threadId: string): Promise<string | null> {
     return threadId;
   }
   await deleteThreadRecord(threadId);
-  useJournalStore.getState().removeForThreads([threadId]);
+  useSessionStore.getState().removeForThreads([threadId]);
   useThreadStore.getState().remove(threadId);
   const next = useThreadStore.getState().latestForAgent(thread.agentId)?.id ?? null;
   if (next) {
@@ -40,7 +40,7 @@ export async function openNewThread(agentId: string, workspaceId: string): Promi
   }
   const record = await createThreadRecord({ workspaceId, agentId: agent.id });
   useThreadStore.getState().upsert(toClientThread(record));
-  useJournalStore.getState().replaceJournal(record.id, record.journal);
+  useSessionStore.getState().replaceEvents(record.id, record.events);
   setActiveThreadId(agentId, record.id);
   return record.id;
 }
@@ -50,17 +50,15 @@ export function branchThread(
   agentId: string,
   currentThreadId: string,
 ): string | null {
-  const source = useJournalStore.getState().journalOf(currentThreadId);
-  const entry = source.entries.find((item) => item.id === entryId);
-  if (!entry) {
+  const events = useSessionStore.getState().eventsOf(currentThreadId);
+  if (events.length === 0) {
     return null;
   }
-  const titleText = entry.role === 'human' && 'text' in entry ? (entry.text ?? '') : '';
-  const thread = useThreadStore.getState().create(agentId, branchTitle(titleText));
+  const thread = useThreadStore.getState().create(agentId, branchTitle(''));
   if (!thread) {
     return null;
   }
-  useJournalStore.getState().copyPrefix(currentThreadId, entryId, thread.id);
+  useSessionStore.getState().copyEvents(currentThreadId, thread.id);
   setActiveThreadId(agentId, thread.id);
   return thread.id;
 }

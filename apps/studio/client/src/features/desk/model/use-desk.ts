@@ -1,7 +1,7 @@
-import type { Journal } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/entities/agent';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { useScheduleStore } from '@/entities/schedule';
 import { useThreadStore } from '@/entities/thread';
 import { useWebhookStore } from '@/entities/webhook';
@@ -10,7 +10,7 @@ import { useStudioLocation } from '@/shared/config/location';
 
 import { useDeskStore } from './desk.store';
 
-const EMPTY_JOURNAL: Journal = { entries: [] };
+const EMPTY_EVENTS: SessionEvent[] = [];
 
 export function useDeskSelection() {
   return useDeskStore(
@@ -35,9 +35,9 @@ export function useAgentThreads(agentId: string | null) {
   );
 }
 
-export function useThreadJournal(threadId: string | null) {
-  return useJournalStore(
-    useShallow((state) => (threadId ? (state.journals[threadId] ?? EMPTY_JOURNAL) : EMPTY_JOURNAL)),
+export function useThreadEvents(threadId: string | null) {
+  return useSessionStore(
+    useShallow((state) => (threadId ? (state.events[threadId] ?? EMPTY_EVENTS) : EMPTY_EVENTS)),
   );
 }
 
@@ -107,7 +107,7 @@ export function useDesk() {
   const agent = useSelectedAgent();
   const threads = useAgentThreads(agent?.id ?? null);
   const thread = useSelectedThread();
-  const journal = useThreadJournal(thread?.id ?? null);
+  const events = useThreadEvents(thread?.id ?? null);
   const schedules = useWorkspaceSchedules(workspaceId);
   const schedule = useSelectedSchedule();
   const webhooks = useWorkspaceWebhooks(workspaceId);
@@ -125,7 +125,7 @@ export function useDesk() {
     agent,
     threads,
     thread,
-    journal,
+    events,
     schedules,
     schedule,
     webhooks,

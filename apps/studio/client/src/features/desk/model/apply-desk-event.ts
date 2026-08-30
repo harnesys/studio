@@ -1,5 +1,5 @@
 import type { DeskEvent } from '@studio/shared';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { usePlanStore } from '@/entities/plan';
 import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
 import { toClientThread, useThreadStore } from '@/entities/thread';
@@ -8,8 +8,8 @@ export function applyDeskEvent(event: DeskEvent): void {
   switch (event.type) {
     case 'thread': {
       useThreadStore.getState().upsert(toClientThread(event.thread));
-      if (!useJournalStore.getState().activeRuns[event.thread.id]) {
-        useJournalStore.getState().replaceJournal(event.thread.id, event.thread.journal);
+      if (!useSessionStore.getState().activeRuns[event.thread.id]) {
+        useSessionStore.getState().replaceEvents(event.thread.id, event.thread.events);
       }
       return;
     }
@@ -50,7 +50,7 @@ function dropOwnedThread(threadId: string): void {
   if (thread?.kind !== 'schedule') {
     return;
   }
-  useJournalStore.getState().removeForThreads([threadId]);
+  useSessionStore.getState().removeForThreads([threadId]);
   usePlanStore.getState().removeForThread(threadId);
   useThreadStore.getState().remove(threadId);
 }

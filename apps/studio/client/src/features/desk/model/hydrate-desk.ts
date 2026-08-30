@@ -1,5 +1,5 @@
 import { toClientAgent, useAgentStore } from '@/entities/agent';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread, listAgents, listSchedules, listThreads } from '@/shared/api';
@@ -20,12 +20,12 @@ export async function hydrateDesk(workspaceId: string) {
     summaries.filter((item) => item.workspaceId === workspaceId).map((item) => getThread(item.id)),
   );
   useThreadStore.getState().replaceWorkspace(workspaceId, records.map(toClientThread));
-  const live = useJournalStore.getState().activeRuns;
+  const live = useSessionStore.getState().activeRuns;
   for (const record of records) {
     if (live[record.id]) {
       continue;
     }
-    useJournalStore.getState().replaceJournal(record.id, record.journal);
+    useSessionStore.getState().replaceEvents(record.id, record.events);
   }
   useScheduleStore.getState().replaceWorkspace(workspaceId, schedules.map(toClientSchedule));
   useDeskStore.getState().setHydratedWorkspaceId(workspaceId);

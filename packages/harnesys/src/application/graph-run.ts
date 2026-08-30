@@ -36,6 +36,21 @@ export async function runGraph(opts: GraphOpts): Promise<RunResult> {
       usage,
     } as RunResult;
   }
+  if (status === 'needs_input') {
+    const cursor = snap?.cursor as Record<string, unknown> | undefined;
+    const interrupt = cursor?.interrupt as {
+      interruptId: string;
+      reason: string;
+      resumeSchema: unknown;
+      nodeId: string;
+    } | undefined;
+    return {
+      status: 'needs_input',
+      runId,
+      interrupt: interrupt ?? { interruptId: '', reason: 'unknown', resumeSchema: {}, nodeId: '' },
+      usage,
+    } as RunResult;
+  }
   return {
     status: 'failed',
     runId,

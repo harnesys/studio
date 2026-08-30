@@ -54,4 +54,7 @@ export type { CursorMcpJson, McpRegistry, StdioEntry, UrlEntry } from './src/por
 export type { ArtifactStore, SendFile } from './src/ports/artifacts.ts';
 export type { AgentRun, SendInput, SessionEvent, SessionHandle } from './src/ports/session.ts';
 export { createRuntime } from './src/application/create-runtime.ts';
+export { startGraph } from './src/application/graph.ts';
+export type { GraphOpts } from './src/application/graph.ts';
+export { runGraph } from './src/application/graph-run.ts';
 export { InMemoryRuntimeState } from './src/adapters/in-memory-runtime-state.ts';

@@ -12,6 +12,7 @@ import { evalExpr, evalWhen } from './expr-eval.ts';
 import { applyReducer, findBind, isPort, type MergeStateFn } from './graph-helpers.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
 import { runLlmGenerate } from './llm.ts';
+import { AskUserInterrupt } from '../domain/errors.ts';
 import { executeToolCall } from './tool-call.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
@@ -267,22 +268,49 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       if (needsIntent) {
         await commit('running', 'tool.intent', 'intent');
       }
-      const res = await executeToolCall(tn, {
-        state: st,
-        output,
-        input,
-        resume: null,
-        toolRegistry: opts.toolRegistry,
-        permissions: opts.permissions,
-        paths: opts.paths,
-        artifacts: opts.artifacts,
-        signal: opts.signal ?? new AbortController().signal,
-        runId,
-        nodeId: cur,
-        sessionId: opts.state.sessionId,
-        toolMessages: opts.toolMessages,
-        messagesPath: lastMsg,
-      });
+      let res: { results: import('./tool-call.ts').ToolCallResult[] };
+      try {
+        res = await executeToolCall(tn, {
+          state: st,
+          output,
+          input,
+          resume: null,
+          toolRegistry: opts.toolRegistry,
+          permissions: opts.permissions,
+          paths: opts.paths,
+          artifacts: opts.artifacts,
+          signal: opts.signal ?? new AbortController().signal,
+          runId,
+          nodeId: cur,
+          sessionId: opts.state.sessionId,
+          toolMessages: opts.toolMessages,
+          messagesPath: lastMsg,
+        });
+      } catch (e) {
+        if (e instanceof AskUserInterrupt) {
+          const interruptId = crypto.randomUUID();
+          st.$resume = null;
+          const snap = mkSnap(ctx(), 'needs_input');
+          (snap.cursor as Record<string, unknown>).interrupt = {
+            interruptId,
+            reason: e.prompt,
+            resumeSchema: {
+              type: 'object',
+              properties: {
+                text: { type: 'string' },
+                optionIds: { type: 'array', items: { type: 'string' } },
+              },
+            },
+            nodeId: cur,
+          };
+          seq += 1;
+          const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
+          await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
+          yield ev;
+          break;
+        }
+        throw e;
+      }
       output = { results: res.results };
       const e = await commit('running', 'tool.completed');
       yield e;

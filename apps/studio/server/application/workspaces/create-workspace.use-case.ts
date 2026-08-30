@@ -1,3 +1,4 @@
+import { writeWorkspaceMcpJson } from '../../adapters/mcp-json.adapter.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspacePort, WorkspaceRepository } from '../../domain/workspace.port.ts';
 
@@ -50,6 +51,7 @@ export class CreateWorkspaceUseCase implements CreateWorkspaceInput {
       path: targetPath,
       createdAt: now,
     });
+    writeWorkspaceMcpJson(targetPath, {});
     return { workspace };
   }
 }

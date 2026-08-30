@@ -1,6 +1,8 @@
 import type { CursorMcpJson, ModelsPort, RuntimeHandle, ToolDefinition } from 'harnesys';
 import { createRuntime } from 'harnesys';
 import { askUser, fetch, files, shell } from 'harnesys/actions';
+import { FsSkillRegistry } from 'harnesys/adapters/node';
+import { join } from 'node:path';
 import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
@@ -59,12 +61,16 @@ export class WorkspaceHarnesysRegistry {
     } catch (err) {
       return Promise.reject(new ValidationError(err instanceof Error ? err.message : String(err)));
     }
+    const skills = new FsSkillRegistry({
+      roots: [join(workspace.path, '.agents', 'skills')],
+    });
     return createRuntime({
       models: this.models,
       tools: [...files(), shell(), fetch(), askUser(), ...this.extraTools],
       agents: { resolve: () => undefined },
       mcp: mcpJson,
       paths: { cwd: workspace.path },
+      skills,
     });
   }
 }

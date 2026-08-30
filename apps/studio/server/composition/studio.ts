@@ -146,7 +146,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
   new WorkspaceController({
     listWorkspaces: new ListWorkspacesUseCase(workspaceRepo),
     pickWorkspace: new PickWorkspaceUseCase(workspace),
-    createWorkspace: new CreateWorkspaceUseCase(workspaceRepo, agentRepo, workspace, home),
+    createWorkspace: new CreateWorkspaceUseCase(workspaceRepo, workspace, home),
     updateWorkspace: new UpdateWorkspaceUseCase(workspaceRepo, workspaceHarnesys),
     deleteWorkspace: new DeleteWorkspaceUseCase({
       workspaces: workspaceRepo,

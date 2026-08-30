@@ -1,5 +1,3 @@
-import { defaultAgentCompaction, defaultAgentMemory } from '../../../shared/types.ts';
-import type { AgentRepository } from '../../domain/agent.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspacePort, WorkspaceRepository } from '../../domain/workspace.port.ts';
 
@@ -19,7 +17,6 @@ export type CreateWorkspaceInput = {
 export class CreateWorkspaceUseCase implements CreateWorkspaceInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
-    private readonly agents: AgentRepository,
     private readonly workspaceFs: WorkspacePort,
     private readonly home: string,
   ) {}
@@ -52,24 +49,6 @@ export class CreateWorkspaceUseCase implements CreateWorkspaceInput {
       name,
       path: targetPath,
       createdAt: now,
-    });
-    this.agents.insert({
-      id: crypto.randomUUID(),
-      workspaceId: workspace.id,
-      name: 'default',
-      modelId: null,
-      role: 'Operator',
-      instructions: '',
-      effort: null,
-      generation: null,
-      toolOutput: null,
-      compaction: defaultAgentCompaction(),
-      memory: defaultAgentMemory(),
-      skills: [],
-      mcpServers: [],
-      tools: [],
-      createdAt: now,
-      updatedAt: now,
     });
     return { workspace };
   }

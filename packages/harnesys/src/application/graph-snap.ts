@@ -22,7 +22,7 @@ export function mkSnap(ctx: SnapCtx, status: string): Snapshot {
     planHash: hashStr(ctx.orderJson),
     sequence: ctx.seq,
     status,
-    runtimeVersion: '0.2.0',
+    runtimeVersion: '0.3.0',
     initialInput: ctx.input,
     state: ctx.state,
     cursor: {

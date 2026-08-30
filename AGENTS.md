@@ -19,4 +19,4 @@ Unedited model cadence is not acceptable in this repo. Using a model to draft is
 
 **Do this on every user-facing paragraph**, including this chat.
 
-When writing or editing markdown, read and apply `.grok/skills/writing-without-slop/SKILL.md` (three passes: rhythm, concreteness, glue/closers). Slash command: `/writing-without-slop`.
+When writing or editing markdown, read and apply `.agents/skills/writing-without-slop/SKILL.md` (three passes: rhythm, concreteness, glue/closers). Slash command: `/writing-without-slop`.

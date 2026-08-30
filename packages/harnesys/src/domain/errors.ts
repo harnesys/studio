@@ -53,3 +53,17 @@ export class ResumeHashError extends Error {
     this.actual = actual;
   }
 }
+
+export class AskUserInterrupt extends Error {
+  readonly prompt: string;
+  readonly options?: Array<{ id: string; label: string }>;
+  readonly multi?: boolean;
+
+  constructor(input: { prompt: string; options?: Array<{ id: string; label: string }>; multi?: boolean }) {
+    super('ask_user interrupt');
+    this.name = 'AskUserInterrupt';
+    this.prompt = input.prompt;
+    this.options = input.options;
+    this.multi = input.multi;
+  }
+}

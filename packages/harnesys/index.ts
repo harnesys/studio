@@ -72,3 +72,4 @@ export type {
 export { FsArtifactStore } from './src/adapters/fs-artifact-store.ts';
 export { MemoryArtifactStore } from './src/adapters/memory-artifact-store.ts';
 export { foldAttachments } from './src/application/fold-attachments.ts';
+export { AskUserInterrupt } from './src/domain/errors.ts';

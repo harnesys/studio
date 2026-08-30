@@ -1,4 +1,5 @@
 import type { ToolCallBatch, ToolCallFixed } from '../domain/agent-definition.ts';
+import { AskUserInterrupt } from '../domain/errors.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
@@ -257,6 +258,7 @@ export async function executeToolCall(
         };
         return;
       }
+      if (e instanceof AskUserInterrupt) throw e;
       const msg = e instanceof Error ? e.message : String(e);
       results[idx] = { id: call.id, name: call.name, result: msg, isError: true };
       toolMessages[idx] = { role: 'tool', toolCallId: call.id, name: call.name, content: msg };

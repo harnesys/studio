@@ -23,7 +23,20 @@ export type {
 export { NotImplementedError } from './src/domain/errors.ts';
 export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
 export type { AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
-export type { ModelRecord, ModelsPort, ProviderConfig } from './src/ports/models.ts';
+export { DRIVERS, normalizeProvider } from './src/ports/models.ts';
+export type {
+  DiscoverInput,
+  DiscoveredModel,
+  Driver,
+  ModelBinding,
+  ModelRecord,
+  ModelsApi,
+  ModelsPort,
+  ProviderConfig,
+  ResolvedModel,
+} from './src/ports/models.ts';
+export { bindingOf, DiscoverError, isDriver, ModelLookupError, toBinding } from './src/adapters/models/binding.ts';
+export { discoverModels } from './src/adapters/models/discover.ts';
 export type { CustomNodeImpl, SideEffect, ToolContext, ToolDefinition } from './src/ports/tools.ts';
 export { DEFAULT_PERMISSIONS } from './src/ports/permissions.ts';
 export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';

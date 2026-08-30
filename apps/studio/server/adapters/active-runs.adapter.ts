@@ -1,7 +1,6 @@
-import type { AgentRun } from 'harnesys';
-import type { StreamEvent } from '../../shared/types.ts';
+import type { AgentRun, SessionEvent } from 'harnesys';
 
-type EventListener = (event: StreamEvent) => void;
+type EventListener = (event: SessionEvent) => void;
 
 type ActiveRunState = {
   runId: string;
@@ -101,7 +100,7 @@ export class ActiveRunRegistry {
     };
   }
 
-  emit(runId: string, event: StreamEvent): void {
+  emit(runId: string, event: SessionEvent): void {
     const item = this.active.get(runId);
     if (!item) {
       return;

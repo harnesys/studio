@@ -10,13 +10,12 @@ export type DrainAgentRunOptions = {
   onPersist?: (threadId: string) => void;
 };
 
-/** Exclusive drain: persist + SSE hub, then drop idle thread from Map. */
 export async function drainAgentRun(options: DrainAgentRunOptions): Promise<void> {
   const { threadId, run, activeRuns, registry, onPersist } = options;
   try {
     for await (const event of run.stream()) {
       activeRuns.emit(run.id, event);
-      if (isHitlEvent(event)) {
+      if (event.type === 'ask') {
         onPersist?.(threadId);
       }
     }
@@ -27,8 +26,4 @@ export async function drainAgentRun(options: DrainAgentRunOptions): Promise<void
     activeRuns.finish(run.id);
     registry?.forget(threadId);
   }
-}
-
-function isHitlEvent(event: SessionEvent): boolean {
-  return event.type === 'ask';
 }

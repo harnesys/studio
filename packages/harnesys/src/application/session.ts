@@ -1,6 +1,6 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
-import type { Event, Snapshot } from '../domain/snapshot.ts';
+import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
@@ -81,7 +81,6 @@ export function createSession(
 ): SessionHandle {
   let status: SessionStatus = 'idle';
   let pendingAsk: { askId: string; schema: JsonSchema } | null = null;
-  let currentAbort: AbortController | null = null;
 
   const resolveAgent = (): AgentDefinition => {
     if (typeof agent !== 'string') return agent;
@@ -106,7 +105,6 @@ export function createSession(
     let cancelFn: () => void;
 
     const ac = new AbortController();
-    currentAbort = ac;
     status = 'running';
 
     const def = resolveAgent();

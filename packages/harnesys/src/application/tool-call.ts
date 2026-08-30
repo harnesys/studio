@@ -92,7 +92,6 @@ export async function executeToolCall(
 
   let calls: { name: string; args: unknown; id: string }[] = [];
   let concurrency: 'parallel' | 'sequential' = 'parallel';
-  let barrierPolicy = 'all';
 
   if ('name' in node && typeof node.name === 'string') {
     const fixed = node as ToolCallFixed;
@@ -115,8 +114,6 @@ export async function executeToolCall(
     if (batch.barrier && (batch.barrier as { policy?: unknown }).policy !== 'all') {
       codeError('barrier_policy', 'barrier.policy must be "all"');
     }
-    barrierPolicy = (batch.barrier as { policy?: string } | undefined)?.policy ?? 'all';
-    void barrierPolicy;
     calls = (raw as unknown[]).map((item, idx) => {
       const rec = item as { name?: unknown; args?: unknown; id?: unknown };
       const name = typeof rec.name === 'string' ? rec.name : String(rec.name ?? '');

@@ -90,11 +90,15 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     steps,
     tokens,
   });
-  const commit = async (status: string, type: string): Promise<Event> => {
+  const commit = async (
+    status: string,
+    type: string,
+    kind: 'recorded' | 'intent' = 'recorded',
+  ): Promise<Event> => {
     seq += 1;
     const ev: Event = { ...mkEv(ctx(), type), agentId: opts.agent.id };
     await opts.state.commit({ ...mkSnap(ctx(), status), sequence: seq }, [ev], {
-      kind: 'recorded',
+      kind,
       sequence: seq,
     });
     return ev;
@@ -220,6 +224,17 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const tn = node as unknown as
         | import('../domain/agent-definition.ts').ToolCallFixed
         | import('../domain/agent-definition.ts').ToolCallBatch;
+      const needsIntent = (() => {
+        const names: string[] = 'name' in tn && tn.name ? [tn.name] : [];
+        return names.some((n) => {
+          const def = opts.toolRegistry.get(n);
+          const se = def?.sideEffect;
+          return se === 'financial' || se === 'destructive' || se === 'credentialed';
+        });
+      })();
+      if (needsIntent) {
+        await commit('running', 'tool.intent', 'intent');
+      }
       const res = await executeToolCall(tn, {
         state: st,
         output,

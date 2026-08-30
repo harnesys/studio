@@ -132,7 +132,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
   const attachments = options.attachments ?? new FsAttachmentsAdapter();
   const modelsPort = createHarnesysModelsPort(llmProviderRepo, llmModelRepo);
   const memory = createStudioMemory(db, {
-    journal: journalRepo,
     providers: llmProviderRepo,
     models: llmModelRepo,
     workspaces: workspaceRepo,

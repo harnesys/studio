@@ -31,7 +31,6 @@ import { UpsertKnowledgeRootUseCase } from '../application/memory/upsert-knowled
 import { UpsertPinUseCase } from '../application/memory/upsert-pin.use-case.ts';
 import { UpsertSemanticUseCase } from '../application/memory/upsert-semantic.use-case.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
-import type { JournalRepository } from '../domain/journal.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
 
@@ -47,7 +46,6 @@ export type StudioMemoryPorts = {
 };
 
 export type CreateStudioMemoryDeps = {
-  journal: JournalRepository;
   providers: LlmProviderRepository;
   models: LlmModelRepository;
   workspaces: WorkspaceRepository;
@@ -62,7 +60,7 @@ export type WireMemoryHttpDeps = {
 export function createStudioMemory(db: StudioDb, deps: CreateStudioMemoryDeps): StudioMemoryPorts {
   const embeddingsDeps = { providers: deps.providers, models: deps.models };
   const embeddings = new StudioEmbeddings(embeddingsDeps);
-  const episodic = new SqliteEpisodicPort(db, deps.journal, {
+  const episodic = new SqliteEpisodicPort(db, {
     backend: 'fts',
     embeddings,
   });

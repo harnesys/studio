@@ -1,4 +1,4 @@
-import type { CompactedRange, EpisodicPort, PortRef } from 'harnesys';
+import type { EpisodicPort, PortRef } from 'harnesys';
 
 export type EpisodicOnCompactedInput = {
   episodic: EpisodicPort;
@@ -7,21 +7,14 @@ export type EpisodicOnCompactedInput = {
   episodicRef: PortRef | undefined;
 };
 
-/** Host hook: after CompactionEntry, index covered journal range when enabled. */
 export function createEpisodicOnCompacted(
   input: EpisodicOnCompactedInput,
-): (range: CompactedRange) => Promise<void> {
+): (range: { fromSeq: number; toSeq: number; compactionEntryId?: string }) => Promise<void> {
   return async (range) => {
     const ref = input.episodicRef;
-    if (ref == null) {
-      return;
-    }
-    if (!indexOnCompactEnabled(ref)) {
-      return;
-    }
-    if (!input.episodic.index) {
-      return;
-    }
+    if (ref == null) return;
+    if (!indexOnCompactEnabled(ref)) return;
+    if (!input.episodic.index) return;
     await input.episodic.index({
       workspaceId: input.workspaceId,
       threadId: input.threadId,

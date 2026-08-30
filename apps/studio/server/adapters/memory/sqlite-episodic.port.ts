@@ -1,13 +1,13 @@
 import { and, eq, gte, lte } from 'drizzle-orm';
-import type { EpisodicHit, EpisodicIndexInput, EpisodicPort, EpisodicSearchInput } from 'harnesys';
-import type { JournalRepository } from '../../domain/journal.port.ts';
+import type { EpisodicHit, EpisodicIndexInput, EpisodicPort, EpisodicSearchInput, SessionEvent } from 'harnesys';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { StudioDb } from '../store/sqlite/connection.ts';
+import { eventsTable } from '../store/sqlite/schema/events.ts';
 import { episodicChunksTable } from '../store/sqlite/schema/index.ts';
 import { chunkText } from './chunk-text.ts';
 import { cosineSimilarity, decodeEmbedding, encodeEmbedding } from './embedding-vec.ts';
 import type { EmbeddingsPort } from './embeddings.ts';
-import { entryIndexText } from './entry-text.ts';
+import { eventIndexText } from './entry-text.ts';
 import { buildFtsMatchQuery } from './fts-query.ts';
 import type { MemorySearchBackend } from './memory-backend.ts';
 import { sqliteClient } from './sqlite-client.ts';
@@ -35,7 +35,6 @@ export class SqliteEpisodicPort implements EpisodicPort {
 
   constructor(
     private readonly db: StudioDb,
-    private readonly journal: JournalRepository,
     options: SqliteEpisodicPortOptions = {},
   ) {
     this.backend = options.backend ?? 'fts';
@@ -59,19 +58,37 @@ export class SqliteEpisodicPort implements EpisodicPort {
       );
     }
     this.deleteRange(input.workspaceId, input.threadId, input.fromSeq, input.toSeq);
-    const journal = this.journal.load(input.threadId);
-    const entries = journal.entries.filter(
-      (entry) => entry.seq >= input.fromSeq && entry.seq <= input.toSeq,
-    );
-    const now = new Date().toISOString();
 
-    for (const entry of entries) {
-      const pieces = chunkText(entryIndexText(entry));
-      if (pieces.length === 0) {
-        continue;
-      }
-      const vectors =
-        wantVector && this.embeddings ? await this.embeddings.embed(pieces) : undefined;
+    const rows = this.db
+      .select()
+      .from(eventsTable)
+      .where(
+        and(
+          eq(eventsTable.threadId, input.threadId),
+          gte(eventsTable.sequence, input.fromSeq),
+          lte(eventsTable.sequence, input.toSeq),
+        ),
+      )
+      .orderBy(eventsTable.sequence)
+      .all();
+
+    const now = new Date().toISOString();
+    for (const row of rows) {
+      const metadata = row.metadata ? JSON.parse(row.metadata) : {};
+      const event = {
+        type: row.type,
+        text: metadata.text,
+        name: metadata.name,
+        toolCallId: metadata.toolCallId,
+        input: metadata.input,
+        output: metadata.output,
+        prompt: metadata.prompt,
+      } as SessionEvent;
+
+      const pieces = chunkText(eventIndexText(event));
+      if (pieces.length === 0) continue;
+
+      const vectors = wantVector && this.embeddings ? await this.embeddings.embed(pieces) : undefined;
       for (let i = 0; i < pieces.length; i++) {
         const text = pieces[i] ?? '';
         this.db
@@ -80,8 +97,8 @@ export class SqliteEpisodicPort implements EpisodicPort {
             id: crypto.randomUUID(),
             workspaceId: input.workspaceId,
             threadId: input.threadId,
-            entryId: entry.id,
-            seq: entry.seq,
+            entryId: row.eventId,
+            seq: row.sequence,
             text,
             compactionEntryId: input.compactionEntryId ?? null,
             embedding: vectors ? encodeEmbedding(vectors[i] ?? []) : null,

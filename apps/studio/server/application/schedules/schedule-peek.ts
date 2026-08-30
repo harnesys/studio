@@ -1,11 +1,5 @@
-import {
-  isAgentEntry,
-  isBuiltinStep,
-  isHumanEntry,
-  isSystemEntry,
-  type JournalEntry,
-} from 'harnesys';
-import { visibleScheduledText } from '../../../shared/schedule-prompt.ts';
+import type { Event } from 'harnesys';
+import { EVENT_TYPES } from 'harnesys';
 
 const OUTPUT_LIMIT = 2000;
 
@@ -22,7 +16,7 @@ export type SchedulePeekFire = {
   errors: string[];
 };
 
-export function compactScheduleRun(entries: JournalEntry[]): SchedulePeekFire {
+export function compactScheduleRun(events: Event[]): SchedulePeekFire {
   const fire: SchedulePeekFire = {
     human: '',
     status: '',
@@ -30,41 +24,53 @@ export function compactScheduleRun(entries: JournalEntry[]): SchedulePeekFire {
     tools: [],
     errors: [],
   };
-  for (const entry of entries) {
-    if (isHumanEntry(entry)) {
-      fire.human = visibleScheduledText(entry.text ?? '');
+
+  for (const event of events) {
+    const meta = event.metadata as Record<string, unknown> | undefined;
+
+    if (event.type === EVENT_TYPES.RUN_STARTED) {
+      fire.status = 'running';
       continue;
     }
-    if (isSystemEntry(entry)) {
-      fire.errors.push(entry.payload.message);
+
+    if (event.type === EVENT_TYPES.RUN_COMPLETED) {
+      fire.status = 'completed';
       continue;
     }
-    if (!isAgentEntry(entry)) {
+
+    if (event.type === EVENT_TYPES.RUN_FAILED) {
+      fire.status = 'failed';
+      const message = (meta?.message as string) ?? 'Run failed';
+      fire.errors.push(message);
       continue;
     }
-    fire.status = entry.status;
-    if (entry.error) {
-      fire.errors.push(entry.error.message);
+
+    if (event.type === EVENT_TYPES.MODEL_COMPLETED) {
+      const text = meta?.text as string | undefined;
+      if (text?.trim()) {
+        fire.texts.push(clip(text));
+      }
+      continue;
     }
-    let lastToolName = 'tool';
-    for (const step of entry.steps) {
-      if (!isBuiltinStep(step)) {
-        continue;
-      }
-      if (step.type === 'text' && step.payload.text.trim()) {
-        fire.texts.push(clip(step.payload.text));
-      }
-      if (step.type === 'tool_call') {
-        lastToolName = step.payload.name;
-      }
-      if (step.type === 'tool_result') {
-        fire.tools.push({
-          name: step.payload.name ?? lastToolName,
-          output: clip(step.payload.output),
-        });
-      }
+
+    if (event.type === EVENT_TYPES.TOOL_COMPLETED) {
+      const name = (meta?.name as string) ?? 'tool';
+      const output = meta?.output ? JSON.stringify(meta.output) : '';
+      fire.tools.push({ name, output: clip(output) });
+      continue;
+    }
+
+    if (event.type === EVENT_TYPES.TOOL_REQUESTED) {
+      continue;
+    }
+
+    if (event.type === EVENT_TYPES.CONTROL_INTERRUPT) {
+      const reason = (meta?.reason as string) ?? 'interrupt';
+      fire.texts.push(`[interrupt: ${reason}]`);
+      continue;
     }
   }
+
   return fire;
 }
 

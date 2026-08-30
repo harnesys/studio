@@ -1,60 +1,59 @@
-import { isAgentEntry, isHumanEntry, type Journal, type JournalEntry } from 'harnesys';
-import {
-  isScheduledHumanText,
-  SCHEDULE_HUMAN_ORIGIN,
-  type ScheduleHistory,
-} from '../../../shared/types.ts';
+import { eq } from 'drizzle-orm';
+import type { Event } from 'harnesys';
+import { EVENT_TYPES } from 'harnesys';
+import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
+import { eventsTable } from '../../adapters/store/sqlite/schema/events.ts';
+import type { ScheduleHistory } from '../../../shared/types.ts';
+
+export function loadThreadEvents(db: StudioDb, threadId: string): Event[] {
+  const rows = db
+    .select()
+    .from(eventsTable)
+    .where(eq(eventsTable.threadId, threadId))
+    .orderBy(eventsTable.sequence)
+    .all();
+  return rows.map((row) => ({
+    eventId: row.eventId,
+    type: row.type,
+    timestamp: row.timestamp,
+    sessionId: row.sessionId,
+    runId: row.runId,
+    agentId: '',
+    sequence: row.sequence,
+    metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+  })) as Event[];
+}
+
+export function groupEventsByRun(events: Event[]): Map<string, Event[]> {
+  const groups = new Map<string, Event[]>();
+  for (const event of events) {
+    const runId = event.runId || 'unknown';
+    let group = groups.get(runId);
+    if (!group) {
+      group = [];
+      groups.set(runId, group);
+    }
+    group.push(event);
+  }
+  return groups;
+}
 
 export function scheduleFoldHistory(
-  journal: Journal,
+  events: Event[],
   history: ScheduleHistory,
   historyLast: number,
-  untilHumanId?: string,
-): JournalEntry[] {
-  const runs = collectScheduleRuns(journal, untilHumanId);
+): Event[][] {
+  const groups = groupEventsByRun(events);
+  const runs = Array.from(groups.values());
   if (history === 'none') {
     return [];
   }
   const picked = history === 'all' ? runs : runs.slice(-Math.max(1, historyLast));
-  return picked.flat();
+  return picked;
 }
 
-export function lastScheduleRuns(
-  journal: Journal,
-  last: number,
-  untilHumanId?: string,
-): JournalEntry[][] {
-  const runs = collectScheduleRuns(journal, untilHumanId);
+export function lastScheduleRuns(events: Event[], last: number): Event[][] {
+  const groups = groupEventsByRun(events);
+  const runs = Array.from(groups.values());
   return runs.slice(-Math.max(1, last));
-}
-
-function collectScheduleRuns(journal: Journal, untilHumanId?: string): JournalEntry[][] {
-  const runs: JournalEntry[][] = [];
-  let current: JournalEntry[] | undefined;
-  for (const entry of journal.entries) {
-    if (untilHumanId && entry.id === untilHumanId) {
-      break;
-    }
-    if (isHumanEntry(entry)) {
-      if (current) {
-        runs.push(current);
-      }
-      current = isScheduleHuman(entry) ? [entry] : undefined;
-      continue;
-    }
-    if (current && (isAgentEntry(entry) || entry.role === 'system')) {
-      current.push(entry);
-    }
-  }
-  if (current) {
-    runs.push(current);
-  }
-  return runs;
-}
-
-export function isScheduleHuman(entry: JournalEntry): boolean {
-  if (!isHumanEntry(entry)) {
-    return false;
-  }
-  return entry.origin === SCHEDULE_HUMAN_ORIGIN || isScheduledHumanText(entry.text);
 }

@@ -2,7 +2,7 @@ import { MessageSquareIcon, MessageSquarePlusIcon, TrashIcon } from 'lucide-reac
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { clearActiveThreadId, setActiveThreadId, useThreadStore } from '@/entities/thread';
 import { useDeskStore } from '@/features/desk';
 import { useIdeStore } from '@/features/ide';
@@ -93,7 +93,7 @@ export function AgentThreads({ workspaceId, agentId }: { workspaceId: string; ag
                     } catch {
                       return;
                     }
-                    useJournalStore.getState().removeForThreads([thread.id]);
+                    useSessionStore.getState().removeForThreads([thread.id]);
                     useThreadStore.getState().remove(thread.id);
                     useIdeStore.getState().closeByEntity(activeWorkspaceId, 'thread', thread.id);
                     if (useDeskStore.getState().focusedThreadId === thread.id) {

@@ -4,7 +4,7 @@ import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import type { Agent } from '@/entities/agent';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { useSelectedThread } from '@/features/desk';
 import {
   confirmDeletePin,
@@ -25,7 +25,7 @@ export function PinsPanel({ agent }: { agent: Agent }) {
   const { workspaceId } = useStudioLocation();
   const thread = useSelectedThread();
   const queryClient = useQueryClient();
-  const streaming = useJournalStore(
+  const streaming = useSessionStore(
     (state) => thread !== null && Boolean(state.activeRuns[thread.id]),
   );
   const wasStreaming = useRef(streaming);

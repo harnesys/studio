@@ -4,7 +4,7 @@ import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { Agent } from '@/entities/agent';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { useSelectedThread } from '@/features/desk';
 import {
   confirmDeleteSemantic,
@@ -27,7 +27,7 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
   const thread = useSelectedThread();
   const queryClient = useQueryClient();
   const [scope, setScope] = useState<SemanticScope | 'all'>('all');
-  const streaming = useJournalStore(
+  const streaming = useSessionStore(
     (state) => thread !== null && Boolean(state.activeRuns[thread.id]),
   );
   const wasStreaming = useRef(streaming);

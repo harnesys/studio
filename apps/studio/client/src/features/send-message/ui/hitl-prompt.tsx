@@ -2,7 +2,7 @@ import type { AgentStep, AnswerInput } from '@studio/shared';
 import { isBuiltinStep, stepInputText } from '@studio/shared';
 import { type ReactNode, useState } from 'react';
 
-import { useSelectedThread, useThreadJournal } from '@/features/desk';
+import { useSelectedThread, useThreadEvents } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from '@/shared/ui/input-group';
@@ -18,8 +18,8 @@ import { HitlPreview } from './hitl-preview';
 
 export function HitlPrompt() {
   const thread = useSelectedThread();
-  const journal = useThreadJournal(thread?.id ?? null);
-  const pending = pendingHitl(journal);
+  const events = useThreadEvents(thread?.id ?? null);
+  const pending = pendingHitl(events);
 
   if (!pending) {
     return null;

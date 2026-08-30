@@ -1,7 +1,7 @@
 import type { TranscriptActivity } from '@studio/shared';
 import { stepText } from '@studio/shared';
 
-import { usageFromGeneration } from '@/entities/journal';
+import { usageFromGeneration } from '@/entities/session';
 
 import { chunkActivity } from '../model/tool-run-summary';
 import { ActivityRail } from './activity-rail';

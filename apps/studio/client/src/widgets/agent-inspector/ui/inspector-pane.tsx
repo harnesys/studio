@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { type Agent, findModelLabel, formatContextWindow } from '@/entities/agent';
-import { useJournalStore } from '@/entities/journal';
-import { useDesk, useSelectedThread, useThreadJournal } from '@/features/desk';
+import { useSessionStore } from '@/entities/session';
+import { useDesk, useSelectedThread, useThreadEvents } from '@/features/desk';
 import { providersQuery } from '@/shared/api';
 import { formatDayTime } from '@/shared/lib/format-clock';
 import { Badge } from '@/shared/ui/badge';
@@ -18,8 +18,8 @@ import { SkillsInspector } from './skills-inspector';
 export function InspectorPane({ agent }: { agent: Agent }) {
   const { workspace } = useDesk();
   const thread = useSelectedThread();
-  const journal = useThreadJournal(thread?.id ?? null);
-  const streaming = useJournalStore(
+  const events = useThreadEvents(thread?.id ?? null);
+  const streaming = useSessionStore(
     (state) => thread !== null && Boolean(state.activeRuns[thread.id]),
   );
   const providers = useQuery(providersQuery).data ?? [];
@@ -109,7 +109,7 @@ export function InspectorPane({ agent }: { agent: Agent }) {
           <div className="flex flex-col gap-1">
             <FactRow label="Title">{thread.title || 'Untitled'}</FactRow>
             <FactRow label="Entries" mono>
-              {journal.entries.length}
+              {events.length}
             </FactRow>
             <FactRow label="Updated">{formatDayTime(thread.updatedAt)}</FactRow>
             {streaming ? (

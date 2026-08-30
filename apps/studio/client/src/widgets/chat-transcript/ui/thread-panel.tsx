@@ -3,10 +3,10 @@ import { isAgentEntry, toTranscript } from '@studio/shared';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
-import { type RunFailure, useJournalStore } from '@/entities/journal';
+import { type RunFailure, useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
-import { refreshThread, scheduleMarkThreadRead, useThreadJournal } from '@/features/desk';
+import { refreshThread, scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
 import { followLiveThread } from '@/features/send-message';
 import {
   MessageScroller,
@@ -34,23 +34,23 @@ import { UserMessage } from './user-message';
 const EMPTY_FAILURES: RunFailure[] = [];
 
 export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agent }) {
-  const journal = useThreadJournal(threadId);
-  const streaming = useJournalStore((state) => Boolean(state.activeRuns[threadId]));
+  const events = useThreadEvents(threadId);
+  const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useThreadSync(threadId);
   useFollowLive(threadId);
-  const failures = useJournalStore(
+  const failures = useSessionStore(
     useShallow((state) => {
       const next = state.failures.filter((item) => item.threadId === threadId);
       return next.length === 0 ? EMPTY_FAILURES : next;
     }),
   );
 
-  if (!synced && journal.entries.length === 0 && !streaming && !compacting) {
+  if (!synced && events.length === 0 && !streaming && !compacting) {
     return <ChatSkeleton />;
   }
 
-  if (journal.entries.length === 0 && !streaming && !compacting) {
+  if (events.length === 0 && !streaming && !compacting) {
     return (
       <>
         <EmptyThreadReadSync threadId={threadId} />
@@ -59,7 +59,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     );
   }
 
-  const items = toTranscript(journal, { streaming, failures });
+  const items = toTranscript(events);
 
   return (
     <MessageScrollerProvider autoScroll>
@@ -127,8 +127,9 @@ function useThreadSync(threadId: string): boolean {
 }
 
 function useFollowLive(threadId: string): void {
-  const liveRunId = useJournalStore((state) => {
-    const agent = [...(state.journals[threadId]?.entries ?? [])].reverse().find(isAgentEntry);
+  const liveRunId = useSessionStore((state) => {
+    const events = state.events[threadId] ?? [];
+    const agent = [...events].reverse().find(isAgentEntry);
     return agent?.status === 'running' ? agent.id : null;
   });
 
@@ -154,7 +155,7 @@ function EmptyThreadReadSync({ threadId }: { threadId: string }) {
 /** Track bottom-edge visibility and persist read when stuck to end. */
 function ThreadReadSync({ threadId }: { threadId: string }) {
   const { end } = useMessageScrollerScrollable();
-  const contentEpoch = useJournalStore((state) => state.contentEpoch[threadId] ?? 0);
+  const contentEpoch = useSessionStore((state) => state.contentEpoch[threadId] ?? 0);
 
   useEffect(() => {
     useThreadStore.getState().setViewingAtEnd(threadId, end);

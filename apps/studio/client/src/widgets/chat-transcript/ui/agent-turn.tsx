@@ -2,7 +2,7 @@ import type { AgentEntry, SystemEntry, TranscriptActivity, TranscriptEntry } fro
 import { isLiveActivity, stepText } from '@studio/shared';
 import { AlertCircleIcon } from 'lucide-react';
 
-import { type MessageUsage, usageFromGeneration } from '@/entities/journal';
+import { type MessageUsage, usageFromGeneration } from '@/entities/session';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
 import { useStudioLocation } from '@/shared/config/location';

@@ -1,29 +1,33 @@
-import type { Journal, ModelPricing, ProviderPublic, TokenUsage } from '@studio/shared';
+import type { ModelPricing, ProviderPublic, SessionEvent, TokenUsage } from '@studio/shared';
 import { isAgentEntry, isBuiltinStep, isHumanEntry } from '@studio/shared';
-import { type MessageUsage, usageFromGeneration } from '@/entities/journal';
+import { type MessageUsage, usageFromGeneration } from '@/entities/session';
 
 import { findModel } from './model-input';
 
 /** One MessageUsage per LLM generation, from step meta.usage (deduped by generationId). */
-export function generationUsages(journal: Journal): MessageUsage[] {
+export function generationUsages(events: SessionEvent[]): MessageUsage[] {
   const out: MessageUsage[] = [];
   const seen = new Set<string>();
-  for (const entry of journal.entries) {
-    if (!isAgentEntry(entry)) {
+  for (const event of events) {
+    if (event.type !== 'step') {
       continue;
     }
-    for (const step of entry.steps) {
-      if (!isBuiltinStep(step)) {
+    const step = event.step;
+    if (!isAgentEntry(step)) {
+      continue;
+    }
+    for (const s of step.steps) {
+      if (!isBuiltinStep(s)) {
         continue;
       }
-      if (step.type !== 'text' && step.type !== 'reasoning' && step.type !== 'tool_call') {
+      if (s.type !== 'text' && s.type !== 'reasoning' && s.type !== 'tool_call') {
         continue;
       }
-      const usage = usageFromGeneration(step.meta?.usage);
+      const usage = usageFromGeneration(s.meta?.usage);
       if (!usage) {
         continue;
       }
-      const generationId = step.meta?.generationId;
+      const generationId = s.meta?.generationId;
       if (generationId) {
         if (seen.has(generationId)) {
           continue;
@@ -37,20 +41,19 @@ export function generationUsages(journal: Journal): MessageUsage[] {
 }
 
 /** Usages after the last human entry (current turn). */
-export function turnGenerationUsages(journal: Journal): MessageUsage[] {
-  const entries = journal.entries;
+export function turnGenerationUsages(events: SessionEvent[]): MessageUsage[] {
   let lastHuman = -1;
-  for (let i = entries.length - 1; i >= 0; i -= 1) {
-    const entry = entries[i];
-    if (entry && isHumanEntry(entry)) {
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i];
+    if (event && event.type === 'step' && isHumanEntry(event.step)) {
       lastHuman = i;
       break;
     }
   }
   if (lastHuman < 0) {
-    return generationUsages(journal);
+    return generationUsages(events);
   }
-  return generationUsages({ entries: entries.slice(lastHuman + 1) });
+  return generationUsages(events.slice(lastHuman + 1));
 }
 
 export function modelContextWindow(

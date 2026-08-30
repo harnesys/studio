@@ -1,7 +1,7 @@
 import { type HumanEntry, visibleScheduledText } from '@studio/shared';
 import { useState } from 'react';
 
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { deleteTurn } from '@/features/send-message';
 import { branchThread } from '@/features/switch-thread';
@@ -38,7 +38,7 @@ export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: 
             initial={visibleText}
             onCancel={() => setEditing(false)}
             onSave={(content) => {
-              useJournalStore.getState().editHumanText(threadId, entry.id, content);
+              // TODO: Reimplement edit human text for session events
               setEditing(false);
             }}
           />

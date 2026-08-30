@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpIcon, SquareIcon, TriangleAlertIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { rollupUsage, useJournalStore } from '@/entities/journal';
+import { rollupUsage } from '@/entities/session';
+import { useSessionStore } from '@/entities/session';
 import { useScheduleStore } from '@/entities/schedule';
-import { useSelectedAgent, useSelectedThread, useThreadJournal } from '@/features/desk';
+import { useSelectedAgent, useSelectedThread, useThreadEvents } from '@/features/desk';
 import { ModelSelect } from '@/features/manage-agent';
 import { pendingHitl } from '@/features/send-message';
 import { cancelRun, providersQuery } from '@/shared/api';
@@ -40,17 +41,17 @@ export function ChatComposer() {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
   const { workspaceId } = useStudioLocation();
-  const journal = useThreadJournal(thread?.id ?? null);
+  const events = useThreadEvents(thread?.id ?? null);
   const providers = useQuery(providersQuery).data ?? [];
   const modelId = agent?.modelId;
   const levels = agentEfforts(modelId, providers);
-  const streaming = useJournalStore((state) =>
+  const streaming = useSessionStore((state) =>
     thread ? Boolean(state.activeRuns[thread.id]) : false,
   );
-  const activeRunId = useJournalStore((state) =>
+  const activeRunId = useSessionStore((state) =>
     thread ? (state.activeRuns[thread.id]?.runId ?? null) : null,
   );
-  const hitl = pendingHitl(journal);
+  const hitl = pendingHitl(events);
   const [value, setValue] = useState('');
   const [pending, setPending] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
@@ -69,13 +70,13 @@ export function ChatComposer() {
   const disabled = !agent || !thread || sending || streaming || Boolean(hitl);
   const slashOpen = slashMatches.length > 0 && pending.length === 0 && !disabled;
   const contextWindow = modelContextWindow(modelId, providers);
-  const usages = generationUsages(journal).map((item) => {
+  const usages = generationUsages(events).map((item) => {
     const filled = fillUsageCost(item, modelId, providers);
     return filled ?? item;
   });
   const lastUsage = fillUsageWindow(usages.at(-1) ?? null, contextWindow);
   const runUsage = rollupUsage(
-    turnGenerationUsages(journal).map((item) => fillUsageCost(item, modelId, providers) ?? item),
+    turnGenerationUsages(events).map((item) => fillUsageCost(item, modelId, providers) ?? item),
   );
   const threadUsage = rollupUsage(usages);
   const inputModalities = modelInputModalities(modelId, providers);
@@ -211,7 +212,7 @@ export function ChatComposer() {
                   agent,
                   workspaceId,
                   nextModelId: next,
-                  hasJournalEntries: journal.entries.length > 0,
+                  hasJournalEntries: events.length > 0,
                   providers,
                 });
               }}
@@ -245,7 +246,7 @@ export function ChatComposer() {
                     return;
                   }
                   const runId = activeRunId;
-                  useJournalStore.getState().abortRun(thread.id);
+                  useSessionStore.getState().abortRun(thread.id);
                   if (runId) {
                     void cancelRun(runId).catch(() => {});
                   }

@@ -151,7 +151,7 @@ export function ConfigPane({ agent }: { agent: Agent }) {
 
       <ConfigModelSection
         agent={agent}
-        workspaceId={workspaceId}
+        workspaceId={workspaceId ?? undefined}
         providers={providers}
         form={form}
         onCommitSettings={commitModelSettings}

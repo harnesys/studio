@@ -79,6 +79,7 @@ export {
   cancelRun,
   compactThread,
   createThreadRecord,
+  deleteThreadEntry,
   deleteThreadRecord,
   getRunEventsStream,
   getThread,

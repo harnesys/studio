@@ -113,3 +113,9 @@ export function markThreadRead(id: string) {
 export function deleteThreadRecord(id: string) {
   return apiJson<void>(`/api/threads/${id}`, { method: 'DELETE' });
 }
+
+export function deleteThreadEntry(threadId: string, entryId: string) {
+  return apiJson<ThreadRecord>(`/api/threads/${threadId}/entries/${entryId}`, {
+    method: 'DELETE',
+  });
+}

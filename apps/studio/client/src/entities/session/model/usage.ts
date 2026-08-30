@@ -90,8 +90,8 @@ export function usageFromGeneration(
   }
   return {
     model: '',
-    promptTokens: usage.input,
-    generatedTokens: usage.output,
+    promptTokens: usage.input ?? 0,
+    generatedTokens: usage.output ?? 0,
     contextTokens: 0,
     durationMs: usage.ms ?? 0,
     tools: [],

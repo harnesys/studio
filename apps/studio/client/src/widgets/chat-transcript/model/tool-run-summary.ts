@@ -16,7 +16,7 @@ export function summarizeToolRun(pairs: ToolEventPair[]): ToolRunSummary {
   for (const pair of pairs) {
     const title = toolCaption(pair.call, pair.result).title;
     counts.set(title, (counts.get(title) ?? 0) + 1);
-    if (pair.call.phase === 'failed' || pair.result?.phase === 'failed') {
+    if (pair.result?.phase === 'failed') {
       failed += 1;
     }
   }

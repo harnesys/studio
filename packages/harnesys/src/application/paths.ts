@@ -38,12 +38,18 @@ export function resolvePaths(
 
   const allow = intersectArrays(allowArrays);
 
+  if (allow.length === 0) {
+    throw Object.assign(
+      new Error('paths.allow is required and must not be empty — cannot allow entire disk'),
+      { code: 'paths_allow_empty' },
+    );
+  }
+
   const cwd =
-    sessionPaths?.cwd ??
-    agentPaths?.cwd ??
-    runtimePaths?.cwd ??
-    (allow[0] as string | undefined) ??
-    process.cwd();
+    sessionPaths?.cwd ?? agentPaths?.cwd ?? runtimePaths?.cwd ?? (allow[0] as string | undefined);
+  if (!cwd) {
+    throw new Error('cwd is required: provide via paths.cwd or allow list');
+  }
 
   if (allow.length > 0 && !allow.some((a) => cwd.startsWith(a) || a.startsWith(cwd))) {
     throw new Error(`cwd "${cwd}" is not under any allowed path`);

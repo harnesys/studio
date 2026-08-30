@@ -9,12 +9,10 @@ import { ToolRun } from './tool-run';
 export function ActivityItems({
   events,
   live,
-  detailedStats = false,
   runId,
 }: {
   events: SessionEvent[];
   live: boolean;
-  detailedStats?: boolean;
   runId?: string;
 }) {
   const chunks = chunkEvents(events);

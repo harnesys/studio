@@ -5,7 +5,6 @@ import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/de
 import { branchThread } from '@/features/switch-thread';
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
-import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { Markdown } from '@/shared/ui/markdown';
 import { toast } from '@/shared/ui/toast';
 
@@ -83,7 +82,6 @@ export function AssistantMessageView({
   const thread = useSelectedThread();
   const { workspaceId } = useStudioLocation();
   const { openThread } = useStudioNavigation();
-  const detailedStats = useChatPreferences((state) => state.detailedStats);
   const segments = groupSegments(events);
   const answerText = events
     .filter((ev): ev is SessionEvent & { type: 'text-delta' } => ev.type === 'text-delta')
@@ -101,7 +99,6 @@ export function AssistantMessageView({
             <TurnSegmentView
               segment={segment}
               live={streaming && index === segments.length - 1 && !waitingForModel}
-              detailedStats={detailedStats}
               runId={runId}
             />
           </div>
@@ -143,12 +140,10 @@ export function AssistantMessageView({
 function TurnSegmentView({
   segment,
   live,
-  detailedStats,
   runId,
 }: {
   segment: TurnSegment;
   live: boolean;
-  detailedStats: boolean;
   runId: string;
 }) {
   if (segment.type === 'activity') {
@@ -156,7 +151,6 @@ function TurnSegmentView({
       <ActivityItems
         events={segment.events}
         live={live}
-        detailedStats={detailedStats}
         runId={runId}
       />
     );

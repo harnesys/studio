@@ -49,7 +49,7 @@ export function ProviderForm({
             items={DRIVER_ITEMS}
             value={driver}
             onValueChange={(value) => {
-              if (isDriver(value)) {
+              if (value && isDriver(value)) {
                 setDriver(value);
                 setApiUrl('');
               }

@@ -81,7 +81,7 @@ function mindmapSectionIndex(node: Element): number | null {
   if (node.classList.contains('section-root') || node.classList.contains('section--1')) {
     return null;
   }
-  for (const name of node.classList) {
+  for (const name of Array.from(node.classList)) {
     const match = /^section-(\d+)$/.exec(name);
     if (match) {
       return Number(match[1]);
@@ -115,38 +115,38 @@ function paintMindmap(host: HTMLElement) {
     el.style.setProperty('stroke', stroke, 'important');
   };
 
-  for (const node of host.querySelectorAll('.mindmap-node')) {
+  for (const node of Array.from(host.querySelectorAll('.mindmap-node'))) {
     const section = mindmapSectionIndex(node);
     const tint = section === null ? live : (tints[section % tints.length] ?? live);
     const fill = section === null ? mix(live, muted, 48) : mix(tint, card, 30);
     const stroke = section === null ? live : mix(tint, border, 50);
 
-    for (const shape of node.querySelectorAll(
+    for (const shape of Array.from(node.querySelectorAll(
       ':is(rect, circle, path, polygon, ellipse, .node-bkg)',
-    )) {
+    ))) {
       if (shape.classList.contains('node-line-') || shape.tagName.toLowerCase() === 'line') {
         continue;
       }
       paint(shape, fill, stroke);
     }
-    for (const text of node.querySelectorAll('text, tspan')) {
+    for (const text of Array.from(node.querySelectorAll('text, tspan'))) {
       if (text instanceof SVGElement) {
         text.style.setProperty('fill', foreground, 'important');
       }
     }
-    for (const line of node.querySelectorAll('line, .node-line-')) {
+    for (const line of Array.from(node.querySelectorAll('line, .node-line-'))) {
       if (line instanceof SVGElement) {
         line.style.setProperty('stroke', stroke, 'important');
       }
     }
   }
 
-  for (const edge of host.querySelectorAll('[class*="section-edge-"]')) {
+  for (const edge of Array.from(host.querySelectorAll('[class*="section-edge-"]'))) {
     if (!(edge instanceof SVGElement)) {
       continue;
     }
     let tint = mutedFg;
-    for (const name of edge.classList) {
+    for (const name of Array.from(edge.classList)) {
       const match = /^section-edge-(\d+)$/.exec(name);
       if (match) {
         tint = tints[Number(match[1]) % tints.length] ?? mutedFg;

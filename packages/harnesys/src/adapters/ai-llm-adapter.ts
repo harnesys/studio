@@ -18,6 +18,19 @@ export type CallModelResult = {
   structured?: unknown;
 };
 
+export type StreamChunk =
+  | { type: 'delta'; text: string }
+  | { type: 'chunk'; text: string; chunkId: string }
+  | {
+      type: 'completed';
+      finishReason: string;
+      text?: string;
+      toolCalls?: { name: string; args: unknown; id: string }[];
+      structured?: unknown;
+    };
+
+const STREAM_CHUNK_SIZE = 6;
+
 function buildProvider(binding: ModelBinding): (modelId: string) => unknown {
   const opts = {
     apiKey: binding.apiKey,
@@ -84,16 +97,17 @@ function toAiTools(
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: adapter orchestration 51→15 would split stub vs stream
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: adapter orchestration
 // biome-ignore lint/complexity/useMaxParams: flexible overload needs 6 params for test vs prod
-export async function callModel(
+export async function* callModel(
   binding: ModelBinding,
   prompt: string,
   messages: unknown[],
   toolNames: string[] | Map<string, ToolDefinition>,
   signalOrRegistry: AbortSignal | Map<string, ToolDefinition> | undefined,
   maybeSignal?: AbortSignal,
-): Promise<CallModelResult> {
+  outputSchema?: Record<string, unknown>,
+): AsyncGenerator<StreamChunk> {
   let names: string[] = [];
   let registry: Map<string, ToolDefinition> | undefined;
   let signal: AbortSignal | undefined;
@@ -117,7 +131,8 @@ export async function callModel(
   const driver = binding.driver as string;
   if (driver === 'test' || binding.name === 'test') {
     if (names.length > 0) {
-      return {
+      yield {
+        type: 'completed',
         finishReason: 'tool-calls',
         text: '',
         toolCalls: names.map((name, i) => ({
@@ -126,8 +141,10 @@ export async function callModel(
           id: `tc-${i}`,
         })),
       };
+      return;
     }
-    return { finishReason: 'stop', text: 'hello' };
+    yield { type: 'completed', finishReason: 'stop', text: 'hello' };
+    return;
   }
 
   const provider = buildProvider(binding);
@@ -135,18 +152,29 @@ export async function callModel(
   const aiTools = toAiTools(names, registry);
 
   const ms = messages as never[];
-  const result = await streamText({
+  const streamConfig: Record<string, unknown> = {
     model,
     system: prompt || undefined,
     messages: ms.length > 0 ? ms : undefined,
     prompt: ms.length === 0 && prompt ? prompt : undefined,
     tools: aiTools as never,
     abortSignal: signal,
-  } as never);
+  };
+
+  if (outputSchema) {
+    streamConfig.response_format = {
+      type: 'json_schema',
+      schema: outputSchema,
+    };
+  }
+
+  const result = await streamText(streamConfig as never);
 
   let fullText = '';
   const toolCalls: { name: string; args: unknown; id: string }[] = [];
   let finishReason = 'stop';
+  let chunkBuffer = '';
+  let chunkCount = 0;
 
   if (result && typeof (result as unknown as { text?: unknown }).text === 'string') {
     fullText = (result as unknown as { text: string }).text;
@@ -167,6 +195,16 @@ export async function callModel(
     ).fullStream) {
       if (chunk.type === 'text-delta' && chunk.text) {
         fullText += chunk.text;
+        chunkBuffer += chunk.text;
+        chunkCount++;
+
+        yield { type: 'delta', text: chunk.text };
+
+        if (chunkCount >= STREAM_CHUNK_SIZE) {
+          yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
+          chunkBuffer = '';
+          chunkCount = 0;
+        }
       }
       if (chunk.type === 'tool-call') {
         toolCalls.push({
@@ -175,6 +213,9 @@ export async function callModel(
           id: chunk.toolCallId as string,
         });
       }
+    }
+    if (chunkBuffer) {
+      yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
     }
     const fr = await (result as unknown as { finishReason?: Promise<string> }).finishReason;
     if (typeof fr === 'string') {
@@ -210,9 +251,21 @@ export async function callModel(
     }
   }
 
-  return {
+  let structured: unknown;
+  try {
+    const obj = await (result as unknown as { object?: Promise<unknown> }).object;
+    if (obj !== undefined) {
+      structured = obj;
+    }
+  } catch {
+    // not all providers support structured output
+  }
+
+  yield {
+    type: 'completed',
     finishReason,
     text: fullText || undefined,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    structured,
   };
 }

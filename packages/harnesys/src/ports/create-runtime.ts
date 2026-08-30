@@ -31,6 +31,8 @@ export type CreateRuntimeOptions = {
   middleware?: Middleware[];
   toolMessages?: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
+  stream?: { chunkIntervalMs?: number; chunkSize?: number };
+  onDefinitionMismatch?: 'reject' | 'compile-new-and-map-cursor';
 };
 
 export type RuntimeHandle = {

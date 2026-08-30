@@ -1,4 +1,4 @@
-import path from 'node:path';
+import path from 'path';
 import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 import { DEFAULT_GREP_MAX_RESULTS, DEFAULT_PATH_BLOCKLIST } from './constants.ts';

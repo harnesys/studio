@@ -37,7 +37,7 @@ export function ToolLine({ pair, live }: { pair: ToolEventPair; live: boolean; r
   const detail = toolDetail(pair.call, pair.result);
   const meta = toolMeta(detail);
   const Icon = ICONS[caption.kind];
-  const failed = pair.call.phase === 'failed' || pair.result?.phase === 'failed';
+  const failed = pair.result?.phase === 'failed';
   const awaitingConfirm = pair.call.phase === 'requested' && !pair.result;
   const rawInput = toolInput(pair);
   const hasInput = Boolean(rawInput.trim().length > 0);

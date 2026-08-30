@@ -1,4 +1,4 @@
-import path from 'node:path';
+import path from 'path';
 
 export type GitIgnore = {
   ignores(absolutePath: string): boolean;

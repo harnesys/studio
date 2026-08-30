@@ -4,8 +4,6 @@
 
 **Studio переписывается нативно** на типы и API из docs (`RuntimeState`, Snapshot, `SessionEvent`, `AgentRun`, `Command`). Цель cutover ≤0.5: без мапперов и без форм старого Harnyx.
 
-**`harnesys-stub/`** (сейчас в `package.json` как `harnesys`): временная заглушка, только чтобы проект компилировался до библиотеки ≥0.3. Не брать оттуда имена, типы, нейминг и подходы в `packages/harnesys` и не закреплять stub-формы как продуктовый контракт Studio. Референс библиотеки = только `docs/01`–`docs/22`.
-
 ## Сервер
 
 Clean Architecture:

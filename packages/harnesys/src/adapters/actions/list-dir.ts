@@ -1,5 +1,5 @@
-import { readdir, stat } from 'node:fs/promises';
-import path from 'node:path';
+import { readdir, stat } from 'fs/promises';
+import path from 'path';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 import { DEFAULT_LIST_DIR_LIMIT, DEFAULT_PATH_BLOCKLIST } from './constants.ts';

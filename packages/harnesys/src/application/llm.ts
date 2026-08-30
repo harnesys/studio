@@ -1,4 +1,4 @@
-import { callModel } from '../adapters/ai-llm-adapter.ts';
+import { callModel, type StreamChunk } from '../adapters/ai-llm-adapter.ts';
 import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
@@ -66,7 +66,10 @@ function resolveMessages(node: LlmNode, ctx: LlmContext): unknown[] {
   }
 }
 
-export async function runLlmGenerate(node: LlmNode, ctx: LlmContext): Promise<LlmResult> {
+export async function* runLlmGenerate(
+  node: LlmNode,
+  ctx: LlmContext,
+): AsyncGenerator<{ type: string; data?: unknown }> {
   ensureMessages(node, ctx.state, ctx.input);
 
   const promptDef = ctx.agent.prompts[node.prompt];
@@ -81,42 +84,58 @@ export async function runLlmGenerate(node: LlmNode, ctx: LlmContext): Promise<Ll
   const messages = resolveMessages(node, ctx);
   const toolNames = node.tools ?? [];
 
-  const res = await callModel(
+  const stream = callModel(
     ctx.modelBinding,
     prompt,
     messages,
     toolNames,
     ctx.toolRegistry,
     ctx.signal,
+    node.output as Record<string, unknown> | undefined,
   );
 
-  let structured: unknown;
-  let outputReserved = false;
-  if (res.structured && typeof res.structured === 'object' && res.structured !== null) {
-    const s = res.structured as Record<string, unknown>;
-    if ('finishReason' in s || 'text' in s || 'toolCalls' in s) {
-      outputReserved = true;
+  let lastChunk: StreamChunk | undefined;
+  for await (const chunk of stream) {
+    if (chunk.type === 'delta') {
+      yield { type: 'model.delta', data: chunk };
+    } else if (chunk.type === 'chunk') {
+      yield { type: 'model.chunk', data: chunk };
+    } else if (chunk.type === 'completed') {
+      lastChunk = chunk;
     }
-    structured = res.structured;
   }
 
-  const out: LlmResult = {
-    finishReason: res.finishReason,
-    text: res.text,
-    toolCalls: res.toolCalls as unknown[] | undefined,
-    structured,
-    outputReserved,
-  };
+  if (lastChunk && lastChunk.type === 'completed') {
+    const res = lastChunk;
 
-  if (structured && typeof structured === 'object' && structured !== null) {
-    const rec = structured as Record<string, unknown>;
-    for (const [k, v] of Object.entries(rec)) {
-      if (k === 'finishReason' || k === 'text' || k === 'toolCalls') {
-        continue;
+    let structured: unknown;
+    let outputReserved = false;
+    if (res.structured && typeof res.structured === 'object' && res.structured !== null) {
+      const s = res.structured as Record<string, unknown>;
+      if ('finishReason' in s || 'text' in s || 'toolCalls' in s) {
+        outputReserved = true;
       }
-      (out as Record<string, unknown>)[k] = v;
+      structured = res.structured;
     }
-  }
 
-  return out;
+    const out: LlmResult = {
+      finishReason: res.finishReason,
+      text: res.text,
+      toolCalls: res.toolCalls as unknown[] | undefined,
+      structured,
+      outputReserved,
+    };
+
+    if (structured && typeof structured === 'object' && structured !== null) {
+      const rec = structured as Record<string, unknown>;
+      for (const [k, v] of Object.entries(rec)) {
+        if (k === 'finishReason' || k === 'text' || k === 'toolCalls') {
+          continue;
+        }
+        (out as Record<string, unknown>)[k] = v;
+      }
+    }
+
+    yield { type: 'model.completed', data: out };
+  }
 }

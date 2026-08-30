@@ -64,6 +64,7 @@ export class WorkspaceHarnesysRegistry {
       tools: [...files(), shell(), fetch(), askUser(), ...this.extraTools],
       agents: { resolve: () => undefined },
       mcp: mcpJson,
+      paths: { cwd: workspace.path },
     });
   }
 }

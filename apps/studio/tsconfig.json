@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     "verbatimModuleSyntax": true,
-    "types": ["bun"]
+    "types": ["bun", "node"]
   },
   "include": ["server", "shared", "dev.ts"]
 }

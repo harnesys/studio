@@ -12,6 +12,7 @@ import type { AgentRun, SendInput, SessionEvent, SessionHandle } from '../ports/
 import type { ToolDefinition } from '../ports/tools.ts';
 import { compile } from './compile.ts';
 import { type GraphOpts, startGraph } from './graph.ts';
+import { runGraph } from './graph-run.ts';
 import { resolvePaths } from './paths.ts';
 import { resolvePermissions } from './permissions.ts';
 
@@ -53,21 +54,55 @@ function eventToSessionEvent(ev: Event): SessionEvent | null {
       output: m?.output,
     };
   }
+  if (t === 'tool.failed') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'tool',
+      phase: 'failed' as const,
+      toolCallId: String(m?.toolCallId ?? ''),
+      name: String(m?.name ?? ''),
+      input: m?.input,
+      output: m?.output,
+    };
+  }
+  if (t === 'tool.skipped') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'tool',
+      phase: 'skipped' as const,
+      toolCallId: String(m?.toolCallId ?? ''),
+      name: String(m?.name ?? ''),
+      input: m?.input,
+      output: m?.output,
+    };
+  }
   if (t === 'interrupt.triggered') {
     const m = ev.metadata as Record<string, unknown> | undefined;
     return {
       type: 'ask',
       askId: String(m?.interruptId ?? ''),
       schema: (m?.resumeSchema as JsonSchema) ?? {},
-      source: 'interrupt',
+      source:
+        (m?.source as 'permission' | 'approve' | 'middleware' | 'interrupt' | 'ask_user') ??
+        'interrupt',
       prompt: typeof m?.reason === 'string' ? m.reason : undefined,
+      tool: m?.tool as { name: string; input: unknown; toolCallId: string } | undefined,
     };
   }
   if (t === 'run.completed') {
-    return { type: 'done' };
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'done',
+      text: typeof m?.text === 'string' ? m.text : undefined,
+    };
   }
   if (t === 'run.failed') {
-    return { type: 'error', code: 'run_failed', message: 'run failed' };
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'error',
+      code: String(m?.code ?? 'run_failed'),
+      message: String(m?.message ?? 'run failed'),
+    };
   }
   return null;
 }
@@ -190,26 +225,42 @@ export function createSession(
       pendingAsk = null;
       status = 'running';
       await consumePromise;
-      graphOpts.resumePayload = payload;
+
       const snap = await state.load();
       const interrupt = (snap?.cursor as Record<string, unknown>)?.interrupt as
         | Record<string, unknown>
         | undefined;
-      graphOpts.startNodeId = interrupt?.nodeId as string | undefined;
-      const newIter = startGraph(graphOpts);
-      for await (const ev of newIter) {
-        const se = eventToSessionEvent(ev);
-        if (se) {
-          events.push(se);
-          if (se.type === 'ask') {
-            pendingAsk = { askId: se.askId, schema: se.schema };
-            status = 'needs_input';
-          }
-        }
-      }
-      const finalSnap = await state.load();
-      if (finalSnap?.status === 'completed') {
+
+      const command = {
+        type: 'resume' as const,
+        interruptId: String(interrupt?.interruptId ?? askId),
+        payload,
+      };
+
+      const result = await runGraph({
+        ...graphOpts,
+        resumePayload: command.payload,
+        startNodeId: interrupt?.nodeId as string | undefined,
+      });
+
+      if (result.status === 'completed') {
         status = 'completed';
+        const text =
+          typeof result.output === 'object' && result.output !== null && 'text' in result.output
+            ? String((result.output as { text: unknown }).text ?? '')
+            : '';
+        resolveOutput({ text });
+      } else if (result.status === 'needs_input') {
+        const askEvent = events.findLast((e) => e.type === 'ask');
+        if (askEvent) {
+          pendingAsk = {
+            askId: (askEvent as { askId: string }).askId,
+            schema: (askEvent as { schema: JsonSchema }).schema,
+          };
+        }
+        status = 'needs_input';
+      } else {
+        status = 'failed';
         resolveOutput({ text: '' });
       }
     };
@@ -219,8 +270,27 @@ export function createSession(
         return;
       }
       pendingAsk = null;
-      status = 'failed';
-      resolveOutput({ text: rejectOpts?.note ?? '' });
+      status = 'running';
+      await consumePromise;
+
+      const snap = await state.load();
+      const interrupt = (snap?.cursor as Record<string, unknown>)?.interrupt as
+        | Record<string, unknown>
+        | undefined;
+
+      // reject: no resumePayload → default edge (without $resume) is taken
+      const result = await runGraph({
+        ...graphOpts,
+        startNodeId: interrupt?.nodeId as string | undefined,
+      });
+
+      if (result.status === 'completed') {
+        status = 'completed';
+        resolveOutput({ text: rejectOpts?.note ?? '' });
+      } else {
+        status = 'failed';
+        resolveOutput({ text: rejectOpts?.note ?? '' });
+      }
     };
 
     cancelFn = (): void => {

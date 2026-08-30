@@ -1,9 +1,4 @@
-import {
-  type AgentMemoryConfig,
-  type AgentProjectPaths,
-  defaultAgentMemory,
-  type PortRef,
-} from '@studio/shared';
+import { type AgentMemoryConfig, defaultAgentMemory, type PortRef } from '@studio/shared';
 
 export const MEMORY_OFF = 'off' as const;
 
@@ -58,7 +53,7 @@ export type MemoryDraft = {
   projectPaths: string[];
 };
 
-export type AgentMemoryProject = PortRef | AgentProjectPaths | null | undefined;
+export type AgentMemoryProject = PortRef | { paths: string[] } | null | undefined;
 
 export function memoryDraftFrom(memory: AgentMemoryConfig): MemoryDraft {
   const defaults = defaultAgentMemory();
@@ -201,14 +196,12 @@ function projectPathsFrom(project: AgentMemoryProject): string[] {
   if (!project || Array.isArray(project) || typeof project !== 'object') {
     return [];
   }
-  if ('paths' in project && isAgentProjectPaths(project)) {
-    return project.paths.filter((path) => path.trim().length > 0);
+  if ('paths' in project && Array.isArray(project.paths)) {
+    return project.paths.filter(
+      (path: unknown): path is string => typeof path === 'string' && path.trim().length > 0,
+    );
   }
   return [];
-}
-
-function isAgentProjectPaths(value: object): value is AgentProjectPaths {
-  return 'paths' in value && Array.isArray((value as AgentProjectPaths).paths);
 }
 
 function scopesFrom(value: unknown, fallback: SemanticScopeOption[]): SemanticScopeOption[] {

@@ -58,16 +58,28 @@ export class AskUserInterrupt extends Error {
   readonly prompt: string;
   readonly options?: Array<{ id: string; label: string }>;
   readonly multi?: boolean;
+  readonly source?: 'ask_user' | 'approve' | 'permission' | 'middleware';
+  readonly tool?: { name: string; input: unknown; toolCallId: string };
+  readonly interruptId?: string;
+  readonly resumeSchema?: import('./json-schema.ts').JsonSchema;
 
   constructor(input: {
     prompt: string;
     options?: Array<{ id: string; label: string }>;
     multi?: boolean;
+    source?: 'ask_user' | 'approve' | 'permission' | 'middleware';
+    tool?: { name: string; input: unknown; toolCallId: string };
+    interruptId?: string;
+    resumeSchema?: import('./json-schema.ts').JsonSchema;
   }) {
     super('ask_user interrupt');
     this.name = 'AskUserInterrupt';
     this.prompt = input.prompt;
     this.options = input.options;
     this.multi = input.multi;
+    this.source = input.source;
+    this.tool = input.tool;
+    this.interruptId = input.interruptId;
+    this.resumeSchema = input.resumeSchema;
   }
 }

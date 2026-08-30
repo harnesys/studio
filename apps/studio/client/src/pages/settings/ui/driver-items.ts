@@ -20,6 +20,8 @@ export const DRIVER_LABELS: Record<Driver, string> = {
   minimax: 'MiniMax',
   xiaomi: 'Xiaomi MiMo',
   qwen: 'Qwen (Alibaba)',
+  alibaba: 'Alibaba',
+  moonshotai: 'Moonshot AI',
 };
 
 export const DRIVER_ITEMS = DRIVERS.map((value) => ({ value, label: DRIVER_LABELS[value] }));

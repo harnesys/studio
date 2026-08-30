@@ -2,12 +2,12 @@ import matter from 'gray-matter';
 import type { SkillDocument } from '../../domain/skill.ts';
 
 export class InvalidSkillFileError extends Error {
-  constructor(
-    message: string,
-    public readonly path: string,
-  ) {
+  readonly path: string;
+
+  constructor(message: string, path: string) {
     super(message);
     this.name = 'InvalidSkillFileError';
+    this.path = path;
   }
 }
 

@@ -29,10 +29,12 @@ export type ToolCallContext = {
   signal: AbortSignal;
   runId: string;
   nodeId: string;
+  nodeExecutionId: string;
   sessionId: string;
   toolMessages?: 'barrier' | 'ordered';
   messagesPath?: string;
   hostMaxConcurrency?: number;
+  resumePayload?: unknown;
 };
 
 function codeError(code: string, message: string): never {
@@ -134,25 +136,28 @@ export async function executeToolCall(
     });
   }
 
-  const maxConcurrency =
-    concurrency === 'sequential'
-      ? 1
-      : Math.min(calls.length, ctx.hostMaxConcurrency ?? calls.length);
-
-  const results: ToolCallResult[] = new Array(calls.length);
-  const toolMessages: unknown[] = [];
-
-  async function runOne(idx: number): Promise<void> {
-    const call = calls[idx] as { name: string; args: unknown; id: string };
-    const def = ctx.toolRegistry.get(call.name);
+  // Shared tool execution logic
+  // biome-ignore lint/complexity/useMaxParams: internal helper with 5 params for reuse
+  async function runOneRaw(
+    idx: number,
+    callsArr: { name: string; args: unknown; id: string }[],
+    resultsArr: (ToolCallResult | undefined)[],
+    messagesArr: (unknown | undefined)[],
+    callCtx: ToolCallContext,
+  ): Promise<void> {
+    const call = callsArr[idx];
+    if (!call) {
+      return;
+    }
+    const def = callCtx.toolRegistry.get(call.name);
     if (!def) {
-      results[idx] = {
+      resultsArr[idx] = {
         id: call.id,
         name: call.name,
         result: `tool not found ${call.name}`,
         isError: true,
       };
-      toolMessages[idx] = {
+      messagesArr[idx] = {
         role: 'tool',
         toolCallId: call.id,
         name: call.name,
@@ -162,8 +167,8 @@ export async function executeToolCall(
     }
     const validation = validateToolInput(def.input, call.args);
     if (!validation.ok) {
-      results[idx] = { id: call.id, name: call.name, result: validation.errors, isError: true };
-      toolMessages[idx] = {
+      resultsArr[idx] = { id: call.id, name: call.name, result: validation.errors, isError: true };
+      messagesArr[idx] = {
         role: 'tool',
         toolCallId: call.id,
         name: call.name,
@@ -171,53 +176,51 @@ export async function executeToolCall(
       };
       return;
     }
-
-    if (def.operations && ctx.permissions) {
-      const check = checkPermission(ctx.permissions, def.operations);
-      if (!check.allowed) {
-        if (check.gate === 'deny') {
-          results[idx] = {
+    if (def.operations && callCtx.permissions) {
+      const permCheck = checkPermission(callCtx.permissions, def.operations);
+      if (!permCheck.allowed) {
+        if (permCheck.gate === 'deny') {
+          resultsArr[idx] = {
             id: call.id,
             name: call.name,
-            result: `permission denied: ${check.operation}`,
+            result: `permission denied: ${permCheck.operation}`,
             isError: true,
           };
-          toolMessages[idx] = {
+          messagesArr[idx] = {
             role: 'tool',
             toolCallId: call.id,
             name: call.name,
-            content: `permission denied: ${check.operation}`,
+            content: `permission denied: ${permCheck.operation}`,
           };
           return;
         }
-        if (check.gate === 'ask') {
-          results[idx] = {
+        if (permCheck.gate === 'ask') {
+          resultsArr[idx] = {
             id: call.id,
             name: call.name,
-            result: `permission ask: ${check.operation}`,
+            result: `permission ask: ${permCheck.operation}`,
             isError: true,
             skipped: true,
           };
-          toolMessages[idx] = {
+          messagesArr[idx] = {
             role: 'tool',
             toolCallId: call.id,
             name: call.name,
-            content: `permission ask: ${check.operation}`,
+            content: `permission ask: ${permCheck.operation}`,
           };
           return;
         }
       }
     }
-
-    if (ctx.signal.aborted) {
-      results[idx] = {
+    if (callCtx.signal.aborted) {
+      resultsArr[idx] = {
         id: call.id,
         name: call.name,
         result: 'cancelled',
         isError: false,
         cancelled: true,
       };
-      toolMessages[idx] = {
+      messagesArr[idx] = {
         role: 'tool',
         toolCallId: call.id,
         name: call.name,
@@ -225,32 +228,34 @@ export async function executeToolCall(
       };
       return;
     }
-
     try {
+      if (!callCtx.paths?.cwd) {
+        throw new Error('paths.cwd is required');
+      }
       const toolCtx = {
-        cwd: ctx.paths?.cwd ?? process.cwd(),
-        paths: { allow: ctx.paths?.allow ?? [] },
-        signal: ctx.signal,
-        artifacts: ctx.artifacts,
+        cwd: callCtx.paths.cwd,
+        paths: { allow: callCtx.paths?.allow ?? [] },
+        signal: callCtx.signal,
+        artifacts: callCtx.artifacts,
       };
       const value = await def.execute(call.args, toolCtx);
-      results[idx] = { id: call.id, name: call.name, result: value, isError: false };
-      toolMessages[idx] = {
+      resultsArr[idx] = { id: call.id, name: call.name, result: value, isError: false };
+      messagesArr[idx] = {
         role: 'tool',
         toolCallId: call.id,
         name: call.name,
         content: String(value ?? ''),
       };
     } catch (e) {
-      if ((e as { name?: string }).name === 'AbortError' || ctx.signal.aborted) {
-        results[idx] = {
+      if ((e as { name?: string }).name === 'AbortError' || callCtx.signal.aborted) {
+        resultsArr[idx] = {
           id: call.id,
           name: call.name,
           result: 'cancelled',
           isError: false,
           cancelled: true,
         };
-        toolMessages[idx] = {
+        messagesArr[idx] = {
           role: 'tool',
           toolCallId: call.id,
           name: call.name,
@@ -262,9 +267,167 @@ export async function executeToolCall(
         throw e;
       }
       const msg = e instanceof Error ? e.message : String(e);
-      results[idx] = { id: call.id, name: call.name, result: msg, isError: true };
-      toolMessages[idx] = { role: 'tool', toolCallId: call.id, name: call.name, content: msg };
+      resultsArr[idx] = { id: call.id, name: call.name, result: msg, isError: true };
+      messagesArr[idx] = { role: 'tool', toolCallId: call.id, name: call.name, content: msg };
     }
+  }
+
+  // --- HITL approve logic ---
+  const batchApprove =
+    'approve' in node && (node as { approve?: unknown }).approve
+      ? (
+          node as {
+            approve: {
+              tools: string[];
+              reason: string;
+              resumeSchema: import('../domain/json-schema.ts').JsonSchema;
+            };
+          }
+        ).approve
+      : undefined;
+
+  const approveStateKey = `$batchApprove_${ctx.nodeId}`;
+
+  if (batchApprove) {
+    const approveTools = new Set(batchApprove.tools);
+    const needsApproveIdx: number[] = [];
+    const freeIdx: number[] = [];
+    for (let i = 0; i < calls.length; i++) {
+      const c = calls[i];
+      if (c && approveTools.has(c.name)) {
+        needsApproveIdx.push(i);
+      } else {
+        freeIdx.push(i);
+      }
+    }
+
+    const results: (ToolCallResult | undefined)[] = new Array(calls.length);
+    const toolMessages: (unknown | undefined)[] = [];
+
+    // Restore progress from state (survives crash/resume)
+    const saved = ctx.state[approveStateKey] as
+      | { done: number; results: ToolCallResult[] }
+      | undefined;
+    let approveCursor = 0;
+    if (saved && Array.isArray(saved.results)) {
+      for (let i = 0; i < saved.results.length; i++) {
+        results[i] = saved.results[i];
+      }
+      approveCursor = saved.done;
+    }
+
+    // Process needsApprove sequentially
+    for (let i = approveCursor; i < needsApproveIdx.length; i++) {
+      const callIdx = needsApproveIdx[i];
+      if (callIdx === undefined) {
+        continue;
+      }
+      const call = calls[callIdx];
+      if (!call) {
+        continue;
+      }
+
+      // Check resume payload
+      if (ctx.resumePayload !== undefined) {
+        const payload = ctx.resumePayload as { approved?: boolean };
+        if (payload.approved) {
+          // Approved — execute the tool
+          await runOneRaw(callIdx, calls, results, toolMessages, ctx);
+        } else {
+          // Rejected — skip
+          results[callIdx] = {
+            id: call.id,
+            name: call.name,
+            result: 'rejected by user',
+            isError: false,
+            skipped: true,
+          };
+          toolMessages[callIdx] = {
+            role: 'tool',
+            toolCallId: call.id,
+            name: call.name,
+            content: 'rejected by user',
+          };
+        }
+        // Save progress
+        ctx.state[approveStateKey] = { done: i + 1, results: results.filter(Boolean) };
+        // Clear resume payload for next call
+        ctx.resumePayload = undefined;
+      } else {
+        // No resume payload — throw interrupt for this call
+        ctx.state[approveStateKey] = { done: i, results: results.filter(Boolean) };
+        throw new AskUserInterrupt({
+          prompt: batchApprove.reason,
+          source: 'approve',
+          tool: { name: call.name, input: call.args, toolCallId: call.id },
+          interruptId: `batch/${ctx.nodeExecutionId}/${callIdx}`,
+          resumeSchema: batchApprove.resumeSchema,
+        });
+      }
+    }
+
+    // All needsApprove done — clean up state
+    delete ctx.state[approveStateKey];
+
+    // Process free calls with concurrency
+    async function runOneFree(idx: number): Promise<void> {
+      await runOneRaw(idx, calls, results, toolMessages, ctx);
+    }
+
+    if (freeIdx.length > 0) {
+      const maxFree =
+        concurrency === 'sequential'
+          ? 1
+          : Math.min(freeIdx.length, ctx.hostMaxConcurrency ?? freeIdx.length);
+      if (maxFree <= 1) {
+        for (const idx of freeIdx) {
+          if (idx !== undefined) {
+            await runOneFree(idx);
+          }
+        }
+      } else {
+        let cursor = 0;
+        const worker = async (): Promise<void> => {
+          while (cursor < freeIdx.length) {
+            const idx = freeIdx[cursor];
+            cursor++;
+            if (idx !== undefined) {
+              await runOneFree(idx);
+            }
+          }
+        };
+        const workers: Promise<void>[] = [];
+        for (let w = 0; w < Math.min(maxFree, freeIdx.length); w++) {
+          workers.push(worker());
+        }
+        await Promise.all(workers);
+      }
+    }
+
+    // Flush tool messages
+    const arr = getStateMessages(ctx.state, ctx.messagesPath);
+    if (arr) {
+      for (const m of toolMessages) {
+        if (m) {
+          arr.push(m);
+        }
+      }
+    }
+
+    return { results: results as ToolCallResult[] };
+  }
+  // --- End HITL approve logic ---
+
+  const maxConcurrency =
+    concurrency === 'sequential'
+      ? 1
+      : Math.min(calls.length, ctx.hostMaxConcurrency ?? calls.length);
+
+  const results: (ToolCallResult | undefined)[] = new Array(calls.length);
+  const toolMessages: (unknown | undefined)[] = [];
+
+  function runOne(idx: number): Promise<void> {
+    return runOneRaw(idx, calls, results, toolMessages, ctx);
   }
 
   if (concurrency === 'sequential' || maxConcurrency === 1) {
@@ -317,5 +480,5 @@ export async function executeToolCall(
     }
   }
 
-  return { results };
+  return { results: results as ToolCallResult[] };
 }

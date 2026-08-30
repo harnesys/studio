@@ -72,8 +72,8 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
               </MessageScrollerItem>
             ))}
             {failures.map((failure) => (
-              <MessageScrollerItem key={failure.runId} messageId={failure.runId}>
-                <FailedMessageView text={failure.message} />
+              <MessageScrollerItem key={failure.id} messageId={failure.id}>
+                <FailedMessageView text={failure.text} />
               </MessageScrollerItem>
             ))}
             {compacting ? (

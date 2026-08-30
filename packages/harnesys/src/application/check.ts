@@ -1,6 +1,7 @@
 import { bindingOf } from '../adapters/models/binding.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Diagnostic, DiagnosticSeverity } from '../domain/errors.ts';
+import type { AgentsResolve } from '../ports/create-runtime.ts';
 import type { ProviderConfig } from '../ports/models.ts';
 import type { CustomNodeImpl, ToolDefinition } from '../ports/tools.ts';
 import { compile } from './compile.ts';
@@ -10,6 +11,7 @@ export type CheckOptions = {
   models?: ProviderConfig[];
   modelsPort?: unknown;
   nodes?: Record<string, CustomNodeImpl>;
+  agents?: AgentsResolve;
 };
 
 export function check(
@@ -140,7 +142,41 @@ export function check(
     }
   }
 
-  // duplicate_hitl: skipped for 0.2 (needs permissions map)
+  if (opts.agents) {
+    for (const [id, node] of Object.entries(def.graph.nodes)) {
+      if (node.type === 'control:handoff') {
+        const agentId = node.agentId;
+        if (typeof agentId === 'string' && !agentId.trim().startsWith('$')) {
+          if (!opts.agents.resolve(agentId)) {
+            add(
+              'handoff_target',
+              'error',
+              `handoff target "${agentId}" not found`,
+              `graph.nodes.${id}.agentId`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  for (const [id, node] of Object.entries(def.graph.nodes)) {
+    if (node.type === 'tool:call' && 'approve' in node && node.approve) {
+      const tools = node.approve.tools;
+      const seen = new Set<string>();
+      for (const t of tools) {
+        if (seen.has(t)) {
+          add(
+            'duplicate_hitl',
+            'error',
+            `duplicate approve tool "${t}"`,
+            `graph.nodes.${id}.approve.tools`,
+          );
+        }
+        seen.add(t);
+      }
+    }
+  }
 
   return { diagnostics: out };
 }

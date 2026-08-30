@@ -1,5 +1,5 @@
-import { existsSync, realpathSync } from 'node:fs';
-import path from 'node:path';
+import { existsSync, realpathSync } from 'fs';
+import path from 'path';
 
 function realpathOrResolve(target: string): string {
   try {

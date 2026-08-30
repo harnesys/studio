@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { dirname, extname, join } from 'path';
 import type { ArtifactStore, SendFile } from '../ports/artifacts.ts';
 
 const MIME_MAP: Record<string, string> = {

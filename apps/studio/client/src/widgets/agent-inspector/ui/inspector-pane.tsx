@@ -45,37 +45,37 @@ export function InspectorPane({ agent }: { agent: Agent }) {
             </div>
 
             <div className="flex flex-col gap-1">
-              {resolvedModel.contextWindow?.limit ? (
+              {resolvedModel.contextWindow ? (
                 <FactRow label="Context" mono>
-                  {formatContextWindow(resolvedModel.contextWindow.limit)}
+                  {formatContextWindow(resolvedModel.contextWindow)}
                 </FactRow>
               ) : null}
-              {resolvedModel.contextWindow?.maxOutput ? (
+              {resolvedModel.top_provider?.max_completion_tokens ? (
                 <FactRow label="Max out" mono>
-                  {formatContextWindow(resolvedModel.contextWindow.maxOutput)}
+                  {formatContextWindow(resolvedModel.top_provider.max_completion_tokens)}
                 </FactRow>
               ) : null}
-              {resolvedModel.pricing?.input !== undefined ? (
+              {resolvedModel.pricing?.prompt !== undefined ? (
                 <FactRow label="In $/1M" mono>
-                  ${resolvedModel.pricing.input}
+                  ${resolvedModel.pricing.prompt}
                 </FactRow>
               ) : null}
-              {resolvedModel.pricing?.output !== undefined ? (
+              {resolvedModel.pricing?.completion !== undefined ? (
                 <FactRow label="Out $/1M" mono>
-                  ${resolvedModel.pricing.output}
+                  ${resolvedModel.pricing.completion}
                 </FactRow>
               ) : null}
             </div>
 
-            {resolvedModel.features && resolvedModel.features.length > 0 ? (
+            {resolvedModel.supported_parameters && resolvedModel.supported_parameters.length > 0 ? (
               <div className="flex flex-wrap gap-1">
-                {resolvedModel.features.map((feature: any) => (
+                {resolvedModel.supported_parameters.map((param) => (
                   <Badge
-                    key={feature}
+                    key={param}
                     variant="secondary"
                     className="px-1.5 py-0 font-normal text-[10px]"
                   >
-                    {feature}
+                    {param}
                   </Badge>
                 ))}
               </div>

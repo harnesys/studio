@@ -1,4 +1,4 @@
-import path from 'node:path';
+import path from 'path';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 import { DEFAULT_PATH_BLOCKLIST } from './constants.ts';

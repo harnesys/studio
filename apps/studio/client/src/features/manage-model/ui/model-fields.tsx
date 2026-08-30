@@ -21,10 +21,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 
 import {
   type AddModelInput,
+  type AddModelOutput,
   EFFORT_ITEMS,
   FEATURE_ITEMS,
   MODALITY_ITEMS,
   type ModelFieldsInput,
+  type ModelFieldsOutput,
   toggleItem,
 } from '../model/model-fields';
 
@@ -55,7 +57,11 @@ const MODALITY_ON = {
 export function ModelFields({
   control,
 }: {
-  control: Control<ModelFieldsInput> | Control<AddModelInput>;
+  control:
+    | Control<ModelFieldsInput>
+    | Control<ModelFieldsInput, unknown, ModelFieldsOutput>
+    | Control<AddModelInput>
+    | Control<AddModelInput, unknown, AddModelOutput>;
 }) {
   const fields = control as Control<ModelFieldsInput>;
   const features = useWatch({ control: fields, name: 'features' }) ?? [];

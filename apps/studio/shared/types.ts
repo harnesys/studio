@@ -137,6 +137,21 @@ export type ThreadAttachment = {
   path: string;
 };
 
+export type HumanEntry = {
+  id: string;
+  text?: string;
+  createdAt: string;
+  attachments?: ThreadAttachment[];
+  origin?: string;
+};
+
+export type TokenUsage = {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+};
+
 export const SCHEDULE_STATUSES = ['active', 'paused', 'failed'] as const;
 export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
 
@@ -270,6 +285,7 @@ export type WorkspaceFileEvent = {
 };
 
 export * from './plan-types.ts';
+export { isTextAttachment } from './text-attachment.ts';
 
 export type DeskEvent =
   | { type: 'thread'; thread: ThreadRecordType }

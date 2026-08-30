@@ -3,7 +3,7 @@ import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
-import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
+import type { ModelBinding, ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
@@ -16,6 +16,17 @@ import { runLlmGenerate } from './llm.ts';
 import { executeToolCall } from './tool-call.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(',')}]`;
+  }
+  const keys = Object.keys(value as Record<string, unknown>).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson((value as Record<string, unknown>)[k])}`).join(',')}}`;
+}
 
 export type GraphOpts = {
   agent: AgentDefinition;
@@ -32,7 +43,29 @@ export type GraphOpts = {
   signal?: AbortSignal;
   resumePayload?: unknown;
   startNodeId?: string;
+  stream?: { chunkIntervalMs?: number; chunkSize?: number };
 };
+
+function resolveFallbackBindings(
+  agent: AgentDefinition,
+  models: ProviderConfig[] | ModelsPort,
+): ModelBinding[] {
+  const fallbacks = agent.fallback;
+  if (!fallbacks || fallbacks.length === 0) {
+    return [];
+  }
+  const bindings: ModelBinding[] = [];
+  for (const ref of fallbacks) {
+    if (isPort(models)) {
+      continue;
+    }
+    const result = findBind(models as ProviderConfig[], ref, agent);
+    if (result?.binding) {
+      bindings.push(result.binding);
+    }
+  }
+  return bindings;
+}
 
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   const loaded = await opts.state.load();
@@ -46,11 +79,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     const sl0 = { input, state: {} as Record<string, unknown>, output: null, resume: null };
     for (const [k, v] of Object.entries(opts.agent.state.initial)) {
       if (typeof v === 'string' && v.trim().startsWith('$')) {
-        try {
-          st[k] = evalExpr(v, sl0);
-        } catch {
-          st[k] = v;
-        }
+        st[k] = evalExpr(v, sl0);
       } else {
         st[k] = v as unknown;
       }
@@ -82,8 +111,13 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
 
     if (interrupt && opts.resumePayload !== undefined) {
       const existingPayload = (loaded?.state as Record<string, unknown>)?.$resume;
-      if (JSON.stringify(existingPayload) === JSON.stringify(opts.resumePayload)) {
-        return;
+      if (existingPayload !== undefined) {
+        if (canonicalJson(existingPayload) === canonicalJson(opts.resumePayload)) {
+          return;
+        }
+        throw Object.assign(new Error('interrupt already resumed with different payload'), {
+          code: 'already_resumed',
+        });
       }
     }
 
@@ -105,6 +139,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   let tokens = 0;
   const t0 = performance.now();
   let lastMsg: string | undefined;
+  const nodeSteps = new Map<string, number>();
   const agentJson = JSON.stringify(opts.agent);
   const orderJson = JSON.stringify(opts.plan.order);
   const ctx = (): SnapCtx => ({
@@ -118,6 +153,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     cur,
     steps,
     tokens,
+    nodeStep: nodeSteps.get(cur) ?? 0,
   });
   const commit = async (
     status: string,
@@ -144,7 +180,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       yield e;
       throw Object.assign(new Error(`unknown node ${cur}`), { code: 'no_matching_edge' });
     }
-    const slots = { input, state: st, output, resume: null };
+    const slots = { input, state: st, output, resume: st.$resume ?? null };
     if (node.type === 'core:start') {
       output = { input };
       const e = await commit('running', 'node.completed');
@@ -176,6 +212,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         messages?: string;
         tools?: string[];
         model?: string | { provider: string; model: string };
+        output?: unknown;
       };
       if (ln.messages) {
         lastMsg = ln.messages;
@@ -207,24 +244,67 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         yield e;
         throw Object.assign(new Error('model_unresolved'), { code: 'model_unresolved' });
       }
-      const res = await runLlmGenerate(
-        {
-          type: 'llm:generate',
-          prompt: ln.prompt,
-          messages: ln.messages,
-          tools: ln.tools,
-          model: ln.model as never,
-        },
-        {
-          agent: opts.agent,
-          state: st,
-          input,
-          output,
-          modelBinding: binding,
-          toolRegistry: opts.toolRegistry,
-          signal: opts.signal ?? new AbortController().signal,
-        },
-      );
+      const fallbackBindings = resolveFallbackBindings(opts.agent, opts.models);
+      const bindingsToTry = [binding, ...fallbackBindings];
+      let lastError: unknown;
+      let res: import('./llm.ts').LlmResult | undefined;
+      for (let attempt = 0; attempt < bindingsToTry.length; attempt++) {
+        const currentBinding = bindingsToTry[attempt];
+        if (!currentBinding) {
+          continue;
+        }
+        try {
+          await commit('running', 'model.requested', 'recorded');
+          const stream = runLlmGenerate(
+            {
+              type: 'llm:generate',
+              prompt: ln.prompt,
+              messages: ln.messages,
+              tools: ln.tools,
+              model: ln.model as never,
+              output: ln.output,
+            },
+            {
+              agent: opts.agent,
+              state: st,
+              input,
+              output,
+              modelBinding: currentBinding,
+              toolRegistry: opts.toolRegistry,
+              signal: opts.signal ?? new AbortController().signal,
+            },
+          );
+          for await (const event of stream) {
+            if (event.type === 'model.delta') {
+              yield {
+                ...mkEv(ctx(), 'model.delta'),
+                metadata: event.data as Record<string, unknown>,
+                agentId: opts.agent.id,
+              };
+            } else if (event.type === 'model.chunk') {
+              await commit('running', 'model.chunk');
+            } else if (event.type === 'model.completed') {
+              res = event.data as import('./llm.ts').LlmResult;
+            }
+          }
+          if (res) {
+            lastError = undefined;
+            break;
+          }
+        } catch (err) {
+          lastError = err;
+          if (attempt < bindingsToTry.length - 1) {
+          }
+        }
+      }
+      if (lastError) {
+        throw lastError;
+      }
+      if (!res) {
+        throw Object.assign(new Error('model completed without result'), {
+          code: 'model_completed_without_result',
+        });
+      }
       output = res;
       if (lastMsg) {
         const key = lastMsg
@@ -249,6 +329,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       tokens += 1;
       const e = await commit('running', 'model.completed');
       yield e;
+      if (res.finishReason === 'tool-calls') {
+        await commit('running', 'tool.requested');
+      }
     } else if (node.type === 'tool:call') {
       const tn = node as unknown as
         | import('../domain/agent-definition.ts').ToolCallFixed
@@ -270,7 +353,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           state: st,
           output,
           input,
-          resume: null,
+          resume: st.$resume ?? null,
           toolRegistry: opts.toolRegistry,
           permissions: opts.permissions,
           paths: opts.paths,
@@ -278,19 +361,21 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           signal: opts.signal ?? new AbortController().signal,
           runId,
           nodeId: cur,
+          nodeExecutionId: `${runId}:${cur}:${steps}`,
           sessionId: opts.state.sessionId,
           toolMessages: opts.toolMessages,
           messagesPath: lastMsg,
+          resumePayload: opts.resumePayload,
         });
       } catch (e) {
         if (e instanceof AskUserInterrupt) {
-          const interruptId = crypto.randomUUID();
+          const interruptId = e.interruptId ?? crypto.randomUUID();
           st.$resume = null;
           const snap = mkSnap(ctx(), 'needs_input');
           (snap.cursor as Record<string, unknown>).interrupt = {
             interruptId,
             reason: e.prompt,
-            resumeSchema: {
+            resumeSchema: e.resumeSchema ?? {
               type: 'object',
               properties: {
                 text: { type: 'string' },
@@ -298,9 +383,18 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               },
             },
             nodeId: cur,
+            source: e.source ?? 'ask_user',
+            tool: e.tool,
           };
           seq += 1;
           const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
+          ev.metadata = {
+            interruptId,
+            reason: e.prompt,
+            resumeSchema: e.resumeSchema,
+            source: e.source ?? 'ask_user',
+            tool: e.tool,
+          };
           await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
           yield ev;
           break;
@@ -355,6 +449,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         throw Object.assign(new Error('goto_target_missing'), { code: 'goto_target_missing' });
       }
       cur = tgt;
+      nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
       steps += 1;
       if (opts.agent.budget?.maxSteps !== undefined && steps >= opts.agent.budget.maxSteps) {
         const ev = await commit('budget_exceeded', 'run.failed');
@@ -394,6 +489,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const e = await commit('running', 'node.completed');
       yield e;
     }
+    nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
     steps += 1;
     if (opts.agent.budget?.maxSteps !== undefined && steps >= opts.agent.budget.maxSteps) {
       const e = await commit('budget_exceeded', 'run.failed');
@@ -420,7 +516,14 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           nxt = ed.to;
           break;
         }
-      } catch {}
+      } catch (err) {
+        const code = (err as { code?: string }).code;
+        if (code === 'unknown_path') {
+          const e = await commit('failed', 'run.failed');
+          yield e;
+          throw err;
+        }
+      }
     }
     if (!nxt) {
       const e = await commit('failed', 'run.failed');

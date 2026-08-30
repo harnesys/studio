@@ -12,6 +12,7 @@ export type SnapCtx = {
   cur: string;
   steps: number;
   tokens: number;
+  nodeStep: number;
 };
 
 export function mkSnap(ctx: SnapCtx, status: string): Snapshot {
@@ -27,7 +28,7 @@ export function mkSnap(ctx: SnapCtx, status: string): Snapshot {
     state: ctx.state,
     cursor: {
       nodes: {
-        [ctx.cur]: { phase: 'executing', nodeExecutionId: `${ctx.runId}:${ctx.cur}:${ctx.steps}` },
+        [ctx.cur]: { phase: 'executing', nodeExecutionId: `${ctx.runId}:${ctx.cur}:${ctx.nodeStep}` },
       },
       budget: { steps: ctx.steps, tokens: ctx.tokens },
     } as unknown as Cursor,

@@ -13,10 +13,13 @@ export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
     }
     const existing = pairs.get(ev.toolCallId);
     if (ev.phase === 'requested') {
-      pairs.set(ev.toolCallId, { call: ev, result: existing?.result });
+      pairs.set(ev.toolCallId, {
+        call: ev as SessionEvent & { type: 'tool'; phase: 'requested' },
+        result: existing?.result,
+      });
     } else if (ev.phase === 'completed' || ev.phase === 'failed') {
       if (existing) {
-        existing.result = ev;
+        existing.result = ev as SessionEvent & { type: 'tool'; phase: 'completed' | 'failed' };
       }
     }
   }
@@ -43,7 +46,7 @@ export function toolOutput(pair: ToolEventPair): string {
 }
 
 export function isToolFailed(pair: ToolEventPair): boolean {
-  return pair.call.phase === 'failed' || pair.result?.phase === 'failed';
+  return pair.result?.phase === 'failed';
 }
 
 export function isToolDone(pair: ToolEventPair): boolean {

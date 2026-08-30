@@ -1,6 +1,6 @@
 import type { AgentDefinition, Edge, Node } from '../domain/agent-definition.ts';
 import type { Diagnostic, DiagnosticSeverity } from '../domain/errors.ts';
-import { isPathExpr, parseExpr } from './expr-eval.ts';
+import { type Ast, isPathExpr, parseExpr } from './expr-eval.ts';
 
 const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const RESERVED = new Set([
@@ -50,6 +50,56 @@ function hasCycle(nodes: Record<string, Node>, edges: Edge[]): boolean {
     }
   }
   return found;
+}
+
+function collectPaths(ast: Ast): string[] {
+  const paths: string[] = [];
+  const walk = (node: Ast): void => {
+    switch (node.type) {
+      case 'path':
+        paths.push(node.path);
+        break;
+      case 'unary':
+        walk(node.expr);
+        break;
+      case 'binary':
+        walk(node.left);
+        walk(node.right);
+        break;
+      case 'call':
+        paths.push(node.path);
+        break;
+      case 'literal':
+        break;
+    }
+  };
+  walk(ast);
+  return paths;
+}
+
+function checkExprPaths(
+  expr: string,
+  stateKeys: Set<string>,
+  path: string | undefined,
+  add: (code: string, severity: DiagnosticSeverity, message: string, path?: string) => void,
+): void {
+  let ast: Ast;
+  try {
+    ast = parseExpr(expr);
+  } catch {
+    return;
+  }
+  for (const p of collectPaths(ast)) {
+    const m = p.match(/^\$(state)\.(.+)$/);
+    if (!m) {
+      continue;
+    }
+    const segments = m[2] as string;
+    const topKey = segments.split(/[.[\]]/)[0] as string;
+    if (topKey && !stateKeys.has(topKey)) {
+      add('expr_path', 'error', `state key "${topKey}" not in state.initial`, path);
+    }
+  }
 }
 
 export function validateStructural(def: AgentDefinition): Diagnostic[] {
@@ -307,6 +357,57 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
     for (const m of p.instructions.matchAll(/\{\$[^}]+\}/g)) {
       const inner = m[0].slice(1, -1);
       tryParse(inner, `prompts.${pid}.instructions`);
+    }
+  }
+
+  const stateKeys = new Set<string>(def.state?.initial ? Object.keys(def.state.initial) : []);
+  if (stateKeys.size > 0) {
+    for (const [id, e] of edges.entries()) {
+      if (e.when !== undefined) {
+        checkExprPaths(e.when, stateKeys, `graph.edges[${id}].when`, add);
+      }
+    }
+    for (const [id, n] of Object.entries(nodes)) {
+      if (n.type === 'llm:generate' && n.messages !== undefined) {
+        checkExprPaths(n.messages, stateKeys, `graph.nodes.${id}.messages`, add);
+      }
+      if (n.type === 'tool:call' && 'calls' in n && typeof n.calls === 'string') {
+        checkExprPaths(n.calls, stateKeys, `graph.nodes.${id}.calls`, add);
+      }
+      if (n.type === 'tool:call' && 'args' in n && typeof n.args === 'object' && n.args !== null) {
+        for (const [k, v] of Object.entries(n.args as Record<string, unknown>)) {
+          if (typeof v === 'string' && v.trim().startsWith('$')) {
+            checkExprPaths(v, stateKeys, `graph.nodes.${id}.args.${k}`, add);
+          }
+        }
+      }
+      if (n.type === 'control:assign') {
+        for (const [k, v] of Object.entries(n.patch)) {
+          if (typeof v === 'string' && v.trim().startsWith('$')) {
+            checkExprPaths(v, stateKeys, `graph.nodes.${id}.patch.${k}`, add);
+          }
+        }
+      }
+      if (n.type === 'control:goto' && typeof n.target === 'string') {
+        checkExprPaths(n.target, stateKeys, `graph.nodes.${id}.target`, add);
+      }
+      if (n.type === 'control:spawn' && typeof n.calls === 'string') {
+        checkExprPaths(n.calls, stateKeys, `graph.nodes.${id}.calls`, add);
+      }
+      if (n.type === 'control:handoff') {
+        if (typeof n.agentId === 'string' && n.agentId.trim().startsWith('$')) {
+          checkExprPaths(n.agentId, stateKeys, `graph.nodes.${id}.agentId`, add);
+        }
+        if (typeof n.input === 'string' && n.input.trim().startsWith('$')) {
+          checkExprPaths(n.input, stateKeys, `graph.nodes.${id}.input`, add);
+        }
+      }
+    }
+    for (const [pid, p] of Object.entries(def.prompts)) {
+      for (const m of p.instructions.matchAll(/\{\$[^}]+\}/g)) {
+        const inner = m[0].slice(1, -1);
+        checkExprPaths(inner, stateKeys, `prompts.${pid}.instructions`, add);
+      }
     }
   }
 

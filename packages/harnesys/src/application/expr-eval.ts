@@ -77,7 +77,9 @@ function tokenize(expr: string): Token[] {
   t.push({ type: 'eof' }); return t;
 }
 class Parser {
-  pos = 0; constructor(private tokens: Token[]) {}
+  pos = 0;
+  private tokens: Token[];
+  constructor(tokens: Token[]) { this.tokens = tokens; }
   peek(): Token { return this.tokens[this.pos] as Token; }
   consume(): Token { const v = this.tokens[this.pos] as Token; this.pos += 1; return v; }
   matchOp(v: string): boolean { const p = this.peek(); if (p.type === 'op' && p.value === v) { this.consume(); return true; } return false; }

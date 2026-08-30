@@ -84,7 +84,7 @@ export function ChatComposer() {
   let placeholder = 'Select an agent to start a thread';
   if (hitl) {
     placeholder =
-      hitl.kind === 'ask' ? 'Answer the prompt above…' : 'Allow or deny the tool above…';
+      hitl.source === 'ask_user' ? 'Answer the prompt above…' : 'Allow or deny the tool above…';
   } else if (streaming) {
     placeholder = 'Agent is thinking…';
   } else if (agent) {
@@ -204,7 +204,7 @@ export function ChatComposer() {
               size="sm"
               triggerClassName="h-7 max-w-44 border-0 bg-transparent px-1.5 font-mono text-[11px] shadow-none"
               onChange={(next) => {
-                if (!agent || !workspaceId) {
+                if (!agent || !workspaceId || !next) {
                   return;
                 }
                 switchComposerModel({

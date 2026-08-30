@@ -33,7 +33,7 @@ export function ChatPane() {
           data-testid="chat-font-select"
           onValueChange={(value) => {
             const next = value[0];
-            if (isChatFontSize(next ?? null)) {
+            if (next && isChatFontSize(next)) {
               setChatFontSize(next);
             }
           }}

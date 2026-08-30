@@ -198,6 +198,9 @@ export function sanitizeForModel(
 }
 
 function compactGeneration(settings: AgentGenerationSettings): AgentGenerationSettings | null {
+  if (!settings) {
+    return null;
+  }
   const out: AgentGenerationSettings = {};
   let wrote = false;
   for (const key of Object.keys(settings) as (keyof AgentGenerationSettings)[]) {
@@ -205,7 +208,7 @@ function compactGeneration(settings: AgentGenerationSettings): AgentGenerationSe
     if (value === undefined) {
       continue;
     }
-    out[key] = value;
+    (out as Record<string, unknown>)[key] = value;
     wrote = true;
   }
   return wrote ? out : null;

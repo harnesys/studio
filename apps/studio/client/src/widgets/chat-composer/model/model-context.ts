@@ -1,59 +1,16 @@
 import type { ModelPricing, ProviderPublic, SessionEvent, TokenUsage } from '@studio/shared';
-import { isAgentEntry, isBuiltinStep, isHumanEntry } from '@studio/shared';
-import { type MessageUsage, usageFromGeneration } from '@/entities/session';
+import { type MessageUsage } from '@/entities/session';
 
 import { findModel } from './model-input';
 
-/** One MessageUsage per LLM generation, from step meta.usage (deduped by generationId). */
-export function generationUsages(events: SessionEvent[]): MessageUsage[] {
-  const out: MessageUsage[] = [];
-  const seen = new Set<string>();
-  for (const event of events) {
-    if (event.type !== 'step') {
-      continue;
-    }
-    const step = event.step;
-    if (!isAgentEntry(step)) {
-      continue;
-    }
-    for (const s of step.steps) {
-      if (!isBuiltinStep(s)) {
-        continue;
-      }
-      if (s.type !== 'text' && s.type !== 'reasoning' && s.type !== 'tool_call') {
-        continue;
-      }
-      const usage = usageFromGeneration(s.meta?.usage);
-      if (!usage) {
-        continue;
-      }
-      const generationId = s.meta?.generationId;
-      if (generationId) {
-        if (seen.has(generationId)) {
-          continue;
-        }
-        seen.add(generationId);
-      }
-      out.push(usage);
-    }
-  }
-  return out;
+/** One MessageUsage per LLM generation. Stubbed — SessionEvent doesn't carry step metadata. */
+export function generationUsages(_events: SessionEvent[]): MessageUsage[] {
+  return [];
 }
 
-/** Usages after the last human entry (current turn). */
-export function turnGenerationUsages(events: SessionEvent[]): MessageUsage[] {
-  let lastHuman = -1;
-  for (let i = events.length - 1; i >= 0; i -= 1) {
-    const event = events[i];
-    if (event && event.type === 'step' && isHumanEntry(event.step)) {
-      lastHuman = i;
-      break;
-    }
-  }
-  if (lastHuman < 0) {
-    return generationUsages(events);
-  }
-  return generationUsages(events.slice(lastHuman + 1));
+/** Usages after the last human entry (current turn). Stubbed — SessionEvent doesn't carry step metadata. */
+export function turnGenerationUsages(_events: SessionEvent[]): MessageUsage[] {
+  return [];
 }
 
 export function modelContextWindow(

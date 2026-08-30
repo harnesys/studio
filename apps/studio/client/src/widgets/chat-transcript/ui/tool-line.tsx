@@ -1,5 +1,4 @@
-import type { TranscriptActivity } from '@studio/shared';
-import { stepInputText } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 import {
   Code2Icon,
   FileTextIcon,
@@ -16,8 +15,10 @@ import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
 
-import { toolCallName, toolCaption } from '../model/tool-caption';
+import { toolCaption } from '../model/tool-caption';
 import { toolDetail, toolMeta } from '../model/tool-output';
+import type { ToolEventPair } from '../model/session-event-groups';
+import { toolInput } from '../model/session-event-groups';
 import { ToolDetailView } from './tool-detail';
 import { ToolInputDialog } from './tool-input-dialog';
 
@@ -30,10 +31,10 @@ const ICONS = {
 } as const;
 
 export function ToolLine({
-  item,
+  pair,
   live,
 }: {
-  item: Extract<TranscriptActivity, { type: 'tool' }>;
+  pair: ToolEventPair;
   live: boolean;
   runId?: string;
 }) {
@@ -41,13 +42,13 @@ export function ToolLine({
   const [manual, setManual] = useState<boolean | undefined>(undefined);
   const [inputOpen, setInputOpen] = useState(false);
   const open = manual ?? (live || expandTools);
-  const caption = toolCaption(item);
-  const detail = toolDetail(item);
+  const caption = toolCaption(pair.call, pair.result);
+  const detail = toolDetail(pair.call, pair.result);
   const meta = toolMeta(detail);
   const Icon = ICONS[caption.kind];
-  const failed = item.call.status === 'failed' || item.result?.status === 'failed';
-  const awaitingConfirm = item.call.status === 'awaiting_confirm';
-  const rawInput = stepInputText(item.call);
+  const failed = pair.call.phase === 'failed' || pair.result?.phase === 'failed';
+  const awaitingConfirm = pair.call.phase === 'requested' && !pair.result;
+  const rawInput = toolInput(pair);
   const hasInput = Boolean(rawInput.trim().length > 0);
   const exitFailed =
     detail.type === 'terminal' && detail.exitCode !== undefined && detail.exitCode !== 0;
@@ -132,7 +133,7 @@ export function ToolLine({
         <ToolInputDialog
           open={inputOpen}
           onOpenChange={setInputOpen}
-          toolName={toolCallName(item) ?? caption.title}
+          toolName={pair.call.name}
           rawInput={rawInput}
         />
       ) : null}

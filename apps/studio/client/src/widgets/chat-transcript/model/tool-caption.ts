@@ -1,5 +1,4 @@
-import type { TranscriptActivity } from '@studio/shared';
-import { isBuiltinStep, stepInputText, stepText } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 
 export type ToolCaption = {
   title: string;
@@ -7,42 +6,51 @@ export type ToolCaption = {
   kind: 'terminal' | 'file' | 'search' | 'globe' | 'pencil';
 };
 
-export function toolCaption(item: Extract<TranscriptActivity, { type: 'tool' }>): ToolCaption {
-  const name = toolCallName(item) ?? 'tool';
-  const fields = fieldsOf(stepInputText(item.call) || (item.result ? stepText(item.result) : ''));
+export function toolCaption(
+  call: SessionEvent & { type: 'tool' },
+  result?: SessionEvent & { type: 'tool' },
+): ToolCaption {
+  const name = call.name;
+  const inputStr = toolInput(call);
+  const outputStr = result ? toolOutput(result) : '';
+  const fields = fieldsOf(inputStr || outputStr);
   if (name === 'shell') {
-    return { kind: 'terminal', title: 'Terminal', hint: fields.command ?? firstLine(item) };
+    return { kind: 'terminal', title: 'Terminal', hint: fields.command ?? firstLine(inputStr, outputStr) };
   }
   if (name === 'read_file') {
-    return { kind: 'file', title: 'Read File', hint: baseName(fields.path ?? firstLine(item)) };
+    return { kind: 'file', title: 'Read File', hint: baseName(fields.path ?? firstLine(inputStr, outputStr)) };
   }
   if (name === 'write_file') {
-    return {
-      kind: 'pencil',
-      title: 'Write File',
-      hint: baseName(fields.path ?? firstLine(item)),
-    };
+    return { kind: 'pencil', title: 'Write File', hint: baseName(fields.path ?? firstLine(inputStr, outputStr)) };
   }
   if (name === 'edit_file') {
-    return {
-      kind: 'pencil',
-      title: 'Edit File',
-      hint: baseName(fields.path ?? firstLine(item)),
-    };
+    return { kind: 'pencil', title: 'Edit File', hint: baseName(fields.path ?? firstLine(inputStr, outputStr)) };
   }
   if (name === 'list_dir') {
-    return { kind: 'file', title: 'List Dir', hint: fields.path ?? firstLine(item) };
+    return { kind: 'file', title: 'List Dir', hint: fields.path ?? firstLine(inputStr, outputStr) };
   }
   if (name === 'glob') {
-    return { kind: 'search', title: 'Glob', hint: fields.pattern ?? firstLine(item) };
+    return { kind: 'search', title: 'Glob', hint: fields.pattern ?? firstLine(inputStr, outputStr) };
   }
   if (name === 'grep') {
-    return { kind: 'search', title: 'Grep', hint: fields.pattern ?? firstLine(item) };
+    return { kind: 'search', title: 'Grep', hint: fields.pattern ?? firstLine(inputStr, outputStr) };
   }
   if (name === 'http' || name === 'fetch') {
-    return { kind: 'globe', title: 'Fetch', hint: fields.url ?? firstLine(item) };
+    return { kind: 'globe', title: 'Fetch', hint: fields.url ?? firstLine(inputStr, outputStr) };
   }
-  return { kind: 'file', title: name, hint: firstLine(item) };
+  return { kind: 'file', title: name, hint: firstLine(inputStr, outputStr) };
+}
+
+function toolInput(call: SessionEvent & { type: 'tool' }): string {
+  const input = call.input;
+  if (input == null) return '';
+  return typeof input === 'string' ? input : JSON.stringify(input);
+}
+
+function toolOutput(result: SessionEvent & { type: 'tool' }): string {
+  const output = result.output;
+  if (output == null) return '';
+  return typeof output === 'string' ? output : JSON.stringify(output);
 }
 
 function fieldsOf(raw: string): Record<string, string> {
@@ -72,8 +80,8 @@ function fieldsOf(raw: string): Record<string, string> {
   return out;
 }
 
-function firstLine(item: Extract<TranscriptActivity, { type: 'tool' }>): string {
-  const source = stepInputText(item.call) || (item.result ? stepText(item.result) : '');
+function firstLine(input: string, output: string): string {
+  const source = input || output;
   const line = source.split('\n')[0] ?? '';
   return line.length > 80 ? `${line.slice(0, 80)}…` : line;
 }
@@ -81,13 +89,4 @@ function firstLine(item: Extract<TranscriptActivity, { type: 'tool' }>): string 
 function baseName(path: string): string {
   const parts = path.split('/').filter(Boolean);
   return parts.at(-1) ?? path;
-}
-
-export function toolCallName(
-  item: Extract<TranscriptActivity, { type: 'tool' }>,
-): string | undefined {
-  if (isBuiltinStep(item.call) && item.call.type === 'tool_call') {
-    return item.call.payload.name;
-  }
-  return undefined;
 }

@@ -1,9 +1,8 @@
-import type { TranscriptActivity } from '@studio/shared';
-import { stepText } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 
 import { usageFromGeneration } from '@/entities/session';
 
-import { chunkActivity } from '../model/tool-run-summary';
+import { chunkEvents } from '../model/tool-run-summary';
 import { ActivityRail } from './activity-rail';
 import { AskLine } from './ask-line';
 import { ThinkingLine } from './thinking-line';
@@ -11,44 +10,34 @@ import { ToolRun } from './tool-run';
 import { StepStats } from './turn-stats';
 
 export function ActivityItems({
-  items,
+  events,
   live,
   detailedStats = false,
   runId,
 }: {
-  items: TranscriptActivity[];
+  events: SessionEvent[];
   live: boolean;
   detailedStats?: boolean;
   runId?: string;
 }) {
-  const chunks = chunkActivity(items);
+  const chunks = chunkEvents(events);
 
   return (
     <ActivityRail>
       {chunks.map((chunk, index) => {
         const chunkLive = live && index === chunks.length - 1;
-        if (chunk.type === 'reasoning') {
-          const usage = usageFromGeneration(chunk.item.step.meta?.usage);
+        if (chunk.type === 'text') {
           return (
-            <div key={chunk.item.step.id} className="flex flex-col gap-0.5">
-              <ThinkingLine
-                text={stepText(chunk.item.step)}
-                live={chunkLive}
-                durationMs={usage?.durationMs}
-              />
-              {detailedStats && usage ? (
-                <div className="pl-6">
-                  <StepStats usage={usage} />
-                </div>
-              ) : null}
+            <div key={`text-${index}`} className="flex flex-col gap-0.5">
+              <ThinkingLine text={chunk.event.text} live={chunkLive} />
             </div>
           );
         }
         if (chunk.type === 'ask') {
           return (
             <AskLine
-              key={chunk.item.step.id}
-              step={chunk.item.step}
+              key={chunk.event.askId}
+              event={chunk.event}
               runId={runId ?? ''}
               live={chunkLive}
             />
@@ -56,8 +45,8 @@ export function ActivityItems({
         }
         return (
           <ToolRun
-            key={chunk.items[0]?.call.id ?? `tools-${index}`}
-            items={chunk.items}
+            key={chunk.pairs[0]?.call.toolCallId ?? `tools-${index}`}
+            pairs={chunk.pairs}
             live={chunkLive}
             runId={runId}
           />

@@ -1,6 +1,5 @@
-import type { TranscriptActivity } from '@studio/shared';
-import { stepInputText, stepText } from '@studio/shared';
-import { toolCallName, toolCaption } from './tool-caption';
+import type { SessionEvent } from '@studio/shared';
+import { toolCaption } from './tool-caption';
 import type { ToolDetail } from './tool-detail-types';
 import { asObject, has, parseJson } from './tool-json';
 import { isDiffOutput, parseDiffDetail } from './tool-output-diff';
@@ -40,16 +39,32 @@ export type {
 } from './tool-detail-types';
 export { detectLanguage, toolMeta } from './tool-detail-types';
 
-export function toolDetail(item: Extract<TranscriptActivity, { type: 'tool' }>): ToolDetail {
-  const caption = toolCaption(item);
-  const input = asObject(parseJson(stepInputText(item.call)));
-  const done = item.result
-    ? item.result.status === 'completed' || item.result.status === 'failed'
-    : item.call.status === 'completed' || item.call.status === 'failed';
-  const rawOutput = item.result ? stepText(item.result) : '';
+function toolInput(call: SessionEvent & { type: 'tool' }): string {
+  const input = call.input;
+  if (input == null) return '';
+  return typeof input === 'string' ? input : JSON.stringify(input);
+}
+
+function toolOutput(result: SessionEvent & { type: 'tool' }): string {
+  const output = result.output;
+  if (output == null) return '';
+  return typeof output === 'string' ? output : JSON.stringify(output);
+}
+
+export function toolDetail(
+  call: SessionEvent & { type: 'tool' },
+  result?: SessionEvent & { type: 'tool' },
+): ToolDetail {
+  const caption = toolCaption(call, result);
+  const inputStr = toolInput(call);
+  const input = asObject(parseJson(inputStr));
+  const done = result
+    ? result.phase === 'completed' || result.phase === 'failed'
+    : call.phase === 'completed' || call.phase === 'failed';
+  const rawOutput = result ? toolOutput(result) : '';
   const output = done ? parseJson(rawOutput) : undefined;
   const outputObj = asObject(output);
-  const toolName = toolCallName(item);
+  const toolName = call.name;
 
   if ((done && toolName === 'edit_file') || isDiffOutput(outputObj, rawOutput)) {
     const parsedDiff = parseDiffDetail(outputObj, rawOutput, input);

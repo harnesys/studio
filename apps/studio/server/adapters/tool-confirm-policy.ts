@@ -1,4 +1,4 @@
-import type { ToolPermission } from 'harnesys';
+import type { PermissionGate } from 'harnesys';
 import type { PermissionMode, RunMode } from '../../shared/types.ts';
 
 export type { PermissionMode, RunMode };
@@ -22,7 +22,7 @@ export function isRunMode(value: string): value is RunMode {
 }
 
 /** Default when mode omitted: ask before mutating tools. Plan mode: read-only. */
-export function toolPermissionFor(mode: RunMode = 'ask'): (toolName: string) => ToolPermission {
+export function toolPermissionFor(mode: RunMode = 'ask'): (toolName: string) => PermissionGate {
   return (toolName) => {
     if (mode === 'plan') {
       if (

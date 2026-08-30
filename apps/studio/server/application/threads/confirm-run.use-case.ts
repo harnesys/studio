@@ -1,4 +1,4 @@
-import type { ConfirmDecision, HitlBatchSnapshot } from 'harnesys';
+import type { ConfirmDecision, HitlBatchSnapshot } from '../../../shared/harnesys-bridge.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 

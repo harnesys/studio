@@ -1,4 +1,4 @@
-import type { AnswerInput, HitlBatchSnapshot } from 'harnesys';
+import type { AnswerInput, HitlBatchSnapshot } from '../../../shared/harnesys-bridge.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 

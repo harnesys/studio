@@ -35,22 +35,28 @@ import type {
   AgentMemoryConfig,
   PortRef,
   ToolOutputSettings,
+} from './harnesys-bridge.ts';
+import type {
   McpResourceInfo as WorkspaceMcpResource,
   ToolCatalogEntry as WorkspaceTool,
+  KnowledgeHit,
+  MemoryRecord,
+  MemoryRecordSource,
+  PinRecord,
+  PinSource,
+  SemanticScope,
 } from 'harnesys';
 import type { ThreadPlanRecord } from './plan-types.ts';
 
 import type { ThreadRecord as ThreadRecordType } from './thread.ts';
 
 export type {
-  AgentMemoryConfig,
   KnowledgeHit,
   McpResourceInfo as WorkspaceMcpResource,
   MemoryRecord,
   MemoryRecordSource,
   PinRecord,
   PinSource,
-  PortRef,
   SemanticScope,
   ToolCatalogEntry as WorkspaceTool,
 } from 'harnesys';
@@ -87,14 +93,18 @@ export type {
   ThreadSummary,
 } from './thread.ts';
 export { THREAD_KINDS } from './thread.ts';
-export type {
-  TranscriptActivity,
-  TranscriptEntry,
-  TranscriptFailure,
-  TranscriptItem,
-} from './transcript.ts';
-export { isLiveActivity, stepInputText, stepText, toTranscript } from './transcript.ts';
-export type { AgentGenerationSettings, ToolOutputSettings };
+export type { TranscriptItem } from './transcript.ts';
+export { toTranscript } from './transcript.ts';
+export type { AgentGenerationSettings, AgentMemoryConfig, AgentProjectPaths, PortRef, ToolOutputSettings } from './harnesys-bridge.ts';
+export {
+  DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
+  DEFAULT_TOOL_OUTPUT_MAX_CHARS,
+  DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
+  filterGenerationSettings,
+  THRESHOLD_SUMMARY_NAME,
+  withChatGenerationParameters,
+} from './harnesys-bridge.ts';
+export type { AgentProjectPaths } from './harnesys-bridge.ts';
 
 export type AgentRecord = {
   id: string;

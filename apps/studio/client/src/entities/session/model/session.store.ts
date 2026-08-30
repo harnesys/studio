@@ -1,4 +1,4 @@
-import type { SessionEvent } from 'harnesys';
+import type { SessionEvent } from '@studio/shared';
 import { create } from 'zustand';
 
 export type ActiveRun = {

@@ -34,6 +34,32 @@ Binding (согласовано с AgentDefinition):
 
 `ai` / `@ai-sdk/*` наружу не экспортируем; драйверы внутри пакета.
 
+## Утилиты
+
+```ts
+function resolveModel(record: ModelRecord): ResolvedModel
+```
+
+Накладывает `record.host` поля на record. Возвращает `ResolvedModel` с merged полями.
+
+```ts
+const CHAT_GENERATION_PARAMETERS: readonly string[]
+// ['temperature', 'top_p', 'top_k', 'frequency_penalty', 'presence_penalty', 'seed', 'max_tokens', 'max_completion_tokens']
+
+function withChatGenerationParameters(params: string[] | undefined): string[]
+```
+
+Добавляет стандартные chat-параметры к списку `supported_parameters`. Используется при проверке совместимости модели.
+
+```ts
+function filterGenerationSettings(
+  settings: AgentGenerationSettings | undefined,
+  supportedParameters: string[] | undefined,
+): AgentGenerationSettings | undefined
+```
+
+Фильтрует `AgentGenerationSettings` по `supported_parameters` модели. Возвращает `undefined` если ни один параметр не поддерживается.
+
 ## Инварианты
 
 - Примеры PUBLIC_API с `model: 'default'` валидны при заданном `agent.model`.

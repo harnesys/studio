@@ -5,7 +5,7 @@ import type {
   ProviderPublic,
   ToolOutputSettings,
 } from '@studio/shared';
-import { filterGenerationSettings, withChatGenerationParameters } from 'harnesys';
+import { filterGenerationSettings, withChatGenerationParameters } from '@studio/shared';
 import { z } from 'zod';
 
 const optionalAmount = z

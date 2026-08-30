@@ -13,7 +13,7 @@ export const semanticMemoriesTable = sqliteTable(
     scope: text('scope', { enum: ['session', 'long'] }).notNull(),
     key: text('key'),
     text: text('text').notNull(),
-    source: text('source', { enum: ['agent', 'human'] }).notNull(),
+    source: text('source', { enum: ['agent', 'human', 'compaction'] }).notNull(),
     threadId: text('thread_id'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
@@ -33,7 +33,7 @@ export const semanticMemoriesTable = sqliteTable(
     scopeCheck: check('semantic_memories_scope_check', sql`${table.scope} IN ('session', 'long')`),
     sourceCheck: check(
       'semantic_memories_source_check',
-      sql`${table.source} IN ('agent', 'human')`,
+      sql`${table.source} IN ('agent', 'human', 'compaction')`,
     ),
   }),
 );

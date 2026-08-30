@@ -1,8 +1,6 @@
-import type { AgentStepStatus, GenerationUsage } from '@studio/shared';
-
 export type ToolRunStat = {
   name: string;
-  status: AgentStepStatus;
+  status: string;
   durationMs: number;
   tokens?: number;
 };
@@ -74,6 +72,15 @@ export function formatDuration(ms: number): string {
   const rest = Math.round(seconds % 60);
   return `${minutes}m ${rest}s`;
 }
+
+type GenerationUsage = {
+  input?: number;
+  output?: number;
+  ms?: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  reasoning?: number;
+};
 
 export function usageFromGeneration(
   usage: GenerationUsage | null | undefined,

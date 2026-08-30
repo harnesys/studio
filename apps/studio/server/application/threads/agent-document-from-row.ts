@@ -1,4 +1,5 @@
-import type { AgentProjectPaths, AgentSpec, PortRef } from 'harnesys';
+import type { PortRef } from 'harnesys';
+import type { AgentProjectPaths, AgentSpec } from '../../../shared/harnesys-bridge.ts';
 import { composeAgentSystem } from '../../../shared/default-agent-instructions.ts';
 import type { Agent } from '../../domain/agent.port.ts';
 

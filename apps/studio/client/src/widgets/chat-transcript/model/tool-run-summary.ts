@@ -1,5 +1,6 @@
-import type { TranscriptActivity } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 
+import { type ToolEventPair, groupToolPairs } from './session-event-groups';
 import { toolCaption } from './tool-caption';
 
 export type ToolRunSummary = {
@@ -8,16 +9,14 @@ export type ToolRunSummary = {
   parts: string[];
 };
 
-export function summarizeToolRun(
-  items: Array<Extract<TranscriptActivity, { type: 'tool' }>>,
-): ToolRunSummary {
+export function summarizeToolRun(pairs: ToolEventPair[]): ToolRunSummary {
   const counts = new Map<string, number>();
   let failed = 0;
 
-  for (const item of items) {
-    const title = toolCaption(item).title;
+  for (const pair of pairs) {
+    const title = toolCaption(pair.call, pair.result).title;
     counts.set(title, (counts.get(title) ?? 0) + 1);
-    if (item.call.status === 'failed' || item.result?.status === 'failed') {
+    if (pair.call.phase === 'failed' || pair.result?.phase === 'failed') {
       failed += 1;
     }
   }
@@ -26,38 +25,42 @@ export function summarizeToolRun(
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([title, count]) => (count > 1 ? `${title}×${count}` : title));
 
-  return { total: items.length, failed, parts };
+  return { total: pairs.length, failed, parts };
 }
 
 export type ActivityChunk =
-  | { type: 'reasoning'; item: Extract<TranscriptActivity, { type: 'reasoning' }> }
-  | { type: 'ask'; item: Extract<TranscriptActivity, { type: 'ask' }> }
-  | { type: 'tools'; items: Array<Extract<TranscriptActivity, { type: 'tool' }>> };
+  | { type: 'text'; event: SessionEvent & { type: 'text-delta' } }
+  | { type: 'ask'; event: SessionEvent & { type: 'ask' } }
+  | { type: 'tools'; pairs: ToolEventPair[] };
 
-export function chunkActivity(items: TranscriptActivity[]): ActivityChunk[] {
+export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
   const chunks: ActivityChunk[] = [];
-  let tools: Array<Extract<TranscriptActivity, { type: 'tool' }>> = [];
+  let toolEvents: SessionEvent[] = [];
 
   const flushTools = () => {
-    if (tools.length === 0) {
-      return;
+    if (toolEvents.length === 0) return;
+    const pairs = groupToolPairs(toolEvents);
+    if (pairs.length > 0) {
+      chunks.push({ type: 'tools', pairs });
     }
-    chunks.push({ type: 'tools', items: tools });
-    tools = [];
+    toolEvents = [];
   };
 
-  for (const item of items) {
-    if (item.type === 'reasoning') {
+  for (const ev of events) {
+    if (ev.type === 'text-delta') {
       flushTools();
-      chunks.push({ type: 'reasoning', item });
+      chunks.push({ type: 'text', event: ev });
       continue;
     }
-    if (item.type === 'ask') {
+    if (ev.type === 'ask') {
       flushTools();
-      chunks.push({ type: 'ask', item });
+      chunks.push({ type: 'ask', event: ev });
       continue;
     }
-    tools.push(item);
+    if (ev.type === 'tool') {
+      toolEvents.push(ev);
+      continue;
+    }
   }
   flushTools();
   return chunks;

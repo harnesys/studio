@@ -125,3 +125,13 @@ export function normalizeProvider(provider: ProviderConfig): ProviderConfig {
     models: provider.models.map((m) => ({ ...m })),
   };
 }
+
+export function resolveModel(record: ModelRecord): ResolvedModel {
+  const { host, ...rest } = record;
+  return {
+    ...(host ?? {}),
+    ...rest,
+    name: record.name,
+    origin: record.origin,
+  };
+}

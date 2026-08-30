@@ -1,12 +1,30 @@
 export { defineAgent } from './src/domain/agent-definition.ts';
+export { THRESHOLD_SUMMARY_NAME } from './src/domain/compaction.ts';
 export type {
   AgentDefinition,
+  AgentGenerationSettings,
+  AgentMemoryConfig,
   AgentModelRef,
+  AgentPaths,
   Edge,
   Node,
+  PortRef,
   ToolCallBatch,
   ToolCallFixed,
+  ToolOutputSettings,
 } from './src/domain/agent-definition.ts';
+export {
+  DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
+  DEFAULT_TOOL_OUTPUT_MAX_CHARS,
+  DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
+  resolveToolOutputSettings,
+} from './src/domain/tool-output.ts';
+export type { ResolvedToolOutputSettings } from './src/domain/tool-output.ts';
+export {
+  CHAT_GENERATION_PARAMETERS,
+  filterGenerationSettings,
+  withChatGenerationParameters,
+} from './src/domain/generation-settings.ts';
 export type { Expr } from './src/domain/expr.ts';
 export type { JsonSchema } from './src/domain/json-schema.ts';
 export type { CommitKind, Cursor, CursorPhase, Event, Snapshot } from './src/domain/snapshot.ts';
@@ -30,7 +48,7 @@ export type { CheckOptions } from './src/application/check.ts';
 export { validateStructural } from './src/application/validate.ts';
 export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
 export type { AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
-export { DRIVERS, normalizeProvider } from './src/ports/models.ts';
+export { DRIVERS, normalizeProvider, resolveModel } from './src/ports/models.ts';
 export type {
   DiscoverInput,
   DiscoveredModel,
@@ -45,9 +63,9 @@ export type {
 export { bindingOf, DiscoverError, isDriver, ModelLookupError, toBinding } from './src/adapters/models/binding.ts';
 export { discoverModels } from './src/adapters/models/discover.ts';
 export { tool } from './src/ports/tools.ts';
-export type { CustomNodeImpl, SideEffect, ToolContext, ToolDefinition } from './src/ports/tools.ts';
+export type { CustomNodeImpl, SideEffect, ToolCatalogEntry, ToolContext, ToolDefinition } from './src/ports/tools.ts';
 export { createToolRegistry, validateToolInput } from './src/application/tool-registry.ts';
-export { DEFAULT_PERMISSIONS } from './src/ports/permissions.ts';
+export { DEFAULT_PERMISSIONS, resolveToolPermission } from './src/ports/permissions.ts';
 export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
 export type { PathsConfig } from './src/ports/paths.ts';
 export type { SkillRegistry } from './src/ports/skills.ts';
@@ -89,3 +107,28 @@ export type {
   McpToolInfo,
   McpResourceInfo,
 } from './src/domain/mcp.ts';
+export type {
+  EpisodicHit,
+  EpisodicIndexInput,
+  EpisodicPort,
+  EpisodicSearchInput,
+  KnowledgeHit,
+  KnowledgePort,
+  KnowledgeReadInput,
+  KnowledgeReadResult,
+  KnowledgeReindexInput,
+  KnowledgeSearchInput,
+  MemoryRecord,
+  MemoryRecordSource,
+  MemoryScopeId,
+  PinPort,
+  PinRecord,
+  PinSource,
+  PinUpsertInput,
+  SemanticListQuery,
+  SemanticMemoryPort,
+  SemanticProjectInput,
+  SemanticScope,
+  SemanticSessionTtl,
+  SemanticUpsertInput,
+} from './src/ports/memory.ts';

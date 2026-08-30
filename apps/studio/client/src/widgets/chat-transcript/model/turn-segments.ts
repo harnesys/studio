@@ -1,60 +1,54 @@
-import type { TranscriptEntry } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 
 export type TurnSegment =
-  | { type: 'activity'; items: Array<Extract<TranscriptEntry, { type: 'reasoning' | 'tool' }>> }
-  | { type: 'text'; entry: Extract<TranscriptEntry, { type: 'text' }> }
-  | { type: 'ask'; entry: Extract<TranscriptEntry, { type: 'ask' }> };
+  | { type: 'activity'; events: SessionEvent[] }
+  | { type: 'text'; event: SessionEvent & { type: 'text-delta' } }
+  | { type: 'ask'; event: SessionEvent & { type: 'ask' } };
 
-export function groupSegments(entries: TranscriptEntry[]): TurnSegment[] {
+export function groupSegments(events: SessionEvent[]): TurnSegment[] {
   const segments: TurnSegment[] = [];
-  let activity: Array<Extract<TranscriptEntry, { type: 'reasoning' | 'tool' }>> = [];
+  let activity: SessionEvent[] = [];
 
   const flushActivity = () => {
-    if (activity.length === 0) {
-      return;
-    }
-    segments.push({ type: 'activity', items: activity });
+    if (activity.length === 0) return;
+    segments.push({ type: 'activity', events: activity });
     activity = [];
   };
 
-  for (const entry of entries) {
-    if (entry.type === 'reasoning' || entry.type === 'tool') {
-      activity.push(entry);
+  for (const ev of events) {
+    if (ev.type === 'text-delta') {
+      flushActivity();
+      segments.push({ type: 'text', event: ev });
       continue;
     }
-    flushActivity();
-    if (entry.type === 'ask') {
-      segments.push({ type: 'ask', entry });
+    if (ev.type === 'ask') {
+      flushActivity();
+      segments.push({ type: 'ask', event: ev });
       continue;
     }
-    segments.push({ type: 'text', entry });
+    if (ev.type === 'tool') {
+      activity.push(ev);
+      continue;
+    }
   }
   flushActivity();
   return segments;
 }
 
 export function segmentKey(segment: TurnSegment, index: number): string {
-  if (segment.type === 'text' || segment.type === 'ask') {
-    return segment.entry.step.id;
-  }
-  const first = segment.items[0];
-  if (!first) {
-    return `activity-${index}`;
-  }
-  return first.type === 'reasoning' ? first.step.id : first.call.id;
+  if (segment.type === 'text') return `text-${index}`;
+  if (segment.type === 'ask') return segment.event.askId;
+  const first = segment.events[0];
+  if (!first) return `activity-${index}`;
+  if (first.type === 'tool') return first.toolCallId;
+  return `activity-${index}`;
 }
 
 export function segmentSpacing(segments: TurnSegment[], index: number): string | undefined {
-  if (index === 0) {
-    return undefined;
-  }
+  if (index === 0) return undefined;
   const prev = segments[index - 1];
   const curr = segments[index];
-  if (prev?.type === 'activity' && (curr?.type === 'text' || curr?.type === 'ask')) {
-    return 'mt-4';
-  }
-  if ((prev?.type === 'text' || prev?.type === 'ask') && curr?.type === 'activity') {
-    return 'mt-3';
-  }
+  if (prev?.type === 'activity' && (curr?.type === 'text' || curr?.type === 'ask')) return 'mt-4';
+  if ((prev?.type === 'text' || prev?.type === 'ask') && curr?.type === 'activity') return 'mt-3';
   return 'mt-3';
 }

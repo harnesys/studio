@@ -1,5 +1,4 @@
-import type { AgentEntry, SystemEntry, TranscriptActivity, TranscriptEntry } from '@studio/shared';
-import { isLiveActivity, stepText } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 import { AlertCircleIcon } from 'lucide-react';
 
 import { type MessageUsage, usageFromGeneration } from '@/entities/session';
@@ -36,14 +35,8 @@ export function FailedMessageView({ text }: { text: string }) {
   );
 }
 
-export function SystemMessageView({ entry }: { entry: SystemEntry }) {
-  const text = entry.payload.message;
-  if (!text) {
-    return null;
-  }
-  if (entry.payload.type === 'error') {
-    return <FailedMessageView text={text} />;
-  }
+export function SystemMessageView({ text }: { text: string }) {
+  if (!text) return null;
   return (
     <div
       data-testid="system-message-view"
@@ -56,17 +49,17 @@ export function SystemMessageView({ entry }: { entry: SystemEntry }) {
 }
 
 export function ActivityBlock({
-  items,
+  events,
   last,
   streaming = false,
 }: {
-  items: TranscriptActivity[];
+  events: SessionEvent[];
   last: boolean;
   streaming?: boolean;
 }) {
-  const live = (last && streaming) || isLiveActivity(items);
+  const live = last && streaming;
 
-  if (items.length === 0 && live) {
+  if (events.length === 0 && live) {
     return (
       <ActivityRail>
         <ThinkingLine text="" live={true} />
@@ -74,16 +67,16 @@ export function ActivityBlock({
     );
   }
 
-  return <ActivityItems items={items} live={live} />;
+  return <ActivityItems events={events} live={live} />;
 }
 
 export function AssistantMessageView({
-  entry,
-  entries,
+  events,
+  runId,
   streaming = false,
 }: {
-  entry: AgentEntry;
-  entries: TranscriptEntry[];
+  events: SessionEvent[];
+  runId: string;
   streaming?: boolean;
 }) {
   const agent = useSelectedAgent();
@@ -91,18 +84,14 @@ export function AssistantMessageView({
   const { workspaceId } = useStudioLocation();
   const { openThread } = useStudioNavigation();
   const detailedStats = useChatPreferences((state) => state.detailedStats);
-  const segments = groupSegments(entries);
-  const answerText = entries
-    .filter((item) => item.type === 'text')
-    .map((item) => stepText(item.step))
+  const segments = groupSegments(events);
+  const answerText = events
+    .filter((ev): ev is SessionEvent & { type: 'text-delta' } => ev.type === 'text-delta')
+    .map((ev) => ev.text)
     .filter(Boolean)
     .join('\n\n');
-  const turnUsage = turnUsageFromEntries(entries);
-  const generationCount = entries.filter(
-    (item) => (item.type === 'text' || item.type === 'reasoning') && item.step.meta?.usage,
-  ).length;
-  const runId = entry.id;
-  const waitingForModel = streaming && entry.status === 'running' && !hasInFlightStep(entry);
+  const hasDone = events.some((ev) => ev.type === 'done');
+  const waitingForModel = streaming && !hasDone;
 
   return (
     <div className="flex flex-col gap-3">
@@ -127,21 +116,16 @@ export function AssistantMessageView({
       </div>
 
       <div className="flex flex-col gap-1">
-        {detailedStats && turnUsage ? (
-          <TurnStats usage={turnUsage} generations={generationCount} />
-        ) : null}
         {answerText ? (
           <MessageActions
-            entryId={entry.id}
+            entryId={runId}
             onCopy={() => {
               void navigator.clipboard.writeText(answerText);
               toast.add({ title: 'Copied.' });
             }}
             onBranch={() => {
-              if (!agent || !thread || !workspaceId) {
-                return;
-              }
-              const nextId = branchThread(entry.id, agent.id, thread.id);
+              if (!agent || !thread || !workspaceId) return;
+              const nextId = branchThread(runId, agent.id, thread.id);
               if (nextId) {
                 useDeskStore.getState().setFocusedThreadId(nextId);
                 openThread(workspaceId, agent.id, nextId);
@@ -151,16 +135,6 @@ export function AssistantMessageView({
         ) : null}
       </div>
     </div>
-  );
-}
-
-function hasInFlightStep(entry: AgentEntry): boolean {
-  return (entry.steps ?? []).some(
-    (step: any) =>
-      step.status === 'pending' ||
-      step.status === 'streaming' ||
-      step.status === 'awaiting_confirm' ||
-      step.status === 'awaiting_input',
   );
 }
 
@@ -178,7 +152,7 @@ function TurnSegmentView({
   if (segment.type === 'activity') {
     return (
       <ActivityItems
-        items={segment.items}
+        events={segment.events}
         live={live}
         detailedStats={detailedStats}
         runId={runId}
@@ -187,47 +161,12 @@ function TurnSegmentView({
   }
 
   if (segment.type === 'ask') {
-    return <AskLine step={segment.entry.step} runId={runId} live={live} />;
+    return <AskLine event={segment.event} runId={runId} live={live} />;
   }
 
-  const text = stepText(segment.entry.step);
-  const usage = usageFromGeneration(segment.entry.step.meta?.usage);
   return (
     <div className="flex flex-col gap-1">
-      {text ? <Markdown text={text} /> : null}
-      {detailedStats && usage ? <StepStats usage={usage} /> : null}
+      {segment.event.text ? <Markdown text={segment.event.text} /> : null}
     </div>
-  );
-}
-
-function turnUsageFromEntries(entries: TranscriptEntry[]): MessageUsage | undefined {
-  const usages = entries
-    .filter((item) => item.type === 'text' || item.type === 'reasoning')
-    .map((item) => usageFromGeneration(item.step.meta?.usage))
-    .filter((item): item is MessageUsage => item != null);
-  if (usages.length === 0) {
-    return undefined;
-  }
-  return usages.reduce<MessageUsage>(
-    (sum, item) => ({
-      model: sum.model || item.model,
-      promptTokens: sum.promptTokens + item.promptTokens,
-      generatedTokens: sum.generatedTokens + item.generatedTokens,
-      contextTokens: Math.max(sum.contextTokens, item.contextTokens),
-      durationMs: sum.durationMs + item.durationMs,
-      tools: [...sum.tools, ...item.tools],
-      cacheReadTokens: (sum.cacheReadTokens ?? 0) + (item.cacheReadTokens ?? 0),
-      cacheWriteTokens: (sum.cacheWriteTokens ?? 0) + (item.cacheWriteTokens ?? 0),
-      reasoningTokens: (sum.reasoningTokens ?? 0) + (item.reasoningTokens ?? 0),
-      costUsd: (sum.costUsd ?? 0) + (item.costUsd ?? 0),
-    }),
-    {
-      model: '',
-      promptTokens: 0,
-      generatedTokens: 0,
-      contextTokens: 0,
-      durationMs: 0,
-      tools: [],
-    },
   );
 }

@@ -20,19 +20,39 @@ type JsonSchema = {
 
 type Expr = string // path или булево/арифметика над слотами; на wire: string
 
+type AgentGenerationSettings = {
+  temperature?: number
+  topP?: number
+  topK?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
+  seed?: number
+  maxTokens?: number
+}
+
 type AgentModelRef = {
   provider: string
   model: string
   effort?: string
-  generation?: {
-    temperature?: number
-    topP?: number
-    topK?: number
-    frequencyPenalty?: number
-    presencePenalty?: number
-    seed?: number
-    maxTokens?: number
-  }
+  generation?: AgentGenerationSettings
+}
+
+type PortRef = { name: string; version?: string; spec?: Record<string, unknown> } | null
+
+type AgentPaths = { allow: string[]; cwd?: string }
+
+type ToolOutputSettings = {
+  maxChars?: number
+  headChars?: number
+  tailChars?: number
+}
+
+type AgentMemoryConfig = {
+  pin?: PortRef
+  semantic?: PortRef
+  episodic?: PortRef
+  knowledge?: PortRef
+  project?: PortRef | { paths: string[] } | null
 }
 
 type AgentDefinition = {
@@ -43,7 +63,12 @@ type AgentDefinition = {
   models?: Record<string, AgentModelRef>
   fallback?: AgentModelRef[]
   skills?: string[] // allowlist; undefined = политика runtime (17-skills)
-  paths?: { allow: string[]; cwd?: string } // ∩ с runtime/session (15-paths)
+  tools?: string[] // allowlist инструментов; undefined = все доступные
+  mcpServers?: string[] // allowlist MCP серверов; undefined = все доступные
+  toolOutput?: ToolOutputSettings // обрезка вывода инструментов
+  compaction?: PortRef // стратегия compaction; null = выключен
+  memory?: AgentMemoryConfig // конфигурация памяти (memory)
+  paths?: AgentPaths // ∩ с runtime/session (15-paths)
   state?: {
     initial: Record<string, Expr | unknown>
     reducers?: Record<string, 'replace' | 'merge'> // omit ключа = merge; детали 04/08/11
@@ -136,11 +161,41 @@ Structured `output` у llm дополняет `$output`. Ключи `finishReaso
 
 `custom:*` только если тип в `createRuntime.nodes`; иначе fail-closed `unsupported_node`.
 
+## ToolOutput
+
+```ts
+const DEFAULT_TOOL_OUTPUT_MAX_CHARS = 30_000
+const DEFAULT_TOOL_OUTPUT_HEAD_CHARS = 8_000
+const DEFAULT_TOOL_OUTPUT_TAIL_CHARS = 8_000
+
+type ResolvedToolOutputSettings = {
+  maxChars: number
+  headChars: number
+  tailChars: number
+}
+
+function resolveToolOutputSettings(settings?: ToolOutputSettings | null): ResolvedToolOutputSettings
+```
+
+`resolveToolOutputSettings` заполняет defaults, масштабирует head/tail если сумма > max.
+
+## Compaction
+
+```ts
+const THRESHOLD_SUMMARY_NAME = 'threshold-summary'
+```
+
+Имя дефолтной стратегии compaction. `compaction: { name: THRESHOLD_SUMMARY_NAME }` на агенте.
+
 ## Инварианты
 
 - `tools` у llm и fixed `name`: имена; схема/execute из `createRuntime.tools`.
 - Модель: `agent.model` / `models` + `createRuntime.models` (06-models).
+- `tools`, `mcpServers` на агенте — allowlist. undefined = все доступные из runtime + MCP.
+- `toolOutput` — обрезка вывода инструментов перед возвратом в LLM.
+- `compaction` — PortRef на стратегию; null = compaction выключен.
+- `memory` — PortRef на каждый подсистему памяти; null = подсистема выключена.
 
 ## Out of scope
 
-Семантика исполнения нод (09–13), Expr evaluate (03), check codes (08).
+Семантика исполнения нод (09–13), Expr evaluate (03), check codes (08). Memory порты (docs/memory).

@@ -29,6 +29,12 @@ export type ToolDefinition = {
   sideEffect?: SideEffect;
 };
 
+export type ToolCatalogEntry = {
+  name: string;
+  description: string;
+  group?: string;
+};
+
 export type CustomNodeImpl = {
   execute(ctx: unknown): Promise<unknown> | unknown;
 };

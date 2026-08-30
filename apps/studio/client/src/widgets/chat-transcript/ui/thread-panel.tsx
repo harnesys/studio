@@ -1,5 +1,4 @@
-import type { HumanEntry, TranscriptItem } from '@studio/shared';
-import { isAgentEntry, toTranscript } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
@@ -23,13 +22,10 @@ import {
   ActivityBlock,
   AssistantMessageView,
   FailedMessageView,
-  SystemMessageView,
 } from './agent-turn';
 import { ChatSkeleton } from './chat-skeleton';
-import { CompactionCard, CompactionPendingCard } from './compaction-card';
-import { isScheduleWake, ScheduleWakeMessage } from './schedule-wake-message';
+import { CompactionPendingCard } from './compaction-card';
 import { ThreadEmpty } from './thread-empty';
-import { UserMessage } from './user-message';
 
 const EMPTY_FAILURES: RunFailure[] = [];
 
@@ -59,35 +55,26 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     );
   }
 
-  const items = toTranscript(events);
+  const runs = splitRuns(events);
 
   return (
     <MessageScrollerProvider autoScroll>
       <MessageScroller>
         <MessageScrollerViewport>
           <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 text-[length:var(--chat-font-size)]">
-            {items.map((item, index) => (
-              <MessageScrollerItem key={itemKey(item, index)} messageId={itemKey(item, index)}>
-                {item.type === 'user' ? (
-                  <TranscriptUser entry={item.entry} threadId={threadId} />
-                ) : null}
-                {item.type === 'system' ? <SystemMessageView entry={item.entry} /> : null}
-                {item.type === 'compaction' ? <CompactionCard entry={item.entry} /> : null}
-                {item.type === 'activity' ? (
-                  <ActivityBlock
-                    items={item.items}
-                    last={index === items.length - 1}
-                    streaming={streaming}
-                  />
-                ) : null}
-                {item.type === 'assistant' ? (
-                  <AssistantMessageView
-                    entry={item.entry}
-                    entries={item.entries}
-                    streaming={streaming}
-                  />
-                ) : null}
-                {item.type === 'failed' ? <FailedMessageView text={item.text} /> : null}
+            {runs.map((run, index) => (
+              <MessageScrollerItem key={run.id ?? `run-${index}`} messageId={run.id ?? `run-${index}`}>
+                {run.error ? <FailedMessageView text={run.error} /> : null}
+                <AssistantMessageView
+                  events={run.events}
+                  runId={run.id ?? ''}
+                  streaming={streaming && index === runs.length - 1}
+                />
+              </MessageScrollerItem>
+            ))}
+            {failures.map((failure) => (
+              <MessageScrollerItem key={failure.runId} messageId={failure.runId}>
+                <FailedMessageView text={failure.message} />
               </MessageScrollerItem>
             ))}
             {compacting ? (
@@ -103,6 +90,43 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
       </MessageScroller>
     </MessageScrollerProvider>
   );
+}
+
+type RunGroup = {
+  id: string | null;
+  events: SessionEvent[];
+  error: string | null;
+};
+
+function splitRuns(events: SessionEvent[]): RunGroup[] {
+  const runs: RunGroup[] = [];
+  let current: SessionEvent[] = [];
+  let currentId: string | null = null;
+
+  for (const ev of events) {
+    if (ev.type === 'done' || ev.type === 'error') {
+      if (current.length > 0) {
+        runs.push({
+          id: currentId,
+          events: current,
+          error: ev.type === 'error' ? ev.message : null,
+        });
+      }
+      current = [];
+      currentId = null;
+      continue;
+    }
+    if (!currentId && ev.type === 'tool' && ev.toolCallId) {
+      currentId = ev.toolCallId;
+    }
+    current.push(ev);
+  }
+
+  if (current.length > 0) {
+    runs.push({ id: currentId, events: current, error: null });
+  }
+
+  return runs;
 }
 
 function useThreadSync(threadId: string): boolean {
@@ -129,8 +153,8 @@ function useThreadSync(threadId: string): boolean {
 function useFollowLive(threadId: string): void {
   const liveRunId = useSessionStore((state) => {
     const events = state.events[threadId] ?? [];
-    const agent = [...events].reverse().find(isAgentEntry);
-    return agent?.status === 'running' ? agent.id : null;
+    const hasDone = events.some((ev) => ev.type === 'done' || ev.type === 'error');
+    return hasDone ? null : (events[0]?.type === 'tool' ? events[0].toolCallId : null);
   });
 
   useEffect(() => {
@@ -186,33 +210,4 @@ function StickOnSend({ streaming }: { streaming: boolean }) {
   }, [streaming, scrollToEnd]);
 
   return null;
-}
-
-function TranscriptUser({ entry, threadId }: { entry: HumanEntry; threadId: string }) {
-  if (isScheduleWake(entry)) {
-    return <ScheduleWakeMessage entry={entry} threadId={threadId} />;
-  }
-  return <UserMessage entry={entry} threadId={threadId} />;
-}
-
-function itemKey(item: TranscriptItem, index: number): string {
-  if (
-    item.type === 'user' ||
-    item.type === 'system' ||
-    item.type === 'assistant' ||
-    item.type === 'compaction'
-  ) {
-    return item.entry.id;
-  }
-  if (item.type === 'failed') {
-    return item.id;
-  }
-  const first = item.items[0];
-  if (!first) {
-    return `activity-${index}`;
-  }
-  if (first.type === 'reasoning' || first.type === 'ask') {
-    return first.step.id;
-  }
-  return first.call.id;
 }

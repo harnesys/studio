@@ -1,5 +1,3 @@
-import type { AgentStep, AnswerInput } from '@studio/shared';
-import { isBuiltinStep, stepInputText } from '@studio/shared';
 import { type ReactNode, useState } from 'react';
 
 import { useSelectedThread, useThreadEvents } from '@/features/desk';
@@ -11,7 +9,7 @@ import { Markdown } from '@/shared/ui/markdown';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { toast } from '@/shared/ui/toast';
 
-import { answerAsk, confirmTool } from '../model/hitl-actions';
+import { respondToAsk } from '../model/hitl-actions';
 import { type PendingHitl, pendingHitl } from '../model/pending-hitl';
 import { summarizeToolInput } from '../model/tool-input-summary';
 import { HitlPreview } from './hitl-preview';
@@ -25,34 +23,40 @@ export function HitlPrompt() {
     return null;
   }
 
+  const isConfirm = pending.source === 'permission' || pending.source === 'approve';
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
-      {pending.kind === 'confirm' ? (
-        <ConfirmCard pending={pending} />
+      {isConfirm ? (
+        <ConfirmCard pending={pending} threadId={thread?.id ?? ''} />
       ) : (
-        <AskCard pending={pending} />
+        <AskCard pending={pending} threadId={thread?.id ?? ''} />
       )}
     </div>
   );
 }
 
-function ConfirmCard({ pending }: { pending: Extract<PendingHitl, { kind: 'confirm' }> }) {
+function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: string }) {
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState('');
-  const name = toolName(pending.step);
-  const summary = summarizeToolInput(name, stepInputText(pending.step));
+  const name = pending.tool?.name ?? 'tool';
+  const inputStr = pending.tool?.input != null
+    // biome-ignore lint/style/noNestedTernary: <explanation>
+    ? typeof pending.tool.input === 'string'
+      ? pending.tool.input
+      : JSON.stringify(pending.tool.input)
+    : '';
+  const summary = summarizeToolInput(name, inputStr);
   const pathLine = summary.lines.find((line) => line.label === 'path')?.value;
   const detailLines = summary.lines.filter((line) => line.label !== 'path');
 
   const decide = async (allow: boolean) => {
-    if (busy) {
-      return;
-    }
+    if (busy) { return; }
     setBusy(true);
     try {
-      await confirmTool(
-        pending.runId,
-        pending.step.id,
+      await respondToAsk(
+        threadId,
+        pending.askId,
         allow ? { allow: true } : { deny: true, reason: reason.trim() || undefined },
       );
     } catch (error) {
@@ -103,9 +107,7 @@ function ConfirmCard({ pending }: { pending: Extract<PendingHitl, { kind: 'confi
           size="sm"
           disabled={busy}
           className="h-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => {
-            void decide(false);
-          }}
+          onClick={() => void decide(false)}
         >
           Deny
         </Button>
@@ -114,9 +116,7 @@ function ConfirmCard({ pending }: { pending: Extract<PendingHitl, { kind: 'confi
           size="sm"
           disabled={busy}
           className="h-7"
-          onClick={() => {
-            void decide(true);
-          }}
+          onClick={() => void decide(true)}
         >
           Allow
         </Button>
@@ -125,14 +125,10 @@ function ConfirmCard({ pending }: { pending: Extract<PendingHitl, { kind: 'confi
   );
 }
 
-function AskCard({ pending }: { pending: Extract<PendingHitl, { kind: 'ask' }> }) {
-  const step = pending.step;
-  if (!isBuiltinStep(step) || step.type !== 'ask') {
-    return null;
-  }
-
-  const options = step.payload.options ?? [];
-  const multi = Boolean(step.payload.multi);
+function AskCard({ pending, threadId }: { pending: PendingHitl; threadId: string }) {
+  const schema = pending.schema as Record<string, unknown> | undefined;
+  const options = (schema?.options as Array<{ id: string; label: string }>) ?? [];
+  const multi = Boolean(schema?.multi);
   const [selected, setSelected] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -147,20 +143,15 @@ function AskCard({ pending }: { pending: Extract<PendingHitl, { kind: 'ask' }> }
   };
 
   const submit = async () => {
-    if (busy) {
-      return;
-    }
+    if (busy) { return; }
     const trimmed = text.trim();
-    const input: AnswerInput = {
-      optionIds: selected.length > 0 ? selected : undefined,
-      text: trimmed || undefined,
-    };
-    if (!input.optionIds?.length && !input.text) {
-      return;
-    }
+    const payload: Record<string, unknown> = {};
+    if (selected.length > 0) { payload.optionIds = selected; }
+    if (trimmed) { payload.text = trimmed; }
+    if (!payload.optionIds && !payload.text) { return; }
     setBusy(true);
     try {
-      await answerAsk(pending.runId, pending.step.id, input);
+      await respondToAsk(threadId, pending.askId, payload);
     } catch (error) {
       toast.add({
         title: 'Could not answer',
@@ -176,11 +167,11 @@ function AskCard({ pending }: { pending: Extract<PendingHitl, { kind: 'ask' }> }
   return (
     <HitlShell>
       <div className="flex flex-col gap-1 px-3 pt-2.5">
-        <Markdown text={step.payload.prompt} className="px-0 text-sm" />
+        {pending.prompt ? <Markdown text={pending.prompt} className="px-0 text-sm" /> : null}
         {options.length > 0 &&
           (multi ? (
             <div className="flex flex-col gap-0.5 py-0.5">
-              {options.map((option: any) => {
+              {options.map((option) => {
                 const active = selected.includes(option.id);
                 return (
                   <button
@@ -217,7 +208,7 @@ function AskCard({ pending }: { pending: Extract<PendingHitl, { kind: 'ask' }> }
               }}
               className="gap-0.5 py-0.5"
             >
-              {options.map((option: any) => (
+              {options.map((option) => (
                 <Label
                   key={option.id}
                   htmlFor={`hitl-opt-${option.id}`}
@@ -271,11 +262,4 @@ function AskCard({ pending }: { pending: Extract<PendingHitl, { kind: 'ask' }> }
 
 function HitlShell({ children }: { children: ReactNode }) {
   return <InputGroup className="h-auto rounded-2xl">{children}</InputGroup>;
-}
-
-function toolName(step: AgentStep): string {
-  if (!isBuiltinStep(step) || step.type !== 'tool_call') {
-    return 'tool';
-  }
-  return step.payload.name;
 }

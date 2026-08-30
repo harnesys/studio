@@ -35,6 +35,17 @@ Gate по **каждой** operation tool; любой `deny`/`ask` побежд�
 
 Двойной HITL: код `duplicate_hitl` (`08`).
 
+## Утилиты
+
+```ts
+function resolveToolPermission(
+  operations: string[],
+  map: PermissionMap,
+): PermissionGate
+```
+
+Резолв gate по operations инструмента. Любой `deny`/`ask` побеждает `allow`. Если operations пустой — `'allow'`.
+
 ## Out of scope
 
 Конкретные operations builtin/MCP (16, 18), session UX (20).

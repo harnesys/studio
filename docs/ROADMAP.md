@@ -45,7 +45,7 @@ Studio в монорепо: `apps/studio` (layout FSD / Clean Architecture).
 - `16`–`19` actions / skills / MCP / artifacts (нужны к 0.4 для Studio; контракт двигателя не ломают)
 - `21` fixtures; полный catalog `22` (envelope layout RFC до 1.0; session projection уже freeze)
 - всё из `23-later.md`
-- memory / compaction / schedules / webhooks: host Studio, без API memory в ядре
+- schedules / webhooks: host Studio
 
 ## Карта версий
 
@@ -55,7 +55,7 @@ Studio в монорепо: `apps/studio` (layout FSD / Clean Architecture).
 | **0.2.0** | `06`–`11` | models, `tool()`, validate/compile/check, `run`/`start`, `llm:generate`, `tool:call`, assign/goto | hello-world: llm → tool → end |
 | **0.3.0** | `12`, `14`, `15`, `20` | interrupt, `RunResult`/`Command`, permissions, paths, session/`AgentRun` | **ENGINE FREEZE**; ask → respond → done; crash → load → resume |
 | **0.4.0** | `16`–`19`, `22` | `harnesys/actions`, skills, MCP, artifacts, events; Studio spike на тех же типах | spike: UI/server импортирует `SessionEvent` / Snapshot без mapper-модуля |
-| **0.5.0** | host Studio | persist = Snapshot+events; registry = `createRuntime`; threads/composer/transcript на native API | **STUDIO CUTOVER** |
+| **0.5.0** | host Studio, memory | persist = Snapshot+events; registry = `createRuntime`; threads/composer/transcript на native API; memory порты (pin/semantic/episodic/knowledge) | **STUDIO CUTOVER** |
 | **0.6.0** | `13` | spawn / handoff / budget, host `task` | multi-agent graph tests |
 | **0.7.0** | `21`, gaps `08` | examples/fixtures, validate codes, uncertain_effect | regression harness для freeze |
 | **0.8.0** | host Studio | schedules/webhooks tools, memory assemble на Harnesys-пути, optional compaction hook | product depth без API memory в ядре |
@@ -69,10 +69,10 @@ Patch: баги внутри minor. Pre-0.3 breaking ок (RFC). Post-0.3 breaki
   → 0.2 executable graph
     → 0.3 ENGINE FREEZE (session + HITL + policy)
       → 0.4 plugins + Studio spike (native types)
-        → 0.5 STUDIO CUTOVER (native persist + UI)
+        → 0.5 STUDIO CUTOVER (native persist + UI + memory)
           → 0.6 spawn
           → 0.7 fixtures
-          → 0.8 Studio host depth
+          → 0.8 Studio host depth (schedules/webhooks)
           → 0.9 DX helpers
             → 1.0 stable
 ```
@@ -151,7 +151,7 @@ Gate: spike компилируется; chat loop на InMemory; grep по Studi
 | `files` / `shell` / `fetch` / `askUser` | `harnesys/actions` | tools list |
 | MCP / skills loaders | передача в `createRuntime({ mcp, skills })` | существующие FS/JSON loaders можно оставить как host IO |
 | ModelsPort / `discoverModels` | контракт `06` | models port |
-| `memory` в createHarnyx | host assemble / tools; поля memory нет у runtime | wire-memory |
+| `memory` в createHarnyx | memory порты из библиотеки (docs/memory); host wiring | wire-memory |
 | transcript / desk events под journal | UI на `SessionEvent` (+ при необходимости raw events) | client widgets chat |
 
 ### Cutover gate
@@ -163,6 +163,7 @@ Gate: spike компилируется; chat loop на InMemory; grep по Studi
 5. HITL: wire `approved`; paths = workspace cwd ∩ allow
 6. Сценарий: send → tool ask → approve → complete; restart процесса → `resume` с `needs_input`
 7. Клиентский transcript рендерит `SessionEvent` напрямую
+8. Memory: pin/semantic/episodic/knowledge через порты библиотеки
 
 Scope 0.5: graph editor, spawn UI, WorkItem queue (`23`) не входят. Прежние Harnyx threads не переносятся.
 
@@ -188,10 +189,7 @@ Gate: CI гоняет fixtures против InMemory.
 
 ## 0.8.0 Studio host depth
 
-Без API memory в ядре (`01`, `23`).
-
 - Schedules / webhooks как host tools на Harnesys registry
-- Pin / semantic / knowledge assemble через Studio ports
 - Optional compaction notify: middleware / `afterRun`
 
 Gate: Studio flows (кроме graph editor) на Harnesys path с теми же native типами, что в 0.5.
@@ -224,10 +222,10 @@ Backlog после 0.9 / post-1.0: WorkItem `runWork`, `barrier.policy` `any` | 
 | `06`–`11` | 0.2 |
 | `12`, `14`, `15`, `20` | 0.3 (freeze) |
 | `16`–`19`, `22` | 0.4 |
-| Studio native cutover | 0.5 |
+| Studio native cutover + memory | 0.5 |
 | `13` | 0.6 |
 | `21` | 0.7 |
-| Studio schedules/memory depth | 0.8 |
+| Studio schedules/webhooks depth | 0.8 |
 | optional DX / часть `23` | 0.9 |
 | stable policy | 1.0 |
 | остаток `23` | post-1.0 |

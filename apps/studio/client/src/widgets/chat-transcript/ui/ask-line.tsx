@@ -1,19 +1,11 @@
-import type { AgentStep, AnswerInput } from '@studio/shared';
-import { isBuiltinStep } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 import { MessageCircleQuestionIcon } from 'lucide-react';
 
 import { cn } from '@/shared/lib/utils';
 
-/** Transcript projection for ask steps. Interactive answer lives in HitlPrompt. */
-export function AskLine({ step, live }: { step: AgentStep; runId?: string; live?: boolean }) {
-  if (!isBuiltinStep(step) || step.type !== 'ask') {
-    return null;
-  }
-
-  const awaiting = step.status === 'awaiting_input';
-  const answer = step.payload.answer;
-  const options = step.payload.options ?? [];
-  const active = Boolean(live && awaiting);
+/** Transcript projection for ask events. Interactive answer lives in HitlPrompt. */
+export function AskLine({ event, live }: { event: SessionEvent & { type: 'ask' }; runId?: string; live?: boolean }) {
+  const active = Boolean(live);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -29,28 +21,11 @@ export function AskLine({ step, live }: { step: AgentStep; runId?: string; live?
         >
           Ask
         </span>
-        <span className="min-w-0 truncate text-muted-foreground">{step.payload.prompt}</span>
-        {awaiting ? (
+        <span className="min-w-0 truncate text-muted-foreground">{event.prompt}</span>
+        {active ? (
           <span className="shrink-0 font-mono text-[11px] text-muted-foreground">waiting…</span>
         ) : null}
       </div>
-
-      {answer ? (
-        <p className="pl-6 font-mono text-[12px] text-muted-foreground">
-          {formatAnswer(answer, options)}
-        </p>
-      ) : null}
     </div>
   );
-}
-
-function formatAnswer(answer: AnswerInput, options: Array<{ id: string; label: string }>): string {
-  const labels = (answer.optionIds ?? [])
-    .map((id: any) => options.find((option) => option.id === id)?.label ?? id)
-    .filter(Boolean);
-  const parts = [...labels];
-  if (answer.text) {
-    parts.push(answer.text);
-  }
-  return parts.join(' · ') || 'Answered';
 }

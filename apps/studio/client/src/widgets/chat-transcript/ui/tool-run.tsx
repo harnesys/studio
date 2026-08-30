@@ -1,37 +1,37 @@
-import type { TranscriptActivity } from '@studio/shared';
 import { WrenchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { TOOL_RUN_COLLAPSE_AT } from '@/shared/config/constants';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { Badge } from '@/shared/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
+import type { ToolEventPair } from '../model/session-event-groups';
 import { summarizeToolRun } from '../model/tool-run-summary';
 import { ToolLine } from './tool-line';
 
 export function ToolRun({
-  items,
+  pairs,
   live,
   runId,
 }: {
-  items: Array<Extract<TranscriptActivity, { type: 'tool' }>>;
+  pairs: ToolEventPair[];
   live: boolean;
   runId?: string;
 }) {
   const expandTools = useChatPreferences((state) => state.expandTools);
-  const collapse = !live && !expandTools && items.length >= TOOL_RUN_COLLAPSE_AT;
+  const collapse = !live && !expandTools && pairs.length >= TOOL_RUN_COLLAPSE_AT;
   const [open, setOpen] = useState(!collapse);
-  const summary = summarizeToolRun(items);
+  const summary = summarizeToolRun(pairs);
   const hint = summary.parts.slice(0, 3).join(' · ');
   const extra = summary.parts.length > 3 ? ` +${summary.parts.length - 3}` : null;
 
   if (!collapse) {
     return (
       <div className="flex flex-col gap-1">
-        {items.map((item, index) => (
+        {pairs.map((pair, index) => (
           <ToolLine
-            key={item.call.id}
-            item={item}
-            live={live && index === items.length - 1}
+            key={pair.call.toolCallId}
+            pair={pair}
+            live={live && index === pairs.length - 1}
             runId={runId}
           />
         ))}
@@ -59,8 +59,8 @@ export function ToolRun({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="flex flex-col gap-1">
-            {items.map((item) => (
-              <ToolLine key={item.call.id} item={item} live={false} runId={runId} />
+            {pairs.map((pair) => (
+              <ToolLine key={pair.call.toolCallId} pair={pair} live={false} runId={runId} />
             ))}
           </div>
         </CollapsibleContent>

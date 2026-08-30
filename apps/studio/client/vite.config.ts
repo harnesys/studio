@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(root, './src'),
         '@studio/shared': path.resolve(root, '../shared/types.ts'),
-        harnesys: path.resolve(studioRoot, 'harnesys-stub/index.ts'),
+        harnesys: path.resolve(studioRoot, '../../packages/harnesys/index.ts'),
       },
     },
     server: {

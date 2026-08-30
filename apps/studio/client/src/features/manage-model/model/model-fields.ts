@@ -9,8 +9,7 @@ import type {
   ModelTopProvider,
   ProviderModelPublic,
 } from '@studio/shared';
-import { EFFORTS, MODALITIES, MODEL_FEATURES } from '@studio/shared';
-import { withChatGenerationParameters } from 'harnesys';
+import { EFFORTS, MODALITIES, MODEL_FEATURES, withChatGenerationParameters } from '@studio/shared';
 import { z } from 'zod';
 
 const optionalAmount = z

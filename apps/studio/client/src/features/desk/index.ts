@@ -25,7 +25,7 @@ export {
   useSelectedSchedule,
   useSelectedThread,
   useSelectedWebhook,
-  useThreadJournal,
+  useThreadEvents,
   useWorkspaceAgents,
   useWorkspaceSchedules,
   useWorkspaceWebhooks,

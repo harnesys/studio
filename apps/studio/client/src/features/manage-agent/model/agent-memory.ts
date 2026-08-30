@@ -1,5 +1,4 @@
-import { type AgentMemoryConfig, defaultAgentMemory, type PortRef } from '@studio/shared';
-import type { AgentProjectPaths } from 'harnesys';
+import { type AgentMemoryConfig, type AgentProjectPaths, defaultAgentMemory, type PortRef } from '@studio/shared';
 
 export const MEMORY_OFF = 'off' as const;
 

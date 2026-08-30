@@ -3,19 +3,39 @@ import { ValidationError } from './errors.ts';
 import type { Expr } from './expr.ts';
 import type { JsonSchema } from './json-schema.ts';
 
+export type AgentGenerationSettings = {
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  seed?: number;
+  maxTokens?: number;
+};
+
 export type AgentModelRef = {
   provider: string;
   model: string;
   effort?: string;
-  generation?: {
-    temperature?: number;
-    topP?: number;
-    topK?: number;
-    frequencyPenalty?: number;
-    presencePenalty?: number;
-    seed?: number;
-    maxTokens?: number;
-  };
+  generation?: AgentGenerationSettings;
+};
+
+export type PortRef = { name: string; version?: string; spec?: Record<string, unknown> } | null;
+
+export type AgentPaths = { allow: string[]; cwd?: string };
+
+export type ToolOutputSettings = {
+  maxChars?: number;
+  headChars?: number;
+  tailChars?: number;
+};
+
+export type AgentMemoryConfig = {
+  pin?: PortRef;
+  semantic?: PortRef;
+  episodic?: PortRef;
+  knowledge?: PortRef;
+  project?: PortRef | { paths: string[] } | null;
 };
 
 export type AgentNodes = Record<string, Node>;
@@ -30,7 +50,12 @@ export type AgentDefinition = {
   models?: Record<string, AgentModelRef>;
   fallback?: AgentModelRef[];
   skills?: string[];
-  paths?: { allow: string[]; cwd?: string };
+  tools?: string[];
+  mcpServers?: string[];
+  toolOutput?: ToolOutputSettings;
+  compaction?: PortRef;
+  memory?: AgentMemoryConfig;
+  paths?: AgentPaths;
   state?: {
     initial: Record<string, Expr | unknown>;
     reducers?: Record<string, 'replace' | 'merge'>;

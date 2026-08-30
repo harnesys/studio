@@ -39,6 +39,18 @@ tool(name, {
 
 Permissions gate (`operations` map, 14) ортогонален `sideEffect`. Порядок на tool call: permissions map, затем middleware `beforeTool` (05, 14), затем intent/recorded + execute.
 
+## ToolCatalogEntry
+
+```ts
+type ToolCatalogEntry = {
+  name: string
+  description: string
+  group?: string
+}
+```
+
+Каталог инструментов без schema/execute. Используется для UI и списка доступных инструментов. Подмножество `ToolDefinition`.
+
 ## Инварианты
 
 - `toolPermission(name)` на createRuntime нет; gate через `operations` + map (14).

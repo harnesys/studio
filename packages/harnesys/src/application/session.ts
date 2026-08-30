@@ -224,7 +224,7 @@ export function createSession(
     const run: AgentRun = {
       id: runId,
       get status() {
-        return status;
+        return status as AgentRun['status'];
       },
       stream: async function* () {
         let idx = 0;

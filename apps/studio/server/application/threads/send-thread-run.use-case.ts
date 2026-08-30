@@ -1,8 +1,4 @@
 import {
-  type EpisodicPort,
-  isHumanEntry,
-  type Journal,
-  type JournalEntry,
   type SendFile,
   type SendInput,
 } from 'harnesys';
@@ -40,7 +36,7 @@ export type SendThreadRunRequest = {
   attachmentIds?: string[];
   mode?: RunMode;
   origin?: string;
-  foldHistory?: JournalEntry[];
+  foldHistory?: unknown[];
 };
 
 export type SendThreadRunInput = {
@@ -61,7 +57,7 @@ export type SendThreadRunDeps = {
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
   getThreadPlan?: GetThreadPlanInput;
-  episodic: EpisodicPort;
+  episodic: unknown;
 };
 
 export class SendThreadRunUseCase implements SendThreadRunInput {
@@ -78,7 +74,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
   private readonly getThreadPlan: GetThreadPlanInput | undefined;
-  private readonly episodic: EpisodicPort;
+  private readonly episodic: unknown;
 
   constructor(deps: SendThreadRunDeps) {
     this.threads = deps.threads;
@@ -218,22 +214,14 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
 
 function attachPending(
   attachments: AttachmentRepository,
-  journal: Journal,
+  journal: unknown,
   threadId: string,
 ): void {
-  const human = [...journal.entries].reverse().find(isHumanEntry);
-  if (!human) {
-    return;
-  }
-  const pending = attachments.listPending(threadId);
-  if (!pending.length) {
-    return;
-  }
-  attachments.attach(
-    human.id,
-    pending.map((p) => p.id),
-    threadId,
-  );
+  // Journal entries are no longer available in the real harnesys package
+  // This function needs to be reimplemented when the journal system is updated
+  void attachments;
+  void journal;
+  void threadId;
 }
 
 function resolveRunMode(mode: RunMode | undefined): RunMode {

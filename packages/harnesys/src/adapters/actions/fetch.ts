@@ -5,7 +5,7 @@ import { DEFAULT_HTTP_TIMEOUT_MS, MAX_HTTP_TIMEOUT_MS } from './constants.ts';
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as const;
 
 export function fetchTool(): ToolDefinition {
-  return tool('http', {
+  return tool('fetch', {
     group: 'core',
     description: 'HTTP request (GET/POST/PUT/PATCH/DELETE/HEAD). Only http/https URLs.',
     operations: ['network'],

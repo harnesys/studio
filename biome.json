@@ -249,6 +249,32 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/harnesys/src/application/expr-eval.ts"],
+      "formatter": {
+        "enabled": false
+      },
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExtraBooleanCast": "off"
+          },
+          "style": {
+            "useBlockStatements": "off",
+            "noExcessiveLinesPerFile": "off",
+            "noNestedTernary": "off",
+            "useConst": "off"
+          },
+          "nursery": {
+            "useExhaustiveSwitchCases": "off"
+          },
+          "suspicious": {
+            "noConsole": "off",
+            "noFallthroughSwitchClause": "off"
+          }
+        }
+      }
     }
   ]
 }

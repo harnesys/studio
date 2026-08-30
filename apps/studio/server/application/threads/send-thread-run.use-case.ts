@@ -1,6 +1,8 @@
 import {
+  type AgentRun,
   type SendFile,
   type SendInput,
+  type SessionHandle,
 } from 'harnesys';
 import type { AcceptedRunResponse, ThreadPlanRecord } from '../../../shared/types.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
@@ -16,7 +18,6 @@ import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesy
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
-import type { JournalRepository } from '../../domain/journal.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
@@ -47,7 +48,6 @@ export type SendThreadRunDeps = {
   models: LlmModelRepository;
   providers: LlmProviderRepository;
   workspaces: WorkspaceRepository;
-  journal: JournalRepository;
   attachments: AttachmentRepository;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   registry: ThreadRuntimeRegistry;
@@ -55,7 +55,6 @@ export type SendThreadRunDeps = {
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
   getThreadPlan?: GetThreadPlanInput;
-  episodic: unknown;
 };
 
 export class SendThreadRunUseCase implements SendThreadRunInput {
@@ -64,7 +63,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   private readonly models: LlmModelRepository;
   private readonly providers: LlmProviderRepository;
   private readonly workspaces: WorkspaceRepository;
-  private readonly journal: JournalRepository;
   private readonly attachments: AttachmentRepository;
   private readonly workspaceHarnesys: WorkspaceHarnesysRegistry;
   private readonly registry: ThreadRuntimeRegistry;
@@ -72,7 +70,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
   private readonly getThreadPlan: GetThreadPlanInput | undefined;
-  private readonly episodic: unknown;
 
   constructor(deps: SendThreadRunDeps) {
     this.threads = deps.threads;
@@ -80,7 +77,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     this.models = deps.models;
     this.providers = deps.providers;
     this.workspaces = deps.workspaces;
-    this.journal = deps.journal;
     this.attachments = deps.attachments;
     this.workspaceHarnesys = deps.workspaceHarnesys;
     this.registry = deps.registry;
@@ -88,7 +84,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
     this.getThreadPlan = deps.getThreadPlan;
-    this.episodic = deps.episodic;
   }
 
   async execute(request: SendThreadRunRequest): Promise<AcceptedRunResponse> {
@@ -138,15 +133,10 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
         });
         this.activeRuns.register(run.id, thread.id, run, controller);
 
-        attachPending(this.attachments, handle.journal, thread.id);
-
-        this.journal.saveSnapshot(thread.id, handle.journal);
         this.publishThread(thread.id);
         void drainAgentRun({
           threadId: thread.id,
           run,
-          handle,
-          journal: this.journal,
           activeRuns: this.activeRuns,
           registry: this.registry,
           onPersist: (threadId) => this.publishThread(threadId),
@@ -155,7 +145,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
         return {
           runId: run.id,
           status: 'accepted',
-          journal: handle.journal,
         };
       },
     );
@@ -194,18 +183,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   private publishThread(threadId: string): void {
     publishDeskThread(this.getThread, this.deskEvents, threadId);
   }
-}
-
-function attachPending(
-  attachments: AttachmentRepository,
-  journal: unknown,
-  threadId: string,
-): void {
-  // Journal entries are no longer available in the real harnesys package
-  // This function needs to be reimplemented when the journal system is updated
-  void attachments;
-  void journal;
-  void threadId;
 }
 
 function resolveRunMode(mode: RunMode | undefined): RunMode {

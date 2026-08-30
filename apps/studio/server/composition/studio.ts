@@ -233,7 +233,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     models: llmModelRepo,
     providers: llmProviderRepo,
     workspaces: workspaceRepo,
-    journal: journalRepo,
     attachments: attachmentRepo,
     workspaceHarnesys,
     registry: threadRegistry,
@@ -241,7 +240,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     deskEvents,
     getThread,
     getThreadPlan,
-    episodic: memory.episodic,
   });
 
   const scheduleQueue = wireSchedules({

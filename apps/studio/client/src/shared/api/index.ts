@@ -74,14 +74,11 @@ export {
 } from './schedules';
 export { readSse } from './sse';
 export {
-  answerRun,
   attachmentUrl,
   type CreateThreadInput,
   cancelRun,
   compactThread,
-  confirmRun,
   createThreadRecord,
-  deleteThreadEntry,
   deleteThreadRecord,
   getRunEventsStream,
   getThread,

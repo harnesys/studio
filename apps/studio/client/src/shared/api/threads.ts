@@ -1,9 +1,6 @@
 import type {
   AcceptedRunResponse,
-  AnswerInput,
   CompactThreadResponse,
-  ConfirmDecision,
-  HitlBatchSnapshot,
   RunMode,
   ThreadAttachment,
   ThreadPlanRecord,
@@ -109,38 +106,10 @@ export function cancelRun(runId: string): Promise<void> {
   return apiJson<void>(`/api/runs/${runId}/cancel`, { method: 'POST' });
 }
 
-export function confirmRun(
-  runId: string,
-  stepId: string,
-  decision: ConfirmDecision,
-): Promise<HitlBatchSnapshot> {
-  return apiJson<HitlBatchSnapshot>(`/api/runs/${runId}/confirm`, {
-    method: 'POST',
-    body: JSON.stringify({ stepId, decision }),
-  });
-}
-
-export function answerRun(
-  runId: string,
-  stepId: string,
-  input: AnswerInput,
-): Promise<HitlBatchSnapshot> {
-  return apiJson<HitlBatchSnapshot>(`/api/runs/${runId}/answer`, {
-    method: 'POST',
-    body: JSON.stringify({ stepId, ...input }),
-  });
-}
-
 export function markThreadRead(id: string) {
   return apiJson<ThreadRecord>(`/api/threads/${id}/read`, { method: 'POST' });
 }
 
 export function deleteThreadRecord(id: string) {
   return apiJson<void>(`/api/threads/${id}`, { method: 'DELETE' });
-}
-
-export function deleteThreadEntry(threadId: string, entryId: string) {
-  return apiJson<ThreadRecord>(`/api/threads/${threadId}/entries/${entryId}`, {
-    method: 'DELETE',
-  });
 }

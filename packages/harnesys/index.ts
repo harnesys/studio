@@ -21,6 +21,7 @@ export type {
   Usage,
 } from './src/domain/run-result.ts';
 export { NotImplementedError, ValidationError } from './src/domain/errors.ts';
+export { ThreadBusyError, PendingHitlError, ResumeHashError } from './src/domain/errors.ts';
 export type { Diagnostic } from './src/domain/errors.ts';
 export { compile } from './src/application/compile.ts';
 export type { Plan } from './src/application/compile.ts';

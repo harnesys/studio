@@ -348,10 +348,20 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         await commit('running', 'tool.intent', 'intent');
       }
       let res: { results: import('./tool-call.ts').ToolCallResult[] };
+      const outputBeforeBarrier = new Proxy((output as Record<string, unknown>) ?? {}, {
+        get(target, prop, receiver) {
+          if (prop === 'results') {
+            throw Object.assign(new Error('$output.results not available before barrier'), {
+              code: 'output_not_ready',
+            });
+          }
+          return Reflect.get(target, prop, receiver);
+        },
+      });
       try {
         res = await executeToolCall(tn, {
           state: st,
-          output,
+          output: outputBeforeBarrier,
           input,
           resume: st.$resume ?? null,
           toolRegistry: opts.toolRegistry,

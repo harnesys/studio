@@ -3,6 +3,14 @@ import { ValidationError } from './errors.ts';
 import type { Expr } from './expr.ts';
 import type { JsonSchema } from './json-schema.ts';
 
+export type InterruptReason =
+  | 'human_review'
+  | 'policy'
+  | 'uncertain_effect'
+  | 'definition_migrated'
+  | 'work'
+  | 'wait';
+
 export type AgentGenerationSettings = {
   temperature?: number;
   topP?: number;
@@ -114,7 +122,7 @@ export type Node =
       barrier?: { policy: 'all' };
     }
   | { type: 'control:goto'; target: Expr }
-  | { type: 'control:interrupt'; reason: string; resumeSchema: JsonSchema }
+  | { type: 'control:interrupt'; reason: InterruptReason; resumeSchema: JsonSchema }
   | {
       type: 'control:handoff';
       agentId: string | Expr;

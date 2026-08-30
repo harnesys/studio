@@ -6,7 +6,8 @@
   "private": true,
   "exports": {
     ".": "./index.ts",
-    "./actions": "./src/adapters/actions/index.ts"
+    "./actions": "./src/adapters/actions/index.ts",
+    "./adapters/node": "./src/adapters/node/index.ts"
   },
   "dependencies": {
     "@ai-sdk/alibaba": "2.0.32",

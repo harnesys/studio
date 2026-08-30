@@ -7,6 +7,7 @@ export type {
   AgentModelRef,
   AgentPaths,
   Edge,
+  InterruptReason,
   Node,
   PortRef,
   ToolCallBatch,
@@ -87,12 +88,9 @@ export type {
   ControlEventMeta,
   AgentEventMeta,
 } from './src/domain/events.ts';
-export { FsArtifactStore } from './src/adapters/fs-artifact-store.ts';
 export { MemoryArtifactStore } from './src/adapters/memory-artifact-store.ts';
 export { foldAttachments } from './src/application/fold-attachments.ts';
 export { AskUserInterrupt } from './src/domain/errors.ts';
-export { FsSkillRegistry } from './src/adapters/fs-skill-registry.ts';
-export type { FsSkillRegistryOptions } from './src/adapters/fs-skill-registry.ts';
 export type { SkillSummary, SkillDocument } from './src/domain/skill.ts';
 export { parseSkillFile } from './src/application/skills/parse-skill-file.ts';
 export { filterSkills, formatSkillsCatalog } from './src/application/skills/skills-catalog.ts';

@@ -1,0 +1,114 @@
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings:
+      "ss01" 1,
+      "cv11" 1;
+    letter-spacing: -0.011em;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--live) 55%, transparent);
+  }
+  70% {
+    opacity: 0.85;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+.live-dot {
+  animation: live-pulse 1.8s ease-out infinite;
+}
+
+@keyframes thinking-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: -100% 50%;
+  }
+}
+
+.thinking-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--muted-foreground) 0%,
+    var(--foreground) 25%,
+    var(--muted-foreground) 50%,
+    var(--foreground) 75%,
+    var(--muted-foreground) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: thinking-shimmer 3s linear infinite;
+}
+
+@keyframes thinking-icon-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.thinking-icon-pulse {
+  color: var(--foreground);
+  animation: thinking-icon-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tab-enter {
+  0% {
+    max-width: 0;
+    opacity: 0;
+    transform: scale(0.94);
+    padding-left: 0;
+    padding-right: 0;
+  }
+  100% {
+    max-width: 13rem;
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-tab-enter {
+  animation: tab-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot,
+  .thinking-shimmer,
+  .thinking-icon-pulse,
+  .animate-tab-enter {
+    animation: none;
+  }
+
+  .thinking-shimmer {
+    color: var(--muted-foreground);
+    background: none;
+  }
+
+  .thinking-icon-pulse {
+    opacity: 1;
+    color: var(--muted-foreground);
+  }
+}

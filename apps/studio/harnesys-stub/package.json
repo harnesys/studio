@@ -1,0 +1,10 @@
+{
+  "name": "harnesys",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./actions": "./index.ts",
+    "./runtime": "./index.ts"
+  }
+}

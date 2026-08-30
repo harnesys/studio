@@ -1,0 +1,10 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+TsIndexedAccessType() as $type where {
+    $type <: r".*\[['\"][^'\"]+['\"]\].*",
+    register_diagnostic(
+        span = $type,
+        message = "Don't use indexed access types like `ModelRecord['cost']`. Export a named type and use that."
+    )
+}

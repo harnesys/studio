@@ -2,7 +2,9 @@
 
 **Единственный SoT контракта.** Тема = один файл = один план реализации. Порядок номеров ≈ порядок внедрения.
 
-Статус: RFC. Breaking допустим, пока пакет не объявлен stable.
+Версии и milestones (engine freeze, Studio cutover): [ROADMAP.md](./ROADMAP.md). Studio переписывается на типы Harnesys нативно. `apps/studio/harnesys-stub` только для компиляции до ≥0.3: не референс для `packages/harnesys`.
+
+Статус: RFC. Breaking допустим, пока пакет не объявлен stable. После engine freeze (**0.3.0**, см. ROADMAP) frozen surface только расширяется.
 
 | # | Файл | Зависимости | Слой |
 |---|---|---|---|

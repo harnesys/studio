@@ -1,0 +1,108 @@
+.markdown pre code,
+.tool-code pre code {
+  font-feature-settings: normal;
+  letter-spacing: 0;
+}
+
+/* JetBrains-inspired Pastel Syntax Theme */
+.markdown .hljs-comment,
+.markdown .hljs-quote,
+.tool-code .hljs-comment,
+.tool-code .hljs-quote {
+  color: #7a7e85;
+  font-style: italic;
+}
+
+.markdown .hljs-keyword,
+.markdown .hljs-selector-tag,
+.markdown .hljs-section,
+.markdown .hljs-link,
+.markdown .hljs-bullet,
+.tool-code .hljs-keyword,
+.tool-code .hljs-selector-tag,
+.tool-code .hljs-section,
+.tool-code .hljs-link,
+.tool-code .hljs-bullet {
+  color: #cf8e6d;
+}
+
+.markdown .hljs-string,
+.markdown .hljs-regexp,
+.tool-code .hljs-string,
+.tool-code .hljs-regexp {
+  color: #6aab73;
+}
+
+.markdown .hljs-type,
+.markdown .hljs-built_in,
+.markdown .hljs-builtin-name,
+.tool-code .hljs-type,
+.tool-code .hljs-built_in,
+.tool-code .hljs-builtin-name {
+  color: #56b6c2;
+}
+
+.markdown .hljs-title,
+.markdown .hljs-name,
+.tool-code .hljs-title,
+.tool-code .hljs-name {
+  color: #57a5e5;
+}
+
+.markdown .hljs-attr,
+.markdown .hljs-attribute,
+.markdown .hljs-property,
+.tool-code .hljs-attr,
+.tool-code .hljs-attribute,
+.tool-code .hljs-property {
+  color: #b78ac7;
+}
+
+.markdown .hljs-number,
+.markdown .hljs-symbol,
+.markdown .hljs-literal,
+.tool-code .hljs-number,
+.tool-code .hljs-symbol,
+.tool-code .hljs-literal {
+  color: #6897bb;
+}
+
+.markdown .hljs-variable,
+.markdown .hljs-template-variable,
+.markdown .hljs-params,
+.markdown .hljs-subst,
+.tool-code .hljs-variable,
+.tool-code .hljs-template-variable,
+.tool-code .hljs-params,
+.tool-code .hljs-subst {
+  color: #bcbec4;
+}
+
+.markdown .hljs-meta,
+.markdown .hljs-formula,
+.markdown .hljs-punctuation,
+.tool-code .hljs-meta,
+.tool-code .hljs-formula,
+.tool-code .hljs-punctuation {
+  color: #8c8f99;
+}
+
+.markdown .hljs-addition,
+.tool-code .hljs-addition {
+  color: #6aab73;
+}
+
+.markdown .hljs-deletion,
+.tool-code .hljs-deletion {
+  color: #e06c75;
+}
+
+.markdown .hljs-emphasis,
+.tool-code .hljs-emphasis {
+  font-style: italic;
+}
+
+.markdown .hljs-strong,
+.tool-code .hljs-strong {
+  font-weight: 500;
+}

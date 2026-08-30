@@ -1,0 +1,254 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**/src/**",
+      "**/tests/**",
+      "apps/**/*.ts",
+      "apps/**/*.tsx",
+      "*.ts",
+      "*.json",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/out",
+      "!**/coverage",
+      "!**/temp",
+      "!bun.lock"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "lineWidth": 100
+  },
+  "plugins": ["./plugins/no-indexed-access-type.grit"],
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "complexity": {
+        "noBannedTypes": "error",
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 15
+          }
+        },
+        "noForEach": "off",
+        "noUselessEmptyExport": "error",
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 4
+          }
+        }
+      },
+      "correctness": {
+        "noUnusedFunctionParameters": "error",
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedVariables": "error"
+      },
+      "performance": {
+        "noAccumulatingSpread": "error"
+      },
+      "style": {
+        "noDefaultExport": "error",
+        "noEnum": "error",
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 300
+          }
+        },
+        "noNestedTernary": "error",
+        "noNonNullAssertion": "error",
+        "noParameterAssign": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": [
+                  "@/features/*/model",
+                  "@/features/*/model/**",
+                  "@/features/*/ui",
+                  "@/features/*/ui/**",
+                  "@/entities/*/model",
+                  "@/entities/*/model/**",
+                  "@/entities/*/api",
+                  "@/entities/*/api/**",
+                  "@/widgets/*/model",
+                  "@/widgets/*/model/**",
+                  "@/widgets/*/ui",
+                  "@/widgets/*/ui/**"
+                ],
+                "message": "Import the slice through its index.ts public API."
+              }
+            ]
+          }
+        },
+        "noUselessElse": "error",
+        "useAsConstAssertion": "error",
+        "useBlockStatements": "error",
+        "useConst": "error",
+        "useExportType": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": {
+            "filenameCases": ["kebab-case"],
+            "requireAscii": true,
+            "strictCase": true
+          }
+        },
+        "useImportType": "error",
+        "useSelfClosingElements": "error",
+        "useTemplate": "error",
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "options": {
+            "style": "type"
+          }
+        }
+      },
+      "suspicious": {
+        "noAlert": "error",
+        "noConfusingVoidType": "error",
+        "noConsole": "error",
+        "noDebugger": "error",
+        "noExplicitAny": "error",
+        "noExtraNonNullAssertion": "error",
+        "noImportCycles": "warn",
+        "noNonNullAssertedOptionalChain": "error",
+        "noTsIgnore": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "useAwait": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "useExhaustiveSwitchCases": "error",
+        "useSortedClasses": {
+          "level": "error",
+          "options": {
+            "attributes": ["classList"],
+            "functions": ["clsx", "cn", "cva", "tw", "tw.*"]
+          }
+        }
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/tests/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": {
+              "level": "error",
+              "options": {
+                "maxAllowedComplexity": 20
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/studio/client/src/shared/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off",
+            "useFocusableInteractive": "off",
+            "useSemanticElements": "off",
+            "useKeyWithClickEvents": "off",
+            "useAriaPropsSupportedByRole": "off"
+          },
+          "suspicious": {
+            "noDocumentCookie": "off",
+            "noDoubleEquals": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/studio/client/vite.config.ts",
+        "apps/studio/drizzle.config.ts",
+        "apps/studio/server/index.ts",
+        "apps/studio/client/src/app/routes/index.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/studio/server/**",
+        "packages/harnesys/src/trace.ts",
+        "apps/studio/client/src/shared/lib/trace.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/harnesys/src/application/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noExcessiveLinesPerFile": "off"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    }
+  ]
+}

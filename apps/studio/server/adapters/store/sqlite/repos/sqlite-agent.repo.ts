@@ -1,0 +1,196 @@
+import { and, eq } from 'drizzle-orm';
+import {
+  type AgentMemoryConfig,
+  defaultAgentCompaction,
+  defaultAgentMemory,
+  type PortRef,
+} from '../../../../../shared/types.ts';
+import type {
+  Agent,
+  AgentInsert,
+  AgentPatch,
+  AgentRepository,
+} from '../../../../domain/agent.port.ts';
+import { NotFoundError } from '../../../../domain/studio.error.ts';
+import type { StudioDb } from '../connection.ts';
+import { mapSqliteError } from '../errors.ts';
+import { type AgentRow, agentsTable } from '../schema/index.ts';
+
+export class SqliteAgentRepo implements AgentRepository {
+  constructor(private readonly db: StudioDb) {}
+
+  listAll(): Agent[] {
+    return this.db.select().from(agentsTable).all().map(toAgent);
+  }
+
+  listByWorkspace(workspaceId: string): Agent[] {
+    return this.db
+      .select()
+      .from(agentsTable)
+      .where(eq(agentsTable.workspaceId, workspaceId))
+      .all()
+      .map(toAgent);
+  }
+
+  findById(id: string): Agent | undefined {
+    const row = this.db.select().from(agentsTable).where(eq(agentsTable.id, id)).get();
+    return row ? toAgent(row) : undefined;
+  }
+
+  findByName(workspaceId: string, name: string): Agent | undefined {
+    const row = this.db
+      .select()
+      .from(agentsTable)
+      .where(and(eq(agentsTable.workspaceId, workspaceId), eq(agentsTable.name, name)))
+      .get();
+    return row ? toAgent(row) : undefined;
+  }
+
+  insert(rec: AgentInsert): Agent {
+    try {
+      const { skills, mcpServers, tools, generation, toolOutput, compaction, memory, ...rest } =
+        rec;
+      const row = this.db
+        .insert(agentsTable)
+        .values({
+          ...rest,
+          skills: JSON.stringify(skills),
+          mcpServers: JSON.stringify(mcpServers),
+          tools: JSON.stringify(tools),
+          generation: serializeJson(generation),
+          toolOutput: serializeJson(toolOutput),
+          compactionJson: serializeJsonColumn(compaction),
+          memoryJson: serializeJsonColumn(memory),
+        })
+        .returning()
+        .get();
+      return toAgent(row);
+    } catch (err) {
+      return mapSqliteError(err, { conflict: 'agent name taken in workspace' });
+    }
+  }
+
+  update(id: string, patch: AgentPatch): Agent {
+    try {
+      const { skills, mcpServers, tools, generation, toolOutput, compaction, memory, ...rest } =
+        patch;
+      const row = this.db
+        .update(agentsTable)
+        .set({
+          ...rest,
+          ...(skills !== undefined ? { skills: JSON.stringify(skills) } : {}),
+          ...(mcpServers !== undefined ? { mcpServers: JSON.stringify(mcpServers) } : {}),
+          ...(tools !== undefined ? { tools: JSON.stringify(tools) } : {}),
+          ...(generation !== undefined ? { generation: serializeJson(generation) } : {}),
+          ...(toolOutput !== undefined ? { toolOutput: serializeJson(toolOutput) } : {}),
+          ...(compaction !== undefined ? { compactionJson: serializeJsonColumn(compaction) } : {}),
+          ...(memory !== undefined ? { memoryJson: serializeJsonColumn(memory) } : {}),
+        })
+        .where(eq(agentsTable.id, id))
+        .returning()
+        .get();
+      if (!row) {
+        throw new NotFoundError('agent not found');
+      }
+      return toAgent(row);
+    } catch (err) {
+      return mapSqliteError(err, { conflict: 'agent name taken in workspace' });
+    }
+  }
+
+  delete(id: string): void {
+    this.db.delete(agentsTable).where(eq(agentsTable.id, id)).run();
+  }
+
+  deleteByWorkspace(workspaceId: string): void {
+    this.db.delete(agentsTable).where(eq(agentsTable.workspaceId, workspaceId)).run();
+  }
+}
+
+function toAgent(row: AgentRow): Agent {
+  return {
+    id: row.id,
+    workspaceId: row.workspaceId,
+    name: row.name,
+    modelId: row.modelId,
+    role: row.role,
+    instructions: row.instructions,
+    effort: row.effort,
+    generation: parseJsonObject(row.generation),
+    toolOutput: parseJsonObject(row.toolOutput),
+    compaction: coalesceCompaction(parseJsonColumn<PortRef>(row.compactionJson)),
+    memory: coalesceMemory(parseJsonColumn<AgentMemoryConfig>(row.memoryJson)),
+    skills: parseStringList(row.skills),
+    mcpServers: parseStringList(row.mcpServers),
+    tools: parseStringList(row.tools),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function coalesceCompaction(value: PortRef | undefined): PortRef {
+  if (value === undefined) {
+    return defaultAgentCompaction();
+  }
+  return value;
+}
+
+function coalesceMemory(value: AgentMemoryConfig | null | undefined): AgentMemoryConfig {
+  if (value == null) {
+    return defaultAgentMemory();
+  }
+  return value;
+}
+
+function serializeJson(value: object | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+  return JSON.stringify(value);
+}
+
+/** Persists JSON including literal `null` (explicit off). */
+function serializeJsonColumn(value: unknown): string | null {
+  if (value === undefined) {
+    return null;
+  }
+  return JSON.stringify(value);
+}
+
+function parseJsonColumn<T>(raw: string | null): T | null | undefined {
+  if (raw == null) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(raw) as T | null;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseJsonObject<T extends object>(raw: string | null): T | null {
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed as T;
+  } catch {
+    return null;
+  }
+}
+
+function parseStringList(raw: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((item): item is string => typeof item === 'string');
+  } catch {
+    return [];
+  }
+}

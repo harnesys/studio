@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" class="dark" data-scale="middle" data-accent="orange" data-chat-font="medium">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Harnyx</title>
+    <script>
+      (function () {
+        try {
+          var root = document.documentElement
+          var theme = localStorage.getItem("theme")
+          var resolved =
+            theme === "light" || theme === "dark"
+              ? theme
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+          root.classList.remove("light", "dark")
+          root.classList.add(resolved)
+          var scale = localStorage.getItem("ui-scale")
+          if (scale === "small" || scale === "middle" || scale === "large" || scale === "extra") {
+            root.dataset.scale = scale
+          }
+          var accent = localStorage.getItem("ui-accent")
+          if (
+            accent === "red" ||
+            accent === "orange" ||
+            accent === "yellow" ||
+            accent === "green" ||
+            accent === "iris" ||
+            accent === "indigo" ||
+            accent === "violet"
+          ) {
+            root.dataset.accent = accent
+          }
+          var chatPrefs = localStorage.getItem("studio-chat-preferences")
+          if (chatPrefs) {
+            var chatFont = JSON.parse(chatPrefs).state.chatFontSize
+            if (
+              chatFont === "small" ||
+              chatFont === "medium" ||
+              chatFont === "large" ||
+              chatFont === "xl"
+            ) {
+              root.dataset.chatFont = chatFont
+            }
+          }
+        } catch (error) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/app/main.tsx"></script>
+  </body>
+</html>

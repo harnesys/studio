@@ -1,0 +1,72 @@
+import type { Hono } from 'hono';
+import type { CreateAgentInput } from '../../../application/agents/create-agent.use-case.ts';
+import type { DeleteAgentInput } from '../../../application/agents/delete-agent.use-case.ts';
+import type { ListAgentsInput } from '../../../application/agents/list-agents.use-case.ts';
+import type { UpdateAgentInput } from '../../../application/agents/update-agent.use-case.ts';
+import { createAgentBody, updateAgentBody } from './agent.body.ts';
+
+export type AgentControllerDeps = {
+  listAgents: ListAgentsInput;
+  createAgent: CreateAgentInput;
+  updateAgent: UpdateAgentInput;
+  deleteAgent: DeleteAgentInput;
+};
+
+export class AgentController {
+  constructor(private readonly deps: AgentControllerDeps) {}
+
+  register(app: Hono): void {
+    app.get('/api/agents', async (c) => {
+      return c.json(await this.deps.listAgents.execute());
+    });
+
+    app.post('/api/workspaces/:id/agents', async (c) => {
+      const body = createAgentBody.parse(await c.req.json());
+      const agent = await this.deps.createAgent.execute({
+        workspaceId: c.req.param('id'),
+        name: body.name,
+        modelId: body.modelId ?? undefined,
+        role: body.role ?? undefined,
+        instructions: body.instructions ?? undefined,
+        effort: body.effort ?? undefined,
+        generation: body.generation ?? undefined,
+        toolOutput: body.toolOutput ?? undefined,
+        compaction: body.compaction,
+        memory: body.memory,
+        skills: body.skills,
+        mcpServers: body.mcpServers,
+        tools: body.tools,
+      });
+      return c.json(agent, 201);
+    });
+
+    app.patch('/api/workspaces/:id/agents/:agentId', async (c) => {
+      const body = updateAgentBody.parse(await c.req.json());
+      const agent = await this.deps.updateAgent.execute({
+        workspaceId: c.req.param('id'),
+        id: c.req.param('agentId'),
+        name: body.name ?? undefined,
+        modelId: body.modelId ?? undefined,
+        role: body.role ?? undefined,
+        instructions: body.instructions ?? undefined,
+        effort: body.effort === undefined ? undefined : body.effort,
+        generation: body.generation === undefined ? undefined : body.generation,
+        toolOutput: body.toolOutput === undefined ? undefined : body.toolOutput,
+        compaction: body.compaction,
+        memory: body.memory,
+        skills: body.skills,
+        mcpServers: body.mcpServers,
+        tools: body.tools,
+      });
+      return c.json(agent);
+    });
+
+    app.delete('/api/workspaces/:id/agents/:agentId', async (c) => {
+      await this.deps.deleteAgent.execute({
+        workspaceId: c.req.param('id'),
+        id: c.req.param('agentId'),
+      });
+      return c.body(null, 204);
+    });
+  }
+}

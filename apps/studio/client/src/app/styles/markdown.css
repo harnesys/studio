@@ -1,0 +1,219 @@
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+.markdown :is(p, ul, ol, pre, blockquote, table, img, .katex-display, .markdown-mermaid) {
+  margin-block: 0.4rem;
+}
+.markdown hr {
+  margin-block: 0.75rem;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.markdown :is(h1, h2, h3, h4) {
+  margin: 0.75rem 0 0.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+.markdown :is(h1, h2, h3, h4) + :is(p, ul, ol, pre, blockquote, table) {
+  margin-top: 0.2rem;
+}
+.markdown h1 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.markdown h2 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.markdown h3 {
+  font-size: 0.8125rem;
+  font-weight: 550;
+}
+.markdown h4 {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.markdown :is(ul, ol) {
+  padding-inline-start: 1.25rem;
+}
+.markdown ul {
+  list-style: disc;
+}
+.markdown ol {
+  list-style: decimal;
+}
+.markdown ul ul {
+  list-style: circle;
+}
+.markdown ul ul ul {
+  list-style: square;
+}
+.markdown ol ol {
+  list-style: lower-alpha;
+}
+.markdown :is(ul, ol) :is(ul, ol) {
+  margin-block: 0.15rem;
+}
+.markdown li + li {
+  margin-top: 0.1rem;
+}
+.markdown li::marker {
+  color: var(--muted-foreground);
+}
+.markdown li > :is(p, ul, ol) {
+  margin: 0;
+}
+.markdown li > p + p {
+  margin-top: 0.3rem;
+}
+.markdown :is(ul, ol).contains-task-list {
+  list-style: none;
+  padding-inline-start: 0;
+}
+.markdown li.task-list-item {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+.markdown li.task-list-item input {
+  margin-top: 0.28rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  accent-color: var(--live);
+}
+.markdown blockquote {
+  border-inline-start: 1.5px solid color-mix(in oklab, var(--live) 40%, var(--border));
+  padding-inline-start: 0.65rem;
+  color: var(--muted-foreground);
+}
+.markdown blockquote > :first-child {
+  margin-top: 0;
+}
+.markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+.markdown a {
+  color: var(--live);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in oklab, var(--live) 40%, transparent);
+}
+.markdown a:hover {
+  text-decoration-color: var(--live);
+}
+.markdown strong {
+  font-weight: 600;
+}
+.markdown code {
+  font-family: var(--font-mono);
+}
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1em;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.markdown :is(th, td) {
+  padding: 0.45rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+}
+.markdown :is(th, td):first-child {
+  padding-inline-start: 0;
+}
+.markdown :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+.markdown th {
+  font-weight: 500;
+  color: var(--muted-foreground);
+  border-bottom-color: color-mix(in oklab, var(--foreground) 12%, var(--border));
+}
+.markdown tbody tr {
+  transition: background-color 120ms ease;
+}
+.markdown tbody tr:hover {
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+.markdown tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+.markdown img {
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.markdown .katex {
+  font-size: 1.05em;
+  color: var(--foreground);
+}
+.markdown .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.15rem;
+}
+.markdown .katex-display > .katex {
+  text-align: center;
+  white-space: nowrap;
+}
+.markdown-mermaid {
+  overflow-x: auto;
+  padding: 0.4rem 0;
+}
+.markdown-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+.markdown-mermaid
+  :is(.node rect, .node polygon, .node circle, .actor, .note, .labelBox, .cluster rect) {
+  stroke-width: 1px;
+}
+.markdown-mermaid .edgeLabel rect {
+  fill: var(--card);
+  opacity: 0.92;
+}
+.markdown-mermaid .marker {
+  fill: var(--muted-foreground);
+  stroke: var(--muted-foreground);
+}
+.markdown-mermaid :is(.nodeLabel, .label, .messageText, .noteText, .classText) {
+  font-size: 12px;
+}
+.markdown-mermaid .edgePath path,
+.markdown-mermaid .flowchart-link {
+  stroke-width: 1.25px;
+}
+
+/* Mindmap: branch tints via chart tokens (JS paintMindmap is source of truth) */
+.markdown-mermaid .mindmap-node :is(text, tspan) {
+  fill: var(--foreground);
+}
+.markdown-mermaid .mindmap-node span {
+  color: var(--foreground);
+}
+
+/* Gantt: one muted bar tone instead of section candy */
+.markdown-mermaid :is(.task0, .task1, .task2, .task3, .active0, .active1, .active2, .active3) {
+  fill: var(--muted);
+  stroke: var(--border);
+  stroke-width: 1px;
+}
+.markdown-mermaid :is(.section0, .section2) {
+  fill: var(--muted);
+  opacity: 0.35;
+}
+.markdown-mermaid :is(.section1, .section3) {
+  fill: var(--card);
+  opacity: 0.35;
+}
+.markdown-mermaid :is(.taskText, .taskText0, .taskText1, .taskText2, .taskText3, .sectionTitle) {
+  fill: var(--foreground);
+  font-size: 11px;
+}

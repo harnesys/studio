@@ -37,7 +37,9 @@ export type {
 } from './src/ports/models.ts';
 export { bindingOf, DiscoverError, isDriver, ModelLookupError, toBinding } from './src/adapters/models/binding.ts';
 export { discoverModels } from './src/adapters/models/discover.ts';
+export { tool } from './src/ports/tools.ts';
 export type { CustomNodeImpl, SideEffect, ToolContext, ToolDefinition } from './src/ports/tools.ts';
+export { createToolRegistry, validateToolInput } from './src/application/tool-registry.ts';
 export { DEFAULT_PERMISSIONS } from './src/ports/permissions.ts';
 export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
 export type { PathsConfig } from './src/ports/paths.ts';

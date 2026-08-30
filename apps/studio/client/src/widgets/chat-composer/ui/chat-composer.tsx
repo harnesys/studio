@@ -212,7 +212,7 @@ export function ChatComposer() {
                   agent,
                   workspaceId,
                   nextModelId: next,
-                  hasJournalEntries: events.length > 0,
+                  hasEvents: events.length > 0,
                   providers,
                 });
               }}

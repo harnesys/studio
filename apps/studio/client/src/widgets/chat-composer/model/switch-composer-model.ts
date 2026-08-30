@@ -9,12 +9,12 @@ export type SwitchComposerModelOptions = {
   agent: Agent;
   workspaceId: string;
   nextModelId: string;
-  hasJournalEntries: boolean;
+  hasEvents: boolean;
   providers: ProviderPublic[];
 };
 
 export function switchComposerModel(options: SwitchComposerModelOptions): void {
-  const { agent, workspaceId, nextModelId, hasJournalEntries, providers } = options;
+  const { agent, workspaceId, nextModelId, hasEvents, providers } = options;
   if (nextModelId === agent.modelId) {
     return;
   }
@@ -31,7 +31,7 @@ export function switchComposerModel(options: SwitchComposerModelOptions): void {
     });
   };
 
-  if (!hasJournalEntries) {
+  if (!hasEvents) {
     applySwitch();
     return;
   }

@@ -3,13 +3,10 @@ import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Command, RunResult } from '../domain/run-result.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
-import type { SessionHandle } from '../ports/session.ts';
 import { check } from './check.ts';
 import { compile } from './compile.ts';
 import { startGraph } from './graph.ts';
 import { runGraph } from './graph-run.ts';
-import { resolvePaths } from './paths.ts';
-import { resolvePermissions } from './permissions.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createToolRegistry } from './tool-registry.ts';
 

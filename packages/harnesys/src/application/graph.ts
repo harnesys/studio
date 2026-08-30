@@ -29,7 +29,6 @@ export type GraphOpts = {
   mergeState?: MergeStateFn;
   signal?: AbortSignal;
   resumePayload?: unknown;
-  resumeInterruptId?: string;
   startNodeId?: string;
 };
 
@@ -74,6 +73,10 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
     }
   }
+  if (opts.resumePayload !== undefined && opts.startNodeId) {
+    cur = opts.startNodeId;
+    st.$resume = opts.resumePayload;
+  }
   let output: unknown = null;
   let steps = 0;
   let tokens = 0;
@@ -111,10 +114,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const e = await commit('cancelled', 'run.cancelled');
       yield e;
       break;
-    }
-    if (opts.resumePayload !== undefined && opts.startNodeId) {
-      cur = opts.startNodeId;
-      st.$resume = opts.resumePayload;
     }
     const node = opts.plan.nodes[cur] as import('../domain/agent-definition.ts').Node | undefined;
     if (!node) {

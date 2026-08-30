@@ -105,6 +105,10 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
           mergeState: options.mergeState,
         });
       }
+      const snap = await state.load();
+      const interrupt = (snap?.cursor as Record<string, unknown>)?.interrupt as
+        | Record<string, unknown>
+        | undefined;
       return runGraph({
         agent: opts.definition,
         input: command.payload,
@@ -118,6 +122,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         toolMessages: options.toolMessages ?? 'ordered',
         mergeState: options.mergeState,
         resumePayload: command.payload,
+        startNodeId: interrupt?.nodeId as string | undefined,
       });
     },
     compile: (def) => compile(def),

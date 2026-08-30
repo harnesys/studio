@@ -172,14 +172,19 @@ export function createSession(
       }
     };
 
-    consume();
+    const consumePromise = consume().catch(() => {});
 
     respondFn = async (askId: string, payload: unknown): Promise<void> => {
       if (!pendingAsk || pendingAsk.askId !== askId) return;
       pendingAsk = null;
       status = 'running';
+      await consumePromise;
       graphOpts.resumePayload = payload;
-      graphOpts.startNodeId = undefined; // will be resolved from snapshot
+      const snap = await state.load();
+      const interrupt = (snap?.cursor as Record<string, unknown>)?.interrupt as
+        | Record<string, unknown>
+        | undefined;
+      graphOpts.startNodeId = interrupt?.nodeId as string | undefined;
       const newIter = startGraph(graphOpts);
       for await (const ev of newIter) {
         const se = eventToSessionEvent(ev);
@@ -191,8 +196,8 @@ export function createSession(
           }
         }
       }
-      const snap = await state.load();
-      if (snap?.status === 'completed') {
+      const finalSnap = await state.load();
+      if (finalSnap?.status === 'completed') {
         status = 'completed';
         resolveOutput({ text: '' });
       }

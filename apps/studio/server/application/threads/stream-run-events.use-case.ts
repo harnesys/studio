@@ -1,4 +1,4 @@
-import type { StreamEvent } from '../../../shared/types.ts';
+import type { SessionEvent } from 'harnesys';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 
@@ -7,13 +7,13 @@ export type StreamRunEventsRequest = {
 };
 
 export type StreamRunEventsInput = {
-  execute(request: StreamRunEventsRequest): Promise<AsyncIterable<StreamEvent>>;
+  execute(request: StreamRunEventsRequest): Promise<AsyncIterable<SessionEvent>>;
 };
 
 export class StreamRunEventsUseCase implements StreamRunEventsInput {
   constructor(private readonly activeRuns: ActiveRunRegistry) {}
 
-  execute(request: StreamRunEventsRequest): Promise<AsyncIterable<StreamEvent>> {
+  execute(request: StreamRunEventsRequest): Promise<AsyncIterable<SessionEvent>> {
     if (!this.activeRuns.get(request.runId)) {
       return Promise.reject(new NotFoundError('run not found'));
     }
@@ -23,7 +23,7 @@ export class StreamRunEventsUseCase implements StreamRunEventsInput {
 
     return Promise.resolve({
       async *[Symbol.asyncIterator]() {
-        const queue: StreamEvent[] = [];
+        const queue: SessionEvent[] = [];
         let wake: (() => void) | undefined;
         const unsubscribe = activeRuns.subscribe(runId, (event) => {
           queue.push(event);
@@ -32,7 +32,7 @@ export class StreamRunEventsUseCase implements StreamRunEventsInput {
         try {
           while (true) {
             while (queue.length > 0) {
-              yield queue.shift() as StreamEvent;
+              yield queue.shift() as SessionEvent;
             }
             if (!activeRuns.get(runId)) {
               return;

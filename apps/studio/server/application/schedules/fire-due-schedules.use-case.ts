@@ -1,9 +1,7 @@
-import { appendSystem } from 'harnesys';
 import { SCHEDULE_HUMAN_ORIGIN, scheduledTaskText } from '../../../shared/schedule-prompt.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import type { ScheduleFireQueue } from '../../adapters/schedule-fire-queue.adapter.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
-import type { JournalRepository } from '../../domain/journal.port.ts';
 import type { Schedule, ScheduleRepository } from '../../domain/schedule.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
@@ -11,7 +9,6 @@ import type { GetThreadInput } from '../threads/get-thread.use-case.ts';
 import { publishDeskThread } from '../threads/publish-desk-thread.ts';
 import type { SendThreadRunInput } from '../threads/send-thread-run.use-case.ts';
 import { isValidCron, nextCronRunAt } from './cron-next.ts';
-import { scheduleFoldHistory } from './schedule-fold.ts';
 import { toScheduleRecord } from './schedule-record.ts';
 
 export type FireDueSchedulesInput = {
@@ -25,7 +22,6 @@ export type FireDueSchedulesDeps = {
   sendThreadRun: SendThreadRunInput;
   activeRuns: ActiveRunRegistry;
   queue: ScheduleFireQueue;
-  journal: JournalRepository;
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
 };
@@ -36,7 +32,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
   private readonly sendThreadRun: SendThreadRunInput;
   private readonly activeRuns: ActiveRunRegistry;
   private readonly queue: ScheduleFireQueue;
-  private readonly journal: JournalRepository;
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
 
@@ -46,7 +41,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     this.sendThreadRun = deps.sendThreadRun;
     this.activeRuns = deps.activeRuns;
     this.queue = deps.queue;
-    this.journal = deps.journal;
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
   }
@@ -83,21 +77,11 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     }
 
     try {
-      const thread = this.threads.findById(schedule.threadId);
-      const foldHistory =
-        thread?.kind === 'schedule'
-          ? scheduleFoldHistory(
-              this.journal.load(schedule.threadId),
-              schedule.history,
-              schedule.historyLast,
-            )
-          : undefined;
       await this.sendThreadRun.execute({
         threadId: schedule.threadId,
         text: scheduledTaskText(schedule.name, schedule.detail),
         mode: schedule.mode,
         origin: SCHEDULE_HUMAN_ORIGIN,
-        foldHistory,
       });
       this.threads.touch(schedule.threadId);
       this.publishThread(schedule.threadId);
@@ -122,9 +106,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     if (!this.threads.findById(threadId)) {
       return;
     }
-    const journal = this.journal.load(threadId);
-    appendSystem(journal, { type: 'error', kind: 'runtime', message });
-    this.journal.saveSnapshot(threadId, journal);
     this.threads.touch(threadId);
     this.publishThread(threadId);
   }

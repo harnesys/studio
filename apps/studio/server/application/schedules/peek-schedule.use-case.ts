@@ -1,9 +1,6 @@
-import type { JournalRepository } from '../../domain/journal.port.ts';
 import type { ScheduleRepository } from '../../domain/schedule.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-import { lastScheduleRuns } from './schedule-fold.ts';
-import { compactScheduleRun, type SchedulePeekFire } from './schedule-peek.ts';
 
 export type PeekScheduleRequest = {
   workspaceId: string;
@@ -16,7 +13,7 @@ export type PeekScheduleResponse = {
   name: string;
   threadId: string;
   lastFiredAt: string | null;
-  fires: SchedulePeekFire[];
+  fires: [];
 };
 
 export type PeekScheduleInput = {
@@ -26,7 +23,6 @@ export type PeekScheduleInput = {
 export type PeekScheduleDeps = {
   schedules: ScheduleRepository;
   workspaces: WorkspaceRepository;
-  journal: JournalRepository;
 };
 
 export class PeekScheduleUseCase implements PeekScheduleInput {
@@ -41,26 +37,12 @@ export class PeekScheduleUseCase implements PeekScheduleInput {
     if (!schedule || schedule.workspaceId !== request.workspaceId) {
       return Promise.reject(new NotFoundError('schedule not found'));
     }
-    const last = resolveLast(request.last);
-    const journal = this.deps.journal.load(schedule.threadId);
-    const fires = lastScheduleRuns(journal, last).map(compactScheduleRun);
     return Promise.resolve({
       id: schedule.id,
       name: schedule.name,
       threadId: schedule.threadId,
       lastFiredAt: schedule.lastFiredAt,
-      fires,
+      fires: [],
     });
   }
-}
-
-function resolveLast(last: number | undefined): number {
-  if (last === undefined) {
-    return 1;
-  }
-  const value = Math.floor(last);
-  if (!Number.isFinite(value) || value < 1) {
-    throw new ValidationError('last must be >= 1');
-  }
-  return Math.min(value, 99);
 }

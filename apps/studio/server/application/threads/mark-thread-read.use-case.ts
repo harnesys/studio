@@ -1,6 +1,5 @@
 import type { ThreadRecord } from '../../../shared/types.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
-import type { JournalRepository } from '../../domain/journal.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { GetThreadUseCase } from './get-thread.use-case.ts';
@@ -19,9 +18,8 @@ export class MarkThreadReadUseCase implements MarkThreadReadInput {
   constructor(
     private readonly threads: ThreadRepository,
     agents: AgentRepository,
-    journal: JournalRepository,
   ) {
-    this.getThread = new GetThreadUseCase(threads, agents, journal);
+    this.getThread = new GetThreadUseCase(threads, agents);
   }
 
   execute(request: MarkThreadReadRequest): Promise<ThreadRecord> {

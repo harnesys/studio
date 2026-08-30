@@ -16,7 +16,6 @@ import { bootstrap } from '../adapters/store/sqlite/bootstrap.ts';
 import { createSqliteConnection, type StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
 import { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
-import { SqliteJournalRepo } from '../adapters/store/sqlite/repos/sqlite-journal.repo.ts';
 import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
 import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
@@ -51,7 +50,6 @@ import { CompactThreadUseCase } from '../application/threads/compact-thread.use-
 import { CreateThreadUseCase } from '../application/threads/create-thread.use-case.ts';
 import { CreateThreadAttachmentUseCase } from '../application/threads/create-thread-attachment.use-case.ts';
 import { DeleteThreadUseCase } from '../application/threads/delete-thread.use-case.ts';
-import { DeleteThreadEntryUseCase } from '../application/threads/delete-thread-entry.use-case.ts';
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
 import { GetThreadAttachmentUseCase } from '../application/threads/get-thread-attachment.use-case.ts';
 import { ListThreadPendingAttachmentsUseCase } from '../application/threads/list-thread-pending-attachments.use-case.ts';
@@ -120,7 +118,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
   const scheduleRepo = new SqliteScheduleRepo(db);
   const webhookRepo = new SqliteWebhookRepo(db);
   const threadRepo = new SqliteThreadRepo(db);
-  const journalRepo = new SqliteJournalRepo(db);
   const attachmentRepo = new SqliteAttachmentRepo(db);
   const activeRuns = options.activeRuns ?? new ActiveRunRegistry();
 
@@ -140,7 +137,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     filesWatcher,
   });
   const workspaceHarnesys =
-    options.workspaceHarnesys ?? new WorkspaceHarnesysRegistry(modelsPort, memory);
+    options.workspaceHarnesys ?? new WorkspaceHarnesysRegistry(modelsPort);
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
   const getWorkspaceMcpConfig = new GetWorkspaceMcpConfigUseCase(workspaceRepo, workspaceHarnesys);
 
@@ -222,7 +219,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
 
   registerMemoryHttp(app, memory, { agents: agentRepo, workspaces: workspaceRepo });
 
-  const getThread = new GetThreadUseCase(threadRepo, agentRepo, journalRepo);
+  const getThread = new GetThreadUseCase(threadRepo, agentRepo);
   const planUow = new SqliteUnitOfWork(db);
   const getThreadPlan = new GetThreadPlanUseCase(planUow);
   const sendThreadRun = new SendThreadRunUseCase({
@@ -250,7 +247,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     attachments: attachmentRepo,
     attachmentsFs: attachments,
-    journal: journalRepo,
     activeRuns,
     deskEvents,
     sendThreadRun,
@@ -268,7 +264,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     attachments: attachmentRepo,
     attachmentsFs: attachments,
-    journal: journalRepo,
     activeRuns,
     queue: scheduleQueue,
     deskEvents,
@@ -279,8 +274,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     getThread,
     getThreadPlan,
     createThread: new CreateThreadUseCase(threadRepo, agentRepo, workspaceRepo),
-    updateThread: new UpdateThreadUseCase(threadRepo, agentRepo, journalRepo),
-    markThreadRead: new MarkThreadReadUseCase(threadRepo, agentRepo, journalRepo),
+    updateThread: new UpdateThreadUseCase(threadRepo, agentRepo),
+    markThreadRead: new MarkThreadReadUseCase(threadRepo, agentRepo),
     deleteThread: new DeleteThreadUseCase({
       threads: threadRepo,
       workspaces: workspaceRepo,
@@ -289,7 +284,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
       schedules: scheduleRepo,
       semanticSessions: memory.semantic,
     }),
-    deleteThreadEntry: new DeleteThreadEntryUseCase(threadRepo, journalRepo, activeRuns, getThread),
     sendThreadRun,
     compactThread: new CompactThreadUseCase(),
     resumeThreadRun: new ResumeThreadRunUseCase({

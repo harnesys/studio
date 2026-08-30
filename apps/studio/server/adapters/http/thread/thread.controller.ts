@@ -7,7 +7,6 @@ import type { CompactThreadInput } from '../../../application/threads/compact-th
 import type { CreateThreadInput } from '../../../application/threads/create-thread.use-case.ts';
 import type { CreateThreadAttachmentInput } from '../../../application/threads/create-thread-attachment.use-case.ts';
 import type { DeleteThreadInput } from '../../../application/threads/delete-thread.use-case.ts';
-import type { DeleteThreadEntryInput } from '../../../application/threads/delete-thread-entry.use-case.ts';
 import type { GetThreadInput } from '../../../application/threads/get-thread.use-case.ts';
 import type { GetThreadAttachmentInput } from '../../../application/threads/get-thread-attachment.use-case.ts';
 import type { ListThreadPendingAttachmentsInput } from '../../../application/threads/list-thread-pending-attachments.use-case.ts';
@@ -28,7 +27,6 @@ export type ThreadControllerDeps = {
   updateThread: UpdateThreadInput;
   markThreadRead: MarkThreadReadInput;
   deleteThread: DeleteThreadInput;
-  deleteThreadEntry: DeleteThreadEntryInput;
   sendThreadRun: SendThreadRunInput;
   compactThread: CompactThreadInput;
   resumeThreadRun: ResumeThreadRunInput;
@@ -175,14 +173,6 @@ export class ThreadController {
 
     app.post('/api/threads/:id/read', async (c) => {
       const thread = await this.deps.markThreadRead.execute({ id: c.req.param('id') });
-      return c.json(thread);
-    });
-
-    app.delete('/api/threads/:id/entries/:entryId', async (c) => {
-      const thread = await this.deps.deleteThreadEntry.execute({
-        threadId: c.req.param('id'),
-        entryId: c.req.param('entryId'),
-      });
       return c.json(thread);
     });
 

@@ -15,7 +15,6 @@ import type { AgentRepository } from '../domain/agent.port.ts';
 import type { AttachmentRepository } from '../domain/attachment.port.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { DeskEventsPort } from '../domain/desk-events.port.ts';
-import type { JournalRepository } from '../domain/journal.port.ts';
 import type { ScheduleRepository } from '../domain/schedule.port.ts';
 import type { SemanticSessionCleanup } from '../domain/semantic-session.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
@@ -31,7 +30,6 @@ export type WireSchedulesDeps = {
   workspaces: WorkspaceRepository;
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
-  journal: JournalRepository;
   activeRuns: ActiveRunRegistry;
   deskEvents: DeskEventsPort;
   sendThreadRun: SendThreadRunInput;
@@ -47,7 +45,6 @@ export function wireSchedules(deps: WireSchedulesDeps): ScheduleFireQueue {
     sendThreadRun: deps.sendThreadRun,
     activeRuns: deps.activeRuns,
     queue,
-    journal: deps.journal,
     deskEvents: deps.deskEvents,
     getThread: deps.getThread,
   });

@@ -23,7 +23,6 @@ import type { AgentRepository } from '../domain/agent.port.ts';
 import type { AttachmentRepository } from '../domain/attachment.port.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { DeskEventsPort } from '../domain/desk-events.port.ts';
-import type { JournalRepository } from '../domain/journal.port.ts';
 import type { ScheduleRepository } from '../domain/schedule.port.ts';
 import type { SemanticSessionCleanup } from '../domain/semantic-session.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
@@ -40,7 +39,6 @@ export type WireHostToolsDeps = {
   workspaces: WorkspaceRepository;
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
-  journal: JournalRepository;
   activeRuns: ActiveRunRegistry;
   queue: ScheduleFireQueue;
   deskEvents: DeskEventsPort;
@@ -61,7 +59,6 @@ export function wireHostTools(deps: WireHostToolsDeps): void {
       peekSchedule: new PeekScheduleUseCase({
         schedules: deps.schedules,
         workspaces: deps.workspaces,
-        journal: deps.journal,
       }),
       createSchedule: new CreateScheduleUseCase({
         schedules: deps.schedules,

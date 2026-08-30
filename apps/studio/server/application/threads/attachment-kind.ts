@@ -1,14 +1,18 @@
-import { isHumanEntry, isTextAttachment } from '../../../shared/thread.ts';
-import type {
-  Modality,
-  ThreadAttachment,
-  ThreadAttachmentKind,
-  ThreadRecord,
-} from '../../../shared/types.ts';
+import type { Modality } from '../../../shared/types.ts';
 import { MAX_ATTACHMENT_BYTES } from '../../config/constants.ts';
-import type { Attachment } from '../../domain/attachment.port.ts';
+import type { Attachment, AttachmentKind } from '../../domain/attachment.port.ts';
 
-export { isTextAttachment, MAX_ATTACHMENT_BYTES };
+export { MAX_ATTACHMENT_BYTES };
+
+export type ThreadAttachmentKind = AttachmentKind;
+
+export type ThreadAttachment = {
+  id: string;
+  kind: ThreadAttachmentKind;
+  name: string;
+  mediaType: string;
+  path: string;
+};
 
 export function toThreadAttachment(row: Attachment): ThreadAttachment {
   return {
@@ -39,27 +43,5 @@ export function modelAccepts(
   mediaType: string,
   name: string,
 ): boolean {
-  if (isTextAttachment(mediaType, name)) {
-    return true;
-  }
   return Boolean(input?.includes(kind));
-}
-
-function attachmentsOf(thread: ThreadRecord): ThreadAttachment[] {
-  const out: ThreadAttachment[] = [];
-  for (const entry of thread.journal.entries) {
-    if (!isHumanEntry(entry) || !entry.attachments) {
-      continue;
-    }
-    out.push(...entry.attachments);
-  }
-  return out;
-}
-
-export function threadAttachmentIds(thread: ThreadRecord): string[] {
-  return attachmentsOf(thread).map((item) => item.id);
-}
-
-export function threadOwnsAttachment(thread: ThreadRecord, id: string): boolean {
-  return attachmentsOf(thread).some((item) => item.id === id);
 }

@@ -109,8 +109,14 @@ export function createSession(
 
     const def = resolveAgent();
     const { plan } = compile(def);
+    const toolOps: string[] = [];
+    for (const [, def] of ctx.toolRegistry) {
+      if (def.operations) {
+        toolOps.push(...def.operations);
+      }
+    }
     const effectivePerms = resolvePermissions(
-      [],
+      toolOps,
       runOpts?.permissions,
       opts.permissions,
       ctx.permissions,

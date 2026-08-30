@@ -1,8 +1,10 @@
 import type { ToolCallBatch, ToolCallFixed } from '../domain/agent-definition.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { PathsConfig } from '../ports/paths.ts';
+import type { PermissionMap } from '../ports/permissions.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr } from './expr-eval.ts';
+import { checkPermission } from './permissions.ts';
 import { validateToolInput } from './tool-registry.ts';
 
 export type ToolCallResult = {
@@ -20,6 +22,7 @@ export type ToolCallContext = {
   input?: unknown;
   resume?: unknown;
   toolRegistry: Map<string, ToolDefinition>;
+  permissions?: PermissionMap;
   paths?: PathsConfig;
   artifacts?: ArtifactStore;
   signal: AbortSignal;
@@ -166,6 +169,43 @@ export async function executeToolCall(
         content: validation.errors,
       };
       return;
+    }
+
+    if (def.operations && ctx.permissions) {
+      const check = checkPermission(ctx.permissions, def.operations);
+      if (!check.allowed) {
+        if (check.gate === 'deny') {
+          results[idx] = {
+            id: call.id,
+            name: call.name,
+            result: `permission denied: ${check.operation}`,
+            isError: true,
+          };
+          toolMessages[idx] = {
+            role: 'tool',
+            toolCallId: call.id,
+            name: call.name,
+            content: `permission denied: ${check.operation}`,
+          };
+          return;
+        }
+        if (check.gate === 'ask') {
+          results[idx] = {
+            id: call.id,
+            name: call.name,
+            result: `permission ask: ${check.operation}`,
+            isError: true,
+            skipped: true,
+          };
+          toolMessages[idx] = {
+            role: 'tool',
+            toolCallId: call.id,
+            name: call.name,
+            content: `permission ask: ${check.operation}`,
+          };
+          return;
+        }
+      }
     }
 
     if (ctx.signal.aborted) {

@@ -273,6 +273,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         input,
         resume: null,
         toolRegistry: opts.toolRegistry,
+        permissions: opts.permissions,
         paths: opts.paths,
         artifacts: opts.artifacts,
         signal: opts.signal ?? new AbortController().signal,

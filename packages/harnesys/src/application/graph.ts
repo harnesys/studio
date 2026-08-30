@@ -28,6 +28,9 @@ export type GraphOpts = {
   toolMessages: 'barrier' | 'ordered';
   mergeState?: MergeStateFn;
   signal?: AbortSignal;
+  resumePayload?: unknown;
+  resumeInterruptId?: string;
+  startNodeId?: string;
 };
 
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
@@ -108,6 +111,10 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const e = await commit('cancelled', 'run.cancelled');
       yield e;
       break;
+    }
+    if (opts.resumePayload !== undefined && opts.startNodeId) {
+      cur = opts.startNodeId;
+      st.$resume = opts.resumePayload;
     }
     const node = opts.plan.nodes[cur] as import('../domain/agent-definition.ts').Node | undefined;
     if (!node) {
@@ -313,6 +320,22 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         break;
       }
       continue;
+    } else if (node.type === 'control:interrupt') {
+      const ir = node as { type: 'control:interrupt'; reason: string; resumeSchema: import('../domain/json-schema.ts').JsonSchema };
+      const interruptId = crypto.randomUUID();
+      st.$resume = null;
+      const snap = mkSnap(ctx(), 'needs_input');
+      (snap.cursor as Record<string, unknown>).interrupt = {
+        interruptId,
+        reason: ir.reason,
+        resumeSchema: ir.resumeSchema,
+        nodeId: cur,
+      };
+      seq += 1;
+      const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
+      await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
+      yield ev;
+      break;
     } else {
       const e = await commit('running', 'node.completed');
       yield e;
@@ -351,5 +374,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       throw Object.assign(new Error('no_matching_edge'), { code: 'no_matching_edge' });
     }
     cur = nxt;
+    st.$resume = null;
   }
 }

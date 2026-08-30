@@ -1,4 +1,4 @@
-import { formatDuration, formatTokenCount, type MessageUsage } from '@/entities/journal';
+import { formatDuration, formatTokenCount, type MessageUsage } from '@/entities/session';
 
 export function StepStats({ usage }: { usage: MessageUsage }) {
   return (

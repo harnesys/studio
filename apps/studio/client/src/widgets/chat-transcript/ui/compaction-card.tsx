@@ -1,7 +1,7 @@
 import type { CompactionEntry, CompactionPayloadStats } from '@studio/shared';
 import { Layers2Icon } from 'lucide-react';
 
-import { formatTokenCount } from '@/entities/journal';
+import { formatTokenCount } from '@/entities/session';
 import { Markdown } from '@/shared/ui/markdown';
 
 export function CompactionCard({ entry }: { entry: CompactionEntry }) {

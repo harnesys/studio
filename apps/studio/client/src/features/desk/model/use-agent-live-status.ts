@@ -1,25 +1,23 @@
-import type { Journal } from '@studio/shared';
-import { isAgentEntry, isBuiltinStep } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 import { useShallow } from 'zustand/react/shallow';
 import type { AgentStatus } from '@/entities/agent';
-import { useJournalStore } from '@/entities/journal';
+import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 
-/** Live agent status from open runs / HITL on this agent's threads. */
 export function useAgentLiveStatus(agentId: string): AgentStatus {
   const threadIds = useThreadStore(
     useShallow((state) =>
       state.items.filter((item) => item.agentId === agentId).map((item) => item.id),
     ),
   );
-  return useJournalStore((state) => {
+  return useSessionStore((state) => {
     let running = false;
     for (const threadId of threadIds) {
-      const journal = state.journals[threadId] ?? { entries: [] };
-      if (isWaiting(journal)) {
+      const events = state.events[threadId] ?? [];
+      if (isWaiting(events)) {
         return 'waiting';
       }
-      if (state.activeRuns[threadId] || hasRunningAgent(journal)) {
+      if (state.activeRuns[threadId] || hasRunningSession(events)) {
         running = true;
       }
     }
@@ -32,29 +30,27 @@ export function useAgentHasUnread(agentId: string): boolean {
 }
 
 export function useThreadWaiting(threadId: string | null): boolean {
-  return useJournalStore((state) => {
+  return useSessionStore((state) => {
     if (!threadId) {
       return false;
     }
-    return isWaiting(state.journals[threadId] ?? { entries: [] });
+    return isWaiting(state.events[threadId] ?? []);
   });
 }
 
-function isWaiting(journal: Journal): boolean {
-  const agent = [...journal.entries].reverse().find(isAgentEntry);
-  if (!agent) {
-    return false;
+function isWaiting(events: SessionEvent[]): boolean {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i];
+    if (event.type === 'done' || event.type === 'error') {
+      return false;
+    }
+    if (event.type === 'ask') {
+      return true;
+    }
   }
-  if (agent.status === 'paused') {
-    return true;
-  }
-  return agent.steps.some(
-    (step: any) =>
-      isBuiltinStep(step) &&
-      (step.status === 'awaiting_confirm' || step.status === 'awaiting_input'),
-  );
+  return false;
 }
 
-function hasRunningAgent(journal: Journal): boolean {
-  return journal.entries.some((entry) => isAgentEntry(entry) && entry.status === 'running');
+function hasRunningSession(events: SessionEvent[]): boolean {
+  return events.length > 0 && !events.some((e) => e.type === 'done' || e.type === 'error');
 }

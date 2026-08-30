@@ -1,7 +1,7 @@
 import { BrainIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import { formatDuration } from '@/entities/journal';
+import { formatDuration } from '@/entities/session';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { cn } from '@/shared/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';

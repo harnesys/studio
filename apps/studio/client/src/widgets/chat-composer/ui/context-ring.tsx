@@ -1,4 +1,4 @@
-import { contextUsedRatio, type MessageUsage, type UsageRollup } from '@/entities/journal';
+import { contextUsedRatio, type MessageUsage, type UsageRollup } from '@/entities/session';
 import { cn } from '@/shared/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 

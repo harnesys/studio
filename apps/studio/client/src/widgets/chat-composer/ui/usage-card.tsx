@@ -5,7 +5,7 @@ import {
   tokensLeft,
   tokensUsed,
   type UsageRollup,
-} from '@/entities/journal';
+} from '@/entities/session';
 
 type UsageCardProps = {
   last: MessageUsage | null;

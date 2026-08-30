@@ -24,3 +24,32 @@ export class NotImplementedError extends Error {
     this.method = method;
   }
 }
+
+export class ThreadBusyError extends Error {
+  readonly sessionId: string;
+  constructor(sessionId: string) {
+    super(`Thread ${sessionId} is busy (running or needs_input)`);
+    this.name = 'ThreadBusyError';
+    this.sessionId = sessionId;
+  }
+}
+
+export class PendingHitlError extends Error {
+  readonly sessionId: string;
+  constructor(sessionId: string) {
+    super(`Thread ${sessionId} has pending HITL ask`);
+    this.name = 'PendingHitlError';
+    this.sessionId = sessionId;
+  }
+}
+
+export class ResumeHashError extends Error {
+  readonly expected: string;
+  readonly actual: string;
+  constructor(expected: string, actual: string) {
+    super(`Definition hash mismatch: expected ${expected}, got ${actual}`);
+    this.name = 'ResumeHashError';
+    this.expected = expected;
+    this.actual = actual;
+  }
+}

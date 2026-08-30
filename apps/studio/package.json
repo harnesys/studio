@@ -26,7 +26,7 @@
     "clsx": "^2.1.1",
     "croner": "^10.0.1",
     "drizzle-orm": "^0.45.2",
-    "harnesys": "./harnesys-stub",
+    "harnesys": "workspace:*",
     "highlight.js": "^11.12.0",
     "hono": "^4.13.2",
     "ignore": "^7.0.6",

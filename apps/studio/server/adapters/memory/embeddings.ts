@@ -1,4 +1,4 @@
-import { driverDefaultUrl, isDriver } from 'harnesys';
+import { isDriver } from 'harnesys';
 import type {
   LlmModel,
   LlmModelRepository,
@@ -145,9 +145,7 @@ type ToTargetInput = {
 };
 
 function toTarget(input: ToTargetInput): ResolvedEmbedTarget {
-  const base =
-    input.apiUrl ??
-    (isDriver(input.driver) ? driverDefaultUrl(input.driver) : 'https://api.openai.com/v1');
+  const base = input.apiUrl ?? 'https://api.openai.com/v1';
   return {
     apiUrl: normalizeEmbedBase(input.driver, base),
     apiKey: input.apiKey ?? undefined,

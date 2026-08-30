@@ -1,4 +1,4 @@
-import { type EpisodicPort, PendingHitlError, StaleAgentError, ThreadBusyError } from 'harnesys';
+import { PendingHitlError, ThreadBusyError } from 'harnesys';
 import type { CompactThreadResponse } from '../../../shared/types.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
@@ -36,7 +36,7 @@ export type CompactThreadDeps = {
   activeRuns: ActiveRunRegistry;
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
-  episodic: EpisodicPort;
+  episodic: unknown;
 };
 
 export class CompactThreadUseCase implements CompactThreadInput {
@@ -51,7 +51,7 @@ export class CompactThreadUseCase implements CompactThreadInput {
   private readonly activeRuns: ActiveRunRegistry;
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
-  private readonly episodic: EpisodicPort;
+  private readonly episodic: unknown;
 
   constructor(deps: CompactThreadDeps) {
     this.threads = deps.threads;
@@ -135,8 +135,7 @@ export class CompactThreadUseCase implements CompactThreadInput {
         } catch (error) {
           if (
             error instanceof ThreadBusyError ||
-            error instanceof PendingHitlError ||
-            error instanceof StaleAgentError
+            error instanceof PendingHitlError
           ) {
             throw new ConflictError(error.message);
           }

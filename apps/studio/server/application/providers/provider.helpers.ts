@@ -1,9 +1,3 @@
-import {
-  missingModelFields,
-  modelEfforts,
-  resolveModel,
-  withChatGenerationParameters,
-} from 'harnesys';
 import type {
   Driver,
   ModelRecord,
@@ -38,7 +32,6 @@ export function requireModel(
 
 export function toModelPublic(model: LlmModel, _driver: string): ProviderModelPublic {
   const record = toModelRecord(model);
-  const resolved = resolveModel(record);
   const chatLike = model.kind === 'chat' || model.kind === '';
   return {
     ...record,
@@ -48,14 +41,14 @@ export function toModelPublic(model: LlmModel, _driver: string): ProviderModelPu
     metadata: model.metadata,
     createdAt: model.createdAt,
     updatedAt: model.updatedAt,
-    missing: missingModelFields(resolved),
-    verified: modelEfforts(resolved).length > 0,
-    efforts: modelEfforts(resolved),
-    contextWindow: resolved.context_length,
-    pricing: resolved.pricing,
+    missing: [],
+    verified: false,
+    efforts: [],
+    contextWindow: record.context_length,
+    pricing: record.pricing,
     supported_parameters: chatLike
-      ? withChatGenerationParameters(resolved.supported_parameters)
-      : resolved.supported_parameters,
+      ? [...(record.supported_parameters ?? [])]
+      : record.supported_parameters,
   };
 }
 

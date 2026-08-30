@@ -1,5 +1,5 @@
 import type { ModelBinding, ModelRecord, ModelsPort } from 'harnesys';
-import { isDriver, ModelLookupError, resolveModel } from 'harnesys';
+import { isDriver, ModelLookupError } from 'harnesys';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 
 export function createHarnesysModelsPort(
@@ -34,7 +34,7 @@ export function createHarnesysModelsPort(
         headers: provider.headers,
         apiKey: provider.apiKey ?? undefined,
         enabled: provider.enabled,
-        model: resolveModel(record),
+        model: { ...record, name: record.name },
       });
     },
   };

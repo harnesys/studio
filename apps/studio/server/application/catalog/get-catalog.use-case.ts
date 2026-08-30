@@ -1,4 +1,4 @@
-import { DRIVERS, driverDefaultUrl, driverEndpoints } from 'harnesys';
+import { DRIVERS } from 'harnesys';
 import type { StudioCatalog } from '../../../shared/types.ts';
 
 export type GetCatalogInput = {
@@ -10,8 +10,8 @@ export class GetCatalogUseCase implements GetCatalogInput {
     return {
       drivers: DRIVERS.map((id) => ({
         id,
-        defaultUrl: driverDefaultUrl(id),
-        endpoints: driverEndpoints(id),
+        defaultUrl: '',
+        endpoints: [],
       })),
     };
   }

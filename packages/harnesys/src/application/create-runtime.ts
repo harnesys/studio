@@ -9,9 +9,33 @@ import { startGraph } from './graph.ts';
 import { runGraph } from './graph-run.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createToolRegistry } from './tool-registry.ts';
+import { createLoadSkillTool } from './skills/create-load-skill-tool.ts';
+
+function isMcpRegistry(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && 'loadJson' in value && 'tools' in value && 'closeAll' in value;
+}
 
 export async function createRuntime(options: CreateRuntimeOptions): Promise<RuntimeHandle> {
-  const toolRegistry = createToolRegistry(options.tools);
+  let baseTools = options.tools ?? [];
+
+  if (options.skills) {
+    baseTools = [...baseTools, createLoadSkillTool(options.skills)];
+  }
+
+  let mcpRegistry: { tools(): unknown[]; reload(): unknown; closeAll(): unknown } | undefined;
+  if (options.mcp) {
+    if (isMcpRegistry(options.mcp)) {
+      mcpRegistry = options.mcp as { tools(): unknown[]; reload(): unknown; closeAll(): unknown };
+    } else {
+      const { McpRegistry: McpRegistryClass } = await import('../adapters/mcp-registry.ts');
+      mcpRegistry = new McpRegistryClass();
+      await (mcpRegistry as unknown as { loadJson(json: unknown): Promise<void> }).loadJson(options.mcp);
+    }
+    const mcpTools = mcpRegistry.tools() as import('../ports/tools.ts').ToolDefinition[];
+    baseTools = [...baseTools, ...mcpTools];
+  }
+
+  const toolRegistry = createToolRegistry(baseTools);
 
   const resolveAgent = (
     agent: AgentDefinition | string,
@@ -130,8 +154,14 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     session: (agent, sessionOpts) => {
       return createSession(agent, sessionOpts ?? {}, runtimeCtx);
     },
-    reloadSkills: () => {},
-    reloadMcp: () => {},
-    close: () => {},
+    reloadSkills: () => {
+      options.skills?.reload();
+    },
+    reloadMcp: async () => {
+      await mcpRegistry?.reload();
+    },
+    close: async () => {
+      await mcpRegistry?.closeAll();
+    },
   };
 }

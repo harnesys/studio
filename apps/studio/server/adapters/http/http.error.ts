@@ -1,10 +1,6 @@
 import {
-  AgentLoadError,
   ModelLookupError,
-  NothingToResumeError,
   PendingHitlError,
-  RunNotActiveError,
-  StaleAgentError,
   ThreadBusyError,
 } from 'harnesys';
 import type { ErrorHandler } from 'hono';
@@ -53,12 +49,8 @@ function toStudioError(err: unknown): { status: ContentfulStatusCode; error: str
     return { status: 504, error: err.message };
   }
   if (
-    err instanceof AgentLoadError ||
     err instanceof ModelLookupError ||
-    err instanceof PendingHitlError ||
-    err instanceof NothingToResumeError ||
-    err instanceof StaleAgentError ||
-    err instanceof RunNotActiveError
+    err instanceof PendingHitlError
   ) {
     return { status: 400, error: err.message };
   }

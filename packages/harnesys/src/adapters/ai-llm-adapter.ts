@@ -51,6 +51,7 @@ function buildProvider(binding: ModelBinding): (modelId: string) => unknown {
       return (m: string) => createAlibaba(opts as never)(m);
     case 'moonshotai':
     case 'moonshot':
+    case 'kimi':
       return (m: string) => createMoonshotAI(opts as never)(m);
     default:
       throw Object.assign(new Error(`unsupported driver ${driver}`), {

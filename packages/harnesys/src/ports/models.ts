@@ -17,6 +17,8 @@ export const DRIVERS = [
   'minimax',
   'xiaomi',
   'qwen',
+  'alibaba',
+  'moonshotai',
 ] as const;
 
 export type Driver = (typeof DRIVERS)[number];

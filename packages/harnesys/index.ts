@@ -20,11 +20,32 @@ export type {
   RunSuccess,
   Usage,
 } from './src/domain/run-result.ts';
-export { NotImplementedError } from './src/domain/errors.ts';
+export { NotImplementedError, ValidationError } from './src/domain/errors.ts';
+export type { Diagnostic } from './src/domain/errors.ts';
+export { compile } from './src/application/compile.ts';
+export type { Plan } from './src/application/compile.ts';
+export { check } from './src/application/check.ts';
+export type { CheckOptions } from './src/application/check.ts';
+export { validateStructural } from './src/application/validate.ts';
 export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
 export type { AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
-export type { ModelRecord, ModelsPort, ProviderConfig } from './src/ports/models.ts';
+export { DRIVERS, normalizeProvider } from './src/ports/models.ts';
+export type {
+  DiscoverInput,
+  DiscoveredModel,
+  Driver,
+  ModelBinding,
+  ModelRecord,
+  ModelsApi,
+  ModelsPort,
+  ProviderConfig,
+  ResolvedModel,
+} from './src/ports/models.ts';
+export { bindingOf, DiscoverError, isDriver, ModelLookupError, toBinding } from './src/adapters/models/binding.ts';
+export { discoverModels } from './src/adapters/models/discover.ts';
+export { tool } from './src/ports/tools.ts';
 export type { CustomNodeImpl, SideEffect, ToolContext, ToolDefinition } from './src/ports/tools.ts';
+export { createToolRegistry, validateToolInput } from './src/application/tool-registry.ts';
 export { DEFAULT_PERMISSIONS } from './src/ports/permissions.ts';
 export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
 export type { PathsConfig } from './src/ports/paths.ts';
@@ -33,4 +54,7 @@ export type { CursorMcpJson, McpRegistry, StdioEntry, UrlEntry } from './src/por
 export type { ArtifactStore, SendFile } from './src/ports/artifacts.ts';
 export type { AgentRun, SendInput, SessionEvent, SessionHandle } from './src/ports/session.ts';
 export { createRuntime } from './src/application/create-runtime.ts';
+export { startGraph } from './src/application/graph.ts';
+export type { GraphOpts } from './src/application/graph.ts';
+export { runGraph } from './src/application/graph-run.ts';
 export { InMemoryRuntimeState } from './src/adapters/in-memory-runtime-state.ts';

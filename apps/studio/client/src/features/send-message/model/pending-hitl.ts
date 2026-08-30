@@ -1,41 +1,18 @@
-import type { AgentStep, Journal } from '@studio/shared';
-import { isAgentEntry, isBuiltinStep } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 
-export type PendingConfirm = {
-  kind: 'confirm';
-  runId: string;
-  step: AgentStep;
+export type PendingHitl = {
+  askId: string;
+  schema: unknown;
+  source: string;
+  prompt?: string;
+  tool?: { name: string; input: unknown; toolCallId: string };
 };
 
-export type PendingAsk = {
-  kind: 'ask';
-  runId: string;
-  step: AgentStep;
-};
-
-export type PendingHitl = PendingConfirm | PendingAsk;
-
-/** First awaiting_* step on the latest agent entry (by step.seq). */
-export function pendingHitl(journal: Journal): PendingHitl | null {
-  const agent = [...journal.entries].reverse().find(isAgentEntry);
-  if (!agent) {
-    return null;
-  }
-
-  const awaiting = agent.steps
-    .filter((step: any) => step.status === 'awaiting_confirm' || step.status === 'awaiting_input')
-    .sort((a: any, b: any) => a.seq - b.seq);
-
-  const step = awaiting[0];
-  if (!step || !isBuiltinStep(step)) {
-    return null;
-  }
-
-  if (step.type === 'tool_call' && step.status === 'awaiting_confirm') {
-    return { kind: 'confirm', runId: agent.id, step };
-  }
-  if (step.type === 'ask' && step.status === 'awaiting_input') {
-    return { kind: 'ask', runId: agent.id, step };
+export function pendingHitl(events: SessionEvent[]): PendingHitl | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i]!;
+    if (ev.type === 'done' || ev.type === 'error') return null;
+    if (ev.type === 'ask') return ev;
   }
   return null;
 }

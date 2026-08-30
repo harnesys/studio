@@ -1,20 +1,18 @@
-import { isAgentEntry } from '@studio/shared';
-import { useJournalStore } from '@/entities/journal';
+import type { SessionEvent } from '@studio/shared';
+import { useSessionStore } from '@/entities/session';
 import { resumeThread } from '@/shared/api';
 import { trace } from '@/shared/lib/trace';
 
 import { drainRunStream } from './drain-run-stream';
 
-/** Cold-start: resume paused agent entry and attach SSE until terminal. */
 export async function resumePausedThread(threadId: string): Promise<string | null> {
-  const store = useJournalStore.getState();
-  const journal = store.journalOf(threadId);
-  const agent = [...journal.entries].reverse().find(isAgentEntry);
-  if (agent?.status !== 'paused') {
+  const store = useSessionStore.getState();
+  const events = store.eventsOf(threadId);
+  const hasPendingAsk = events.some((ev) => ev.type === 'ask') &&
+    !events.some((ev) => ev.type === 'done' || ev.type === 'error');
+
+  if (!hasPendingAsk) {
     return null;
-  }
-  if (store.runIdOf(threadId) === agent.id) {
-    return agent.id;
   }
 
   const controller = new AbortController();
@@ -24,7 +22,6 @@ export async function resumePausedThread(threadId: string): Promise<string | nul
   try {
     const accepted = await resumeThread(threadId);
     runId = accepted.runId;
-    store.replaceJournal(threadId, accepted.journal);
     store.setRunId(threadId, runId);
     trace('client', 'resume accepted', { runId });
   } catch (error) {

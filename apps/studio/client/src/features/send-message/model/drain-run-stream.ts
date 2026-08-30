@@ -1,6 +1,5 @@
-import type { StreamEvent } from '@studio/shared';
-import { isAgentEntry } from '@studio/shared';
-import { useJournalStore } from '@/entities/journal';
+import type { SessionEvent } from '@studio/shared';
+import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getRunEventsStream, getThread, readSse } from '@/shared/api';
 import { trace } from '@/shared/lib/trace';
@@ -15,18 +14,18 @@ export async function drainRunStream(
   try {
     const response = await getRunEventsStream(runId, 0, controller.signal);
     for await (const frame of readSse(response)) {
-      const event = parseEvent(frame.data);
+      const event = parseSessionEvent(frame.data);
       if (!event) {
         continue;
       }
-      const store = useJournalStore.getState();
-      store.applyEvent(threadId, event);
+      const store = useSessionStore.getState();
+      store.appendEvent(threadId, event);
       maybeMarkUnread(threadId);
-      if (event.type === 'entry' && isAgentEntry(event.entry) && event.entry.status === 'failed') {
+      if (event.type === 'error') {
         store.setFailure({
-          id: `failed-${event.entry.id}`,
+          id: `failed-${threadId}-${Date.now()}`,
           threadId,
-          text: event.entry.error?.message ?? 'Run failed',
+          text: event.message,
         });
       }
       await paint();
@@ -39,17 +38,21 @@ export async function drainRunStream(
     try {
       const record = await getThread(threadId);
       useThreadStore.getState().upsert(toClientThread(record));
-      useJournalStore.getState().replaceJournal(record.id, record.journal);
+      useSessionStore.getState().replaceEvents(threadId, record.events);
     } catch {
       // ignore reconcile errors
     }
-    useJournalStore.getState().finishRun(threadId, runId);
+    useSessionStore.getState().finishRun(threadId, runId);
   }
 }
 
-function parseEvent(data: string): StreamEvent | undefined {
+function parseSessionEvent(data: string): SessionEvent | undefined {
   try {
-    return JSON.parse(data) as StreamEvent;
+    const parsed = JSON.parse(data) as SessionEvent;
+    if (parsed && typeof parsed === 'object' && 'type' in parsed) {
+      return parsed;
+    }
+    return undefined;
   } catch {
     return undefined;
   }

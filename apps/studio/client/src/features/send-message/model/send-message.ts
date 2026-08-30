@@ -1,6 +1,5 @@
-import type { RunMode, StreamEvent, ThreadAttachment } from '@studio/shared';
-import { isAgentEntry } from '@studio/shared';
-import { useJournalStore } from '@/entities/journal';
+import type { RunMode, SessionEvent, ThreadAttachment } from '@studio/shared';
+import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getRunEventsStream, getThread, readSse, sendThreadRun } from '@/shared/api';
 import { preview, trace } from '@/shared/lib/trace';
@@ -22,7 +21,7 @@ export async function sendMessage(options: SendMessageOptions) {
   trace('client', 'send start', { threadId, text: preview(trimmed) });
 
   const controller = new AbortController();
-  const store = useJournalStore.getState();
+  const store = useSessionStore.getState();
   store.startRun(threadId, controller);
 
   let runId: string;
@@ -35,7 +34,6 @@ export async function sendMessage(options: SendMessageOptions) {
       mode,
     });
     runId = accepted.runId;
-    store.replaceJournal(threadId, accepted.journal);
     store.setRunId(threadId, runId);
     useThreadStore.getState().touch(threadId);
     trace('client', 'POST accepted', { runId, status: accepted.status });
@@ -45,7 +43,7 @@ export async function sendMessage(options: SendMessageOptions) {
       store.finishRun(threadId);
       return;
     }
-    useJournalStore.getState().finishRun(threadId);
+    useSessionStore.getState().finishRun(threadId);
     throw error;
   }
 
@@ -58,7 +56,7 @@ export async function sendMessage(options: SendMessageOptions) {
       store.finishRun(threadId, runId);
       return;
     }
-    useJournalStore.getState().finishRun(threadId, runId);
+    useSessionStore.getState().finishRun(threadId, runId);
     throw error;
   }
 
@@ -67,7 +65,7 @@ export async function sendMessage(options: SendMessageOptions) {
   try {
     for await (const frame of readSse(response)) {
       frames += 1;
-      const event = parseEvent(frame.data);
+      const event = parseSessionEvent(frame.data);
       if (!event) {
         trace('client', `frame #${frames} unparsed`, {
           event: frame.event,
@@ -77,7 +75,7 @@ export async function sendMessage(options: SendMessageOptions) {
       }
       trace('client', `frame #${frames} ${event.type}`, summarize(event));
       applyClientEvent(threadId, event);
-      if (isTerminalAgentEntry(event)) {
+      if (event.type === 'done' || event.type === 'error') {
         finished = true;
       }
       await paint();
@@ -86,7 +84,7 @@ export async function sendMessage(options: SendMessageOptions) {
   } catch (error) {
     if (controller.signal.aborted) {
       trace('client', 'SSE aborted by user');
-      useJournalStore.getState().finishRun(threadId, runId);
+      useSessionStore.getState().finishRun(threadId, runId);
       return;
     }
     if (finished || frames > 0) {
@@ -97,7 +95,7 @@ export async function sendMessage(options: SendMessageOptions) {
       );
     } else {
       trace('client', 'sse read failed', error instanceof Error ? error.message : error);
-      useJournalStore.getState().finishRun(threadId, runId);
+      useSessionStore.getState().finishRun(threadId, runId);
       throw error;
     }
   }
@@ -105,9 +103,9 @@ export async function sendMessage(options: SendMessageOptions) {
   try {
     const record = await getThread(threadId);
     useThreadStore.getState().upsert(toClientThread(record));
-    useJournalStore.getState().replaceJournal(threadId, record.journal);
+    useSessionStore.getState().replaceEvents(threadId, record.events);
     noteUnreadAfterReconcile(threadId, record.unread);
-    trace('client', 'reconciled', { entries: record.journal.entries.length });
+    trace('client', 'reconciled', { events: record.events.length });
   } catch (reconcileError) {
     trace(
       'client',
@@ -115,24 +113,23 @@ export async function sendMessage(options: SendMessageOptions) {
       reconcileError instanceof Error ? reconcileError.message : reconcileError,
     );
   } finally {
-    useJournalStore.getState().finishRun(threadId, runId);
+    useSessionStore.getState().finishRun(threadId, runId);
   }
 }
 
-function applyClientEvent(threadId: string, event: StreamEvent): void {
-  const store = useJournalStore.getState();
-  store.applyEvent(threadId, event);
+function applyClientEvent(threadId: string, event: SessionEvent): void {
+  const store = useSessionStore.getState();
+  store.appendEvent(threadId, event);
   maybeMarkUnread(threadId);
-  if (event.type === 'entry' && isAgentEntry(event.entry) && event.entry.status === 'failed') {
+  if (event.type === 'error') {
     store.setFailure({
-      id: `failed-${event.entry.id}`,
+      id: `failed-${threadId}-${Date.now()}`,
       threadId,
-      text: event.entry.error?.message ?? 'Run failed',
+      text: event.message,
     });
   }
 }
 
-/** Unread when content arrives while this thread is not stuck to the bottom edge. */
 export function maybeMarkUnread(threadId: string): void {
   if (useThreadStore.getState().isViewingAtEnd(threadId)) {
     return;
@@ -150,25 +147,17 @@ function noteUnreadAfterReconcile(threadId: string, serverUnread: boolean): void
   }
 }
 
-function isTerminalAgentEntry(event: StreamEvent): boolean {
-  if (event.type !== 'entry' || !isAgentEntry(event.entry)) {
-    return false;
-  }
-  const status = event.entry.status;
-  return status === 'completed' || status === 'failed' || status === 'cancelled';
-}
-
-function summarize(event: StreamEvent): unknown {
-  if (event.type === 'delta') {
+function summarize(event: SessionEvent): unknown {
+  if (event.type === 'text-delta') {
     return preview(event.text, 80);
   }
-  if (event.type === 'step') {
-    return `${event.step.type} ${event.step.status}`;
+  if (event.type === 'tool') {
+    return `${event.phase} ${event.name}`;
   }
-  if (event.type === 'entry') {
-    return event.entry.role;
+  if (event.type === 'ask') {
+    return `ask ${event.source}`;
   }
-  return event;
+  return event.type;
 }
 
 function paint(): Promise<void> {
@@ -177,9 +166,13 @@ function paint(): Promise<void> {
   });
 }
 
-function parseEvent(data: string): StreamEvent | undefined {
+function parseSessionEvent(data: string): SessionEvent | undefined {
   try {
-    return JSON.parse(data) as StreamEvent;
+    const parsed = JSON.parse(data) as SessionEvent;
+    if (parsed && typeof parsed === 'object' && 'type' in parsed) {
+      return parsed;
+    }
+    return undefined;
   } catch {
     return undefined;
   }

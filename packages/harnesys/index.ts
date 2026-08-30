@@ -69,3 +69,6 @@ export type {
   ControlEventMeta,
   AgentEventMeta,
 } from './src/domain/events.ts';
+export { FsArtifactStore } from './src/adapters/fs-artifact-store.ts';
+export { MemoryArtifactStore } from './src/adapters/memory-artifact-store.ts';
+export { foldAttachments } from './src/application/fold-attachments.ts';

@@ -32,6 +32,7 @@ import { UpsertPinUseCase } from '../application/memory/upsert-pin.use-case.ts';
 import { UpsertSemanticUseCase } from '../application/memory/upsert-semantic.use-case.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
+import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
 
 export type StudioMemoryPorts = {
@@ -46,6 +47,7 @@ export type StudioMemoryPorts = {
 };
 
 export type CreateStudioMemoryDeps = {
+  runtimeState: RuntimeStateRepository;
   providers: LlmProviderRepository;
   models: LlmModelRepository;
   workspaces: WorkspaceRepository;

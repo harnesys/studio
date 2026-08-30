@@ -131,7 +131,9 @@ export function createStudio(options: StudioOptions = {}): Hono {
   const deskEvents = new DeskEventsAdapter();
   const attachments = options.attachments ?? new FsAttachmentsAdapter();
   const modelsPort = createHarnesysModelsPort(llmProviderRepo, llmModelRepo);
+  const runtimeStateRepo = new SqliteRuntimeStateRepo(db);
   const memory = createStudioMemory(db, {
+    runtimeState: runtimeStateRepo,
     providers: llmProviderRepo,
     models: llmModelRepo,
     workspaces: workspaceRepo,
@@ -139,7 +141,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
   });
   const workspaceHarnesys =
     options.workspaceHarnesys ?? new WorkspaceHarnesysRegistry(modelsPort, memory);
-  const runtimeStateRepo = new SqliteRuntimeStateRepo(db);
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
   const getWorkspaceMcpConfig = new GetWorkspaceMcpConfigUseCase(workspaceRepo, workspaceHarnesys);
 

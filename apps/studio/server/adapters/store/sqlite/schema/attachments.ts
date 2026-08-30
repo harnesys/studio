@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { journalEntriesTable } from './journal-entries.ts';
 import { threadsTable } from './threads.ts';
 
 export const attachmentsTable = sqliteTable(
@@ -10,7 +9,7 @@ export const attachmentsTable = sqliteTable(
     threadId: text('thread_id')
       .notNull()
       .references(() => threadsTable.id, { onDelete: 'cascade' }),
-    entryId: text('entry_id').references(() => journalEntriesTable.id, { onDelete: 'set null' }),
+    entryId: text('entry_id'),
     name: text('name').notNull(),
     mediaType: text('media_type').notNull(),
     path: text('path').notNull(),

@@ -57,6 +57,7 @@ export class SqliteRuntimeState implements RuntimeState {
           eventId: event.eventId,
           sessionId: this.sessionId,
           threadId: this.threadId,
+          runId: event.runId ?? '',
           type: event.type,
           sequence: event.sequence,
           timestamp: event.timestamp,

@@ -6,6 +6,7 @@ export const eventsTable = sqliteTable(
     eventId: text('event_id').primaryKey(),
     sessionId: text('session_id').notNull(),
     threadId: text('thread_id').notNull(),
+    runId: text('run_id').notNull().default(''),
     type: text('type').notNull(),
     sequence: integer('sequence').notNull(),
     timestamp: integer('timestamp').notNull(),

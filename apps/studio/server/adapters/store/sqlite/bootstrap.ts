@@ -209,6 +209,10 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   try {
+    db.run(sql.raw(`ALTER TABLE events ADD COLUMN run_id TEXT NOT NULL DEFAULT '';`));
+  } catch {}
+
+  try {
     db.run(sql.raw(`ALTER TABLE threads ADD COLUMN kind text NOT NULL DEFAULT 'chat';`));
   } catch {}
 

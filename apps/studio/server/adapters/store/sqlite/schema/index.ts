@@ -3,8 +3,6 @@ export * from './agents.ts';
 export * from './attachments.ts';
 export * from './episodic-chunks.ts';
 export * from './events.ts';
-export * from './journal-entries.ts';
-export * from './journal-steps.ts';
 export * from './knowledge-chunks.ts';
 export * from './knowledge-files.ts';
 export * from './knowledge-index-state.ts';

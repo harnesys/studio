@@ -1,25 +1,25 @@
-import type { AgentRun, RuntimeHandle, SessionHandle } from 'harnesys';
-
-export type ThreadOpenExtras = {
-  onCompacted?: (range: unknown) => void | Promise<void>;
-};
+import type { RuntimeHandle, SessionHandle } from 'harnesys';
+import type { SqliteRuntimeState } from './store/sqlite/repos/sqlite-runtime-state.repo.ts';
 
 export class ThreadRuntimeRegistry {
   private readonly threads = new Map<string, Promise<SessionHandle>>();
 
-  constructor(private readonly registry: { get(workspace: unknown): Promise<RuntimeHandle> }) {}
+  constructor(
+    private readonly stateFactory: { forState(threadId: string): SqliteRuntimeState },
+  ) {}
 
   threadOf(
     threadId: string,
     runtime: RuntimeHandle,
+    agentName: string,
     _cwd?: string,
-    _extras?: ThreadOpenExtras,
   ): Promise<SessionHandle> {
     const cached = this.threads.get(threadId);
     if (cached) return cached;
 
     const pending = Promise.resolve().then(() => {
-      return runtime.session(threadId);
+      const state = this.stateFactory.forState(threadId);
+      return runtime.session(agentName, { state });
     });
 
     this.threads.set(threadId, pending);

@@ -26,9 +26,7 @@ import type { Schedule, ScheduleRepository } from '../../domain/schedule.port.ts
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-import { createEpisodicOnCompacted } from '../memory/episodic-on-compacted.ts';
 import { isScheduleHuman, scheduleFoldHistory } from '../schedules/schedule-fold.ts';
-import { agentSpecFromRow } from './agent-document-from-row.ts';
 import { drainAgentRun } from './drain-agent-run.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
@@ -124,22 +122,8 @@ export class ResumeThreadRunUseCase implements ResumeThreadRunInput {
       { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
       async () => {
         const hx = await this.workspaceHarnesys.get(workspace);
-        const agent = await hx.agent(
-          agentRow.name,
-          agentSpecFromRow(agentRow, {
-            providerName: provider.name,
-            modelName: model.name,
-          }),
-        );
 
-        const handle = await this.registry.threadOf(thread.id, agent, workspace.path, {
-          onCompacted: createEpisodicOnCompacted({
-            episodic: this.episodic,
-            workspaceId: workspace.id,
-            threadId: thread.id,
-            episodicRef: agentRow.memory.episodic,
-          }),
-        });
+        const handle = await this.registry.threadOf(thread.id, hx, agentRow.name, workspace.path);
         const mode = permissionModeFromJournal(handle.journal);
         const controller = new AbortController();
         let run: AgentRun;

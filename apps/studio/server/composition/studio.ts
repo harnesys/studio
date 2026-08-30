@@ -20,6 +20,7 @@ import { SqliteJournalRepo } from '../adapters/store/sqlite/repos/sqlite-journal
 import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
 import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
+import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
 import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
@@ -141,7 +142,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
   });
   const workspaceHarnesys =
     options.workspaceHarnesys ?? new WorkspaceHarnesysRegistry(modelsPort, memory);
-  const threadRegistry = new ThreadRuntimeRegistry(journalRepo);
+  const runtimeStateRepo = new SqliteRuntimeStateRepo(db);
+  const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
   const getWorkspaceMcpConfig = new GetWorkspaceMcpConfigUseCase(workspaceRepo, workspaceHarnesys);
 
   const app = new Hono();

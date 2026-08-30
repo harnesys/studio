@@ -51,7 +51,7 @@ export { DEFAULT_PERMISSIONS } from './src/ports/permissions.ts';
 export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
 export type { PathsConfig } from './src/ports/paths.ts';
 export type { SkillRegistry } from './src/ports/skills.ts';
-export type { CursorMcpJson, McpRegistry, StdioEntry, UrlEntry } from './src/ports/mcp.ts';
+export type { CursorMcpJson, StdioEntry, UrlEntry } from './src/ports/mcp.ts';
 export type { ArtifactStore, SendFile } from './src/ports/artifacts.ts';
 export type { AgentRun, SendInput, SessionEvent, SessionHandle } from './src/ports/session.ts';
 export { createRuntime } from './src/application/create-runtime.ts';
@@ -79,3 +79,13 @@ export type { SkillSummary, SkillDocument } from './src/domain/skill.ts';
 export { parseSkillFile } from './src/application/skills/parse-skill-file.ts';
 export { filterSkills, formatSkillsCatalog } from './src/application/skills/skills-catalog.ts';
 export { createLoadSkillTool } from './src/application/skills/create-load-skill-tool.ts';
+export { McpRegistry } from './src/adapters/mcp-registry.ts';
+export type {
+  McpServerConfig,
+  McpTransport,
+  McpStdioTransport,
+  McpHttpTransport,
+  McpSseTransport,
+  McpToolInfo,
+  McpResourceInfo,
+} from './src/domain/mcp.ts';

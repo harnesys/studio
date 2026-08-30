@@ -59,3 +59,13 @@ export { startGraph } from './src/application/graph.ts';
 export type { GraphOpts } from './src/application/graph.ts';
 export { runGraph } from './src/application/graph-run.ts';
 export { InMemoryRuntimeState } from './src/adapters/in-memory-runtime-state.ts';
+export { EVENT_TYPES } from './src/domain/events.ts';
+export type {
+  EventType,
+  RunEventMeta,
+  NodeEventMeta,
+  ModelEventMeta,
+  ToolEventMeta,
+  ControlEventMeta,
+  AgentEventMeta,
+} from './src/domain/events.ts';

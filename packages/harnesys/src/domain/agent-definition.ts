@@ -1,3 +1,5 @@
+import { validateStructural } from '../application/validate.ts';
+import { ValidationError } from './errors.ts';
 import type { Expr } from './expr.ts';
 import type { JsonSchema } from './json-schema.ts';
 
@@ -16,6 +18,10 @@ export type AgentModelRef = {
   };
 };
 
+export type AgentNodes = Record<string, Node>;
+export type AgentEdges = Edge[];
+export type AgentGraph = { nodes: AgentNodes; edges: AgentEdges };
+
 export type AgentDefinition = {
   id: string;
   version?: string;
@@ -29,7 +35,7 @@ export type AgentDefinition = {
     initial: Record<string, Expr | unknown>;
     reducers?: Record<string, 'replace' | 'merge'>;
   };
-  graph: { nodes: Record<string, Node>; edges: Edge[] };
+  graph: AgentGraph;
   budget?: {
     maxSteps?: number;
     maxTokens?: number;
@@ -92,5 +98,10 @@ export type Node =
   | { type: `custom:${string}`; config?: JsonSchema | unknown };
 
 export function defineAgent(def: AgentDefinition): AgentDefinition {
+  const diags = validateStructural(def);
+  const errors = diags.filter((d) => d.severity === 'error');
+  if (errors.length > 0) {
+    throw new ValidationError(errors);
+  }
   return JSON.parse(JSON.stringify(def)) as AgentDefinition;
 }

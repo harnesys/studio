@@ -20,7 +20,13 @@ export type {
   RunSuccess,
   Usage,
 } from './src/domain/run-result.ts';
-export { NotImplementedError } from './src/domain/errors.ts';
+export { NotImplementedError, ValidationError } from './src/domain/errors.ts';
+export type { Diagnostic } from './src/domain/errors.ts';
+export { compile } from './src/application/compile.ts';
+export type { Plan } from './src/application/compile.ts';
+export { check } from './src/application/check.ts';
+export type { CheckOptions } from './src/application/check.ts';
+export { validateStructural } from './src/application/validate.ts';
 export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
 export type { AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
 export { DRIVERS, normalizeProvider } from './src/ports/models.ts';

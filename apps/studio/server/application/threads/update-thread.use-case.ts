@@ -2,6 +2,7 @@ import type { ThreadRecord } from '../../../shared/types.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
+import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import { GetThreadUseCase } from './get-thread.use-case.ts';
 
 export type UpdateThreadRequest = {
@@ -21,8 +22,9 @@ export class UpdateThreadUseCase implements UpdateThreadInput {
   constructor(
     private readonly threads: ThreadRepository,
     agents: AgentRepository,
+    db: StudioDb,
   ) {
-    this.getThread = new GetThreadUseCase(threads, agents);
+    this.getThread = new GetThreadUseCase(threads, agents, db);
   }
 
   execute(request: UpdateThreadRequest): Promise<ThreadRecord> {

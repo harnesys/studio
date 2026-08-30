@@ -1,7 +1,11 @@
+import { eq } from 'drizzle-orm';
+import type { SessionEvent } from 'harnesys';
 import type { ThreadRecord } from '../../../shared/types.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
+import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
+import { eventsTable } from '../../adapters/store/sqlite/schema/events.ts';
 import { readFields } from './thread.helpers.ts';
 
 export type GetThreadRequest = {
@@ -16,6 +20,7 @@ export class GetThreadUseCase implements GetThreadInput {
   constructor(
     private readonly threads: ThreadRepository,
     private readonly agents: AgentRepository,
+    private readonly db: StudioDb,
   ) {}
 
   execute(request: GetThreadRequest): Promise<ThreadRecord> {
@@ -24,6 +29,27 @@ export class GetThreadUseCase implements GetThreadInput {
       return Promise.reject(new NotFoundError('thread not found'));
     }
     const agent = this.agents.findById(thread.agentId);
+
+    const rows = this.db
+      .select()
+      .from(eventsTable)
+      .where(eq(eventsTable.threadId, thread.id))
+      .orderBy(eventsTable.sequence)
+      .all();
+
+    const events: SessionEvent[] = [];
+    for (const row of rows) {
+      if (row.metadata) {
+        try {
+          const parsed = JSON.parse(row.metadata) as SessionEvent;
+          if (parsed && typeof parsed === 'object' && 'type' in parsed) {
+            events.push(parsed);
+          }
+        } catch {
+          // skip non-SessionEvent metadata
+        }
+      }
+    }
 
     return Promise.resolve({
       id: thread.id,
@@ -35,6 +61,7 @@ export class GetThreadUseCase implements GetThreadInput {
       createdAt: thread.createdAt,
       updatedAt: thread.updatedAt,
       ...readFields(thread),
+      events,
     });
   }
 }

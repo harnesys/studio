@@ -16,6 +16,7 @@ export type ThreadRecord = {
   updatedAt: string;
   lastReadAt: string;
   unread: boolean;
+  events: SessionEvent[];
 };
 
 export type ThreadSummary = Pick<

@@ -56,7 +56,7 @@ export class CreateThreadUseCase implements CreateThreadInput {
       updatedAt: thread.updatedAt,
       lastReadAt: thread.lastReadAt,
       unread: false,
-      journal: { entries: [] },
+      events: [],
     });
   }
 }

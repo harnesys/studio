@@ -219,7 +219,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
 
   registerMemoryHttp(app, memory, { agents: agentRepo, workspaces: workspaceRepo });
 
-  const getThread = new GetThreadUseCase(threadRepo, agentRepo);
+  const getThread = new GetThreadUseCase(threadRepo, agentRepo, db);
   const planUow = new SqliteUnitOfWork(db);
   const getThreadPlan = new GetThreadPlanUseCase(planUow);
   const sendThreadRun = new SendThreadRunUseCase({
@@ -274,8 +274,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     getThread,
     getThreadPlan,
     createThread: new CreateThreadUseCase(threadRepo, agentRepo, workspaceRepo),
-    updateThread: new UpdateThreadUseCase(threadRepo, agentRepo),
-    markThreadRead: new MarkThreadReadUseCase(threadRepo, agentRepo),
+    updateThread: new UpdateThreadUseCase(threadRepo, agentRepo, db),
+    markThreadRead: new MarkThreadReadUseCase(threadRepo, agentRepo, db),
     deleteThread: new DeleteThreadUseCase({
       threads: threadRepo,
       workspaces: workspaceRepo,

@@ -160,7 +160,7 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
         createdAt: thread.createdAt,
         updatedAt: thread.updatedAt,
         ...readFields(thread),
-        journal: { entries: [] },
+        events: [],
       },
     };
     this.deskEvents.emit(request.workspaceId, {

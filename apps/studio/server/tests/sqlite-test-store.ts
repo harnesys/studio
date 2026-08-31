@@ -55,7 +55,7 @@ export function createSqliteTestStore(seed: Seed = {}): Promise<TestStore> {
 
   const runtimeStateFactory: RuntimeStateRepository = {
     forState(threadId: string) {
-      return new SqliteRuntimeState(db, threadId);
+      return new SqliteRuntimeState(db, threadId, threadId);
     },
     deleteByThread(_threadId: string) {
       // cleanup handled by CASCADE

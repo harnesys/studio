@@ -5,7 +5,6 @@ const REACT_NODES: Record<string, Node> = {
   start: { type: 'core:start' },
   think: {
     type: 'llm:generate',
-    model: 'default',
     prompt: 'main',
     messages: '$state.messages',
   },

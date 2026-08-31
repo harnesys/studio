@@ -14,6 +14,15 @@ export const EVENT_TYPES = {
   STATE_COMMITTED: 'state.committed',
   MODEL_REQUESTED: 'model.requested',
   MODEL_DELTA: 'model.delta',
+  MODEL_REASONING: 'model.reasoning',
+  MODEL_REASONING_START: 'model.reasoning-start',
+  MODEL_REASONING_END: 'model.reasoning-end',
+  MODEL_TOOL_INPUT_START: 'model.tool-input-start',
+  MODEL_TOOL_INPUT_DELTA: 'model.tool-input-delta',
+  MODEL_TOOL_INPUT_END: 'model.tool-input-end',
+  MODEL_TOOL_CALL: 'model.tool-call',
+  MODEL_SOURCE: 'model.source',
+  MODEL_FILE: 'model.file',
   MODEL_CHUNK: 'model.chunk',
   MODEL_COMPLETED: 'model.completed',
   MODEL_FAILED: 'model.failed',
@@ -49,9 +58,17 @@ export type NodeEventMeta = {
 
 export type ModelEventMeta = {
   text?: string;
+  reasoning?: string;
   finishReason?: string;
   usage?: unknown;
   toolCalls?: unknown[];
+  sources?: unknown[];
+  files?: unknown[];
+  delta?: string;
+  toolName?: string;
+  id?: string;
+  source?: unknown;
+  file?: unknown;
 };
 
 export type ToolEventMeta = {

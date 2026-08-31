@@ -38,6 +38,9 @@ If the same file already exists elsewhere and is in use, keep writing there.
 - Conventions: AGENTS.md at the workspace root. Nested AGENTS.md in a directory applies when you work in that tree — read_file it before editing there.
 - What changed since last session: git status, git diff, git log via shell.
 
+## Tool calling
+- Never output \`<tool_call>\` XML tags. Use only the function-calling tools provided by the system. If a tool you want is not in the available list, describe your intent in plain text instead of hallucinating a call.
+
 These files plus pin/semantic/episodic/knowledge cover task tracking, ADRs, retrospectives, and session continuity. Personality and extra rules from the agent field follow this block.`;
 
 export function composeAgentSystem(agentInstructions: string | undefined): string {

@@ -8,46 +8,60 @@ export function isPort(v: ProviderConfig[] | ModelsPort): v is ModelsPort {
   return typeof (v as ModelsPort).get === 'function';
 }
 
+function resolveModelCoords(
+  ref: string | { provider: string; model: string } | undefined,
+  agent: AgentDefinition,
+): { provider: string; model: string } | null {
+  if (typeof ref === 'string') {
+    const mapped = agent.models?.[ref];
+    if (mapped) {
+      return { provider: mapped.provider, model: mapped.model };
+    }
+    return null;
+  }
+  if (ref && typeof ref === 'object' && 'provider' in ref) {
+    const pn = (ref as { provider: string }).provider;
+    const mn = (ref as { model: string }).model;
+    if (pn && mn) {
+      return { provider: pn, model: mn };
+    }
+    return null;
+  }
+  if (agent.model) {
+    return { provider: agent.model.provider, model: agent.model.model };
+  }
+  return null;
+}
+
 export function findBind(
   models: ProviderConfig[] | ModelsPort,
   ref: string | { provider: string; model: string } | undefined,
   agent: AgentDefinition,
 ) {
-  let pn: string | undefined;
-  let mn: string | undefined;
-  if (typeof ref === 'string') {
-    mn = ref;
-  } else if (ref && typeof ref === 'object' && 'provider' in ref) {
-    pn = (ref as { provider: string }).provider;
-    mn = (ref as { model: string }).model;
-  } else if (agent.model) {
-    pn = agent.model.provider;
-    mn = agent.model.model;
-  }
-  if (!mn) {
+  const coords = resolveModelCoords(ref, agent);
+  if (!coords?.model) {
     return null;
   }
   if (isPort(models)) {
     return null;
   }
   const arr = models as ProviderConfig[];
-  if (pn) {
-    const p = arr.find((x) => x.name === pn);
-    if (!p) {
-      return null;
-    }
-    try {
-      return { binding: bindingOf(p, mn) };
-    } catch {
-      return null;
-    }
+  const p = arr.find((x) => x.name === coords.provider);
+  if (!p) {
+    return null;
   }
-  for (const p of arr) {
-    try {
-      return { binding: bindingOf(p, mn) };
-    } catch {}
+  try {
+    return { binding: bindingOf(p, coords.model) };
+  } catch {
+    return null;
   }
-  return null;
+}
+
+export function resolveModelForPort(
+  ref: string | { provider: string; model: string } | undefined,
+  agent: AgentDefinition,
+): { provider: string; model: string } | null {
+  return resolveModelCoords(ref, agent);
 }
 
 export function deepMerge(a: unknown, b: unknown): unknown {

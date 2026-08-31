@@ -15,15 +15,21 @@ export type SendInput =
     };
 
 export type SessionEvent =
-  | { type: 'text-delta'; text: string }
+  | { type: 'text-delta'; text: string; id?: string }
+  | { type: 'reasoning-delta'; text: string; id?: string }
+  | { type: 'reasoning-start'; id: string }
+  | { type: 'reasoning-end'; id: string }
   | {
       type: 'tool';
-      phase: 'requested' | 'completed' | 'failed' | 'skipped';
+      phase: 'streaming' | 'requested' | 'completed' | 'failed' | 'skipped';
       toolCallId: string;
       name: string;
       input?: unknown;
       output?: unknown;
+      delta?: string;
     }
+  | { type: 'source'; source: unknown }
+  | { type: 'file'; file: unknown }
   | {
       type: 'ask';
       askId: string;

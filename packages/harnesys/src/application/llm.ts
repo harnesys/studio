@@ -26,8 +26,12 @@ export type LlmContext = {
 export type LlmResult = {
   finishReason: string;
   text?: string;
+  reasoning?: string;
   toolCalls?: unknown[];
   structured?: unknown;
+  sources?: unknown[];
+  files?: unknown[];
+  usage?: unknown;
   outputReserved?: boolean;
 };
 
@@ -98,6 +102,24 @@ export async function* runLlmGenerate(
   for await (const chunk of stream) {
     if (chunk.type === 'delta') {
       yield { type: 'model.delta', data: chunk };
+    } else if (chunk.type === 'reasoning-delta') {
+      yield { type: 'model.reasoning', data: chunk };
+    } else if (chunk.type === 'reasoning-start') {
+      yield { type: 'model.reasoning-start', data: chunk };
+    } else if (chunk.type === 'reasoning-end') {
+      yield { type: 'model.reasoning-end', data: chunk };
+    } else if (chunk.type === 'tool-input-start') {
+      yield { type: 'model.tool-input-start', data: chunk };
+    } else if (chunk.type === 'tool-input-delta') {
+      yield { type: 'model.tool-input-delta', data: chunk };
+    } else if (chunk.type === 'tool-input-end') {
+      yield { type: 'model.tool-input-end', data: chunk };
+    } else if (chunk.type === 'tool-call') {
+      yield { type: 'model.tool-call', data: chunk };
+    } else if (chunk.type === 'source') {
+      yield { type: 'model.source', data: chunk };
+    } else if (chunk.type === 'file') {
+      yield { type: 'model.file', data: chunk };
     } else if (chunk.type === 'chunk') {
       yield { type: 'model.chunk', data: chunk };
     } else if (chunk.type === 'completed') {
@@ -121,8 +143,12 @@ export async function* runLlmGenerate(
     const out: LlmResult = {
       finishReason: res.finishReason,
       text: res.text,
+      reasoning: res.reasoning,
       toolCalls: res.toolCalls as unknown[] | undefined,
       structured,
+      sources: res.sources,
+      files: res.files,
+      usage: res.usage,
       outputReserved,
     };
 

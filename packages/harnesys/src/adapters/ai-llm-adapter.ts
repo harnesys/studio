@@ -1,101 +1,10 @@
-import { createAlibaba } from '@ai-sdk/alibaba';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createMiniMax } from '@ai-sdk/minimax';
-import { createMistral } from '@ai-sdk/mistral';
-import { createMoonshotAI } from '@ai-sdk/moonshotai';
-import { createOpenAI } from '@ai-sdk/openai';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { createXai } from '@ai-sdk/xai';
-import { streamText, tool } from 'ai';
+import { streamText } from 'ai';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import { STREAM_CHUNK_SIZE, type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
+import { buildProvider } from './ai-llm-provider.ts';
 
-export type CallModelResult = {
-  finishReason: string;
-  text?: string;
-  toolCalls?: { name: string; args: unknown; id: string }[];
-  structured?: unknown;
-};
-
-export type StreamChunk =
-  | { type: 'delta'; text: string }
-  | { type: 'chunk'; text: string; chunkId: string }
-  | {
-      type: 'completed';
-      finishReason: string;
-      text?: string;
-      toolCalls?: { name: string; args: unknown; id: string }[];
-      structured?: unknown;
-    };
-
-const STREAM_CHUNK_SIZE = 6;
-
-function buildProvider(binding: ModelBinding): (modelId: string) => unknown {
-  const opts = {
-    apiKey: binding.apiKey,
-    baseURL: binding.apiUrl,
-    headers: binding.headers,
-  };
-  const driver = binding.driver as string;
-  switch (driver) {
-    case 'openai':
-      return (m: string) => createOpenAI(opts as never)(m);
-    case 'openai-compatible':
-      return (m: string) =>
-        createOpenAICompatible({
-          baseURL: binding.apiUrl ?? 'http://localhost',
-          apiKey: binding.apiKey,
-          headers: binding.headers,
-          name: binding.name,
-        } as never)(m);
-    case 'anthropic':
-      return (m: string) => createAnthropic(opts as never)(m);
-    case 'google':
-      return (m: string) => createGoogleGenerativeAI(opts as never)(m);
-    case 'mistral':
-      return (m: string) => createMistral(opts as never)(m);
-    case 'xai':
-      return (m: string) => createXai(opts as never)(m);
-    case 'minimax':
-      return (m: string) => createMiniMax(opts as never)(m);
-    case 'alibaba':
-    case 'qwen':
-      return (m: string) => createAlibaba(opts as never)(m);
-    case 'moonshotai':
-    case 'moonshot':
-    case 'kimi':
-      return (m: string) => createMoonshotAI(opts as never)(m);
-    default:
-      throw Object.assign(new Error(`unsupported driver ${driver}`), {
-        code: 'model_unresolved',
-      });
-  }
-}
-
-function toAiTools(
-  names: string[],
-  registry: Map<string, ToolDefinition> | undefined,
-): Record<string, unknown> | undefined {
-  if (names.length === 0) {
-    return undefined;
-  }
-  if (!registry) {
-    return undefined;
-  }
-  const out: Record<string, unknown> = {};
-  for (const n of names) {
-    const def = registry.get(n);
-    if (!def) {
-      continue;
-    }
-    out[n] = tool({
-      description: def.description,
-      inputSchema: def.input as never,
-    });
-  }
-  return Object.keys(out).length > 0 ? out : undefined;
-}
+export type { CallModelResult, StreamChunk } from './ai-llm-chunks.ts';
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: adapter orchestration
 // biome-ignore lint/complexity/useMaxParams: flexible overload needs 6 params for test vs prod
@@ -152,6 +61,7 @@ export async function* callModel(
   const aiTools = toAiTools(names, registry);
 
   const ms = messages as never[];
+
   const streamConfig: Record<string, unknown> = {
     model,
     system: prompt || undefined,
@@ -168,84 +78,162 @@ export async function* callModel(
     };
   }
 
-  const result = await streamText(streamConfig as never);
+  const result = (await streamText(streamConfig as never)) as never;
 
   let fullText = '';
+  let reasoningText = '';
   const toolCalls: { name: string; args: unknown; id: string }[] = [];
+  const sources: unknown[] = [];
+  const files: unknown[] = [];
   let finishReason = 'stop';
   let chunkBuffer = '';
   let chunkCount = 0;
 
-  if (result && typeof (result as { fullStream?: unknown }).fullStream !== 'undefined') {
-    for await (const chunk of (
-      result as {
-        fullStream: AsyncIterable<{
-          type: string;
-          text?: string;
-          toolName?: string;
-          args?: unknown;
-          toolCallId?: string;
-        }>;
-      }
-    ).fullStream) {
-      if (chunk.type === 'text-delta' && chunk.text) {
-        fullText += chunk.text;
-        chunkBuffer += chunk.text;
-        chunkCount++;
+  for await (const part of (result as { stream: AsyncIterable<Record<string, unknown>> }).stream) {
+    const type = part.type as string;
 
-        yield { type: 'delta', text: chunk.text };
+    if (type === 'text-delta' && typeof part.text === 'string' && part.text) {
+      const text = part.text as string;
+      const id = String(part.id ?? '');
+      fullText += text;
+      chunkBuffer += text;
+      chunkCount++;
+      yield { type: 'delta', text, id };
+      if (chunkCount >= STREAM_CHUNK_SIZE) {
+        yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
+        chunkBuffer = '';
+        chunkCount = 0;
+      }
+      continue;
+    }
 
-        if (chunkCount >= STREAM_CHUNK_SIZE) {
-          yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
-          chunkBuffer = '';
-          chunkCount = 0;
-        }
+    if (type === 'reasoning-delta' && typeof part.text === 'string' && part.text) {
+      const text = part.text as string;
+      const id = String(part.id ?? '');
+      reasoningText += text;
+      yield { type: 'reasoning-delta', text, id };
+      continue;
+    }
+
+    if (type === 'reasoning-start') {
+      yield { type: 'reasoning-start', id: String(part.id ?? '') };
+      continue;
+    }
+
+    if (type === 'reasoning-end') {
+      yield { type: 'reasoning-end', id: String(part.id ?? '') };
+      continue;
+    }
+
+    if (type === 'tool-input-start') {
+      yield {
+        type: 'tool-input-start',
+        id: String(part.id ?? part.toolCallId ?? ''),
+        toolName: String(part.toolName ?? ''),
+      };
+      continue;
+    }
+
+    if (type === 'tool-input-delta') {
+      const delta =
+        (typeof part.delta === 'string' ? (part.delta as string) : undefined) ??
+        (typeof part.inputTextDelta === 'string' ? (part.inputTextDelta as string) : undefined) ??
+        '';
+      if (delta) {
+        yield { type: 'tool-input-delta', id: String(part.id ?? part.toolCallId ?? ''), delta };
       }
-      if (chunk.type === 'tool-call') {
-        toolCalls.push({
-          name: chunk.toolName as string,
-          args: chunk.args,
-          id: chunk.toolCallId as string,
-        });
+      continue;
+    }
+
+    if (type === 'tool-input-end') {
+      yield { type: 'tool-input-end', id: String(part.id ?? part.toolCallId ?? '') };
+      continue;
+    }
+
+    if (type === 'tool-call') {
+      const tc = part as {
+        toolName?: string;
+        input?: unknown;
+        args?: unknown;
+        toolCallId?: string;
+        id?: string;
+      };
+      toolCalls.push({
+        name: String(tc.toolName ?? ''),
+        args: (tc.input ?? tc.args) as unknown,
+        id: String(tc.toolCallId ?? tc.id ?? ''),
+      });
+      yield {
+        type: 'tool-call',
+        name: String(tc.toolName ?? ''),
+        args: (tc.input ?? tc.args) as unknown,
+        id: String(tc.toolCallId ?? tc.id ?? ''),
+      };
+      continue;
+    }
+
+    if (type === 'source') {
+      const src = (part as { source?: unknown }).source ?? part;
+      sources.push(src);
+      yield { type: 'source', source: src };
+      continue;
+    }
+
+    if (type === 'file' || type === 'reasoning-file') {
+      const f = (part as { file?: unknown }).file ?? part;
+      files.push(f);
+      yield { type: 'file', file: f };
+      continue;
+    }
+
+    if (type === 'finish-step') {
+      const fr = part.finishReason as string | undefined;
+      if (fr) {
+        finishReason = fr;
       }
-    }
-    if (chunkBuffer) {
-      yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
-    }
-    const fr = await (result as { finishReason?: PromiseLike<string> }).finishReason;
-    if (typeof fr === 'string') {
-      finishReason = fr;
-    } else if (toolCalls.length > 0) {
-      finishReason = 'tool-calls';
-    }
-  } else {
-    const fr = await (result as { finishReason?: PromiseLike<string> }).finishReason;
-    if (typeof fr === 'string') {
-      finishReason = fr;
-    }
-    try {
-      const tc = await (result as { toolCalls?: PromiseLike<unknown[]> }).toolCalls;
-      if (Array.isArray(tc)) {
-        for (const t of tc as { toolName: string; args: unknown; toolCallId: string }[]) {
-          toolCalls.push({ name: t.toolName, args: t.args, id: t.toolCallId });
-        }
-        if (toolCalls.length > 0 && finishReason === 'stop') {
-          finishReason = 'tool-calls';
-        }
+      const usage = (part as { usage?: unknown }).usage;
+      if (usage) {
+        // keep last step usage, final finish will override
       }
-    } catch {
-      // ignore
+      continue;
     }
-    try {
-      const txt = await (result as { text?: PromiseLike<string> }).text;
-      if (typeof txt === 'string') {
-        fullText = txt;
+
+    if (type === 'finish') {
+      const fr = part.finishReason as string | undefined;
+      if (fr) {
+        finishReason = fr;
       }
-    } catch {
-      // ignore
+      const usage =
+        (part as { totalUsage?: unknown; usage?: unknown }).totalUsage ??
+        (part as { usage?: unknown }).usage;
+      if (usage) {
+        // store for completed
+        (globalThis as Record<string, unknown>).__harnesys_last_usage = usage;
+      }
+      continue;
+    }
+
+    if (type === 'error') {
+      throw (part as { error?: unknown }).error ?? new Error(String(part.error ?? 'stream error'));
+    }
+
+    if (type === 'abort') {
+      throw Object.assign(new Error(String((part as { reason?: string }).reason ?? 'aborted')), {
+        name: 'AbortError',
+      });
     }
   }
 
+  if (chunkBuffer) {
+    yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
+  }
+
+  // fallback finishReason from toolCalls
+  if (toolCalls.length > 0 && finishReason === 'stop') {
+    finishReason = 'tool-calls';
+  }
+
+  // also try result promises for usage/structured if not in stream
   let structured: unknown;
   try {
     const obj = await (result as { object?: PromiseLike<unknown> }).object;
@@ -253,14 +241,36 @@ export async function* callModel(
       structured = obj;
     }
   } catch {
-    // not all providers support structured output
+    // ignore
+  }
+
+  let usage: unknown = (globalThis as Record<string, unknown>).__harnesys_last_usage;
+  try {
+    const u = await (result as { totalUsage?: PromiseLike<unknown> }).totalUsage;
+    if (u) {
+      usage = u;
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    const u2 = await (result as { usage?: PromiseLike<unknown> }).usage;
+    if (u2 && !usage) {
+      usage = u2;
+    }
+  } catch {
+    // ignore
   }
 
   yield {
     type: 'completed',
     finishReason,
     text: fullText || undefined,
+    reasoning: reasoningText || undefined,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     structured,
+    sources: sources.length > 0 ? sources : undefined,
+    files: files.length > 0 ? files : undefined,
+    usage,
   };
 }

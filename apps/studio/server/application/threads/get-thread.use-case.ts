@@ -8,6 +8,88 @@ import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { readFields } from './thread.helpers.ts';
 
+function rowToSessionEvent(row: { type: string; metadata: string | null }): SessionEvent | null {
+  let meta: Record<string, unknown> | null = null;
+  if (row.metadata) {
+    try {
+      meta = JSON.parse(row.metadata) as Record<string, unknown>;
+    } catch {
+      meta = null;
+    }
+  }
+  if (row.type === 'model.delta') {
+    const text = meta?.text as string | undefined;
+    if (typeof text === 'string' && text) {
+      return { type: 'text-delta', text };
+    }
+    return null;
+  }
+  if (row.type === 'model.completed') {
+    const text = meta?.text as string | undefined;
+    if (typeof text === 'string' && text) {
+      return { type: 'text-delta', text };
+    }
+    return null;
+  }
+  if (row.type === 'model.chunk') {
+    return null;
+  }
+  if (row.type === 'tool.intent' || row.type === 'tool.completed') {
+    return {
+      type: 'tool',
+      phase: row.type === 'tool.intent' ? 'requested' : 'completed',
+      toolCallId: String(meta?.toolCallId ?? ''),
+      name: String(meta?.name ?? ''),
+      input: meta?.input,
+      output: meta?.output,
+    };
+  }
+  if (row.type === 'tool.failed') {
+    return {
+      type: 'tool',
+      phase: 'failed',
+      toolCallId: String(meta?.toolCallId ?? ''),
+      name: String(meta?.name ?? ''),
+      input: meta?.input,
+      output: meta?.output,
+    };
+  }
+  if (row.type === 'tool.skipped') {
+    return {
+      type: 'tool',
+      phase: 'skipped',
+      toolCallId: String(meta?.toolCallId ?? ''),
+      name: String(meta?.name ?? ''),
+      input: meta?.input,
+      output: meta?.output,
+    };
+  }
+  if (row.type === 'interrupt.triggered') {
+    return {
+      type: 'ask',
+      askId: String(meta?.interruptId ?? ''),
+      schema: (meta?.resumeSchema as never) ?? {},
+      source:
+        (meta?.source as SessionEvent extends { type: 'ask'; source: infer S } ? S : never) ??
+        'interrupt',
+      prompt: typeof meta?.reason === 'string' ? meta.reason : undefined,
+      tool: meta?.tool as { name: string; input: unknown; toolCallId: string } | undefined,
+    };
+  }
+  if (row.type === 'run.completed') {
+    const text = meta?.text as string | undefined;
+    return { type: 'done', text: typeof text === 'string' ? text : undefined };
+  }
+  if (row.type === 'run.failed' || row.type === 'run.cancelled') {
+    return {
+      type: 'error',
+      code: String(meta?.code ?? 'run_failed'),
+      message: String(meta?.message ?? 'run failed'),
+    };
+  }
+  return null;
+}
+
 export type GetThreadRequest = {
   id: string;
 };
@@ -39,15 +121,9 @@ export class GetThreadUseCase implements GetThreadInput {
 
     const events: SessionEvent[] = [];
     for (const row of rows) {
-      if (row.metadata) {
-        try {
-          const parsed = JSON.parse(row.metadata) as SessionEvent;
-          if (parsed && typeof parsed === 'object' && 'type' in parsed) {
-            events.push(parsed);
-          }
-        } catch {
-          // skip non-SessionEvent metadata
-        }
+      const se = rowToSessionEvent(row);
+      if (se) {
+        events.push(se);
       }
     }
 

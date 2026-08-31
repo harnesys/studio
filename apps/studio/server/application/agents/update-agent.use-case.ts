@@ -8,6 +8,7 @@ import type { Agent, AgentPatch, AgentRepository } from '../../domain/agent.port
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { requireAgent } from './agent.helpers.ts';
+import { buildReactGraph } from './react-preset.ts';
 
 export type UpdateAgentRequest = {
   workspaceId: string;
@@ -100,6 +101,7 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.tools !== undefined) {
       patch.tools = request.tools;
+      patch.graph = buildReactGraph(request.tools);
     }
 
     return await Promise.resolve(this.agents.update(request.id, patch));

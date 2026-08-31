@@ -1,6 +1,8 @@
 import { join } from 'node:path';
 import type {
   AgentDefinition,
+  AgentGenerationSettings,
+  AgentModelRef,
   CursorMcpJson,
   ModelsPort,
   RuntimeHandle,
@@ -11,6 +13,7 @@ import { askUser, fetch, files, shell } from 'harnesys/actions';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
 import { composeAgentSystem } from '../../shared/default-agent-instructions.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
+import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
@@ -22,6 +25,8 @@ export class WorkspaceHarnesysRegistry {
   constructor(
     private readonly models: ModelsPort,
     private readonly agents?: AgentRepository,
+    private readonly modelRepo?: LlmModelRepository,
+    private readonly providerRepo?: LlmProviderRepository,
   ) {}
 
   setExtraTools(tools: ToolDefinition[]): void {
@@ -97,14 +102,7 @@ export class WorkspaceHarnesysRegistry {
     return {
       id: agent.id,
       prompts: { main: { instructions: system } },
-      model: agent.modelId
-        ? {
-            provider: '',
-            model: '',
-            effort: agent.effort ?? undefined,
-            generation: agent.generation ?? undefined,
-          }
-        : undefined,
+      model: this.resolveModelRef(agent),
       skills: agent.skills.length ? agent.skills : undefined,
       tools: agent.tools.length ? agent.tools : undefined,
       mcpServers: agent.mcpServers.length ? agent.mcpServers : undefined,
@@ -112,6 +110,39 @@ export class WorkspaceHarnesysRegistry {
       compaction: agent.compaction,
       memory: agent.memory,
       graph: agent.graph,
+    };
+  }
+
+  private resolveModelRef(agent: {
+    modelId: string | null;
+    effort: string | null;
+    generation: unknown;
+  }): AgentModelRef | undefined {
+    if (!agent.modelId) {
+      return undefined;
+    }
+    const effort = agent.effort ?? undefined;
+    const generation = agent.generation as AgentGenerationSettings | undefined;
+    if (this.modelRepo && this.providerRepo) {
+      const model = this.modelRepo.findById(agent.modelId);
+      if (model) {
+        const provider = this.providerRepo.findById(model.providerId);
+        if (provider) {
+          return {
+            provider: provider.name,
+            model: model.name,
+            effort,
+            generation,
+          };
+        }
+      }
+      return undefined;
+    }
+    return {
+      provider: '',
+      model: '',
+      effort,
+      generation,
     };
   }
 }

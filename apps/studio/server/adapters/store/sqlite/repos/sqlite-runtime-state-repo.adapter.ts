@@ -6,7 +6,7 @@ export class SqliteRuntimeStateRepo implements RuntimeStateRepository {
   constructor(private readonly db: StudioDb) {}
 
   forState(threadId: string): SqliteRuntimeState {
-    return new SqliteRuntimeState(this.db, threadId);
+    return new SqliteRuntimeState(this.db, threadId, threadId);
   }
 
   deleteByThread(_threadId: string): void {

@@ -45,9 +45,86 @@ function normalizeInput(input: SendInput): unknown {
 
 function eventToSessionEvent(ev: Event): SessionEvent | null {
   const t = ev.type;
+  if (t === 'model.delta') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const raw = m?.text;
+    const id = typeof m?.id === 'string' ? m.id : undefined;
+    if (typeof raw === 'string' && raw) {
+      return { type: 'text-delta', text: raw, id };
+    }
+    return null;
+  }
+  if (t === 'model.reasoning') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const raw = m?.text ?? m?.delta;
+    const id = typeof m?.id === 'string' ? m.id : undefined;
+    if (typeof raw === 'string' && raw) {
+      return { type: 'reasoning-delta', text: raw, id };
+    }
+    return null;
+  }
+  if (t === 'model.reasoning-start') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return { type: 'reasoning-start', id: String(m?.id ?? '') };
+  }
+  if (t === 'model.reasoning-end') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return { type: 'reasoning-end', id: String(m?.id ?? '') };
+  }
+  if (t === 'model.tool-input-start') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'tool',
+      phase: 'streaming',
+      toolCallId: String(m?.id ?? m?.toolCallId ?? ''),
+      name: String(m?.toolName ?? m?.name ?? ''),
+      delta: '',
+    };
+  }
+  if (t === 'model.tool-input-delta') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const delta = typeof m?.delta === 'string' ? m.delta : '';
+    if (!delta) {
+      return null;
+    }
+    return {
+      type: 'tool',
+      phase: 'streaming',
+      toolCallId: String(m?.id ?? m?.toolCallId ?? ''),
+      name: String(m?.toolName ?? m?.name ?? ''),
+      delta,
+    };
+  }
+  if (t === 'model.tool-input-end') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'tool',
+      phase: 'streaming',
+      toolCallId: String(m?.id ?? m?.toolCallId ?? ''),
+      name: String(m?.toolName ?? m?.name ?? ''),
+      delta: '',
+    };
+  }
+  if (t === 'model.tool-call') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'tool',
+      phase: 'requested',
+      toolCallId: String(m?.id ?? m?.toolCallId ?? ''),
+      name: String(m?.name ?? m?.toolName ?? ''),
+      input: m?.args ?? m?.input,
+    };
+  }
+  if (t === 'model.source') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return { type: 'source', source: m?.source ?? m };
+  }
+  if (t === 'model.file') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return { type: 'file', file: m?.file ?? m };
+  }
   if (t === 'model.completed') {
-    const text = (ev.metadata as Record<string, unknown>)?.text;
-    return { type: 'text-delta', text: typeof text === 'string' ? text : '' };
+    return null;
   }
   if (t === 'tool.completed' || t === 'tool.intent') {
     const m = ev.metadata as Record<string, unknown> | undefined;

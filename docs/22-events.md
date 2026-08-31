@@ -17,9 +17,13 @@
 | `node.scheduled` / `node.started` / `node.completed` / `node.failed` | узел | да |
 | `state.committed` | после commit; `kind: intent \| recorded` | да |
 | `model.requested` | старт вызова модели | да |
-| `model.delta` | text-delta; `{ text, index }` | нет (только live iterator `start`) |
+| `model.delta` | text-delta; `{ text, id, index }` | нет (только live iterator `start`) |
+| `model.reasoning` / `model.reasoning-start` / `model.reasoning-end` | reasoning-delta/start/end; `{ text, id }` | нет (live) |
+| `model.tool-input-start` / `model.tool-input-delta` / `model.tool-input-end` / `model.tool-call` | стриминг args + финальный tool-call; `{ id, toolName, delta, input }` | нет live, `tool-call` → `tool.requested` durable |
+| `model.source` | `Source {url,title}` | нет live + durable в `model.completed.sources` |
+| `model.file` | `file` / `reasoning-file` | нет live + durable в `model.completed.files` |
 | `model.chunk` | батч дельт / таймер; `{ text, index, chunkId }` | да |
-| `model.completed` | finish; `{ text, finishReason, usage, toolCalls }` | да |
+| `model.completed` | finish; `{ text, reasoning, finishReason, usage, toolCalls, sources, files }` | да |
 | `model.failed` | ошибка / abort | да |
 | `tool.requested` | финальный tool-call модели или вход в `tool:call` | да |
 | `tool.completed` / `tool.failed` | execute | да |

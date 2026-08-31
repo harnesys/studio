@@ -73,7 +73,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     filesWatcher,
   });
   const workspaceHarnesys =
-    options.workspaceHarnesys ?? new WorkspaceHarnesysRegistry(modelsPort, agentRepo);
+    options.workspaceHarnesys ??
+    new WorkspaceHarnesysRegistry(modelsPort, agentRepo, llmModelRepo, llmProviderRepo);
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
 
   const app = new Hono();

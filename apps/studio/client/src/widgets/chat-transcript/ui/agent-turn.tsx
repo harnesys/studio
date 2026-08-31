@@ -124,11 +124,12 @@ export function AssistantMessageView({
               if (!agent || !thread || !workspaceId) {
                 return;
               }
-              const nextId = branchThread(runId, agent.id, thread.id);
-              if (nextId) {
-                useDeskStore.getState().setFocusedThreadId(nextId);
-                openThread(workspaceId, agent.id, nextId);
-              }
+              void branchThread(runId, agent.id, thread.id, workspaceId).then((nextId) => {
+                if (nextId) {
+                  useDeskStore.getState().setFocusedThreadId(nextId);
+                  openThread(workspaceId, agent.id, nextId);
+                }
+              });
             }}
           />
         ) : null}

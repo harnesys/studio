@@ -8,6 +8,8 @@ type ActiveRunState = {
   run: AgentRun;
   controller: AbortController;
   listeners: Set<EventListener>;
+  buffer: SessionEvent[];
+  finished: boolean;
 };
 
 export class ActiveRunRegistry {
@@ -37,12 +39,18 @@ export class ActiveRunRegistry {
       run,
       controller,
       listeners: new Set(),
+      buffer: [],
+      finished: false,
     });
     return { controller, signal: controller.signal };
   }
 
   get(runId: string): ActiveRunState | undefined {
     return this.active.get(runId);
+  }
+
+  isFinished(runId: string): boolean {
+    return this.active.get(runId)?.finished ?? true;
   }
 
   findByThread(threadId: string): ActiveRunState | undefined {
@@ -75,10 +83,13 @@ export class ActiveRunRegistry {
 
   finish(runId: string): void {
     const item = this.active.get(runId);
-    this.active.delete(runId);
     if (!item) {
       return;
     }
+    item.finished = true;
+    setTimeout(() => {
+      this.active.delete(runId);
+    }, 30_000);
     if (this.findByThread(item.threadId)) {
       return;
     }
@@ -94,6 +105,11 @@ export class ActiveRunRegistry {
     if (!item) {
       return () => {};
     }
+    for (const event of item.buffer) {
+      try {
+        listener(event);
+      } catch {}
+    }
     item.listeners.add(listener);
     return () => {
       item.listeners.delete(listener);
@@ -105,6 +121,7 @@ export class ActiveRunRegistry {
     if (!item) {
       return;
     }
+    item.buffer.push(event);
     for (const listener of item.listeners) {
       try {
         listener(event);

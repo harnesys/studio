@@ -6,6 +6,7 @@ import { useScheduleStore } from '@/entities/schedule';
 import { useThreadStore } from '@/entities/thread';
 import type { Webhook, WebhookStatus } from '@/entities/webhook';
 import { useWebhookStore, WEBHOOK_STATUSES, webhookStatusLabel } from '@/entities/webhook';
+import { useDeskStore } from '@/features/desk';
 import type { IdeTab } from '@/features/ide';
 import { openFileKind } from '@/features/open-file';
 import { HitlPrompt } from '@/features/send-message';
@@ -29,9 +30,15 @@ import { MediaPreview, TextEditor } from '@/widgets/file-pane';
 import { ScheduleSettings } from '@/widgets/schedules-list';
 
 export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: string }) {
+  const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
+  const isHydrating = Boolean(workspaceId && hydratedWorkspaceId !== workspaceId);
+
   if (tab.kind === 'thread' && tab.threadId && tab.agentId) {
     const agent = useAgentStore.getState().items.find((a) => a.id === tab.agentId) ?? null;
     const thread = useThreadStore.getState().byId(tab.threadId);
+    if (isHydrating) {
+      return null;
+    }
     if (!agent || !thread) {
       return (
         <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
@@ -69,6 +76,9 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
   }
   if (tab.kind === 'schedule' && tab.scheduleId) {
     const schedule = useScheduleStore.getState().items.find((s) => s.id === tab.scheduleId);
+    if (isHydrating) {
+      return null;
+    }
     if (!schedule) {
       return (
         <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
@@ -84,6 +94,9 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
   }
   if (tab.kind === 'webhook' && tab.webhookId) {
     const webhook = useWebhookStore.getState().items.find((w) => w.id === tab.webhookId);
+    if (isHydrating) {
+      return null;
+    }
     if (!webhook) {
       return (
         <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">

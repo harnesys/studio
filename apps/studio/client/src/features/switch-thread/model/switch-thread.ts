@@ -45,19 +45,19 @@ export async function openNewThread(agentId: string, workspaceId: string): Promi
   return record.id;
 }
 
-export function branchThread(
+export async function branchThread(
   _entryId: string,
   agentId: string,
   currentThreadId: string,
-): string | null {
+  workspaceId: string,
+): Promise<string | null> {
   const events = useSessionStore.getState().eventsOf(currentThreadId);
   if (events.length === 0) {
     return null;
   }
-  const thread = useThreadStore.getState().create(agentId, branchTitle(''));
-  if (!thread) {
-    return null;
-  }
+  const record = await createThreadRecord({ workspaceId, agentId, title: branchTitle('') });
+  const thread = toClientThread(record);
+  useThreadStore.getState().upsert(thread);
   useSessionStore.getState().copyEvents(currentThreadId, thread.id);
   setActiveThreadId(agentId, thread.id);
   return thread.id;

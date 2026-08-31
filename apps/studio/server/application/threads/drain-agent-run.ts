@@ -19,8 +19,12 @@ export async function drainAgentRun(options: DrainAgentRunOptions): Promise<void
         onPersist?.(threadId);
       }
     }
-  } catch {
-    // abort / consumer errors
+  } catch (err) {
+    activeRuns.emit(run.id, {
+      type: 'error',
+      code: 'run_failed',
+      message: err instanceof Error ? err.message : String(err),
+    });
   } finally {
     onPersist?.(threadId);
     activeRuns.finish(run.id);

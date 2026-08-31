@@ -60,11 +60,12 @@ export function ScheduleWakeMessage({ entry, threadId }: { entry: HumanEntry; th
             if (!agent || !thread || !workspaceId) {
               return;
             }
-            const nextId = branchThread(entry.id, agent.id, thread.id);
-            if (nextId) {
-              useDeskStore.getState().setFocusedThreadId(nextId);
-              openThread(workspaceId, agent.id, nextId);
-            }
+            void branchThread(entry.id, agent.id, thread.id, workspaceId).then((nextId) => {
+              if (nextId) {
+                useDeskStore.getState().setFocusedThreadId(nextId);
+                openThread(workspaceId, agent.id, nextId);
+              }
+            });
           }}
           onDelete={() => {
             void deleteTurn(threadId, entry.id).catch((error) => {

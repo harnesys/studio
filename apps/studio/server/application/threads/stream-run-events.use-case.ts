@@ -34,7 +34,7 @@ export class StreamRunEventsUseCase implements StreamRunEventsInput {
             while (queue.length > 0) {
               yield queue.shift() as SessionEvent;
             }
-            if (!activeRuns.get(runId)) {
+            if (activeRuns.isFinished(runId)) {
               return;
             }
             await new Promise<void>((resolve) => {

@@ -1,6 +1,11 @@
 import { BotIcon, ChevronsUpDownIcon, PlusIcon, SettingsIcon } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { getActiveThreadId, setActiveThreadId, useThreadStore } from '@/entities/thread';
+import {
+  getActiveThreadId,
+  setActiveThreadId,
+  toClientThread,
+  useThreadStore,
+} from '@/entities/thread';
 import { useDeleteWorkspace, useWorkspaces } from '@/entities/workspace';
 import {
   confirmDeleteWorkspace,
@@ -26,6 +31,7 @@ import {
   openEditAgentDialog,
   updateAgent,
 } from '@/features/manage-agent';
+import { createThreadRecord } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { studioPath } from '@/shared/config/routes';
@@ -203,15 +209,14 @@ export function WorkspaceSidebar() {
                       setActiveThreadId(item.id, target.id);
                       void navigate(studioPath.workspaceThread(workspaceId, item.id, target.id));
                     } else {
-                      const created = useThreadStore.getState().create(item.id, 'New thread');
-                      if (created) {
-                        useIdeStore.getState().openThread(workspaceId, item.id, created.id);
-                        useDeskStore.getState().setFocusedThreadId(created.id);
-                        setActiveThreadId(item.id, created.id);
-                        void navigate(studioPath.workspaceThread(workspaceId, item.id, created.id));
-                      } else {
-                        void navigate(studioPath.workspaceAgent(workspaceId, item.id));
-                      }
+                      void createThreadRecord({ workspaceId, agentId: item.id }).then((record) => {
+                        const thread = toClientThread(record);
+                        useThreadStore.getState().upsert(thread);
+                        useIdeStore.getState().openThread(workspaceId, item.id, thread.id);
+                        useDeskStore.getState().setFocusedThreadId(thread.id);
+                        setActiveThreadId(item.id, thread.id);
+                        void navigate(studioPath.workspaceThread(workspaceId, item.id, thread.id));
+                      });
                     }
                     setOpenMobile(false);
                   }}

@@ -10,7 +10,7 @@ export class SqliteUnitOfWork implements UnitOfWork {
 
   run<T>(work: (repos: StudioRepos) => T): T {
     return this.db.transaction((tx) => {
-      const db = tx as unknown as StudioDb;
+      const db = tx as StudioDb;
       const threads = new SqliteThreadRepo(db);
       const attachments = new SqliteAttachmentRepo(db);
       const agents = new SqliteAgentRepo(db);

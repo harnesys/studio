@@ -1,3 +1,4 @@
+import type { Dirent } from 'node:fs';
 import {
   mkdir,
   readdir,
@@ -12,12 +13,12 @@ import type { WorkspaceFilesPort } from '../../domain/workspace-files.port.ts';
 
 export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
   async listDir(absPath: string): Promise<WorkspaceFileEntry[]> {
-    let entries: import('node:fs').Dirent[] = [];
+    let entries: Dirent[] = [];
     try {
       entries = (await readdir(absPath, {
         withFileTypes: true,
         encoding: 'utf8',
-      })) as unknown as import('node:fs').Dirent[];
+      })) as Dirent[];
     } catch {
       return [];
     }

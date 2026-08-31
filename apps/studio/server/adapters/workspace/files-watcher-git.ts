@@ -5,7 +5,7 @@ import type { WorkspaceFileEvent } from '../../../shared/types.ts';
 import { FILES_WATCHER_DEBOUNCE_MS } from '../../config/constants.ts';
 import { trace } from '../../trace.ts';
 
-type GitWatchState = {
+type GitWatcherState = {
   gitWatcher: ReturnType<typeof watch> | null;
   gitDebounceTimer: ReturnType<typeof setTimeout> | null;
   closed: boolean;
@@ -13,7 +13,7 @@ type GitWatchState = {
 };
 
 export async function startGitWatcher(
-  state: GitWatchState,
+  state: GitWatcherState,
   workspaceId: string,
   workspacePath: string,
 ): Promise<void> {

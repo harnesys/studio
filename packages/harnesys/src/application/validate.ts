@@ -257,7 +257,7 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
     if ((n as { type: string }).type === 'tool:call') {
-      const tc = n as unknown as {
+      const tc = n as {
         name?: unknown;
         args?: unknown;
         calls?: unknown;

@@ -1,0 +1,9 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+`$_ as unknown as $_` as $cast where {
+    register_diagnostic(
+        span = $cast,
+        message = "Don't use `as unknown as T` double casts. Use a proper type assertion, type guard, or restructure the types."
+    )
+}

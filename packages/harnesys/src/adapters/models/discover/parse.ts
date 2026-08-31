@@ -1,3 +1,5 @@
+import type { ModelArchitecture, ModelPricing, ModelTopProvider } from '../../../ports/models.ts';
+
 export function asRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return undefined;
@@ -63,7 +65,7 @@ export function pricingOf(parts: {
   input_cache_write?: string | number;
   image?: string | number;
   request?: string | number;
-}): import('../../../ports/models.ts').ModelPricing | undefined {
+}): ModelPricing | undefined {
   const prompt = formatPriceString(parts.prompt);
   const completion = formatPriceString(parts.completion);
   if (prompt === undefined || completion === undefined) {
@@ -79,10 +81,7 @@ export function pricingOf(parts: {
   };
 }
 
-export function architectureOf(
-  input?: string[],
-  output?: string[],
-): import('../../../ports/models.ts').ModelArchitecture | undefined {
+export function architectureOf(input?: string[], output?: string[]): ModelArchitecture | undefined {
   if (!input && !output) {
     return undefined;
   }
@@ -95,7 +94,7 @@ export function architectureOf(
 export function topProviderOf(
   context_length?: number,
   max_completion_tokens?: number,
-): import('../../../ports/models.ts').ModelTopProvider | undefined {
+): ModelTopProvider | undefined {
   if (context_length === undefined && max_completion_tokens === undefined) {
     return undefined;
   }

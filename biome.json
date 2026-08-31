@@ -27,7 +27,11 @@
     "indentStyle": "space",
     "lineWidth": 100
   },
-  "plugins": ["./plugins/no-indexed-access-type.grit"],
+  "plugins": [
+    "./plugins/no-indexed-access-type.grit",
+    "./plugins/no-inline-import-type.grit",
+    "./plugins/no-as-unknown-as.grit"
+  ],
   "linter": {
     "enabled": true,
     "rules": {

@@ -34,7 +34,7 @@ export function mkSnap(ctx: SnapCtx, status: string): Snapshot {
         },
       },
       budget: { steps: ctx.steps, tokens: ctx.tokens },
-    } as unknown as Cursor,
+    } as Cursor,
     artifacts: null,
   };
 }

@@ -1,14 +1,12 @@
-import { watch } from 'node:fs';
-import { readdir, stat } from 'node:fs/promises';
+import { type Dirent, watch } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type {
-  WorkspaceFileEntry,
-  WorkspaceFileEvent,
-  WorkspaceFileEventKind,
-} from '../../../shared/types.ts';
+import type { WorkspaceFileEntry, WorkspaceFileEvent } from '../../../shared/types.ts';
 import { FILES_WATCHER_DEBOUNCE_MS, HOME_DIR_NAME } from '../../config/constants.ts';
 import type { FilesWatcherInput } from '../../domain/files-watcher.port.ts';
 import { trace } from '../../trace.ts';
+import { startGitWatcher } from './files-watcher-git.ts';
+import { type DirSnapshot, diff, snapshot } from './files-watcher-snapshot.ts';
 
 const SKIP_DIRS = new Set([
   'node_modules',
@@ -22,8 +20,6 @@ const SKIP_DIRS = new Set([
   HOME_DIR_NAME,
 ]);
 
-type SnapshotEntry = { kind: 'file' | 'dir'; mtimeMs: number | null };
-type DirSnapshot = Map<string, SnapshotEntry>;
 type Listener = (event: WorkspaceFileEvent) => void;
 
 type WatchState = {
@@ -47,7 +43,6 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
   ): () => void {
     const state = this.watchers.get(workspaceId);
 
-    // If existing watch for same path, just add listener
     if (state && state.workspacePath === workspacePath && !state.closed) {
       state.listeners.add(onEvent);
       trace('files-watcher', 'listener added', {
@@ -58,7 +53,6 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
       return () => this.removeListener(workspaceId, onEvent);
     }
 
-    // Different path or no state: restart
     if (state) {
       this.closeState(workspaceId);
     }
@@ -75,8 +69,7 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
     };
     this.watchers.set(workspaceId, newState);
 
-    // Initial snapshot
-    void this.snapshot(workspacePath)
+    void snapshot(workspacePath, SKIP_DIRS)
       .then((snap) => {
         if (!newState.closed) {
           newState.snapshot = snap;
@@ -105,8 +98,8 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
           return;
         }
         try {
-          const nextSnapshot = await this.snapshot(workspacePath);
-          const events = this.diff(newState.snapshot, nextSnapshot);
+          const nextSnapshot = await snapshot(workspacePath, SKIP_DIRS);
+          const events = diff(newState.snapshot, nextSnapshot);
           newState.snapshot = nextSnapshot;
           if (events.length > 0) {
             trace('files-watcher', 'diff events', {
@@ -153,8 +146,7 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
       trace('files-watcher', 'watch failed to start', { workspaceId, error: String(err) });
     }
 
-    // git metadata watcher (reuses same debounce, no extra FS scan — just notifies listeners for git status)
-    void this.startGitWatcher(newState, workspaceId, workspacePath);
+    void startGitWatcher(newState, workspaceId, workspacePath);
 
     return () => this.removeListener(workspaceId, onEvent);
   }
@@ -218,12 +210,12 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
     results: WorkspaceFileEntry[],
   ): Promise<void> {
     const dirToRead = relDir ? join(absBase, relDir) : absBase;
-    let dirents: import('node:fs').Dirent[] = [];
+    let dirents: Dirent[] = [];
     try {
       dirents = (await readdir(dirToRead, {
         withFileTypes: true,
         encoding: 'utf8',
-      })) as unknown as import('node:fs').Dirent[];
+      })) as Dirent[];
     } catch {
       return;
     }
@@ -247,152 +239,4 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
       }
     }
   }
-
-  private async snapshot(dirPath: string): Promise<DirSnapshot> {
-    const map: DirSnapshot = new Map();
-    await this.walk(dirPath, '', map);
-    return map;
-  }
-
-  private async walk(dir: string, rel: string, map: DirSnapshot): Promise<void> {
-    let items: import('node:fs').Dirent[] = [];
-    try {
-      items = (await readdir(dir, {
-        withFileTypes: true,
-        encoding: 'utf8',
-      })) as unknown as import('node:fs').Dirent[];
-    } catch {
-      return;
-    }
-    for (const item of items) {
-      const name = String(item.name);
-      if (SKIP_DIRS.has(name)) {
-        continue;
-      }
-      const relPath = rel ? `${rel}/${name}` : name;
-      const absPath = `${dir}/${name}`;
-      if (item.isDirectory()) {
-        map.set(relPath, { kind: 'dir', mtimeMs: null });
-        await this.walk(absPath, relPath, map);
-        continue;
-      }
-      const mtimeMs = await stat(absPath)
-        .then((info) => info.mtimeMs)
-        .catch(() => null);
-      map.set(relPath, { kind: 'file', mtimeMs });
-    }
-  }
-
-  private diff(prev: DirSnapshot, curr: DirSnapshot): WorkspaceFileEvent[] {
-    const events: WorkspaceFileEvent[] = [];
-
-    for (const [relPath, entry] of curr) {
-      const before = prev.get(relPath);
-      if (!before) {
-        events.push(eventFromPath('create', relPath));
-        continue;
-      }
-      if (
-        entry.kind === 'file' &&
-        before.kind === 'file' &&
-        entry.mtimeMs != null &&
-        before.mtimeMs != null &&
-        entry.mtimeMs !== before.mtimeMs
-      ) {
-        events.push(eventFromPath('change', relPath));
-      }
-    }
-
-    for (const [relPath] of prev) {
-      if (!curr.has(relPath)) {
-        events.push(eventFromPath('delete', relPath));
-      }
-    }
-
-    return events;
-  }
-
-  private async startGitWatcher(
-    state: WatchState,
-    workspaceId: string,
-    workspacePath: string,
-  ): Promise<void> {
-    const gitPath = join(workspacePath, '.git');
-    // .git may be file (worktree) or dir/bare
-    let target = gitPath;
-    try {
-      const info = await stat(gitPath);
-      if (info.isFile()) {
-        const { readFile } = await import('node:fs/promises');
-        const content = await readFile(gitPath, 'utf8').catch(() => '');
-        const m = content.match(/gitdir:\s*(.+)/);
-        if (m?.[1]) {
-          const gitdir = m[1].trim();
-          target = gitdir.startsWith('/') ? gitdir : join(workspacePath, gitdir);
-        }
-      }
-    } catch {
-      // no .git — not a git repo, skip watcher
-      return;
-    }
-
-    // watch HEAD, index, refs/heads via polling fallback + fs.watch if possible
-    const handleGitChange = () => {
-      if (state.closed) {
-        return;
-      }
-      if (state.gitDebounceTimer) {
-        clearTimeout(state.gitDebounceTimer);
-      }
-      state.gitDebounceTimer = setTimeout(() => {
-        if (state.closed) {
-          return;
-        }
-        trace('files-watcher', 'git change', { workspaceId });
-        // synthetic event so client invalidates both files and git queries
-        const ev: WorkspaceFileEvent = { kind: 'change', dir: '.git', name: 'HEAD' };
-        for (const listener of [...state.listeners]) {
-          try {
-            listener(ev);
-          } catch (err) {
-            trace('files-watcher', 'git listener error', { error: String(err) });
-          }
-        }
-      }, FILES_WATCHER_DEBOUNCE_MS);
-    };
-
-    try {
-      const gitWatcher = watch(target, { recursive: true }, (_et, filename) => {
-        if (!filename) {
-          handleGitChange();
-          return;
-        }
-        // only care about HEAD, index, refs
-        if (
-          filename === 'HEAD' ||
-          filename === 'index' ||
-          filename.startsWith('refs/heads') ||
-          filename.startsWith('refs\\heads')
-        ) {
-          handleGitChange();
-        }
-      });
-      gitWatcher.on('error', (err) => {
-        trace('files-watcher', 'git watcher error', { workspaceId, error: String(err) });
-      });
-      state.gitWatcher = gitWatcher;
-      trace('files-watcher', 'git watcher started', { workspaceId, target });
-    } catch (err) {
-      trace('files-watcher', 'git watcher failed', { workspaceId, error: String(err) });
-    }
-  }
-}
-
-function eventFromPath(kind: WorkspaceFileEventKind, relPath: string): WorkspaceFileEvent {
-  const lastSlash = relPath.lastIndexOf('/');
-  return {
-    kind,
-    dir: lastSlash >= 0 ? relPath.slice(0, lastSlash) : '',
-    name: lastSlash >= 0 ? relPath.slice(lastSlash + 1) : relPath,
-  };
 }

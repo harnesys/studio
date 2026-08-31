@@ -1,3 +1,5 @@
+import type { JsonSchema } from './json-schema.ts';
+
 export type DiagnosticSeverity = 'error' | 'warning';
 
 export type Diagnostic = {
@@ -61,7 +63,7 @@ export class AskUserInterrupt extends Error {
   readonly source?: 'ask_user' | 'approve' | 'permission' | 'middleware';
   readonly tool?: { name: string; input: unknown; toolCallId: string };
   readonly interruptId?: string;
-  readonly resumeSchema?: import('./json-schema.ts').JsonSchema;
+  readonly resumeSchema?: JsonSchema;
 
   constructor(input: {
     prompt: string;
@@ -70,7 +72,7 @@ export class AskUserInterrupt extends Error {
     source?: 'ask_user' | 'approve' | 'permission' | 'middleware';
     tool?: { name: string; input: unknown; toolCallId: string };
     interruptId?: string;
-    resumeSchema?: import('./json-schema.ts').JsonSchema;
+    resumeSchema?: JsonSchema;
   }) {
     super('ask_user interrupt');
     this.name = 'AskUserInterrupt';

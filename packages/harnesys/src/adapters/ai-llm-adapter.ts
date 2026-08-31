@@ -124,7 +124,7 @@ export async function* callModel(
   } else if (signalOrRegistry) {
     signal = signalOrRegistry as AbortSignal;
     if (maybeSignal instanceof Map) {
-      registry = maybeSignal as unknown as Map<string, ToolDefinition>;
+      registry = maybeSignal as Map<string, ToolDefinition>;
     }
   }
 
@@ -176,14 +176,9 @@ export async function* callModel(
   let chunkBuffer = '';
   let chunkCount = 0;
 
-  if (result && typeof (result as unknown as { text?: unknown }).text === 'string') {
-    fullText = (result as unknown as { text: string }).text;
-  } else if (
-    result &&
-    typeof (result as unknown as { fullStream?: unknown }).fullStream !== 'undefined'
-  ) {
+  if (result && typeof (result as { fullStream?: unknown }).fullStream !== 'undefined') {
     for await (const chunk of (
-      result as unknown as {
+      result as {
         fullStream: AsyncIterable<{
           type: string;
           text?: string;
@@ -217,19 +212,19 @@ export async function* callModel(
     if (chunkBuffer) {
       yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
     }
-    const fr = await (result as unknown as { finishReason?: Promise<string> }).finishReason;
+    const fr = await (result as { finishReason?: PromiseLike<string> }).finishReason;
     if (typeof fr === 'string') {
       finishReason = fr;
     } else if (toolCalls.length > 0) {
       finishReason = 'tool-calls';
     }
   } else {
-    const fr = await (result as unknown as { finishReason?: Promise<string> }).finishReason;
+    const fr = await (result as { finishReason?: PromiseLike<string> }).finishReason;
     if (typeof fr === 'string') {
       finishReason = fr;
     }
     try {
-      const tc = await (result as unknown as { toolCalls?: Promise<unknown[]> }).toolCalls;
+      const tc = await (result as { toolCalls?: PromiseLike<unknown[]> }).toolCalls;
       if (Array.isArray(tc)) {
         for (const t of tc as { toolName: string; args: unknown; toolCallId: string }[]) {
           toolCalls.push({ name: t.toolName, args: t.args, id: t.toolCallId });
@@ -242,7 +237,7 @@ export async function* callModel(
       // ignore
     }
     try {
-      const txt = await (result as unknown as { text?: Promise<string> }).text;
+      const txt = await (result as { text?: PromiseLike<string> }).text;
       if (typeof txt === 'string') {
         fullText = txt;
       }
@@ -253,7 +248,7 @@ export async function* callModel(
 
   let structured: unknown;
   try {
-    const obj = await (result as unknown as { object?: Promise<unknown> }).object;
+    const obj = await (result as { object?: PromiseLike<unknown> }).object;
     if (obj !== undefined) {
       structured = obj;
     }

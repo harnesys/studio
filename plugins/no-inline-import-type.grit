@@ -1,0 +1,9 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+TsImportType() as $type where {
+    register_diagnostic(
+        span = $type,
+        message = "Don't use inline import types like `import('...').Type`. Add a top-level `import type` statement instead."
+    )
+}

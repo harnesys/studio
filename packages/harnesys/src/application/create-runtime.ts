@@ -2,6 +2,7 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { ResumeHashError } from '../domain/errors.ts';
 import type { Command, RunResult } from '../domain/run-result.ts';
+import type { Snapshot } from '../domain/snapshot.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
@@ -114,7 +115,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       const { plan } = compile(opts.definition);
       const hash = hashStr(JSON.stringify(opts.definition));
 
-      let snapForResume: import('../domain/snapshot.ts').Snapshot | null = null;
+      let snapForResume: Snapshot | null = null;
       if (command.type === 'resume') {
         snapForResume = await state.load();
         if (snapForResume?.definitionHash && snapForResume.definitionHash !== hash) {

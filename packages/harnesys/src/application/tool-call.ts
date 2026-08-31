@@ -1,5 +1,6 @@
 import type { ToolCallBatch, ToolCallFixed } from '../domain/agent-definition.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
+import type { JsonSchema } from '../domain/json-schema.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
@@ -280,7 +281,7 @@ export async function executeToolCall(
             approve: {
               tools: string[];
               reason: string;
-              resumeSchema: import('../domain/json-schema.ts').JsonSchema;
+              resumeSchema: JsonSchema;
             };
           }
         ).approve

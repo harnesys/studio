@@ -31,6 +31,7 @@ import { UpsertKnowledgeRootUseCase } from '../application/memory/upsert-knowled
 import { UpsertPinUseCase } from '../application/memory/upsert-pin.use-case.ts';
 import { UpsertSemanticUseCase } from '../application/memory/upsert-semantic.use-case.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
+import type { FilesWatcherInput } from '../domain/files-watcher.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
@@ -51,7 +52,7 @@ export type CreateStudioMemoryDeps = {
   providers: LlmProviderRepository;
   models: LlmModelRepository;
   workspaces: WorkspaceRepository;
-  filesWatcher?: import('../domain/files-watcher.port.ts').FilesWatcherInput;
+  filesWatcher?: FilesWatcherInput;
 };
 
 export type WireMemoryHttpDeps = {

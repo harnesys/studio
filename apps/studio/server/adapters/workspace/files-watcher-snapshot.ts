@@ -1,3 +1,4 @@
+import type { Dirent } from 'node:fs';
 import { readdir, stat } from 'node:fs/promises';
 import type { WorkspaceFileEvent, WorkspaceFileEventKind } from '../../../shared/types.ts';
 
@@ -16,12 +17,12 @@ async function walk(
   map: DirSnapshot,
   skipDirs: Set<string>,
 ): Promise<void> {
-  let items: import('node:fs').Dirent[] = [];
+  let items: Dirent[] = [];
   try {
     items = (await readdir(dir, {
       withFileTypes: true,
       encoding: 'utf8',
-    })) as unknown as import('node:fs').Dirent[];
+    })) as Dirent[];
   } catch {
     return;
   }

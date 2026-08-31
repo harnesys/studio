@@ -1,6 +1,12 @@
 import Ajv from 'ajv';
-import type { AgentDefinition } from '../domain/agent-definition.ts';
+import type {
+  AgentDefinition,
+  Node,
+  ToolCallBatch,
+  ToolCallFixed,
+} from '../domain/agent-definition.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
+import type { JsonSchema } from '../domain/json-schema.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { ModelBinding, ModelsPort, ProviderConfig } from '../ports/models.ts';
@@ -12,8 +18,8 @@ import type { Plan } from './compile.ts';
 import { evalExpr, evalWhen } from './expr-eval.ts';
 import { applyReducer, findBind, isPort, type MergeStateFn } from './graph-helpers.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
-import { runLlmGenerate } from './llm.ts';
-import { executeToolCall } from './tool-call.ts';
+import { type LlmResult, runLlmGenerate } from './llm.ts';
+import { executeToolCall, type ToolCallResult } from './tool-call.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
 
@@ -91,7 +97,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
   let cur = startId;
   if (loaded?.cursor) {
-    const curAny = loaded.cursor as unknown as {
+    const curAny = loaded.cursor as {
       currentNodeId?: string;
       nodes?: Record<string, { phase: string }>;
     };
@@ -174,7 +180,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       yield e;
       break;
     }
-    const node = opts.plan.nodes[cur] as import('../domain/agent-definition.ts').Node | undefined;
+    const node = opts.plan.nodes[cur] as Node | undefined;
     if (!node) {
       const e = await commit('failed', 'run.failed');
       yield e;
@@ -217,7 +223,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       if (ln.messages) {
         lastMsg = ln.messages;
       }
-      let binding: import('../ports/models.ts').ModelBinding | null = null;
+      let binding: ModelBinding | null = null;
       if (isPort(opts.models)) {
         const ref = ln.model as string | { provider: string; model: string } | undefined;
         const prov =
@@ -247,7 +253,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const fallbackBindings = resolveFallbackBindings(opts.agent, opts.models);
       const bindingsToTry = [binding, ...fallbackBindings];
       let lastError: unknown;
-      let res: import('./llm.ts').LlmResult | undefined;
+      let res: LlmResult | undefined;
       for (let attempt = 0; attempt < bindingsToTry.length; attempt++) {
         const currentBinding = bindingsToTry[attempt];
         if (!currentBinding) {
@@ -284,7 +290,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             } else if (event.type === 'model.chunk') {
               await commit('running', 'model.chunk');
             } else if (event.type === 'model.completed') {
-              res = event.data as import('./llm.ts').LlmResult;
+              res = event.data as LlmResult;
             }
           }
           if (res) {
@@ -333,9 +339,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         await commit('running', 'tool.requested');
       }
     } else if (node.type === 'tool:call') {
-      const tn = node as unknown as
-        | import('../domain/agent-definition.ts').ToolCallFixed
-        | import('../domain/agent-definition.ts').ToolCallBatch;
+      const tn = node as ToolCallFixed | ToolCallBatch;
       const needsIntent = (() => {
         const names: string[] = 'name' in tn && tn.name ? [tn.name] : [];
         return names.some((n) => {
@@ -347,7 +351,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       if (needsIntent) {
         await commit('running', 'tool.intent', 'intent');
       }
-      let res: { results: import('./tool-call.ts').ToolCallResult[] };
+      let res: { results: ToolCallResult[] };
       const outputBeforeBarrier = new Proxy((output as Record<string, unknown>) ?? {}, {
         get(target, prop, receiver) {
           if (prop === 'results') {
@@ -479,7 +483,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const ir = node as {
         type: 'control:interrupt';
         reason: string;
-        resumeSchema: import('../domain/json-schema.ts').JsonSchema;
+        resumeSchema: JsonSchema;
       };
       const interruptId = crypto.randomUUID();
       st.$resume = null;

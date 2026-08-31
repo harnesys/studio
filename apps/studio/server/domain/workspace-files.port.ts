@@ -1,5 +1,7 @@
+import type { WorkspaceFileEntry } from '../../shared/types.ts';
+
 export type WorkspaceFilesPort = {
-  listDir(absPath: string): Promise<import('../../shared/types.ts').WorkspaceFileEntry[]>;
+  listDir(absPath: string): Promise<WorkspaceFileEntry[]>;
   createFile(absPath: string): Promise<void>;
   createDir(absPath: string): Promise<void>;
   delete(absPath: string): Promise<void>;

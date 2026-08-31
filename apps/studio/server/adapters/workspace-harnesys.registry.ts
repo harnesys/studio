@@ -80,7 +80,7 @@ export class WorkspaceHarnesysRegistry {
       tools: [...files(), shell(), fetch(), askUser(), ...this.extraTools],
       agents: { resolve: (id: string) => this.resolveAgent(id) },
       mcp: mcpJson,
-      paths: { cwd: workspace.path },
+      paths: { allow: [workspace.path], cwd: workspace.path },
       skills,
     });
   }

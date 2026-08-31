@@ -5,11 +5,11 @@ export type CompactThreadRequest = {
 };
 
 export type CompactThreadInput = {
-  execute(request: CompactThreadRequest): Promise<CompactThreadResponse>;
+  execute(request: CompactThreadRequest): Promise<CompactThreadResponse> | CompactThreadResponse;
 };
 
 export class CompactThreadUseCase implements CompactThreadInput {
-  async execute(_request: CompactThreadRequest): Promise<CompactThreadResponse> {
+  execute(_request: CompactThreadRequest): Promise<CompactThreadResponse> | CompactThreadResponse {
     // Stub: compaction will be re-added in 0.8.0 with host tools
     return { compacted: false };
   }

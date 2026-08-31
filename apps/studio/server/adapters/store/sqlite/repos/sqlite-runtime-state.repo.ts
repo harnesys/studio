@@ -15,7 +15,7 @@ export class SqliteRuntimeState implements RuntimeState {
     this.sessionId = sessionId ?? crypto.randomUUID();
   }
 
-  async load(): Promise<Snapshot | null> {
+  load(): Promise<Snapshot | null> | Snapshot | null {
     const row = this.db
       .select()
       .from(snapshotsTable)
@@ -27,7 +27,7 @@ export class SqliteRuntimeState implements RuntimeState {
     return JSON.parse(row.snapshot) as Snapshot;
   }
 
-  async commit(snapshot: Snapshot, events: readonly Event[], meta: CommitMeta): Promise<void> {
+  commit(snapshot: Snapshot, events: readonly Event[], meta: CommitMeta): Promise<void> {
     const now = new Date().toISOString();
     this.db
       .insert(snapshotsTable)
@@ -64,6 +64,8 @@ export class SqliteRuntimeState implements RuntimeState {
         .onConflictDoNothing()
         .run();
     }
+
+    return Promise.resolve();
   }
 
   child(spawnId: string): RuntimeState {

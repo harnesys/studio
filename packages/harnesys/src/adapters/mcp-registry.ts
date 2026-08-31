@@ -174,10 +174,10 @@ function assertNoCollisions(
   }
 }
 
-async function appendResourceTools(
+function appendResourceTools(
   tools: ToolDefinition[],
   params: { serverId: string; prefix: string; conn: McpConnection },
-): Promise<void> {
+): void {
   const claimed = new Set(tools.map((item) => item.name));
   try {
     for (const item of createMcpResourceTools(params)) {

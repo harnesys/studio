@@ -8,7 +8,13 @@ import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
-import type { AgentRun, SendInput, SessionEvent, SessionHandle } from '../ports/session.ts';
+import type {
+  AgentRun,
+  AgentRunStatus,
+  SendInput,
+  SessionEvent,
+  SessionHandle,
+} from '../ports/session.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { compile } from './compile.ts';
 import { type GraphOpts, startGraph } from './graph.ts';
@@ -301,7 +307,7 @@ export function createSession(
     const run: AgentRun = {
       id: runId,
       get status() {
-        return status as AgentRun['status'];
+        return status as AgentRunStatus;
       },
       stream: async function* () {
         let idx = 0;

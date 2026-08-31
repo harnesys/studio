@@ -93,11 +93,17 @@ export function GitPane() {
             <div className="flex items-center gap-2">
               <GitBranchIcon className="size-4 text-muted-foreground" />
               <span className="font-medium">
-                {status.noCommits
-                  ? `${status.branch ?? 'HEAD'} (no commits)`
-                  : status.detached
-                    ? `detached at ${status.head?.slice(0, 7)}`
-                    : (status.branch ?? 'HEAD')}
+                {(() => {
+                  let branchLabel: string;
+                  if (status.noCommits) {
+                    branchLabel = `${status.branch ?? 'HEAD'} (no commits)`;
+                  } else if (status.detached) {
+                    branchLabel = `detached at ${status.head?.slice(0, 7)}`;
+                  } else {
+                    branchLabel = status.branch ?? 'HEAD';
+                  }
+                  return branchLabel;
+                })()}
               </span>
               {status.dirty ? (
                 <Badge variant="secondary" className="text-amber-700">

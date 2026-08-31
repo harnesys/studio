@@ -1,10 +1,10 @@
-import type { Webhook } from '../../domain/webhook.port.ts';
+import type { Webhook, WebhookStatus } from '../../domain/webhook.port.ts';
 
 export type WebhookRecord = {
   id: string;
   workspaceId: string;
   name: string;
-  status: Webhook['status'];
+  status: WebhookStatus;
   targetAgentId: string;
   detail: string;
   endpoint: string;

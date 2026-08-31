@@ -41,7 +41,14 @@ export async function foldAttachments(
     const kind = classify(mediaType);
 
     if (kind === 'file') {
-      const name = 'name' in file ? file.name : 'path' in file ? file.path : 'attachment';
+      let name: string;
+      if ('name' in file && file.name) {
+        name = file.name;
+      } else if ('path' in file) {
+        name = file.path;
+      } else {
+        name = 'attachment';
+      }
       results.push({ type: 'text', text: `[file: ${name}]` });
       continue;
     }

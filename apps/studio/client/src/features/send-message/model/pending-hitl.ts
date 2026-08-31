@@ -10,7 +10,10 @@ export type PendingHitl = {
 
 export function pendingHitl(events: SessionEvent[]): PendingHitl | null {
   for (let i = events.length - 1; i >= 0; i--) {
-    const ev = events[i]!;
+    const ev = events[i];
+    if (!ev) {
+      continue;
+    }
     if (ev.type === 'done' || ev.type === 'error') {
       return null;
     }

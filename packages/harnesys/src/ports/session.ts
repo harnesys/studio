@@ -35,9 +35,11 @@ export type SessionEvent =
   | { type: 'done'; text?: string }
   | { type: 'error'; code: string; message: string };
 
+export type AgentRunStatus = 'running' | 'needs_input' | 'completed' | 'failed' | 'cancelled';
+
 export type AgentRun = {
   id: string;
-  status: 'running' | 'needs_input' | 'completed' | 'failed' | 'cancelled';
+  status: AgentRunStatus;
   stream(): AsyncIterable<SessionEvent>;
   output: Promise<{ text: string }>;
   respond(askId: string, payload: unknown): Promise<void>;

@@ -1,5 +1,7 @@
 import type {
-  AgentDefinition,
+  AgentGenerationSettings,
+  AgentMemoryConfig,
+  AgentPaths,
   PermissionGate,
   PortRef,
   SessionEvent,
@@ -14,7 +16,14 @@ import {
   withChatGenerationParameters,
 } from 'harnesys';
 
-export type { PortRef, SessionEvent, ToolOutputSettings };
+export type {
+  AgentGenerationSettings,
+  AgentMemoryConfig,
+  AgentPaths,
+  PortRef,
+  SessionEvent,
+  ToolOutputSettings,
+};
 export {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,
@@ -23,12 +32,6 @@ export {
   THRESHOLD_SUMMARY_NAME,
   withChatGenerationParameters,
 };
-
-export type AgentGenerationSettings = NonNullable<AgentDefinition['model']>['generation'];
-
-export type AgentMemoryConfig = NonNullable<AgentDefinition['memory']>;
-
-export type AgentPaths = NonNullable<AgentDefinition['paths']>;
 export type AgentProjectPaths = AgentPaths;
 
 export type AgentSpec = {

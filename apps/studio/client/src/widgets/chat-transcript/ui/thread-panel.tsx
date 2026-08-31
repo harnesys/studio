@@ -153,7 +153,10 @@ function useFollowLive(threadId: string): void {
   const liveRunId = useSessionStore((state) => {
     const events = state.events[threadId] ?? [];
     const hasDone = events.some((ev) => ev.type === 'done' || ev.type === 'error');
-    return hasDone ? null : events[0]?.type === 'tool' ? events[0].toolCallId : null;
+    if (hasDone) {
+      return null;
+    }
+    return events[0]?.type === 'tool' ? events[0].toolCallId : null;
   });
 
   useEffect(() => {

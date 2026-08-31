@@ -219,7 +219,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       list: () => mcpRegistry?.list() ?? [],
     },
     reloadSkills: () => {
-      options.skills?.reload();
+      void options.skills?.reload();
     },
     reloadMcp: async () => {
       await mcpRegistry?.reload();

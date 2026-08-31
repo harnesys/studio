@@ -9,7 +9,7 @@ export function MessageAttachments({ entry, threadId }: { entry: HumanEntry; thr
   }
   return (
     <div className="flex flex-wrap justify-end gap-2">
-      {attachments.map((item: any) => (
+      {attachments.map((item: ThreadAttachment) => (
         <AttachmentPreview key={item.id} threadId={threadId} item={item} />
       ))}
     </div>

@@ -34,7 +34,10 @@ export async function followLiveThread(threadId: string): Promise<void> {
 
 function findLastRunEvent(events: SessionEvent[]): SessionEvent | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
-    const ev = events[i]!;
+    const ev = events[i];
+    if (!ev) {
+      continue;
+    }
     if (ev.type === 'done' || ev.type === 'error') {
       return undefined;
     }

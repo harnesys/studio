@@ -40,12 +40,13 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState('');
   const name = pending.tool?.name ?? 'tool';
-  const inputStr =
-    pending.tool?.input != null
-      ? typeof pending.tool.input === 'string'
+  let inputStr = '';
+  if (pending.tool?.input != null) {
+    inputStr =
+      typeof pending.tool.input === 'string'
         ? pending.tool.input
-        : JSON.stringify(pending.tool.input)
-      : '';
+        : JSON.stringify(pending.tool.input);
+  }
   const summary = summarizeToolInput(name, inputStr);
   const pathLine = summary.lines.find((line) => line.label === 'path')?.value;
   const detailLines = summary.lines.filter((line) => line.label !== 'path');

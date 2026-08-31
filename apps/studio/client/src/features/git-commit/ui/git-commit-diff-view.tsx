@@ -7,6 +7,14 @@ import { getGitDiff, gitDiffQueryKey } from '@/shared/api/git';
 import { detectLanguage } from '@/shared/lib/tool-code';
 import { useTheme } from '@/shared/ui/theme-provider';
 
+import {
+  type DiffEditorInstance,
+  defineThemes,
+  type MonacoInstance,
+  type TextModel,
+  type UpdateModelsParams,
+} from './git-commit-diff-view-types';
+
 let monacoPromise: Promise<unknown> | null = null;
 
 export function GitCommitDiffView({
@@ -119,10 +127,12 @@ function MonacoDiffEditor({
     if (!monacoPromise) {
       monacoPromise = loader.init();
     }
-    monacoPromise.then((monaco) => {
-      defineThemes(monaco);
-      setReady(true);
-    });
+    monacoPromise
+      .then((monaco) => {
+        defineThemes(monaco);
+        setReady(true);
+      })
+      .catch(() => {});
   }, []);
 
   // create diff editor
@@ -131,7 +141,7 @@ function MonacoDiffEditor({
       return;
     }
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const monaco = (await monacoPromise) as MonacoInstance;
       if (cancelled || !containerRef.current) {
         return;
@@ -158,8 +168,14 @@ function MonacoDiffEditor({
         theme: resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light',
       });
       editorRef.current = diffEditor;
-      // set initial models if already have strings
-      updateModels(monaco, diffEditor, language, original, modified, path);
+      updateModels({
+        monaco,
+        editor: diffEditor,
+        lang: language,
+        orig: original,
+        mod: modified,
+        filePath: path,
+      });
     })();
     return () => {
       cancelled = true;
@@ -183,10 +199,12 @@ function MonacoDiffEditor({
     if (!ready) {
       return;
     }
-    monacoPromise?.then((m) => {
-      const monaco = m as MonacoInstance;
-      monaco.editor.setTheme(resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light');
-    });
+    monacoPromise
+      ?.then((m) => {
+        const monaco = m as MonacoInstance;
+        monaco.editor.setTheme(resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light');
+      })
+      .catch(() => {});
   }, [resolved, ready]);
 
   // update models when content/path/language changes
@@ -194,14 +212,23 @@ function MonacoDiffEditor({
     if (!ready || !editorRef.current) {
       return;
     }
-    monacoPromise?.then((m) => {
-      const monaco = m as MonacoInstance;
-      const editor = editorRef.current as DiffEditorInstance;
-      if (!editor) {
-        return;
-      }
-      updateModels(monaco, editor, language, original, modified, path);
-    });
+    monacoPromise
+      ?.then((m) => {
+        const monaco = m as MonacoInstance;
+        const editor = editorRef.current as DiffEditorInstance;
+        if (!editor) {
+          return;
+        }
+        updateModels({
+          monaco,
+          editor,
+          lang: language,
+          orig: original,
+          mod: modified,
+          filePath: path,
+        });
+      })
+      .catch(() => {});
   }, [language, original, modified, path, ready]);
 
   function disposeModels() {
@@ -218,15 +245,7 @@ function MonacoDiffEditor({
     modelsRef.current = null;
   }
 
-  function updateModels(
-    monaco: MonacoInstance,
-    editor: DiffEditorInstance,
-    lang: string,
-    orig: string,
-    mod: string,
-    filePath: string,
-  ) {
-    // clear previous models first to avoid TextModel disposed error
+  function updateModels({ monaco, editor, lang, orig, mod, filePath }: UpdateModelsParams) {
     const prevModels = editor.getModel();
     if (prevModels) {
       try {
@@ -249,7 +268,6 @@ function MonacoDiffEditor({
     try {
       editor.setModel({ original: originalModel, modified: modifiedModel });
     } catch {
-      // if editor disposed during async, clean up
       try {
         originalModel.dispose();
       } catch {}
@@ -262,28 +280,6 @@ function MonacoDiffEditor({
   return <div ref={containerRef} className="h-full w-full" />;
 }
 
-type MonacoInstance = {
-  editor: {
-    createModel: (value: string, language?: string, uri?: unknown) => TextModel;
-    createDiffEditor: (domElement: HTMLElement, options?: unknown) => DiffEditorInstance;
-    setTheme: (name: string) => void;
-    defineTheme: (name: string, theme: unknown) => void;
-  };
-  Uri: {
-    parse: (value: string) => unknown;
-  };
-};
-
-type TextModel = {
-  dispose: () => void;
-};
-
-type DiffEditorInstance = {
-  setModel: (model: { original: unknown; modified: unknown } | null) => void;
-  getModel: () => unknown | null;
-  dispose: () => void;
-};
-
 function resolveTheme(theme: 'dark' | 'light' | 'system'): 'dark' | 'light' {
   if (theme === 'dark' || theme === 'light') {
     return theme;
@@ -295,40 +291,4 @@ function resolveTheme(theme: 'dark' | 'light' | 'system'): 'dark' | 'light' {
     return 'dark';
   }
   return 'light';
-}
-
-function defineThemes(monaco: unknown) {
-  const m = monaco as {
-    editor: {
-      defineTheme: (name: string, theme: unknown) => void;
-    };
-  };
-  try {
-    m.editor.defineTheme('harnesys-dark', {
-      base: 'vs-dark',
-      inherit: false,
-      rules: [
-        { token: '', foreground: 'BCBEC4' },
-        { token: 'comment', foreground: '7A7E85' },
-        { token: 'keyword', foreground: 'CF8E6D' },
-        { token: 'string', foreground: '6AAB73' },
-        { token: 'number', foreground: '2AACB8' },
-      ],
-      colors: {
-        'editor.background': '#0f1114',
-        'editorGutter.background': '#0f1114',
-      },
-    });
-    m.editor.defineTheme('harnesys-light', {
-      base: 'vs',
-      inherit: true,
-      rules: [],
-      colors: {
-        'editor.background': '#f4f5f6',
-        'editorGutter.background': '#f4f5f6',
-      },
-    });
-  } catch {
-    // theme already defined
-  }
 }

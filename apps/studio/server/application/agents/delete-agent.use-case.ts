@@ -1,4 +1,5 @@
 import type { AgentRepository } from '../../domain/agent.port.ts';
+import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { requireAgent } from './agent.helpers.ts';
 
 export type DeleteAgentRequest = {
@@ -11,10 +12,14 @@ export type DeleteAgentInput = {
 };
 
 export class DeleteAgentUseCase implements DeleteAgentInput {
-  constructor(private readonly agents: AgentRepository) {}
+  constructor(
+    private readonly agents: AgentRepository,
+    private readonly threads: ThreadRepository,
+  ) {}
 
   async execute(request: DeleteAgentRequest): Promise<void> {
     requireAgent(this.agents, request.workspaceId, request.id);
+    this.threads.deleteByAgent(request.id);
     this.agents.delete(request.id);
     await Promise.resolve();
   }

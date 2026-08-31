@@ -167,13 +167,12 @@ export function WorkspaceSidebar() {
               if (!draft || !workspaceId) {
                 return;
               }
-              const agent = await createAgent(workspaceId, draft);
-              if (agent) {
-                const thread = useThreadStore.getState().create(agent.id, 'New thread');
-                if (thread) {
-                  useIdeStore.getState().openThread(workspaceId, agent.id, thread.id);
-                  await navigate(studioPath.workspaceThread(workspaceId, agent.id, thread.id));
-                }
+              const result = await createAgent(workspaceId, draft);
+              if (result) {
+                useIdeStore.getState().openThread(workspaceId, result.agent.id, result.thread.id);
+                await navigate(
+                  studioPath.workspaceThread(workspaceId, result.agent.id, result.thread.id),
+                );
               }
             });
           }}

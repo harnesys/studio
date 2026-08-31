@@ -1,9 +1,17 @@
 import { type Agent, type AgentDraft, toClientAgent, useAgentStore } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
-import { toClientThread, useThreadStore } from '@/entities/thread';
+import { type Thread, toClientThread, useThreadStore } from '@/entities/thread';
 import { createAgentRecord, createThreadRecord } from '@/shared/api';
 
-export async function createAgent(workspaceId: string, draft: AgentDraft): Promise<Agent | null> {
+export type CreateAgentResult = {
+  agent: Agent;
+  thread: Thread;
+};
+
+export async function createAgent(
+  workspaceId: string,
+  draft: AgentDraft,
+): Promise<CreateAgentResult | null> {
   const name = draft.name.trim();
   if (!workspaceId || !name) {
     return null;
@@ -19,8 +27,9 @@ export async function createAgent(workspaceId: string, draft: AgentDraft): Promi
   });
   const agent = toClientAgent(record);
   useAgentStore.getState().upsert(agent);
-  const thread = await createThreadRecord({ workspaceId, agentId: record.id });
-  useThreadStore.getState().upsert(toClientThread(thread));
-  useSessionStore.getState().replaceEvents(thread.id, thread.events);
-  return agent;
+  const threadRecord = await createThreadRecord({ workspaceId, agentId: record.id });
+  const thread = toClientThread(threadRecord);
+  useThreadStore.getState().upsert(thread);
+  useSessionStore.getState().replaceEvents(threadRecord.id, threadRecord.events);
+  return { agent, thread };
 }

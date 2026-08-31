@@ -12,7 +12,7 @@ export const threadsTable = sqliteTable(
       .references((): AnySQLiteColumn => workspacesTable.id, { onDelete: 'cascade' }),
     agentId: text('agent_id')
       .notNull()
-      .references((): AnySQLiteColumn => agentsTable.id),
+      .references((): AnySQLiteColumn => agentsTable.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     kind: text('kind', { enum: ['chat', 'schedule'] })
       .notNull()

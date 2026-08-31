@@ -198,7 +198,7 @@ export function wireControllers(d: ControllerDeps): void {
     listAgents: new ListAgentsUseCase(d.agentRepo),
     createAgent: new CreateAgentUseCase(d.agentRepo),
     updateAgent: new UpdateAgentUseCase(d.agentRepo),
-    deleteAgent: new DeleteAgentUseCase(d.agentRepo),
+    deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo),
   }).register(d.app);
 
   const getThread = new GetThreadUseCase(d.threadRepo, d.agentRepo, d.db);

@@ -51,18 +51,14 @@ export function IdeHome() {
                 if (!draft || !workspaceId) {
                   return;
                 }
-                const agent = await createAgent(workspaceId, draft);
-                if (!agent) {
+                const result = await createAgent(workspaceId, draft);
+                if (!result) {
                   return;
                 }
-                const { useThreadStore } = await import('@/entities/thread');
-                const thread = useThreadStore.getState().create(agent.id, 'New thread');
-                if (thread) {
-                  useIdeStore.getState().openThread(workspaceId, agent.id, thread.id);
-                  void navigate(studioPath.workspaceThread(workspaceId, agent.id, thread.id));
-                } else {
-                  void navigate(studioPath.workspaceAgent(workspaceId, agent.id));
-                }
+                useIdeStore.getState().openThread(workspaceId, result.agent.id, result.thread.id);
+                void navigate(
+                  studioPath.workspaceThread(workspaceId, result.agent.id, result.thread.id),
+                );
               });
             }}
           />

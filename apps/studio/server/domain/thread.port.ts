@@ -28,5 +28,6 @@ export type ThreadRepository = {
   markRead(id: string): Thread;
   touch(id: string): void;
   delete(id: string): void;
+  deleteByAgent(agentId: string): void;
   deleteByWorkspace(workspaceId: string): void;
 };

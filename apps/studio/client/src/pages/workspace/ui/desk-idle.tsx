@@ -45,9 +45,9 @@ export function DeskIdle() {
                 if (!draft || !workspaceId) {
                   return;
                 }
-                const agent = await createAgent(workspaceId, draft);
-                if (agent) {
-                  openAgent(workspaceId, agent.id);
+                const result = await createAgent(workspaceId, draft);
+                if (result) {
+                  openAgent(workspaceId, result.agent.id);
                 }
               });
             }}

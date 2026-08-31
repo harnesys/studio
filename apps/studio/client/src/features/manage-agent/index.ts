@@ -12,7 +12,7 @@ export {
   sanitizeForModel,
   toAgentDraft,
 } from './model/agent-fields';
-export { createAgent } from './model/create-agent';
+export { type CreateAgentResult, createAgent } from './model/create-agent';
 export { deleteAgent } from './model/delete-agent';
 export type { ModelGroup, ModelOption } from './model/model-groups';
 export { modelGroups, modelOptions } from './model/model-groups';

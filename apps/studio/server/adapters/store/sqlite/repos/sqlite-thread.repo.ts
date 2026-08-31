@@ -78,6 +78,10 @@ export class SqliteThreadRepo implements ThreadRepository {
     this.db.delete(threadsTable).where(eq(threadsTable.id, id)).run();
   }
 
+  deleteByAgent(agentId: string): void {
+    this.db.delete(threadsTable).where(eq(threadsTable.agentId, agentId)).run();
+  }
+
   deleteByWorkspace(workspaceId: string): void {
     this.db.delete(threadsTable).where(eq(threadsTable.workspaceId, workspaceId)).run();
   }

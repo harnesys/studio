@@ -20,6 +20,13 @@ function rowToSessionEvent(row: {
       meta = null;
     }
   }
+  if (row.type === 'user.message') {
+    const text = meta?.text as string | undefined;
+    if (typeof text === 'string' && text) {
+      return { type: 'user', text };
+    }
+    return null;
+  }
   if (row.type === 'model.delta') {
     const text = meta?.text as string | undefined;
     if (typeof text === 'string' && text) {

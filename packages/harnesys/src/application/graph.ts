@@ -211,6 +211,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             st[msgKey] = arr;
           }
           arr.push({ role: 'user', content: inpAny.text });
+          const ue = await commit('running', 'user.message', 'recorded', { text: inpAny.text });
+          yield ue;
         } else if (Array.isArray(inpAny.messages) && !Array.isArray(st[msgKey])) {
           st[msgKey] = [...(inpAny.messages as unknown[])];
         }

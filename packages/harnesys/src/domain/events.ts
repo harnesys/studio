@@ -12,6 +12,7 @@ export const EVENT_TYPES = {
   NODE_COMPLETED: 'node.completed',
   NODE_FAILED: 'node.failed',
   STATE_COMMITTED: 'state.committed',
+  USER_MESSAGE: 'user.message',
   MODEL_REQUESTED: 'model.requested',
   MODEL_DELTA: 'model.delta',
   MODEL_REASONING: 'model.reasoning',

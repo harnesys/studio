@@ -15,6 +15,7 @@ export type SendInput =
     };
 
 export type SessionEvent =
+  | { type: 'user'; text: string; id?: string }
   | { type: 'text-delta'; text: string; id?: string }
   | { type: 'reasoning-delta'; text: string; id?: string }
   | { type: 'reasoning-start'; id: string }

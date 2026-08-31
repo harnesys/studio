@@ -45,6 +45,14 @@ function normalizeInput(input: SendInput): unknown {
 
 function eventToSessionEvent(ev: Event): SessionEvent | null {
   const t = ev.type;
+  if (t === 'user.message') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const raw = m?.text as string | undefined;
+    if (typeof raw === 'string' && raw) {
+      return { type: 'user', text: raw };
+    }
+    return null;
+  }
   if (t === 'model.delta') {
     const m = ev.metadata as Record<string, unknown> | undefined;
     const raw = m?.text;

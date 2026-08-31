@@ -2,6 +2,7 @@ import type { SessionEvent } from '@studio/shared';
 
 export type TurnSegment =
   | { type: 'activity'; events: SessionEvent[] }
+  | { type: 'user'; event: SessionEvent & { type: 'user' } }
   | { type: 'text'; event: SessionEvent & { type: 'text-delta' } }
   | { type: 'ask'; event: SessionEvent & { type: 'ask' } };
 
@@ -18,6 +19,11 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
   };
 
   for (const ev of events) {
+    if (ev.type === 'user') {
+      flushActivity();
+      segments.push({ type: 'user', event: ev as SessionEvent & { type: 'user' } });
+      continue;
+    }
     if (ev.type === 'text-delta') {
       flushActivity();
       segments.push({ type: 'text', event: ev });
@@ -44,6 +50,9 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
 }
 
 export function segmentKey(segment: TurnSegment, index: number): string {
+  if (segment.type === 'user') {
+    return `user-${index}-${segment.event.text.slice(0, 20)}`;
+  }
   if (segment.type === 'text') {
     return `text-${index}`;
   }
@@ -66,6 +75,9 @@ export function segmentSpacing(segments: TurnSegment[], index: number): string |
   }
   const prev = segments[index - 1];
   const curr = segments[index];
+  if (prev?.type === 'user' || curr?.type === 'user') {
+    return 'mt-4';
+  }
   if (prev?.type === 'activity' && (curr?.type === 'text' || curr?.type === 'ask')) {
     return 'mt-4';
   }

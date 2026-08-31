@@ -56,6 +56,48 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   appendEvent(threadId, event) {
     set((state) => {
       const current = state.events[threadId] ?? [];
+      const last = current[current.length - 1];
+      if (
+        last &&
+        event.type === 'text-delta' &&
+        last.type === 'text-delta' &&
+        last.id === event.id
+      ) {
+        const merged: SessionEvent = { ...last, text: last.text + event.text };
+        return {
+          events: { ...state.events, [threadId]: [...current.slice(0, -1), merged] },
+          contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+        };
+      }
+      if (
+        last &&
+        event.type === 'reasoning-delta' &&
+        last.type === 'reasoning-delta' &&
+        last.id === event.id
+      ) {
+        const merged: SessionEvent = { ...last, text: last.text + event.text };
+        return {
+          events: { ...state.events, [threadId]: [...current.slice(0, -1), merged] },
+          contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+        };
+      }
+      if (
+        last &&
+        event.type === 'tool' &&
+        last.type === 'tool' &&
+        last.phase === 'streaming' &&
+        event.phase === 'streaming' &&
+        last.toolCallId === event.toolCallId
+      ) {
+        const merged: SessionEvent = {
+          ...last,
+          delta: (last.delta ?? '') + (event.delta ?? ''),
+        };
+        return {
+          events: { ...state.events, [threadId]: [...current.slice(0, -1), merged] },
+          contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+        };
+      }
       return {
         events: { ...state.events, [threadId]: [...current, event] },
         contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },

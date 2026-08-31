@@ -17,6 +17,8 @@ session.resume(opts?) → AgentRun // после load needs_input
 ### SendInput (как Harnyx)
 
 ```ts
+type Attachment = { id: string; kind: 'image'|'audio'|'video'|'file'; name: string; mediaType: string; path: string }
+
 type SendInput =
   | string
   | {
@@ -25,6 +27,7 @@ type SendInput =
       audio?: SendFile[]
       video?: SendFile[]
       files?: SendFile[]
+      attachments?: Attachment[] // id-preserving (для preview)
       origin?: string
     }
 ```
@@ -54,7 +57,7 @@ type SendInput =
 ### SessionEvent
 
 ```ts
-| { type: 'user'; text: string; id?: string }
+| { type: 'user'; text: string; attachments?: Attachment[]; origin?: string; id?: string }
 | { type: 'text-delta'; text: string; id?: string }
 | { type: 'reasoning-delta'; text: string; id?: string }
 | { type: 'reasoning-start'; id: string }

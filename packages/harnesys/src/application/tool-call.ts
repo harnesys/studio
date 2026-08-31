@@ -38,6 +38,20 @@ export type ToolCallContext = {
   resumePayload?: unknown;
 };
 
+function serializeToolOutput(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value == null) {
+    return '';
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
 function codeError(code: string, message: string): never {
   throw Object.assign(new Error(message), { code });
 }
@@ -173,7 +187,7 @@ export async function executeToolCall(
         role: 'tool',
         toolCallId: call.id,
         name: call.name,
-        content: validation.errors,
+        content: serializeToolOutput(validation.errors),
       };
       return;
     }
@@ -245,7 +259,7 @@ export async function executeToolCall(
         role: 'tool',
         toolCallId: call.id,
         name: call.name,
-        content: String(value ?? ''),
+        content: serializeToolOutput(value),
       };
     } catch (e) {
       if ((e as { name?: string }).name === 'AbortError' || callCtx.signal.aborted) {

@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import type { SessionEvent } from 'harnesys';
+import type { Attachment, SessionEvent } from 'harnesys';
 import type { ThreadRecord } from '../../../shared/types.ts';
 import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import { eventsTable } from '../../adapters/store/sqlite/schema/events.ts';
@@ -22,10 +22,18 @@ function rowToSessionEvent(row: {
   }
   if (row.type === 'user.message') {
     const text = meta?.text as string | undefined;
-    if (typeof text === 'string' && text) {
-      return { type: 'user', text };
+    const atts = meta?.attachments as Attachment[] | undefined;
+    const origin = typeof meta?.origin === 'string' ? meta.origin : undefined;
+    const t = typeof text === 'string' ? text : '';
+    if (!t && (!atts || atts.length === 0)) {
+      return null;
     }
-    return null;
+    return {
+      type: 'user',
+      text: t,
+      attachments: Array.isArray(atts) && atts.length > 0 ? atts : undefined,
+      origin,
+    };
   }
   if (row.type === 'model.delta') {
     const text = meta?.text as string | undefined;

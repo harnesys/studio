@@ -86,7 +86,7 @@ export async function* runLlmGenerate(
   };
   const prompt = substitutePrompt(rawInstructions, slots);
   const messages = resolveMessages(node, ctx);
-  const toolNames = node.tools ?? [];
+  const toolNames = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
 
   const stream = callModel(
     ctx.modelBinding,

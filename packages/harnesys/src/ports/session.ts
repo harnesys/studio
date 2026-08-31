@@ -1,3 +1,4 @@
+import type { Attachment } from '../domain/attachment.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import type { SendFile } from './artifacts.ts';
 import type { PathsConfig } from './paths.ts';
@@ -11,11 +12,12 @@ export type SendInput =
       audio?: SendFile[];
       video?: SendFile[];
       files?: SendFile[];
+      attachments?: Attachment[];
       origin?: string;
     };
 
 export type SessionEvent =
-  | { type: 'user'; text: string; id?: string }
+  | { type: 'user'; text: string; attachments?: Attachment[]; origin?: string; id?: string }
   | { type: 'text-delta'; text: string; id?: string }
   | { type: 'reasoning-delta'; text: string; id?: string }
   | { type: 'reasoning-start'; id: string }

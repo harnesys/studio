@@ -1,3 +1,5 @@
+import type { Attachment } from './attachment.ts';
+
 export const EVENT_TYPES = {
   RUN_STARTED: 'run.started',
   RUN_COMPLETED: 'run.completed',
@@ -55,6 +57,12 @@ export type NodeEventMeta = {
   nodeId: string;
   phase: string;
   nodeExecutionId: string;
+};
+
+export type UserEventMeta = {
+  text?: string;
+  attachments?: Attachment[];
+  origin?: string;
 };
 
 export type ModelEventMeta = {

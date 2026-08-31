@@ -1,4 +1,5 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
+import type { Attachment } from '../domain/attachment.ts';
 import { PendingHitlError, ThreadBusyError } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import type { Middleware } from '../domain/middleware.ts';
@@ -48,10 +49,18 @@ function eventToSessionEvent(ev: Event): SessionEvent | null {
   if (t === 'user.message') {
     const m = ev.metadata as Record<string, unknown> | undefined;
     const raw = m?.text as string | undefined;
-    if (typeof raw === 'string' && raw) {
-      return { type: 'user', text: raw };
+    const atts = m?.attachments as Attachment[] | undefined;
+    const origin = typeof m?.origin === 'string' ? m.origin : undefined;
+    const text = typeof raw === 'string' ? raw : '';
+    if (!text && (!atts || atts.length === 0)) {
+      return null;
     }
-    return null;
+    return {
+      type: 'user',
+      text,
+      attachments: Array.isArray(atts) && atts.length > 0 ? atts : undefined,
+      origin,
+    };
   }
   if (t === 'model.delta') {
     const m = ev.metadata as Record<string, unknown> | undefined;

@@ -67,10 +67,14 @@ export function toolCaption(
 
 function toolInput(call: SessionEvent & { type: 'tool' }): string {
   const input = call.input;
-  if (input == null) {
-    return '';
+  if (input != null) {
+    return typeof input === 'string' ? input : JSON.stringify(input);
   }
-  return typeof input === 'string' ? input : JSON.stringify(input);
+  const delta = (call as { delta?: string }).delta;
+  if (typeof delta === 'string' && delta) {
+    return delta;
+  }
+  return '';
 }
 
 function toolOutput(result: SessionEvent & { type: 'tool' }): string {

@@ -57,6 +57,13 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     set((state) => {
       const current = state.events[threadId] ?? [];
       const last = current[current.length - 1];
+      if (event.type === 'user' && last?.type === 'user' && last.text === event.text) {
+        const lastIds = last.attachments?.map((a) => a.id).join(',') ?? '';
+        const evIds = event.attachments?.map((a) => a.id).join(',') ?? '';
+        if (lastIds === evIds) {
+          return state;
+        }
+      }
       if (
         last &&
         event.type === 'text-delta' &&

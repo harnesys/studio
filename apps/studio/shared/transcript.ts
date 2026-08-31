@@ -1,7 +1,7 @@
-import type { SessionEvent } from 'harnesys';
+import type { Attachment, SessionEvent } from 'harnesys';
 
 export type TranscriptItem =
-  | { type: 'user'; text: string }
+  | { type: 'user'; text: string; attachments?: Attachment[]; origin?: string }
   | { type: 'assistant'; text: string }
   | {
       type: 'tool';
@@ -18,7 +18,9 @@ export type TranscriptItem =
 export function toTranscript(events: SessionEvent[]): TranscriptItem[] {
   const out: TranscriptItem[] = [];
   for (const ev of events) {
-    if (ev.type === 'text-delta') {
+    if (ev.type === 'user') {
+      out.push({ type: 'user', text: ev.text, attachments: ev.attachments, origin: ev.origin });
+    } else if (ev.type === 'text-delta') {
       if (ev.text) {
         out.push({ type: 'assistant', text: ev.text });
       }

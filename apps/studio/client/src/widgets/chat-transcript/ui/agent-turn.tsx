@@ -3,8 +3,10 @@ import { AlertCircleIcon } from 'lucide-react';
 
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
+import { attachmentUrl } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
+import { FileChip } from '@/shared/ui/file-chip';
 import { Markdown } from '@/shared/ui/markdown';
 import { toast } from '@/shared/ui/toast';
 
@@ -148,11 +150,23 @@ function TurnSegmentView({
   runId: string;
 }) {
   if (segment.type === 'user') {
+    const thread = useSelectedThread();
+    const tid = thread?.id ?? '';
+    const atts = segment.event.attachments;
     return (
-      <div className="flex justify-end py-1">
-        <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-muted px-3 py-1.5 text-sm">
-          {segment.event.text}
-        </div>
+      <div className="flex flex-col items-end gap-2 py-1">
+        {atts?.length ? (
+          <div className="flex max-w-[80%] flex-wrap justify-end gap-2">
+            {atts.map((item) => (
+              <AttachmentPreview key={item.id} threadId={tid} item={item} />
+            ))}
+          </div>
+        ) : null}
+        {segment.event.text ? (
+          <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-muted px-3 py-1.5 text-sm">
+            {segment.event.text}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -168,5 +182,37 @@ function TurnSegmentView({
     <div className="flex flex-col gap-1">
       {segment.event.text ? <Markdown text={segment.event.text} /> : null}
     </div>
+  );
+}
+
+function AttachmentPreview({
+  threadId,
+  item,
+}: {
+  threadId: string;
+  item: { id: string; kind: string; name: string; mediaType: string; path: string };
+}) {
+  const src = attachmentUrl(threadId, item.id);
+  if (item.kind === 'audio') {
+    return (
+      <audio controls src={src} className="h-9 max-w-64">
+        <track kind="captions" />
+      </audio>
+    );
+  }
+  if (item.kind === 'video') {
+    return (
+      <video controls src={src} className="max-h-48 max-w-64 rounded-xl">
+        <track kind="captions" />
+      </video>
+    );
+  }
+  return (
+    <FileChip
+      name={item.name}
+      mediaType={item.mediaType ?? ''}
+      href={src}
+      previewUrl={item.kind === 'image' ? src : undefined}
+    />
   );
 }

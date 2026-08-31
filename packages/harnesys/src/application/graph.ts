@@ -5,6 +5,7 @@ import type {
   ToolCallBatch,
   ToolCallFixed,
 } from '../domain/agent-definition.ts';
+import type { Attachment, AttachmentKind } from '../domain/attachment.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import type { Event } from '../domain/snapshot.ts';
@@ -29,6 +30,64 @@ import { executeToolCall, type ToolCallResult } from './tool-call.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
 
+function normalizeInputAttachments(input: unknown): {
+  text?: string;
+  attachments?: Attachment[];
+  origin?: string;
+} {
+  if (typeof input === 'string') {
+    return input ? { text: input } : {};
+  }
+  if (!input || typeof input !== 'object') {
+    return {};
+  }
+  const rec = input as Record<string, unknown>;
+  const text = typeof rec.text === 'string' ? rec.text : undefined;
+  const origin = typeof rec.origin === 'string' ? rec.origin : undefined;
+  const atts: Attachment[] = [];
+  const pushFiles = (arr: unknown, kind: AttachmentKind) => {
+    if (!Array.isArray(arr)) {
+      return;
+    }
+    for (const f of arr as Record<string, unknown>[]) {
+      const p = typeof f.path === 'string' ? f.path : '';
+      if (!p) {
+        continue;
+      }
+      atts.push({
+        id: crypto.randomUUID(),
+        kind,
+        name: typeof f.name === 'string' && f.name ? f.name : (p.split(/[\\/]/).at(-1) ?? 'file'),
+        mediaType: typeof f.mediaType === 'string' ? f.mediaType : '',
+        path: p,
+      });
+    }
+  };
+  pushFiles(rec.images, 'image');
+  pushFiles(rec.audio, 'audio');
+  pushFiles(rec.video, 'video');
+  pushFiles(rec.files, 'file');
+  if (Array.isArray(rec.attachments)) {
+    for (const a of rec.attachments as Record<string, unknown>[]) {
+      const k = a.kind as AttachmentKind;
+      if (k === 'image' || k === 'audio' || k === 'video' || k === 'file') {
+        atts.push({
+          id: typeof a.id === 'string' ? a.id : crypto.randomUUID(),
+          kind: k,
+          name: typeof a.name === 'string' ? a.name : 'file',
+          mediaType: typeof a.mediaType === 'string' ? a.mediaType : '',
+          path: typeof a.path === 'string' ? a.path : '',
+        });
+      }
+    }
+  }
+  return {
+    text: text || undefined,
+    attachments: atts.length > 0 ? atts : undefined,
+    origin: origin || undefined,
+  };
+}
+
 function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') {
     return JSON.stringify(value);
@@ -38,6 +97,20 @@ function canonicalJson(value: unknown): string {
   }
   const keys = Object.keys(value as Record<string, unknown>).sort();
   return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson((value as Record<string, unknown>)[k])}`).join(',')}}`;
+}
+
+function serializeToolResult(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value == null) {
+    return '';
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 export type GraphOpts = {
@@ -203,19 +276,49 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       if (input && typeof input === 'object') {
         const inpAny = input as Record<string, unknown>;
         const msgKey = 'messages';
-        if (typeof inpAny.text === 'string' && inpAny.text) {
+        const normalized = normalizeInputAttachments(input);
+        const hasUserContent = Boolean(normalized.text || normalized.attachments);
+        if (hasUserContent) {
           let arr = st[msgKey] as unknown[] | undefined;
           if (!Array.isArray(arr)) {
             const m = inpAny.messages;
             arr = Array.isArray(m) ? [...(m as unknown[])] : [];
             st[msgKey] = arr;
           }
-          arr.push({ role: 'user', content: inpAny.text });
-          const ue = await commit('running', 'user.message', 'recorded', { text: inpAny.text });
+          const content = normalized.text ?? '';
+          const userMsg: Record<string, unknown> = { role: 'user', content };
+          if (normalized.attachments) {
+            userMsg.attachments = normalized.attachments;
+          }
+          if (normalized.origin) {
+            userMsg.origin = normalized.origin;
+          }
+          arr.push(userMsg);
+          const meta: Record<string, unknown> = {};
+          if (normalized.text) {
+            meta.text = normalized.text;
+          }
+          if (normalized.attachments) {
+            meta.attachments = normalized.attachments;
+          }
+          if (normalized.origin) {
+            meta.origin = normalized.origin;
+          }
+          const ue = await commit('running', 'user.message', 'recorded', meta);
           yield ue;
         } else if (Array.isArray(inpAny.messages) && !Array.isArray(st[msgKey])) {
           st[msgKey] = [...(inpAny.messages as unknown[])];
         }
+      } else if (typeof input === 'string' && input) {
+        const msgKey = 'messages';
+        let arr = st[msgKey] as unknown[] | undefined;
+        if (!Array.isArray(arr)) {
+          arr = [];
+          st[msgKey] = arr;
+        }
+        arr.push({ role: 'user', content: input });
+        const ue = await commit('running', 'user.message', 'recorded', { text: input });
+        yield ue;
       }
       const e = await commit('running', 'node.completed');
       yield e;
@@ -560,8 +663,38 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         throw e;
       }
       output = { results: res.results };
-      const e = await commit('running', 'tool.completed');
-      yield e;
+      for (const r of res.results) {
+        const outputStr = serializeToolResult(r.result);
+        const meta: Record<string, unknown> = {
+          toolCallId: r.id,
+          name: r.name,
+          output: outputStr,
+        };
+        // try to include input if available from toolCalls
+        const callInput = (() => {
+          if ('name' in tn && typeof tn.name === 'string') {
+            const fixed = tn as ToolCallFixed;
+            if (r.id === `${runId}:${cur}:0`) {
+              return fixed.args;
+            }
+          }
+          return undefined;
+        })();
+        if (callInput !== undefined) {
+          meta.input = callInput;
+        }
+        const e = await commit(
+          'running',
+          r.isError ? 'tool.failed' : 'tool.completed',
+          'recorded',
+          meta,
+        );
+        yield e;
+      }
+      if (res.results.length === 0) {
+        const e = await commit('running', 'tool.completed');
+        yield e;
+      }
     } else if (node.type === 'control:assign') {
       const asn = node as { type: 'control:assign'; patch: Record<string, unknown> };
       const patched: string[] = [];

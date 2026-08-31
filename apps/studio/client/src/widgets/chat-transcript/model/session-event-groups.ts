@@ -1,7 +1,7 @@
 import type { SessionEvent } from '@studio/shared';
 
 export type ToolEventPair = {
-  call: SessionEvent & { type: 'tool'; phase: 'requested' };
+  call: SessionEvent & { type: 'tool'; phase: 'requested' | 'streaming' };
   result?: SessionEvent & { type: 'tool'; phase: 'completed' | 'failed' };
 };
 
@@ -17,9 +17,35 @@ export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
         call: ev as SessionEvent & { type: 'tool'; phase: 'requested' },
         result: existing?.result,
       });
+    } else if (ev.phase === 'streaming') {
+      if (existing) {
+        const mergedDelta = ((existing.call.delta ?? '') + (ev.delta ?? '')).trim();
+        existing.call = {
+          ...existing.call,
+          name: ev.name || existing.call.name,
+          delta: mergedDelta,
+        } as SessionEvent & { type: 'tool'; phase: 'streaming' };
+      } else {
+        pairs.set(ev.toolCallId, {
+          call: ev as SessionEvent & { type: 'tool'; phase: 'streaming' },
+          result: undefined,
+        });
+      }
     } else if (ev.phase === 'completed' || ev.phase === 'failed') {
       if (existing) {
         existing.result = ev as SessionEvent & { type: 'tool'; phase: 'completed' | 'failed' };
+      } else {
+        // tool completed without prior streaming/requested (e.g. buffered) — create pair
+        pairs.set(ev.toolCallId, {
+          call: {
+            type: 'tool',
+            phase: 'requested',
+            toolCallId: ev.toolCallId,
+            name: ev.name,
+            input: ev.input,
+          } as SessionEvent & { type: 'tool'; phase: 'requested' },
+          result: ev as SessionEvent & { type: 'tool'; phase: 'completed' | 'failed' },
+        });
       }
     }
   }
@@ -28,10 +54,14 @@ export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
 
 export function toolInput(pair: ToolEventPair): string {
   const input = pair.call.input;
-  if (input == null) {
-    return '';
+  if (input != null) {
+    return typeof input === 'string' ? input : JSON.stringify(input);
   }
-  return typeof input === 'string' ? input : JSON.stringify(input);
+  const delta = (pair.call as { delta?: string }).delta;
+  if (typeof delta === 'string' && delta) {
+    return delta;
+  }
+  return '';
 }
 
 export function toolOutput(pair: ToolEventPair): string {

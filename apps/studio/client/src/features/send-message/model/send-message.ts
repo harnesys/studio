@@ -23,6 +23,19 @@ export async function sendMessage(options: SendMessageOptions) {
   const controller = new AbortController();
   const store = useSessionStore.getState();
   store.startRun(threadId, controller);
+  store.appendEvent(threadId, {
+    type: 'user',
+    text: trimmed,
+    attachments: attachments?.length
+      ? attachments.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          name: item.name,
+          mediaType: item.mediaType,
+          path: item.path,
+        }))
+      : undefined,
+  });
 
   let runId: string;
   try {

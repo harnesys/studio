@@ -1,4 +1,4 @@
-import type { SendFile, SendInput } from 'harnesys';
+import type { Attachment, SendFile, SendInput } from 'harnesys';
 import type { AcceptedRunResponse, ThreadPlanRecord } from '../../../shared/types.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
@@ -190,6 +190,7 @@ function buildSendInput(
   const images: SendFile[] = [];
   const audio: SendFile[] = [];
   const video: SendFile[] = [];
+  const atts: Attachment[] = [];
 
   for (const id of request.attachmentIds ?? []) {
     const att = attachments.findById(id);
@@ -202,6 +203,7 @@ function buildSendInput(
       path: att.path,
     };
     const kind = kindFromMediaType(att.mediaType);
+    atts.push({ id: att.id, kind, name: att.name, mediaType: att.mediaType, path: att.path });
     if (kind === 'image') {
       images.push(file);
     } else if (kind === 'audio') {
@@ -223,6 +225,7 @@ function buildSendInput(
     audio: audio.length ? audio : undefined,
     video: video.length ? video : undefined,
     files: files.length ? files : undefined,
+    attachments: atts.length ? atts : undefined,
     origin: request.origin,
-  };
+  } as SendInputObject;
 }

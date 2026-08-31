@@ -2,6 +2,7 @@ import { streamText } from 'ai';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { STREAM_CHUNK_SIZE, type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
+import { toModelMessages } from './ai-llm-messages.ts';
 import { buildProvider } from './ai-llm-provider.ts';
 
 export type { CallModelResult, StreamChunk } from './ai-llm-chunks.ts';
@@ -60,7 +61,7 @@ export async function* callModel(
   const model = provider(binding.model.name) as never;
   const aiTools = toAiTools(names, registry);
 
-  const ms = messages as never[];
+  const ms = toModelMessages(messages) as never[];
 
   const streamConfig: Record<string, unknown> = {
     model,

@@ -177,10 +177,18 @@ function eventToSessionEvent(ev: Event): SessionEvent | null {
   }
   if (t === 'interrupt.triggered') {
     const m = ev.metadata as Record<string, unknown> | undefined;
+    const baseSchema = (m?.resumeSchema as Record<string, unknown>) ?? {};
+    const schema: Record<string, unknown> = { ...baseSchema };
+    if (m?.options) {
+      schema.options = m.options;
+    }
+    if (m?.multi !== undefined) {
+      schema.multi = m.multi;
+    }
     return {
       type: 'ask',
       askId: String(m?.interruptId ?? ''),
-      schema: (m?.resumeSchema as JsonSchema) ?? {},
+      schema,
       source:
         (m?.source as 'permission' | 'approve' | 'middleware' | 'interrupt' | 'ask_user') ??
         'interrupt',

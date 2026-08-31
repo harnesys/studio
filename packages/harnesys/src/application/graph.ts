@@ -655,6 +655,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             resumeSchema: e.resumeSchema,
             source: e.source ?? 'ask_user',
             tool: e.tool,
+            options: e.options,
+            multi: e.multi,
           };
           await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
           yield ev;

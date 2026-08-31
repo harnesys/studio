@@ -9,7 +9,7 @@ export class ThreadRuntimeRegistry {
   threadOf(
     threadId: string,
     runtime: RuntimeHandle,
-    agentName: string,
+    agentId: string,
     _cwd?: string,
   ): Promise<SessionHandle> {
     const cached = this.threads.get(threadId);
@@ -19,7 +19,7 @@ export class ThreadRuntimeRegistry {
 
     const pending = Promise.resolve().then(() => {
       const state = this.stateFactory.forState(threadId);
-      return runtime.session(agentName, { state });
+      return runtime.session(agentId, { state });
     });
 
     this.threads.set(threadId, pending);

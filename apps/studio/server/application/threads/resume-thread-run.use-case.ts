@@ -96,7 +96,7 @@ export class ResumeThreadRunUseCase implements ResumeThreadRunInput {
       { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
       async () => {
         const hx = await this.workspaceHarnesys.get(workspace);
-        const handle = await this.registry.threadOf(thread.id, hx, agentRow.name, workspace.path);
+        const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
 
         const controller = new AbortController();
         let run: AgentRun;

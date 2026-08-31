@@ -42,8 +42,7 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
   const name = pending.tool?.name ?? 'tool';
   const inputStr =
     pending.tool?.input != null
-      ? // biome-ignore lint/style/noNestedTernary: <explanation>
-        typeof pending.tool.input === 'string'
+      ? typeof pending.tool.input === 'string'
         ? pending.tool.input
         : JSON.stringify(pending.tool.input)
       : '';

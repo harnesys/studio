@@ -69,7 +69,11 @@ export function replaceGroup(
   return { ...node, first, second };
 }
 
-function updateRatio(node: IdeSplitNode | null, splitId: string, ratio: number): IdeSplitNode | null {
+function updateRatio(
+  node: IdeSplitNode | null,
+  splitId: string,
+  ratio: number,
+): IdeSplitNode | null {
   if (!node) {
     return null;
   }

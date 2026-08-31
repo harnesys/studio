@@ -112,7 +112,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
       async () => {
         const hx = await this.workspaceHarnesys.get(workspace);
 
-        const handle = await this.registry.threadOf(thread.id, hx, agentRow.name, workspace.path);
+        const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
         const controller = new AbortController();
         const run = handle.send(input, {
           signal: controller.signal,

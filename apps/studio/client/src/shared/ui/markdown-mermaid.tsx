@@ -121,9 +121,9 @@ function paintMindmap(host: HTMLElement) {
     const fill = section === null ? mix(live, muted, 48) : mix(tint, card, 30);
     const stroke = section === null ? live : mix(tint, border, 50);
 
-    for (const shape of Array.from(node.querySelectorAll(
-      ':is(rect, circle, path, polygon, ellipse, .node-bkg)',
-    ))) {
+    for (const shape of Array.from(
+      node.querySelectorAll(':is(rect, circle, path, polygon, ellipse, .node-bkg)'),
+    )) {
       if (shape.classList.contains('node-line-') || shape.tagName.toLowerCase() === 'line') {
         continue;
       }

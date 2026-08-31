@@ -8,6 +8,7 @@ import { defaultAgentCompaction, defaultAgentMemory } from '../../../shared/type
 import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { buildReactGraph } from './react-preset.ts';
 
 export type CreateAgentRequest = {
   workspaceId: string;
@@ -67,6 +68,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const skills = request.skills ?? [];
     const mcpServers = request.mcpServers ?? [];
     const tools = request.tools ?? [];
+    const graph = buildReactGraph(tools);
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
@@ -86,6 +88,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
       skills,
       mcpServers,
       tools,
+      graph,
       createdAt: now,
       updatedAt: now,
     });

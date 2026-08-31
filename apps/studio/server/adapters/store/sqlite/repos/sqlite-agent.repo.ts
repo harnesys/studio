@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import type { Edge, Node } from 'harnesys';
 import {
   type AgentMemoryConfig,
   defaultAgentCompaction,
@@ -7,6 +8,7 @@ import {
 } from '../../../../../shared/types.ts';
 import type {
   Agent,
+  AgentGraph,
   AgentInsert,
   AgentPatch,
   AgentRepository,
@@ -48,8 +50,17 @@ export class SqliteAgentRepo implements AgentRepository {
 
   insert(rec: AgentInsert): Agent {
     try {
-      const { skills, mcpServers, tools, generation, toolOutput, compaction, memory, ...rest } =
-        rec;
+      const {
+        skills,
+        mcpServers,
+        tools,
+        generation,
+        toolOutput,
+        compaction,
+        memory,
+        graph,
+        ...rest
+      } = rec;
       const row = this.db
         .insert(agentsTable)
         .values({
@@ -61,6 +72,7 @@ export class SqliteAgentRepo implements AgentRepository {
           toolOutput: serializeJson(toolOutput),
           compactionJson: serializeJsonColumn(compaction),
           memoryJson: serializeJsonColumn(memory),
+          graphJson: JSON.stringify(graph),
         })
         .returning()
         .get();
@@ -72,8 +84,17 @@ export class SqliteAgentRepo implements AgentRepository {
 
   update(id: string, patch: AgentPatch): Agent {
     try {
-      const { skills, mcpServers, tools, generation, toolOutput, compaction, memory, ...rest } =
-        patch;
+      const {
+        skills,
+        mcpServers,
+        tools,
+        generation,
+        toolOutput,
+        compaction,
+        memory,
+        graph,
+        ...rest
+      } = patch;
       const row = this.db
         .update(agentsTable)
         .set({
@@ -85,6 +106,7 @@ export class SqliteAgentRepo implements AgentRepository {
           ...(toolOutput !== undefined ? { toolOutput: serializeJson(toolOutput) } : {}),
           ...(compaction !== undefined ? { compactionJson: serializeJsonColumn(compaction) } : {}),
           ...(memory !== undefined ? { memoryJson: serializeJsonColumn(memory) } : {}),
+          ...(graph !== undefined ? { graphJson: JSON.stringify(graph) } : {}),
         })
         .where(eq(agentsTable.id, id))
         .returning()
@@ -123,6 +145,7 @@ function toAgent(row: AgentRow): Agent {
     skills: parseStringList(row.skills),
     mcpServers: parseStringList(row.mcpServers),
     tools: parseStringList(row.tools),
+    graph: parseGraph(row.graphJson),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -192,5 +215,25 @@ function parseStringList(raw: string): string[] {
     return parsed.filter((item): item is string => typeof item === 'string');
   } catch {
     return [];
+  }
+}
+
+const EMPTY_GRAPH: AgentGraph = { nodes: {}, edges: [] };
+
+function parseGraph(raw: string | null): AgentGraph {
+  if (!raw) {
+    return EMPTY_GRAPH;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return EMPTY_GRAPH;
+    }
+    const obj = parsed as Record<string, unknown>;
+    const nodes = typeof obj.nodes === 'object' && obj.nodes !== null ? obj.nodes : {};
+    const edges = Array.isArray(obj.edges) ? obj.edges : [];
+    return { nodes: nodes as Record<string, Node>, edges: edges as Edge[] };
+  } catch {
+    return EMPTY_GRAPH;
   }
 }

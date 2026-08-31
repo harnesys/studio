@@ -1,9 +1,15 @@
+import type { Edge, Node } from 'harnesys';
 import type {
   AgentGenerationSettings,
   AgentMemoryConfig,
   PortRef,
   ToolOutputSettings,
 } from '../../shared/types.ts';
+
+export type AgentGraph = {
+  nodes: Record<string, Node>;
+  edges: Edge[];
+};
 
 export type Agent = {
   id: string;
@@ -23,6 +29,7 @@ export type Agent = {
   mcpServers: string[];
   /** Tool name allowlist; empty = all workspace tools. */
   tools: string[];
+  graph: AgentGraph;
   createdAt: string;
   updatedAt: string;
 };
@@ -42,6 +49,7 @@ export type AgentPatch = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  graph?: AgentGraph;
 };
 
 export type AgentRepository = {

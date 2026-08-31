@@ -209,6 +209,10 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   try {
+    db.run(sql.raw(`ALTER TABLE agents ADD COLUMN graph_json text;`));
+  } catch {}
+
+  try {
     db.run(sql.raw(`ALTER TABLE events ADD COLUMN run_id TEXT NOT NULL DEFAULT '';`));
   } catch {}
 

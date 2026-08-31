@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import { loadGitignore } from './gitignore.ts';
 
 export type PathFilter = (absolutePath: string) => boolean;

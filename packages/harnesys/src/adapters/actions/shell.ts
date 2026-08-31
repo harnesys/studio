@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 import { DEFAULT_SHELL_TIMEOUT_MS, MAX_SHELL_TIMEOUT_MS } from './constants.ts';

@@ -147,13 +147,7 @@ function TurnSegmentView({
   runId: string;
 }) {
   if (segment.type === 'activity') {
-    return (
-      <ActivityItems
-        events={segment.events}
-        live={live}
-        runId={runId}
-      />
-    );
+    return <ActivityItems events={segment.events} live={live} runId={runId} />;
   }
 
   if (segment.type === 'ask') {

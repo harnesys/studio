@@ -15,7 +15,7 @@ import {
   withActiveTabState,
 } from './ide-layout';
 
-export { firstGroupOfLayout, lastGroupOfLayout, type IdeSplitNode } from './ide-tree';
+export { firstGroupOfLayout, type IdeSplitNode, lastGroupOfLayout } from './ide-tree';
 
 export type IdeTabKind = 'thread' | 'file' | 'schedule' | 'webhook';
 export type IdeTab = {

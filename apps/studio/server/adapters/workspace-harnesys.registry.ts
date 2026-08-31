@@ -1,8 +1,16 @@
-import type { CursorMcpJson, ModelsPort, RuntimeHandle, ToolDefinition } from 'harnesys';
+import { join } from 'node:path';
+import type {
+  AgentDefinition,
+  CursorMcpJson,
+  ModelsPort,
+  RuntimeHandle,
+  ToolDefinition,
+} from 'harnesys';
 import { createRuntime } from 'harnesys';
 import { askUser, fetch, files, shell } from 'harnesys/actions';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
-import { join } from 'node:path';
+import { composeAgentSystem } from '../../shared/default-agent-instructions.ts';
+import type { AgentRepository } from '../domain/agent.port.ts';
 import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
@@ -11,7 +19,10 @@ export class WorkspaceHarnesysRegistry {
   private readonly cache = new Map<string, Promise<RuntimeHandle>>();
   private extraTools: ToolDefinition[] = [];
 
-  constructor(private readonly models: ModelsPort) {}
+  constructor(
+    private readonly models: ModelsPort,
+    private readonly agents?: AgentRepository,
+  ) {}
 
   setExtraTools(tools: ToolDefinition[]): void {
     this.extraTools = tools;
@@ -67,10 +78,40 @@ export class WorkspaceHarnesysRegistry {
     return createRuntime({
       models: this.models,
       tools: [...files(), shell(), fetch(), askUser(), ...this.extraTools],
-      agents: { resolve: () => undefined },
+      agents: { resolve: (id: string) => this.resolveAgent(id) },
       mcp: mcpJson,
       paths: { cwd: workspace.path },
       skills,
     });
+  }
+
+  private resolveAgent(id: string): AgentDefinition | undefined {
+    if (!this.agents) {
+      return undefined;
+    }
+    const agent = this.agents.findById(id);
+    if (!agent) {
+      return undefined;
+    }
+    const system = composeAgentSystem(agent.instructions);
+    return {
+      id: agent.id,
+      prompts: { main: { instructions: system } },
+      model: agent.modelId
+        ? {
+            provider: '',
+            model: '',
+            effort: agent.effort ?? undefined,
+            generation: agent.generation ?? undefined,
+          }
+        : undefined,
+      skills: agent.skills.length ? agent.skills : undefined,
+      tools: agent.tools.length ? agent.tools : undefined,
+      mcpServers: agent.mcpServers.length ? agent.mcpServers : undefined,
+      toolOutput: agent.toolOutput ?? undefined,
+      compaction: agent.compaction,
+      memory: agent.memory,
+      graph: agent.graph,
+    };
   }
 }

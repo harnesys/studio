@@ -86,6 +86,8 @@ export {
   getThreadPlan,
   listThreads,
   markThreadRead,
+  rejectRun,
+  respondToRun,
   resumeThread,
   sendThreadRun,
   uploadThreadAttachment,

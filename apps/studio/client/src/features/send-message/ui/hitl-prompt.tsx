@@ -57,11 +57,10 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
     }
     setBusy(true);
     try {
-      await respondToAsk(
-        threadId,
-        pending.askId,
-        allow ? { allow: true } : { deny: true, reason: reason.trim() || undefined },
-      );
+      await respondToAsk(threadId, pending.askId, {
+        approved: allow,
+        reason: allow ? undefined : reason.trim() || undefined,
+      });
     } catch (error) {
       toast.add({
         title: allow ? 'Could not allow' : 'Could not deny',

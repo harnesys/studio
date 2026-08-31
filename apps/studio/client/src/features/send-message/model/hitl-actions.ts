@@ -1,21 +1,33 @@
 import { useSessionStore } from '@/entities/session';
+import { rejectRun, respondToRun } from '@/shared/api';
 
 import { resumePausedThread } from './resume-paused';
 
 export async function respondToAsk(
   threadId: string,
-  _askId: string,
-  _payload: unknown,
+  askId: string,
+  payload: unknown,
 ): Promise<void> {
-  await ensureLiveRun(threadId);
-  // HITL respond is handled server-side via AgentRun.respond()
-  // Client sends resume via the existing resume endpoint
+  const runId = await ensureLiveRun(threadId);
+  if (!runId) {
+    throw new Error('No active run for this thread');
+  }
+  await respondToRun(runId, askId, payload);
 }
 
-async function ensureLiveRun(threadId: string): Promise<void> {
-  const store = useSessionStore.getState();
-  if (store.activeRuns[threadId]) {
-    return;
+export async function rejectAsk(threadId: string, askId: string, note?: string): Promise<void> {
+  const runId = await ensureLiveRun(threadId);
+  if (!runId) {
+    throw new Error('No active run for this thread');
   }
-  await resumePausedThread(threadId);
+  await rejectRun(runId, askId, note);
+}
+
+function ensureLiveRun(threadId: string): Promise<string | null> {
+  const store = useSessionStore.getState();
+  const existing = store.activeRuns[threadId];
+  if (existing?.runId) {
+    return Promise.resolve(existing.runId);
+  }
+  return resumePausedThread(threadId);
 }

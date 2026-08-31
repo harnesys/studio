@@ -19,7 +19,6 @@ import type {
 import type { ToolDefinition } from '../ports/tools.ts';
 import { compile } from './compile.ts';
 import { type GraphOpts, startGraph } from './graph.ts';
-import { runGraph } from './graph-run.ts';
 import { resolvePaths } from './paths.ts';
 import { resolvePermissions } from './permissions.ts';
 
@@ -236,7 +235,12 @@ export function createSession(
     runOpts?: { signal?: AbortSignal; permissions?: PermissionMap; paths?: PathsConfig },
   ): AgentRun {
     const runId = crypto.randomUUID();
-    const events: SessionEvent[] = [];
+    const eventQueue: SessionEvent[] = [];
+    let eventWake: (() => void) | undefined;
+    const pushEvent = (se: SessionEvent) => {
+      eventQueue.push(se);
+      eventWake?.();
+    };
     let resolveOutput: (v: { text: string }) => void;
     const outputPromise = new Promise<{ text: string }>((resolve) => {
       resolveOutput = resolve;
@@ -286,7 +290,7 @@ export function createSession(
         for await (const ev of iter) {
           const se = eventToSessionEvent(ev);
           if (se) {
-            events.push(se);
+            pushEvent(se);
             if (se.type === 'ask') {
               pendingAsk = { askId: se.askId, schema: se.schema };
               status = 'needs_input';
@@ -305,7 +309,7 @@ export function createSession(
               : '';
           resolveOutput({ text: lastText });
         } else if (finalStatus === 'needs_input') {
-          // already set
+          // already set — respondFn will continue
         } else {
           status = 'failed';
           resolveOutput({ text: '' });
@@ -331,35 +335,41 @@ export function createSession(
         | Record<string, unknown>
         | undefined;
 
-      const command = {
-        type: 'resume' as const,
-        interruptId: String(interrupt?.interruptId ?? askId),
-        payload,
+      const resumeOpts: GraphOpts = {
+        ...graphOpts,
+        resumePayload: payload,
+        startNodeId: interrupt?.nodeId as string | undefined,
       };
 
-      const result = await runGraph({
-        ...graphOpts,
-        resumePayload: command.payload,
-        startNodeId: interrupt?.nodeId as string | undefined,
-      });
-
-      if (result.status === 'completed') {
-        status = 'completed';
-        const text =
-          typeof result.output === 'object' && result.output !== null && 'text' in result.output
-            ? String((result.output as { text: unknown }).text ?? '')
-            : '';
-        resolveOutput({ text });
-      } else if (result.status === 'needs_input') {
-        const askEvent = events.findLast((e) => e.type === 'ask');
-        if (askEvent) {
-          pendingAsk = {
-            askId: (askEvent as { askId: string }).askId,
-            schema: (askEvent as { schema: JsonSchema }).schema,
-          };
+      try {
+        for await (const ev of startGraph(resumeOpts)) {
+          const se = eventToSessionEvent(ev);
+          if (se) {
+            pushEvent(se);
+            if (se.type === 'ask') {
+              pendingAsk = { askId: se.askId, schema: se.schema };
+              status = 'needs_input';
+            }
+          }
         }
-        status = 'needs_input';
-      } else {
+        const finalSnap = await state.load();
+        const finalStatus = finalSnap?.status ?? 'completed';
+        if (finalStatus === 'completed') {
+          status = 'completed';
+          const st = finalSnap?.state as Record<string, unknown> | undefined;
+          const msgs = st?.messages;
+          const lastText =
+            Array.isArray(msgs) && msgs.length > 0
+              ? String((msgs[msgs.length - 1] as Record<string, unknown>)?.content ?? '')
+              : '';
+          resolveOutput({ text: lastText });
+        } else if (finalStatus === 'needs_input') {
+          // already set
+        } else {
+          status = 'failed';
+          resolveOutput({ text: '' });
+        }
+      } catch {
         status = 'failed';
         resolveOutput({ text: '' });
       }
@@ -378,16 +388,28 @@ export function createSession(
         | Record<string, unknown>
         | undefined;
 
-      // reject: no resumePayload → default edge (without $resume) is taken
-      const result = await runGraph({
+      const rejectGraphOpts: GraphOpts = {
         ...graphOpts,
         startNodeId: interrupt?.nodeId as string | undefined,
-      });
+      };
 
-      if (result.status === 'completed') {
-        status = 'completed';
-        resolveOutput({ text: rejectOpts?.note ?? '' });
-      } else {
+      try {
+        for await (const ev of startGraph(rejectGraphOpts)) {
+          const se = eventToSessionEvent(ev);
+          if (se) {
+            pushEvent(se);
+          }
+        }
+        const finalSnap = await state.load();
+        const finalStatus = finalSnap?.status ?? 'completed';
+        if (finalStatus === 'completed') {
+          status = 'completed';
+          resolveOutput({ text: rejectOpts?.note ?? '' });
+        } else {
+          status = 'failed';
+          resolveOutput({ text: rejectOpts?.note ?? '' });
+        }
+      } catch {
         status = 'failed';
         resolveOutput({ text: rejectOpts?.note ?? '' });
       }
@@ -404,16 +426,17 @@ export function createSession(
         return status as AgentRunStatus;
       },
       stream: async function* () {
-        let idx = 0;
         while (true) {
-          if (idx < events.length) {
-            yield events[idx] as SessionEvent;
-            idx += 1;
-          } else if (status === 'completed' || status === 'failed' || status === 'cancelled') {
-            break;
-          } else {
-            await new Promise((r) => setTimeout(r, 10));
+          while (eventQueue.length > 0) {
+            yield eventQueue.shift() as SessionEvent;
           }
+          if (status === 'completed' || status === 'failed' || status === 'cancelled') {
+            return;
+          }
+          await new Promise<void>((r) => {
+            eventWake = r;
+          });
+          eventWake = undefined;
         }
       },
       output: outputPromise,

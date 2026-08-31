@@ -72,6 +72,20 @@ export function resumeThread(id: string): Promise<AcceptedRunResponse> {
   });
 }
 
+export function respondToRun(runId: string, askId: string, payload: unknown): Promise<void> {
+  return apiJson<void>(`/api/runs/${runId}/respond`, {
+    method: 'POST',
+    body: JSON.stringify({ askId, payload }),
+  });
+}
+
+export function rejectRun(runId: string, askId: string, note?: string): Promise<void> {
+  return apiJson<void>(`/api/runs/${runId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ askId, note }),
+  });
+}
+
 export function compactThread(id: string): Promise<CompactThreadResponse> {
   return apiJson<CompactThreadResponse>(`/api/threads/${id}/compact`, {
     method: 'POST',

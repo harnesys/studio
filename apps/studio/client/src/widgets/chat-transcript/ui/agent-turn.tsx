@@ -91,7 +91,12 @@ export function AssistantMessageView({
     .filter(Boolean)
     .join('\n\n');
   const hasDone = events.some((ev) => ev.type === 'done');
-  const waitingForModel = streaming && !hasDone;
+  const hasInFlight = events.some(
+    (ev) =>
+      (ev.type === 'tool' && (ev.phase === 'streaming' || ev.phase === 'requested')) ||
+      ev.type === 'ask',
+  );
+  const waitingForModel = streaming && !hasDone && !hasInFlight && segments.length === 0;
 
   return (
     <div className="flex flex-col gap-3">

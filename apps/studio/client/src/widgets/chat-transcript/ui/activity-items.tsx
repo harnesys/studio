@@ -21,6 +21,14 @@ export function ActivityItems({
     <ActivityRail>
       {chunks.map((chunk, index) => {
         const chunkLive = live && index === chunks.length - 1;
+        if (chunk.type === 'reasoning') {
+          const text = chunk.events.map((e) => e.text).join('');
+          return (
+            <div key={`reasoning-${index}`} className="flex flex-col gap-0.5">
+              <ThinkingLine text={text} live={chunkLive} />
+            </div>
+          );
+        }
         if (chunk.type === 'text') {
           return (
             <div key={`text-${index}`} className="flex flex-col gap-0.5">
@@ -36,6 +44,24 @@ export function ActivityItems({
               runId={runId ?? ''}
               live={chunkLive}
             />
+          );
+        }
+        if (chunk.type === 'source') {
+          const src = chunk.event.source as Record<string, unknown> | undefined;
+          const url = typeof src?.url === 'string' ? src.url : String(src ?? '');
+          return (
+            <div key={`source-${index}`} className="text-muted-foreground text-xs">
+              <a href={url} target="_blank" rel="noreferrer" className="underline">
+                {url}
+              </a>
+            </div>
+          );
+        }
+        if (chunk.type === 'file') {
+          return (
+            <div key={`file-${index}`} className="text-muted-foreground text-xs">
+              file
+            </div>
           );
         }
         return (

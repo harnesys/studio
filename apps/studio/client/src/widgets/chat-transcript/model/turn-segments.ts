@@ -28,7 +28,14 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
       segments.push({ type: 'ask', event: ev });
       continue;
     }
-    if (ev.type === 'tool') {
+    if (
+      ev.type === 'tool' ||
+      ev.type === 'reasoning-delta' ||
+      ev.type === 'reasoning-start' ||
+      ev.type === 'reasoning-end' ||
+      ev.type === 'source' ||
+      ev.type === 'file'
+    ) {
       activity.push(ev);
     }
   }

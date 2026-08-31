@@ -8,7 +8,10 @@ import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { readFields } from './thread.helpers.ts';
 
-function rowToSessionEvent(row: { type: string; metadata: string | null }): SessionEvent | null {
+function rowToSessionEvent(row: {
+  type: string;
+  metadata: string | null;
+}): SessionEvent | SessionEvent[] | null {
   let meta: Record<string, unknown> | null = null;
   if (row.metadata) {
     try {
@@ -20,16 +23,86 @@ function rowToSessionEvent(row: { type: string; metadata: string | null }): Sess
   if (row.type === 'model.delta') {
     const text = meta?.text as string | undefined;
     if (typeof text === 'string' && text) {
-      return { type: 'text-delta', text };
+      return { type: 'text-delta', text, id: meta?.id as string | undefined };
     }
     return null;
   }
-  if (row.type === 'model.completed') {
-    const text = meta?.text as string | undefined;
+  if (row.type === 'model.reasoning') {
+    const text = (meta?.text ?? meta?.delta) as string | undefined;
     if (typeof text === 'string' && text) {
-      return { type: 'text-delta', text };
+      return { type: 'reasoning-delta', text, id: meta?.id as string | undefined };
     }
     return null;
+  }
+  if (row.type === 'model.reasoning-start') {
+    return { type: 'reasoning-start', id: String(meta?.id ?? '') };
+  }
+  if (row.type === 'model.reasoning-end') {
+    return { type: 'reasoning-end', id: String(meta?.id ?? '') };
+  }
+  if (row.type === 'model.tool-input-start') {
+    return {
+      type: 'tool',
+      phase: 'streaming',
+      toolCallId: String(meta?.id ?? meta?.toolCallId ?? ''),
+      name: String(meta?.toolName ?? meta?.name ?? ''),
+      delta: '',
+    };
+  }
+  if (row.type === 'model.tool-input-delta') {
+    const delta = meta?.delta as string | undefined;
+    if (!delta) {
+      return null;
+    }
+    return {
+      type: 'tool',
+      phase: 'streaming',
+      toolCallId: String(meta?.id ?? meta?.toolCallId ?? ''),
+      name: String(meta?.toolName ?? meta?.name ?? ''),
+      delta,
+    };
+  }
+  if (row.type === 'model.tool-input-end') {
+    return {
+      type: 'tool',
+      phase: 'streaming',
+      toolCallId: String(meta?.id ?? meta?.toolCallId ?? ''),
+      name: String(meta?.toolName ?? meta?.name ?? ''),
+      delta: '',
+    };
+  }
+  if (row.type === 'model.tool-call') {
+    return {
+      type: 'tool',
+      phase: 'requested',
+      toolCallId: String(meta?.id ?? meta?.toolCallId ?? ''),
+      name: String(meta?.name ?? meta?.toolName ?? ''),
+      input: meta?.args ?? meta?.input,
+    };
+  }
+  if (row.type === 'model.source') {
+    return { type: 'source', source: meta?.source ?? meta } as SessionEvent;
+  }
+  if (row.type === 'model.file') {
+    return { type: 'file', file: meta?.file ?? meta } as SessionEvent;
+  }
+  if (row.type === 'model.completed') {
+    const text = meta?.text as string | undefined;
+    const reasoning = meta?.reasoning as string | undefined;
+    const synth: SessionEvent[] = [];
+    if (typeof reasoning === 'string' && reasoning) {
+      synth.push({ type: 'reasoning-delta', text: reasoning });
+    }
+    if (typeof text === 'string' && text) {
+      synth.push({ type: 'text-delta', text });
+    }
+    if (synth.length === 0) {
+      return null;
+    }
+    if (synth.length === 1) {
+      return synth[0];
+    }
+    return synth;
   }
   if (row.type === 'model.chunk') {
     return null;
@@ -123,7 +196,11 @@ export class GetThreadUseCase implements GetThreadInput {
     for (const row of rows) {
       const se = rowToSessionEvent(row);
       if (se) {
-        events.push(se);
+        if (Array.isArray(se)) {
+          events.push(...(se as SessionEvent[]));
+        } else {
+          events.push(se as SessionEvent);
+        }
       }
     }
 

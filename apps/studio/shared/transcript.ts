@@ -22,6 +22,10 @@ export function toTranscript(events: SessionEvent[]): TranscriptItem[] {
       if (ev.text) {
         out.push({ type: 'assistant', text: ev.text });
       }
+    } else if (ev.type === 'reasoning-delta') {
+      if (ev.text) {
+        out.push({ type: 'assistant', text: `[reasoning] ${ev.text}` });
+      }
     } else if (ev.type === 'tool') {
       out.push({
         type: 'tool',

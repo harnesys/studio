@@ -1,4 +1,4 @@
-import { tool } from 'ai';
+import { jsonSchema, tool } from 'ai';
 import type { ToolDefinition } from '../ports/tools.ts';
 
 export type CallModelResult = {
@@ -56,7 +56,7 @@ export function toAiTools(
     }
     out[n] = tool({
       description: def.description,
-      inputSchema: def.input as never,
+      inputSchema: jsonSchema(def.input as never),
     });
   }
   return Object.keys(out).length > 0 ? out : undefined;

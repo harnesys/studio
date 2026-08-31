@@ -29,13 +29,17 @@ export function summarizeToolRun(pairs: ToolEventPair[]): ToolRunSummary {
 }
 
 export type ActivityChunk =
+  | { type: 'reasoning'; events: (SessionEvent & { type: 'reasoning-delta' })[] }
   | { type: 'text'; event: SessionEvent & { type: 'text-delta' } }
   | { type: 'ask'; event: SessionEvent & { type: 'ask' } }
-  | { type: 'tools'; pairs: ToolEventPair[] };
+  | { type: 'tools'; pairs: ToolEventPair[] }
+  | { type: 'source'; event: SessionEvent & { type: 'source' } }
+  | { type: 'file'; event: SessionEvent & { type: 'file' } };
 
 export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
   const chunks: ActivityChunk[] = [];
   let toolEvents: SessionEvent[] = [];
+  let reasoning: (SessionEvent & { type: 'reasoning-delta' })[] = [];
 
   const flushTools = () => {
     if (toolEvents.length === 0) {
@@ -48,21 +52,53 @@ export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
     toolEvents = [];
   };
 
+  const flushReasoning = () => {
+    if (reasoning.length === 0) {
+      return;
+    }
+    chunks.push({ type: 'reasoning', events: reasoning });
+    reasoning = [];
+  };
+
   for (const ev of events) {
     if (ev.type === 'text-delta') {
       flushTools();
+      flushReasoning();
       chunks.push({ type: 'text', event: ev });
+      continue;
+    }
+    if (ev.type === 'reasoning-delta') {
+      flushTools();
+      reasoning.push(ev as SessionEvent & { type: 'reasoning-delta' });
+      continue;
+    }
+    if (ev.type === 'reasoning-start' || ev.type === 'reasoning-end') {
       continue;
     }
     if (ev.type === 'ask') {
       flushTools();
+      flushReasoning();
       chunks.push({ type: 'ask', event: ev });
       continue;
     }
+    if (ev.type === 'source') {
+      flushTools();
+      flushReasoning();
+      chunks.push({ type: 'source', event: ev as SessionEvent & { type: 'source' } });
+      continue;
+    }
+    if (ev.type === 'file') {
+      flushTools();
+      flushReasoning();
+      chunks.push({ type: 'file', event: ev as SessionEvent & { type: 'file' } });
+      continue;
+    }
     if (ev.type === 'tool') {
+      flushReasoning();
       toolEvents.push(ev);
     }
   }
   flushTools();
+  flushReasoning();
   return chunks;
 }

@@ -14,6 +14,7 @@ export const updateThreadBody = createThreadBody;
 export const sendThreadRunBody = z
   .object({
     clientId: z.string().uuid().optional(),
+    clientEventId: z.string().uuid().optional(),
     text: z.string().trim().optional().default(''),
     effort: z.string().trim().min(1).optional(),
     mode: z.enum(['ask', 'auto', 'dont_ask', 'bypass', 'plan']).optional(),

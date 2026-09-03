@@ -33,10 +33,10 @@ export type ThreadSummary = Pick<
   | 'unread'
 >;
 
-/** Accepted send: live agent entry id (= AgentRun.id). */
+/** Accepted send: queued run id from the journal. */
 export type AcceptedRunResponse = {
   runId: string;
-  status: 'accepted';
+  status: 'queued';
 };
 
 /** Manual `/compact`: stub response. */

@@ -1,20 +1,18 @@
 import type { Attachment, SendFile, SendInput } from 'harnesys';
 import type { AcceptedRunResponse, ThreadPlanRecord } from '../../../shared/types.ts';
 import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
-import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
-import { isRunMode, permissionMapFor, type RunMode } from '../../adapters/tool-confirm-policy.ts';
+import { isRunMode, type RunMode } from '../../adapters/tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
-import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { NotFoundError, RunConflictError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type { GetThreadPlanInput } from '../plans/get-thread-plan.use-case.ts';
 import { kindFromMediaType } from './attachment-kind.ts';
-import { drainAgentRun } from './drain-agent-run.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { PLAN_MODE_PROMPT, planFollowPrompt } from './plan-mode-prompt.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
@@ -26,6 +24,7 @@ export type SendThreadRunRequest = {
   mode?: RunMode;
   origin?: string;
   foldHistory?: unknown[];
+  clientEventId?: string;
 };
 
 export type SendThreadRunInput = {
@@ -107,34 +106,26 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     const input = buildSendInput(request, this.attachments, request.threadId);
     const runMode = resolveRunMode(request.mode);
     input.text = await this.decorateText(request.threadId, runMode, input.text);
-    return await runInHostToolScope(
-      { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
-      async () => {
-        const hx = await this.workspaceHarnesys.get(workspace);
 
-        const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
-        const controller = new AbortController();
-        const run = handle.send(input, {
-          signal: controller.signal,
-          permissions: permissionMapFor(runMode),
-        });
-        this.activeRuns.register(run.id, thread.id, run, controller);
-
-        this.publishThread(thread.id);
-        void drainAgentRun({
-          threadId: thread.id,
-          run,
-          activeRuns: this.activeRuns,
-          registry: this.registry,
-          onPersist: (threadId) => this.publishThread(threadId),
-        });
-
-        return {
-          runId: run.id,
-          status: 'accepted',
-        };
-      },
-    );
+    const hx = await this.workspaceHarnesys.get(workspace);
+    const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
+    const clientEventId = request.clientEventId ?? crypto.randomUUID();
+    try {
+      const { runId } = await handle.send(input, { clientEventId });
+      this.publishThread(thread.id);
+      return { runId, status: 'queued' as const };
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === 'pending_ask') {
+        const active = await handle.activeRun(thread.id);
+        throw new RunConflictError({ pendingAskId: active?.interruptId, runId: active?.runId });
+      }
+      if (code === 'thread_busy') {
+        const active = await handle.activeRun(thread.id);
+        throw new RunConflictError({ runId: active?.runId });
+      }
+      throw error;
+    }
   }
 
   /** Injects plan-mode contract or the active-plan reminder into the outgoing text. */

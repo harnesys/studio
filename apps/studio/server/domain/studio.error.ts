@@ -18,3 +18,15 @@ export class ConflictError extends Error {
     this.name = 'ConflictError';
   }
 }
+
+export type RunConflictBody = {
+  runId?: string;
+  pendingAskId?: string;
+};
+
+export class RunConflictError extends Error {
+  constructor(readonly body: RunConflictBody) {
+    super('run conflict');
+    this.name = 'RunConflictError';
+  }
+}

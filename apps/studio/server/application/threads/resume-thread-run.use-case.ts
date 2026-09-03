@@ -123,7 +123,7 @@ export class ResumeThreadRunUseCase implements ResumeThreadRunInput {
 
         return {
           runId: run.id,
-          status: 'accepted',
+          status: 'queued',
         };
       },
     );

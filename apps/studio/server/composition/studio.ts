@@ -83,13 +83,14 @@ export function createStudio(options: StudioOptions = {}): Hono {
   const runLifecycle = new SqliteRunLifecycleStore(db, runEvents.appendWithinTx.bind(runEvents));
   const runFeed = createRunEventFeed({ events: runEvents, lifecycle: runLifecycle, bus: eventBus });
   const instanceId = env.STUDIO_INSTANCE_ID ?? 'studio-local';
+  const toolRegistry = createToolRegistry([...files(), shell(), fetch(), askUser()]);
   const runEngine = createRunEngine({
     lifecycle: runLifecycle,
     events: runEvents,
     feed: runFeed,
     instanceId,
     models: modelsPort,
-    toolRegistry: createToolRegistry([...files(), shell(), fetch(), askUser()]),
+    toolRegistry,
     toolMessages: 'ordered',
   });
   const targetRef: { current: RunTargets | null } = { current: null };
@@ -183,6 +184,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
   wireHostTools({
     db,
     workspaceHarnesys,
+    toolRegistry,
     schedules: scheduleRepo,
     webhooks: webhookRepo,
     threads: threadRepo,

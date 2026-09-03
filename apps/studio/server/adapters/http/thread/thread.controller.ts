@@ -18,6 +18,7 @@ import type { SendThreadRunInput } from '../../../application/threads/send-threa
 import type { StreamRunEventsInput } from '../../../application/threads/stream-run-events.use-case.ts';
 import type { UpdateThreadInput } from '../../../application/threads/update-thread.use-case.ts';
 import { SSE_KEEP_ALIVE_MS } from '../../../config/constants.ts';
+import { RunConflictError } from '../../../domain/studio.error.ts';
 import { preview, trace } from '../../../trace.ts';
 import {
   createThreadBody,
@@ -125,14 +126,21 @@ export class ThreadController {
         text: preview(body.text),
       });
 
-      const response = await this.deps.sendThreadRun.execute({
-        threadId,
-        text: body.text || undefined,
-        attachmentIds: body.attachmentIds,
-        mode: body.mode,
-      });
-
-      return c.json(response, 202);
+      try {
+        const response = await this.deps.sendThreadRun.execute({
+          threadId,
+          text: body.text || undefined,
+          attachmentIds: body.attachmentIds,
+          mode: body.mode,
+          clientEventId: body.clientEventId,
+        });
+        return c.json(response, 202);
+      } catch (error) {
+        if (error instanceof RunConflictError) {
+          return c.json(error.body, 409);
+        }
+        throw error;
+      }
     });
 
     app.post('/api/threads/:id/resume', async (c) => {

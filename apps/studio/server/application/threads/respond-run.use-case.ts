@@ -1,5 +1,10 @@
-import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
-import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import type { RunLifecycleStore } from 'harnesys';
+import type { ThreadSessions } from '../../adapters/thread-sessions.adapter.ts';
+import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
+import { NotFoundError } from '../../domain/studio.error.ts';
+import type { GetThreadInput } from './get-thread.use-case.ts';
+import { mapCodedError } from './map-coded-error.ts';
+import { publishDeskThread } from './publish-desk-thread.ts';
 
 export type RespondRunRequest = {
   runId: string;
@@ -13,35 +18,56 @@ export type RejectRunRequest = {
   note?: string;
 };
 
+export type RespondRunResponse = {
+  runId: string;
+};
+
 export type RespondRunInput = {
-  respond(request: RespondRunRequest): Promise<void>;
-  reject(request: RejectRunRequest): Promise<void>;
+  respond(request: RespondRunRequest): Promise<RespondRunResponse>;
+  reject(request: RejectRunRequest): Promise<RespondRunResponse>;
+};
+
+export type RespondRunDeps = {
+  lifecycle: RunLifecycleStore;
+  sessions: ThreadSessions;
+  getThread: GetThreadInput;
+  deskEvents: DeskEventsPort;
 };
 
 export class RespondRunUseCase implements RespondRunInput {
-  constructor(private readonly activeRuns: ActiveRunRegistry) {}
+  constructor(private readonly deps: RespondRunDeps) {}
 
-  async respond(request: RespondRunRequest): Promise<void> {
-    const active = this.activeRuns.get(request.runId);
-    if (!active) {
+  async respond(request: RespondRunRequest): Promise<RespondRunResponse> {
+    const rec = await this.deps.lifecycle.get(request.runId);
+    if (!rec) {
       throw new NotFoundError('run not found');
     }
+    const handle = await this.deps.sessions.forThread(rec.threadId);
     try {
-      await active.run.respond(request.askId, request.payload);
+      await handle.respond(request.runId, request.askId, request.payload);
     } catch (error) {
-      throw new ValidationError(error instanceof Error ? error.message : 'respond failed');
+      throw mapCodedError(error);
     }
+    this.publishDesk(rec.threadId);
+    return { runId: request.runId };
   }
 
-  async reject(request: RejectRunRequest): Promise<void> {
-    const active = this.activeRuns.get(request.runId);
-    if (!active) {
+  async reject(request: RejectRunRequest): Promise<RespondRunResponse> {
+    const rec = await this.deps.lifecycle.get(request.runId);
+    if (!rec) {
       throw new NotFoundError('run not found');
     }
+    const handle = await this.deps.sessions.forThread(rec.threadId);
     try {
-      await active.run.reject(request.askId, { note: request.note });
+      await handle.reject(request.runId, request.askId, { note: request.note });
     } catch (error) {
-      throw new ValidationError(error instanceof Error ? error.message : 'reject failed');
+      throw mapCodedError(error);
     }
+    this.publishDesk(rec.threadId);
+    return { runId: request.runId };
+  }
+
+  private publishDesk(threadId: string): void {
+    publishDeskThread(this.deps.getThread, this.deps.deskEvents, threadId);
   }
 }

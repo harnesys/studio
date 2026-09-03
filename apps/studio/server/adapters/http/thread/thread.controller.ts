@@ -13,7 +13,7 @@ import type { ListThreadPendingAttachmentsInput } from '../../../application/thr
 import type { ListThreadsInput } from '../../../application/threads/list-threads.use-case.ts';
 import type { MarkThreadReadInput } from '../../../application/threads/mark-thread-read.use-case.ts';
 import type { RespondRunInput } from '../../../application/threads/respond-run.use-case.ts';
-import type { ResumeThreadRunInput } from '../../../application/threads/resume-thread-run.use-case.ts';
+import type { RetryRunInput } from '../../../application/threads/retry-run.use-case.ts';
 import type { SendThreadRunInput } from '../../../application/threads/send-thread-run.use-case.ts';
 import type { StreamRunEventsInput } from '../../../application/threads/stream-run-events.use-case.ts';
 import type { UpdateThreadInput } from '../../../application/threads/update-thread.use-case.ts';
@@ -37,8 +37,8 @@ export type ThreadControllerDeps = {
   deleteThread: DeleteThreadInput;
   sendThreadRun: SendThreadRunInput;
   compactThread: CompactThreadInput;
-  resumeThreadRun: ResumeThreadRunInput;
   respondRun: RespondRunInput;
+  retryRun: RetryRunInput;
   streamRunEvents: StreamRunEventsInput;
   cancelRun: CancelRunInput;
   createThreadAttachment: CreateThreadAttachmentInput;
@@ -143,13 +143,6 @@ export class ThreadController {
       }
     });
 
-    app.post('/api/threads/:id/resume', async (c) => {
-      const threadId = c.req.param('id');
-      trace('http', 'POST /resume', { threadId });
-      const response = await this.deps.resumeThreadRun.execute({ threadId });
-      return c.json(response, 202);
-    });
-
     app.post('/api/threads/:id/compact', async (c) => {
       const threadId = c.req.param('id');
       trace('http', 'POST /compact', { threadId });
@@ -166,29 +159,82 @@ export class ThreadController {
 
     app.post('/api/runs/:id/cancel', async (c) => {
       const runId = c.req.param('id');
-      await this.deps.cancelRun.execute({ runId });
-      return c.json({ ok: true });
+      trace('http', 'POST /runs/:id/cancel', { runId });
+      try {
+        await this.deps.cancelRun.execute({ runId });
+        return c.json({ ok: true }, 202);
+      } catch (error) {
+        if (error instanceof RunConflictError) {
+          return c.json(error.body, 409);
+        }
+        throw error;
+      }
+    });
+
+    app.post('/api/runs/:id/retry', async (c) => {
+      const runId = c.req.param('id');
+      trace('http', 'POST /runs/:id/retry', { runId });
+      try {
+        const response = await this.deps.retryRun.execute({ runId });
+        return c.json(response, 202);
+      } catch (error) {
+        if (error instanceof RunConflictError) {
+          return c.json(error.body, 409);
+        }
+        throw error;
+      }
     });
 
     app.post('/api/runs/:id/respond', async (c) => {
       const runId = c.req.param('id');
       const body = respondRunBody.parse(await c.req.json());
       trace('http', 'POST /runs/:id/respond', { runId, askId: body.askId });
-      await this.deps.respondRun.respond({ runId, askId: body.askId, payload: body.payload });
-      return c.json({ ok: true });
+      try {
+        const response = await this.deps.respondRun.respond({
+          runId,
+          askId: body.askId,
+          payload: body.payload,
+        });
+        return c.json(response, 202);
+      } catch (error) {
+        if (error instanceof RunConflictError) {
+          return c.json(error.body, 409);
+        }
+        throw error;
+      }
     });
 
     app.post('/api/runs/:id/reject', async (c) => {
       const runId = c.req.param('id');
       const body = rejectRunBody.parse(await c.req.json());
-      await this.deps.respondRun.reject({ runId, askId: body.askId, note: body.note });
-      return c.json({ ok: true });
+      trace('http', 'POST /runs/:id/reject', { runId, askId: body.askId });
+      try {
+        const response = await this.deps.respondRun.reject({
+          runId,
+          askId: body.askId,
+          note: body.note,
+        });
+        return c.json(response, 202);
+      } catch (error) {
+        if (error instanceof RunConflictError) {
+          return c.json(error.body, 409);
+        }
+        throw error;
+      }
     });
 
     app.delete('/api/runs/:id', async (c) => {
       const runId = c.req.param('id');
-      await this.deps.cancelRun.execute({ runId });
-      return c.body(null, 204);
+      trace('http', 'DELETE /runs/:id', { runId });
+      try {
+        await this.deps.cancelRun.execute({ runId });
+        return c.body(null, 204);
+      } catch (error) {
+        if (error instanceof RunConflictError) {
+          return c.json(error.body, 409);
+        }
+        throw error;
+      }
     });
 
     app.patch('/api/threads/:id', async (c) => {

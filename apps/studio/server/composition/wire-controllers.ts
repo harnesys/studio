@@ -1,3 +1,4 @@
+import type { RunClaimer, RunLifecycleStore } from 'harnesys';
 import type { Hono } from 'hono';
 import type { ActiveRunRegistry } from '../adapters/active-runs.adapter.ts';
 import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
@@ -20,6 +21,7 @@ import type { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-we
 import type { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import type { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
+import { ThreadSessionsAdapter } from '../adapters/thread-sessions.adapter.ts';
 import type { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter.ts';
 import type { WorkspaceAdapter } from '../adapters/workspace/workspace.adapter.ts';
 import type { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.adapter.ts';
@@ -50,7 +52,7 @@ import { ListThreadPendingAttachmentsUseCase } from '../application/threads/list
 import { ListThreadsUseCase } from '../application/threads/list-threads.use-case.ts';
 import { MarkThreadReadUseCase } from '../application/threads/mark-thread-read.use-case.ts';
 import { RespondRunUseCase } from '../application/threads/respond-run.use-case.ts';
-import { ResumeThreadRunUseCase } from '../application/threads/resume-thread-run.use-case.ts';
+import { RetryRunUseCase } from '../application/threads/retry-run.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { StreamRunEventsUseCase } from '../application/threads/stream-run-events.use-case.ts';
 import { UpdateThreadUseCase } from '../application/threads/update-thread.use-case.ts';
@@ -108,6 +110,8 @@ type ControllerDeps = {
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   threadRegistry: ThreadRuntimeRegistry;
   runtimeStateRepo: SqliteRuntimeStateRepo;
+  lifecycle: RunLifecycleStore;
+  claimer: RunClaimer;
   memory: StudioMemoryPorts;
   db: StudioDb;
 };
@@ -204,6 +208,12 @@ export function wireControllers(d: ControllerDeps): void {
   const getThread = new GetThreadUseCase(d.threadRepo, d.agentRepo, d.db);
   const planUow = new SqliteUnitOfWork(d.db);
   const getThreadPlan = new GetThreadPlanUseCase(planUow);
+  const sessions = new ThreadSessionsAdapter({
+    threads: d.threadRepo,
+    workspaces: d.workspaceRepo,
+    workspaceHarnesys: d.workspaceHarnesys,
+    registry: d.threadRegistry,
+  });
   const sendThreadRun = new SendThreadRunUseCase({
     threads: d.threadRepo,
     agents: d.agentRepo,
@@ -236,21 +246,15 @@ export function wireControllers(d: ControllerDeps): void {
     }),
     sendThreadRun,
     compactThread: new CompactThreadUseCase(),
-    resumeThreadRun: new ResumeThreadRunUseCase({
-      threads: d.threadRepo,
-      agents: d.agentRepo,
-      models: d.llmModelRepo,
-      providers: d.llmProviderRepo,
-      workspaces: d.workspaceRepo,
-      workspaceHarnesys: d.workspaceHarnesys,
-      registry: d.threadRegistry,
-      activeRuns: d.activeRuns,
-      deskEvents: d.deskEvents,
-      getThread,
-    }),
     streamRunEvents: new StreamRunEventsUseCase(d.activeRuns),
-    cancelRun: new CancelRunUseCase(d.activeRuns),
-    respondRun: new RespondRunUseCase(d.activeRuns),
+    cancelRun: new CancelRunUseCase({ lifecycle: d.lifecycle, sessions }),
+    respondRun: new RespondRunUseCase({
+      lifecycle: d.lifecycle,
+      sessions,
+      getThread,
+      deskEvents: d.deskEvents,
+    }),
+    retryRun: new RetryRunUseCase({ lifecycle: d.lifecycle, sessions, claimer: d.claimer }),
     createThreadAttachment: new CreateThreadAttachmentUseCase({
       threads: d.threadRepo,
       agents: d.agentRepo,

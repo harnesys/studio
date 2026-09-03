@@ -158,6 +158,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaceHarnesys,
     threadRegistry,
     runtimeStateRepo,
+    lifecycle: runLifecycle,
+    claimer: runClaimer,
     memory,
     db,
   });

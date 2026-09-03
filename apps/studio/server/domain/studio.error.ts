@@ -20,6 +20,7 @@ export class ConflictError extends Error {
 }
 
 export type RunConflictBody = {
+  code?: string;
   runId?: string;
   pendingAskId?: string;
 };

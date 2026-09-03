@@ -1,5 +1,6 @@
 import type { Attachment } from '../domain/attachment.ts';
 import type { Event } from '../domain/snapshot.ts';
+import type { PendingSessionEvent } from '../ports/run-event-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
 
 export function eventToSessionEvent(ev: Event): SessionEvent | null {
@@ -173,5 +174,37 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
   if (t === 'run.cancelled') {
     return { type: 'error', code: 'cancelled', message: 'run cancelled' };
   }
+  if (t === 'run.started') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const attempt = typeof m?.attempt === 'number' ? m.attempt : 0;
+    return { type: 'run.started', attempt };
+  }
+  if (t === 'hitl.answer') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'hitl.answer',
+      interruptId: String(m?.interruptId ?? ''),
+      payload: m?.payload,
+      rejected: m?.rejected === true ? true : undefined,
+      note: typeof m?.note === 'string' ? m.note : undefined,
+      clientEventId: typeof m?.clientEventId === 'string' ? m.clientEventId : undefined,
+    };
+  }
   return null;
+}
+
+export function runStartedEvent(attempt: number): PendingSessionEvent {
+  return { type: 'run.started', attempt } as PendingSessionEvent;
+}
+
+export function runCompletedEvent(text?: string): PendingSessionEvent {
+  return { type: 'run.completed', text } as PendingSessionEvent;
+}
+
+export function runCancelledEvent(reason: string): PendingSessionEvent {
+  return { type: 'run.cancelled', reason } as PendingSessionEvent;
+}
+
+export function runFailedEvent(message: string): PendingSessionEvent {
+  return { type: 'run.failed', message } as PendingSessionEvent;
 }

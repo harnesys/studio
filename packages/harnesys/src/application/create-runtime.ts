@@ -1,4 +1,10 @@
 // biome-ignore-all lint/suspicious/useAwait: async required by RuntimeHandle port contract
+
+import {
+  createRunEventBus,
+  InMemoryRunEventStore,
+  InMemoryRunLifecycleStore,
+} from '../adapters/in-memory-run-store.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { ResumeHashError } from '../domain/errors.ts';
 import type { Command, RunResult } from '../domain/run-result.ts';
@@ -11,6 +17,7 @@ import { compile } from './compile.ts';
 import { startGraph } from './graph.ts';
 import { hashStr } from './graph-helpers.ts';
 import { runGraph } from './graph-run.ts';
+import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createLoadSkillTool } from './skills/create-load-skill-tool.ts';
 import { createToolRegistry } from './tool-registry.ts';
@@ -58,6 +65,21 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     return resolved;
   };
 
+  if ((options.lifecycle === undefined) !== (options.events === undefined)) {
+    throw new Error('createRuntime: lifecycle and events must be provided together');
+  }
+  let lifecycle = options.lifecycle;
+  let events = options.events;
+  if (lifecycle === undefined && events === undefined) {
+    const memEvents = new InMemoryRunEventStore();
+    events = memEvents;
+    lifecycle = new InMemoryRunLifecycleStore(memEvents);
+  }
+  if (lifecycle === undefined || events === undefined) {
+    throw new Error('createRuntime: lifecycle and events must be provided together');
+  }
+  const feed = options.feed ?? createRunEventFeed({ events, lifecycle, bus: createRunEventBus() });
+
   const runtimeCtx: RuntimeContext = {
     models: options.models,
     toolRegistry,
@@ -68,6 +90,12 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     toolMessages: options.toolMessages ?? 'ordered',
     mergeState: options.mergeState,
     agents: options.agents,
+    lifecycle,
+    events,
+    feed,
+    instanceId: options.instanceId ?? crypto.randomUUID(),
+    claimer: options.claimer,
+    targets: options.targets,
   };
 
   return {

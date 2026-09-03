@@ -57,6 +57,18 @@ export type {
   RunRecord,
   RunTransitionPatch,
 } from './src/ports/run-lifecycle-store.ts';
+export type { RunTarget, RunTargets } from './src/ports/run-targets.ts';
+export type { RunEngine, RunEngineDeps, RunTargetOpts } from './src/application/run-engine-types.ts';
+export type { RunClaimer } from './src/application/run-claimer.ts';
+export type { RunEventFeed } from './src/application/run-event-feed.ts';
+export { createRunEventFeed } from './src/application/run-event-feed.ts';
+export { createRunClaimer } from './src/application/run-claimer.ts';
+export { createRunEngine } from './src/application/run-engine.ts';
+export {
+  InMemoryRunEventStore,
+  InMemoryRunLifecycleStore,
+  createRunEventBus,
+} from './src/adapters/in-memory-run-store.ts';
 export type { AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
 export { DRIVERS, normalizeProvider, resolveModel } from './src/ports/models.ts';
 export type {
@@ -81,7 +93,7 @@ export type { PathsConfig } from './src/ports/paths.ts';
 export type { SkillRegistry } from './src/ports/skills.ts';
 export type { CursorMcpJson, McpServerInfo, McpServerToolInfo, StdioEntry, UrlEntry } from './src/ports/mcp.ts';
 export type { ArtifactStore, SendFile } from './src/ports/artifacts.ts';
-export type { AgentRun, SendInput, SessionEvent, SessionHandle } from './src/ports/session.ts';
+export type { SendInput, SendOpts, SessionEvent, SessionHandle } from './src/ports/session.ts';
 export { createRuntime } from './src/application/create-runtime.ts';
 export { startGraph } from './src/application/graph.ts';
 export type { GraphOpts } from './src/application/graph.ts';

@@ -37,17 +37,17 @@
 
 ```
 runs: runId (pk), threadId, status, interruptId?,
-      parentRunId?, spawnId?, attempt, leaseInstanceId?, leaseExpiresAt?, leaseEpoch,
+      parentRunId?, attempt, leaseInstanceId?, leaseExpiresAt?, leaseEpoch,
       lastSeq, createdAt, updatedAt
 ```
 
 Статусы: `queued | running | needs_input | completed | failed | cancelled`. Иммутабелен `completed` (transition из него отклоняется кодом `run_terminal`). `failed | cancelled | running-с-истекшим-lease → queued` разрешен c `attempt + 1` (retry, «Перехват»): механика повтора тем же runId, seq-история не рвется. Повтор успешного хода только через новый `send`. `lastSeq` монотонно растет с записью событий.
 
-`parentRunId` и `spawnId` вводятся колонками в фазе 1, заполняются в 0.6.0 (spawn/handoff). Саб-ран несет `parentRunId` родителя и собственный `spawnId`, имеет собственный lease, собственный seq-неймспейс и собственные события.
+`parentRunId` вводится колонкой в фазе 1, заполняется в 0.6.0 (spawn/handoff). Саб-ран несет `parentRunId` родителя, имеет собственный lease, собственный seq-неймспейс и собственные события.
 
 ### Инвариант эксклюзивного писателя: состояние, не тред
 
-Инвариант: на один `RuntimeState` не более одного исполняющего рана. Корневое состояние принадлежит треду; саб-ран получает собственное через `RuntimeState.child(spawnId)` (порт существует, `runtime-state.ts:10`).
+Инвариант: на один `RuntimeState` не более одного исполняющего рана. Корневое состояние принадлежит треду; саб-ран получает собственное через `RuntimeState.child(runId)` (порт существует, `runtime-state.ts:10`).
 
 - Частичный уникальный индекс: один не-терминальный **корневой** ран (`parentRunId IS NULL`, статус из `queued | running | needs_input`) на `threadId`. `queued` считается не-терминальным: второй send на ран в очереди невозможен.
 - `activeByThread(threadId)` возвращает корневой не-терминальный ран. `send`/respond/retry смотрят только на него.
@@ -74,7 +74,6 @@ export type RunRecord = {
   status: RunLifecycleStatus;
   interruptId?: string;
   parentRunId?: string;
-  spawnId?: string;
   attempt: number;
   leaseInstanceId?: string;
   leaseExpiresAt?: number;
@@ -87,7 +86,7 @@ export type RunRecord = {
 export interface RunLifecycleStore {
   /** Создает ран в статусе queued; initial-события пишутся той же транзакцией
    *  (user-сообщение обязано попасть в журнал до того, как ран станет claimable). */
-  create(run: { runId: string; threadId: string; parentRunId?: string; spawnId?: string }, events?: PendingSessionEvent[]): Promise<RunRecord>;
+  create(run: { runId: string; threadId: string; parentRunId?: string }, events?: PendingSessionEvent[]): Promise<RunRecord>;
   get(runId: string): Promise<RunRecord | null>;
   /** Не-терминальный корневой ран потока, если есть. */
   activeByThread(threadId: string): Promise<RunRecord | null>;
@@ -269,19 +268,19 @@ Reject: при resume сегмента с `hitl.answer {rejected: true}` узе�
 
 ## Не-цели (зафиксировано)
 
-- Федерация инстансов, реестр инстансов, маршрутизация ранов между ними: вторая спека. Фундамент здесь: lease с fencing, `RunTargets`, клеймер (инстанс федерации подбирает чужие `queued` тем же `claim`), `parentRunId`/`spawnId` в схеме, порты без host-зависимостей.
+- Федерация инстансов, реестр инстансов, маршрутизация ранов между ними: вторая спека. Фундамент здесь: lease с fencing, `RunTargets`, клеймер (инстанс федерации подбирает чужие `queued` тем же `claim`), `parentRunId` в схеме, порты без host-зависимостей.
 - Мигратор схемы: появится в спеке федерации (до 0.6.0); до этого схема меняется свободно, dev-БД пересоздается.
 - Per-thread TTL ask, observability-метрики (0.9 по ROADMAP), исполнение `control:spawn` (0.6.0): колонки и порты готовы, исполнение не здесь.
 
 ## Удаления
 
-`SessionHandle.resume()`; `engine.recover()`; `ActiveRunRegistry`; `drainAgentRun` (движок пишет журнал сам); `idleWaits`; in-memory `applied`/`interrupt`/replay движка; in-memory `live`-указатель `createSession`; `run.resumed` (замещен `run.started`); `listExpiredLeases` (замещен `listClaimable`/`listExpiredAsks`); `tryAcquireLease` (замещен `claim`); `appliedResume` и `canonicalJson`-сравнение; `resumeSchema()`-вырезание; поля `AskUserInterrupt.options/multi`; `hitl-actions.ts` ensureLiveRun-ветка; `follow-live.ts`; HTTP `/api/threads/:id/resume`; лимит буфера фида по байтам; дублирующие ветки маппинга событий (маппинг один: `rowToSessionEvent` переиспользует конвертер библиотеки).
+`SessionHandle.resume()`; `engine.recover()`; `ActiveRunRegistry`; `drainAgentRun` (движок пишет журнал сам); `idleWaits`; in-memory `applied`/`interrupt`/replay движка; in-memory `live`-указатель `createSession`; `run.resumed` (замещен `run.started`); `listExpiredLeases` (замещен `listClaimable`/`listExpiredAsks`); `tryAcquireLease` (замещен `claim`); колонка `spawnId` (не нужна: ключ состояния саб-рана это его `runId`, связь со спавн-вызовом живет в чекпоинте узла родителя); `appliedResume` и `canonicalJson`-сравнение; `resumeSchema()`-вырезание; поля `AskUserInterrupt.options/multi`; `hitl-actions.ts` ensureLiveRun-ветка; `follow-live.ts`; HTTP `/api/threads/:id/resume`; лимит буфера фида по байтам; дублирующие ветки маппинга событий (маппинг один: `rowToSessionEvent` переиспользует конвертер библиотеки).
 
 ## Порядок работ
 
 Фазы, внутри каждой порядок = зависимости, каждый коммит собирается (`bun run lint`, tsc):
 
-1. Порты (`RunLifecycleStore` с claim/transition-CAS, `RunEventStore`, `RunTargets`) + SQLite-адаптеры (`runs` с `parentRunId`/`spawnId`/`leaseEpoch`, индекс `(runId, seq)`, индекс `(threadId, clientEventId)`, частичный уникальный индекс корневых ранов) + `RunEngine.execute` без памяти + `createRunClaimer` + `SessionHandle` на записях журнала + helper `createRunEventFeed`.
+1. Порты (`RunLifecycleStore` с claim/transition-CAS, `RunEventStore`, `RunTargets`) + SQLite-адаптеры (`runs` с `parentRunId`/`leaseEpoch`, индекс `(runId, seq)`, индекс `(threadId, clientEventId)`, частичный уникальный индекс корневых ранов) + `RunEngine.execute` без памяти + `createRunClaimer` + `SessionHandle` на записях журнала + helper `createRunEventFeed`.
 2. HTTP: `send` 202/409, `respond`/`reject` коды, `/retry`, `/cancel`, SSE `fromSeq`, `activeRun` с `leaseExpired`, `clientEventId`. `/resume` не существует.
 3. HITL: `ask-schema.ts`, чекпоинт узла, permission ask, единый строитель tool-сообщений, восстановление `output`, чистки graph.ts.
 4. Клиент: `RunStreamClient` со состояниями (`queued` включительно), `reconcileEvents` по `(runId, seq)`, обработка `run.started`/`run-paused`, удаление старых потоков, tooltip, `HitlPayload`.

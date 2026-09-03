@@ -3,6 +3,7 @@
 Дата: 2026-09-03. Статус: утверждено в диалоге, спека.
 Вход: `review_consolidated.md` (22 пункта P0-P2, сверены с кодом 2026-09-03).
 Решения, принятые человеком: вариант B (полная персистентность жизненного цикла), ядро через порты в `packages/harnesys`, ручной перезапуск running-ранов после падения инстанса, федерация инстансов отдельной спекой, обратной совместимости и миграторов нет, dev-БД пересоздается.
+Итерация 2 (2026-09-03): применены замечания внешнего ревью (проверка владельца в `renewLease`, lease при каждом входе в `running`, идемпотентность retry, дедуп `clientEventId` в БД) и упрощения (без `appliedResume` и `canonicalJson`, лимит фида только в событиях, `RunEventFeed` как helper библиотеки, чекпоинт узла без `pendingInterrupt`).
 
 Терминология спеки: **инстанс** (node instance) = один запущенный процесс приложения с бекендом на библиотеке harnesys (десктоп-хост, безголовый бекенд на VPS, ноутбуке, RPi). **Узел графа** (graph node) = узел agent-графа (`tool:call`, `control:spawn`), к инстансам отношения не имеет. Мастер-инстанс (десктоп/веб с полным UI) управляет безголовыми инстансами через одну панель: предмет спеки федерации, здесь только фундамент под нее.
 
@@ -15,7 +16,7 @@
 Библиотека собирается из кирпичей за портами; замена реализации не затрагивает смежные слои. Правила, по которым это достигается:
 
 1. Состояние и события: только через `RunLifecycleStore`/`RunEventStore`. Движок не знает SQLite; другой движок хранения (Postgres, remote-клиент федерации) реализует те же интерфейсы без правки ядра.
-2. Транспорт: библиотека не знает HTTP и SSE. Слой `RunEventFeed` (см. ниже) дает асинхронную подписку на события рана; studio оборачивает его в SSE, десктоп-оболочка сможет в IPC, федерация в WebSocket, без правки ядра.
+2. Транспорт: библиотека не знает HTTP и SSE. Helper `RunEventFeed` (см. ниже) дает асинхронную подписку на события рана; studio оборачивает его в SSE, десктоп-оболочка сможет в IPC, федерация в WebSocket, без правки ядра.
 3. Клиент: `RunStreamClient` работает поверх transport-адаптера (`fetchSse` сегодня), состояния клиента отделены от React. Замена SSE на другой транспорт = один адаптер.
 4. Расширения: кастомные узлы графа идут через `CreateRuntimeOptions.nodes` (уже существует), инструменты через `ToolDefinition`, политика подтверждений через `permissionMapFor`. Новая возможность = новый кирпич за существующим портом, не правка ядра.
 5. Каждая зависимость модуля объявлена конструктором или аргументом функции; глобальный импорт адаптера из слоя ядра запрещен (FSD-правило `index.ts` уже в `AGENTS.md`).
@@ -27,12 +28,12 @@
 ### RunRecord
 
 ```
-runs: runId (pk), threadId, status, interruptId?, appliedResume?,
-      parentRunId?, spawnId?, attempt, leaseNodeId?, leaseExpiresAt?, leaseEpoch,
+runs: runId (pk), threadId, status, interruptId?,
+      parentRunId?, spawnId?, attempt, leaseInstanceId?, leaseExpiresAt?, leaseEpoch,
       lastSeq, createdAt, updatedAt
 ```
 
-Статусы: `running | needs_input | completed | failed | cancelled`. Иммутабельны `completed` (transition из него отклоняется кодом `run_terminal`). `failed | cancelled → running` разрешен под валидным lease с `attempt + 1`: механика retry тем же runId (кнопка «Повторить», «Перехват»), seq-история рана не разрывается. Защита от двойного resume держится на `interruptId` + `appliedResume`, не на иммутабельности. `lastSeq` монотонно растет с записью событий. `appliedResume` — canonical JSON (`canonicalJson` из `graph-edges.ts`) последнего примененного resume-payload.
+Статусы: `running | needs_input | completed | failed | cancelled`. Иммутабелен `completed` (transition из него отклоняется кодом `run_terminal`). `failed | cancelled → running` разрешен под валидным lease с `attempt + 1`: механика retry тем же runId (кнопка «Повторить», «Перехват»), seq-история рана не разрывается; повторный клик по retry на уже перезапущенном ране упирается в занятый lease → 409; каждый retry пишет событие `run.retried` (стык попыток виден в ленте). Повтор успешного хода только через новый `send`. `lastSeq` монотонно растет с записью событий.
 
 `parentRunId` и `spawnId` вводятся колонками в фазе 1, заполняются в 0.6.0 (spawn/handoff). Саб-ран несет `parentRunId` родителя и собственный `spawnId`, имеет собственный lease, собственный seq-неймспейс и собственные события.
 
@@ -42,6 +43,7 @@ runs: runId (pk), threadId, status, interruptId?, appliedResume?,
 
 - Частичный уникальный индекс: один не-терминальный **корневой** ран (`parentRunId IS NULL`) на `threadId`.
 - `activeByThread(threadId)` возвращает корневой не-терминальный ран. `send`/`resume`/respond смотрят только на него.
+- Гонка двух параллельных `send`: оба идут `create` + частичный уникальный индекс; нарушение уникальности маппится в 409, второй send не создает ран. Эта гонка — сценарий ручной проверки после фазы 4.
 - Саб-ран: отдельная строка `runs`, параллельно с корневым и с братьями. Ограничений на число не-терминальных саб-ранов треда нет.
 - Barrier `policy:'all'` (0.6.0): запрос `childrenByParent(parentRunId)` в `RunLifecycleStore`, ожидание терминальных статусов. Барьер stateless, переживает рестарт процесса.
 - Федерация: саб-раны независимо распределяются по инстансам, каждый держит свой lease; мастер-инстанс агрегирует через те же порты.
@@ -49,9 +51,11 @@ runs: runId (pk), threadId, status, interruptId?, appliedResume?,
 
 ### Lease и fencing
 
-Инстанс-исполнитель продлевает lease (`leaseNodeId`, TTL 15с, продление каждые 5с) пока ран исполняется; таймер живет внутри `RunEngine` на время активного сегмента, останавливается на `needs_input`, терминале, ошибке и `close()` (утечки таймера нет). Running с невалидным lease = инстанс умер: ран можно взять заново вручную (retry) или оставить до отмены. `needs_input` исполняется без lease; его возьмет любой инстанс при ответе пользователя. Два инстанса не могут исполнять один ран: второй получает `lease_held` → HTTP 409. При старте процесса незавершенные раны с истекшим lease остаются `running`, UI показывает `leaseExpired: true` и кнопку retry. Авто-догона нет (решение человека).
+Инстанс-исполнитель продлевает lease (`leaseInstanceId`, TTL 15с, продление каждые 5с) пока ран исполняется; таймер живет внутри `RunEngine` на время активного сегмента, останавливается на `needs_input`, терминале, ошибке и `close()` (утечки таймера нет). Running с невалидным lease = инстанс умер: ран можно взять заново вручную (retry) или оставить до отмены. `needs_input` исполняется без lease; его возьмет любой инстанс при ответе пользователя. Два инстанса не могут исполнять один ран: второй получает `lease_held` → HTTP 409. При старте процесса незавершенные раны с истекшим lease остаются `running`, UI показывает `leaseExpired: true` и кнопку retry. Авто-догона нет (решение человека).
 
 Fencing: `leaseEpoch` (монотонный int на ране) растет при каждом `tryAcquireLease`. `transition` и `append` принимают `expectedEpoch`; запись с чужим epoch отклоняется кодом `lease_stale`. Пауза GC у старого владельца не дает split-brain: его записи отклоняются.
+
+Единая дверь в `running`: каждый вход (старт рана, `needs_input → running` на respond, retry, перехват истекшего lease) идет через `tryAcquireLease`, который проверяет владельца, epoch и время. `renewLease` проверяет владельца и epoch: чужой инстанс получает `false`, чужой lease не продлевает. Сравнение времени lease делает стор (`leaseExpiresAt` в его тайм-зоне), не вызывающий код: федерация с разными часами на машинах не зависит от caller'а.
 
 ### Порты (packages/harnesys/src/ports/)
 
@@ -63,11 +67,10 @@ export type RunRecord = {
   threadId: string;
   status: RunLifecycleStatus; // 'running' | 'needs_input' | 'completed' | 'failed' | 'cancelled'
   interruptId?: string;
-  appliedResume?: string;
   parentRunId?: string;
   spawnId?: string;
   attempt: number;
-  leaseNodeId?: string;
+  leaseInstanceId?: string;
   leaseExpiresAt?: number;
   leaseEpoch: number;
   lastSeq: number;
@@ -84,16 +87,18 @@ export interface RunLifecycleStore {
   childrenByParent(parentRunId: string): Promise<RunRecord[]>;
   /**
    * Атомарный переход статуса при совпадении epoch.
-   * Ошибки coded: 'run_terminal' (из completed), 'already_resumed' (конкуренция),
+   * Ошибки coded: 'run_terminal' (из completed), 'already_resumed' (respond на running),
    * 'lease_stale' (чужой epoch).
    */
   transition(
     runId: string,
     expectedEpoch: number,
-    patch: { status: RunLifecycleStatus; interruptId?: string | null; appliedResume?: string | null; advanceAttempt?: boolean },
+    patch: { status: RunLifecycleStatus; interruptId?: string | null; advanceAttempt?: boolean },
   ): Promise<RunRecord>;
-  tryAcquireLease(runId: string, nodeId: string, ttlMs: number): Promise<boolean>;
-  renewLease(runId: string, nodeId: string, ttlMs: number): Promise<boolean>;
+  /** Вход в running: проверяет владельца, epoch и время; false = занято/чужое. */
+  tryAcquireLease(runId: string, instanceId: string, ttlMs: number): Promise<boolean>;
+  /** Продление: только владелец с текущим epoch; чужой инстанс получает false. */
+  renewLease(runId: string, instanceId: string, ttlMs: number): Promise<boolean>;
   /** Для тикера: limit + курсор updatedAt, без полного скана. */
   listExpiredLeases(opts?: { limit?: number; before?: string }): Promise<RunRecord[]>;
 }
@@ -116,18 +121,23 @@ export interface RunEventStore {
 
 `SessionEvent` получает обязательные `seq: number` и `runId: string`. `PendingSessionEvent` = `SessionEvent` без `seq`/`runId`; `append` возвращает события с присвоенными значениями. Порядок фиксирован: запись в стор, только потом публикация подписчикам (reconnect без пропусков). Индекс `(runId, seq)` в SQLite-адаптере.
 
-### RunEventFeed: подписка без транспорта
+### RunEventFeed: helper подписки без транспорта
 
-Библиотека дает интерфейс подписки на события рана, studio оборачивает его в SSE:
+Библиотека дает готовый helper, studio оборачивает его в SSE:
 
 ```ts
+export function createRunEventFeed(deps: {
+  events: RunEventStore;
+  lifecycle: RunLifecycleStore;
+}): RunEventFeed;
+
 export interface RunEventFeed {
   /** Живые события рана после fromSeq; завершается на терминальном статусе. */
   subscribe(runId: string, fromSeq: number): AsyncIterable<SessionEvent>;
 }
 ```
 
-Реализация в studio: `tail()` из `RunEventStore` + подписка на публикацию `append`. Библиотека не знает HTTP/SSE/IPC. Движок публикует события через feed после `append`.
+Реализация helper'а: `tail()` из `RunEventStore` + подписка на публикацию `append`. При переполнении in-memory кольцевого буфера подписчик с отставшим `fromSeq` добирает середину через `tail()`, не теряет события. Библиотека не знает HTTP/SSE/IPC. Движок публикует события через feed после `append`. Гарантия фида: at-least-once, дедуп по `(runId, seq)` на получателе.
 
 ### RunEngine без памяти
 
@@ -135,8 +145,8 @@ export interface RunEventFeed {
 
 - старт: `store.create(run)` → `tryAcquireLease` → запуск сегмента графа;
 - ask: `transition(needs_input)` с `interruptId`; схема interrupt хранится в снапшоте (`cursor.interrupt.resumeSchema`), она же источник при recover;
-- respond/reject: атомарный transition `needs_input → running` с проверкой `interruptId` и сравнением `appliedResume`. Дедуп в БД, не в памяти: тот же payload → идемпотентный успех (200), другой → `already_resumed`, чужой interruptId → `unknown_interrupt`, из `completed` → `run_terminal`. Silent no-op запрещены (1.5);
-- retry: transition `failed|cancelled → running` под валидным lease, `attempt + 1`; доступен только живому владельцу lease;
+- respond/reject: `tryAcquireLease` → атомарный transition `needs_input → running` с проверкой `interruptId`. Второй `respond` на running-ране → coded `already_resumed`; тот же interruptId → `unknown_interrupt`, из `completed` → `run_terminal`. Silent no-op запрещены (1.5). Повторная доставка ответа после потери HTTP-ответа: клиент получает 409 `already_resumed`, подключается к SSE рана и видит хвост исполнения;
+- retry: transition `failed|cancelled → running` под валидным lease, `attempt + 1`, событие `run.retried`; доступен только живому владельцу lease;
 - recover(runId): валидация lease/статуса, восстановление `interrupt` из снапшота, никаких реэмитов ask (2.5): клиент получает ask через tail/reconcile;
 - `command()` возвращает результат transition: ошибки кодированные, не молчаливые.
 
@@ -144,7 +154,7 @@ export interface RunEventFeed {
 
 ### Идемпотентность батча и чекпоинт узла графа
 
-Механизм approve (`approveStateKey`) обобщается до чекпоинта узла графа: ключ state `$nodeCheckpoint_{nodeId}` = `{ completed: Record<callIdx, ToolCallResult>, pendingInterrupt?: { callIdx, interruptId } }`. Пишется перед каждым interrupt (approve, permission, ask_user в батче). Воркер, поймавший `AskUserInterrupt`, не роняет `Promise.all`: пул помечает вызов pending, доигрывает in-flight вызовы, сохраняет их результаты в чекпоинт, бросает interrupt. На resume узел восстанавливает чекпоинт и выполняет только незавершенные вызовы (1.2). Чекпоинт удаляется при успешном завершении узла. Крупные выводы инструментов идут через `ArtifactStore` (механизм fold существует): чекпоинт хранит результаты в пределах бюджета, снапшот не распухает.
+Механизм approve (`approveStateKey`) обобщается до чекпоинта узла графа: ключ state `$nodeCheckpoint_{nodeId}` = `{ completed: Record<callIdx, ToolCallResult> }`. Пишется перед каждым interrupt (approve, permission, ask_user в батче). Воркер, поймавший `AskUserInterrupt`, не роняет `Promise.all`: пул помечает вызов pending, доигрывает in-flight вызовы, сохраняет их результаты в чекпоинт, бросает interrupt. На resume узел восстанавливает чекпоинт и выполняет только незавершенные вызовы (1.2). Чекпоинт удаляется при успешном завершении узла. `interruptId` хранится в `runs` и снапшоте, отдельного поля в чекпоинте нет. Крупные выводы инструментов идут через `ArtifactStore` (механизм fold существует): чекпоинт хранит результаты в пределах бюджета, снапшот не распухает.
 
 ### HITL-схема
 
@@ -171,7 +181,7 @@ Resume ReAct (1.1): при старте сегмента с узла `tool:call`
 - SSE закрывается сервером на терминальном статусе и на `needs_input`: финальный кадр `ask`, затем служебный `event: run-paused`. Обрыв соединения на живом ране клиент трактует как разрыв, не как финиш (2.8).
 - Кадры несут `id: seq`; `GET /runs/:id/events?fromSeq=N` отдает `tail(fromSeq)` через `RunEventFeed`, затем живые. Клиент хранит `lastSeq` на ран, reconnect шлет `fromSeq` (2.6). После успешного respond на паркованном ране клиент переподключается к SSE того же рана с `lastSeq` и получает `resumed` и хвост исполнения.
 - `run.resumed` персистится как обычное событие со seq, `rowToSessionEvent` маппит; клиент снимает pending-карточку на `resumed` (2.3). Фильтрация `resumed` на рендере ленты: событие участвует в мердже, не рендерится как сообщение.
-- `send` при `activeByThread` → 409 с `pendingAskId` (если `needs_input`) или `runId` (если running с валидным lease); параллельные send атомарны через `create`+частичный уникальный индекс корневых ранов (2.9). `PendingHitlError`/`ThreadBusyError` маппятся в 409. Идемпотентность send: клиент генерирует `clientEventId` (uuid) и шлет его в `send`/`respond`; сервер persist-ит `user`-событие с этим id, повтор с тем же `clientEventId` не создает второе сообщение.
+- `send` при `activeByThread` → 409 с `pendingAskId` (если `needs_input`) или `runId` (если running с валидным lease); параллельные send атомарны через `create`+частичный уникальный индекс корневых ранов (2.9). `PendingHitlError`/`ThreadBusyError` маппятся в 409. Идемпотентность send: клиент генерирует `clientEventId` (uuid) и шлет его в `send`/`respond`; перед persist `user`-события сервер ищет в треде событие с тем же `clientEventId`, повтор возвращает существующее, второго сообщения нет. Индекс `(threadId, clientEventId)`; время жизни = время жизни события, отдельной чистки нет.
 - recover не реэмитит ask (2.5).
 
 ## HTTP-контракт
@@ -182,13 +192,13 @@ Resume ReAct (1.1): при старте сегмента с узла `tool:call`
   2. active `running` с валидным lease → 409 `{runId, status:'running'}`;
   3. active `running` с истекшим lease → `tryAcquireLease` (атомарно) → успех: 202 `{runId, status:'resumed', resumed:true}`, `handle.resume(runId)`; занято → ветка 2;
   4. нет active рана → 404; корневой ран в `completed` → 409 `run_terminal` (повтор завершенного рана не предусмотрен, новый ход = новый `send`).
-- `POST /api/runs/:id/respond|reject`: коды движка в HTTP: `unknown_interrupt` → 409, `run_terminal` → 409, `already_resumed` → 200 идемпотентный успех (3.8), `resume_validation_failed` → 400, `lease_stale` → 409. Слепой `{ok:true}` удален.
-- `POST /api/runs/:id/retry`: для `failed|cancelled` рана: `tryAcquireLease` + transition `→ running` с `attempt+1`, ответ 202. Клиентская кнопка «Повторить» на упавшем ходе.
+- `POST /api/runs/:id/respond|reject`: коды движка в HTTP: `unknown_interrupt` → 409, `run_terminal` → 409, `already_resumed` → 409 (клиент подключается к SSE рана), `resume_validation_failed` → 400, `lease_stale` → 409. Слепой `{ok:true}` удален.
+- `POST /api/runs/:id/retry`: для `failed|cancelled` рана: `tryAcquireLease` + transition `→ running` с `attempt+1`, событие `run.retried`, ответ 202. Двойной клик: второй запрос упирается в занятый lease → 409. Клиентская кнопка «Повторить» на упавшем ходе.
 - Клиент: 409 на resume с `runId` → подключиться к SSE этого рана, не ретраить; in-flight guard и backoff в `RunStreamClient`.
 
 ## Ресурсы и хвосты
 
-- Replay-буферы: источник правды `RunEventStore`; in-memory буфер фида — кольцевой, лимит по байтам (дефолт 1 MiB на ран) и 500 событий, только для переподключений в пределах процесса (3.1, 3.2).
+- Replay-буферы: источник правды `RunEventStore`; in-memory буфер фида — кольцевой, лимит 500 событий на ран, только для переподключений в пределах процесса (3.1, 3.2). Подписчик с отставшим `fromSeq` добирает пропущенное через `tail()`.
 - TTL ask: `needs_input` старше `ASK_TTL` (дефолт 7 дней, глобальный конфиг) → тикер переводит в `cancelled` с событием кода `ask_expired` (3.3). Running с истекшим lease не GC-ится до ручного retry/отмены; в `activeRun` отдается `leaseExpired: true`.
 - `finish()` фида вычисляет idle по `runs` (есть ли не-терминальный ран потока), не по живым записям реестра (2.8 хвост).
 - `tokens` без usage не растет (3.5). Мертвый `if` фоллбека удаляется (3.6). `resolveConcurrency` без дубля проверки (3.7). Tooltip композера (3.10). Union `HitlPayload` в shared для payload Confirm/Ask (3.9).
@@ -208,16 +218,16 @@ Resume ReAct (1.1): при старте сегмента с узла `tool:call`
 
 ## Удаления
 
-`resumeSchema()`-вырезание; поля `AskUserInterrupt.options/multi`; `SessionHandle.resume()` без runId; in-memory `applied`/`interrupt`/replay движка; `hitl-actions.ts` ensureLiveRun-ветка; `follow-live.ts` как отдельный поток; дублирующие ветки маппинга событий (маппинг один: `rowToSessionEvent` переиспользует конвертер библиотеки).
+`resumeSchema()`-вырезание; поля `AskUserInterrupt.options/multi`; `SessionHandle.resume()` без runId; in-memory `applied`/`interrupt`/replay движка; `hitl-actions.ts` ensureLiveRun-ветка; `follow-live.ts` как отдельный поток; `appliedResume` и `canonicalJson`-сравнение resume-пейлоадов (дедуп respond по статусу рана); лимит буфера фида по байтам; дублирующие ветки маппинга событий (маппинг один: `rowToSessionEvent` переиспользует конвертер библиотеки).
 
 ## Порядок работ
 
 Фазы, внутри каждой порядок = зависимости, каждый коммит собирается (`bun run lint`, tsc):
 
-1. Порты (`RunLifecycleStore`, `RunEventStore`, `RunEventFeed`) + SQLite-адаптеры (`runs` с `parentRunId`/`spawnId`/`leaseEpoch`, индекс `(runId, seq)`, частичный уникальный индекс корневых ранов) + `RunEngine` без памяти с lease-таймером и fencing + `SessionHandle.resume(runId)`.
+1. Порты (`RunLifecycleStore`, `RunEventStore`) + helper `createRunEventFeed` + SQLite-адаптеры (`runs` с `parentRunId`/`spawnId`/`leaseEpoch`, индекс `(runId, seq)`, частичный уникальный индекс корневых ранов) + `RunEngine` без памяти с lease-таймером и fencing + `SessionHandle.resume(runId)`.
 2. HTTP: `activeRun`, идемпотентный `/resume`, respond/reject коды, `/retry`, send 409, `fromSeq`, `clientEventId`, фид как локальный подписчик.
 3. HITL: `ask-schema.ts`, чекпоинт узла, permission ask, единый строитель tool-сообщений, восстановление `output`, чистки graph.ts.
 4. Клиент: `RunStreamClient` со состояниями, `reconcileEvents` по `(runId, seq)`, обработка `resumed`/`run-paused`, удаление старых потоков, tooltip, `HitlPayload`.
 5. GC: тикер TTL с `listExpiredLeases(limit, before)`, `leaseExpired`, инкрементальный publish с инвалидацией.
 
-Проверка после фазы 4: флоу send → SSE → ask → respond → resumed, reload на parked ране, рестарт процесса, дабл-сабмит ответа и send, retry из failed.
+Проверка после фазы 4: флоу send → SSE → ask → respond → resumed, reload на parked ране, рестарт процесса, дабл-сабмит ответа и send, гонка двух параллельных send, retry из failed и дабл-клик retry.

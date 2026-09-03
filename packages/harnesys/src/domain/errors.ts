@@ -85,3 +85,9 @@ export class AskUserInterrupt extends Error {
     this.resumeSchema = input.resumeSchema;
   }
 }
+
+export type CodedError = Error & { code: string };
+
+export function codedRunError(code: string, message: string): CodedError {
+  return Object.assign(new Error(message), { code }) as CodedError;
+}

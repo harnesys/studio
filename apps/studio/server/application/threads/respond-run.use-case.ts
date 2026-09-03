@@ -27,7 +27,8 @@ export class RespondRunUseCase implements RespondRunInput {
       throw new NotFoundError('run not found');
     }
     try {
-      await active.run.respond(request.askId, request.payload);
+      // Запускаем respond в фоне, чтобы не блокировать HTTP запрос
+      void active.run.respond(request.askId, request.payload);
     } catch (error) {
       throw new ValidationError(error instanceof Error ? error.message : 'respond failed');
     }

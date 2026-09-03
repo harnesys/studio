@@ -5,6 +5,10 @@ import type {
   AgentModelRef,
   CursorMcpJson,
   ModelsPort,
+  RunClaimer,
+  RunEventFeed,
+  RunEventStore,
+  RunLifecycleStore,
   RuntimeHandle,
   ToolDefinition,
 } from 'harnesys';
@@ -18,15 +22,28 @@ import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
 
+export type WorkspaceHarnesysRepos = {
+  agents?: AgentRepository;
+  modelRepo?: LlmModelRepository;
+  providerRepo?: LlmProviderRepository;
+};
+
+export type WorkspaceRuntimeWiring = {
+  lifecycle: RunLifecycleStore;
+  events: RunEventStore;
+  feed: RunEventFeed;
+  claimer: RunClaimer;
+  instanceId: string;
+};
+
 export class WorkspaceHarnesysRegistry {
   private readonly cache = new Map<string, Promise<RuntimeHandle>>();
   private extraTools: ToolDefinition[] = [];
 
   constructor(
     private readonly models: ModelsPort,
-    private readonly agents?: AgentRepository,
-    private readonly modelRepo?: LlmModelRepository,
-    private readonly providerRepo?: LlmProviderRepository,
+    private readonly repos: WorkspaceHarnesysRepos = {},
+    private readonly runtime?: WorkspaceRuntimeWiring,
   ) {}
 
   setExtraTools(tools: ToolDefinition[]): void {
@@ -87,14 +104,19 @@ export class WorkspaceHarnesysRegistry {
       mcp: mcpJson,
       paths: { allow: [workspace.path], cwd: workspace.path },
       skills,
+      ...this.runtime,
     });
   }
 
+  resolveAgentDefinition(id: string): AgentDefinition | undefined {
+    return this.resolveAgent(id);
+  }
+
   private resolveAgent(id: string): AgentDefinition | undefined {
-    if (!this.agents) {
+    if (!this.repos.agents) {
       return undefined;
     }
-    const agent = this.agents.findById(id);
+    const agent = this.repos.agents.findById(id);
     if (!agent) {
       return undefined;
     }
@@ -123,10 +145,10 @@ export class WorkspaceHarnesysRegistry {
     }
     const effort = agent.effort ?? undefined;
     const generation = agent.generation as AgentGenerationSettings | undefined;
-    if (this.modelRepo && this.providerRepo) {
-      const model = this.modelRepo.findById(agent.modelId);
+    if (this.repos.modelRepo && this.repos.providerRepo) {
+      const model = this.repos.modelRepo.findById(agent.modelId);
       if (model) {
-        const provider = this.providerRepo.findById(model.providerId);
+        const provider = this.repos.providerRepo.findById(model.providerId);
         if (provider) {
           return {
             provider: provider.name,

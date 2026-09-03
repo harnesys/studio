@@ -1,4 +1,13 @@
 import { join } from 'node:path';
+import {
+  createRunClaimer,
+  createRunEngine,
+  createRunEventBus,
+  createRunEventFeed,
+  createToolRegistry,
+  type RunTargets,
+} from 'harnesys';
+import { askUser, fetch, files, shell } from 'harnesys/actions';
 import { Hono } from 'hono';
 import { ActiveRunRegistry } from '../adapters/active-runs.adapter.ts';
 import { FsAttachmentsAdapter } from '../adapters/attachments/fs-attachments.adapter.ts';
@@ -12,17 +21,21 @@ import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.rep
 import { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
 import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
+import { SqliteRunEventStore } from '../adapters/store/sqlite/repos/sqlite-run-events.adapter.ts';
+import { SqliteRunLifecycleStore } from '../adapters/store/sqlite/repos/sqlite-run-lifecycle.adapter.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
 import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
 import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
 import { DB_FILE, defaultHomePath } from '../adapters/store/studio-layout.ts';
+import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
 import { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
 import { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter.ts';
 import { WorkspaceAdapter } from '../adapters/workspace/workspace.adapter.ts';
 import { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.adapter.ts';
 import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
+import { env } from '../config/env.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
@@ -65,6 +78,30 @@ export function createStudio(options: StudioOptions = {}): Hono {
   const attachments = options.attachments ?? new FsAttachmentsAdapter();
   const modelsPort = createHarnesysModelsPort(llmProviderRepo, llmModelRepo);
   const runtimeStateRepo = new SqliteRuntimeStateRepo(db);
+  const eventBus = createRunEventBus();
+  const runEvents = new SqliteRunEventStore(db);
+  const runLifecycle = new SqliteRunLifecycleStore(db, runEvents.appendWithinTx.bind(runEvents));
+  const runFeed = createRunEventFeed({ events: runEvents, lifecycle: runLifecycle, bus: eventBus });
+  const instanceId = env.STUDIO_INSTANCE_ID ?? 'studio-local';
+  const runEngine = createRunEngine({
+    lifecycle: runLifecycle,
+    events: runEvents,
+    feed: runFeed,
+    instanceId,
+    models: modelsPort,
+    toolRegistry: createToolRegistry([...files(), shell(), fetch(), askUser()]),
+    toolMessages: 'ordered',
+  });
+  const targetRef: { current: RunTargets | null } = { current: null };
+  const runClaimer = createRunClaimer({
+    lifecycle: runLifecycle,
+    targets: {
+      resolve: (threadId) => targetRef.current?.resolve(threadId) ?? Promise.resolve(null),
+    },
+    engine: runEngine,
+    instanceId,
+    sweepMs: 5_000,
+  });
   const memory = createStudioMemory(db, {
     runtimeState: runtimeStateRepo,
     providers: llmProviderRepo,
@@ -74,7 +111,27 @@ export function createStudio(options: StudioOptions = {}): Hono {
   });
   const workspaceHarnesys =
     options.workspaceHarnesys ??
-    new WorkspaceHarnesysRegistry(modelsPort, agentRepo, llmModelRepo, llmProviderRepo);
+    new WorkspaceHarnesysRegistry(
+      modelsPort,
+      { agents: agentRepo, modelRepo: llmModelRepo, providerRepo: llmProviderRepo },
+      {
+        lifecycle: runLifecycle,
+        events: runEvents,
+        feed: runFeed,
+        claimer: runClaimer,
+        instanceId,
+      },
+    );
+  const runTargets = new StudioRunTargets({
+    threads: threadRepo,
+    agents: agentRepo,
+    models: llmModelRepo,
+    providers: llmProviderRepo,
+    workspaces: workspaceRepo,
+    workspaceHarnesys,
+    runtimeStates: runtimeStateRepo,
+  });
+  targetRef.current = runTargets;
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
 
   const app = new Hono();

@@ -49,7 +49,7 @@ export { check } from './src/application/check.ts';
 export type { CheckOptions } from './src/application/check.ts';
 export { validateStructural } from './src/application/validate.ts';
 export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
-export type { PendingSessionEvent } from './src/ports/run-event-store.ts';
+export type { PendingSessionEvent, RunEventStore } from './src/ports/run-event-store.ts';
 export type {
   RunCreateInput,
   RunLifecycleStatus,

@@ -169,6 +169,17 @@ export function bootstrap(db: StudioDb): void {
       WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input');`,
     `CREATE INDEX IF NOT EXISTS runs_claim_idx ON runs(status, created_at);`,
     `CREATE INDEX IF NOT EXISTS runs_ask_ttl_idx ON runs(status, updated_at);`,
+    `CREATE TABLE IF NOT EXISTS run_events (
+      run_id TEXT NOT NULL,
+      seq INTEGER NOT NULL,
+      thread_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      timestamp INTEGER NOT NULL,
+      metadata TEXT,
+      client_event_id TEXT,
+      PRIMARY KEY (run_id, seq)
+    );`,
+    `CREATE INDEX IF NOT EXISTS run_events_client_idx ON run_events(thread_id, client_event_id);`,
     `CREATE INDEX IF NOT EXISTS attachments_thread_idx ON attachments(thread_id);`,
   ];
 
@@ -177,7 +188,7 @@ export function bootstrap(db: StudioDb): void {
   }
 
   // Drop legacy chat tables (big-bang stand wipe; no data migration)
-  for (const table of ['steps', 'messages', 'timeline_entries', 'run_events', 'automations']) {
+  for (const table of ['steps', 'messages', 'timeline_entries', 'automations']) {
     try {
       db.run(sql.raw(`DROP TABLE IF EXISTS ${table};`));
     } catch {}

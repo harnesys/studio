@@ -40,6 +40,7 @@ export type {
   Usage,
 } from './src/domain/run-result.ts';
 export { NotImplementedError, ValidationError } from './src/domain/errors.ts';
+export { codedRunError } from './src/domain/errors.ts';
 export { ThreadBusyError, PendingHitlError, ResumeHashError } from './src/domain/errors.ts';
 export type { Diagnostic } from './src/domain/errors.ts';
 export { compile } from './src/application/compile.ts';
@@ -48,6 +49,14 @@ export { check } from './src/application/check.ts';
 export type { CheckOptions } from './src/application/check.ts';
 export { validateStructural } from './src/application/validate.ts';
 export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
+export type { PendingSessionEvent } from './src/ports/run-event-store.ts';
+export type {
+  RunCreateInput,
+  RunLifecycleStatus,
+  RunLifecycleStore,
+  RunRecord,
+  RunTransitionPatch,
+} from './src/ports/run-lifecycle-store.ts';
 export type { AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
 export { DRIVERS, normalizeProvider, resolveModel } from './src/ports/models.ts';
 export type {

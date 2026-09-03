@@ -57,8 +57,15 @@ function interruptIdOf(event: PendingSessionEvent | SessionEvent): string | unde
   return (event as { interruptId?: string }).interruptId;
 }
 
-function seqOf(event: SessionEvent): number {
-  return (event as { seq?: number }).seq ?? 0;
+function maxSeqOf(events: SessionEvent[], base: number): number {
+  let max = base;
+  for (const event of events) {
+    const seq = (event as { seq?: number }).seq ?? 0;
+    if (seq > max) {
+      max = seq;
+    }
+  }
+  return max;
 }
 
 function assertTransitionAllowed(
@@ -84,10 +91,6 @@ function assertTransitionAllowed(
       throw codedRunError('unknown_interrupt', `run ${record.runId} interrupt mismatch`);
     }
   }
-}
-
-function isUniqueViolation(err: unknown): boolean {
-  return err instanceof SQLiteError && err.code === 'SQLITE_CONSTRAINT_UNIQUE';
 }
 
 export class SqliteRunLifecycleStore implements RunLifecycleStore {
@@ -133,13 +136,17 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
           })
           .run();
       } catch (err) {
-        if (isUniqueViolation(err)) {
+        if (err instanceof SQLiteError && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
           throw codedRunError('thread_busy', 'thread already has an active run');
         }
         throw err;
       }
       if (events.length > 0) {
-        this.appendWithinTx(tx as StudioDb, run.runId, run.threadId, 0, events);
+        const stored = this.appendWithinTx(tx as StudioDb, run.runId, run.threadId, 0, events);
+        tx.update(runsTable)
+          .set({ lastSeq: maxSeqOf(stored, 0), updatedAt: new Date().toISOString() })
+          .where(eq(runsTable.runId, run.runId))
+          .run();
       }
       const row = tx.select().from(runsTable).where(eq(runsTable.runId, run.runId)).get();
       if (!row) {
@@ -216,13 +223,7 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
         record.lastSeq,
         patch.events ?? [],
       );
-      let lastSeq = record.lastSeq;
-      for (const event of stored) {
-        const seq = seqOf(event);
-        if (seq > lastSeq) {
-          lastSeq = seq;
-        }
-      }
+      const lastSeq = maxSeqOf(stored, record.lastSeq);
       tx.update(runsTable)
         .set({
           status: patch.to,

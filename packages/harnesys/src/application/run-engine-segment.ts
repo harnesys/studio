@@ -33,14 +33,6 @@ type SegmentTail = {
   cancelReason?: string;
 };
 
-const FENCING_CODES = new Set([
-  'lease_stale',
-  'already_resumed',
-  'already_queued',
-  'unknown_interrupt',
-  'run_terminal',
-]);
-
 function isToolTerminal(event: SessionEvent): boolean {
   return (
     event.type === 'tool' &&
@@ -97,7 +89,7 @@ async function guardedTransition(
   try {
     await env.lifecycle.transition(runId, expectedEpoch, patch);
   } catch (err) {
-    if (FENCING_CODES.has((err as { code?: string }).code ?? '')) {
+    if ((err as { code?: string }).code === 'lease_stale') {
       return;
     }
     throw err;

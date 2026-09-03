@@ -4,6 +4,7 @@ import {
   InMemoryRunLifecycleStore,
 } from '../adapters/in-memory-run-store.ts';
 import type { Attachment } from '../domain/attachment.ts';
+import { codedRunError } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import type { RunResult } from '../domain/run-result.ts';
 import type { PendingSessionEvent } from '../ports/run-event-store.ts';
@@ -26,6 +27,13 @@ function inputToUserEvent(input: unknown): PendingSessionEvent {
 }
 
 export async function runGraph(opts: GraphOpts): Promise<RunResult> {
+  if (
+    opts.resumePayload !== undefined ||
+    opts.rejected === true ||
+    opts.startNodeId !== undefined
+  ) {
+    throw codedRunError('resume_removed', 'runGraph resume removed: use SessionHandle.respond');
+  }
   const events = new InMemoryRunEventStore();
   const lifecycle = new InMemoryRunLifecycleStore(events);
   const feed = createRunEventFeed({ events, lifecycle, bus: createRunEventBus() });

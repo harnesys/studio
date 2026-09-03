@@ -1,8 +1,26 @@
 import { AskUserInterrupt } from '../../domain/errors.ts';
-import type { ToolDefinition } from '../../ports/tools.ts';
+import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 
 export const ASK_USER_TOOL = 'ask_user';
+
+function formatResumeResult(
+  resume: unknown,
+  options?: Array<{ id: string; label: string }>,
+): string {
+  const payload = resume as { text?: string; optionIds?: string[] } | undefined;
+  if (!payload) {
+    return 'answered';
+  }
+  const labels = (payload.optionIds ?? [])
+    .map((id) => options?.find((o) => o.id === id)?.label ?? id)
+    .filter(Boolean);
+  const parts = [...labels];
+  if (payload.text?.trim()) {
+    parts.push(payload.text.trim());
+  }
+  return parts.join(' · ') || 'answered';
+}
 
 export function askUser(): ToolDefinition {
   return tool(ASK_USER_TOOL, {
@@ -28,12 +46,15 @@ export function askUser(): ToolDefinition {
       },
       required: ['prompt'],
     },
-    execute(input) {
+    execute(input, ctx: ToolContext) {
       const parsed = input as {
         prompt: string;
         options?: Array<{ id: string; label: string }>;
         multi?: boolean;
       };
+      if (ctx.resume !== undefined && ctx.resume !== null) {
+        return formatResumeResult(ctx.resume, parsed.options);
+      }
       throw new AskUserInterrupt(parsed);
     },
   });

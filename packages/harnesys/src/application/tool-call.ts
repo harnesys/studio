@@ -252,6 +252,7 @@ export async function executeToolCall(
         paths: { allow: callCtx.paths?.allow ?? [] },
         signal: callCtx.signal,
         artifacts: callCtx.artifacts,
+        resume: callCtx.resume ?? undefined,
       };
       const value = await def.execute(call.args, toolCtx);
       resultsArr[idx] = { id: call.id, name: call.name, result: value, isError: false };

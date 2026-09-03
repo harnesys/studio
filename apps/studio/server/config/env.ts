@@ -23,6 +23,6 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   production: process.env.NODE_ENV === 'production',
   port: readPort(process.env.PORT, DEFAULT_PORT),
-  harnesysHome: process.env.HARNESYS_HOME?.trim() || process.env.HARNYX_HOME?.trim() || undefined,
+  harnesysHome: process.env.HARNESYS_HOME?.trim() || undefined,
   trace: readBool(process.env.SERVER_TRACE, false),
 } as const;

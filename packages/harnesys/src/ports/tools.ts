@@ -15,6 +15,7 @@ export type ToolContext = {
   paths: { allow: string[] };
   signal?: AbortSignal;
   artifacts?: ArtifactStore;
+  resume?: unknown;
 };
 
 export type ToolExecute = (input: unknown, ctx: ToolContext) => Promise<unknown> | unknown;

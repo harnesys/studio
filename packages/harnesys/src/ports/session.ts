@@ -41,6 +41,7 @@ export type SessionEvent =
       prompt?: string;
       tool?: { name: string; input: unknown; toolCallId: string };
     }
+  | { type: 'resumed' }
   | { type: 'done'; text?: string }
   | { type: 'error'; code: string; message: string };
 

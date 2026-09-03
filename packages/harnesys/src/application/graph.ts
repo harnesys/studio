@@ -16,7 +16,8 @@ import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import type { Plan } from './compile.ts';
-import { evalExpr, evalWhen } from './expr-eval.ts';
+import { evalExpr } from './expr-eval.ts';
+import { isSkippedEntry, matchOutgoing } from './graph-edges.ts';
 import {
   applyReducer,
   findBind,
@@ -88,17 +89,6 @@ function normalizeInputAttachments(input: unknown): {
   };
 }
 
-function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalJson).join(',')}]`;
-  }
-  const keys = Object.keys(value as Record<string, unknown>).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson((value as Record<string, unknown>)[k])}`).join(',')}}`;
-}
-
 function serializeToolResult(value: unknown): string {
   if (typeof value === 'string') {
     return value;
@@ -128,6 +118,7 @@ export type GraphOpts = {
   signal?: AbortSignal;
   resumePayload?: unknown;
   startNodeId?: string;
+  rejected?: boolean;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
 };
 
@@ -190,25 +181,13 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
     }
   }
-  if (opts.resumePayload !== undefined && opts.startNodeId) {
+  let entryPending = false;
+  if (opts.startNodeId && (opts.resumePayload !== undefined || opts.rejected === true)) {
     const interrupt = (loaded?.cursor as Record<string, unknown>)?.interrupt as
       | Record<string, unknown>
       | undefined;
-
-    if (interrupt && opts.resumePayload !== undefined) {
-      const existingPayload = (loaded?.state as Record<string, unknown>)?.$resume;
-      if (existingPayload !== undefined) {
-        if (canonicalJson(existingPayload) === canonicalJson(opts.resumePayload)) {
-          return;
-        }
-        throw Object.assign(new Error('interrupt already resumed with different payload'), {
-          code: 'already_resumed',
-        });
-      }
-    }
-
-    if (interrupt?.resumeSchema && opts.resumePayload !== undefined) {
-      const ajv = new Ajv();
+    if (opts.resumePayload !== undefined && !opts.rejected && interrupt?.resumeSchema) {
+      const ajv = new Ajv({ strict: false });
       const valid = ajv.validate(interrupt.resumeSchema as object, opts.resumePayload);
       if (!valid) {
         throw Object.assign(new Error(`resume payload validation failed: ${ajv.errorsText()}`), {
@@ -216,9 +195,13 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         });
       }
     }
-
     cur = opts.startNodeId;
-    st.$resume = opts.resumePayload;
+    if (opts.rejected) {
+      delete st.$resume;
+    } else {
+      st.$resume = opts.resumePayload;
+    }
+    entryPending = true;
   }
   let output: unknown = null;
   let steps = 0;
@@ -271,6 +254,46 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       throw Object.assign(new Error(`unknown node ${cur}`), { code: 'no_matching_edge' });
     }
     const slots = { input, state: st, output, resume: st.$resume ?? null };
+
+    if (entryPending && cur === opts.startNodeId) {
+      entryPending = false;
+      if (isSkippedEntry(node.type, opts.rejected)) {
+        st.$resume = opts.rejected ? null : opts.resumePayload;
+        const edgeSlots = { input, state: st, output, resume: st.$resume ?? null };
+        let nxt: string | undefined;
+        try {
+          nxt = matchOutgoing(opts.plan.edgesByFrom.get(cur) ?? [], edgeSlots);
+        } catch (err) {
+          const e = await commit('failed', 'run.failed');
+          yield e;
+          throw err;
+        }
+        if (!nxt) {
+          const e = await commit('failed', 'run.failed');
+          yield e;
+          throw Object.assign(new Error('no_matching_edge'), { code: 'no_matching_edge' });
+        }
+        cur = nxt;
+        delete st.$resume;
+        nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
+        steps += 1;
+        if (opts.agent.budget?.maxSteps !== undefined && steps >= opts.agent.budget.maxSteps) {
+          const e = await commit('budget_exceeded', 'run.failed');
+          yield e;
+          break;
+        }
+        if (
+          opts.agent.budget?.deadlineMs !== undefined &&
+          performance.now() - t0 > opts.agent.budget.deadlineMs
+        ) {
+          const e = await commit('budget_exceeded', 'run.failed');
+          yield e;
+          break;
+        }
+        continue;
+      }
+    }
+
     if (node.type === 'core:start') {
       output = { input };
       if (input && typeof input === 'object') {
@@ -631,7 +654,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       } catch (e) {
         if (e instanceof AskUserInterrupt) {
           const interruptId = e.interruptId ?? crypto.randomUUID();
-          st.$resume = null;
+          delete (st as Record<string, unknown>).$resume;
           const snap = mkSnap(ctx(), 'needs_input');
           (snap.cursor as Record<string, unknown>).interrupt = {
             interruptId,
@@ -765,7 +788,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         resumeSchema: JsonSchema;
       };
       const interruptId = crypto.randomUUID();
-      st.$resume = null;
+      delete (st as Record<string, unknown>).$resume;
       const snap = mkSnap(ctx(), 'needs_input');
       (snap.cursor as Record<string, unknown>).interrupt = {
         interruptId,
@@ -775,6 +798,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       };
       seq += 1;
       const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
+      ev.metadata = {
+        interruptId,
+        reason: ir.reason,
+        resumeSchema: ir.resumeSchema,
+      };
       await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
       yield ev;
       break;
@@ -798,26 +826,13 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       break;
     }
     const edgeSlots = { input, state: st, output, resume: st.$resume ?? null };
-    const edges = opts.plan.edgesByFrom.get(cur) ?? [];
     let nxt: string | undefined;
-    for (const ed of edges) {
-      if (ed.when === undefined) {
-        nxt = ed.to;
-        break;
-      }
-      try {
-        if (evalWhen(ed.when, edgeSlots)) {
-          nxt = ed.to;
-          break;
-        }
-      } catch (err) {
-        const code = (err as { code?: string }).code;
-        if (code === 'unknown_path') {
-          const e = await commit('failed', 'run.failed');
-          yield e;
-          throw err;
-        }
-      }
+    try {
+      nxt = matchOutgoing(opts.plan.edgesByFrom.get(cur) ?? [], edgeSlots);
+    } catch (err) {
+      const e = await commit('failed', 'run.failed');
+      yield e;
+      throw err;
     }
     if (!nxt) {
       const e = await commit('failed', 'run.failed');
@@ -825,6 +840,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       throw Object.assign(new Error('no_matching_edge'), { code: 'no_matching_edge' });
     }
     cur = nxt;
-    st.$resume = null;
+    delete st.$resume;
   }
 }

@@ -165,6 +165,7 @@ export class ThreadController {
     app.post('/api/runs/:id/respond', async (c) => {
       const runId = c.req.param('id');
       const body = respondRunBody.parse(await c.req.json());
+      trace('http', 'POST /runs/:id/respond', { runId, askId: body.askId });
       await this.deps.respondRun.respond({ runId, askId: body.askId, payload: body.payload });
       return c.json({ ok: true });
     });

@@ -2,7 +2,7 @@
 
 Стенд поверх `harnesys`. SoT контракта: `docs/` в корне монорепо. Roadmap: `docs/ROADMAP.md`.
 
-**Studio переписывается нативно** на типы и API из docs (`RuntimeState`, Snapshot, `SessionEvent`, `AgentRun`, `Command`). Цель cutover ≤0.5: без мапперов и без форм старого Harnyx.
+**Studio переписывается нативно** на типы и API из docs (`RuntimeState`, Snapshot, `SessionEvent`, `AgentRun`, `Command`).
 
 ## Сервер
 
@@ -65,4 +65,4 @@ features/<действие>/
 
 - UI-фича: FSD + образец соседней фичи. Корневые `docs/01`–`23` не открывать без runtime-задачи.
 - Server use case: этот файл + соседний `*.use-case.ts`.
-- Runtime / session / HITL: `docs/` в корне + `docs/ROADMAP.md`. Studio принимает типы Harnesys нативно (без mapper под старый Harnyx).
+- Runtime / session / HITL: `docs/` в корне + `docs/ROADMAP.md`. Studio принимает типы Harnesys нативно.

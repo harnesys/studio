@@ -1,3 +1,4 @@
+import { askUserSchema } from '../../application/ask-schema.ts';
 import { AskUserInterrupt } from '../../domain/errors.ts';
 import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
@@ -55,7 +56,14 @@ export function askUser(): ToolDefinition {
       if (ctx.resume !== undefined && ctx.resume !== null) {
         return formatResumeResult(ctx.resume, parsed.options);
       }
-      throw new AskUserInterrupt(parsed);
+      throw new AskUserInterrupt({
+        prompt: parsed.prompt,
+        resumeSchema: askUserSchema({
+          options: parsed.options,
+          multi: parsed.multi,
+          allowText: true,
+        }),
+      });
     },
   });
 }

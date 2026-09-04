@@ -1,6 +1,5 @@
-import type { SessionEvent } from 'harnesys';
-import type { Context, Hono } from 'hono';
-import { streamSSE } from 'hono/streaming';
+import type { RunLifecycleStore } from 'harnesys';
+import type { Hono } from 'hono';
 import type { GetThreadPlanInput } from '../../../application/plans/get-thread-plan.use-case.ts';
 import type { CancelRunInput } from '../../../application/threads/cancel-run.use-case.ts';
 import type { CompactThreadInput } from '../../../application/threads/compact-thread.use-case.ts';
@@ -17,7 +16,6 @@ import type { RetryRunInput } from '../../../application/threads/retry-run.use-c
 import type { SendThreadRunInput } from '../../../application/threads/send-thread-run.use-case.ts';
 import type { StreamRunEventsInput } from '../../../application/threads/stream-run-events.use-case.ts';
 import type { UpdateThreadInput } from '../../../application/threads/update-thread.use-case.ts';
-import { SSE_KEEP_ALIVE_MS } from '../../../config/constants.ts';
 import { RunConflictError } from '../../../domain/studio.error.ts';
 import { preview, trace } from '../../../trace.ts';
 import {
@@ -27,6 +25,7 @@ import {
   sendThreadRunBody,
   updateThreadBody,
 } from './thread.body.ts';
+import { streamSse } from './thread.stream-sse.ts';
 
 export type ThreadControllerDeps = {
   listThreads: ListThreadsInput;
@@ -41,6 +40,7 @@ export type ThreadControllerDeps = {
   retryRun: RetryRunInput;
   streamRunEvents: StreamRunEventsInput;
   cancelRun: CancelRunInput;
+  lifecycle: RunLifecycleStore;
   createThreadAttachment: CreateThreadAttachmentInput;
   getThreadAttachment: GetThreadAttachmentInput;
   listThreadPendingAttachments?: ListThreadPendingAttachmentsInput;
@@ -153,8 +153,10 @@ export class ThreadController {
     app.get('/api/runs/:id/events', async (c) => {
       const runId = c.req.param('id');
       trace('http', 'GET /runs/:id/events', { runId });
-      const events = await this.deps.streamRunEvents.execute({ runId });
-      return streamSse(c, events);
+      const parsed = Number(c.req.query('fromSeq') ?? 0);
+      const fromSeq = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
+      const events = await this.deps.streamRunEvents.execute({ runId, fromSeq });
+      return streamSse(c, runId, events, this.deps.lifecycle);
     });
 
     app.post('/api/runs/:id/cancel', async (c) => {
@@ -258,41 +260,4 @@ export class ThreadController {
       return c.body(null, 204);
     });
   }
-}
-
-function streamSse(c: Context, events: AsyncIterable<SessionEvent>) {
-  c.header('Cache-Control', 'no-cache, no-transform');
-  c.header('X-Accel-Buffering', 'no');
-  c.header('Connection', 'keep-alive');
-  return streamSSE(
-    c,
-    async (stream) => {
-      const keepAlive = setInterval(() => {
-        void Promise.resolve(stream.write(':\n\n')).catch((error) => {
-          trace('http', 'keepalive write failed', {
-            error: error instanceof Error ? error.message : String(error),
-          });
-        });
-      }, SSE_KEEP_ALIVE_MS);
-      let count = 0;
-      try {
-        for await (const ev of events) {
-          count += 1;
-          trace('http', `sse write #${count} ${ev.type}`);
-          await stream.writeSSE({
-            id: String(count),
-            event: ev.type,
-            data: JSON.stringify(ev),
-          });
-        }
-        trace('http', `sse complete, ${count} events`);
-      } finally {
-        clearInterval(keepAlive);
-      }
-    },
-    (error) => {
-      trace('http', 'sse callback error', error.message);
-      return Promise.resolve();
-    },
-  );
 }

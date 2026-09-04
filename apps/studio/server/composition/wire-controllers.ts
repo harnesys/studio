@@ -1,4 +1,4 @@
-import type { RunClaimer, RunLifecycleStore } from 'harnesys';
+import type { RunClaimer, RunEventFeed, RunLifecycleStore } from 'harnesys';
 import type { Hono } from 'hono';
 import type { ActiveRunRegistry } from '../adapters/active-runs.adapter.ts';
 import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
@@ -112,6 +112,7 @@ type ControllerDeps = {
   runtimeStateRepo: SqliteRuntimeStateRepo;
   lifecycle: RunLifecycleStore;
   claimer: RunClaimer;
+  feed: RunEventFeed;
   memory: StudioMemoryPorts;
   db: StudioDb;
 };
@@ -246,8 +247,9 @@ export function wireControllers(d: ControllerDeps): void {
     }),
     sendThreadRun,
     compactThread: new CompactThreadUseCase(),
-    streamRunEvents: new StreamRunEventsUseCase(d.activeRuns),
+    streamRunEvents: new StreamRunEventsUseCase({ lifecycle: d.lifecycle, feed: d.feed }),
     cancelRun: new CancelRunUseCase({ lifecycle: d.lifecycle, sessions }),
+    lifecycle: d.lifecycle,
     respondRun: new RespondRunUseCase({
       lifecycle: d.lifecycle,
       sessions,

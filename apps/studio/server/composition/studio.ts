@@ -160,6 +160,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     runtimeStateRepo,
     lifecycle: runLifecycle,
     claimer: runClaimer,
+    feed: runFeed,
     memory,
     db,
   });

@@ -1,51 +1,31 @@
-import type { SessionEvent } from 'harnesys';
-import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
+import type { RunEventFeed, RunLifecycleStore, SessionEvent } from 'harnesys';
 import { NotFoundError } from '../../domain/studio.error.ts';
 
 export type StreamRunEventsRequest = {
   runId: string;
 };
 
+export type StreamRunEventsDeps = {
+  lifecycle: RunLifecycleStore;
+  feed: RunEventFeed;
+};
+
 export type StreamRunEventsInput = {
-  execute(request: StreamRunEventsRequest): Promise<AsyncIterable<SessionEvent>>;
+  execute(
+    request: StreamRunEventsRequest & { fromSeq?: number },
+  ): Promise<AsyncIterable<SessionEvent>>;
 };
 
 export class StreamRunEventsUseCase implements StreamRunEventsInput {
-  constructor(private readonly activeRuns: ActiveRunRegistry) {}
+  constructor(private readonly deps: StreamRunEventsDeps) {}
 
-  execute(request: StreamRunEventsRequest): Promise<AsyncIterable<SessionEvent>> {
-    if (!this.activeRuns.get(request.runId)) {
-      return Promise.reject(new NotFoundError('run not found'));
+  async execute(
+    request: StreamRunEventsRequest & { fromSeq?: number },
+  ): Promise<AsyncIterable<SessionEvent>> {
+    const rec = await this.deps.lifecycle.get(request.runId);
+    if (!rec) {
+      throw new NotFoundError('run not found');
     }
-
-    const activeRuns = this.activeRuns;
-    const runId = request.runId;
-
-    return Promise.resolve({
-      async *[Symbol.asyncIterator]() {
-        const queue: SessionEvent[] = [];
-        let wake: (() => void) | undefined;
-        const unsubscribe = activeRuns.subscribe(runId, (event) => {
-          queue.push(event);
-          wake?.();
-        });
-        try {
-          while (true) {
-            while (queue.length > 0) {
-              yield queue.shift() as SessionEvent;
-            }
-            if (activeRuns.isFinished(runId)) {
-              return;
-            }
-            await new Promise<void>((resolve) => {
-              wake = resolve;
-            });
-            wake = undefined;
-          }
-        } finally {
-          unsubscribe();
-        }
-      },
-    });
+    return this.deps.feed.subscribe(request.runId, request.fromSeq ?? 0);
   }
 }

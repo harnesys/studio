@@ -1,11 +1,19 @@
 import type { ToolCallBatch, ToolCallFixed } from '../domain/agent-definition.ts';
+import { AskUserInterrupt } from '../domain/errors.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr } from './expr-eval.ts';
 import { executeApproveBatch, type PreparedToolCall, runSingleToolCall } from './tool-approve.ts';
-import type { ToolMessage } from './tool-message.ts';
+import {
+  clearCheckpoint,
+  loadCheckpoint,
+  saveCheckpoint,
+  snapshotCheckpoint,
+  validCheckpointEntries,
+} from './tool-approve-checkpoint.ts';
+import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 
 export type ToolCallResult = {
   id: string;
@@ -85,6 +93,20 @@ function getStateMessages(state: Record<string, unknown>, path?: string): unknow
   return Array.isArray(v) ? (v as unknown[]) : null;
 }
 
+function serializeRestoredOutput(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value == null) {
+    return '';
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
 export async function executeToolCall(
   node: ToolCallFixed | ToolCallBatch,
   ctx: ToolCallContext,
@@ -158,14 +180,38 @@ export async function executeToolCall(
   const results: (ToolCallResult | undefined)[] = new Array(calls.length);
   const toolMessages: (ToolMessage | undefined)[] = [];
 
+  // Restore progress saved before a permission interrupt; saved calls do not re-execute.
+  const saved = loadCheckpoint(ctx.state, ctx.nodeId);
+  if (saved) {
+    for (const { idx, result } of validCheckpointEntries(saved, calls)) {
+      const call = calls[idx];
+      if (!call) {
+        continue;
+      }
+      results[idx] = result;
+      toolMessages[idx] = buildToolMessage({
+        toolCallId: call.id,
+        name: call.name,
+        content: serializeRestoredOutput(result.result),
+      });
+    }
+  }
+
   async function runOne(idx: number): Promise<void> {
     const call = calls[idx];
-    if (!call) {
+    if (!call || results[idx] !== undefined) {
       return;
     }
-    const done = await runSingleToolCall(call, ctx, idx);
-    results[idx] = done.result;
-    toolMessages[idx] = done.message;
+    try {
+      const done = await runSingleToolCall(call, ctx, idx);
+      results[idx] = done.result;
+      toolMessages[idx] = done.message;
+    } catch (e) {
+      if (e instanceof AskUserInterrupt) {
+        saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
+      }
+      throw e;
+    }
   }
 
   if (concurrency === 'sequential' || maxConcurrency === 1) {
@@ -218,5 +264,6 @@ export async function executeToolCall(
     }
   }
 
+  clearCheckpoint(ctx.state, ctx.nodeId);
   return { results: results as ToolCallResult[] };
 }

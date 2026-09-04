@@ -93,16 +93,13 @@ export function applyPermissionGate(input: {
 }): PermissionGateDone | null {
   const { call, ctx, idx, operation } = input;
   const approved = resumeApproved(ctx);
-  if (approved === null) {
+  const resumeIdx = permissionResumeCallIndex(ctx);
+  if (approved === null || (resumeIdx !== null && resumeIdx !== idx)) {
     throwPermissionAsk(call, ctx, idx, operation);
   }
   if (approved === false) {
     ctx.resumePayload = undefined;
     return skippedGateResult(call, ctx);
-  }
-  const resumeIdx = permissionResumeCallIndex(ctx);
-  if (resumeIdx !== null && resumeIdx !== idx) {
-    throwPermissionAsk(call, ctx, idx, operation);
   }
   if (resumeIdx !== null) {
     ctx.resumePayload = undefined;

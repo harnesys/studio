@@ -198,16 +198,23 @@ export async function executeApproveBatch(
     }
   }
 
-  // Free (non-approve) calls run first in a pool; their results join the checkpoint
-  // so it stays current when the interrupt fires later in this node.
-  async function runFree(idx: number): Promise<void> {
+  // Runs one call and records its result; saves the checkpoint when an
+  // interrupt escapes so a resume restores completed calls instead of re-running them.
+  async function runCall(idx: number): Promise<void> {
     const call = calls[idx];
     if (!call || results[idx] !== undefined) {
       return;
     }
-    const done = await runSingleToolCall(call, ctx, idx);
-    results[idx] = done.result;
-    toolMessages[idx] = done.message;
+    try {
+      const done = await runSingleToolCall(call, ctx, idx);
+      results[idx] = done.result;
+      toolMessages[idx] = done.message;
+    } catch (e) {
+      if (e instanceof AskUserInterrupt) {
+        saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
+      }
+      throw e;
+    }
   }
 
   const pendingFree = freeIdx.filter((i) => results[i] === undefined);
@@ -218,7 +225,7 @@ export async function executeApproveBatch(
         : Math.min(pendingFree.length, ctx.hostMaxConcurrency ?? pendingFree.length);
     if (width <= 1) {
       for (const idx of pendingFree) {
-        await runFree(idx);
+        await runCall(idx);
       }
     } else {
       let cursor = 0;
@@ -226,7 +233,7 @@ export async function executeApproveBatch(
         while (cursor < pendingFree.length) {
           const idx = pendingFree[cursor] as number;
           cursor += 1;
-          await runFree(idx);
+          await runCall(idx);
         }
       };
       const workers: Promise<void>[] = [];
@@ -251,9 +258,7 @@ export async function executeApproveBatch(
     if (ctx.resumePayload !== undefined && !foreignPerm) {
       const payload = ctx.resumePayload as ApproveResumePayload;
       if (payload.approved) {
-        const done = await runSingleToolCall(call, ctx, callIdx);
-        results[callIdx] = done.result;
-        toolMessages[callIdx] = done.message;
+        await runCall(callIdx);
       } else {
         const skipped = skippedGateResult(call, ctx);
         results[callIdx] = skipped.result;

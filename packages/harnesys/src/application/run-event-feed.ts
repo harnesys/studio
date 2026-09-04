@@ -8,6 +8,12 @@ export type RunEventFeed = {
    * Живые события после fromSeq; завершается на needs_input и терминальных статусах.
    *
    * Гарантия at-least-once: получатель дедуплицирует по (runId, seq).
+   *
+   * Проверка статуса жизненного цикла выполняется только на idle-тике
+   * (после таймаута 15s без событий из шины). Реальные батчи из шины
+   * выдаются без проверки статуса: переход needs_input/терминал
+   * публикует внедрённые события (ask / финальные кадры) тем же publish,
+   * и проверка статуса перед чтением шины теряла бы их.
    */
   subscribe(runId: string, fromSeq: number): AsyncIterable<SessionEvent>;
   /** Вызывает владелец записи (движок) после успешного append. */
@@ -40,16 +46,17 @@ export function createRunEventFeed(deps: {
       const it = live[Symbol.asyncIterator]();
       try {
         while (true) {
-          const rec = await deps.lifecycle.get(runId);
-          if (rec && rec.status !== 'running' && rec.status !== 'queued') {
-            return; // needs_input и терминалы закрывают подписку
-          }
           const next = await Promise.race([
             it.next(),
             new Promise<null>((r) => setTimeout(() => r(null), 15_000)),
           ]);
           if (!next) {
-            continue; // idle-тик: перепроверить статус выше
+            // idle-тик: шина молчала, можно проверить статус
+            const rec = await deps.lifecycle.get(runId);
+            if (rec && rec.status !== 'running' && rec.status !== 'queued') {
+              return; // needs_input и терминалы закрывают подписку
+            }
+            continue;
           }
           if (next.done) {
             return;

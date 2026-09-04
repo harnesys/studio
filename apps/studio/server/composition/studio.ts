@@ -9,6 +9,7 @@ import {
 } from 'harnesys';
 import { askUser, fetch, files, shell } from 'harnesys/actions';
 import { Hono } from 'hono';
+import { startAskTicker } from '../adapters/ask-ticker.adapter.ts';
 import { FsAttachmentsAdapter } from '../adapters/attachments/fs-attachments.adapter.ts';
 import { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
@@ -34,6 +35,8 @@ import { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter
 import { WorkspaceAdapter } from '../adapters/workspace/workspace.adapter.ts';
 import { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.adapter.ts';
 import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
+import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
+import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
 import { env } from '../config/env.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
@@ -99,6 +102,12 @@ export function createStudio(options: StudioOptions = {}): Hono {
     engine: runEngine,
     instanceId,
     sweepMs: 5_000,
+  });
+  const getThread = new GetThreadUseCase(threadRepo, agentRepo, runEvents, runLifecycle);
+  startAskTicker({
+    lifecycle: runLifecycle,
+    kick: runClaimer.kick,
+    onCancelled: (threadId) => publishDeskThread(getThread, deskEvents, threadId),
   });
   const memory = createStudioMemory(db, {
     runtimeState: runtimeStateRepo,

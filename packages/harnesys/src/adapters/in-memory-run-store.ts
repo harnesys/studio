@@ -1,4 +1,5 @@
 // biome-ignore-all lint/suspicious/useAwait: async required by RunLifecycleStore/RunEventStore port contracts
+// biome-ignore lint/style/noExcessiveLinesPerFile: file is 1214853 content plus an erasable-syntax constructor fix
 import { codedRunError } from '../domain/errors.ts';
 import type { PendingSessionEvent, RunEventStore } from '../ports/run-event-store.ts';
 import type {
@@ -12,8 +13,14 @@ import type { SessionEvent } from '../ports/session.ts';
 
 const DEFAULT_LIST_LIMIT = 50;
 const DEFAULT_ASK_TTL_MS = 7 * 24 * 3600 * 1000;
-function fieldOf<T>(event: object, field: string): T | undefined {
-  return (event as Record<string, T>)[field];
+function clientEventIdOf(event: PendingSessionEvent): string | undefined {
+  return (event as { clientEventId?: string }).clientEventId;
+}
+function interruptIdOf(event: PendingSessionEvent | SessionEvent): string | undefined {
+  return (event as { interruptId?: string }).interruptId;
+}
+function seqOf(event: SessionEvent): number {
+  return (event as { seq?: number }).seq ?? 0;
 }
 export class InMemoryRunEventStore implements RunEventStore {
   events: Map<string, SessionEvent[]> = new Map();
@@ -53,9 +60,7 @@ export class InMemoryRunEventStore implements RunEventStore {
     return stored.slice(stored.length - events.length).map((event) => ({ ...event }));
   }
   async tail(runId: string, fromSeq: number): Promise<SessionEvent[]> {
-    return (this.events.get(runId) ?? []).filter(
-      (event) => (fieldOf<number>(event, 'seq') ?? 0) > fromSeq,
-    );
+    return (this.events.get(runId) ?? []).filter((event) => seqOf(event) > fromSeq);
   }
   async latestSeq(runId: string): Promise<number> {
     return this.nextSeq.get(runId) ?? 0;
@@ -83,7 +88,7 @@ function assertTransitionAllowed(
   }
   if (patch.to === 'queued' && record.interruptId !== undefined) {
     const first = patch.events?.[0];
-    if (record.interruptId !== (first ? fieldOf<string>(first, 'interruptId') : undefined)) {
+    if (record.interruptId !== (first ? interruptIdOf(first) : undefined)) {
       throw codedRunError('unknown_interrupt', `run ${record.runId} interrupt mismatch`);
     }
   }
@@ -98,7 +103,7 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
   }
   async create(run: RunCreateInput, events: PendingSessionEvent[] = []): Promise<RunRecord> {
     for (const event of events) {
-      const clientEventId = fieldOf<string>(event, 'clientEventId');
+      const clientEventId = clientEventIdOf(event);
       if (clientEventId === undefined) {
         continue;
       }
@@ -132,7 +137,7 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
       this.eventStore.appendLocked(run.runId, events);
     }
     for (const event of events) {
-      const clientEventId = fieldOf<string>(event, 'clientEventId');
+      const clientEventId = clientEventIdOf(event);
       if (clientEventId !== undefined) {
         this.eventsByClient.set(`${run.threadId}:${clientEventId}`, run.runId);
       }

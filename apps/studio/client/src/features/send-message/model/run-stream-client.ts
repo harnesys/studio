@@ -12,6 +12,7 @@ import {
 
 export type RunStreamState =
   | 'connecting'
+  | 'queued'
   | 'live'
   | 'paused'
   | 'reconnecting'
@@ -188,6 +189,9 @@ class StreamClient implements RunStreamClient {
         if (token !== this.opening) {
           return;
         }
+        if (this.state === 'connecting') {
+          this.setState('queued');
+        }
         if (frame.event === 'run-paused') {
           paused = true;
           this.onRunPaused(frame.data);
@@ -256,7 +260,7 @@ class StreamClient implements RunStreamClient {
 
   private scheduleReconnect(runId: string): void {
     this.failures += 1;
-    if (this.failures > MAX_FAILURES) {
+    if (this.failures >= MAX_FAILURES) {
       this.setState('offline');
       return;
     }

@@ -1,5 +1,4 @@
 import type { ToolDefinition } from 'harnesys';
-import type { ActiveRunRegistry } from '../adapters/active-runs.adapter.ts';
 import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
@@ -41,7 +40,6 @@ export type WireHostToolsDeps = {
   workspaces: WorkspaceRepository;
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
-  activeRuns: ActiveRunRegistry;
   queue: ScheduleFireQueue;
   deskEvents: DeskEventsPort;
   semanticSessions?: SemanticSessionCleanup;
@@ -84,7 +82,6 @@ export function wireHostTools(deps: WireHostToolsDeps): void {
         workspaces: deps.workspaces,
         attachments: deps.attachments,
         attachmentsFs: deps.attachmentsFs,
-        activeRuns: deps.activeRuns,
         queue: deps.queue,
         deskEvents: deps.deskEvents,
         db: deps.db,

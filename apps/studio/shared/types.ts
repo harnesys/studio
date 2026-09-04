@@ -97,6 +97,7 @@ export type {
   Event,
   SessionEvent,
   Snapshot,
+  ThreadActiveRun,
   ThreadKind,
   ThreadRecord,
   ThreadSummary,

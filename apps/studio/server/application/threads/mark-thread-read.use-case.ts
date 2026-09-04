@@ -1,5 +1,5 @@
+import type { RunEventStore, RunLifecycleStore } from 'harnesys';
 import type { ThreadRecord } from '../../../shared/types.ts';
-import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
@@ -19,9 +19,10 @@ export class MarkThreadReadUseCase implements MarkThreadReadInput {
   constructor(
     private readonly threads: ThreadRepository,
     agents: AgentRepository,
-    db: StudioDb,
+    runEvents: RunEventStore,
+    lifecycle: RunLifecycleStore,
   ) {
-    this.getThread = new GetThreadUseCase(threads, agents, db);
+    this.getThread = new GetThreadUseCase(threads, agents, runEvents, lifecycle);
   }
 
   execute(request: MarkThreadReadRequest): Promise<ThreadRecord> {

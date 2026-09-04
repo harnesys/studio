@@ -1,6 +1,5 @@
-import type { RunClaimer, RunEventFeed, RunLifecycleStore } from 'harnesys';
+import type { RunClaimer, RunEventFeed, RunEventStore, RunLifecycleStore } from 'harnesys';
 import type { Hono } from 'hono';
-import type { ActiveRunRegistry } from '../adapters/active-runs.adapter.ts';
 import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import type { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
 import { AgentController } from '../adapters/http/agent/agent.controller.ts';
@@ -100,7 +99,6 @@ type ControllerDeps = {
   webhookRepo: SqliteWebhookRepo;
   threadRepo: SqliteThreadRepo;
   attachmentRepo: SqliteAttachmentRepo;
-  activeRuns: ActiveRunRegistry;
   workspace: WorkspaceAdapter;
   workspaceFiles: WorkspaceFilesAdapter;
   filesWatcher: FilesWatcherAdapter;
@@ -111,6 +109,7 @@ type ControllerDeps = {
   threadRegistry: ThreadRuntimeRegistry;
   runtimeStateRepo: SqliteRuntimeStateRepo;
   lifecycle: RunLifecycleStore;
+  events: RunEventStore;
   claimer: RunClaimer;
   feed: RunEventFeed;
   memory: StudioMemoryPorts;
@@ -206,7 +205,7 @@ export function wireControllers(d: ControllerDeps): void {
     deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo),
   }).register(d.app);
 
-  const getThread = new GetThreadUseCase(d.threadRepo, d.agentRepo, d.db);
+  const getThread = new GetThreadUseCase(d.threadRepo, d.agentRepo, d.events, d.lifecycle);
   const planUow = new SqliteUnitOfWork(d.db);
   const getThreadPlan = new GetThreadPlanUseCase(planUow);
   const sessions = new ThreadSessionsAdapter({
@@ -224,7 +223,6 @@ export function wireControllers(d: ControllerDeps): void {
     attachments: d.attachmentRepo,
     workspaceHarnesys: d.workspaceHarnesys,
     registry: d.threadRegistry,
-    activeRuns: d.activeRuns,
     deskEvents: d.deskEvents,
     getThread,
     getThreadPlan,
@@ -235,8 +233,8 @@ export function wireControllers(d: ControllerDeps): void {
     getThread,
     getThreadPlan,
     createThread: new CreateThreadUseCase(d.threadRepo, d.agentRepo, d.workspaceRepo),
-    updateThread: new UpdateThreadUseCase(d.threadRepo, d.agentRepo, d.db),
-    markThreadRead: new MarkThreadReadUseCase(d.threadRepo, d.agentRepo, d.db),
+    updateThread: new UpdateThreadUseCase(d.threadRepo, d.agentRepo, d.events, d.lifecycle),
+    markThreadRead: new MarkThreadReadUseCase(d.threadRepo, d.agentRepo, d.events, d.lifecycle),
     deleteThread: new DeleteThreadUseCase({
       threads: d.threadRepo,
       workspaces: d.workspaceRepo,

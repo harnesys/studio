@@ -57,6 +57,7 @@ export class CreateThreadUseCase implements CreateThreadInput {
       lastReadAt: thread.lastReadAt,
       unread: false,
       events: [],
+      activeRun: null,
     });
   }
 }

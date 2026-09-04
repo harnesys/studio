@@ -1,5 +1,5 @@
+import type { RunLifecycleStore } from 'harnesys';
 import { SCHEDULE_HUMAN_ORIGIN, scheduledTaskText } from '../../../shared/schedule-prompt.ts';
-import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import type { ScheduleFireQueue } from '../../adapters/schedule-fire-queue.adapter.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { Schedule, ScheduleRepository } from '../../domain/schedule.port.ts';
@@ -20,7 +20,7 @@ export type FireDueSchedulesDeps = {
   schedules: ScheduleRepository;
   threads: ThreadRepository;
   sendThreadRun: SendThreadRunInput;
-  activeRuns: ActiveRunRegistry;
+  lifecycle: RunLifecycleStore;
   queue: ScheduleFireQueue;
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
@@ -30,7 +30,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
   private readonly schedules: ScheduleRepository;
   private readonly threads: ThreadRepository;
   private readonly sendThreadRun: SendThreadRunInput;
-  private readonly activeRuns: ActiveRunRegistry;
+  private readonly lifecycle: RunLifecycleStore;
   private readonly queue: ScheduleFireQueue;
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
@@ -39,7 +39,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     this.schedules = deps.schedules;
     this.threads = deps.threads;
     this.sendThreadRun = deps.sendThreadRun;
-    this.activeRuns = deps.activeRuns;
+    this.lifecycle = deps.lifecycle;
     this.queue = deps.queue;
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
@@ -67,7 +67,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
       return;
     }
 
-    if (this.activeRuns.findByThread(schedule.threadId)) {
+    if (await this.lifecycle.activeByThread(schedule.threadId)) {
       this.queue.enqueue(schedule.threadId, schedule.id);
       return;
     }
@@ -110,7 +110,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     this.publishThread(threadId);
   }
 
-  private claim(schedule: Schedule, nowIso: string): boolean {
+  private async claim(schedule: Schedule, nowIso: string): Promise<boolean> {
     const current = this.schedules.findById(schedule.id);
     if (current?.status !== 'active') {
       return false;
@@ -118,7 +118,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     if (!current.nextRunAt || current.nextRunAt > nowIso) {
       return false;
     }
-    if (this.activeRuns.findByThread(current.threadId)) {
+    if (await this.lifecycle.activeByThread(current.threadId)) {
       this.queue.enqueue(current.threadId, current.id);
       return false;
     }
@@ -171,6 +171,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
 
   private publishThread(threadId: string): void {
     publishDeskThread(this.getThread, this.deskEvents, threadId);
+    notifyIdleIfFree(this.lifecycle, this.queue, threadId);
   }
 }
 
@@ -179,4 +180,19 @@ function cannotStart(error: unknown): boolean {
     return true;
   }
   return error instanceof ValidationError && error.message === 'agent has no model';
+}
+
+export function notifyIdleIfFree(
+  lifecycle: RunLifecycleStore,
+  queue: ScheduleFireQueue,
+  threadId: string,
+): void {
+  void lifecycle
+    .activeByThread(threadId)
+    .then((active) => {
+      if (active === null) {
+        queue.onThreadIdle(threadId);
+      }
+    })
+    .catch(() => {});
 }

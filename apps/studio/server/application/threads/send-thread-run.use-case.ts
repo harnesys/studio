@@ -1,6 +1,5 @@
 import type { Attachment, SendFile, SendInput } from 'harnesys';
 import type { AcceptedRunResponse, ThreadPlanRecord } from '../../../shared/types.ts';
-import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import { isRunMode, type RunMode } from '../../adapters/tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
@@ -40,7 +39,6 @@ export type SendThreadRunDeps = {
   attachments: AttachmentRepository;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   registry: ThreadRuntimeRegistry;
-  activeRuns: ActiveRunRegistry;
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
   getThreadPlan?: GetThreadPlanInput;
@@ -55,7 +53,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   private readonly attachments: AttachmentRepository;
   private readonly workspaceHarnesys: WorkspaceHarnesysRegistry;
   private readonly registry: ThreadRuntimeRegistry;
-  private readonly activeRuns: ActiveRunRegistry;
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
   private readonly getThreadPlan: GetThreadPlanInput | undefined;
@@ -69,7 +66,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     this.attachments = deps.attachments;
     this.workspaceHarnesys = deps.workspaceHarnesys;
     this.registry = deps.registry;
-    this.activeRuns = deps.activeRuns;
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
     this.getThreadPlan = deps.getThreadPlan;

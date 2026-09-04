@@ -9,7 +9,6 @@ import {
 } from 'harnesys';
 import { askUser, fetch, files, shell } from 'harnesys/actions';
 import { Hono } from 'hono';
-import { ActiveRunRegistry } from '../adapters/active-runs.adapter.ts';
 import { FsAttachmentsAdapter } from '../adapters/attachments/fs-attachments.adapter.ts';
 import { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
@@ -50,7 +49,6 @@ export type StudioOptions = {
   workspaceFiles?: WorkspaceFilesPort;
   attachments?: AttachmentsPort;
   workspaceHarnesys?: WorkspaceHarnesysRegistry;
-  activeRuns?: ActiveRunRegistry;
 };
 
 export function createStudio(options: StudioOptions = {}): Hono {
@@ -68,7 +66,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
   const webhookRepo = new SqliteWebhookRepo(db);
   const threadRepo = new SqliteThreadRepo(db);
   const attachmentRepo = new SqliteAttachmentRepo(db);
-  const activeRuns = options.activeRuns ?? new ActiveRunRegistry();
 
   const workspace = options.workspace ?? new WorkspaceAdapter();
   const workspaceFiles = options.workspaceFiles ?? new WorkspaceFilesAdapter();
@@ -148,7 +145,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     webhookRepo,
     threadRepo,
     attachmentRepo,
-    activeRuns,
     workspace,
     workspaceFiles,
     filesWatcher,
@@ -159,6 +155,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     threadRegistry,
     runtimeStateRepo,
     lifecycle: runLifecycle,
+    events: runEvents,
     claimer: runClaimer,
     feed: runFeed,
     memory,
@@ -177,7 +174,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     attachments: attachmentRepo,
     attachmentsFs: attachments,
-    activeRuns,
+    lifecycle: runLifecycle,
     deskEvents,
     sendThreadRun: undefined as never,
     getThread: undefined as never,
@@ -195,7 +192,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     attachments: attachmentRepo,
     attachmentsFs: attachments,
-    activeRuns,
     queue: scheduleQueue,
     deskEvents,
     semanticSessions: memory.semantic,

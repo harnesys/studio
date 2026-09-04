@@ -1,4 +1,3 @@
-import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
 import type { ScheduleFireQueue } from '../../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
@@ -25,7 +24,6 @@ export type DeleteScheduleDeps = {
   workspaces: WorkspaceRepository;
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
-  activeRuns: ActiveRunRegistry;
   queue: ScheduleFireQueue;
   deskEvents: DeskEventsPort;
   db?: StudioDb;
@@ -38,7 +36,6 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
   private readonly workspaces: WorkspaceRepository;
   private readonly attachments: AttachmentRepository;
   private readonly attachmentsFs: AttachmentsPort;
-  private readonly activeRuns: ActiveRunRegistry;
   private readonly queue: ScheduleFireQueue;
   private readonly deskEvents: DeskEventsPort;
   private readonly db?: StudioDb;
@@ -50,7 +47,6 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
     this.workspaces = deps.workspaces;
     this.attachments = deps.attachments;
     this.attachmentsFs = deps.attachmentsFs;
-    this.activeRuns = deps.activeRuns;
     this.queue = deps.queue;
     this.deskEvents = deps.deskEvents;
     this.db = deps.db;
@@ -75,9 +71,6 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
     const attachmentIds = attachmentRows.map((row) => row.id);
 
     this.queue.drop(threadId);
-    if (ownedThread) {
-      this.activeRuns.cancelByThread(threadId);
-    }
 
     const perform = () => {
       if (ownedThread) {

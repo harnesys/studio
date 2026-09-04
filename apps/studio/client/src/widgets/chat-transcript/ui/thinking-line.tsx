@@ -50,11 +50,11 @@ export function ThinkingLine({
         {text ? (
           <CollapsibleContent>
             <ExpandableScroll
-              className="pl-6"
+              className="pl-[26px]"
               previewClassName="max-h-28"
               fullClassName="max-h-[min(70vh,24rem)]"
             >
-              <div className="whitespace-pre-wrap text-[13px] text-muted-foreground leading-5">
+              <div className="whitespace-pre-wrap text-[13px] text-muted-foreground/90 leading-5">
                 {text}
               </div>
             </ExpandableScroll>

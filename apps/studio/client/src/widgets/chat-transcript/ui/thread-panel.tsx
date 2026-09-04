@@ -58,27 +58,29 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     <MessageScrollerProvider autoScroll>
       <MessageScroller>
         <MessageScrollerViewport>
-          <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 text-[length:var(--chat-font-size)]">
+          <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
             {runs.map((run, index) => (
               <MessageScrollerItem
                 key={run.id ?? `run-${index}`}
                 messageId={run.id ?? `run-${index}`}
               >
-                {run.error ? (
-                  <FailedMessageView
-                    text={run.error}
-                    onRetry={
-                      run.runId && index === runs.length - 1 && !streaming
-                        ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
-                        : undefined
-                    }
+                <div className="group/turn flex flex-col">
+                  {run.error ? (
+                    <FailedMessageView
+                      text={run.error}
+                      onRetry={
+                        run.runId && index === runs.length - 1 && !streaming
+                          ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
+                          : undefined
+                      }
+                    />
+                  ) : null}
+                  <AssistantMessageView
+                    events={run.events}
+                    runId={run.id ?? ''}
+                    streaming={streaming && index === runs.length - 1}
                   />
-                ) : null}
-                <AssistantMessageView
-                  events={run.events}
-                  runId={run.id ?? ''}
-                  streaming={streaming && index === runs.length - 1}
-                />
+                </div>
               </MessageScrollerItem>
             ))}
             {failures.map((failure) => (

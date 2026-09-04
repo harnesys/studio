@@ -2,6 +2,7 @@ import {
   Code2Icon,
   FileTextIcon,
   GlobeIcon,
+  LoaderCircleIcon,
   PencilIcon,
   SearchIcon,
   SquareTerminalIcon,
@@ -28,7 +29,15 @@ const ICONS = {
   pencil: PencilIcon,
 } as const;
 
-export function ToolLine({ pair, live }: { pair: ToolEventPair; live: boolean; runId?: string }) {
+export function ToolLine({
+  pair,
+  live,
+  runLive = live,
+}: {
+  pair: ToolEventPair;
+  live: boolean;
+  runLive?: boolean;
+}) {
   const expandTools = useChatPreferences((state) => state.expandTools);
   const [manual, setManual] = useState<boolean | undefined>(undefined);
   const [inputOpen, setInputOpen] = useState(false);
@@ -37,8 +46,11 @@ export function ToolLine({ pair, live }: { pair: ToolEventPair; live: boolean; r
   const detail = toolDetail(pair.call, pair.result);
   const meta = toolMeta(detail);
   const Icon = ICONS[caption.kind];
-  const failed = pair.result?.phase === 'failed';
   const awaitingConfirm = pair.call.phase === 'requested' && !pair.result;
+  // Спиннер живёт только пока ран не терминален: запись запроса в истории
+  // (confirm отработавшего рана) показывается спокойно.
+  const active = runLive && (live || awaitingConfirm);
+  const failed = pair.result?.phase === 'failed';
   const rawInput = toolInput(pair);
   const hasInput = Boolean(rawInput.trim().length > 0);
   const exitFailed =
@@ -52,23 +64,28 @@ export function ToolLine({ pair, live }: { pair: ToolEventPair; live: boolean; r
           <div className="min-w-0 flex-1">
             <div className="flex w-full min-w-0 items-center justify-between gap-2 text-left text-[13px] leading-none">
               <CollapsibleTrigger className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 overflow-hidden text-left transition-opacity hover:opacity-80">
-                <Icon
-                  className={cn(
-                    'relative z-10 mt-0.5 size-3.5 shrink-0 bg-background text-muted-foreground',
-                    (live || awaitingConfirm) && 'thinking-icon-pulse',
-                    (failed || exitFailed || httpFailed) && 'text-destructive',
-                  )}
-                />
+                {active ? (
+                  <LoaderCircleIcon className="relative z-10 mt-0.5 size-3.5 shrink-0 animate-spin text-live" />
+                ) : (
+                  <Icon
+                    className={cn(
+                      'relative z-10 mt-0.5 size-3.5 shrink-0 bg-background',
+                      failed || exitFailed || httpFailed
+                        ? 'text-destructive'
+                        : 'text-muted-foreground',
+                    )}
+                  />
+                )}
                 <span
                   className={cn(
                     'shrink-0 font-medium',
-                    live || awaitingConfirm ? 'thinking-shimmer' : 'text-foreground/90',
+                    active ? 'thinking-shimmer' : 'text-foreground/90',
                   )}
                 >
                   {caption.title}
                 </span>
                 {caption.hint ? (
-                  <span className="min-w-0 truncate font-mono text-[12px] text-muted-foreground">
+                  <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground/80">
                     {caption.hint}
                   </span>
                 ) : null}
@@ -81,13 +98,16 @@ export function ToolLine({ pair, live }: { pair: ToolEventPair; live: boolean; r
                         ? 'destructive'
                         : 'outline'
                     }
-                    className="h-4 shrink-0 px-1 font-normal text-[10px]"
+                    className="h-4 shrink-0 px-1 font-normal text-[10px] text-muted-foreground"
                   >
                     {chip}
                   </Badge>
                 ))}
                 {awaitingConfirm ? (
-                  <Badge variant="outline" className="h-4 shrink-0 px-1 font-normal text-[10px]">
+                  <Badge
+                    variant="outline"
+                    className="h-4 shrink-0 border-live/40 bg-live/10 px-1 font-normal text-[10px] text-live"
+                  >
                     confirm
                   </Badge>
                 ) : null}

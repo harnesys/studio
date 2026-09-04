@@ -19,6 +19,7 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       text,
       attachments: Array.isArray(atts) && atts.length > 0 ? atts : undefined,
       origin,
+      clientEventId: typeof m?.clientEventId === 'string' ? m.clientEventId : undefined,
     };
   }
   if (t === 'model.delta') {

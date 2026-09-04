@@ -43,26 +43,27 @@
   }
 }
 
+/* Активный шаг: волна акцентного цвета темы поверх приглушённого текста. */
 .thinking-shimmer {
   background-image: linear-gradient(
     90deg,
     var(--muted-foreground) 0%,
-    var(--foreground) 25%,
-    var(--muted-foreground) 50%,
-    var(--foreground) 75%,
+    var(--muted-foreground) 35%,
+    var(--live) 50%,
+    var(--muted-foreground) 65%,
     var(--muted-foreground) 100%
   );
   background-size: 200% 100%;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  animation: thinking-shimmer 3s linear infinite;
+  animation: thinking-shimmer 2.6s linear infinite;
 }
 
 @keyframes thinking-icon-pulse {
   0%,
   100% {
-    opacity: 0.4;
+    opacity: 0.35;
   }
   50% {
     opacity: 1;
@@ -70,8 +71,18 @@
 }
 
 .thinking-icon-pulse {
-  color: var(--foreground);
+  color: var(--live);
   animation: thinking-icon-pulse 1.6s ease-in-out infinite;
+}
+
+/* Вертикальная направляющая активности: сверху живой акцент, книзу затухает. */
+.activity-rail-live {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--live) 55%, transparent),
+    color-mix(in oklab, var(--live) 18%, var(--border)) 45%,
+    color-mix(in oklab, var(--border) 70%, transparent)
+  );
 }
 
 @keyframes tab-enter {
@@ -109,6 +120,6 @@
 
   .thinking-icon-pulse {
     opacity: 1;
-    color: var(--muted-foreground);
+    color: var(--live);
   }
 }

@@ -121,6 +121,8 @@ export type GraphOpts = {
   startNodeId?: string;
   outputHint?: ReActOutput | null;
   rejected?: boolean;
+  /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
+  inputRecorded?: boolean;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
 };
 
@@ -307,18 +309,20 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             userMsg.origin = normalized.origin;
           }
           arr.push(userMsg);
-          const meta: Record<string, unknown> = {};
-          if (normalized.text) {
-            meta.text = normalized.text;
+          if (!opts.inputRecorded) {
+            const meta: Record<string, unknown> = {};
+            if (normalized.text) {
+              meta.text = normalized.text;
+            }
+            if (normalized.attachments) {
+              meta.attachments = normalized.attachments;
+            }
+            if (normalized.origin) {
+              meta.origin = normalized.origin;
+            }
+            const ue = await commit('running', 'user.message', 'recorded', meta);
+            yield ue;
           }
-          if (normalized.attachments) {
-            meta.attachments = normalized.attachments;
-          }
-          if (normalized.origin) {
-            meta.origin = normalized.origin;
-          }
-          const ue = await commit('running', 'user.message', 'recorded', meta);
-          yield ue;
         } else if (Array.isArray(inpAny.messages) && !Array.isArray(st[msgKey])) {
           st[msgKey] = [...(inpAny.messages as unknown[])];
         }
@@ -330,8 +334,10 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           st[msgKey] = arr;
         }
         arr.push({ role: 'user', content: input });
-        const ue = await commit('running', 'user.message', 'recorded', { text: input });
-        yield ue;
+        if (!opts.inputRecorded) {
+          const ue = await commit('running', 'user.message', 'recorded', { text: input });
+          yield ue;
+        }
       }
       const e = await commit('running', 'node.completed');
       yield e;

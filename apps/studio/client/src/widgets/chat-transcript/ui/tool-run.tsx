@@ -11,11 +11,11 @@ import { ToolLine } from './tool-line';
 export function ToolRun({
   pairs,
   live,
-  runId,
+  runLive = live,
 }: {
   pairs: ToolEventPair[];
   live: boolean;
-  runId?: string;
+  runLive?: boolean;
 }) {
   const expandTools = useChatPreferences((state) => state.expandTools);
   const collapse = !live && !expandTools && pairs.length >= TOOL_RUN_COLLAPSE_AT;
@@ -32,7 +32,7 @@ export function ToolRun({
             key={pair.call.toolCallId}
             pair={pair}
             live={live && index === pairs.length - 1}
-            runId={runId}
+            runLive={runLive}
           />
         ))}
       </div>
@@ -46,7 +46,7 @@ export function ToolRun({
           <WrenchIcon className="relative z-10 size-3.5 shrink-0 bg-background text-muted-foreground" />
           <span className="shrink-0 font-medium text-foreground/90">{summary.total} tools</span>
           {hint ? (
-            <span className="min-w-0 truncate font-mono text-[12px] text-muted-foreground">
+            <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground/80">
               {hint}
               {extra}
             </span>
@@ -60,7 +60,7 @@ export function ToolRun({
         <CollapsibleContent>
           <div className="flex flex-col gap-1">
             {pairs.map((pair) => (
-              <ToolLine key={pair.call.toolCallId} pair={pair} live={false} runId={runId} />
+              <ToolLine key={pair.call.toolCallId} pair={pair} live={false} runLive={runLive} />
             ))}
           </div>
         </CollapsibleContent>

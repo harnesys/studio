@@ -23,7 +23,10 @@ export function MessageActions({
     <div
       data-slot="message-actions"
       data-testid={`message-actions-${entryId}`}
-      className={cn('flex items-center gap-0.5', align === 'end' && 'self-end')}
+      className={cn(
+        'flex items-center gap-0.5 opacity-0 transition-opacity duration-150 group-focus-within/turn:opacity-100 group-hover/turn:opacity-100',
+        align === 'end' && 'self-end',
+      )}
     >
       <Button
         variant="ghost"

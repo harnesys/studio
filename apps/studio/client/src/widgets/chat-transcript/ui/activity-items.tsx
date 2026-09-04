@@ -18,7 +18,7 @@ export function ActivityItems({
   const chunks = chunkEvents(events);
 
   return (
-    <ActivityRail>
+    <ActivityRail live={live}>
       {chunks.map((chunk, index) => {
         const chunkLive = live && index === chunks.length - 1;
         if (chunk.type === 'reasoning') {
@@ -50,8 +50,16 @@ export function ActivityItems({
           const src = chunk.event.source as Record<string, unknown> | undefined;
           const url = typeof src?.url === 'string' ? src.url : String(src ?? '');
           return (
-            <div key={`source-${index}`} className="text-muted-foreground text-xs">
-              <a href={url} target="_blank" rel="noreferrer" className="underline">
+            <div
+              key={`source-${index}`}
+              className="min-w-0 truncate pl-[26px] text-muted-foreground text-xs"
+            >
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
+              >
                 {url}
               </a>
             </div>
@@ -59,7 +67,7 @@ export function ActivityItems({
         }
         if (chunk.type === 'file') {
           return (
-            <div key={`file-${index}`} className="text-muted-foreground text-xs">
+            <div key={`file-${index}`} className="pl-[26px] text-muted-foreground text-xs">
               file
             </div>
           );
@@ -69,7 +77,7 @@ export function ActivityItems({
             key={chunk.pairs[0]?.call.toolCallId ?? `tools-${index}`}
             pairs={chunk.pairs}
             live={chunkLive}
-            runId={runId}
+            runLive={live}
           />
         );
       })}

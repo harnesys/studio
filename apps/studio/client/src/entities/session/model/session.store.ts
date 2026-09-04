@@ -41,32 +41,13 @@ const EMPTY_EVENTS: SessionEvent[] = [];
 let timestampCounter = 0;
 
 function eventKey(ev: SessionEvent): string {
-  if (ev.runId !== undefined && ev.seq !== undefined) {
-    return `${ev.runId}:${ev.seq}`;
-  }
   if ('clientEventId' in ev && ev.clientEventId) {
     return `ce:${ev.clientEventId}`;
   }
+  if (ev.runId !== undefined && ev.seq !== undefined) {
+    return `${ev.runId}:${ev.seq}`;
+  }
   return `t:${timestampCounter++}`;
-}
-
-function knownSeq(ev: SessionEvent): number | undefined {
-  return ev.runId !== undefined && ev.seq !== undefined ? ev.seq : undefined;
-}
-
-function sortEvents(a: SessionEvent, b: SessionEvent): number {
-  const aSeq = knownSeq(a);
-  const bSeq = knownSeq(b);
-  if (aSeq !== undefined && bSeq !== undefined) {
-    return aSeq - bSeq;
-  }
-  if (aSeq !== undefined) {
-    return -1;
-  }
-  if (bSeq !== undefined) {
-    return 1;
-  }
-  return 0;
 }
 
 export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => ({
@@ -89,6 +70,10 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   reconcileEvents(threadId, serverEvents) {
     set((state) => {
       const existing = state.events[threadId] ?? EMPTY_EVENTS;
+      // Слияние по ключу сохраняет порядок вставки: позицию держит первое
+      // вхождение (optimistic или live), серверная строка подменяет значение.
+      // Seq здесь не сортируется: он уникален внутри рана, между ранами
+      // порядок задаёт сам лог (сервер отдаёт список уже упорядоченным).
       const byKey = new Map<string, SessionEvent>();
       for (const ev of existing) {
         byKey.set(eventKey(ev), ev);
@@ -97,7 +82,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         byKey.set(eventKey(ev), ev);
       }
       return {
-        events: { ...state.events, [threadId]: [...byKey.values()].sort(sortEvents) },
+        events: { ...state.events, [threadId]: [...byKey.values()] },
         contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
       };
     });
@@ -106,57 +91,20 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   appendEvent(threadId, event) {
     set((state) => {
       const current = state.events[threadId] ?? [];
-      const last = current[current.length - 1];
-      if (event.type === 'user' && last?.type === 'user' && last.text === event.text) {
-        const lastIds = last.attachments?.map((a) => a.id).join(',') ?? '';
-        const evIds = event.attachments?.map((a) => a.id).join(',') ?? '';
-        if (lastIds === evIds) {
-          return state;
-        }
-      }
-      if (
-        last &&
-        event.type === 'text-delta' &&
-        last.type === 'text-delta' &&
-        last.id === event.id
-      ) {
-        const merged: SessionEvent = { ...last, text: last.text + event.text };
+      // Один идентитет — одно событие: серверное эхо заменяет optimistic-копию
+      // на её месте; дельты хранятся сырыми, склейка выполняет проекция рендера.
+      const key = eventKey(event);
+      const index = current.findIndex((ev) => eventKey(ev) === key);
+      if (index === -1) {
         return {
-          events: { ...state.events, [threadId]: [...current.slice(0, -1), merged] },
+          events: { ...state.events, [threadId]: [...current, event] },
           contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
         };
       }
-      if (
-        last &&
-        event.type === 'reasoning-delta' &&
-        last.type === 'reasoning-delta' &&
-        last.id === event.id
-      ) {
-        const merged: SessionEvent = { ...last, text: last.text + event.text };
-        return {
-          events: { ...state.events, [threadId]: [...current.slice(0, -1), merged] },
-          contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
-        };
-      }
-      if (
-        last &&
-        event.type === 'tool' &&
-        last.type === 'tool' &&
-        last.phase === 'streaming' &&
-        event.phase === 'streaming' &&
-        last.toolCallId === event.toolCallId
-      ) {
-        const merged: SessionEvent = {
-          ...last,
-          delta: (last.delta ?? '') + (event.delta ?? ''),
-        };
-        return {
-          events: { ...state.events, [threadId]: [...current.slice(0, -1), merged] },
-          contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
-        };
-      }
+      const next = [...current];
+      next[index] = event;
       return {
-        events: { ...state.events, [threadId]: [...current, event] },
+        events: { ...state.events, [threadId]: next },
         contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
       };
     });

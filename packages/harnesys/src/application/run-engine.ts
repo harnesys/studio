@@ -116,6 +116,9 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       const graphOpts: GraphOpts = {
         agent: opts.agent,
         input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
+        // Ввод уже записан в лог жизненным циклом (SessionHandle.send):
+        // граф не должен коммитить user.message второй раз.
+        inputRecorded: answer === null && user !== null,
         state: opts.state,
         permissions: opts.permissions,
         paths: opts.paths,

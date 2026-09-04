@@ -1,5 +1,5 @@
 import type { SessionEvent } from '@studio/shared';
-import { MessageCircleQuestionIcon } from 'lucide-react';
+import { LoaderCircleIcon, MessageCircleQuestionIcon } from 'lucide-react';
 
 import { cn } from '@/shared/lib/utils';
 
@@ -30,7 +30,10 @@ export function AskLine({
         </span>
         <span className="min-w-0 truncate text-muted-foreground">{event.prompt}</span>
         {active ? (
-          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">waiting…</span>
+          <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-live/90">
+            <LoaderCircleIcon className="size-3 animate-spin" />
+            waiting…
+          </span>
         ) : null}
       </div>
     </div>

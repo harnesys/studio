@@ -70,6 +70,8 @@ export {
   THRESHOLD_SUMMARY_NAME,
   withChatGenerationParameters,
 } from './harnesys-bridge.ts';
+export type { AskPayload, ConfirmPayload, HitlPayload, PermissionPayload } from './hitl-payload.ts';
+export { payloadForSource } from './hitl-payload.ts';
 export type {
   KnowledgeFileRecord,
   KnowledgeFileStatus,

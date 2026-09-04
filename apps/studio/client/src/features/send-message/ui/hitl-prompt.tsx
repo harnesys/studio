@@ -1,5 +1,5 @@
+import type { AskPayload } from '@studio/shared';
 import { type ReactNode, useState } from 'react';
-
 import { useSessionStore } from '@/entities/session';
 import { useSelectedThread, useThreadEvents } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
@@ -153,7 +153,7 @@ function AskCard({ pending, threadId }: { pending: PendingHitl; threadId: string
       return;
     }
     const trimmed = text.trim();
-    const payload: Record<string, unknown> = {};
+    const payload: AskPayload = {};
     if (selected.length > 0) {
       payload.optionIds = selected;
     }

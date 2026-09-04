@@ -22,6 +22,7 @@ type SessionStoreState = {
 type SessionStoreActions = {
   eventsOf: (threadId: string) => SessionEvent[];
   replaceEvents: (threadId: string, events: SessionEvent[]) => void;
+  reconcileEvents: (threadId: string, events: SessionEvent[]) => void;
   appendEvent: (threadId: string, event: SessionEvent) => void;
   startRun: (threadId: string, controller: AbortController, runId?: string) => void;
   finishRun: (threadId: string, runId?: string) => void;
@@ -35,6 +36,37 @@ type SessionStoreActions = {
 };
 
 const EMPTY_EVENTS: SessionEvent[] = [];
+
+let timestampCounter = 0;
+
+function eventKey(ev: SessionEvent): string {
+  if (ev.runId !== undefined && ev.seq !== undefined) {
+    return `${ev.runId}:${ev.seq}`;
+  }
+  if ('clientEventId' in ev && ev.clientEventId) {
+    return `ce:${ev.clientEventId}`;
+  }
+  return `t:${timestampCounter++}`;
+}
+
+function knownSeq(ev: SessionEvent): number | undefined {
+  return ev.runId !== undefined && ev.seq !== undefined ? ev.seq : undefined;
+}
+
+function sortEvents(a: SessionEvent, b: SessionEvent): number {
+  const aSeq = knownSeq(a);
+  const bSeq = knownSeq(b);
+  if (aSeq !== undefined && bSeq !== undefined) {
+    return aSeq - bSeq;
+  }
+  if (aSeq !== undefined) {
+    return -1;
+  }
+  if (bSeq !== undefined) {
+    return 1;
+  }
+  return 0;
+}
 
 export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => ({
   events: {},
@@ -51,6 +83,23 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       events: { ...state.events, [threadId]: events },
       contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
     }));
+  },
+
+  reconcileEvents(threadId, serverEvents) {
+    set((state) => {
+      const existing = state.events[threadId] ?? EMPTY_EVENTS;
+      const byKey = new Map<string, SessionEvent>();
+      for (const ev of existing) {
+        byKey.set(eventKey(ev), ev);
+      }
+      for (const ev of serverEvents) {
+        byKey.set(eventKey(ev), ev);
+      }
+      return {
+        events: { ...state.events, [threadId]: [...byKey.values()].sort(sortEvents) },
+        contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+      };
+    });
   },
 
   appendEvent(threadId, event) {

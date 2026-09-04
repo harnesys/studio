@@ -1,4 +1,3 @@
-import Ajv from 'ajv';
 import type {
   AgentDefinition,
   Node,
@@ -186,18 +185,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
   let entryPending = false;
   if (opts.startNodeId && (opts.resumePayload !== undefined || opts.rejected === true)) {
-    const interrupt = (loaded?.cursor as Record<string, unknown>)?.interrupt as
-      | Record<string, unknown>
-      | undefined;
-    if (opts.resumePayload !== undefined && !opts.rejected && interrupt?.resumeSchema) {
-      const ajv = new Ajv({ strict: false });
-      const valid = ajv.validate(interrupt.resumeSchema as object, opts.resumePayload);
-      if (!valid) {
-        throw Object.assign(new Error(`resume payload validation failed: ${ajv.errorsText()}`), {
-          code: 'resume_validation_failed',
-        });
-      }
-    }
     cur = opts.startNodeId;
     if (opts.rejected) {
       delete st.$resume;

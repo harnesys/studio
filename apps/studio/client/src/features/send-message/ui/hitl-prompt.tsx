@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { useSessionStore } from '@/entities/session';
 import { useSelectedThread, useThreadEvents } from '@/features/desk';
@@ -12,7 +12,6 @@ import { toast } from '@/shared/ui/toast';
 
 import { respondToAsk } from '../model/hitl-actions';
 import { type PendingHitl, pendingHitl } from '../model/pending-hitl';
-import { resumePausedThread } from '../model/resume-paused';
 import { summarizeToolInput } from '../model/tool-input-summary';
 import { HitlPreview } from './hitl-preview';
 
@@ -23,12 +22,6 @@ export function HitlPrompt() {
     thread ? Boolean(state.activeRuns[thread.id]) : false,
   );
   const pending = pendingHitl(events);
-
-  useEffect(() => {
-    if (pending && !streaming && thread?.id) {
-      void resumePausedThread(thread.id).catch(() => {});
-    }
-  }, [pending, streaming, thread?.id]);
 
   if (!pending || !streaming) {
     return null;

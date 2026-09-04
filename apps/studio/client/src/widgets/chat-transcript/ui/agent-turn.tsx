@@ -1,5 +1,5 @@
 import type { SessionEvent } from '@studio/shared';
-import { AlertCircleIcon } from 'lucide-react';
+import { AlertCircleIcon, RotateCcwIcon } from 'lucide-react';
 
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
@@ -22,7 +22,7 @@ import { AskLine } from './ask-line';
 import { MessageActions } from './message-actions';
 import { ThinkingLine } from './thinking-line';
 
-export function FailedMessageView({ text }: { text: string }) {
+export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
   return (
     <div
       data-testid="error-message-view"
@@ -30,6 +30,17 @@ export function FailedMessageView({ text }: { text: string }) {
     >
       <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
       <div className="flex-1 break-words font-mono text-xs leading-relaxed">{text}</div>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          title="Retry run"
+          className="flex shrink-0 items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 text-destructive text-xs transition-colors hover:bg-destructive/10"
+        >
+          <RotateCcwIcon className="size-3" />
+          Retry
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -2,11 +2,14 @@ import type { StudioErrorBody } from '@studio/shared';
 
 export class ApiError extends Error {
   status: number;
+  /** Parsed response body of the failed request (e.g. run-conflict 409 payloads). */
+  body?: unknown;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, body?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -24,15 +27,17 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     let message = response.statusText || 'Request failed';
+    let body: unknown;
     try {
-      const body = (await response.json()) as StudioErrorBody;
-      if (body.error) {
-        message = body.error;
+      body = await response.json();
+      const error = (body as StudioErrorBody).error;
+      if (error) {
+        message = error;
       }
     } catch {
       // keep status text
     }
-    throw new ApiError(response.status, message);
+    throw new ApiError(response.status, message, body);
   }
 
   return (await response.json()) as T;

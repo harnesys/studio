@@ -50,13 +50,14 @@ export type SendThreadRunOptions = {
   effort?: string;
   attachmentIds?: string[];
   mode?: RunMode;
+  clientEventId?: string;
 };
 
 export function sendThreadRun(options: SendThreadRunOptions): Promise<AcceptedRunResponse> {
-  const { id, text, effort, attachmentIds, mode } = options;
+  const { id, text, effort, attachmentIds, mode, clientEventId } = options;
   return apiJson<AcceptedRunResponse>(`/api/threads/${id}/runs`, {
     method: 'POST',
-    body: JSON.stringify({ text, effort, attachmentIds, mode }),
+    body: JSON.stringify({ text, effort, attachmentIds, mode, clientEventId }),
   });
 }
 
@@ -66,24 +67,40 @@ export function getThreadPlan(threadId: string): Promise<ThreadPlanRecord | null
   );
 }
 
-export function resumeThread(id: string): Promise<AcceptedRunResponse> {
-  return apiJson<AcceptedRunResponse>(`/api/threads/${id}/resume`, {
-    method: 'POST',
-  });
-}
+export type RespondRunOptions = {
+  clientEventId?: string;
+};
 
-export function respondToRun(runId: string, askId: string, payload: unknown): Promise<void> {
+export function respondToRun(
+  runId: string,
+  askId: string,
+  payload: unknown,
+  opts?: RespondRunOptions,
+): Promise<void> {
   return apiJson<void>(`/api/runs/${runId}/respond`, {
     method: 'POST',
-    body: JSON.stringify({ askId, payload }),
+    body: JSON.stringify({ askId, payload, clientEventId: opts?.clientEventId }),
   });
 }
 
-export function rejectRun(runId: string, askId: string, note?: string): Promise<void> {
+export function rejectRun(
+  runId: string,
+  askId: string,
+  note?: string,
+  opts?: RespondRunOptions,
+): Promise<void> {
   return apiJson<void>(`/api/runs/${runId}/reject`, {
     method: 'POST',
-    body: JSON.stringify({ askId, note }),
+    body: JSON.stringify({ askId, note, clientEventId: opts?.clientEventId }),
   });
+}
+
+export type RetryRunResponse = {
+  runId: string;
+};
+
+export function retryRun(runId: string): Promise<RetryRunResponse> {
+  return apiJson<RetryRunResponse>(`/api/runs/${runId}/retry`, { method: 'POST' });
 }
 
 export function compactThread(id: string): Promise<CompactThreadResponse> {

@@ -25,14 +25,15 @@ export type RunStreamClientDeps = {
   threadId: string;
   store: SessionStoreApi;
   onEvent: (event: SessionEvent) => void;
-  onTerminal: () => void;
+  /** Fires once when the connected run reaches a terminal state. */
+  onTerminal: (runId: string) => void;
 };
 
 export type RunStreamClient = {
   /** Idempotent: second connect to the same runId is ignored. */
   connect(runId: string, fromSeq?: number): void;
   respond(askId: string, payload: unknown, opts?: { clientEventId?: string }): Promise<void>;
-  reject(askId: string, note?: string): Promise<void>;
+  reject(askId: string, note?: string, opts?: { clientEventId?: string }): Promise<void>;
   cancel(): Promise<void>;
   /** Manual retry after offline. */
   reconnect(): void;
@@ -58,7 +59,7 @@ function parseJson<T>(data: string): T | undefined {
 class StreamClient implements RunStreamClient {
   private readonly threadId: string;
   private readonly onEvent: (event: SessionEvent) => void;
-  private readonly onTerminal: () => void;
+  private readonly onTerminal: (runId: string) => void;
   private state: RunStreamState = 'connecting';
   private currentRunId: string | undefined;
   private controller: AbortController | undefined;
@@ -82,13 +83,11 @@ class StreamClient implements RunStreamClient {
   }
 
   respond(askId: string, payload: unknown, opts?: { clientEventId?: string }): Promise<void> {
-    // opts.clientEventId wires into respondToRun in Task 24; payload passes through untouched.
-    void opts;
-    return this.mutate((runId) => respondToRun(runId, askId, payload));
+    return this.mutate((runId) => respondToRun(runId, askId, payload, opts));
   }
 
-  reject(askId: string, note?: string): Promise<void> {
-    return this.mutate((runId) => rejectRun(runId, askId, note));
+  reject(askId: string, note?: string, opts?: { clientEventId?: string }): Promise<void> {
+    return this.mutate((runId) => rejectRun(runId, askId, note, opts));
   }
 
   cancel(): Promise<void> {
@@ -282,7 +281,7 @@ class StreamClient implements RunStreamClient {
     this.setState('terminal');
     if (!this.terminated) {
       this.terminated = true;
-      this.onTerminal();
+      this.onTerminal(this.currentRunId ?? '');
     }
   }
 }

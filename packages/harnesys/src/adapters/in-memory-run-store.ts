@@ -12,14 +12,8 @@ import type { SessionEvent } from '../ports/session.ts';
 
 const DEFAULT_LIST_LIMIT = 50;
 const DEFAULT_ASK_TTL_MS = 7 * 24 * 3600 * 1000;
-function clientEventIdOf(event: PendingSessionEvent): string | undefined {
-  return (event as { clientEventId?: string }).clientEventId;
-}
-function interruptIdOf(event: PendingSessionEvent | SessionEvent): string | undefined {
-  return (event as { interruptId?: string }).interruptId;
-}
-function seqOf(event: SessionEvent): number {
-  return (event as { seq?: number }).seq ?? 0;
+function fieldOf<T>(event: object, field: string): T | undefined {
+  return (event as Record<string, T>)[field];
 }
 export class InMemoryRunEventStore implements RunEventStore {
   events: Map<string, SessionEvent[]> = new Map();
@@ -59,7 +53,9 @@ export class InMemoryRunEventStore implements RunEventStore {
     return stored.slice(stored.length - events.length).map((event) => ({ ...event }));
   }
   async tail(runId: string, fromSeq: number): Promise<SessionEvent[]> {
-    return (this.events.get(runId) ?? []).filter((event) => seqOf(event) > fromSeq);
+    return (this.events.get(runId) ?? []).filter(
+      (event) => (fieldOf<number>(event, 'seq') ?? 0) > fromSeq,
+    );
   }
   async latestSeq(runId: string): Promise<number> {
     return this.nextSeq.get(runId) ?? 0;
@@ -87,7 +83,7 @@ function assertTransitionAllowed(
   }
   if (patch.to === 'queued' && record.interruptId !== undefined) {
     const first = patch.events?.[0];
-    if (record.interruptId !== (first ? interruptIdOf(first) : undefined)) {
+    if (record.interruptId !== (first ? fieldOf<string>(first, 'interruptId') : undefined)) {
       throw codedRunError('unknown_interrupt', `run ${record.runId} interrupt mismatch`);
     }
   }
@@ -95,12 +91,14 @@ function assertTransitionAllowed(
 export class InMemoryRunLifecycleStore implements RunLifecycleStore {
   runs: Map<string, RunRecord> = new Map();
   eventsByClient: Map<string, string> = new Map();
-  constructor(private readonly eventStore: InMemoryRunEventStore) {
+  private readonly eventStore: InMemoryRunEventStore;
+  constructor(eventStore: InMemoryRunEventStore) {
+    this.eventStore = eventStore;
     eventStore.attachLifecycleRuns(this.runs);
   }
   async create(run: RunCreateInput, events: PendingSessionEvent[] = []): Promise<RunRecord> {
     for (const event of events) {
-      const clientEventId = clientEventIdOf(event);
+      const clientEventId = fieldOf<string>(event, 'clientEventId');
       if (clientEventId === undefined) {
         continue;
       }
@@ -134,7 +132,7 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
       this.eventStore.appendLocked(run.runId, events);
     }
     for (const event of events) {
-      const clientEventId = clientEventIdOf(event);
+      const clientEventId = fieldOf<string>(event, 'clientEventId');
       if (clientEventId !== undefined) {
         this.eventsByClient.set(`${run.threadId}:${clientEventId}`, run.runId);
       }

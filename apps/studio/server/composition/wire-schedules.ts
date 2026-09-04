@@ -1,5 +1,5 @@
+import type { RunLifecycleStore } from 'harnesys';
 import type { Hono } from 'hono';
-import type { ActiveRunRegistry } from '../adapters/active-runs.adapter.ts';
 import { ScheduleController } from '../adapters/http/schedule/schedule.controller.ts';
 import { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import { startScheduleTicker } from '../adapters/schedule-ticker.adapter.ts';
@@ -30,7 +30,7 @@ export type WireSchedulesDeps = {
   workspaces: WorkspaceRepository;
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
-  activeRuns: ActiveRunRegistry;
+  lifecycle: RunLifecycleStore;
   deskEvents: DeskEventsPort;
   sendThreadRun: SendThreadRunInput;
   getThread: GetThreadInput;
@@ -43,13 +43,12 @@ export function wireSchedules(deps: WireSchedulesDeps): ScheduleFireQueue {
     schedules: deps.schedules,
     threads: deps.threads,
     sendThreadRun: deps.sendThreadRun,
-    activeRuns: deps.activeRuns,
+    lifecycle: deps.lifecycle,
     queue,
     deskEvents: deps.deskEvents,
     getThread: deps.getThread,
   });
   queue.setHandler((scheduleId) => fireDueSchedules.fireSchedule(scheduleId));
-  deps.activeRuns.onThreadIdle((threadId) => queue.onThreadIdle(threadId));
   if (deps.startTicker) {
     startScheduleTicker(fireDueSchedules);
   }
@@ -78,7 +77,7 @@ export function wireSchedules(deps: WireSchedulesDeps): ScheduleFireQueue {
       workspaces: deps.workspaces,
       attachments: deps.attachments,
       attachmentsFs: deps.attachmentsFs,
-      activeRuns: deps.activeRuns,
+      lifecycle: deps.lifecycle,
       queue,
       deskEvents: deps.deskEvents,
       db: deps.db,

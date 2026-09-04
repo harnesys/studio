@@ -1,4 +1,4 @@
-import type { ActiveRunRegistry } from '../adapters/active-runs.adapter.ts';
+import type { RunLifecycleStore, ToolDefinition } from 'harnesys';
 import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
@@ -32,6 +32,7 @@ import type { WorkspaceRepository } from '../domain/workspace.port.ts';
 export type WireHostToolsDeps = {
   db: StudioDb;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
+  toolRegistry: Map<string, ToolDefinition>;
   schedules: ScheduleRepository;
   webhooks: WebhookRepository;
   threads: ThreadRepository;
@@ -39,7 +40,7 @@ export type WireHostToolsDeps = {
   workspaces: WorkspaceRepository;
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
-  activeRuns: ActiveRunRegistry;
+  lifecycle: RunLifecycleStore;
   queue: ScheduleFireQueue;
   deskEvents: DeskEventsPort;
   semanticSessions?: SemanticSessionCleanup;
@@ -47,7 +48,7 @@ export type WireHostToolsDeps = {
 
 export function wireHostTools(deps: WireHostToolsDeps): void {
   const uow = new SqliteUnitOfWork(deps.db);
-  deps.workspaceHarnesys.setExtraTools([
+  const extraTools = [
     ...createPlanTools({
       savePlan: new SavePlanUseCase(uow, deps.deskEvents),
       updatePlanItem: new UpdatePlanItemUseCase(uow, deps.deskEvents),
@@ -82,7 +83,7 @@ export function wireHostTools(deps: WireHostToolsDeps): void {
         workspaces: deps.workspaces,
         attachments: deps.attachments,
         attachmentsFs: deps.attachmentsFs,
-        activeRuns: deps.activeRuns,
+        lifecycle: deps.lifecycle,
         queue: deps.queue,
         deskEvents: deps.deskEvents,
         db: deps.db,
@@ -95,5 +96,9 @@ export function wireHostTools(deps: WireHostToolsDeps): void {
       updateWebhook: new UpdateWebhookUseCase(deps.webhooks, deps.agents, deps.workspaces),
       deleteWebhook: new DeleteWebhookUseCase(deps.webhooks, deps.workspaces),
     }),
-  ]);
+  ];
+  deps.workspaceHarnesys.setExtraTools(extraTools);
+  for (const tool of extraTools) {
+    deps.toolRegistry.set(tool.name, tool);
+  }
 }

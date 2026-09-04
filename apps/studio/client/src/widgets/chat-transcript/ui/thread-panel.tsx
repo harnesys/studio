@@ -6,7 +6,8 @@ import { type RunFailure, useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
 import { refreshThread, scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
-import { followLiveThread } from '@/features/send-message';
+import { connectThreadRun, retryRun } from '@/features/send-message';
+import { getThread } from '@/shared/api';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -57,18 +58,29 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     <MessageScrollerProvider autoScroll>
       <MessageScroller>
         <MessageScrollerViewport>
-          <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 text-[length:var(--chat-font-size)]">
+          <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
             {runs.map((run, index) => (
               <MessageScrollerItem
                 key={run.id ?? `run-${index}`}
                 messageId={run.id ?? `run-${index}`}
               >
-                {run.error ? <FailedMessageView text={run.error} /> : null}
-                <AssistantMessageView
-                  events={run.events}
-                  runId={run.id ?? ''}
-                  streaming={streaming && index === runs.length - 1}
-                />
+                <div className="group/turn flex flex-col">
+                  {run.error ? (
+                    <FailedMessageView
+                      text={run.error}
+                      onRetry={
+                        run.runId && index === runs.length - 1 && !streaming
+                          ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
+                          : undefined
+                      }
+                    />
+                  ) : null}
+                  <AssistantMessageView
+                    events={run.events}
+                    runId={run.id ?? ''}
+                    streaming={streaming && index === runs.length - 1}
+                  />
+                </div>
               </MessageScrollerItem>
             ))}
             {failures.map((failure) => (
@@ -93,38 +105,51 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
 
 type RunGroup = {
   id: string | null;
+  runId: string | undefined;
   events: SessionEvent[];
   error: string | null;
 };
+
+const RUN_TERMINAL_EVENT_TYPES = new Set([
+  'done',
+  'error',
+  'run.completed',
+  'run.failed',
+  'run.cancelled',
+]);
 
 function splitRuns(events: SessionEvent[]): RunGroup[] {
   const runs: RunGroup[] = [];
   let current: SessionEvent[] = [];
   let currentId: string | null = null;
+  let currentRunId: string | undefined;
+
+  const closeRun = (error: string | null) => {
+    if (current.length > 0) {
+      runs.push({ id: currentId, runId: currentRunId, events: current, error });
+    }
+    current = [];
+    currentId = null;
+    currentRunId = undefined;
+  };
 
   for (const ev of events) {
-    if (ev.type === 'done' || ev.type === 'error') {
-      if (current.length > 0) {
-        runs.push({
-          id: currentId,
-          events: current,
-          error: ev.type === 'error' ? ev.message : null,
-        });
-      }
-      current = [];
-      currentId = null;
+    if (RUN_TERMINAL_EVENT_TYPES.has(ev.type)) {
+      const failed =
+        (ev.type === 'error' || ev.type === 'run.failed') && 'message' in ev ? ev.message : null;
+      closeRun(failed);
       continue;
     }
     if (!currentId && ev.type === 'tool' && ev.toolCallId) {
       currentId = ev.toolCallId;
     }
+    if (!currentRunId && ev.runId) {
+      currentRunId = ev.runId;
+    }
     current.push(ev);
   }
 
-  if (current.length > 0) {
-    runs.push({ id: currentId, events: current, error: null });
-  }
-
+  closeRun(null);
   return runs;
 }
 
@@ -149,22 +174,27 @@ function useThreadSync(threadId: string): boolean {
   return synced;
 }
 
-function useFollowLive(threadId: string): void {
-  const liveRunId = useSessionStore((state) => {
-    const events = state.events[threadId] ?? [];
-    const hasDone = events.some((ev) => ev.type === 'done' || ev.type === 'error');
-    if (hasDone) {
-      return null;
-    }
-    return events[0]?.type === 'tool' ? events[0].toolCallId : null;
-  });
+const TERMINAL_RUN_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
+/** Restores the live client for a non-terminal active run (e.g. after page load). */
+function useFollowLive(threadId: string): void {
   useEffect(() => {
-    if (!liveRunId) {
-      return;
-    }
-    void followLiveThread(threadId);
-  }, [threadId, liveRunId]);
+    let cancelled = false;
+    void getThread(threadId)
+      .then((record) => {
+        if (cancelled) {
+          return;
+        }
+        const active = record.activeRun;
+        if (active && !TERMINAL_RUN_STATUSES.has(active.status)) {
+          connectThreadRun(threadId, active.runId);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [threadId]);
 }
 
 function EmptyThreadReadSync({ threadId }: { threadId: string }) {

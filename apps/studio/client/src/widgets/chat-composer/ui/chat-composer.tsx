@@ -256,7 +256,12 @@ export function ChatComposer() {
                 <span className="sr-only">Stop</span>
               </Button>
             ) : (
-              <Button size="icon-xs" disabled={disabled || !canSend} onClick={submit}>
+              <Button
+                size="icon-xs"
+                disabled={disabled || !canSend}
+                onClick={submit}
+                title={hitl ? 'Ответьте на вопрос агента' : undefined}
+              >
                 <ArrowUpIcon />
                 <span className="sr-only">Send</span>
               </Button>

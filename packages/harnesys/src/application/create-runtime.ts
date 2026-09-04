@@ -1,16 +1,20 @@
 // biome-ignore-all lint/suspicious/useAwait: async required by RuntimeHandle port contract
+
+import {
+  createRunEventBus,
+  InMemoryRunEventStore,
+  InMemoryRunLifecycleStore,
+} from '../adapters/in-memory-run-store.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
-import { ResumeHashError } from '../domain/errors.ts';
-import type { Command, RunResult } from '../domain/run-result.ts';
-import type { Snapshot } from '../domain/snapshot.ts';
+import { codedRunError } from '../domain/errors.ts';
+import type { RunResult } from '../domain/run-result.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
-import type { RuntimeState } from '../ports/runtime-state.ts';
 import { check } from './check.ts';
 import { compile } from './compile.ts';
 import { startGraph } from './graph.ts';
-import { hashStr } from './graph-helpers.ts';
 import { runGraph } from './graph-run.ts';
+import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createLoadSkillTool } from './skills/create-load-skill-tool.ts';
 import { createToolRegistry } from './tool-registry.ts';
@@ -58,6 +62,21 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     return resolved;
   };
 
+  if ((options.lifecycle === undefined) !== (options.events === undefined)) {
+    throw new Error('createRuntime: lifecycle and events must be provided together');
+  }
+  let lifecycle = options.lifecycle;
+  let events = options.events;
+  if (lifecycle === undefined && events === undefined) {
+    const memEvents = new InMemoryRunEventStore();
+    events = memEvents;
+    lifecycle = new InMemoryRunLifecycleStore(memEvents);
+  }
+  if (lifecycle === undefined || events === undefined) {
+    throw new Error('createRuntime: lifecycle and events must be provided together');
+  }
+  const feed = options.feed ?? createRunEventFeed({ events, lifecycle, bus: createRunEventBus() });
+
   const runtimeCtx: RuntimeContext = {
     models: options.models,
     toolRegistry,
@@ -68,6 +87,12 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     toolMessages: options.toolMessages ?? 'ordered',
     mergeState: options.mergeState,
     agents: options.agents,
+    lifecycle,
+    events,
+    feed,
+    instanceId: options.instanceId ?? crypto.randomUUID(),
+    claimer: options.claimer,
+    targets: options.targets,
   };
 
   return {
@@ -107,98 +132,13 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         stream: options.stream,
       });
     },
-    resume: async (
-      state: RuntimeState,
-      command: Command,
-      opts: { definition: AgentDefinition },
-    ): Promise<RunResult> => {
-      const { plan } = compile(opts.definition);
-      const hash = hashStr(JSON.stringify(opts.definition));
-
-      let snapForResume: Snapshot | null = null;
-      if (command.type === 'resume') {
-        snapForResume = await state.load();
-        if (snapForResume?.definitionHash && snapForResume.definitionHash !== hash) {
-          const policy = options.onDefinitionMismatch ?? 'reject';
-          if (policy === 'reject') {
-            throw new ResumeHashError(snapForResume.definitionHash, hash);
-          }
-          // 'compile-new-and-map-cursor': re-compile with new definition,
-          // map cursor by nodeId; unmapped nodes → needs_input (definition_migrated)
-          // TODO: implement compile-new-and-map-cursor policy
-        }
-      }
-
-      if (command.type === 'cancel') {
-        return runGraph({
-          agent: opts.definition,
-          input: null,
-          state,
-          permissions: options.permissions,
-          paths: options.paths,
-          artifacts: options.artifacts,
-          models: options.models,
-          toolRegistry,
-          plan,
-          toolMessages: options.toolMessages ?? 'ordered',
-          mergeState: options.mergeState,
-          stream: options.stream,
-        });
-      }
-      if (command.type === 'reject') {
-        const snap = await state.load();
-        const interrupt = (snap?.cursor as Record<string, unknown>)?.interrupt as
-          | Record<string, unknown>
-          | undefined;
-        return runGraph({
-          agent: opts.definition,
-          input: null,
-          state,
-          permissions: options.permissions,
-          paths: options.paths,
-          artifacts: options.artifacts,
-          models: options.models,
-          toolRegistry,
-          plan,
-          toolMessages: options.toolMessages ?? 'ordered',
-          mergeState: options.mergeState,
-          startNodeId: interrupt?.nodeId as string | undefined,
-          stream: options.stream,
-        });
-      }
-      const snap = await state.load();
-      const interrupt = (snap?.cursor as Record<string, unknown>)?.interrupt as
-        | Record<string, unknown>
-        | undefined;
-      try {
-        return await runGraph({
-          agent: opts.definition,
-          input: command.payload,
-          state,
-          permissions: options.permissions,
-          paths: options.paths,
-          artifacts: options.artifacts,
-          models: options.models,
-          toolRegistry,
-          plan,
-          toolMessages: options.toolMessages ?? 'ordered',
-          mergeState: options.mergeState,
-          resumePayload: command.payload,
-          startNodeId: interrupt?.nodeId as string | undefined,
-          stream: options.stream,
-        });
-      } catch (e) {
-        if ((e as { code?: string }).code === 'resume_validation_failed') {
-          return {
-            status: 'failed',
-            runId: snap?.runId ?? crypto.randomUUID(),
-            error: { code: 'resume_validation_failed', message: (e as Error).message },
-            state: (snap?.state as Record<string, unknown>) ?? {},
-            usage: { steps: 0, tokens: 0 },
-          };
-        }
-        throw e;
-      }
+    // Resume path removed with the journal-first engine: use SessionHandle.respond.
+    // The method stays on the handle so existing callers fail loudly, not silently.
+    resume: async (): Promise<RunResult> => {
+      throw codedRunError(
+        'resume_removed',
+        'RuntimeHandle.resume removed: use SessionHandle.respond',
+      );
     },
     compile: (def) => compile(def),
     check: (def) => check(def, { tools: toolRegistry, agents: options.agents }),
@@ -215,6 +155,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
           description: t.description,
           ...(t.group !== undefined ? { group: t.group } : {}),
         })),
+      registry: () => toolRegistry,
     },
     mcp: {
       list: () => mcpRegistry?.list() ?? [],

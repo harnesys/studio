@@ -8,8 +8,8 @@ import type {
 } from 'harnesys';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { StudioDb } from '../store/sqlite/connection.ts';
-import { eventsTable } from '../store/sqlite/schema/events.ts';
 import { episodicChunksTable } from '../store/sqlite/schema/index.ts';
+import { runEventsTable } from '../store/sqlite/schema/run-events.ts';
 import { chunkText } from './chunk-text.ts';
 import { cosineSimilarity, decodeEmbedding, encodeEmbedding } from './embedding-vec.ts';
 import type { EmbeddingsPort } from './embeddings.ts';
@@ -67,15 +67,15 @@ export class SqliteEpisodicPort implements EpisodicPort {
 
     const rows = this.db
       .select()
-      .from(eventsTable)
+      .from(runEventsTable)
       .where(
         and(
-          eq(eventsTable.threadId, input.threadId),
-          gte(eventsTable.sequence, input.fromSeq),
-          lte(eventsTable.sequence, input.toSeq),
+          eq(runEventsTable.threadId, input.threadId),
+          gte(runEventsTable.seq, input.fromSeq),
+          lte(runEventsTable.seq, input.toSeq),
         ),
       )
-      .orderBy(eventsTable.sequence)
+      .orderBy(runEventsTable.timestamp, runEventsTable.seq)
       .all();
 
     const now = new Date().toISOString();
@@ -106,8 +106,8 @@ export class SqliteEpisodicPort implements EpisodicPort {
             id: crypto.randomUUID(),
             workspaceId: input.workspaceId,
             threadId: input.threadId,
-            entryId: row.eventId,
-            seq: row.sequence,
+            entryId: `${row.runId}:${row.seq}`,
+            seq: row.seq,
             text,
             compactionEntryId: input.compactionEntryId ?? null,
             embedding: vectors ? encodeEmbedding(vectors[i] ?? []) : null,

@@ -6,7 +6,7 @@ import type { HttpDetail, TerminalDetail, ToolDetail } from '../model/tool-outpu
 import { ToolEntriesView, ToolGrepView } from './tool-entries-view';
 
 export function ToolDetailView({ detail }: { detail: ToolDetail }) {
-  return <div className="mt-1 overflow-hidden">{renderContent(detail)}</div>;
+  return <div className="overflow-hidden">{renderContent(detail)}</div>;
 }
 
 function renderContent(detail: ToolDetail) {
@@ -44,7 +44,7 @@ function renderContent(detail: ToolDetail) {
 
 function TerminalView({ detail }: { detail: TerminalDetail }) {
   return (
-    <div className="ml-4 overflow-hidden rounded-md font-mono text-[12px] leading-5">
+    <div className="overflow-hidden rounded-md font-mono text-[12px] leading-5">
       <ExpandableScroll>
         <div className="whitespace-pre p-2.5 font-mono text-[12px] text-foreground/90">
           {detail.output}

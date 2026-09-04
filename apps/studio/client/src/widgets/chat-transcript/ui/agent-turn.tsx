@@ -1,5 +1,5 @@
 import type { SessionEvent } from '@studio/shared';
-import { AlertCircleIcon } from 'lucide-react';
+import { AlertCircleIcon, RotateCcwIcon } from 'lucide-react';
 
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
@@ -18,11 +18,10 @@ import {
 } from '../model/turn-segments';
 import { ActivityItems } from './activity-items';
 import { ActivityRail } from './activity-rail';
-import { AskLine } from './ask-line';
 import { MessageActions } from './message-actions';
 import { ThinkingLine } from './thinking-line';
 
-export function FailedMessageView({ text }: { text: string }) {
+export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
   return (
     <div
       data-testid="error-message-view"
@@ -30,6 +29,17 @@ export function FailedMessageView({ text }: { text: string }) {
     >
       <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
       <div className="flex-1 break-words font-mono text-xs leading-relaxed">{text}</div>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          title="Retry run"
+          className="flex shrink-0 items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 text-destructive text-xs transition-colors hover:bg-destructive/10"
+        >
+          <RotateCcwIcon className="size-3" />
+          Retry
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -62,7 +72,7 @@ export function ActivityBlock({
 
   if (events.length === 0 && live) {
     return (
-      <ActivityRail>
+      <ActivityRail live={true}>
         <ThinkingLine text="" live={true} />
       </ActivityRail>
     );
@@ -85,11 +95,10 @@ export function AssistantMessageView({
   const { workspaceId } = useStudioLocation();
   const { openThread } = useStudioNavigation();
   const segments = groupSegments(events);
-  const answerText = events
-    .filter((ev): ev is SessionEvent & { type: 'text-delta' } => ev.type === 'text-delta')
-    .map((ev) => ev.text)
-    .filter(Boolean)
-    .join('\n\n');
+  const textBlocks = segments.filter(
+    (segment): segment is Extract<TurnSegment, { type: 'text' }> => segment.type === 'text',
+  );
+  const answerText = textBlocks.map((segment) => segment.text).join('\n\n');
   const hasDone = events.some((ev) => ev.type === 'done');
   const hasInFlight = events.some(
     (ev) =>
@@ -112,7 +121,7 @@ export function AssistantMessageView({
         ))}
         {waitingForModel ? (
           <div className={segments.length > 0 ? 'mt-3' : undefined}>
-            <ActivityRail>
+            <ActivityRail live={true}>
               <ThinkingLine text="" live={true} />
             </ActivityRail>
           </div>
@@ -159,7 +168,7 @@ function TurnSegmentView({
     const tid = thread?.id ?? '';
     const atts = segment.event.attachments;
     return (
-      <div className="flex flex-col items-end gap-2 py-1">
+      <div className="flex flex-col items-end gap-2">
         {atts?.length ? (
           <div className="flex max-w-[80%] flex-wrap justify-end gap-2">
             {atts.map((item) => (
@@ -168,7 +177,7 @@ function TurnSegmentView({
           </div>
         ) : null}
         {segment.event.text ? (
-          <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-muted px-3 py-1.5 text-sm">
+          <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3.5 py-2 text-secondary-foreground shadow-xs">
             {segment.event.text}
           </div>
         ) : null}
@@ -179,15 +188,7 @@ function TurnSegmentView({
     return <ActivityItems events={segment.events} live={live} runId={runId} />;
   }
 
-  if (segment.type === 'ask') {
-    return <AskLine event={segment.event} runId={runId} live={live} />;
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      {segment.event.text ? <Markdown text={segment.event.text} /> : null}
-    </div>
-  );
+  return <Markdown text={segment.text} />;
 }
 
 function AttachmentPreview({

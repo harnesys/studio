@@ -3,9 +3,14 @@ import type { SessionEvent } from '@studio/shared';
 export type TurnSegment =
   | { type: 'activity'; events: SessionEvent[] }
   | { type: 'user'; event: SessionEvent & { type: 'user' } }
-  | { type: 'text'; event: SessionEvent & { type: 'text-delta' } }
-  | { type: 'ask'; event: SessionEvent & { type: 'ask' } };
+  | { type: 'text'; text: string; id: string | undefined };
 
+/**
+ * Единственная проекция «лог событий → сегменты треда». Все пути (live,
+ * reconcile, reload) прогоняют сырой лог отсюда: подряд идущие text-delta
+ * с равным id сворачиваются в один текстовый блок, смена id или любая
+ * активность между дельтами открывает новый блок.
+ */
 export function groupSegments(events: SessionEvent[]): TurnSegment[] {
   const segments: TurnSegment[] = [];
   let activity: SessionEvent[] = [];
@@ -26,16 +31,17 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
     }
     if (ev.type === 'text-delta') {
       flushActivity();
-      segments.push({ type: 'text', event: ev });
-      continue;
-    }
-    if (ev.type === 'ask') {
-      flushActivity();
-      segments.push({ type: 'ask', event: ev });
+      const last = segments[segments.length - 1];
+      if (last?.type === 'text' && last.id === ev.id) {
+        last.text += ev.text;
+      } else {
+        segments.push({ type: 'text', text: ev.text, id: ev.id });
+      }
       continue;
     }
     if (
       ev.type === 'tool' ||
+      ev.type === 'ask' ||
       ev.type === 'reasoning-delta' ||
       ev.type === 'reasoning-start' ||
       ev.type === 'reasoning-end' ||
@@ -51,13 +57,12 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
 
 export function segmentKey(segment: TurnSegment, index: number): string {
   if (segment.type === 'user') {
-    return `user-${index}-${segment.event.text.slice(0, 20)}`;
+    return `user-${segment.event.clientEventId ?? `${index}-${segment.event.text.slice(0, 20)}`}`;
   }
   if (segment.type === 'text') {
-    return `text-${index}`;
-  }
-  if (segment.type === 'ask') {
-    return segment.event.askId;
+    // id блока не уникален между блоками (модель может reuse 'txt-0'),
+    // уникальность даёт позиция в списке сегментов.
+    return `text-${index}-${segment.id ?? 'x'}`;
   }
   const first = segment.events[0];
   if (!first) {
@@ -69,6 +74,7 @@ export function segmentKey(segment: TurnSegment, index: number): string {
   return `activity-${index}`;
 }
 
+/** Ритм вертикальных отступов между сегментами одного треда. */
 export function segmentSpacing(segments: TurnSegment[], index: number): string | undefined {
   if (index === 0) {
     return undefined;
@@ -76,13 +82,10 @@ export function segmentSpacing(segments: TurnSegment[], index: number): string |
   const prev = segments[index - 1];
   const curr = segments[index];
   if (prev?.type === 'user' || curr?.type === 'user') {
-    return 'mt-4';
+    return 'mt-5';
   }
-  if (prev?.type === 'activity' && (curr?.type === 'text' || curr?.type === 'ask')) {
+  if (prev?.type === 'activity' && curr?.type === 'text') {
     return 'mt-4';
-  }
-  if ((prev?.type === 'text' || prev?.type === 'ask') && curr?.type === 'activity') {
-    return 'mt-3';
   }
   return 'mt-3';
 }

@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { CommitMeta, Event, RuntimeState, Snapshot } from 'harnesys';
 import type { StudioDb } from '../connection.ts';
-import { eventsTable } from '../schema/events.ts';
 import { snapshotsTable } from '../schema/snapshots.ts';
 
 export class SqliteRuntimeState implements RuntimeState {
@@ -27,7 +26,7 @@ export class SqliteRuntimeState implements RuntimeState {
     return JSON.parse(row.snapshot) as Snapshot;
   }
 
-  commit(snapshot: Snapshot, events: readonly Event[], meta: CommitMeta): Promise<void> {
+  commit(snapshot: Snapshot, _events: readonly Event[], meta: CommitMeta): Promise<void> {
     const now = new Date().toISOString();
     this.db
       .insert(snapshotsTable)
@@ -47,23 +46,6 @@ export class SqliteRuntimeState implements RuntimeState {
         },
       })
       .run();
-
-    for (const event of events) {
-      this.db
-        .insert(eventsTable)
-        .values({
-          eventId: event.eventId,
-          sessionId: this.sessionId,
-          threadId: this.threadId,
-          runId: event.runId ?? '',
-          type: event.type,
-          sequence: event.sequence,
-          timestamp: event.timestamp,
-          metadata: event.metadata ? JSON.stringify(event.metadata) : null,
-        })
-        .onConflictDoNothing()
-        .run();
-    }
 
     return Promise.resolve();
   }

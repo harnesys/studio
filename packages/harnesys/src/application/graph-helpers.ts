@@ -1,5 +1,6 @@
 import { bindingOf } from '../adapters/models/binding.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
+import type { Snapshot } from '../domain/snapshot.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 
 export type MergeStateFn = (key: string, a: unknown, b: unknown) => unknown;
@@ -103,4 +104,74 @@ export function hashStr(s: string): string {
     h = (h * 31 + s.charCodeAt(i)) | 0;
   }
   return String(h);
+}
+
+export type ReActToolCall = {
+  id: string;
+  name: string;
+  args: unknown;
+};
+
+export type ReActOutput = { toolCalls: ReActToolCall[] };
+
+type SnapshotToolCall = {
+  id: string;
+  name: string;
+  args: unknown;
+};
+
+function asSnapshotToolCall(value: unknown): SnapshotToolCall | null {
+  if (value === null || typeof value !== 'object') {
+    return null;
+  }
+  const rec = value as { id?: unknown; toolCallId?: unknown; name?: unknown; args?: unknown };
+  let id: string | null = null;
+  if (typeof rec.id === 'string' && rec.id !== '') {
+    id = rec.id;
+  } else if (typeof rec.toolCallId === 'string' && rec.toolCallId !== '') {
+    id = rec.toolCallId;
+  }
+  if (id === null) {
+    return null;
+  }
+  return { id, name: typeof rec.name === 'string' ? rec.name : '', args: rec.args };
+}
+
+/**
+ * Restores the interrupted ReAct batch as `{ toolCalls }` from the last
+ * assistant message with toolCalls (id, name, args as stored). outputHint
+ * seeds `$output` for the interrupted tool:call node's `calls` expression
+ * on resume; completed-call results come from the Task 17 checkpoint.
+ */
+export function restoreReActOutput(snapshot: Snapshot | null): ReActOutput | null {
+  if (snapshot === null) {
+    return null;
+  }
+  const messages = snapshot.state.messages;
+  if (!Array.isArray(messages)) {
+    return null;
+  }
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const item = messages[i];
+    if (item === null || typeof item !== 'object') {
+      continue;
+    }
+    const rec = item as { role?: unknown; toolCalls?: unknown };
+    if (rec.role !== 'assistant' || !Array.isArray(rec.toolCalls) || rec.toolCalls.length === 0) {
+      continue;
+    }
+    const toolCalls: ReActToolCall[] = [];
+    for (const tc of rec.toolCalls) {
+      const call = asSnapshotToolCall(tc);
+      if (call === null) {
+        continue;
+      }
+      toolCalls.push({ id: call.id, name: call.name, args: call.args });
+    }
+    if (toolCalls.length === 0) {
+      continue;
+    }
+    return { toolCalls };
+  }
+  return null;
 }

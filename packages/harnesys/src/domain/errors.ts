@@ -58,17 +58,13 @@ export class ResumeHashError extends Error {
 
 export class AskUserInterrupt extends Error {
   readonly prompt: string;
-  readonly options?: Array<{ id: string; label: string }>;
-  readonly multi?: boolean;
   readonly source?: 'ask_user' | 'approve' | 'permission' | 'middleware';
   readonly tool?: { name: string; input: unknown; toolCallId: string };
-  readonly interruptId?: string;
+  interruptId?: string;
   readonly resumeSchema?: JsonSchema;
 
   constructor(input: {
     prompt: string;
-    options?: Array<{ id: string; label: string }>;
-    multi?: boolean;
     source?: 'ask_user' | 'approve' | 'permission' | 'middleware';
     tool?: { name: string; input: unknown; toolCallId: string };
     interruptId?: string;
@@ -77,11 +73,15 @@ export class AskUserInterrupt extends Error {
     super('ask_user interrupt');
     this.name = 'AskUserInterrupt';
     this.prompt = input.prompt;
-    this.options = input.options;
-    this.multi = input.multi;
     this.source = input.source;
     this.tool = input.tool;
     this.interruptId = input.interruptId;
     this.resumeSchema = input.resumeSchema;
   }
+}
+
+export type CodedError = Error & { code: string };
+
+export function codedRunError(code: string, message: string): CodedError {
+  return Object.assign(new Error(message), { code }) as CodedError;
 }

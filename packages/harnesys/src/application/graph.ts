@@ -1,4 +1,3 @@
-import Ajv from 'ajv';
 import type {
   AgentDefinition,
   Node,
@@ -23,6 +22,7 @@ import {
   findBind,
   isPort,
   type MergeStateFn,
+  type ReActOutput,
   resolveModelForPort,
 } from './graph-helpers.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
@@ -117,8 +117,12 @@ export type GraphOpts = {
   mergeState?: MergeStateFn;
   signal?: AbortSignal;
   resumePayload?: unknown;
+  resumeInterruptId?: string;
   startNodeId?: string;
+  outputHint?: ReActOutput | null;
   rejected?: boolean;
+  /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
+  inputRecorded?: boolean;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
 };
 
@@ -183,18 +187,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
   let entryPending = false;
   if (opts.startNodeId && (opts.resumePayload !== undefined || opts.rejected === true)) {
-    const interrupt = (loaded?.cursor as Record<string, unknown>)?.interrupt as
-      | Record<string, unknown>
-      | undefined;
-    if (opts.resumePayload !== undefined && !opts.rejected && interrupt?.resumeSchema) {
-      const ajv = new Ajv({ strict: false });
-      const valid = ajv.validate(interrupt.resumeSchema as object, opts.resumePayload);
-      if (!valid) {
-        throw Object.assign(new Error(`resume payload validation failed: ${ajv.errorsText()}`), {
-          code: 'resume_validation_failed',
-        });
-      }
-    }
     cur = opts.startNodeId;
     if (opts.rejected) {
       delete st.$resume;
@@ -203,7 +195,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
     entryPending = true;
   }
-  let output: unknown = null;
+  let output: unknown = opts.startNodeId === undefined ? null : (opts.outputHint ?? null);
   let steps = 0;
   let tokens = 0;
   const t0 = performance.now();
@@ -317,18 +309,20 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             userMsg.origin = normalized.origin;
           }
           arr.push(userMsg);
-          const meta: Record<string, unknown> = {};
-          if (normalized.text) {
-            meta.text = normalized.text;
+          if (!opts.inputRecorded) {
+            const meta: Record<string, unknown> = {};
+            if (normalized.text) {
+              meta.text = normalized.text;
+            }
+            if (normalized.attachments) {
+              meta.attachments = normalized.attachments;
+            }
+            if (normalized.origin) {
+              meta.origin = normalized.origin;
+            }
+            const ue = await commit('running', 'user.message', 'recorded', meta);
+            yield ue;
           }
-          if (normalized.attachments) {
-            meta.attachments = normalized.attachments;
-          }
-          if (normalized.origin) {
-            meta.origin = normalized.origin;
-          }
-          const ue = await commit('running', 'user.message', 'recorded', meta);
-          yield ue;
         } else if (Array.isArray(inpAny.messages) && !Array.isArray(st[msgKey])) {
           st[msgKey] = [...(inpAny.messages as unknown[])];
         }
@@ -340,8 +334,10 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           st[msgKey] = arr;
         }
         arr.push({ role: 'user', content: input });
-        const ue = await commit('running', 'user.message', 'recorded', { text: input });
-        yield ue;
+        if (!opts.inputRecorded) {
+          const ue = await commit('running', 'user.message', 'recorded', { text: input });
+          yield ue;
+        }
       }
       const e = await commit('running', 'node.completed');
       yield e;
@@ -535,8 +531,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           }
         } catch (err) {
           lastError = err;
-          if (attempt < bindingsToTry.length - 1) {
-          }
         }
       }
       if (lastError) {
@@ -580,8 +574,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         } else {
           tokens += 1;
         }
-      } else {
-        tokens += 1;
       }
       const completedMeta: Record<string, unknown> = {};
       if (res.text) {
@@ -650,6 +642,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           toolMessages: opts.toolMessages,
           messagesPath: lastMsg,
           resumePayload: opts.resumePayload,
+          resumeInterruptId: opts.resumeInterruptId,
         });
       } catch (e) {
         if (e instanceof AskUserInterrupt) {
@@ -678,8 +671,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             resumeSchema: e.resumeSchema,
             source: e.source ?? 'ask_user',
             tool: e.tool,
-            options: e.options,
-            multi: e.multi,
           };
           await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
           yield ev;

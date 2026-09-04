@@ -1,36 +1,75 @@
+import {
+  createRunEventBus,
+  InMemoryRunEventStore,
+  InMemoryRunLifecycleStore,
+} from '../adapters/in-memory-run-store.ts';
+import type { Attachment } from '../domain/attachment.ts';
+import { codedRunError } from '../domain/errors.ts';
+import type { JsonSchema } from '../domain/json-schema.ts';
 import type { RunResult } from '../domain/run-result.ts';
+import type { PendingSessionEvent } from '../ports/run-event-store.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { GraphOpts } from './graph.ts';
 import { createRunEngine } from './run-engine.ts';
+import { createRunEventFeed } from './run-event-feed.ts';
 
-export async function runGraph(opts: GraphOpts): Promise<RunResult> {
-  const loaded = await opts.state.load();
-  const runId = loaded?.runId ?? crypto.randomUUID();
-  const engine = createRunEngine({ graphOpts: opts, runId });
-  if (loaded?.status === 'needs_input' && (opts.resumePayload !== undefined || opts.rejected)) {
-    await engine.recover();
-    if (opts.rejected) {
-      const interrupt = interruptFrom(loaded);
-      await engine.command({ type: 'reject', interruptId: interrupt });
-    } else {
-      const interrupt = interruptFrom(loaded);
-      await engine.command({
-        type: 'resume',
-        interruptId: interrupt,
-        payload: opts.resumePayload,
-      });
-    }
-    await engine.untilIdle();
-  } else {
-    await engine.start();
+function inputToUserEvent(input: unknown): PendingSessionEvent {
+  if (typeof input === 'string') {
+    return { type: 'user', text: input } as PendingSessionEvent;
   }
-  return resultFromState(opts.state, runId);
+  const rec = (input ?? {}) as Record<string, unknown>;
+  return {
+    type: 'user',
+    text: typeof rec.text === 'string' ? rec.text : '',
+    attachments: Array.isArray(rec.attachments) ? (rec.attachments as Attachment[]) : undefined,
+    origin: typeof rec.origin === 'string' ? rec.origin : undefined,
+  } as PendingSessionEvent;
 }
 
-function interruptFrom(loaded: { cursor?: unknown }): string {
-  const cursor = loaded.cursor as Record<string, unknown> | undefined;
-  const interrupt = cursor?.interrupt as Record<string, unknown> | undefined;
-  return typeof interrupt?.interruptId === 'string' ? interrupt.interruptId : '';
+export async function runGraph(opts: GraphOpts): Promise<RunResult> {
+  if (
+    opts.resumePayload !== undefined ||
+    opts.rejected === true ||
+    opts.startNodeId !== undefined
+  ) {
+    throw codedRunError('resume_removed', 'runGraph resume removed: use SessionHandle.respond');
+  }
+  const events = new InMemoryRunEventStore();
+  const lifecycle = new InMemoryRunLifecycleStore(events);
+  const feed = createRunEventFeed({ events, lifecycle, bus: createRunEventBus() });
+  const threadId = opts.state.sessionId;
+  const loaded = await opts.state.load();
+  const runId = loaded?.runId ?? crypto.randomUUID();
+  await lifecycle.create({ runId, threadId }, [inputToUserEvent(opts.input)]);
+  const claimed = await lifecycle.claim(runId, 'oneshot', 15_000);
+  if (claimed === null) {
+    throw Object.assign(new Error(`run ${runId} was not claimed`), { code: 'claim_failed' });
+  }
+  const engine = createRunEngine({
+    lifecycle,
+    events,
+    feed,
+    instanceId: 'oneshot',
+    models: opts.models,
+    toolRegistry: opts.toolRegistry,
+    toolMessages: opts.toolMessages,
+    mergeState: opts.mergeState,
+    artifacts: opts.artifacts,
+  });
+  await engine.execute(runId, {
+    state: opts.state,
+    agent: opts.agent,
+    permissions: opts.permissions,
+    paths: opts.paths,
+  });
+  for (let i = 0; i < 200; i += 1) {
+    const rec = await lifecycle.get(runId);
+    if (rec === null || (rec.status !== 'running' && rec.status !== 'queued')) {
+      break;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  }
+  return resultFromState(opts.state, runId);
 }
 
 export async function resultFromState(state: RuntimeState, runId: string): Promise<RunResult> {
@@ -67,7 +106,7 @@ export async function resultFromState(state: RuntimeState, runId: string): Promi
       | {
           interruptId: string;
           reason: string;
-          resumeSchema: unknown;
+          resumeSchema: JsonSchema;
           nodeId: string;
         }
       | undefined;

@@ -1,4 +1,4 @@
-import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
+import type { PendingSessionEvent, RunLifecycleStore } from 'harnesys';
 import type { ScheduleFireQueue } from '../../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
@@ -25,7 +25,7 @@ export type DeleteScheduleDeps = {
   workspaces: WorkspaceRepository;
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
-  activeRuns: ActiveRunRegistry;
+  lifecycle: RunLifecycleStore;
   queue: ScheduleFireQueue;
   deskEvents: DeskEventsPort;
   db?: StudioDb;
@@ -38,7 +38,7 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
   private readonly workspaces: WorkspaceRepository;
   private readonly attachments: AttachmentRepository;
   private readonly attachmentsFs: AttachmentsPort;
-  private readonly activeRuns: ActiveRunRegistry;
+  private readonly lifecycle: RunLifecycleStore;
   private readonly queue: ScheduleFireQueue;
   private readonly deskEvents: DeskEventsPort;
   private readonly db?: StudioDb;
@@ -50,7 +50,7 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
     this.workspaces = deps.workspaces;
     this.attachments = deps.attachments;
     this.attachmentsFs = deps.attachmentsFs;
-    this.activeRuns = deps.activeRuns;
+    this.lifecycle = deps.lifecycle;
     this.queue = deps.queue;
     this.deskEvents = deps.deskEvents;
     this.db = deps.db;
@@ -74,10 +74,21 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
     const attachmentRows = ownedThread ? this.attachments.listByThread(threadId) : [];
     const attachmentIds = attachmentRows.map((row) => row.id);
 
-    this.queue.drop(threadId);
     if (ownedThread) {
-      this.activeRuns.cancelByThread(threadId);
+      const active = await this.lifecycle.activeByThread(threadId);
+      if (active) {
+        try {
+          await this.lifecycle.transition(active.runId, active.leaseEpoch, {
+            from: active.status,
+            to: 'cancelled',
+            events: [{ type: 'run.cancelled', reason: 'schedule deleted' } as PendingSessionEvent],
+          });
+        } catch {
+          // already terminal or raced; thread is deleted below regardless
+        }
+      }
     }
+    this.queue.drop(threadId);
 
     const perform = () => {
       if (ownedThread) {

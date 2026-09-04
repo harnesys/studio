@@ -1,5 +1,7 @@
-import type { ActiveRunRegistry } from '../../adapters/active-runs.adapter.ts';
+import type { RunLifecycleStore } from 'harnesys';
+import type { ThreadSessions } from '../../adapters/thread-sessions.adapter.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
+import { mapCodedError } from './map-coded-error.ts';
 
 export type CancelRunRequest = {
   runId: string;
@@ -9,13 +11,25 @@ export type CancelRunInput = {
   execute(request: CancelRunRequest): Promise<{ ok: true }>;
 };
 
-export class CancelRunUseCase implements CancelRunInput {
-  constructor(private readonly activeRuns: ActiveRunRegistry) {}
+export type CancelRunDeps = {
+  lifecycle: RunLifecycleStore;
+  sessions: ThreadSessions;
+};
 
-  execute(request: CancelRunRequest): Promise<{ ok: true }> {
-    if (!this.activeRuns.cancel(request.runId)) {
-      return Promise.reject(new NotFoundError('run not found'));
+export class CancelRunUseCase implements CancelRunInput {
+  constructor(private readonly deps: CancelRunDeps) {}
+
+  async execute(request: CancelRunRequest): Promise<{ ok: true }> {
+    const rec = await this.deps.lifecycle.get(request.runId);
+    if (!rec) {
+      throw new NotFoundError('run not found');
     }
-    return Promise.resolve({ ok: true });
+    const handle = await this.deps.sessions.forThread(rec.threadId);
+    try {
+      await handle.cancel(request.runId);
+    } catch (error) {
+      throw mapCodedError(error);
+    }
+    return { ok: true };
   }
 }

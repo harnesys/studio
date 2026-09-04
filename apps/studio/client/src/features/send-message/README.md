@@ -1,8 +1,8 @@
 # send-message
 
-Отправка сообщения, resume, HITL answer/confirm, delete turn, follow live.
+Отправка сообщения, HITL answer/reject/retry, delete turn, follow live через RunStreamClient.
 
-**API:** `sendMessage`, `resumePausedThread`, `answerAsk`, `confirmTool`, `deleteTurn`, `followLiveThread`, `HitlPrompt`, `pendingHitl`.
+**API:** `sendMessage`, `respondToAsk`, `rejectAsk`, `retryRun`, `connectThreadRun`, `deleteTurn`, `HitlPrompt`, `pendingHitl`.
 
-**Server:** `application/threads` (`send/resume/answer/confirm/cancel/delete-entry/stream`).  
+**Server:** `application/threads` (`send/answer/reject/retry/cancel/delete-entry/stream`).  
 **UI:** `widgets/chat-composer`, `widgets/chat-transcript`.

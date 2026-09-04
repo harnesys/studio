@@ -1,33 +1,27 @@
-import { useSessionStore } from '@/entities/session';
-import { rejectRun, respondToRun } from '@/shared/api';
+import { ApiError, retryRun as retryRunRequest } from '@/shared/api';
 
-import { resumePausedThread } from './resume-paused';
+import { connectThreadRun, getClient } from './client-registry';
 
 export async function respondToAsk(
   threadId: string,
   askId: string,
   payload: unknown,
 ): Promise<void> {
-  const runId = await ensureLiveRun(threadId);
-  if (!runId) {
-    throw new Error('No active run for this thread');
-  }
-  await respondToRun(runId, askId, payload);
+  await getClient(threadId).respond(askId, payload, { clientEventId: crypto.randomUUID() });
 }
 
 export async function rejectAsk(threadId: string, askId: string, note?: string): Promise<void> {
-  const runId = await ensureLiveRun(threadId);
-  if (!runId) {
-    throw new Error('No active run for this thread');
-  }
-  await rejectRun(runId, askId, note);
+  await getClient(threadId).reject(askId, note, { clientEventId: crypto.randomUUID() });
 }
 
-function ensureLiveRun(threadId: string): Promise<string | null> {
-  const store = useSessionStore.getState();
-  const existing = store.activeRuns[threadId];
-  if (existing?.runId) {
-    return Promise.resolve(existing.runId);
+/** Requeues a failed run, then reconnects the tail. 409 (already queued) just reconnects. */
+export async function retryRun(threadId: string, runId: string): Promise<void> {
+  try {
+    await retryRunRequest(runId);
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 409) {
+      throw error;
+    }
   }
-  return resumePausedThread(threadId);
+  connectThreadRun(threadId, runId);
 }

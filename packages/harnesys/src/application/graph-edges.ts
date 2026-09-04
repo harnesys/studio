@@ -26,15 +26,3 @@ export function isSkippedEntry(nodeType: string, rejected: boolean | undefined):
   }
   return nodeType === 'tool:call' && rejected === true;
 }
-
-export function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalJson).join(',')}]`;
-  }
-  const rec = value as Record<string, unknown>;
-  const keys = Object.keys(rec).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(rec[k])}`).join(',')}}`;
-}

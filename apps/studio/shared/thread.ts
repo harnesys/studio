@@ -1,9 +1,15 @@
-import type { Event, SessionEvent, Snapshot } from 'harnesys';
+import type { Event, RunLifecycleStatus, SessionEvent, Snapshot } from 'harnesys';
 
 export type { Event, SessionEvent, Snapshot };
 
 export const THREAD_KINDS = ['chat', 'schedule'] as const;
 export type ThreadKind = (typeof THREAD_KINDS)[number];
+
+export type ThreadActiveRun = {
+  runId: string;
+  status: RunLifecycleStatus;
+  leaseExpired?: boolean;
+};
 
 export type ThreadRecord = {
   id: string;
@@ -17,6 +23,7 @@ export type ThreadRecord = {
   lastReadAt: string;
   unread: boolean;
   events: SessionEvent[];
+  activeRun: ThreadActiveRun | null;
 };
 
 export type ThreadSummary = Pick<
@@ -33,10 +40,10 @@ export type ThreadSummary = Pick<
   | 'unread'
 >;
 
-/** Accepted send: live agent entry id (= AgentRun.id). */
+/** Accepted send: queued run id from the journal. */
 export type AcceptedRunResponse = {
   runId: string;
-  status: 'accepted';
+  status: 'queued';
 };
 
 /** Manual `/compact`: stub response. */

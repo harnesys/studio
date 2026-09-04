@@ -88,9 +88,11 @@ export {
   getThreadPlan,
   listThreads,
   markThreadRead,
+  type RespondRunOptions,
+  type RetryRunResponse,
   rejectRun,
   respondToRun,
-  resumeThread,
+  retryRun,
   sendThreadRun,
   uploadThreadAttachment,
 } from './threads';

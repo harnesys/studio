@@ -4,6 +4,12 @@ export const NODE_CHECKPOINT_KEY = '$nodeCheckpoint_';
 
 export type NodeCheckpoint = {
   completed: Record<number, ToolCallResult>;
+  /**
+   * Разрешения permission gate по call.id. Переживают resume: параллельный
+   * сосед, бросив AskUserInterrupt, не отменяет уже выданное разрешение,
+   * и следующий resume не переспрашивает этот вызов.
+   */
+  granted?: Record<string, true>;
 };
 
 export type ValidCheckpointEntry = {
@@ -54,15 +60,27 @@ export function validCheckpointEntries(
   return entries;
 }
 
-export function snapshotCheckpoint(results: (ToolCallResult | undefined)[]): NodeCheckpoint {
-  const completed: Record<number, ToolCallResult> = {};
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    if (r) {
-      completed[i] = r;
-    }
-  }
-  return { completed };
+/** Дописывает результат одного вызова в чекпоинт, сохраняя granted и прочие результаты. */
+export function recordCompleted(
+  state: Record<string, unknown>,
+  nodeId: string,
+  idx: number,
+  result: ToolCallResult,
+): void {
+  const saved = loadCheckpoint(state, nodeId) ?? { completed: {} };
+  saved.completed[idx] = result;
+  state[key(nodeId)] = saved;
+}
+
+/** Фиксирует разрешение gate по call.id до исполнения вызова. */
+export function recordGranted(
+  state: Record<string, unknown>,
+  nodeId: string,
+  callId: string,
+): void {
+  const saved = loadCheckpoint(state, nodeId) ?? { completed: {} };
+  saved.granted = { ...saved.granted, [callId]: true };
+  state[key(nodeId)] = saved;
 }
 
 export function saveCheckpoint(

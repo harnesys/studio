@@ -1,5 +1,6 @@
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
+import { loadCheckpoint, recordGranted } from './tool-approve-checkpoint.ts';
 import type { ToolCallResult } from './tool-call.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 
@@ -13,6 +14,9 @@ export type PermissionGateContext = {
   nodeExecutionId: string;
   resumePayload?: unknown;
   resumeInterruptId?: string;
+  /** Чекпоинт батча (granted/completed) живёт в состоянии и переживает resume. */
+  state: Record<string, unknown>;
+  nodeId: string;
 };
 
 export type PermissionGateDone = {
@@ -85,6 +89,8 @@ export function skippedGateResult(
 // null when the call may execute, and throws AskUserInterrupt to park the run.
 // A batch approval ({approved:true} without perm/ prefix) covers permission and
 // leaves the payload for the approve loop; only the matching perm/ resume is consumed.
+// Выданное разрешение записывается в чекпоинт батча: иначе один resume
+// разрешает ровно один вызов, а остальные переспрашиваются до бесконечности.
 export function applyPermissionGate(input: {
   call: PermissionGateCall;
   ctx: PermissionGateContext;
@@ -92,6 +98,9 @@ export function applyPermissionGate(input: {
   operation: string | undefined;
 }): PermissionGateDone | null {
   const { call, ctx, idx, operation } = input;
+  if (loadCheckpoint(ctx.state, ctx.nodeId)?.granted?.[call.id]) {
+    return null;
+  }
   const approved = resumeApproved(ctx);
   const resumeIdx = permissionResumeCallIndex(ctx);
   if (approved === null || (resumeIdx !== null && resumeIdx !== idx)) {
@@ -101,6 +110,7 @@ export function applyPermissionGate(input: {
     ctx.resumePayload = undefined;
     return skippedGateResult(call, ctx);
   }
+  recordGranted(ctx.state, ctx.nodeId, call.id);
   if (resumeIdx !== null) {
     ctx.resumePayload = undefined;
   }

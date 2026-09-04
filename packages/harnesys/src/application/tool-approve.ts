@@ -4,10 +4,10 @@ import { checkPermission } from './permissions.ts';
 import {
   clearCheckpoint,
   loadCheckpoint,
-  saveCheckpoint,
-  snapshotCheckpoint,
+  recordCompleted,
   validCheckpointEntries,
 } from './tool-approve-checkpoint.ts';
+import { ensureAskInterruptId, isAskResumeForCall } from './tool-ask.ts';
 import type { ToolCallContext, ToolCallResult } from './tool-call.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 import {
@@ -121,7 +121,9 @@ export async function runSingleToolCall(
       paths: { allow: ctx.paths?.allow ?? [] },
       signal: ctx.signal,
       artifacts: ctx.artifacts,
-      resume: ctx.resume ?? undefined,
+      resume: isAskResumeForCall(ctx.resumeInterruptId, call.id)
+        ? (ctx.resume ?? undefined)
+        : undefined,
     };
     const value = await def.execute(call.args, toolCtx);
     return {
@@ -142,6 +144,7 @@ export async function runSingleToolCall(
       };
     }
     if (e instanceof AskUserInterrupt) {
+      ensureAskInterruptId(e, call.id);
       throw e;
     }
     const content = e instanceof Error ? e.message : String(e);
@@ -198,23 +201,16 @@ export async function executeApproveBatch(
     }
   }
 
-  // Runs one call and records its result; saves the checkpoint when an
-  // interrupt escapes so a resume restores completed calls instead of re-running them.
   async function runCall(idx: number): Promise<void> {
     const call = calls[idx];
     if (!call || results[idx] !== undefined) {
       return;
     }
-    try {
-      const done = await runSingleToolCall(call, ctx, idx);
-      results[idx] = done.result;
-      toolMessages[idx] = done.message;
-    } catch (e) {
-      if (e instanceof AskUserInterrupt) {
-        saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
-      }
-      throw e;
-    }
+    const done = await runSingleToolCall(call, ctx, idx);
+    results[idx] = done.result;
+    toolMessages[idx] = done.message;
+    // Чекпоинт сразу: ask соседнего вызова не должен потерять этот результат.
+    recordCompleted(ctx.state, ctx.nodeId, idx, done.result);
   }
 
   const pendingFree = freeIdx.filter((i) => results[i] === undefined);
@@ -263,11 +259,10 @@ export async function executeApproveBatch(
         const skipped = skippedGateResult(call, ctx);
         results[callIdx] = skipped.result;
         toolMessages[callIdx] = skipped.message;
+        recordCompleted(ctx.state, ctx.nodeId, callIdx, skipped.result);
       }
-      saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
       ctx.resumePayload = undefined;
     } else {
-      saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
       throw new AskUserInterrupt({
         prompt: approve.reason,
         source: 'approve',

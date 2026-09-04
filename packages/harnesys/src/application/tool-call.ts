@@ -1,5 +1,4 @@
 import type { ToolCallBatch, ToolCallFixed } from '../domain/agent-definition.ts';
-import { AskUserInterrupt } from '../domain/errors.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
@@ -9,8 +8,7 @@ import { executeApproveBatch, type PreparedToolCall, runSingleToolCall } from '.
 import {
   clearCheckpoint,
   loadCheckpoint,
-  saveCheckpoint,
-  snapshotCheckpoint,
+  recordCompleted,
   validCheckpointEntries,
 } from './tool-approve-checkpoint.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
@@ -199,16 +197,11 @@ export async function executeToolCall(
     if (!call || results[idx] !== undefined) {
       return;
     }
-    try {
-      const done = await runSingleToolCall(call, ctx, idx);
-      results[idx] = done.result;
-      toolMessages[idx] = done.message;
-    } catch (e) {
-      if (e instanceof AskUserInterrupt) {
-        saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
-      }
-      throw e;
-    }
+    const done = await runSingleToolCall(call, ctx, idx);
+    results[idx] = done.result;
+    toolMessages[idx] = done.message;
+    // Чекпоинт сразу: ask соседнего вызова не должен потерять этот результат.
+    recordCompleted(ctx.state, ctx.nodeId, idx, done.result);
   }
 
   if (concurrency === 'sequential' || maxConcurrency === 1) {

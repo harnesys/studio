@@ -14,6 +14,7 @@ export type ToolCallBatchOutcome = {
 
 export type ApproveNodeLike = {
   approve?: { tools: string[]; reason: string; resumeSchema: JsonSchema };
+  concurrency?: 'parallel' | 'sequential';
 };
 
 export type PreparedToolCall = {
@@ -204,6 +205,9 @@ export async function executeApproveBatch(
         continue;
       }
       const done = v as ToolCallResult;
+      if (done.id !== call.id) {
+        continue;
+      }
       results[idx] = done;
       toolMessages[idx] = buildToolMessage({
         toolCallId: call.id,
@@ -227,7 +231,10 @@ export async function executeApproveBatch(
 
   const pendingFree = freeIdx.filter((i) => results[i] === undefined);
   if (pendingFree.length > 0) {
-    const width = Math.min(pendingFree.length, ctx.hostMaxConcurrency ?? pendingFree.length);
+    const width =
+      node.concurrency === 'sequential'
+        ? 1
+        : Math.min(pendingFree.length, ctx.hostMaxConcurrency ?? pendingFree.length);
     if (width <= 1) {
       for (const idx of pendingFree) {
         await runFree(idx);
@@ -291,6 +298,20 @@ export async function executeApproveBatch(
         resumeSchema: approve.resumeSchema,
       });
     }
+  }
+
+  // Fill holes from skipped calls so the outcome holds a result per call.
+  for (let i = 0; i < calls.length; i++) {
+    if (results[i] !== undefined) {
+      continue;
+    }
+    const call = calls[i];
+    if (!call) {
+      continue;
+    }
+    const content = 'skipped: no result recorded';
+    results[i] = { id: call.id, name: call.name, result: content, isError: true, skipped: true };
+    toolMessages[i] = buildToolMessage({ toolCallId: call.id, name: call.name, content });
   }
 
   delete ctx.state[key];

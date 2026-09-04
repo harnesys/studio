@@ -137,7 +137,7 @@ export async function executeToolCall(
 
   // HITL approve path: checkpointed batching lives in tool-approve.ts.
   if ('approve' in node && node.approve) {
-    const outcome = await executeApproveBatch(node, calls, ctx);
+    const outcome = await executeApproveBatch({ ...node, concurrency }, calls, ctx);
     const arr = getStateMessages(ctx.state, ctx.messagesPath);
     if (arr) {
       for (const m of outcome.toolMessages) {

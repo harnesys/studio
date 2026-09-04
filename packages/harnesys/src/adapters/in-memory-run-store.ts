@@ -1,5 +1,4 @@
 // biome-ignore-all lint/suspicious/useAwait: async required by RunLifecycleStore/RunEventStore port contracts
-// biome-ignore lint/style/noExcessiveLinesPerFile: file is 1214853 content plus an erasable-syntax constructor fix
 import { codedRunError } from '../domain/errors.ts';
 import type { PendingSessionEvent, RunEventStore } from '../ports/run-event-store.ts';
 import type {
@@ -47,7 +46,6 @@ export class InMemoryRunEventStore implements RunEventStore {
     let seq = this.nextSeq.get(runId) ?? 0;
     for (const event of events) {
       seq += 1;
-      // seq/runId land on the union only in Task 8, assert the runtime shape here.
       const full = { ...event, seq, runId } as SessionEvent;
       stored.push(full);
       this.insertion.push({ threadId: record?.threadId ?? '', event: full });
@@ -198,8 +196,7 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     if (patch.advanceAttempt) {
       record.attempt += 1;
     }
-    // Spec wins over brief text: epoch grows on every successful transition
-    // and the handoff clears the lease, not only when from is running.
+    // Spec ruling: epoch grows on every transition; handoff clears the lease.
     record.leaseEpoch += 1;
     delete record.leaseInstanceId;
     delete record.leaseExpiresAt;

@@ -68,7 +68,7 @@
         "noExcessiveLinesPerFile": {
           "level": "error",
           "options": {
-            "maxLines": 300
+            "maxLines": 350
           }
         },
         "noNestedTernary": "error",

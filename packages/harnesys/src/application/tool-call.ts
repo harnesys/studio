@@ -7,6 +7,7 @@ import type { PermissionMap } from '../ports/permissions.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr } from './expr-eval.ts';
 import { checkPermission } from './permissions.ts';
+import { buildToolMessage } from './tool-message.ts';
 import { validateToolInput } from './tool-registry.ts';
 
 export type ToolCallResult = {
@@ -172,23 +173,21 @@ export async function executeToolCall(
         result: `tool not found ${call.name}`,
         isError: true,
       };
-      messagesArr[idx] = {
-        role: 'tool',
+      messagesArr[idx] = buildToolMessage({
         toolCallId: call.id,
         name: call.name,
         content: `tool not found ${call.name}`,
-      };
+      });
       return;
     }
     const validation = validateToolInput(def.input, call.args);
     if (!validation.ok) {
       resultsArr[idx] = { id: call.id, name: call.name, result: validation.errors, isError: true };
-      messagesArr[idx] = {
-        role: 'tool',
+      messagesArr[idx] = buildToolMessage({
         toolCallId: call.id,
         name: call.name,
         content: serializeToolOutput(validation.errors),
-      };
+      });
       return;
     }
     if (def.operations && callCtx.permissions) {
@@ -201,12 +200,11 @@ export async function executeToolCall(
             result: `permission denied: ${permCheck.operation}`,
             isError: true,
           };
-          messagesArr[idx] = {
-            role: 'tool',
+          messagesArr[idx] = buildToolMessage({
             toolCallId: call.id,
             name: call.name,
             content: `permission denied: ${permCheck.operation}`,
-          };
+          });
           return;
         }
         if (permCheck.gate === 'ask') {
@@ -217,12 +215,11 @@ export async function executeToolCall(
             isError: true,
             skipped: true,
           };
-          messagesArr[idx] = {
-            role: 'tool',
+          messagesArr[idx] = buildToolMessage({
             toolCallId: call.id,
             name: call.name,
             content: `permission ask: ${permCheck.operation}`,
-          };
+          });
           return;
         }
       }
@@ -235,12 +232,11 @@ export async function executeToolCall(
         isError: false,
         cancelled: true,
       };
-      messagesArr[idx] = {
-        role: 'tool',
+      messagesArr[idx] = buildToolMessage({
         toolCallId: call.id,
         name: call.name,
         content: 'cancelled',
-      };
+      });
       return;
     }
     try {
@@ -256,12 +252,11 @@ export async function executeToolCall(
       };
       const value = await def.execute(call.args, toolCtx);
       resultsArr[idx] = { id: call.id, name: call.name, result: value, isError: false };
-      messagesArr[idx] = {
-        role: 'tool',
+      messagesArr[idx] = buildToolMessage({
         toolCallId: call.id,
         name: call.name,
         content: serializeToolOutput(value),
-      };
+      });
     } catch (e) {
       if ((e as { name?: string }).name === 'AbortError' || callCtx.signal.aborted) {
         resultsArr[idx] = {
@@ -271,12 +266,11 @@ export async function executeToolCall(
           isError: false,
           cancelled: true,
         };
-        messagesArr[idx] = {
-          role: 'tool',
+        messagesArr[idx] = buildToolMessage({
           toolCallId: call.id,
           name: call.name,
           content: 'cancelled',
-        };
+        });
         return;
       }
       if (e instanceof AskUserInterrupt) {
@@ -284,7 +278,7 @@ export async function executeToolCall(
       }
       const msg = e instanceof Error ? e.message : String(e);
       resultsArr[idx] = { id: call.id, name: call.name, result: msg, isError: true };
-      messagesArr[idx] = { role: 'tool', toolCallId: call.id, name: call.name, content: msg };
+      messagesArr[idx] = buildToolMessage({ toolCallId: call.id, name: call.name, content: msg });
     }
   }
 
@@ -358,12 +352,11 @@ export async function executeToolCall(
             isError: false,
             skipped: true,
           };
-          toolMessages[callIdx] = {
-            role: 'tool',
+          toolMessages[callIdx] = buildToolMessage({
             toolCallId: call.id,
             name: call.name,
             content: 'rejected by user',
-          };
+          });
         }
         // Save progress
         ctx.state[approveStateKey] = { done: i + 1, results: results.filter(Boolean) };

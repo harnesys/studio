@@ -2,7 +2,6 @@ import { bindingOf } from '../adapters/models/binding.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Snapshot } from '../domain/snapshot.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
-import type { ToolCallResult } from './tool-call.ts';
 
 export type MergeStateFn = (key: string, a: unknown, b: unknown) => unknown;
 
@@ -107,18 +106,25 @@ export function hashStr(s: string): string {
   return String(h);
 }
 
-export type ReActOutput = { results: ToolCallResult[] };
+export type ReActToolCall = {
+  id: string;
+  name: string;
+  args: unknown;
+};
+
+export type ReActOutput = { toolCalls: ReActToolCall[] };
 
 type SnapshotToolCall = {
   id: string;
   name: string;
+  args: unknown;
 };
 
 function asSnapshotToolCall(value: unknown): SnapshotToolCall | null {
   if (value === null || typeof value !== 'object') {
     return null;
   }
-  const rec = value as { id?: unknown; toolCallId?: unknown; name?: unknown };
+  const rec = value as { id?: unknown; toolCallId?: unknown; name?: unknown; args?: unknown };
   let id: string | null = null;
   if (typeof rec.id === 'string' && rec.id !== '') {
     id = rec.id;
@@ -128,14 +134,14 @@ function asSnapshotToolCall(value: unknown): SnapshotToolCall | null {
   if (id === null) {
     return null;
   }
-  return { id, name: typeof rec.name === 'string' ? rec.name : '' };
+  return { id, name: typeof rec.name === 'string' ? rec.name : '', args: rec.args };
 }
 
 /**
- * Restores the ReAct `{ results }` output slot from the last assistant
- * message with toolCalls. Expression fuel for `$output.*` edges only;
- * completed calls come from the Task 17 checkpoint. Results carry empty
- * payloads: tool:call re-executes only unfinished calls after resume.
+ * Restores the interrupted ReAct batch as `{ toolCalls }` from the last
+ * assistant message with toolCalls (id, name, args as stored). outputHint
+ * seeds `$output` for the interrupted tool:call node's `calls` expression
+ * on resume; completed-call results come from the Task 17 checkpoint.
  */
 export function restoreReActOutput(snapshot: Snapshot | null): ReActOutput | null {
   if (snapshot === null) {
@@ -154,18 +160,18 @@ export function restoreReActOutput(snapshot: Snapshot | null): ReActOutput | nul
     if (rec.role !== 'assistant' || !Array.isArray(rec.toolCalls) || rec.toolCalls.length === 0) {
       continue;
     }
-    const results: ToolCallResult[] = [];
+    const toolCalls: ReActToolCall[] = [];
     for (const tc of rec.toolCalls) {
       const call = asSnapshotToolCall(tc);
       if (call === null) {
         continue;
       }
-      results.push({ id: call.id, name: call.name, result: '', isError: false });
+      toolCalls.push({ id: call.id, name: call.name, args: call.args });
     }
-    if (results.length === 0) {
+    if (toolCalls.length === 0) {
       continue;
     }
-    return { results };
+    return { toolCalls };
   }
   return null;
 }

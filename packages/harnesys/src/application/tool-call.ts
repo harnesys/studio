@@ -34,6 +34,7 @@ export type ToolCallContext = {
   messagesPath?: string;
   hostMaxConcurrency?: number;
   resumePayload?: unknown;
+  resumeInterruptId?: string;
 };
 
 function codeError(code: string, message: string): never {
@@ -162,7 +163,7 @@ export async function executeToolCall(
     if (!call) {
       return;
     }
-    const done = await runSingleToolCall(call, ctx);
+    const done = await runSingleToolCall(call, ctx, idx);
     results[idx] = done.result;
     toolMessages[idx] = done.message;
   }

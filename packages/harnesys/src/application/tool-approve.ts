@@ -10,6 +10,11 @@ import {
 } from './tool-approve-checkpoint.ts';
 import type { ToolCallContext, ToolCallResult } from './tool-call.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
+import {
+  applyPermissionGate,
+  isForeignPermissionResume,
+  skippedGateResult,
+} from './tool-permission.ts';
 import { validateToolInput } from './tool-registry.ts';
 
 export type ToolCallBatchOutcome = {
@@ -58,6 +63,7 @@ function serializeToolOutput(value: unknown): string {
 export async function runSingleToolCall(
   call: PreparedToolCall,
   ctx: ToolCallContext,
+  idx: number,
 ): Promise<SingleToolCallDone> {
   const message = (content: string): ToolMessage =>
     buildToolMessage({ toolCallId: call.id, name: call.name, content });
@@ -87,11 +93,10 @@ export async function runSingleToolCall(
         };
       }
       if (permCheck.gate === 'ask') {
-        const content = `permission ask: ${permCheck.operation}`;
-        return {
-          result: { id: call.id, name: call.name, result: content, isError: true, skipped: true },
-          message: message(content),
-        };
+        const parked = applyPermissionGate({ call, ctx, idx, operation: permCheck.operation });
+        if (parked) {
+          return parked;
+        }
       }
     }
   }
@@ -200,7 +205,7 @@ export async function executeApproveBatch(
     if (!call || results[idx] !== undefined) {
       return;
     }
-    const done = await runSingleToolCall(call, ctx);
+    const done = await runSingleToolCall(call, ctx, idx);
     results[idx] = done.result;
     toolMessages[idx] = done.message;
   }
@@ -242,25 +247,17 @@ export async function executeApproveBatch(
     if (!call) {
       continue;
     }
-    if (ctx.resumePayload !== undefined) {
+    const foreignPerm = isForeignPermissionResume(ctx, callIdx);
+    if (ctx.resumePayload !== undefined && !foreignPerm) {
       const payload = ctx.resumePayload as ApproveResumePayload;
       if (payload.approved) {
-        const done = await runSingleToolCall(call, ctx);
+        const done = await runSingleToolCall(call, ctx, callIdx);
         results[callIdx] = done.result;
         toolMessages[callIdx] = done.message;
       } else {
-        results[callIdx] = {
-          id: call.id,
-          name: call.name,
-          result: 'rejected by user',
-          isError: false,
-          skipped: true,
-        };
-        toolMessages[callIdx] = buildToolMessage({
-          toolCallId: call.id,
-          name: call.name,
-          content: 'rejected by user',
-        });
+        const skipped = skippedGateResult(call, ctx);
+        results[callIdx] = skipped.result;
+        toolMessages[callIdx] = skipped.message;
       }
       saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
       ctx.resumePayload = undefined;

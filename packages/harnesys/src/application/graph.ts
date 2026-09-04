@@ -117,6 +117,7 @@ export type GraphOpts = {
   mergeState?: MergeStateFn;
   signal?: AbortSignal;
   resumePayload?: unknown;
+  resumeInterruptId?: string;
   startNodeId?: string;
   rejected?: boolean;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
@@ -650,6 +651,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           toolMessages: opts.toolMessages,
           messagesPath: lastMsg,
           resumePayload: opts.resumePayload,
+          resumeInterruptId: opts.resumeInterruptId,
         });
       } catch (e) {
         if (e instanceof AskUserInterrupt) {

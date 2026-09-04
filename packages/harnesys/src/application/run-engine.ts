@@ -113,6 +113,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         startNodeId: answer === null ? undefined : snap?.cursor.interrupt?.nodeId,
         rejected: answer?.rejected === true,
         resumePayload: answer?.payload,
+        resumeInterruptId: answer?.interruptId,
       };
       await runSegment(env, runId, epoch, graphOpts);
     } finally {

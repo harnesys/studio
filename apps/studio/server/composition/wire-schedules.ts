@@ -77,6 +77,7 @@ export function wireSchedules(deps: WireSchedulesDeps): ScheduleFireQueue {
       workspaces: deps.workspaces,
       attachments: deps.attachments,
       attachmentsFs: deps.attachmentsFs,
+      lifecycle: deps.lifecycle,
       queue,
       deskEvents: deps.deskEvents,
       db: deps.db,

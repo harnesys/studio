@@ -192,6 +192,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     attachments: attachmentRepo,
     attachmentsFs: attachments,
+    lifecycle: runLifecycle,
     queue: scheduleQueue,
     deskEvents,
     semanticSessions: memory.semantic,

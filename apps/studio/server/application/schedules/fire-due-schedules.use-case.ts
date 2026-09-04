@@ -72,7 +72,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
       return;
     }
 
-    if (!this.claim(schedule, nowIso)) {
+    if (!(await this.claim(schedule, nowIso))) {
       return;
     }
 

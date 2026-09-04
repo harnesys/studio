@@ -80,12 +80,17 @@ export async function appendJournal(
   }
 }
 
+/**
+ * Transition-embedded events are journaled by the store and published here
+ * so live subscribers receive ask/terminal frames at-least-once.
+ */
 async function guardedTransition(
   env: SegmentEnv,
   runId: string,
   expectedEpoch: number,
   patch: RunTransitionPatch,
 ): Promise<void> {
+  const before = await env.lifecycle.get(runId);
   try {
     await env.lifecycle.transition(runId, expectedEpoch, patch);
   } catch (err) {
@@ -93,6 +98,13 @@ async function guardedTransition(
       return;
     }
     throw err;
+  }
+  if (env.isLeaseLost()) {
+    return;
+  }
+  const stored = await env.events.tail(runId, before?.lastSeq ?? 0);
+  if (stored.length > 0) {
+    env.feed.publish(runId, stored);
   }
 }
 

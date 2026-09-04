@@ -3,8 +3,7 @@ import type { SessionEvent } from '@studio/shared';
 export type TurnSegment =
   | { type: 'activity'; events: SessionEvent[] }
   | { type: 'user'; event: SessionEvent & { type: 'user' } }
-  | { type: 'text'; text: string; id: string | undefined }
-  | { type: 'ask'; event: SessionEvent & { type: 'ask' } };
+  | { type: 'text'; text: string; id: string | undefined };
 
 /**
  * Единственная проекция «лог событий → сегменты треда». Все пути (live,
@@ -40,13 +39,9 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
       }
       continue;
     }
-    if (ev.type === 'ask') {
-      flushActivity();
-      segments.push({ type: 'ask', event: ev });
-      continue;
-    }
     if (
       ev.type === 'tool' ||
+      ev.type === 'ask' ||
       ev.type === 'reasoning-delta' ||
       ev.type === 'reasoning-start' ||
       ev.type === 'reasoning-end' ||
@@ -69,9 +64,6 @@ export function segmentKey(segment: TurnSegment, index: number): string {
     // уникальность даёт позиция в списке сегментов.
     return `text-${index}-${segment.id ?? 'x'}`;
   }
-  if (segment.type === 'ask') {
-    return segment.event.askId;
-  }
   const first = segment.events[0];
   if (!first) {
     return `activity-${index}`;
@@ -92,7 +84,7 @@ export function segmentSpacing(segments: TurnSegment[], index: number): string |
   if (prev?.type === 'user' || curr?.type === 'user') {
     return 'mt-5';
   }
-  if (prev?.type === 'activity' && (curr?.type === 'text' || curr?.type === 'ask')) {
+  if (prev?.type === 'activity' && curr?.type === 'text') {
     return 'mt-4';
   }
   return 'mt-3';

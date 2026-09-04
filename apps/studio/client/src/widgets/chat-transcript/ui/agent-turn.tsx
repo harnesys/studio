@@ -18,7 +18,6 @@ import {
 } from '../model/turn-segments';
 import { ActivityItems } from './activity-items';
 import { ActivityRail } from './activity-rail';
-import { AskLine } from './ask-line';
 import { MessageActions } from './message-actions';
 import { ThinkingLine } from './thinking-line';
 
@@ -187,10 +186,6 @@ function TurnSegmentView({
   }
   if (segment.type === 'activity') {
     return <ActivityItems events={segment.events} live={live} runId={runId} />;
-  }
-
-  if (segment.type === 'ask') {
-    return <AskLine event={segment.event} runId={runId} live={live} />;
   }
 
   return <Markdown text={segment.text} />;

@@ -1,6 +1,8 @@
 import type { SessionEvent } from '@studio/shared';
+import { FileTextIcon, Link2Icon } from 'lucide-react';
 
 import { chunkEvents } from '../model/tool-run-summary';
+import { ActivityLine } from './activity-line';
 import { ActivityRail } from './activity-rail';
 import { AskLine } from './ask-line';
 import { ThinkingLine } from './thinking-line';
@@ -23,18 +25,10 @@ export function ActivityItems({
         const chunkLive = live && index === chunks.length - 1;
         if (chunk.type === 'reasoning') {
           const text = chunk.events.map((e) => e.text).join('');
-          return (
-            <div key={`reasoning-${index}`} className="flex flex-col gap-0.5">
-              <ThinkingLine text={text} live={chunkLive} />
-            </div>
-          );
+          return <ThinkingLine key={`reasoning-${index}`} text={text} live={chunkLive} />;
         }
         if (chunk.type === 'text') {
-          return (
-            <div key={`text-${index}`} className="flex flex-col gap-0.5">
-              <ThinkingLine text={chunk.event.text} live={chunkLive} />
-            </div>
-          );
+          return <ThinkingLine key={`text-${index}`} text={chunk.event.text} live={chunkLive} />;
         }
         if (chunk.type === 'ask') {
           return (
@@ -50,26 +44,32 @@ export function ActivityItems({
           const src = chunk.event.source as Record<string, unknown> | undefined;
           const url = typeof src?.url === 'string' ? src.url : String(src ?? '');
           return (
-            <div
+            <ActivityLine
               key={`source-${index}`}
-              className="min-w-0 truncate pl-[26px] text-muted-foreground text-xs"
+              icon={Link2Icon}
+              label="Source"
+              hint={url}
+              hasContent
             >
               <a
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
+                className="break-all text-[13px] text-muted-foreground underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
               >
                 {url}
               </a>
-            </div>
+            </ActivityLine>
           );
         }
         if (chunk.type === 'file') {
           return (
-            <div key={`file-${index}`} className="pl-[26px] text-muted-foreground text-xs">
-              file
-            </div>
+            <ActivityLine
+              key={`file-${index}`}
+              icon={FileTextIcon}
+              label="File"
+              hint={String((chunk.event as { file?: unknown }).file ?? '')}
+            />
           );
         }
         return (

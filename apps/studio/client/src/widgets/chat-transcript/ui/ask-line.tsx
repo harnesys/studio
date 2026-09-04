@@ -2,6 +2,7 @@ import type { SessionEvent } from '@studio/shared';
 import { LoaderCircleIcon, MessageCircleQuestionIcon } from 'lucide-react';
 
 import { cn } from '@/shared/lib/utils';
+import { ActivityLine } from './activity-line';
 
 /** Transcript projection for ask events. Interactive answer lives in HitlPrompt. */
 export function AskLine({
@@ -12,30 +13,34 @@ export function AskLine({
   runId?: string;
   live?: boolean;
 }) {
-  const active = Boolean(live);
+  const prompt = event.prompt ?? '';
+  const waiting = Boolean(live);
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex min-w-0 items-center gap-2 text-[13px] leading-none">
-        <MessageCircleQuestionIcon
-          className={cn(
-            'relative z-10 size-3.5 shrink-0 bg-background text-muted-foreground',
-            active && 'thinking-icon-pulse',
-          )}
-        />
-        <span
-          className={active ? 'thinking-shimmer font-medium' : 'font-medium text-foreground/90'}
-        >
-          Ask
-        </span>
-        <span className="min-w-0 truncate text-muted-foreground">{event.prompt}</span>
-        {active ? (
+    <ActivityLine
+      icon={MessageCircleQuestionIcon}
+      label="Ask"
+      hint={prompt}
+      active={waiting}
+      defaultOpen={waiting}
+      hasContent={Boolean(prompt)}
+      tail={
+        waiting ? (
           <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-live/90">
             <LoaderCircleIcon className="size-3 animate-spin" />
             waiting…
           </span>
-        ) : null}
+        ) : null
+      }
+    >
+      <div
+        className={cn(
+          'whitespace-pre-wrap text-[13px] leading-5',
+          waiting ? 'text-foreground/90' : 'text-muted-foreground/90',
+        )}
+      >
+        {prompt}
       </div>
-    </div>
+    </ActivityLine>
   );
 }

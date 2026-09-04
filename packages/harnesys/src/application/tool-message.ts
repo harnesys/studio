@@ -5,10 +5,18 @@ export type ToolMessage = {
   content: string;
 };
 
+export function buildToolMessageRaw(
+  toolCallId: string,
+  name: string,
+  content: string,
+): ToolMessage {
+  return { role: 'tool', toolCallId, name, content };
+}
+
 export function buildToolMessage(call: {
   toolCallId: string;
   name: string;
   content: string;
 }): ToolMessage {
-  return { role: 'tool', toolCallId: call.toolCallId, name: call.name, content: call.content };
+  return buildToolMessageRaw(call.toolCallId, call.name, call.content);
 }

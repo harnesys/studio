@@ -74,9 +74,6 @@ function resolveConcurrency(
     }
     codeError('concurrency_invalid', `invalid concurrency ${String(val)}`);
   }
-  if (typeof c === 'string' && (c === 'parallel' || c === 'sequential')) {
-    return c as 'parallel' | 'sequential';
-  }
   codeError('concurrency_invalid', `invalid concurrency ${String(c)}`);
 }
 

@@ -525,8 +525,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           }
         } catch (err) {
           lastError = err;
-          if (attempt < bindingsToTry.length - 1) {
-          }
         }
       }
       if (lastError) {
@@ -570,8 +568,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         } else {
           tokens += 1;
         }
-      } else {
-        tokens += 1;
       }
       const completedMeta: Record<string, unknown> = {};
       if (res.text) {

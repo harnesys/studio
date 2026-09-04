@@ -1,7 +1,8 @@
-import type { DiscoveredModelView } from '@studio/shared';
+import type { DiscoveredModelView, ProviderExportBundle } from '@studio/shared';
 import { useQuery } from '@tanstack/react-query';
-import { PlusIcon, Trash2Icon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { DownloadIcon, PlusIcon, Trash2Icon, UploadIcon } from 'lucide-react';
+import type { ChangeEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { catalogQuery } from '@/shared/api';
@@ -11,6 +12,7 @@ import { alert, dialog } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { Switch } from '@/shared/ui/switch';
+import { toast } from '@/shared/ui/toast';
 
 import {
   useAttachProviderModel,
@@ -18,6 +20,8 @@ import {
   useDeleteProvider,
   useDetachProviderModel,
   useDiscoverProviderModels,
+  useExportProviders,
+  useImportProviders,
   useProviders,
   useUpdateProvider,
   useUpdateProviderModel,
@@ -41,6 +45,9 @@ export function ModelsPane() {
   const attach = useAttachProviderModel();
   const patchModel = useUpdateProviderModel();
   const detach = useDetachProviderModel();
+  const exportProviders = useExportProviders();
+  const importProviders = useImportProviders();
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const selected = providers.find((item) => item.id === settingsProviderId) ?? null;
   const found = selected ? (foundByProvider[selected.id] ?? null) : null;
@@ -62,6 +69,49 @@ export function ModelsPane() {
     }
     openProvider(providers[0].id, true);
   }, [workspaceId, settingsProviderId, providers]);
+
+  async function handleExport() {
+    try {
+      const bundle = await exportProviders.mutateAsync();
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'harnesys-providers.json';
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.add({
+        title: 'Providers exported',
+        description: `${bundle.providers.length} providers`,
+      });
+    } catch (err) {
+      toast.add({
+        title: 'Export failed',
+        description: err instanceof Error ? err.message : 'unknown error',
+      });
+    }
+  }
+
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    try {
+      const bundle = JSON.parse(await file.text()) as ProviderExportBundle;
+      const result = await importProviders.mutateAsync(bundle);
+      toast.add({
+        title: 'Providers imported',
+        description: `providers: ${result.providersCreated} created, ${result.providersUpdated} updated; models: ${result.modelsCreated} created, ${result.modelsUpdated} updated`,
+      });
+    } catch (err) {
+      toast.add({
+        title: 'Import failed',
+        description: err instanceof Error ? err.message : 'invalid file',
+      });
+    }
+  }
 
   return (
     <div
@@ -125,6 +175,38 @@ export function ModelsPane() {
           <PlusIcon />
           Add provider
         </Button>
+        <div className="mt-1 flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 justify-start text-muted-foreground"
+            data-testid="providers-export"
+            disabled={exportProviders.isPending || providers.length === 0}
+            onClick={() => void handleExport()}
+          >
+            <DownloadIcon />
+            Export
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 justify-start text-muted-foreground"
+            data-testid="providers-import"
+            disabled={importProviders.isPending}
+            onClick={() => importFileRef.current?.click()}
+          >
+            <UploadIcon />
+            Import
+          </Button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            data-testid="providers-import-file"
+            onChange={(event) => void handleImportFile(event)}
+          />
+        </div>
       </aside>
 
       {selected ? (

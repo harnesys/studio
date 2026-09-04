@@ -56,6 +56,8 @@ export {
   deleteProvider,
   detachProviderModel,
   discoverProviderModels,
+  exportProviders,
+  importProviders,
   listProviders,
   providersQuery,
   providersQueryKey,

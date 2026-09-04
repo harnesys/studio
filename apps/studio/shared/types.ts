@@ -83,7 +83,16 @@ export type {
   UpsertKnowledgeRootRequest,
   UpsertKnowledgeSettingsRequest,
 } from './knowledge.ts';
-export type { ProviderModelPublic, ProviderPublic, ProviderRecord } from './provider.ts';
+export type {
+  ImportProvidersRequest,
+  ImportProvidersSummary,
+  ProviderExportBundle,
+  ProviderExportEntry,
+  ProviderExportModel,
+  ProviderModelPublic,
+  ProviderPublic,
+  ProviderRecord,
+} from './provider.ts';
 export {
   isScheduledHumanText,
   SCHEDULE_HUMAN_ORIGIN,

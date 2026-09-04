@@ -35,7 +35,9 @@ import { CreateProviderModelUseCase } from '../application/providers/create-prov
 import { DeleteProviderUseCase } from '../application/providers/delete-provider.use-case.ts';
 import { DeleteProviderModelUseCase } from '../application/providers/delete-provider-model.use-case.ts';
 import { DiscoverProviderModelsUseCase } from '../application/providers/discover-provider-models.use-case.ts';
+import { ExportProvidersUseCase } from '../application/providers/export-providers.use-case.ts';
 import { GetProviderUseCase } from '../application/providers/get-provider.use-case.ts';
+import { ImportProvidersUseCase } from '../application/providers/import-providers.use-case.ts';
 import { ListProvidersUseCase } from '../application/providers/list-providers.use-case.ts';
 import { UpdateProviderUseCase } from '../application/providers/update-provider.use-case.ts';
 import { UpdateProviderModelUseCase } from '../application/providers/update-provider-model.use-case.ts';
@@ -188,6 +190,8 @@ export function wireControllers(d: ControllerDeps): void {
     createProvider: new CreateProviderUseCase(d.llmProviderRepo),
     updateProvider: new UpdateProviderUseCase(d.llmProviderRepo, d.llmModelRepo),
     deleteProvider: new DeleteProviderUseCase(d.llmProviderRepo),
+    exportProviders: new ExportProvidersUseCase(d.llmProviderRepo, d.llmModelRepo),
+    importProviders: new ImportProvidersUseCase(d.llmProviderRepo, d.llmModelRepo),
     discoverProviderModels: new DiscoverProviderModelsUseCase(d.llmProviderRepo),
     createProviderModel: new CreateProviderModelUseCase(d.llmProviderRepo, d.llmModelRepo),
     updateProviderModel: new UpdateProviderModelUseCase(d.llmProviderRepo, d.llmModelRepo),

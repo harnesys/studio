@@ -22,3 +22,36 @@ export type ProviderModelPublic = Omit<StudioModelView, 'kind'> & {
   createdAt: string;
   updatedAt: string;
 };
+
+export type ProviderExportModel = {
+  name: string;
+  kind: string;
+  metadata?: unknown;
+};
+
+export type ProviderExportEntry = {
+  name: string;
+  driver: Driver;
+  apiUrl?: string;
+  apiKey?: string;
+  headers?: Record<string, string>;
+  enabled: boolean;
+  models: ProviderExportModel[];
+};
+
+export type ProviderExportBundle = {
+  version: 1;
+  exportedAt: string;
+  providers: ProviderExportEntry[];
+};
+
+export type ImportProvidersRequest = {
+  providers: ProviderExportEntry[];
+};
+
+export type ImportProvidersSummary = {
+  providersCreated: number;
+  providersUpdated: number;
+  modelsCreated: number;
+  modelsUpdated: number;
+};

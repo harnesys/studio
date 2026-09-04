@@ -6,6 +6,8 @@ import {
   deleteProvider,
   detachProviderModel,
   discoverProviderModels,
+  exportProviders,
+  importProviders,
   providersQuery,
   providersQueryKey,
   type UpdateProviderInput,
@@ -76,6 +78,20 @@ export function useDetachProviderModel() {
   return useMutation({
     mutationFn: ({ providerId, modelId }: { providerId: string; modelId: string }) =>
       detachProviderModel(providerId, modelId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
+  });
+}
+
+export function useExportProviders() {
+  return useMutation({
+    mutationFn: exportProviders,
+  });
+}
+
+export function useImportProviders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: importProviders,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
   });
 }

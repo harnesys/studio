@@ -4,11 +4,13 @@ import type { CreateProviderModelInput } from '../../../application/providers/cr
 import type { DeleteProviderInput } from '../../../application/providers/delete-provider.use-case.ts';
 import type { DeleteProviderModelInput } from '../../../application/providers/delete-provider-model.use-case.ts';
 import type { DiscoverProviderModelsInput } from '../../../application/providers/discover-provider-models.use-case.ts';
+import type { ExportProvidersInput } from '../../../application/providers/export-providers.use-case.ts';
 import type { GetProviderInput } from '../../../application/providers/get-provider.use-case.ts';
+import type { ImportProvidersInput } from '../../../application/providers/import-providers.use-case.ts';
 import type { ListProvidersInput } from '../../../application/providers/list-providers.use-case.ts';
 import type { UpdateProviderInput } from '../../../application/providers/update-provider.use-case.ts';
 import type { UpdateProviderModelInput } from '../../../application/providers/update-provider-model.use-case.ts';
-import { createProviderBody, updateProviderBody } from './provider.body.ts';
+import { createProviderBody, importProvidersBody, updateProviderBody } from './provider.body.ts';
 
 export type ProviderControllerDeps = {
   listProviders: ListProvidersInput;
@@ -16,6 +18,8 @@ export type ProviderControllerDeps = {
   createProvider: CreateProviderInput;
   updateProvider: UpdateProviderInput;
   deleteProvider: DeleteProviderInput;
+  exportProviders: ExportProvidersInput;
+  importProviders: ImportProvidersInput;
   discoverProviderModels: DiscoverProviderModelsInput;
   createProviderModel: CreateProviderModelInput;
   updateProviderModel: UpdateProviderModelInput;
@@ -40,6 +44,16 @@ export class ProviderController {
         enabled: body.enabled,
       });
       return c.json(provider, 201);
+    });
+
+    // Static /export and /import must precede /:id lookups.
+    app.get('/api/providers/export', async (c) => {
+      return c.json(await this.deps.exportProviders.execute());
+    });
+
+    app.post('/api/providers/import', async (c) => {
+      const body = importProvidersBody.parse(await c.req.json());
+      return c.json(await this.deps.importProviders.execute({ providers: body.providers }));
     });
 
     app.get('/api/providers/:id', async (c) => {

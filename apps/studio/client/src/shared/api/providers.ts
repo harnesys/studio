@@ -1,6 +1,8 @@
 import type {
   DiscoveredModelView,
   Driver,
+  ImportProvidersSummary,
+  ProviderExportBundle,
   ProviderModelPublic,
   ProviderPublic,
 } from '@studio/shared';
@@ -58,6 +60,17 @@ export function updateProvider(id: string, input: UpdateProviderInput) {
 
 export function deleteProvider(id: string) {
   return apiJson<void>(`/api/providers/${id}`, { method: 'DELETE' });
+}
+
+export function exportProviders() {
+  return apiJson<ProviderExportBundle>('/api/providers/export');
+}
+
+export function importProviders(bundle: ProviderExportBundle) {
+  return apiJson<ImportProvidersSummary>('/api/providers/import', {
+    method: 'POST',
+    body: JSON.stringify(bundle),
+  });
 }
 
 export function discoverProviderModels(id: string) {

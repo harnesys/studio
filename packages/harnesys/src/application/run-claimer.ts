@@ -1,5 +1,6 @@
-import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';
-import type { RunTargets } from '../ports/run-targets.ts';
+import type { RunLifecycleStore, RunRecord } from '../ports/run-lifecycle-store.ts';
+import type { RunTarget, RunTargets } from '../ports/run-targets.ts';
+import { runFailedEvent } from './run-engine-events.ts';
 import type { RunEngine } from './run-engine-types.ts';
 
 export type RunClaimer = {
@@ -16,6 +17,10 @@ export function createRunClaimer(deps: {
   instanceId: string;
   leaseTtlMs?: number;
   sweepMs?: number;
+  /** Wraps the engine.execute call with the host context from RunTarget.scope. */
+  withScope?: (target: RunTarget, execute: () => Promise<void>) => Promise<void>;
+  /** Called once per finished execute with the post-execution lifecycle record. */
+  onComplete?: (record: RunRecord) => void;
 }): RunClaimer {
   const leaseTtl = deps.leaseTtlMs ?? 15_000;
   const sweepMs = deps.sweepMs ?? 5_000;
@@ -23,6 +28,29 @@ export function createRunClaimer(deps: {
   let sweeping = false;
   let timer: ReturnType<typeof setInterval> | null = null;
   const executing = new Set<string>();
+
+  function finishWith(record: RunRecord): void {
+    if (deps.onComplete !== undefined) {
+      deps.onComplete(record);
+    }
+  }
+
+  /** Null target would strand the queued run forever; fail it instead. */
+  async function failUnavailable(rec: RunRecord): Promise<RunRecord | null> {
+    try {
+      return await deps.lifecycle.transition(rec.runId, rec.leaseEpoch, {
+        from: 'queued',
+        to: 'failed',
+        events: [runFailedEvent('run target unavailable')],
+      });
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code === 'already_resumed' || code === 'lease_stale') {
+        return null;
+      }
+      throw err;
+    }
+  }
 
   async function tryClaim(runId: string): Promise<void> {
     if (executing.has(runId)) {
@@ -34,6 +62,10 @@ export function createRunClaimer(deps: {
     }
     const target = await deps.targets.resolve(rec.threadId);
     if (target === null) {
+      const failed = await failUnavailable(rec);
+      if (failed !== null) {
+        finishWith(failed);
+      }
       return;
     }
     const claimed = await deps.lifecycle.claim(runId, deps.instanceId, leaseTtl);
@@ -41,11 +73,20 @@ export function createRunClaimer(deps: {
       return;
     }
     executing.add(runId);
-    void deps.engine
-      .execute(runId, target)
+    const run = (): Promise<void> => deps.engine.execute(runId, target);
+    const execution = deps.withScope !== undefined ? deps.withScope(target, run) : run();
+    void execution
       .catch(() => {})
       .finally(() => {
         executing.delete(runId);
+        void deps.lifecycle
+          .get(runId)
+          .then((record) => {
+            if (record !== null) {
+              finishWith(record);
+            }
+          })
+          .catch(() => {});
         void sweep();
       });
   }

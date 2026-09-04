@@ -29,6 +29,8 @@ export type RunTargetOpts = {
   agent: AgentDefinition;
   permissions?: PermissionMap;
   paths?: PathsConfig;
+  /** Per-run registry; overrides RunEngineDeps.toolRegistry when present. */
+  toolRegistry?: Map<string, ToolDefinition>;
 };
 
 export type RunEngine = {

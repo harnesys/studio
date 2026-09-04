@@ -88,6 +88,8 @@ export type RuntimeHandle = {
   };
   tools: {
     list(): ToolCatalogEntry[];
+    /** Merged registry (base tools + skills + MCP); the graph's per-runtime tool source. */
+    registry(): Map<string, ToolDefinition>;
   };
   mcp: {
     list(): McpServerInfo[] | Promise<McpServerInfo[]>;

@@ -25,9 +25,7 @@ export function startAskTicker(deps: AskTickerDeps): { stop(): void } {
         await deps.lifecycle.transition(rec.runId, rec.leaseEpoch, {
           from: 'needs_input',
           to: 'cancelled',
-          events: [
-            { type: 'error', code: 'ask_expired', message: 'ask expired' } as PendingSessionEvent,
-          ],
+          events: [{ type: 'run.cancelled', reason: 'ask_expired' } as PendingSessionEvent],
         });
         deps.kick();
         deps.onCancelled?.(rec.threadId);

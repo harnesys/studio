@@ -1,4 +1,4 @@
-import type { RunTarget, RunTargets } from 'harnesys';
+import type { RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
@@ -20,7 +20,6 @@ export type StudioRunTargetsDeps = {
 export class StudioRunTargets implements RunTargets {
   constructor(private readonly deps: StudioRunTargetsDeps) {}
 
-  // biome-ignore lint/suspicious/useAwait: checks are sync today; resolve stays async per RunTargets port
   async resolve(threadId: string): Promise<RunTarget | null> {
     const thread = this.deps.threads.findById(threadId);
     if (!thread) {
@@ -46,8 +45,21 @@ export class StudioRunTargets implements RunTargets {
     if (!agent) {
       return null;
     }
+    let hx: RuntimeHandle;
+    try {
+      hx = await this.deps.workspaceHarnesys.get(workspace);
+    } catch {
+      // runtime creation failed (e.g. bad workspace mcp json): target unavailable
+      return null;
+    }
     const state = this.deps.runtimeStates.forState(threadId);
-    return { state, agent, permissions: permissionMapFor(resolveThreadRunMode(thread)) };
+    return {
+      state,
+      agent,
+      permissions: permissionMapFor(resolveThreadRunMode(thread)),
+      toolRegistry: hx.tools.registry(),
+      scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
+    };
   }
 }
 

@@ -14,7 +14,9 @@ import { FsAttachmentsAdapter } from '../adapters/attachments/fs-attachments.ada
 import { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
 import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
+import { type HostToolScope, runInHostToolScope } from '../adapters/host-tool-scope.ts';
 import { handleHttpError } from '../adapters/http/http.error.ts';
+import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import { bootstrap } from '../adapters/store/sqlite/bootstrap.ts';
 import { createSqliteConnection, type StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
@@ -35,6 +37,7 @@ import { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter
 import { WorkspaceAdapter } from '../adapters/workspace/workspace.adapter.ts';
 import { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.adapter.ts';
 import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
+import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.use-case.ts';
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
 import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
 import { env } from '../config/env.ts';
@@ -93,6 +96,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     toolRegistry,
     toolMessages: 'ordered',
   });
+  const getThread = new GetThreadUseCase(threadRepo, agentRepo, runEvents, runLifecycle);
+  const scheduleQueueRef: { current: ScheduleFireQueue | null } = { current: null };
   const targetRef: { current: RunTargets | null } = { current: null };
   const runClaimer = createRunClaimer({
     lifecycle: runLifecycle,
@@ -102,8 +107,15 @@ export function createStudio(options: StudioOptions = {}): Hono {
     engine: runEngine,
     instanceId,
     sweepMs: 5_000,
+    withScope: (target, execute) => runInHostToolScope(target.scope as HostToolScope, execute),
+    onComplete: (record) => {
+      publishDeskThread(getThread, deskEvents, record.threadId);
+      const queue = scheduleQueueRef.current;
+      if (queue !== null) {
+        notifyIdleIfFree(runLifecycle, queue, record.threadId);
+      }
+    },
   });
-  const getThread = new GetThreadUseCase(threadRepo, agentRepo, runEvents, runLifecycle);
   startAskTicker({
     lifecycle: runLifecycle,
     kick: runClaimer.kick,
@@ -189,6 +201,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     getThread: undefined as never,
     semanticSessions: memory.semantic,
   });
+  scheduleQueueRef.current = scheduleQueue;
 
   wireHostTools({
     db,

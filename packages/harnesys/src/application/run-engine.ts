@@ -23,26 +23,39 @@ type UserInput = {
   origin?: string;
 };
 
+type RunRuntime = {
+  abort: AbortController;
+  renewTimer: ReturnType<typeof setInterval> | null;
+  leaseLost: boolean;
+};
+
 export function createRunEngine(deps: RunEngineDeps): RunEngine {
   const leaseTtl = deps.leaseTtlMs ?? 15_000;
   const renewMs = deps.renewMs ?? 5_000;
-  let abort: AbortController | null = null;
-  let renewTimer: ReturnType<typeof setInterval> | null = null;
-  let leaseLost = false;
+  const active: Set<RunRuntime> = new Set();
 
-  const env: SegmentEnv = {
-    lifecycle: deps.lifecycle,
-    events: deps.events,
-    feed: deps.feed,
-    isLeaseLost: () => leaseLost,
-  };
+  function envWith(leaseLost: () => boolean): SegmentEnv {
+    return {
+      lifecycle: deps.lifecycle,
+      events: deps.events,
+      feed: deps.feed,
+      isLeaseLost: leaseLost,
+    };
+  }
 
+  function haltRun(run: RunRuntime): void {
+    run.abort.abort();
+    if (run.renewTimer !== null) {
+      clearInterval(run.renewTimer);
+      run.renewTimer = null;
+    }
+    active.delete(run);
+  }
+
+  /** Aborts every active run and stops its renew timer (claimer/engine shutdown). */
   function stop(): void {
-    abort?.abort();
-    abort = null;
-    if (renewTimer !== null) {
-      clearInterval(renewTimer);
-      renewTimer = null;
+    for (const run of [...active]) {
+      haltRun(run);
     }
   }
 
@@ -77,14 +90,15 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       throw codedRunError('lease_stale', `run ${runId} not owned by ${deps.instanceId}`);
     }
     const epoch = record.leaseEpoch;
-    abort = new AbortController();
-    const signal = abort.signal;
-    leaseLost = false;
-    renewTimer = setInterval(() => {
+    const run: RunRuntime = { abort: new AbortController(), renewTimer: null, leaseLost: false };
+    active.add(run);
+    const signal = run.abort.signal;
+    const env = envWith(() => run.leaseLost);
+    run.renewTimer = setInterval(() => {
       void deps.lifecycle.renewLease(runId, deps.instanceId, leaseTtl).then((ok) => {
         if (!ok) {
-          leaseLost = true;
-          abort?.abort(codedRunError('lease_stale', 'lease lost'));
+          run.leaseLost = true;
+          run.abort.abort(codedRunError('lease_stale', 'lease lost'));
         }
       });
     }, renewMs);
@@ -107,7 +121,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         paths: opts.paths,
         artifacts: deps.artifacts,
         models: deps.models,
-        toolRegistry: deps.toolRegistry,
+        toolRegistry: opts.toolRegistry ?? deps.toolRegistry,
         plan,
         toolMessages: deps.toolMessages,
         mergeState: deps.mergeState,
@@ -120,7 +134,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       };
       await runSegment(env, runId, epoch, graphOpts);
     } finally {
-      stop();
+      haltRun(run);
     }
   }
 

@@ -24,6 +24,7 @@ type SessionStoreActions = {
   replaceEvents: (threadId: string, events: SessionEvent[]) => void;
   reconcileEvents: (threadId: string, events: SessionEvent[]) => void;
   appendEvent: (threadId: string, event: SessionEvent) => void;
+  removeEventByClientEventId: (threadId: string, clientEventId: string) => void;
   startRun: (threadId: string, controller: AbortController, runId?: string) => void;
   finishRun: (threadId: string, runId?: string) => void;
   abortRun: (threadId: string) => void;
@@ -156,6 +157,24 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       }
       return {
         events: { ...state.events, [threadId]: [...current, event] },
+        contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+      };
+    });
+  },
+
+  removeEventByClientEventId(threadId, clientEventId) {
+    set((state) => {
+      const current = state.events[threadId];
+      if (current === undefined) {
+        return state;
+      }
+      const key = `ce:${clientEventId}`;
+      const next = current.filter((ev) => eventKey(ev) !== key);
+      if (next.length === current.length) {
+        return state;
+      }
+      return {
+        events: { ...state.events, [threadId]: next },
         contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
       };
     });

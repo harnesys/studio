@@ -155,6 +155,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
           description: t.description,
           ...(t.group !== undefined ? { group: t.group } : {}),
         })),
+      registry: () => toolRegistry,
     },
     mcp: {
       list: () => mcpRegistry?.list() ?? [],

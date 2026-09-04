@@ -112,6 +112,6 @@ export class SqliteRunEventStore implements RunEventStore {
       .from(runEventsTable)
       .where(eq(runEventsTable.threadId, threadId))
       .all();
-    return rows.sort((a, b) => a.seq - b.seq || a.timestamp - b.timestamp).map(rowToEvent);
+    return rows.sort((a, b) => a.timestamp - b.timestamp || a.seq - b.seq).map(rowToEvent);
   }
 }

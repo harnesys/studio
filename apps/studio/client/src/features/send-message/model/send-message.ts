@@ -60,11 +60,13 @@ export async function sendMessage(options: SendMessageOptions) {
     if (error instanceof ApiError && error.status === 409) {
       const body = (error.body ?? {}) as RunConflictBody;
       if (body.runId) {
+        useSessionStore.getState().removeEventByClientEventId(threadId, clientEventId);
         connectThreadRun(threadId, body.runId);
         return;
       }
       if (body.pendingAskId) {
-        // Ask card is already in the transcript and the composer is blocked: nothing to send.
+        // Ask card is already in the transcript and the composer is blocked: drop the bubble.
+        useSessionStore.getState().removeEventByClientEventId(threadId, clientEventId);
         return;
       }
     }

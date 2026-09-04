@@ -211,8 +211,9 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     if (record?.leaseInstanceId !== instanceId) {
       return false;
     }
+    const epochBefore = record.leaseEpoch;
     record.leaseExpiresAt = Date.now() + ttlMs;
-    return true;
+    return record.leaseEpoch === epochBefore;
   }
   private select(
     match: (record: RunRecord) => boolean,

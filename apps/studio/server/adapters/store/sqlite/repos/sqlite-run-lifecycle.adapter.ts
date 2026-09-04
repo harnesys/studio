@@ -247,15 +247,9 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
   }
 
   async renewLease(runId: string, instanceId: string, ttlMs: number): Promise<boolean> {
-    const row = this.db
-      .update(runsTable)
-      .set({
-        leaseExpiresAt: Date.now() + ttlMs,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(and(eq(runsTable.runId, runId), eq(runsTable.leaseInstanceId, instanceId)))
-      .returning()
-      .get();
+    const row = this.db.get<RunEventIdRow>(
+      sql`UPDATE runs SET lease_expires_at = ${Date.now() + ttlMs}, updated_at = ${new Date().toISOString()} WHERE run_id = ${runId} AND lease_instance_id = ${instanceId} AND lease_epoch = (SELECT lease_epoch FROM runs WHERE run_id = ${runId}) RETURNING run_id`,
+    );
     return row !== undefined;
   }
 

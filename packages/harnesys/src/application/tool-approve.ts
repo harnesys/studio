@@ -1,11 +1,16 @@
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import { checkPermission } from './permissions.ts';
+import {
+  clearCheckpoint,
+  loadCheckpoint,
+  saveCheckpoint,
+  snapshotCheckpoint,
+  validCheckpointEntries,
+} from './tool-approve-checkpoint.ts';
 import type { ToolCallContext, ToolCallResult } from './tool-call.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 import { validateToolInput } from './tool-registry.ts';
-
-export const NODE_CHECKPOINT_KEY = '$nodeCheckpoint_';
 
 export type ToolCallBatchOutcome = {
   results: ToolCallResult[];
@@ -21,10 +26,6 @@ export type PreparedToolCall = {
   name: string;
   args: unknown;
   id: string;
-};
-
-export type NodeCheckpoint = {
-  completed: Record<number, ToolCallResult>;
 };
 
 export type ApproveResumePayload = {
@@ -170,49 +171,24 @@ export async function executeApproveBatch(
     }
   }
 
-  const key = NODE_CHECKPOINT_KEY + ctx.nodeId;
   const results: (ToolCallResult | undefined)[] = new Array(calls.length);
   const toolMessages: (ToolMessage | undefined)[] = new Array(calls.length);
-
-  function snapshot(): NodeCheckpoint {
-    const completed: Record<number, ToolCallResult> = {};
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      if (r) {
-        completed[i] = r;
-      }
-    }
-    return { completed };
-  }
 
   // Restore progress from state (survives crash/resume); saved calls do not re-execute.
   // Messages rebuild from saved results via the same serializer, so the outcome
   // stays aligned with calls by index.
-  const saved = ctx.state[key] as NodeCheckpoint | undefined;
-  if (
-    saved &&
-    typeof saved === 'object' &&
-    saved.completed &&
-    typeof saved.completed === 'object'
-  ) {
-    for (const [k, v] of Object.entries(saved.completed)) {
-      const idx = Number(k);
-      if (!Number.isInteger(idx) || idx < 0 || idx >= calls.length) {
-        continue;
-      }
+  const saved = loadCheckpoint(ctx.state, ctx.nodeId);
+  if (saved) {
+    for (const { idx, result } of validCheckpointEntries(saved, calls)) {
       const call = calls[idx];
-      if (!call || !v || typeof v !== 'object') {
+      if (!call) {
         continue;
       }
-      const done = v as ToolCallResult;
-      if (done.id !== call.id) {
-        continue;
-      }
-      results[idx] = done;
+      results[idx] = result;
       toolMessages[idx] = buildToolMessage({
         toolCallId: call.id,
         name: call.name,
-        content: serializeToolOutput(done.result),
+        content: serializeToolOutput(result.result),
       });
     }
   }
@@ -286,10 +262,10 @@ export async function executeApproveBatch(
           content: 'rejected by user',
         });
       }
-      ctx.state[key] = snapshot();
+      saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
       ctx.resumePayload = undefined;
     } else {
-      ctx.state[key] = snapshot();
+      saveCheckpoint(ctx.state, ctx.nodeId, snapshotCheckpoint(results));
       throw new AskUserInterrupt({
         prompt: approve.reason,
         source: 'approve',
@@ -314,6 +290,6 @@ export async function executeApproveBatch(
     toolMessages[i] = buildToolMessage({ toolCallId: call.id, name: call.name, content });
   }
 
-  delete ctx.state[key];
+  clearCheckpoint(ctx.state, ctx.nodeId);
   return { results: results as ToolCallResult[], toolMessages };
 }

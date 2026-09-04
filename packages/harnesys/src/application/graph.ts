@@ -23,6 +23,7 @@ import {
   findBind,
   isPort,
   type MergeStateFn,
+  type ReActOutput,
   resolveModelForPort,
 } from './graph-helpers.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
@@ -119,6 +120,7 @@ export type GraphOpts = {
   resumePayload?: unknown;
   resumeInterruptId?: string;
   startNodeId?: string;
+  outputHint?: ReActOutput | null;
   rejected?: boolean;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
 };
@@ -204,7 +206,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
     entryPending = true;
   }
-  let output: unknown = null;
+  let output: unknown = opts.startNodeId === undefined ? null : (opts.outputHint ?? null);
   let steps = 0;
   let tokens = 0;
   const t0 = performance.now();

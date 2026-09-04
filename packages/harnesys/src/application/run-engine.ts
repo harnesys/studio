@@ -3,6 +3,7 @@ import { codedRunError } from '../domain/errors.ts';
 import type { PendingSessionEvent } from '../ports/run-event-store.ts';
 import { compile } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
+import { restoreReActOutput } from './graph-helpers.ts';
 import { runStartedEvent } from './run-engine-events.ts';
 import type { SegmentEnv } from './run-engine-segment.ts';
 import { appendJournal, runSegment } from './run-engine-segment.ts';
@@ -97,6 +98,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       const snap = await opts.state.load();
       const user = answer === null ? await findFirstUser(runId) : null;
       const { plan } = compile(opts.agent);
+      const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
       const graphOpts: GraphOpts = {
         agent: opts.agent,
         input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
@@ -110,7 +112,8 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         toolMessages: deps.toolMessages,
         mergeState: deps.mergeState,
         signal,
-        startNodeId: answer === null ? undefined : snap?.cursor.interrupt?.nodeId,
+        startNodeId,
+        outputHint: startNodeId === undefined ? undefined : restoreReActOutput(snap),
         rejected: answer?.rejected === true,
         resumePayload: answer?.payload,
         resumeInterruptId: answer?.interruptId,

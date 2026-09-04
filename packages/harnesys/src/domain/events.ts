@@ -5,7 +5,6 @@ export const EVENT_TYPES = {
   RUN_COMPLETED: 'run.completed',
   RUN_FAILED: 'run.failed',
   RUN_NEEDS_INPUT: 'run.needs_input',
-  RUN_RESUMED: 'run.resumed',
   CANCELLED: 'run.cancelled',
   RUN_TIMED_OUT: 'run.timed_out',
   RUN_BUDGET_EXCEEDED: 'run.budget_exceeded',

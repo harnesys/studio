@@ -4,7 +4,7 @@ import type { StudioDb } from './connection.ts';
 
 export function bootstrap(db: StudioDb): void {
   // Drop journal tables (0.5.0 cutover)
-  for (const table of ['journal_steps', 'journal_entries']) {
+  for (const table of ['journal_steps', 'journal_entries', 'events']) {
     try {
       db.run(sql.raw(`DROP TABLE IF EXISTS ${table};`));
     } catch {}
@@ -69,15 +69,6 @@ export function bootstrap(db: StudioDb): void {
       snapshot TEXT NOT NULL,
       sequence INTEGER NOT NULL,
       updated_at TEXT NOT NULL
-    );`,
-    `CREATE TABLE IF NOT EXISTS events (
-      event_id TEXT PRIMARY KEY,
-      session_id TEXT NOT NULL,
-      thread_id TEXT NOT NULL,
-      type TEXT NOT NULL,
-      sequence INTEGER NOT NULL,
-      timestamp INTEGER NOT NULL,
-      metadata TEXT
     );`,
     `CREATE TABLE IF NOT EXISTS attachments (
       id TEXT PRIMARY KEY,
@@ -149,8 +140,6 @@ export function bootstrap(db: StudioDb): void {
     );`,
     `CREATE INDEX IF NOT EXISTS thread_plan_items_plan_idx ON thread_plan_items(plan_id);`,
     `CREATE INDEX IF NOT EXISTS thread_plan_items_plan_order_idx ON thread_plan_items(plan_id, "order");`,
-    `CREATE INDEX IF NOT EXISTS events_session_idx ON events(session_id, sequence);`,
-    `CREATE INDEX IF NOT EXISTS events_thread_idx ON events(thread_id);`,
     `CREATE TABLE IF NOT EXISTS runs (
       run_id TEXT PRIMARY KEY,
       thread_id TEXT NOT NULL,
@@ -232,10 +221,6 @@ export function bootstrap(db: StudioDb): void {
 
   try {
     db.run(sql.raw(`ALTER TABLE agents ADD COLUMN graph_json text;`));
-  } catch {}
-
-  try {
-    db.run(sql.raw(`ALTER TABLE events ADD COLUMN run_id TEXT NOT NULL DEFAULT '';`));
   } catch {}
 
   try {

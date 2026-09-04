@@ -57,6 +57,7 @@ export class StudioRunTargets implements RunTargets {
       state,
       agent,
       permissions: permissionMapFor(resolveThreadRunMode(thread)),
+      paths: { allow: [workspace.path], cwd: workspace.path },
       toolRegistry: hx.tools.registry(),
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
     };

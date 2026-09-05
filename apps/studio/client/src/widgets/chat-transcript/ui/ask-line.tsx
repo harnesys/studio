@@ -26,8 +26,8 @@ export function AskLine({
       hasContent={Boolean(prompt)}
       tail={
         waiting ? (
-          <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-live/90">
-            <LoaderCircleIcon className="size-3 animate-spin" />
+          <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground">
+            <LoaderCircleIcon className="size-3 animate-spin text-live" />
             waiting…
           </span>
         ) : null

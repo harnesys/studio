@@ -112,7 +112,7 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
           variant="ghost"
           size="sm"
           disabled={busy}
-          className="h-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          className="h-7 text-muted-foreground hover:bg-muted hover:text-foreground"
           onClick={() => void decide(false)}
         >
           Deny

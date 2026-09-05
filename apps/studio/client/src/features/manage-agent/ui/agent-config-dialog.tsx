@@ -73,6 +73,7 @@ export function AgentConfigDialog({
   const agent = data?.agent ?? null;
   const workspaceId = data?.workspaceId ?? '';
   const [category, setCategory] = useState<AgentConfigCategory>('identity');
+  const [memoryDraft, setMemoryDraft] = useState(agent?.memory);
   const providers = useQuery(providersQuery).data ?? [];
   const capabilitiesRef = useRef<AgentCapabilitiesDraft>(initialCapabilities(agent));
   const form = useForm<AgentFieldsInput, unknown, AgentFieldsOutput>({
@@ -139,6 +140,7 @@ export function AgentConfigDialog({
               agent={agent}
               onChange={(memory) => {
                 capabilitiesRef.current = { ...capabilitiesRef.current, memory };
+                setMemoryDraft(memory);
               }}
             />
           </div>
@@ -150,6 +152,7 @@ export function AgentConfigDialog({
             <DraftCapabilities
               agent={agent}
               workspaceId={workspaceId}
+              memory={memoryDraft}
               section={capabilitiesSection(category)}
               onChange={(snapshot) => {
                 capabilitiesRef.current = { ...capabilitiesRef.current, ...snapshot };

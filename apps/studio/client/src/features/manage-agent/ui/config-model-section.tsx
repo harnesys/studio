@@ -2,20 +2,19 @@ import type { ProviderPublic } from '@studio/shared';
 import { Controller, type UseFormReturn } from 'react-hook-form';
 
 import type { Agent } from '@/entities/agent';
-import {
-  AgentEffortField,
-  type AgentFieldsInput,
-  type AgentFieldsOutput,
-  AgentGenerationFields,
-  AgentToolOutputFields,
-  agentFieldsSchema,
-  ModelSelect,
-  sanitizeForModel,
-  toAgentDraft,
-  updateAgent,
-} from '@/features/manage-agent';
 import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
 
+import {
+  type AgentFieldsInput,
+  type AgentFieldsOutput,
+  agentFieldsSchema,
+  sanitizeForModel,
+  toAgentDraft,
+} from '../model/agent-fields';
+import { updateAgent } from '../model/update-agent';
+import { AgentEffortField, AgentGenerationFields } from './agent-generation-fields';
+import { AgentToolOutputFields } from './agent-tool-output-fields';
+import { ModelSelect } from './model-select';
 import { Section } from './section';
 
 type AgentSettingsForm = UseFormReturn<AgentFieldsInput, unknown, AgentFieldsOutput>;

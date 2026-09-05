@@ -4,22 +4,22 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import type { Agent } from '@/entities/agent';
-import {
-  AgentCompactionFields,
-  type AgentFieldsInput,
-  type AgentFieldsOutput,
-  AgentMemoryFields,
-  agentFieldsFrom,
-  agentFieldsSchema,
-  toAgentDraft,
-  updateAgent,
-} from '@/features/manage-agent';
 import { providersQuery } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 
+import {
+  type AgentFieldsInput,
+  type AgentFieldsOutput,
+  agentFieldsFrom,
+  agentFieldsSchema,
+  toAgentDraft,
+} from '../model/agent-fields';
+import { updateAgent } from '../model/update-agent';
+import { AgentCompactionFields } from './agent-compaction-fields';
+import { AgentMemoryFields } from './agent-memory-fields';
 import { ConfigModelSection } from './config-model-section';
 import { McpConfig } from './mcp-config';
 import { Section } from './section';

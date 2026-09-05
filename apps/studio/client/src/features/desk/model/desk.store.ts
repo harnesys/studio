@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type InspectorTab = 'inspector' | 'config' | 'threads';
+export type InspectorTab = 'inspector' | 'memory';
 
 export type AgentFileTab = {
   path: string;

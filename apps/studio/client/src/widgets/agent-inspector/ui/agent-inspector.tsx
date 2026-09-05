@@ -2,9 +2,8 @@ import { type InspectorTab, useDeskStore, useSelectedAgent } from '@/features/de
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
-import { ConfigPane } from './config-pane';
 import { InspectorPane } from './inspector-pane';
-import { InspectorThreadsPane } from './threads-pane';
+import { MemoryPane } from './memory-pane';
 
 export function AgentInspector({ width }: { width: number }) {
   const agent = useSelectedAgent();
@@ -25,7 +24,7 @@ export function AgentInspector({ width }: { width: number }) {
           value={inspectorTab}
           className="min-w-0 flex-1 gap-0"
           onValueChange={(value) => {
-            if (value === 'inspector' || value === 'config' || value === 'threads') {
+            if (value === 'inspector' || value === 'memory') {
               useDeskStore.getState().setInspectorTab(value satisfies InspectorTab);
             }
           }}
@@ -39,33 +38,22 @@ export function AgentInspector({ width }: { width: number }) {
               Inspector
             </TabsTrigger>
             <TabsTrigger
-              value="config"
+              value="memory"
               className="flex-1 text-xs"
-              data-testid="inspector-tab-config"
+              data-testid="inspector-tab-memory"
             >
-              Config
-            </TabsTrigger>
-            <TabsTrigger
-              value="threads"
-              className="flex-1 text-xs"
-              data-testid="inspector-tab-threads"
-            >
-              Threads
+              Memory
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 px-3 py-3 pb-8">
-          {(() => {
-            if (inspectorTab === 'threads') {
-              return <InspectorThreadsPane agent={agent} />;
-            }
-            if (inspectorTab === 'config') {
-              return <ConfigPane agent={agent} />;
-            }
-            return <InspectorPane agent={agent} />;
-          })()}
+          {inspectorTab === 'memory' ? (
+            <MemoryPane agent={agent} />
+          ) : (
+            <InspectorPane agent={agent} />
+          )}
         </div>
       </ScrollArea>
     </aside>

@@ -9,10 +9,8 @@ import { Badge } from '@/shared/ui/badge';
 
 import { FactRow } from './fact-row';
 import { McpInspector } from './mcp-inspector';
-import { PinsPanel } from './pins-panel';
 import { PlanInspector } from './plan-inspector';
 import { Section } from './section';
-import { SemanticPanel } from './semantic-panel';
 import { SkillsInspector } from './skills-inspector';
 
 export function InspectorPane({ agent }: { agent: Agent }) {
@@ -101,8 +99,6 @@ export function InspectorPane({ agent }: { agent: Agent }) {
 
       <SkillsInspector agent={agent} />
       <McpInspector agent={agent} />
-      <PinsPanel agent={agent} />
-      <SemanticPanel agent={agent} />
 
       {thread ? (
         <Section label="Thread" hint={streaming ? 'running' : undefined}>

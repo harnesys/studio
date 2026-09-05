@@ -3,10 +3,10 @@ import { useState } from 'react';
 
 import type { Agent } from '@/entities/agent';
 import { groupTools } from '@/entities/tool-catalog';
-import { updateAgentCapabilities } from '@/features/manage-agent';
 import { workspaceToolsQuery } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { Switch } from '@/shared/ui/switch';
+import { updateAgentCapabilities } from '../model/update-agent';
 
 import { Section } from './section';
 

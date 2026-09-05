@@ -69,7 +69,9 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const skills = request.skills ?? [];
     const mcpServers = request.mcpServers ?? [];
     const tools = request.tools ?? [];
-    const graph = buildReactGraph([...new Set([...tools, ...memoryToolNames(memory)])]);
+    const graphTools =
+      tools.length > 0 ? [...new Set([...tools, ...memoryToolNames(memory)])] : tools;
+    const graph = buildReactGraph(graphTools);
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();

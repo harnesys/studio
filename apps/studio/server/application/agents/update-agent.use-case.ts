@@ -106,7 +106,9 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
     if (request.tools !== undefined || request.memory !== undefined) {
       const tools = request.tools !== undefined ? request.tools : agent.tools;
       const memory = request.memory !== undefined ? request.memory : agent.memory;
-      patch.graph = buildReactGraph([...new Set([...tools, ...memoryToolNames(memory)])]);
+      const graphTools =
+        tools.length > 0 ? [...new Set([...tools, ...memoryToolNames(memory)])] : tools;
+      patch.graph = buildReactGraph(graphTools);
     }
 
     return await Promise.resolve(this.agents.update(request.id, patch));

@@ -169,7 +169,10 @@ export {
   createSemanticTools,
   type CreateSemanticToolsParams,
 } from './src/application/memory/create-semantic-tools.ts';
-export { memoryToolNames } from './src/application/memory/memory-tool-names.ts';
+export {
+  ALL_MEMORY_TOOL_NAMES,
+  memoryToolNames,
+} from './src/application/memory/memory-tool-names.ts';
 export {
   memoryScopeResolver,
   type MemoryToolPorts,

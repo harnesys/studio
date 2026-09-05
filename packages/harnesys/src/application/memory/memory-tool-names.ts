@@ -5,6 +5,13 @@ const SEMANTIC_TOOLS = ['memory_write', 'memory_list', 'memory_delete'];
 const EPISODIC_TOOLS = ['recall_search'];
 const KNOWLEDGE_TOOLS = ['knowledge_search', 'knowledge_read'];
 
+export const ALL_MEMORY_TOOL_NAMES: string[] = [
+  ...PIN_TOOLS,
+  ...SEMANTIC_TOOLS,
+  ...EPISODIC_TOOLS,
+  ...KNOWLEDGE_TOOLS,
+];
+
 export function memoryToolNames(memory: AgentMemoryConfig | null | undefined): string[] {
   if (!memory) {
     return [];

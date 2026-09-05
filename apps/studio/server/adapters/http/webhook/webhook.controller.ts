@@ -60,10 +60,17 @@ export class WebhookController {
     });
 
     app.post('/api/workspaces/:id/hooks/:webhookId', async (c) => {
+      const workspaceId = c.req.param('id');
+      const webhookId = c.req.param('webhookId');
+      const webhooks = await this.deps.listWebhooks.execute({ workspaceId });
+      const webhook = webhooks.find((w) => w.id === webhookId);
+      if (!webhook) {
+        return c.json({ error: 'webhook not found' }, 404);
+      }
       const raw = await c.req.json().catch(() => undefined);
       const body = fireWebhookBody.parse(raw);
       const accepted = await this.deps.fireWebhook.execute({
-        webhookId: c.req.param('webhookId'),
+        webhookId,
         text: body?.text,
       });
       return c.json(accepted ?? { status: 'queued-behind-active-run' }, 202);

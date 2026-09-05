@@ -231,6 +231,7 @@ export function wireControllers(d: ControllerDeps): void {
       attachments: d.attachmentRepo,
       attachmentsFs: d.attachments,
       schedules: d.scheduleRepo,
+      webhooks: d.webhookRepo,
       semanticSessions: d.memory.semantic,
     }),
     sendThreadRun: d.sendThreadRun,

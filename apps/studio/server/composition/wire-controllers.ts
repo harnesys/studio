@@ -18,7 +18,6 @@ import type { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-s
 import type { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
 import type { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import type { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
-import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import type { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
 import { ThreadSessionsAdapter } from '../adapters/thread-sessions.adapter.ts';
 import type { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter.ts';
@@ -30,7 +29,7 @@ import { DeleteAgentUseCase } from '../application/agents/delete-agent.use-case.
 import { ListAgentsUseCase } from '../application/agents/list-agents.use-case.ts';
 import { UpdateAgentUseCase } from '../application/agents/update-agent.use-case.ts';
 import { GetCatalogUseCase } from '../application/catalog/get-catalog.use-case.ts';
-import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
+import type { GetThreadPlanInput } from '../application/plans/get-thread-plan.use-case.ts';
 import { CreateProviderUseCase } from '../application/providers/create-provider.use-case.ts';
 import { CreateProviderModelUseCase } from '../application/providers/create-provider-model.use-case.ts';
 import { DeleteProviderUseCase } from '../application/providers/delete-provider.use-case.ts';
@@ -47,14 +46,14 @@ import { CompactThreadUseCase } from '../application/threads/compact-thread.use-
 import { CreateThreadUseCase } from '../application/threads/create-thread.use-case.ts';
 import { CreateThreadAttachmentUseCase } from '../application/threads/create-thread-attachment.use-case.ts';
 import { DeleteThreadUseCase } from '../application/threads/delete-thread.use-case.ts';
-import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
+import type { GetThreadInput } from '../application/threads/get-thread.use-case.ts';
 import { GetThreadAttachmentUseCase } from '../application/threads/get-thread-attachment.use-case.ts';
 import { ListThreadPendingAttachmentsUseCase } from '../application/threads/list-thread-pending-attachments.use-case.ts';
 import { ListThreadsUseCase } from '../application/threads/list-threads.use-case.ts';
 import { MarkThreadReadUseCase } from '../application/threads/mark-thread-read.use-case.ts';
 import { RespondRunUseCase } from '../application/threads/respond-run.use-case.ts';
 import { RetryRunUseCase } from '../application/threads/retry-run.use-case.ts';
-import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
+import type { SendThreadRunInput } from '../application/threads/send-thread-run.use-case.ts';
 import { StreamRunEventsUseCase } from '../application/threads/stream-run-events.use-case.ts';
 import { UpdateThreadUseCase } from '../application/threads/update-thread.use-case.ts';
 import { CheckoutGitBranchUseCase } from '../application/workspaces/checkout-git-branch.use-case.ts';
@@ -116,6 +115,9 @@ type ControllerDeps = {
   feed: RunEventFeed;
   memory: StudioMemoryPorts;
   db: StudioDb;
+  getThread: GetThreadInput;
+  getThreadPlan: GetThreadPlanInput;
+  sendThreadRun: SendThreadRunInput;
 };
 
 export function wireControllers(d: ControllerDeps): void {
@@ -209,33 +211,17 @@ export function wireControllers(d: ControllerDeps): void {
     deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo),
   }).register(d.app);
 
-  const getThread = new GetThreadUseCase(d.threadRepo, d.agentRepo, d.events, d.lifecycle);
-  const planUow = new SqliteUnitOfWork(d.db);
-  const getThreadPlan = new GetThreadPlanUseCase(planUow);
   const sessions = new ThreadSessionsAdapter({
     threads: d.threadRepo,
     workspaces: d.workspaceRepo,
     workspaceHarnesys: d.workspaceHarnesys,
     registry: d.threadRegistry,
   });
-  const sendThreadRun = new SendThreadRunUseCase({
-    threads: d.threadRepo,
-    agents: d.agentRepo,
-    models: d.llmModelRepo,
-    providers: d.llmProviderRepo,
-    workspaces: d.workspaceRepo,
-    attachments: d.attachmentRepo,
-    workspaceHarnesys: d.workspaceHarnesys,
-    registry: d.threadRegistry,
-    deskEvents: d.deskEvents,
-    getThread,
-    getThreadPlan,
-  });
 
   new ThreadController({
     listThreads: new ListThreadsUseCase(d.threadRepo, d.workspaceRepo, d.agentRepo),
-    getThread,
-    getThreadPlan,
+    getThread: d.getThread,
+    getThreadPlan: d.getThreadPlan,
     createThread: new CreateThreadUseCase(d.threadRepo, d.agentRepo, d.workspaceRepo),
     updateThread: new UpdateThreadUseCase(d.threadRepo, d.agentRepo, d.events, d.lifecycle),
     markThreadRead: new MarkThreadReadUseCase(d.threadRepo, d.agentRepo, d.events, d.lifecycle),
@@ -247,7 +233,7 @@ export function wireControllers(d: ControllerDeps): void {
       schedules: d.scheduleRepo,
       semanticSessions: d.memory.semantic,
     }),
-    sendThreadRun,
+    sendThreadRun: d.sendThreadRun,
     compactThread: new CompactThreadUseCase(),
     streamRunEvents: new StreamRunEventsUseCase({ lifecycle: d.lifecycle, feed: d.feed }),
     cancelRun: new CancelRunUseCase({ lifecycle: d.lifecycle, sessions }),
@@ -255,7 +241,7 @@ export function wireControllers(d: ControllerDeps): void {
     respondRun: new RespondRunUseCase({
       lifecycle: d.lifecycle,
       sessions,
-      getThread,
+      getThread: d.getThread,
       deskEvents: d.deskEvents,
     }),
     retryRun: new RetryRunUseCase({ lifecycle: d.lifecycle, sessions, claimer: d.claimer }),

@@ -30,6 +30,7 @@ import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedu
 import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
 import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
+import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { DB_FILE, defaultHomePath } from '../adapters/store/studio-layout.ts';
 import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
 import { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
@@ -37,9 +38,11 @@ import { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter
 import { WorkspaceAdapter } from '../adapters/workspace/workspace.adapter.ts';
 import { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.adapter.ts';
 import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
+import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.use-case.ts';
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
 import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
+import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { env } from '../config/env.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
@@ -159,6 +162,22 @@ export function createStudio(options: StudioOptions = {}): Hono {
   targetRef.current = runTargets;
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
 
+  const planUow = new SqliteUnitOfWork(db);
+  const getThreadPlan = new GetThreadPlanUseCase(planUow);
+  const sendThreadRun = new SendThreadRunUseCase({
+    threads: threadRepo,
+    agents: agentRepo,
+    models: llmModelRepo,
+    providers: llmProviderRepo,
+    workspaces: workspaceRepo,
+    attachments: attachmentRepo,
+    workspaceHarnesys,
+    registry: threadRegistry,
+    deskEvents,
+    getThread,
+    getThreadPlan,
+  });
+
   const app = new Hono();
 
   wireControllers({
@@ -187,6 +206,9 @@ export function createStudio(options: StudioOptions = {}): Hono {
     feed: runFeed,
     memory,
     db,
+    getThread,
+    getThreadPlan,
+    sendThreadRun,
   });
 
   registerMemoryHttp(app, memory, { agents: agentRepo, workspaces: workspaceRepo });
@@ -203,8 +225,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     attachmentsFs: attachments,
     lifecycle: runLifecycle,
     deskEvents,
-    sendThreadRun: undefined as never,
-    getThread: undefined as never,
+    sendThreadRun,
+    getThread,
     semanticSessions: memory.semantic,
   });
   scheduleQueueRef.current = scheduleQueue;
@@ -220,8 +242,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     attachmentsFs: attachments,
     lifecycle: runLifecycle,
     deskEvents,
-    sendThreadRun: undefined as never,
-    getThread: undefined as never,
+    sendThreadRun,
+    getThread,
   });
   webhookQueueRef.current = webhookQueue;
 

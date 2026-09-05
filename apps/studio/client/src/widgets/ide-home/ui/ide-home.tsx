@@ -84,11 +84,11 @@ export function IdeHome() {
             title="New webhook"
             description="Inbound trigger for an agent."
             onClick={() => {
-              void openCreateWebhookDialog(agents).then((draft) => {
+              void openCreateWebhookDialog(agents).then(async (draft) => {
                 if (!draft || !workspaceId) {
                   return;
                 }
-                const created = createWebhook(workspaceId, draft);
+                const created = await createWebhook(workspaceId, draft);
                 if (created) {
                   useIdeStore.getState().openWebhook(workspaceId, created.id);
                   void navigate(studioPath.webhook(workspaceId, created.id));

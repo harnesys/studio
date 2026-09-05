@@ -45,11 +45,11 @@ export function WebhooksEmpty({ workspaceId, agents, webhooks, onOpen }: Webhook
               if (!workspaceId) {
                 return;
               }
-              void openCreateWebhookDialog(agents).then((draft) => {
+              void openCreateWebhookDialog(agents).then(async (draft) => {
                 if (!draft || !workspaceId) {
                   return;
                 }
-                const created = createWebhook(workspaceId, draft);
+                const created = await createWebhook(workspaceId, draft);
                 if (created) {
                   onOpen(workspaceId, created.id);
                 }

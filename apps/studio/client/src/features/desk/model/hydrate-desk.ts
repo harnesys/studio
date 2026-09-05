@@ -2,14 +2,16 @@ import { toClientAgent, useAgentStore } from '@/entities/agent';
 import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
-import { getThread, listAgents, listSchedules, listThreads } from '@/shared/api';
+import { toClientWebhook, useWebhookStore } from '@/entities/webhook';
+import { getThread, listAgents, listSchedules, listThreads, listWebhooks } from '@/shared/api';
 import { useDeskStore } from './desk.store';
 
 export async function hydrateDesk(workspaceId: string) {
-  const [agents, summaries, schedules] = await Promise.all([
+  const [agents, summaries, schedules, webhooks] = await Promise.all([
     listAgents(),
     listThreads(),
     listSchedules(workspaceId),
+    listWebhooks(workspaceId),
   ]);
   const workspaceAgents = agents
     .filter((item) => item.workspaceId === workspaceId)
@@ -28,5 +30,6 @@ export async function hydrateDesk(workspaceId: string) {
     useSessionStore.getState().replaceEvents(record.id, record.events);
   }
   useScheduleStore.getState().replaceWorkspace(workspaceId, schedules.map(toClientSchedule));
+  useWebhookStore.getState().replaceWorkspace(workspaceId, webhooks.map(toClientWebhook));
   useDeskStore.getState().setHydratedWorkspaceId(workspaceId);
 }

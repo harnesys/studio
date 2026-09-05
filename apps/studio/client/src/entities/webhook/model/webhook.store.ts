@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { seedWebhooks, type Webhook, type WebhookStatus } from './webhook';
+import type { Webhook, WebhookStatus } from './webhook';
 
 export type WebhookDraft = {
   name: string;
@@ -19,35 +19,31 @@ type WebhookStore = {
   items: Webhook[];
   byId: (id: string) => Webhook | undefined;
   inWorkspace: (workspaceId: string) => Webhook[];
-  create: (workspaceId: string, draft: WebhookDraft) => Webhook | null;
+  upsert: (webhook: Webhook) => void;
+  replaceWorkspace: (workspaceId: string, webhooks: Webhook[]) => void;
   update: (webhookId: string, patch: WebhookPatch) => void;
   remove: (webhookId: string) => void;
 };
 
 export const useWebhookStore = create<WebhookStore>((set, get) => ({
-  items: seedWebhooks.map((item) => ({ ...item })),
+  items: [],
 
   byId: (id) => get().items.find((item) => item.id === id),
 
   inWorkspace: (workspaceId) => get().items.filter((item) => item.workspaceId === workspaceId),
 
-  create: (workspaceId, draft) => {
-    const name = draft.name.trim();
-    if (!workspaceId || !name) {
-      return null;
-    }
-    const webhook: Webhook = {
-      id: crypto.randomUUID(),
-      workspaceId,
-      name,
-      status: 'active',
-      targetAgentId: draft.targetAgentId,
-      detail: 'No webhook notes yet.',
-      endpoint: 'https://hooks.harnesys.dev/new',
-      lastFiredAt: undefined,
-    };
-    set((state) => ({ items: [...state.items, webhook] }));
-    return webhook;
+  upsert: (webhook) => {
+    set((state) => ({
+      items: state.items.some((item) => item.id === webhook.id)
+        ? state.items.map((item) => (item.id === webhook.id ? webhook : item))
+        : [...state.items, webhook],
+    }));
+  },
+
+  replaceWorkspace: (workspaceId, webhooks) => {
+    set((state) => ({
+      items: [...state.items.filter((item) => item.workspaceId !== workspaceId), ...webhooks],
+    }));
   },
 
   update: (webhookId, patch) => {

@@ -1,5 +1,5 @@
 export {
-  seedWebhooks,
+  toClientWebhook,
   WEBHOOK_STATUSES,
   type Webhook,
   type WebhookStatus,

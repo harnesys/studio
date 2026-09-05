@@ -32,11 +32,11 @@ export function WebhooksSection({
 }: WebhooksSectionProps) {
   const { openWebhooks } = useStudioNavigation();
   const create = () => {
-    void openCreateWebhookDialog(agents).then((draft) => {
+    void openCreateWebhookDialog(agents).then(async (draft) => {
       if (!draft || !workspaceId) {
         return;
       }
-      const created = createWebhook(workspaceId, draft);
+      const created = await createWebhook(workspaceId, draft);
       if (created) {
         useIdeStore.getState().openWebhook(workspaceId, created.id);
         onOpen(workspaceId, created.id);

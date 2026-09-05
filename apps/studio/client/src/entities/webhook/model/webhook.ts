@@ -1,3 +1,5 @@
+import type { WebhookRecord } from '@studio/shared';
+
 export const WEBHOOK_STATUSES = ['active', 'paused', 'failed'] as const;
 export type WebhookStatus = (typeof WEBHOOK_STATUSES)[number];
 
@@ -44,48 +46,20 @@ export type Webhook = {
   targetAgentId: string;
   detail: string;
   endpoint: string;
+  threadId: string;
   lastFiredAt?: string;
 };
 
-export const seedWebhooks: Webhook[] = [
-  {
-    id: '05000000-0000-4000-8000-000000000004',
-    workspaceId: '01000000-0000-4000-8000-000000000001',
-    name: 'GitHub pull request',
-    status: 'active',
-    targetAgentId: '02000000-0000-4000-8000-000000000001',
-    detail: 'Opens a review thread when a PR mentions @harnesys.',
-    endpoint: 'https://hooks.harnesys.dev/gh/northstar',
-    lastFiredAt: '2026-08-16T10:12:00.000Z',
-  },
-  {
-    id: '05000000-0000-4000-8000-000000000005',
-    workspaceId: '01000000-0000-4000-8000-000000000001',
-    name: 'Linear issue labeled',
-    status: 'active',
-    targetAgentId: '02000000-0000-4000-8000-000000000002',
-    detail: 'Starts a research thread when an issue is labeled brief.',
-    endpoint: 'https://hooks.harnesys.dev/linear/northstar',
-    lastFiredAt: '2026-08-15T17:44:00.000Z',
-  },
-  {
-    id: '05000000-0000-4000-8000-000000000006',
-    workspaceId: '01000000-0000-4000-8000-000000000001',
-    name: 'PagerDuty incident',
-    status: 'failed',
-    targetAgentId: '02000000-0000-4000-8000-000000000004',
-    detail: 'Missing signing secret. Nyx paused replay until it is rotated.',
-    endpoint: 'https://hooks.harnesys.dev/pd/northstar',
-    lastFiredAt: '2026-08-16T12:03:00.000Z',
-  },
-  {
-    id: '05000000-0000-4000-8000-000000000008',
-    workspaceId: '01000000-0000-4000-8000-000000000002',
-    name: 'Status page publish',
-    status: 'active',
-    targetAgentId: '02000000-0000-4000-8000-000000000007',
-    detail: "Publishes Lumen's draft when ops confirms.",
-    endpoint: 'https://hooks.harnesys.dev/status/atlas',
-    lastFiredAt: '2026-08-12T11:00:00.000Z',
-  },
-];
+export function toClientWebhook(record: WebhookRecord): Webhook {
+  return {
+    id: record.id,
+    workspaceId: record.workspaceId,
+    name: record.name,
+    status: record.status,
+    targetAgentId: record.targetAgentId,
+    detail: record.detail,
+    endpoint: record.endpoint,
+    threadId: record.threadId,
+    lastFiredAt: record.lastFiredAt ?? undefined,
+  };
+}

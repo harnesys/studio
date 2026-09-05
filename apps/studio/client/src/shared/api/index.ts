@@ -97,6 +97,14 @@ export {
   uploadThreadAttachment,
 } from './threads';
 export {
+  type CreateWebhookInput,
+  createWebhookRecord,
+  deleteWebhookRecord,
+  listWebhooks,
+  type UpdateWebhookInput,
+  updateWebhookRecord,
+} from './webhooks';
+export {
   type CreateWorkspaceSkillRequest,
   type CreateWorkspaceSkillResponse,
   createWorkspace,

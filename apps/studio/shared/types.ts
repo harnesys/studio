@@ -203,6 +203,8 @@ export type CreateScheduleResponse = {
   thread: ThreadRecordType;
 };
 
+export type WebhookStatus = ScheduleStatus;
+
 export type WebhookRecord = {
   id: string;
   workspaceId: string;

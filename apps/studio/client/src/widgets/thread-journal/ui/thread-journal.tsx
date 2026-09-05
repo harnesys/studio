@@ -1,18 +1,13 @@
 import type { SessionEvent } from '@studio/shared';
-import { CalendarClockIcon, EarthIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
-import { scheduleInk, scheduleStatusLabel, useScheduleStore } from '@/entities/schedule';
 import { type RunFailure, useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
-import { useWebhookStore, webhookInk, webhookStatusLabel } from '@/entities/webhook';
 import { useCompactingStore } from '@/features/compact-thread';
 import { refreshThread, scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
 import { connectThreadRun, retryRun } from '@/features/send-message';
 import { getThread } from '@/shared/api';
-import { cn } from '@/shared/lib/utils';
-import { Badge } from '@/shared/ui/badge';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -56,28 +51,6 @@ export function ThreadJournal({ threadId, agent, kind }: ThreadJournalProps) {
       return next.length === 0 ? EMPTY_FAILURES : next;
     }),
   );
-  const schedule = useScheduleStore((state) =>
-    state.items.find((item) => item.threadId === threadId),
-  );
-  const webhook = useWebhookStore((state) =>
-    state.items.find((item) => item.threadId === threadId),
-  );
-  const threadTitle = useThreadStore(
-    (state) => state.items.find((item) => item.id === threadId)?.title ?? '',
-  );
-
-  let triggerName = threadTitle;
-  let statusLabel: string | null = null;
-  let statusInk: string | null = null;
-  if (schedule) {
-    triggerName = schedule.name;
-    statusLabel = scheduleStatusLabel(schedule.status);
-    statusInk = scheduleInk(schedule.status);
-  } else if (webhook) {
-    triggerName = webhook.name;
-    statusLabel = webhookStatusLabel(webhook.status);
-    statusInk = webhookInk(webhook.status);
-  }
 
   let body: ReactNode;
   if (!synced && events.length === 0 && !streaming && !compacting) {
@@ -148,22 +121,6 @@ export function ThreadJournal({ threadId, agent, kind }: ThreadJournalProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="thread-journal">
-      <header className="flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        {kind === 'schedule' ? (
-          <CalendarClockIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        ) : (
-          <EarthIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        )}
-        <span className="truncate font-medium text-[13px]">{triggerName}</span>
-        {statusLabel ? (
-          <Badge
-            variant="outline"
-            className={cn('ml-auto shrink-0 font-mono text-[10px]', statusInk)}
-          >
-            {statusLabel}
-          </Badge>
-        ) : null}
-      </header>
       <div className="min-h-0 flex-1">{body}</div>
     </div>
   );

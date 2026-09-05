@@ -259,7 +259,7 @@ export function WorkspaceSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 group-data-[collapsible=icon]:overflow-y-auto">
-        <div ref={containerRef} className="flex min-h-0 flex-1 flex-col gap-1">
+        <div ref={containerRef} className="flex min-h-0 flex-1 flex-col gap-1 px-2">
           <AccordionSection
             id="agents"
             icon={<BotIcon />}

@@ -17,11 +17,13 @@ export function ScheduleRow({
   schedule,
   selected,
   onSelect,
+  onSettings,
   onDelete,
 }: {
   schedule: Schedule;
   selected: boolean;
   onSelect: (waiting: boolean) => void;
+  onSettings: () => void;
   onDelete: () => void;
 }) {
   const { state, isMobile } = useSidebar();
@@ -88,6 +90,7 @@ export function ScheduleRow({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
           <DropdownMenuGroup>
+            <DropdownMenuItem onClick={onSettings}>Settings</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               Delete
             </DropdownMenuItem>

@@ -105,7 +105,11 @@ export function GitSection({ workspaceId }: { workspaceId: string }) {
   }, [status?.branches?.recent, filter]);
 
   if (!status?.isGit) {
-    return null;
+    return (
+      <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+        Not a git repository.
+      </p>
+    );
   }
 
   // GitStatusResponse is `GitStatusBase & {...}` → discriminant `isGit` не сужается, кастуем к успеху

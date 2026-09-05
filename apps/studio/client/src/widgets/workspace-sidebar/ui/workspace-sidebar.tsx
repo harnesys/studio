@@ -1,4 +1,13 @@
-import { BotIcon, ChevronsUpDownIcon, PlusIcon, SettingsIcon } from 'lucide-react';
+import {
+  BotIcon,
+  ChevronsUpDownIcon,
+  FolderIcon,
+  GitBranchIcon,
+  PlusIcon,
+  SettingsIcon,
+  ZapIcon,
+} from 'lucide-react';
+import { type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   getActiveThreadId,
@@ -31,6 +40,7 @@ import { createThreadRecord } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { studioPath } from '@/shared/config/routes';
+import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +50,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { Resizer } from '@/shared/ui/resizer';
 import {
   Sidebar,
   SidebarContent,
@@ -52,27 +63,127 @@ import {
   useSidebar,
 } from '@/shared/ui/sidebar';
 import { AgentCard } from '@/widgets/agent-card';
-import { FilesSection } from './files-section';
+import { useAccordionStore } from '../model/accordion.store';
+import { AccordionSection } from './accordion-section';
+import { AutomationsAddMenu, AutomationsSection } from './automations-section';
+import { ExplorerActions, ExplorerContent, ExplorerTitle } from './files-section';
 import { GitSection } from './git-section';
-import { RailSection } from './rail-section';
-import { SchedulesSection } from './schedules-section';
-import { WebhooksSection } from './webhooks-section';
+
+type SidebarSectionId = 'agents' | 'explorer' | 'automations' | 'git';
+
+const SECTION_ORDER: SidebarSectionId[] = ['agents', 'explorer', 'automations', 'git'];
 
 export function WorkspaceSidebar() {
-  const { workspaceId, surface } = useStudioLocation();
+  const { workspaceId, threadId, threadOrigin, originEntityId } = useStudioLocation();
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
   const workspace = workspaces.find((item) => item.id === workspaceId) ?? null;
   const agents = useWorkspaceAgents(workspaceId);
   const schedules = useWorkspaceSchedules(workspaceId);
   const webhooks = useWorkspaceWebhooks(workspaceId);
-  const { openWorkspace, leaveWorkspace, openSettings } = useStudioNavigation();
+  const { openWorkspace, leaveWorkspace, openSettings, openAgentLanding } = useStudioNavigation();
   const { setOpenMobile } = useSidebar();
   const removeWorkspace = useDeleteWorkspace();
   const navigate = useNavigate();
-  const ideForSelect = useIdeTabs(workspaceId);
-  const activeAgentId =
-    ideForSelect.tabs.find((t) => t.id === ideForSelect.activeId)?.agentId ?? null;
+  const ideTabs = useIdeTabs(workspaceId);
+  const activeThreadId = ideTabs.tabs.find((tab) => tab.id === ideTabs.activeId)?.threadId ?? null;
+  const threadAgentId = useThreadStore((state) =>
+    threadId ? (state.byId(threadId)?.agentId ?? null) : null,
+  );
+  const activeAgentId = threadOrigin === 'agent' ? originEntityId : threadAgentId;
+  const activeScheduleId = threadOrigin === 'scheduler' ? originEntityId : null;
+  const activeWebhookId = threadOrigin === 'webhook' ? originEntityId : null;
+  const collapsed = useAccordionStore((state) => state.collapsed);
+  const sizes = useAccordionStore((state) => state.sizes);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragPair, setDragPair] = useState<string | null>(null);
+
+  const expanded = SECTION_ORDER.filter((id) => !(collapsed[id] ?? false));
+
+  const resizePairs: { upper: SidebarSectionId; lower: SidebarSectionId }[] = [];
+  let lastExpanded: SidebarSectionId | null = null;
+  for (const id of expanded) {
+    if (lastExpanded) {
+      resizePairs.push({ upper: lastExpanded, lower: id });
+    }
+    lastExpanded = id;
+  }
+  const pairBefore = (id: SidebarSectionId) =>
+    resizePairs.find((pair) => pair.lower === id) ?? null;
+
+  const resizeNode = (id: SidebarSectionId) => {
+    const pair = pairBefore(id);
+    if (!pair) {
+      return null;
+    }
+    const key = `${pair.upper}:${pair.lower}`;
+    return (
+      <Resizer
+        key={key}
+        label={`Resize ${pair.upper} and ${pair.lower}`}
+        testId={`accordion-resize-${pair.upper}-${pair.lower}`}
+        dragging={dragPair === key}
+        orientation="vertical"
+        onResizeStart={beginResize(pair.upper, pair.lower)}
+      />
+    );
+  };
+
+  const beginResize =
+    (upperId: SidebarSectionId, lowerId: SidebarSectionId) => (event: ReactMouseEvent) => {
+      event.preventDefault();
+      const root = containerRef.current;
+      const upper = root?.querySelector(`[data-accordion-content="${upperId}"]`);
+      const lower = root?.querySelector(`[data-accordion-content="${lowerId}"]`);
+      if (!upper || !lower) {
+        return;
+      }
+      const upperPx = upper.getBoundingClientRect().height;
+      const lowerPx = lower.getBoundingClientRect().height;
+      const totalPx = upperPx + lowerPx;
+      if (totalPx <= 0) {
+        return;
+      }
+      const startY = event.clientY;
+      setDragPair(`${upperId}:${lowerId}`);
+      const onMove = (moveEvent: MouseEvent) => {
+        const current = useAccordionStore.getState().sizes;
+        const pairSum = (current[upperId] ?? 1) + (current[lowerId] ?? 1);
+        const ratio = Math.min(
+          0.85,
+          Math.max(0.15, (upperPx + moveEvent.clientY - startY) / totalPx),
+        );
+        useAccordionStore
+          .getState()
+          .setSizes({ ...current, [upperId]: pairSum * ratio, [lowerId]: pairSum * (1 - ratio) });
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        setDragPair(null);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    };
+
+  const createAgentFlow = () => {
+    void openAgentConfigDialog(null, workspaceId ?? '').then(async (result) => {
+      if (!result || !workspaceId) {
+        return;
+      }
+      const created = await createAgent(workspaceId, result.fields);
+      if (created) {
+        await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
+        useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
+        await navigate(
+          studioPath.thread(workspaceId, created.thread.id, {
+            kind: 'agent',
+            id: created.agent.id,
+          }),
+        );
+      }
+    });
+  };
 
   return (
     <Sidebar collapsible="icon" data-testid="workspace-sidebar">
@@ -148,129 +259,147 @@ export function WorkspaceSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 group-data-[collapsible=icon]:overflow-y-auto">
-        <RailSection
-          id="agents"
-          icon={<BotIcon />}
-          title="Agents"
-          addLabel="New agent"
-          selected={surface === 'thread'}
-          onHeaderClick={() => {
-            if (workspaceId) {
-              openWorkspace(workspaceId);
-              setOpenMobile(false);
+        <div ref={containerRef} className="flex min-h-0 flex-1 flex-col gap-1">
+          <AccordionSection
+            id="agents"
+            icon={<BotIcon />}
+            title="Agents"
+            count={agents.length}
+            size={sizes.agents ?? 1}
+            actions={
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="New agent"
+                aria-label="New agent"
+                onClick={createAgentFlow}
+              >
+                <PlusIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
+                <span className="sr-only">New agent</span>
+              </Button>
             }
-          }}
-          onAdd={() => {
-            void openAgentConfigDialog(null, workspaceId ?? '').then(async (result) => {
-              if (!result || !workspaceId) {
-                return;
-              }
-              const created = await createAgent(workspaceId, result.fields);
-              if (created) {
-                await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
-                useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
-                await navigate(
-                  studioPath.thread(workspaceId, created.thread.id, {
-                    kind: 'agent',
-                    id: created.agent.id,
-                  }),
-                );
-              }
-            });
-          }}
-        >
-          {agents.length === 0 ? (
-            <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
-              No agents in this workspace yet.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
-              {agents.map((item) => (
-                <AgentCard
-                  key={item.id}
-                  agent={item}
-                  selected={activeAgentId === item.id}
-                  onSelect={() => {
-                    if (!workspaceId) {
-                      return;
-                    }
-                    const stored = getActiveThreadId(item.id);
-                    const threads = useThreadStore.getState().forAgent(item.id);
-                    const target =
-                      (stored ? threads.find((t) => t.id === stored) : undefined) ??
-                      useThreadStore.getState().latestForAgent(item.id);
-                    if (target) {
-                      useIdeStore.getState().openThread(workspaceId, item.id, target.id);
-                      useDeskStore.getState().setFocusedThreadId(target.id);
-                      setActiveThreadId(item.id, target.id);
-                      void navigate(
-                        studioPath.thread(workspaceId, target.id, { kind: 'agent', id: item.id }),
-                      );
-                    } else {
-                      void createThreadRecord({ workspaceId, agentId: item.id }).then((record) => {
-                        const thread = toClientThread(record);
-                        useThreadStore.getState().upsert(thread);
-                        useIdeStore.getState().openThread(workspaceId, item.id, thread.id);
-                        useDeskStore.getState().setFocusedThreadId(thread.id);
-                        setActiveThreadId(item.id, thread.id);
+          >
+            {agents.length === 0 ? (
+              <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+                No agents in this workspace yet.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
+                {agents.map((item) => (
+                  <AgentCard
+                    key={item.id}
+                    agent={item}
+                    selected={activeAgentId === item.id}
+                    onSelect={() => {
+                      if (!workspaceId) {
+                        return;
+                      }
+                      const stored = getActiveThreadId(item.id);
+                      const threads = useThreadStore.getState().forAgent(item.id);
+                      const target =
+                        (stored ? threads.find((t) => t.id === stored) : undefined) ??
+                        useThreadStore.getState().latestForAgent(item.id);
+                      if (target) {
+                        useIdeStore.getState().openThread(workspaceId, item.id, target.id);
+                        useDeskStore.getState().setFocusedThreadId(target.id);
+                        setActiveThreadId(item.id, target.id);
                         void navigate(
-                          studioPath.thread(workspaceId, thread.id, {
-                            kind: 'agent',
-                            id: item.id,
-                          }),
+                          studioPath.thread(workspaceId, target.id, { kind: 'agent', id: item.id }),
                         );
+                      } else {
+                        void createThreadRecord({ workspaceId, agentId: item.id }).then(
+                          (record) => {
+                            const thread = toClientThread(record);
+                            useThreadStore.getState().upsert(thread);
+                            useIdeStore.getState().openThread(workspaceId, item.id, thread.id);
+                            useDeskStore.getState().setFocusedThreadId(thread.id);
+                            setActiveThreadId(item.id, thread.id);
+                            void navigate(
+                              studioPath.thread(workspaceId, thread.id, {
+                                kind: 'agent',
+                                id: item.id,
+                              }),
+                            );
+                          },
+                        );
+                      }
+                      setOpenMobile(false);
+                    }}
+                    onDashboard={() => {
+                      openAgentLanding(item.id);
+                      setOpenMobile(false);
+                    }}
+                    onSettings={() => {
+                      if (!workspaceId) {
+                        return;
+                      }
+                      void openAgentConfigDialog(item, workspaceId).then(async (result) => {
+                        if (!result) {
+                          return;
+                        }
+                        await updateAgent(workspaceId, item.id, result.fields);
+                        await updateAgentCapabilities(workspaceId, item.id, result.capabilities);
                       });
-                    }
-                    setOpenMobile(false);
-                  }}
-                  onEdit={() => {
-                    if (!workspaceId) {
-                      return;
-                    }
-                    void openAgentConfigDialog(item, workspaceId).then(async (result) => {
-                      if (!result) {
-                        return;
-                      }
-                      await updateAgent(workspaceId, item.id, result.fields);
-                      await updateAgentCapabilities(workspaceId, item.id, result.capabilities);
-                    });
-                  }}
-                  onDelete={() => {
-                    void confirmDeleteAgent(item).then(async (confirmed) => {
-                      if (!confirmed || !workspaceId) {
-                        return;
-                      }
-                      await deleteAgent(workspaceId, item.id);
-                    });
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </RailSection>
+                    }}
+                    onDelete={() => {
+                      void confirmDeleteAgent(item).then(async (confirmed) => {
+                        if (!confirmed || !workspaceId) {
+                          return;
+                        }
+                        await deleteAgent(workspaceId, item.id);
+                      });
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </AccordionSection>
 
-        <SchedulesSection
-          workspaceId={workspaceId}
-          agents={agents}
-          schedules={schedules}
-          onSelectDone={() => setOpenMobile(false)}
-        />
+          {resizeNode('explorer')}
+          <AccordionSection
+            id="explorer"
+            icon={<FolderIcon />}
+            title={workspaceId ? <ExplorerTitle workspaceId={workspaceId} /> : 'Explorer'}
+            size={sizes.explorer ?? 1}
+            actions={workspaceId ? <ExplorerActions workspaceId={workspaceId} /> : undefined}
+          >
+            {workspaceId ? <ExplorerContent workspaceId={workspaceId} /> : null}
+          </AccordionSection>
 
-        <WebhooksSection
-          workspaceId={workspaceId}
-          agents={agents}
-          webhooks={webhooks}
-          onSelectDone={() => setOpenMobile(false)}
-        />
+          {resizeNode('automations')}
+          <AccordionSection
+            id="automations"
+            icon={<ZapIcon />}
+            title="Automations"
+            count={schedules.length + webhooks.length}
+            size={sizes.automations ?? 1}
+            actions={
+              <AutomationsAddMenu
+                workspaceId={workspaceId}
+                agents={agents}
+                onDone={() => setOpenMobile(false)}
+              />
+            }
+          >
+            <AutomationsSection
+              workspaceId={workspaceId}
+              agents={agents}
+              schedules={schedules}
+              webhooks={webhooks}
+              activeScheduleId={activeScheduleId}
+              activeWebhookId={activeWebhookId}
+              activeThreadId={activeThreadId}
+              onSelectDone={() => setOpenMobile(false)}
+            />
+          </AccordionSection>
 
-        {workspaceId && <FilesSection workspaceId={workspaceId} selected={false} />}
+          {resizeNode('git')}
+          <AccordionSection id="git" icon={<GitBranchIcon />} title="Git" size={sizes.git ?? 1}>
+            {workspaceId ? <GitSection workspaceId={workspaceId} /> : null}
+          </AccordionSection>
+        </div>
       </SidebarContent>
 
-      {workspaceId ? (
-        <div className="p-2">
-          <GitSection workspaceId={workspaceId} />
-        </div>
-      ) : null}
       <SidebarFooter className="border-t">
         <SidebarMenu>
           <SidebarMenuItem>

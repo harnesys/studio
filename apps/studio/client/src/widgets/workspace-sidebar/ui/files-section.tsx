@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FileIcon,
   FolderIcon,
-  FolderOpenIcon,
   LoaderCircleIcon,
   MoreHorizontalIcon,
   RefreshCwIcon,
@@ -30,23 +29,86 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { useSidebar } from '@/shared/ui/sidebar';
+import { useExplorerDraftStore } from '../model/explorer-draft.store';
 import { useFileSelectionStore } from '../model/file-selection.store';
 import { useFilesHotkey } from '../model/use-files-hotkey';
-import { type CreateDraft, FileRow, InlineCreateInput } from './file-row';
-import { RailSection } from './rail-section';
+import { FileRow, InlineCreateInput } from './file-row';
 
-export function FilesSection({
-  workspaceId,
-  selected,
-}: {
-  workspaceId: string;
-  selected: boolean;
-}) {
+export function ExplorerTitle({ workspaceId }: { workspaceId: string }) {
+  const indexStateQuery = useQuery({
+    ...knowledgeIndexStateQuery(workspaceId),
+    enabled: Boolean(workspaceId),
+  });
+  const isIndexing = indexStateQuery.data?.status === 'running';
+
+  return (
+    <span className="flex items-center gap-1.5">
+      Explorer
+      {isIndexing ? (
+        <LoaderCircleIcon
+          className="size-3.5 animate-spin text-muted-foreground"
+          data-testid="files-indexing"
+          aria-label="Indexing"
+        />
+      ) : null}
+    </span>
+  );
+}
+
+export function ExplorerActions({ workspaceId }: { workspaceId: string }) {
+  const qc = useQueryClient();
+  const start = useExplorerDraftStore((state) => state.start);
+
+  const handleRefresh = () => {
+    void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            title="Explorer actions"
+            aria-label="Explorer actions"
+          />
+        }
+      >
+        <MoreHorizontalIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
+        <span className="sr-only">Explorer actions</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => start('file', '')}>
+            <FileIcon />
+            New file
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => start('dir', '')}>
+            <FolderIcon />
+            New folder
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={handleRefresh}>
+            <RefreshCwIcon />
+            Refresh
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
   const { state, isMobile } = useSidebar();
   const iconMode = state === 'collapsed' && !isMobile;
   const { openFile } = useStudioNavigation();
   const qc = useQueryClient();
-  const [createDraft, setCreateDraft] = useState<CreateDraft | null>(null);
+  const createDraft = useExplorerDraftStore((state) => state.draft);
+  const startCreate = useExplorerDraftStore((state) => state.start);
+  const cancelCreate = useExplorerDraftStore((state) => state.cancel);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const selectedPaths = useFileSelectionStore((s) => s.selectedPaths);
   const setWorkspace = useFileSelectionStore((s) => s.setWorkspace);
@@ -71,12 +133,6 @@ export function FilesSection({
 
   const gitMap = gitFileStatusQuery.data?.map ?? {};
   const gitTruncated = Boolean(gitFileStatusQuery.data?.truncated);
-
-  const indexStateQuery = useQuery({
-    ...knowledgeIndexStateQuery(workspaceId),
-    enabled: Boolean(workspaceId),
-  });
-  const isIndexing = indexStateQuery.data?.status === 'running';
 
   useEffect(() => {
     setWorkspace(workspaceId);
@@ -138,7 +194,6 @@ export function FilesSection({
     return out;
   }, [entries, expandedDirs, qc, workspaceId]);
 
-  // keep visiblePaths in store for shift+click range
   const visibleForStore = useMemo(() => computeVisible(), [computeVisible]);
   const setVisiblePaths = useFileSelectionStore((s) => s.setVisiblePaths);
   useEffect(() => {
@@ -179,13 +234,9 @@ export function FilesSection({
     });
   };
 
-  const startCreate = (kind: 'file' | 'dir', parentPath: string) => {
-    setCreateDraft({ kind, parentPath });
-  };
-
   const finishCreate = (name: string) => {
     if (!createDraft || !name.trim()) {
-      setCreateDraft(null);
+      cancelCreate();
       return;
     }
     const relPath = createDraft.parentPath
@@ -199,7 +250,7 @@ export function FilesSection({
     if (createDraft.kind === 'dir') {
       setExpandedDirs((prev) => new Set(prev).add(createDraft.parentPath));
     }
-    setCreateDraft(null);
+    cancelCreate();
   };
 
   const handleDelete = (path: string) => {
@@ -213,101 +264,44 @@ export function FilesSection({
     openFile(path);
   };
 
-  const handleRefresh = () => {
-    void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
-  };
-
   useFilesHotkey(workspaceId);
 
-  const sectionActions = (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button variant="ghost" size="icon-xs" title="Files actions" aria-label="Files actions" />
-        }
-      >
-        <MoreHorizontalIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
-        <span className="sr-only">Files actions</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => startCreate('file', '')}>
-            <FileIcon />
-            New file
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => startCreate('dir', '')}>
-            <FolderIcon />
-            New folder
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={handleRefresh}>
-            <RefreshCwIcon />
-            Refresh
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
   return (
-    <RailSection
-      id="files"
-      icon={<FolderIcon />}
-      openIcon={<FolderOpenIcon />}
-      title={
-        <span className="flex items-center gap-1.5">
-          Files
-          {isIndexing ? (
-            <LoaderCircleIcon
-              className="size-3.5 animate-spin text-muted-foreground"
-              data-testid="files-indexing"
-              aria-label="Indexing"
-            />
-          ) : null}
-        </span>
-      }
-      actions={iconMode ? undefined : sectionActions}
-      testId="nav-files"
-      selected={selected}
-    >
-      <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
-        {gitTruncated ? (
-          <div className="mx-1 rounded-md bg-amber-500/10 px-2 py-1 text-amber-700 text-xs group-data-[collapsible=icon]:hidden dark:text-amber-400">
-            Large repo — file decorations off. Expand a folder for status.
-          </div>
-        ) : null}
-        {createDraft && createDraft.parentPath === '' && (
-          <InlineCreateInput kind={createDraft.kind} onFinish={finishCreate} depth={0} />
-        )}
-        {entries.map((entry) => (
-          <FileRow
-            key={entry.name}
-            entry={entry}
-            parentPath=""
-            depth={0}
-            workspaceId={workspaceId}
-            expandedDirs={expandedDirs}
-            selectedPaths={selectedPaths}
-            createDraft={createDraft}
-            iconMode={iconMode}
-            gitMap={gitTruncated ? undefined : gitMap}
-            gitTruncated={gitTruncated}
-            onToggle={toggleDir}
-            onSelect={handleSelect}
-            onOpen={handleOpen}
-            onStartCreate={startCreate}
-            onCreateFinish={finishCreate}
-            onDelete={handleDelete}
-          />
-        ))}
-        {entries.length === 0 && !filesQuery.isLoading && (
-          <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
-            Empty workspace.
-          </p>
-        )}
-      </div>
-    </RailSection>
+    <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
+      {gitTruncated ? (
+        <div className="mx-1 rounded-md bg-amber-500/10 px-2 py-1 text-amber-700 text-xs group-data-[collapsible=icon]:hidden dark:text-amber-400">
+          Large repo — file decorations off. Expand a folder for status.
+        </div>
+      ) : null}
+      {createDraft && createDraft.parentPath === '' && (
+        <InlineCreateInput kind={createDraft.kind} onFinish={finishCreate} depth={0} />
+      )}
+      {entries.map((entry) => (
+        <FileRow
+          key={entry.name}
+          entry={entry}
+          parentPath=""
+          depth={0}
+          workspaceId={workspaceId}
+          expandedDirs={expandedDirs}
+          selectedPaths={selectedPaths}
+          createDraft={createDraft}
+          iconMode={iconMode}
+          gitMap={gitTruncated ? undefined : gitMap}
+          gitTruncated={gitTruncated}
+          onToggle={toggleDir}
+          onSelect={handleSelect}
+          onOpen={handleOpen}
+          onStartCreate={startCreate}
+          onCreateFinish={finishCreate}
+          onDelete={handleDelete}
+        />
+      ))}
+      {entries.length === 0 && !filesQuery.isLoading && (
+        <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+          Empty workspace.
+        </p>
+      )}
+    </div>
   );
 }

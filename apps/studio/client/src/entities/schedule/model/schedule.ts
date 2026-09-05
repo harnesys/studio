@@ -57,6 +57,7 @@ export type Schedule = {
   threadId: string;
   nextRunAt?: string;
   lastFiredAt?: string;
+  updatedAt: string;
 };
 
 export function toClientSchedule(record: ScheduleRecord): Schedule {
@@ -74,5 +75,6 @@ export function toClientSchedule(record: ScheduleRecord): Schedule {
     threadId: record.threadId,
     nextRunAt: record.nextRunAt ?? undefined,
     lastFiredAt: record.lastFiredAt ?? undefined,
+    updatedAt: record.updatedAt ?? record.createdAt ?? '',
   };
 }

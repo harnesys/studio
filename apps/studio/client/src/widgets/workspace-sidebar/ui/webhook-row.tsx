@@ -16,11 +16,13 @@ export function WebhookRow({
   webhook,
   selected,
   onSelect,
+  onSettings,
   onDelete,
 }: {
   webhook: Webhook;
   selected: boolean;
   onSelect: () => void;
+  onSettings: () => void;
   onDelete: () => void;
 }) {
   const { state, isMobile } = useSidebar();
@@ -81,6 +83,7 @@ export function WebhookRow({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
           <DropdownMenuGroup>
+            <DropdownMenuItem onClick={onSettings}>Settings</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               Delete
             </DropdownMenuItem>

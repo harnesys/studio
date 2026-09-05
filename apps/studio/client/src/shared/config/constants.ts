@@ -3,7 +3,6 @@ export const DEFAULT_DEV_SERVER_PORT = 5173;
 
 /** Storage */
 export const ACTIVE_THREAD_STORAGE_PREFIX = 'harnesys:active-thread:';
-export const SIDEBAR_SECTION_STORAGE_PREFIX = 'harnesys:sidebar-section:';
 export const FILE_PANE_RATIO_STORAGE_KEY = 'harnesys.file-pane-ratio';
 export const INSPECTOR_WIDTH_STORAGE_KEY = 'harnesys.inspector-width';
 export const IDE_WORKSPACES_STORAGE_KEY = 'harnesys.ide-workspaces';

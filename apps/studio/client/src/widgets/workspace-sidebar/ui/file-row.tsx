@@ -23,10 +23,9 @@ import {
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
 import { Spinner } from '@/shared/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
+import type { ExplorerCreateDraft } from '../model/explorer-draft.store';
 import { getDirAggregatedStatus, gitStatusColor } from './git-file-decorations';
 import { InlineCreateInput } from './inline-create-input';
-
-export type CreateDraft = { kind: 'file' | 'dir'; parentPath: string };
 
 export function FileRow({
   entry,
@@ -52,7 +51,7 @@ export function FileRow({
   workspaceId: string;
   expandedDirs: Set<string>;
   selectedPaths: string[];
-  createDraft: CreateDraft | null;
+  createDraft: ExplorerCreateDraft | null;
   iconMode: boolean;
   gitMap?: GitFileStatusMap;
   gitTruncated?: boolean;

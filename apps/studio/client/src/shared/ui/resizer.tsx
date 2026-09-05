@@ -5,10 +5,18 @@ type ResizerProps = {
   label: string;
   testId: string;
   dragging: boolean;
+  orientation?: 'horizontal' | 'vertical';
   onResizeStart: (event: ReactMouseEvent) => void;
 };
 
-export function Resizer({ label, testId, dragging, onResizeStart }: ResizerProps) {
+export function Resizer({
+  label,
+  testId,
+  dragging,
+  orientation = 'horizontal',
+  onResizeStart,
+}: ResizerProps) {
+  const vertical = orientation === 'vertical';
   return (
     <button
       type="button"
@@ -16,8 +24,10 @@ export function Resizer({ label, testId, dragging, onResizeStart }: ResizerProps
       data-testid={testId}
       onMouseDown={onResizeStart}
       className={cn(
-        'group relative z-10 w-px shrink-0 cursor-col-resize border-0 bg-border/35 p-0 transition-colors',
-        'before:absolute before:inset-y-0 before:-left-1.5 before:w-3 before:content-[""]',
+        'group relative z-10 shrink-0 border-0 p-0 transition-colors',
+        vertical
+          ? 'h-px w-full cursor-row-resize bg-border/35 before:absolute before:-top-1.5 before:right-0 before:left-0 before:h-3 before:content-[""]'
+          : 'w-px cursor-col-resize bg-border/35 before:absolute before:inset-y-0 before:-left-1.5 before:w-3 before:content-[""]',
         'hover:bg-border/70',
         dragging && 'bg-border',
       )}

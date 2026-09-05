@@ -48,6 +48,7 @@ export type Webhook = {
   endpoint: string;
   threadId: string;
   lastFiredAt?: string;
+  updatedAt: string;
 };
 
 export function toClientWebhook(record: WebhookRecord): Webhook {
@@ -61,5 +62,6 @@ export function toClientWebhook(record: WebhookRecord): Webhook {
     endpoint: record.endpoint,
     threadId: record.threadId,
     lastFiredAt: record.lastFiredAt ?? undefined,
+    updatedAt: record.updatedAt ?? record.createdAt ?? '',
   };
 }

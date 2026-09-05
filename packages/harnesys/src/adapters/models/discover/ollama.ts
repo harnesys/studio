@@ -1,6 +1,6 @@
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
-import { asRecord, asString, itemsOf, pricingOf } from './parse.ts';
+import { asRecord, asString, asStringList, itemsOf, pricingOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export const OLLAMA_DEFAULT_URL = 'http://localhost:11434';
@@ -32,9 +32,10 @@ export function parseOllamaTags(json: unknown): DiscoveredModel[] {
     if (!record || !name) {
       continue;
     }
+    const capabilities = asStringList(record.capabilities);
     found.push({
       name,
-      kind: 'chat',
+      kind: capabilities.includes('embedding') ? 'embed' : 'chat',
       pricing: pricingOf({ prompt: '0', completion: '0' }),
       raw: item,
     });

@@ -22,10 +22,22 @@ import {
   useSelectedAgent,
   useThreadWaiting,
   useWorkspaceAgents,
+  useWorkspaceSchedules,
+  useWorkspaceWebhooks,
 } from '@/features/desk';
 import { useIdeStore } from '@/features/ide';
-import { createSchedule, openScheduleConfigDialog } from '@/features/manage-schedule';
-import { createWebhook, openWebhookConfigDialog } from '@/features/manage-webhook';
+import {
+  confirmDeleteSchedule,
+  createSchedule,
+  deleteSchedule,
+  openScheduleConfigDialog,
+} from '@/features/manage-schedule';
+import {
+  confirmDeleteWebhook,
+  createWebhook,
+  deleteWebhook,
+  openWebhookConfigDialog,
+} from '@/features/manage-webhook';
 import { confirmDeleteThread, openNewThread } from '@/features/switch-thread';
 import { deleteThreadRecord } from '@/shared/api';
 import { studioPath, type ThreadOriginRef } from '@/shared/config/routes';
@@ -56,6 +68,8 @@ export function AgentDashboard() {
   const status = useAgentLiveStatus(agent?.id ?? '');
   const threads = useAgentThreads(agent?.id ?? null);
   const agents = useWorkspaceAgents(agent?.workspaceId ?? null);
+  const schedules = useWorkspaceSchedules(agent?.workspaceId ?? null);
+  const webhooks = useWorkspaceWebhooks(agent?.workspaceId ?? null);
   const sorted = [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const chats = sorted.filter((thread) => thread.kind === 'chat');
   const automations = sorted.filter((thread) => thread.kind !== 'chat');
@@ -131,11 +145,54 @@ export function AgentDashboard() {
     });
   };
 
+  const syncActiveThread = (agentId: string) => {
+    const next = useThreadStore.getState().latestForAgent(agentId)?.id ?? null;
+    if (next) {
+      setActiveThreadId(agentId, next);
+    } else {
+      clearActiveThreadId(agentId);
+    }
+  };
+
   const handleDeleteThread = (thread: Thread) => {
     if (!agent) {
       return;
     }
     const workspaceId = agent.workspaceId;
+    if (thread.kind === 'schedule') {
+      const schedule = schedules.find((item) => item.threadId === thread.id);
+      if (!schedule) {
+        return;
+      }
+      void confirmDeleteSchedule(schedule).then(async (confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        const removed = await deleteSchedule(workspaceId, schedule.id).catch(() => false);
+        if (removed) {
+          useIdeStore.getState().closeByEntity(workspaceId, 'thread', schedule.threadId);
+          syncActiveThread(thread.agentId);
+        }
+      });
+      return;
+    }
+    if (thread.kind === 'webhook') {
+      const webhook = webhooks.find((item) => item.threadId === thread.id);
+      if (!webhook) {
+        return;
+      }
+      void confirmDeleteWebhook(webhook).then(async (confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        const removed = await deleteWebhook(workspaceId, webhook).catch(() => false);
+        if (removed) {
+          useIdeStore.getState().closeByEntity(workspaceId, 'thread', webhook.threadId);
+          syncActiveThread(thread.agentId);
+        }
+      });
+      return;
+    }
     void confirmDeleteThread(thread).then((confirmed) => {
       if (!confirmed) {
         return;
@@ -146,12 +203,7 @@ export function AgentDashboard() {
           useSessionStore.getState().removeForThreads([thread.id]);
           useThreadStore.getState().remove(thread.id);
           useIdeStore.getState().closeByEntity(workspaceId, 'thread', thread.id);
-          const next = useThreadStore.getState().latestForAgent(thread.agentId)?.id ?? null;
-          if (next) {
-            setActiveThreadId(thread.agentId, next);
-          } else {
-            clearActiveThreadId(thread.agentId);
-          }
+          syncActiveThread(thread.agentId);
         });
     });
   };
@@ -182,23 +234,34 @@ export function AgentDashboard() {
           {statusLabel(status)}
         </span>
       </div>
+      <div className="mt-8">
+        <p className="mb-2.5 font-mono text-[10px] text-muted-foreground uppercase tracking-[0.14em]">
+          Create
+        </p>
+        <CategoryLandingActions>
+          <CategoryLandingActionCard
+            icon={<MessageSquarePlusIcon />}
+            title="New thread"
+            description="Start a fresh conversation."
+            onClick={handleNewThread}
+          />
+          <CategoryLandingActionCard
+            icon={<CalendarClockIcon />}
+            title="New schedule"
+            description="Cron fires a run."
+            onClick={handleNewScheduler}
+          />
+          <CategoryLandingActionCard
+            icon={<EarthIcon />}
+            title="New webhook"
+            description="Inbound trigger for an agent."
+            onClick={handleNewWebhook}
+          />
+        </CategoryLandingActions>
+      </div>
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
         <div className="min-w-0">
-          <SectionHeader
-            label={`Chats · ${chats.length}`}
-            action={
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                title="New thread"
-                aria-label="New thread"
-                onClick={handleNewThread}
-              >
-                <PlusIcon />
-                <span className="sr-only">New thread</span>
-              </Button>
-            }
-          />
+          <CategoryLandingSectionLabel>{`Chats · ${chats.length}`}</CategoryLandingSectionLabel>
           {chats.length === 0 ? (
             <p className="text-muted-foreground text-sm">No chats yet.</p>
           ) : (
@@ -217,38 +280,7 @@ export function AgentDashboard() {
           )}
         </div>
         <div className="min-w-0">
-          <SectionHeader
-            label={`Automations · ${automations.length}`}
-            action={
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      title="New automation"
-                      aria-label="New automation"
-                    />
-                  }
-                >
-                  <PlusIcon />
-                  <span className="sr-only">New automation</span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={handleNewScheduler}>
-                      <CalendarClockIcon />
-                      New scheduler
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleNewWebhook}>
-                      <WebhookIcon />
-                      New webhook
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            }
-          />
+          <CategoryLandingSectionLabel>{`Automations · ${automations.length}`}</CategoryLandingSectionLabel>
           {automations.length === 0 ? (
             <p className="text-muted-foreground text-sm">No automations yet.</p>
           ) : (
@@ -268,17 +300,6 @@ export function AgentDashboard() {
         </div>
       </div>
     </CategoryLanding>
-  );
-}
-
-function SectionHeader({ label, action }: { label: string; action: ReactNode }) {
-  return (
-    <div className="mb-2.5 flex items-center justify-between gap-2">
-      <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.14em]">
-        {label}
-      </p>
-      {action}
-    </div>
   );
 }
 

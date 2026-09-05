@@ -9,24 +9,14 @@ import {
 } from 'lucide-react';
 import { type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  getActiveThreadId,
-  setActiveThreadId,
-  toClientThread,
-  useThreadStore,
-} from '@/entities/thread';
+import { useThreadStore } from '@/entities/thread';
 import { useDeleteWorkspace, useWorkspaces } from '@/entities/workspace';
 import {
   confirmDeleteWorkspace,
   openCreateWorkspaceDialog,
   openEditWorkspaceDialog,
 } from '@/features/create-workspace';
-import {
-  useDeskStore,
-  useWorkspaceAgents,
-  useWorkspaceSchedules,
-  useWorkspaceWebhooks,
-} from '@/features/desk';
+import { useWorkspaceAgents, useWorkspaceSchedules, useWorkspaceWebhooks } from '@/features/desk';
 import { useIdeStore, useIdeTabs } from '@/features/ide';
 import {
   confirmDeleteAgent,
@@ -36,7 +26,6 @@ import {
   updateAgent,
   updateAgentCapabilities,
 } from '@/features/manage-agent';
-import { createThreadRecord } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { studioPath } from '@/shared/config/routes';
@@ -74,7 +63,8 @@ type SidebarSectionId = 'agents' | 'explorer' | 'automations' | 'git';
 const SECTION_ORDER: SidebarSectionId[] = ['agents', 'explorer', 'automations', 'git'];
 
 export function WorkspaceSidebar() {
-  const { workspaceId, threadId, threadOrigin, originEntityId } = useStudioLocation();
+  const { workspaceId, threadId, threadOrigin, originEntityId, surface, agentId } =
+    useStudioLocation();
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
   const workspace = workspaces.find((item) => item.id === workspaceId) ?? null;
@@ -90,7 +80,12 @@ export function WorkspaceSidebar() {
   const threadAgentId = useThreadStore((state) =>
     threadId ? (state.byId(threadId)?.agentId ?? null) : null,
   );
-  const activeAgentId = threadOrigin === 'agent' ? originEntityId : threadAgentId;
+  let activeAgentId: string | null = threadAgentId;
+  if (surface === 'agent') {
+    activeAgentId = agentId;
+  } else if (threadOrigin === 'agent') {
+    activeAgentId = originEntityId;
+  }
   const activeScheduleId = threadOrigin === 'scheduler' ? originEntityId : null;
   const activeWebhookId = threadOrigin === 'webhook' ? originEntityId : null;
   const collapsed = useAccordionStore((state) => state.collapsed);
@@ -291,41 +286,6 @@ export function WorkspaceSidebar() {
                     agent={item}
                     selected={activeAgentId === item.id}
                     onSelect={() => {
-                      if (!workspaceId) {
-                        return;
-                      }
-                      const stored = getActiveThreadId(item.id);
-                      const threads = useThreadStore.getState().forAgent(item.id);
-                      const target =
-                        (stored ? threads.find((t) => t.id === stored) : undefined) ??
-                        useThreadStore.getState().latestForAgent(item.id);
-                      if (target) {
-                        useIdeStore.getState().openThread(workspaceId, item.id, target.id);
-                        useDeskStore.getState().setFocusedThreadId(target.id);
-                        setActiveThreadId(item.id, target.id);
-                        void navigate(
-                          studioPath.thread(workspaceId, target.id, { kind: 'agent', id: item.id }),
-                        );
-                      } else {
-                        void createThreadRecord({ workspaceId, agentId: item.id }).then(
-                          (record) => {
-                            const thread = toClientThread(record);
-                            useThreadStore.getState().upsert(thread);
-                            useIdeStore.getState().openThread(workspaceId, item.id, thread.id);
-                            useDeskStore.getState().setFocusedThreadId(thread.id);
-                            setActiveThreadId(item.id, thread.id);
-                            void navigate(
-                              studioPath.thread(workspaceId, thread.id, {
-                                kind: 'agent',
-                                id: item.id,
-                              }),
-                            );
-                          },
-                        );
-                      }
-                      setOpenMobile(false);
-                    }}
-                    onDashboard={() => {
                       openAgentLanding(item.id);
                       setOpenMobile(false);
                     }}

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { setActiveThreadId, useThreadStore } from '@/entities/thread';
 import { useDeskStore } from '@/features/desk';
 import { useIdeGroup, useIdeStore, useIdeTabs } from '@/features/ide';
+import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -32,6 +33,7 @@ export function IdeGroupTabs({
 }) {
   const group = useIdeGroup(workspaceId, groupId);
   const ws = useIdeTabs(workspaceId);
+  const { surface } = useStudioLocation();
   const navigate = useNavigate();
   const inspectorOpen = useDeskStore((state) => state.inspectorOpen);
   const activeRef = useRef<HTMLDivElement | null>(null);
@@ -99,7 +101,7 @@ export function IdeGroupTabs({
       <ScrollArea className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
           {tabs.map((tab) => {
-            const selected = tab.id === activeId;
+            const selected = tab.id === activeId && surface !== 'agent';
             const isDragOver = dragOverId === tab.id;
             return (
               <div

@@ -1,5 +1,5 @@
 import { type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
-import type { IdeSplitNode } from '@/features/ide';
+import type { IdeSplitNode, IdeTab } from '@/features/ide';
 import {
   firstGroupOfLayout,
   lastGroupOfLayout,
@@ -7,8 +7,10 @@ import {
   useIdeStore,
   useIdeTabs,
 } from '@/features/ide';
+import { useStudioLocation } from '@/shared/config/location';
 import { cn } from '@/shared/lib/utils';
 import { Resizer } from '@/shared/ui/resizer';
+import { AgentDashboard } from '@/widgets/agent-dashboard';
 import { IdeTabContent } from '@/widgets/ide-content';
 import { IdeGroupTabs, ideDrag, takeIdeDrag } from '@/widgets/ide-tabs';
 
@@ -55,6 +57,28 @@ function SplitNodeView({
       leadingGroupId={leadingGroupId}
       trailingGroupId={trailingGroupId}
     />
+  );
+}
+
+function GroupContent({
+  surface,
+  workspaceId,
+  activeTab,
+}: {
+  surface: string;
+  workspaceId: string;
+  activeTab: IdeTab | null;
+}) {
+  if (surface === 'agent') {
+    return <AgentDashboard />;
+  }
+  if (activeTab) {
+    return <IdeTabContent tab={activeTab} workspaceId={workspaceId} />;
+  }
+  return (
+    <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
+      No tab
+    </div>
   );
 }
 
@@ -140,6 +164,7 @@ function IdeGroupPane({
 }) {
   const group = useIdeGroup(workspaceId, groupId);
   const ws = useIdeTabs(workspaceId);
+  const { surface } = useStudioLocation();
   const [dragOver, setDragOver] = useState(false);
   if (!group) {
     return null;
@@ -179,13 +204,7 @@ function IdeGroupPane({
         trailing={trailing}
       />
       <div className="flex min-h-0 flex-1 flex-col">
-        {activeTab ? (
-          <IdeTabContent tab={activeTab} workspaceId={workspaceId} />
-        ) : (
-          <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
-            No tab
-          </div>
-        )}
+        <GroupContent surface={surface} workspaceId={workspaceId} activeTab={activeTab} />
       </div>
     </div>
   );

@@ -24,19 +24,11 @@ type AgentCardProps = {
   agent: Agent;
   selected?: boolean;
   onSelect: () => void;
-  onDashboard: () => void;
   onSettings: () => void;
   onDelete: () => void;
 };
 
-export function AgentCard({
-  agent,
-  selected,
-  onSelect,
-  onDashboard,
-  onSettings,
-  onDelete,
-}: AgentCardProps) {
+export function AgentCard({ agent, selected, onSelect, onSettings, onDelete }: AgentCardProps) {
   const { state, isMobile } = useSidebar();
   const iconMode = state === 'collapsed' && !isMobile;
   const status = useAgentLiveStatus(agent.id);
@@ -138,7 +130,6 @@ export function AgentCard({
               <MessageSquarePlusIcon />
               New thread
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onDashboard}>Dashboard</DropdownMenuItem>
             <DropdownMenuItem onClick={onSettings}>Settings</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               Delete

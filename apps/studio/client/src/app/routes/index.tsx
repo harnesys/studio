@@ -4,7 +4,6 @@ import { Navigate, Outlet, useParams } from 'react-router';
 import { useWorkspaces } from '@/entities/workspace';
 import { DeskSync } from '@/features/desk';
 import { KnowledgeIndexSync } from '@/features/manage-knowledge-index';
-import { AgentLandingPage } from '@/pages/agent-landing';
 import { SettingsPage } from '@/pages/settings';
 import { WorkspacePage } from '@/pages/workspace';
 import { WorkspaceGatePage } from '@/pages/workspace-gate';
@@ -70,9 +69,9 @@ const routes: RouteObject[] = [
               { index: true, element: null },
               { path: 'thread/:threadId', element: null },
               { path: 'file/*', element: null },
+              { path: 'agent/:agentId', element: null },
             ],
           },
-          { path: 'agent/:agentId', element: <AgentLandingPage /> },
           { path: 'settings', element: <SettingsPage /> },
           { path: 'settings/:category', element: <SettingsPage /> },
           { path: 'settings/:category/:providerId', element: <SettingsPage /> },

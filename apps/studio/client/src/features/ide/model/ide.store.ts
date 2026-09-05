@@ -55,18 +55,37 @@ const EMPTY_WORKSPACE: IdeWorkspaceState = createEmptyWorkspace();
 const EMPTY_IDE_TABS: IdeWorkspaceState = EMPTY_WORKSPACE;
 
 function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | null {
-  const alive = new Set(
-    ws.tabs.filter((t) => t.kind === 'thread' || t.kind === 'file').map((t) => t.id),
+  const remapped = new Map<string, string>();
+  const tabs = dedupeTabs(
+    ws.tabs.map((tab) => {
+      const normalized = normalizeIdeFileTab(tab);
+      if (normalized.id !== tab.id) {
+        remapped.set(tab.id, normalized.id);
+      }
+      return normalized;
+    }),
   );
-  if (
-    alive.size === ws.tabs.length &&
-    ws.groups.every((g) => g.tabIds.every((id) => alive.has(id)))
-  ) {
-    return ws;
+  const remapId = (id: string): string => remapped.get(id) ?? id;
+  const groups = ws.groups.map((group) => ({
+    ...group,
+    tabIds: [...new Set(group.tabIds.map(remapId))],
+    activeId: group.activeId ? remapId(group.activeId) : null,
+  }));
+  const normalized: IdeWorkspaceState = {
+    ...ws,
+    tabs,
+    groups,
+    activeId: ws.activeId ? remapId(ws.activeId) : null,
+  };
+  const alive = new Set(
+    tabs.filter((t) => t.kind === 'thread' || t.kind === 'file').map((t) => t.id),
+  );
+  if (alive.size === tabs.length && groups.every((g) => g.tabIds.every((id) => alive.has(id)))) {
+    return normalized;
   }
-  let layout = ws.layout;
-  const groups: IdeGroup[] = [];
-  for (const group of ws.groups) {
+  let layout = normalized.layout;
+  const kept: IdeGroup[] = [];
+  for (const group of groups) {
     const tabIds = group.tabIds.filter((id) => alive.has(id));
     if (tabIds.length === 0) {
       if (layout) {
@@ -74,7 +93,7 @@ function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | null {
       }
       continue;
     }
-    groups.push({
+    kept.push({
       ...group,
       tabIds,
       activeId:
@@ -83,16 +102,28 @@ function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | null {
           : (tabIds[tabIds.length - 1] ?? null),
     });
   }
-  const tabs = ws.tabs.filter((t) => alive.has(t.id));
-  if (groups.length === 0) {
+  const aliveTabs = tabs.filter((t) => alive.has(t.id));
+  if (kept.length === 0) {
     return null;
   }
-  const activeId = ws.activeId && alive.has(ws.activeId) ? ws.activeId : null;
+  const activeId =
+    normalized.activeId && alive.has(normalized.activeId) ? normalized.activeId : null;
   const activeGroupId =
-    ws.activeGroupId && groups.some((g) => g.id === ws.activeGroupId)
-      ? ws.activeGroupId
-      : (groups[0]?.id ?? null);
-  return { tabs, activeId, activeGroupId, groups, layout };
+    normalized.activeGroupId && kept.some((g) => g.id === normalized.activeGroupId)
+      ? normalized.activeGroupId
+      : (kept[0]?.id ?? null);
+  return { tabs: aliveTabs, activeId, activeGroupId, groups: kept, layout };
+}
+
+function dedupeTabs(tabs: IdeTab[]): IdeTab[] {
+  const seen = new Set<string>();
+  return tabs.filter((tab) => {
+    if (seen.has(tab.id)) {
+      return false;
+    }
+    seen.add(tab.id);
+    return true;
+  });
 }
 
 function loadPersisted(): IdeState {
@@ -151,6 +182,18 @@ function tabIdFor(kind: IdeTabKind, key: string): string {
   return `${kind}:${key}`;
 }
 
+function normalizeIdeFilePath(path: string): string {
+  return path.replace(/^\/+/, '');
+}
+
+function normalizeIdeFileTab(tab: IdeTab): IdeTab {
+  if (tab.kind !== 'file' || !tab.path) {
+    return tab;
+  }
+  const path = normalizeIdeFilePath(tab.path);
+  return { ...tab, path, id: tabIdFor('file', path) };
+}
+
 export const useIdeStore = create<IdeStore>((set) => {
   const withWs = (
     state: IdeState,
@@ -168,8 +211,9 @@ export const useIdeStore = create<IdeStore>((set) => {
       }),
     openFile: (workspaceId, path) =>
       set((state) => {
-        const id = tabIdFor('file', path);
-        const tab: IdeTab = { id, kind: 'file', workspaceId, path, dirty: false };
+        const normalized = normalizeIdeFilePath(path);
+        const id = tabIdFor('file', normalized);
+        const tab: IdeTab = { id, kind: 'file', workspaceId, path: normalized, dirty: false };
         return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
       }),
     closeTab: (workspaceId, tabId) =>
@@ -191,7 +235,7 @@ export const useIdeStore = create<IdeStore>((set) => {
         if (!current) {
           return state;
         }
-        const id = tabIdFor('file', path);
+        const id = tabIdFor('file', normalizeIdeFilePath(path));
         const idx = current.tabs.findIndex((t) => t.id === id);
         if (idx === -1 || current.tabs[idx]?.dirty === dirty) {
           return state;
@@ -206,7 +250,12 @@ export const useIdeStore = create<IdeStore>((set) => {
         withWs(
           state,
           workspaceId,
-          closeTabState(pick(state, workspaceId), tabIdFor(kind, entityId)),
+          closeTabState(
+            pick(state, workspaceId),
+            kind === 'file'
+              ? tabIdFor(kind, normalizeIdeFilePath(entityId))
+              : tabIdFor(kind, entityId),
+          ),
         ),
       ),
     reorderTab: (workspaceId, fromId, toId) =>

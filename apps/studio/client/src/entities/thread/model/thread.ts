@@ -8,6 +8,8 @@ export type Thread = {
   kind: ThreadKind;
   updatedAt: string;
   unread: boolean;
+  /** Live run known from the last full record. Drives stream reconnect without refetch. */
+  activeRunId?: string | null;
 };
 
 // Dev-only fixture kept for visual inspection. Production stores start empty

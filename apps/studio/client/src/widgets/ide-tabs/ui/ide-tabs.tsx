@@ -1,9 +1,9 @@
 import { EllipsisIcon, PanelLeftIcon, PanelRightIcon, Trash2Icon, XIcon } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { setActiveThreadId, useThreadStore } from '@/entities/thread';
 import { useDeskStore } from '@/features/desk';
-import { useIdeGroup, useIdeStore, useIdeTabs } from '@/features/ide';
+import { type IdeTab, useIdeGroup, useIdeStore, useIdeTabs } from '@/features/ide';
 import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 import { cn } from '@/shared/lib/utils';
@@ -18,7 +18,7 @@ import {
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { SidebarTrigger } from '@/shared/ui/sidebar';
 import { ideDrag, setIdeDrag, takeIdeDrag } from '../model/ide-dnd';
-import { TabIcon, tabLabel } from './tab-meta';
+import { TabIcon, useTabLabel } from './tab-meta';
 
 export function IdeGroupTabs({
   workspaceId,
@@ -100,86 +100,22 @@ export function IdeGroupTabs({
       {leading ? <SidebarTrigger className="mr-1 shrink-0" /> : null}
       <ScrollArea className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          {tabs.map((tab) => {
-            const selected = tab.id === activeId && surface !== 'agent';
-            const isDragOver = dragOverId === tab.id;
-            return (
-              <div
-                key={tab.id}
-                ref={selected ? activeRef : null}
-                role="tab"
-                tabIndex={0}
-                data-testid={`ide-tab-${tab.id}`}
-                data-selected={selected ? 'true' : 'false'}
-                draggable
-                onDragStart={(e) => {
-                  setIdeDrag({ tabId: tab.id, fromGroupId: groupId, workspaceId });
-                  e.dataTransfer.effectAllowed = 'move';
-                  e.dataTransfer.setData('text/plain', tab.id);
-                }}
-                onDragEnd={() => setIdeDrag(null)}
-                onDragOver={(e) => {
-                  const drag = ideDrag();
-                  if (!drag || drag.workspaceId !== workspaceId) {
-                    return;
-                  }
-                  e.preventDefault();
-                  setDragOverId(tab.id);
-                }}
-                onDragLeave={() => setDragOverId(null)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragOverId(null);
-                  const drag = takeIdeDrag();
-                  if (!drag || drag.workspaceId !== workspaceId) {
-                    return;
-                  }
-                  const { moveTab, reorderTab } = useIdeStore.getState();
-                  if (drag.fromGroupId === groupId) {
-                    reorderTab(workspaceId, drag.tabId, tab.id);
-                    return;
-                  }
-                  moveTab(workspaceId, drag.tabId, groupId, tab.id);
-                }}
-                className={cn(
-                  'group/tab relative flex max-w-52 shrink-0 animate-tab-enter items-center rounded-md p-0.5 pl-2 text-[0.75rem] transition-colors duration-150',
-                  selected
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-                  isDragOver && 'ring-1 ring-ring',
-                )}
-              >
-                <button
-                  type="button"
-                  className="relative flex min-w-0 flex-1 items-center gap-1.5 truncate"
-                  title={tabLabel(tab)}
-                  onClick={() => handleSelect(tab)}
-                >
-                  <TabIcon tab={tab} />
-                  {tab.kind === 'file' && tab.dirty ? (
-                    <span className="size-1.5 shrink-0 rounded-full bg-live" title="Unsaved" />
-                  ) : null}
-                  <span className="truncate leading-3">{tabLabel(tab)}</span>
-                </button>
-                <button
-                  type="button"
-                  data-testid={`ide-close-${tab.id}`}
-                  className={cn(
-                    'flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-opacity duration-150 hover:bg-background/30 hover:text-foreground',
-                    selected ? 'opacity-100' : 'opacity-0 group-hover/tab:opacity-100',
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCloseTab(tab.id);
-                  }}
-                  aria-label="Close tab"
-                >
-                  <XIcon className="size-3" />
-                </button>
-              </div>
-            );
-          })}
+          {tabs.map((tab) => (
+            <IdeTabView
+              key={tab.id}
+              tab={tab}
+              workspaceId={workspaceId}
+              groupId={groupId}
+              isActive={tab.id === activeId}
+              dimmed={surface === 'agent'}
+              scrollRef={activeRef}
+              isDragOver={dragOverId === tab.id}
+              onDragOverTab={setDragOverId}
+              onDragLeaveTab={() => setDragOverId(null)}
+              onSelect={() => handleSelect(tab)}
+              onClose={() => handleCloseTab(tab.id)}
+            />
+          ))}
         </div>
       </ScrollArea>
       <DropdownMenu>
@@ -253,7 +189,9 @@ export function IdeGroupTabs({
     useIdeStore.getState().setActive(workspaceId, tab.id);
     if (tab.kind === 'thread' && tab.threadId) {
       const thread = useThreadStore.getState().byId(tab.threadId);
-      useDeskStore.getState().setFocusedThreadId(tab.threadId);
+      if (useDeskStore.getState().focusedThreadId !== tab.threadId) {
+        useDeskStore.getState().setFocusedThreadId(tab.threadId);
+      }
       if (thread) {
         setActiveThreadId(thread.agentId, tab.threadId);
       }
@@ -299,4 +237,109 @@ export function IdeGroupTabs({
       void navigate(studioPath.workspace(workspaceId));
     }
   }
+}
+
+function IdeTabView({
+  tab,
+  workspaceId,
+  groupId,
+  isActive,
+  dimmed,
+  scrollRef,
+  isDragOver,
+  onDragOverTab,
+  onDragLeaveTab,
+  onSelect,
+  onClose,
+}: {
+  tab: IdeTab;
+  workspaceId: string;
+  groupId: string;
+  isActive: boolean;
+  dimmed: boolean;
+  scrollRef: RefObject<HTMLDivElement | null>;
+  isDragOver: boolean;
+  onDragOverTab: (tabId: string) => void;
+  onDragLeaveTab: () => void;
+  onSelect: () => void;
+  onClose: () => void;
+}) {
+  // Dashboard surface shows tabs for navigation only: none reads as selected.
+  const selected = isActive && !dimmed;
+  const label = useTabLabel(tab);
+  return (
+    <div
+      ref={selected ? scrollRef : null}
+      role="tab"
+      tabIndex={0}
+      data-testid={`ide-tab-${tab.id}`}
+      data-selected={selected ? 'true' : 'false'}
+      draggable
+      onDragStart={(e) => {
+        setIdeDrag({ tabId: tab.id, fromGroupId: groupId, workspaceId });
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', tab.id);
+      }}
+      onDragEnd={() => setIdeDrag(null)}
+      onDragOver={(e) => {
+        const drag = ideDrag();
+        if (!drag || drag.workspaceId !== workspaceId) {
+          return;
+        }
+        e.preventDefault();
+        onDragOverTab(tab.id);
+      }}
+      onDragLeave={onDragLeaveTab}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDragLeaveTab();
+        const drag = takeIdeDrag();
+        if (!drag || drag.workspaceId !== workspaceId) {
+          return;
+        }
+        const { moveTab, reorderTab } = useIdeStore.getState();
+        if (drag.fromGroupId === groupId) {
+          reorderTab(workspaceId, drag.tabId, tab.id);
+          return;
+        }
+        moveTab(workspaceId, drag.tabId, groupId, tab.id);
+      }}
+      className={cn(
+        'group/tab relative flex max-w-52 shrink-0 animate-tab-enter items-center rounded-md p-0.5 pl-2 text-[0.75rem] transition-colors duration-150',
+        selected
+          ? 'bg-muted text-foreground'
+          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+        isDragOver && 'ring-1 ring-ring',
+      )}
+    >
+      <button
+        type="button"
+        className="relative flex min-w-0 flex-1 items-center gap-1.5 truncate"
+        title={label}
+        onClick={onSelect}
+      >
+        <TabIcon tab={tab} />
+        {tab.kind === 'file' && tab.dirty ? (
+          <span className="size-1.5 shrink-0 rounded-full bg-live" title="Unsaved" />
+        ) : null}
+        <span className="truncate leading-3">{label}</span>
+      </button>
+      <button
+        type="button"
+        data-testid={`ide-close-${tab.id}`}
+        className={cn(
+          'flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-opacity duration-150 hover:bg-background/30 hover:text-foreground',
+          selected ? 'opacity-100' : 'opacity-0 group-hover/tab:opacity-100',
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        aria-label="Close tab"
+      >
+        <XIcon className="size-3" />
+      </button>
+    </div>
+  );
 }

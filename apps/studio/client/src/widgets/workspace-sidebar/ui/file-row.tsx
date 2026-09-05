@@ -155,7 +155,7 @@ export function FileRow({
             render={
               <button
                 type="button"
-                className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+                className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 pl-2 text-left group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
                 onClick={handleClick}
                 onDoubleClick={handleDoubleClick}
               />

@@ -1,11 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
-import { refreshThread, scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
-import { connectThreadRun, retryRun } from '@/features/send-message';
+import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
+import { retryRun } from '@/features/send-message';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -17,6 +17,7 @@ import {
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
 import { splitRuns } from '../model/run-groups';
+import { useSyncedThread } from '../model/thread-sync';
 
 import { AssistantMessageView, FailedMessageView } from './agent-turn';
 import { ChatSkeleton } from './chat-skeleton';
@@ -29,7 +30,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
   const events = useThreadEvents(threadId);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
-  const synced = useThreadSync(threadId);
+  const synced = useSyncedThread(threadId, agent.workspaceId);
   const failures = useSessionStore(
     useShallow((state) => {
       const next = state.failures.filter((item) => item.threadId === threadId);
@@ -45,7 +46,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     return (
       <>
         <EmptyThreadReadSync threadId={threadId} />
-        <ThreadEmpty agent={agent} />
+        <ThreadEmpty agent={agent} threadId={threadId} />
       </>
     );
   }
@@ -100,38 +101,6 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     </MessageScrollerProvider>
   );
 }
-
-function useThreadSync(threadId: string): boolean {
-  const [synced, setSynced] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setSynced(false);
-    void refreshThread(threadId)
-      .then((record) => {
-        if (cancelled || !record) {
-          return;
-        }
-        const active = record.activeRun;
-        if (active && !TERMINAL_RUN_STATUSES.has(active.status)) {
-          connectThreadRun(threadId, active.runId);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) {
-          setSynced(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [threadId]);
-
-  return synced;
-}
-
-const TERMINAL_RUN_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
 function EmptyThreadReadSync({ threadId }: { threadId: string }) {
   useEffect(() => {

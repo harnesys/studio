@@ -1,12 +1,12 @@
 import type { SessionEvent } from '@studio/shared';
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
-import { refreshThread, scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
-import { connectThreadRun, retryRun } from '@/features/send-message';
+import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
+import { retryRun } from '@/features/send-message';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -24,6 +24,7 @@ import {
   FailedMessageView,
   splitRuns,
   ThreadEmpty,
+  useSyncedThread,
 } from '@/widgets/chat-transcript';
 
 import { RunDivider } from './run-divider';
@@ -38,11 +39,11 @@ export type ThreadJournalProps = {
   kind: TriggerThreadKind;
 };
 
-export function ThreadJournal({ threadId, agent, kind }: ThreadJournalProps) {
+export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
   const events = useThreadEvents(threadId);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
-  const synced = useThreadSync(threadId);
+  const synced = useSyncedThread(threadId, agent.workspaceId);
   const failures = useSessionStore(
     useShallow((state) => {
       const next = state.failures.filter((item) => item.threadId === threadId);
@@ -57,7 +58,7 @@ export function ThreadJournal({ threadId, agent, kind }: ThreadJournalProps) {
     body = (
       <>
         <EmptyThreadReadSync threadId={threadId} />
-        <ThreadEmpty agent={agent} />
+        <ThreadEmpty agent={agent} threadId={threadId} />
       </>
     );
   } else {
@@ -128,38 +129,6 @@ function runTask(events: SessionEvent[]): string {
   const first = events.find((event) => event.type === 'user');
   return first && first.type === 'user' ? first.text : '';
 }
-
-function useThreadSync(threadId: string): boolean {
-  const [synced, setSynced] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setSynced(false);
-    void refreshThread(threadId)
-      .then((record) => {
-        if (cancelled || !record) {
-          return;
-        }
-        const active = record.activeRun;
-        if (active && !TERMINAL_RUN_STATUSES.has(active.status)) {
-          connectThreadRun(threadId, active.runId);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) {
-          setSynced(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [threadId]);
-
-  return synced;
-}
-
-const TERMINAL_RUN_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
 function EmptyThreadReadSync({ threadId }: { threadId: string }) {
   useEffect(() => {

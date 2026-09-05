@@ -11,11 +11,17 @@ import { ThreadJournal } from '@/widgets/thread-journal';
 
 export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: string }) {
   const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
+  const thread = useThreadStore((state) =>
+    tab.kind === 'thread' && tab.threadId
+      ? state.items.find((item) => item.id === tab.threadId)
+      : undefined,
+  );
+  const agent = useAgentStore((state) =>
+    thread ? state.items.find((item) => item.id === thread.agentId) : undefined,
+  );
   const isHydrating = Boolean(workspaceId && hydratedWorkspaceId !== workspaceId);
 
   if (tab.kind === 'thread' && tab.threadId) {
-    const thread = useThreadStore.getState().byId(tab.threadId);
-    const agent = useAgentStore.getState().items.find((a) => a.id === thread?.agentId) ?? null;
     if (!thread || !agent || isHydrating) {
       return (
         <div

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
-import { setActiveThreadId, useThreadStore } from '@/entities/thread';
+import { useThreadStore } from '@/entities/thread';
 import { useWorkspaces } from '@/entities/workspace';
 import { watchDesk } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
@@ -53,10 +53,7 @@ export function DeskSync() {
       const thread = threads.find((item) => item.id === threadId);
       if (!thread) {
         void navigate(studioPath.workspace(workspaceId), { replace: true });
-        return;
       }
-      setActiveThreadId(thread.agentId, threadId);
-      useDeskStore.getState().setFocusedThreadId(threadId);
       return;
     }
     if (surface === 'agent' && agentId) {

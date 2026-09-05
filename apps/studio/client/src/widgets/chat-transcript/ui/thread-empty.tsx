@@ -1,5 +1,4 @@
 import { type Agent, agentStarters } from '@/entities/agent';
-import { useSelectedThread } from '@/features/desk';
 import { sendMessage } from '@/features/send-message';
 import {
   CategoryLanding,
@@ -10,8 +9,7 @@ import {
   CategoryLandingTitle,
 } from '@/shared/ui/category-landing';
 
-export function ThreadEmpty({ agent }: { agent: Agent }) {
-  const thread = useSelectedThread();
+export function ThreadEmpty({ agent, threadId }: { agent: Agent; threadId: string }) {
   const starters = agentStarters(agent);
 
   return (
@@ -28,9 +26,7 @@ export function ThreadEmpty({ agent }: { agent: Agent }) {
             <CategoryLandingStarter
               key={starter}
               onClick={() => {
-                if (thread) {
-                  void sendMessage({ threadId: thread.id, content: starter });
-                }
+                void sendMessage({ threadId, content: starter });
               }}
             >
               {starter}

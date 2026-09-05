@@ -1,12 +1,7 @@
-import { MessageSquarePlusIcon, MoreHorizontalIcon } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { MoreHorizontalIcon } from 'lucide-react';
 import type { Agent, AgentStatus } from '@/entities/agent';
 import { statusLabel } from '@/entities/agent';
-import { setActiveThreadId } from '@/entities/thread';
-import { useAgentHasUnread, useAgentLiveStatus, useDeskStore } from '@/features/desk';
-import { useIdeStore } from '@/features/ide';
-import { openNewThread } from '@/features/switch-thread';
-import { studioPath } from '@/shared/config/routes';
+import { useAgentHasUnread, useAgentLiveStatus } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
@@ -33,7 +28,6 @@ export function AgentCard({ agent, selected, onSelect, onSettings, onDelete }: A
   const iconMode = state === 'collapsed' && !isMobile;
   const status = useAgentLiveStatus(agent.id);
   const hasUnread = useAgentHasUnread(agent.id);
-  const navigate = useNavigate();
 
   return (
     <div
@@ -112,24 +106,6 @@ export function AgentCard({ agent, selected, onSelect, onSettings, onDelete }: A
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
           <DropdownMenuGroup>
-            <DropdownMenuItem
-              onClick={() => {
-                void openNewThread(agent.id, agent.workspaceId).then((threadId) => {
-                  if (!threadId) {
-                    return;
-                  }
-                  useIdeStore.getState().openThread(agent.workspaceId, agent.id, threadId);
-                  useDeskStore.getState().setFocusedThreadId(threadId);
-                  setActiveThreadId(agent.id, threadId);
-                  void navigate(
-                    studioPath.thread(agent.workspaceId, threadId, { kind: 'agent', id: agent.id }),
-                  );
-                });
-              }}
-            >
-              <MessageSquarePlusIcon />
-              New thread
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={onSettings}>Settings</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               Delete

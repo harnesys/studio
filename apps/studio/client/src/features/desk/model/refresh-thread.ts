@@ -3,12 +3,27 @@ import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread } from '@/shared/api';
 
-export async function refreshThread(threadId: string): Promise<ThreadRecord | null> {
+const inflight = new Map<string, Promise<ThreadRecord | null>>();
+
+export function refreshThread(threadId: string): Promise<ThreadRecord | null> {
   if (useSessionStore.getState().activeRuns[threadId]) {
-    return null;
+    return Promise.resolve(null);
   }
-  const record = await getThread(threadId);
-  useThreadStore.getState().upsert(toClientThread(record));
-  useSessionStore.getState().replaceEvents(record.id, record.events);
-  return record;
+  const running = inflight.get(threadId);
+  if (running) {
+    return running;
+  }
+  const task = getThread(threadId)
+    .then((record) => {
+      useThreadStore.getState().upsert(toClientThread(record));
+      useSessionStore.getState().replaceEvents(record.id, record.events);
+      return record;
+    })
+    .finally(() => {
+      if (inflight.get(threadId) === task) {
+        inflight.delete(threadId);
+      }
+    });
+  inflight.set(threadId, task);
+  return task;
 }

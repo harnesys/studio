@@ -263,6 +263,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     deskEvents,
     getThread,
     semanticSessions: memory.semantic,
+    memory,
   });
 
   app.onError(handleHttpError);

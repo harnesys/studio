@@ -3,6 +3,7 @@ import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import type { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
+import { createMemoryTools } from '../application/host-tools/create-memory-tools.ts';
 import { createPlanTools } from '../application/host-tools/create-plan-tools.ts';
 import { createScheduleTools } from '../application/host-tools/create-schedule-tools.ts';
 import { createWebhookTools } from '../application/host-tools/create-webhook-tools.ts';
@@ -29,6 +30,7 @@ import type { SemanticSessionCleanup } from '../domain/semantic-session.port.ts'
 import type { ThreadRepository } from '../domain/thread.port.ts';
 import type { WebhookRepository } from '../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
+import type { StudioMemoryPorts } from './wire-memory.ts';
 
 export type WireHostToolsDeps = {
   db: StudioDb;
@@ -46,6 +48,7 @@ export type WireHostToolsDeps = {
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
   semanticSessions?: SemanticSessionCleanup;
+  memory: StudioMemoryPorts;
 };
 
 export function wireHostTools(deps: WireHostToolsDeps): void {
@@ -118,6 +121,14 @@ export function wireHostTools(deps: WireHostToolsDeps): void {
         attachmentsFs: deps.attachmentsFs,
         deskEvents: deps.deskEvents,
       }),
+    }),
+    ...createMemoryTools({
+      pin: deps.memory.pin,
+      semantic: deps.memory.semantic,
+      episodic: deps.memory.episodic,
+      knowledge: deps.memory.knowledge,
+      workspaces: deps.workspaces,
+      agents: deps.agents,
     }),
   ];
   deps.workspaceHarnesys.setExtraTools(extraTools);

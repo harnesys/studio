@@ -427,6 +427,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const bindingsToTry = [binding, ...fallbackBindings];
       let lastError: unknown;
       let res: LlmResult | undefined;
+      let usedModel = '';
+      let startedAt = 0;
       for (let attempt = 0; attempt < bindingsToTry.length; attempt++) {
         const currentBinding = bindingsToTry[attempt];
         if (!currentBinding) {
@@ -434,6 +436,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         }
         try {
           await commit('running', 'model.requested', 'recorded');
+          usedModel = currentBinding.model.name;
+          startedAt = Date.now();
           const stream = runLlmGenerate(
             {
               type: 'llm:generate',
@@ -576,6 +580,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         }
       }
       const completedMeta: Record<string, unknown> = {};
+      if (usedModel) {
+        completedMeta.model = usedModel;
+      }
+      if (startedAt > 0) {
+        completedMeta.durationMs = Date.now() - startedAt;
+      }
       if (res.text) {
         completedMeta.text = res.text;
       }

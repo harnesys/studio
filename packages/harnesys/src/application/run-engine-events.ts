@@ -1,7 +1,64 @@
 import type { Attachment } from '../domain/attachment.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { PendingSessionEvent } from '../ports/run-event-store.ts';
-import type { SessionEvent } from '../ports/session.ts';
+import type { ModelUsage, SessionEvent } from '../ports/session.ts';
+
+function num(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function normalizeModelUsage(raw: unknown, meta?: Record<string, unknown>): ModelUsage | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const u = raw as Record<string, unknown>;
+  const inputDetails = u.inputTokenDetails as Record<string, unknown> | undefined;
+  const outputDetails = u.outputTokenDetails as Record<string, unknown> | undefined;
+  const detailSum =
+    (num(inputDetails?.noCacheTokens) ?? 0) +
+    (num(inputDetails?.cacheReadTokens) ?? 0) +
+    (num(inputDetails?.cacheWriteTokens) ?? 0);
+  const promptTokens =
+    num(u.inputTokens) ??
+    num(u.input) ??
+    num(u.promptTokens) ??
+    num(u.prompt_tokens) ??
+    (detailSum > 0 ? detailSum : undefined);
+  const generatedTokens =
+    num(u.outputTokens) ?? num(u.output) ?? num(u.generatedTokens) ?? num(u.completion_tokens);
+  if (promptTokens === undefined && generatedTokens === undefined) {
+    return null;
+  }
+  const model = typeof meta?.model === 'string' && meta.model ? meta.model : '';
+  const usage: ModelUsage = {
+    model,
+    promptTokens: promptTokens ?? 0,
+    generatedTokens: generatedTokens ?? 0,
+  };
+  const total = num(u.totalTokens) ?? num(u.total_tokens);
+  if (total !== undefined) {
+    usage.totalTokens = total;
+  }
+  const reasoning =
+    num(outputDetails?.reasoningTokens) ?? num(u.reasoningTokens) ?? num(u.reasoning);
+  if (reasoning !== undefined) {
+    usage.reasoningTokens = reasoning;
+  }
+  const cacheRead =
+    num(inputDetails?.cacheReadTokens) ?? num(u.cacheRead) ?? num(u.cachedInputTokens);
+  if (cacheRead !== undefined) {
+    usage.cacheReadTokens = cacheRead;
+  }
+  const cacheWrite = num(inputDetails?.cacheWriteTokens) ?? num(u.cacheWrite);
+  if (cacheWrite !== undefined) {
+    usage.cacheWriteTokens = cacheWrite;
+  }
+  const durationMs = num(meta?.durationMs) ?? num(meta?.ms);
+  if (durationMs !== undefined) {
+    usage.durationMs = durationMs;
+  }
+  return usage;
+}
 
 export function eventToSessionEvent(ev: Event): SessionEvent | null {
   const t = ev.type;
@@ -101,7 +158,12 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
     return { type: 'file', file: m?.file ?? m };
   }
   if (t === 'model.completed') {
-    return null;
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const usage = normalizeModelUsage(m?.usage, m);
+    if (!usage) {
+      return null;
+    }
+    return { type: 'model.usage', usage };
   }
   if (t === 'tool.completed' || t === 'tool.intent') {
     const m = ev.metadata as Record<string, unknown> | undefined;

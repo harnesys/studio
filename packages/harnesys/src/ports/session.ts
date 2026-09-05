@@ -17,6 +17,17 @@ export type SendInput =
       origin?: string;
     };
 
+export type ModelUsage = {
+  model: string;
+  promptTokens: number;
+  generatedTokens: number;
+  totalTokens?: number;
+  reasoningTokens?: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  durationMs?: number;
+};
+
 export type SessionEvent =
   | {
       type: 'user';
@@ -65,6 +76,7 @@ export type SessionEvent =
       runId?: string;
     }
   | { type: 'run.started'; attempt: number; seq?: number; runId?: string }
+  | { type: 'model.usage'; usage: ModelUsage; seq?: number; runId?: string }
   | { type: 'run.completed'; text?: string; seq?: number; runId?: string }
   | { type: 'run.cancelled'; reason: string; seq?: number; runId?: string }
   | { type: 'run.failed'; message: string; seq?: number; runId?: string }

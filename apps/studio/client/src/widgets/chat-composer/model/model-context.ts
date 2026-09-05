@@ -3,14 +3,38 @@ import type { MessageUsage } from '@/entities/session';
 
 import { findModel } from './model-input';
 
-/** One MessageUsage per LLM generation. Stubbed — SessionEvent doesn't carry step metadata. */
-export function generationUsages(_events: SessionEvent[]): MessageUsage[] {
-  return [];
+/** One MessageUsage per LLM generation, read from persisted model.usage events. */
+export function generationUsages(events: SessionEvent[]): MessageUsage[] {
+  const out: MessageUsage[] = [];
+  for (const event of events) {
+    if (event.type !== 'model.usage') {
+      continue;
+    }
+    const usage = event.usage;
+    out.push({
+      model: usage.model,
+      promptTokens: usage.promptTokens,
+      generatedTokens: usage.generatedTokens,
+      contextTokens: 0,
+      durationMs: usage.durationMs ?? 0,
+      tools: [],
+      cacheReadTokens: usage.cacheReadTokens,
+      cacheWriteTokens: usage.cacheWriteTokens,
+      reasoningTokens: usage.reasoningTokens,
+    });
+  }
+  return out;
 }
 
-/** Usages after the last human entry (current turn). Stubbed — SessionEvent doesn't carry step metadata. */
-export function turnGenerationUsages(_events: SessionEvent[]): MessageUsage[] {
-  return [];
+/** Usages after the last human entry (current turn). */
+export function turnGenerationUsages(events: SessionEvent[]): MessageUsage[] {
+  let lastUser = -1;
+  for (let i = 0; i < events.length; i++) {
+    if (events[i]?.type === 'user') {
+      lastUser = i;
+    }
+  }
+  return generationUsages(lastUser < 0 ? events : events.slice(lastUser + 1));
 }
 
 export function modelContextWindow(

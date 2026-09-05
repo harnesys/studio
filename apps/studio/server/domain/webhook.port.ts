@@ -8,6 +8,7 @@ export type Webhook = {
   targetAgentId: string;
   detail: string;
   endpoint: string;
+  threadId: string;
   lastFiredAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -27,6 +28,7 @@ export type WebhookPatch = Partial<{
 export type WebhookRepository = {
   listByWorkspace(workspaceId: string): Webhook[];
   findById(id: string): Webhook | undefined;
+  findByThreadId(threadId: string): Webhook | undefined;
   insert(rec: WebhookInsert): Webhook;
   update(id: string, patch: WebhookPatch): Webhook;
   delete(id: string): void;

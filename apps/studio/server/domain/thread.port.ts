@@ -1,4 +1,4 @@
-export type ThreadKind = 'chat' | 'schedule';
+export type ThreadKind = 'chat' | 'schedule' | 'webhook';
 
 export type Thread = {
   id: string;

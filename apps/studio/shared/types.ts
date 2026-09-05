@@ -202,6 +202,25 @@ export type CreateScheduleResponse = {
   schedule: ScheduleRecord;
   thread: ThreadRecordType;
 };
+
+export type WebhookRecord = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  status: ScheduleStatus;
+  targetAgentId: string;
+  detail: string;
+  endpoint: string;
+  threadId: string;
+  lastFiredAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateWebhookResponse = {
+  webhook: WebhookRecord;
+  thread: ThreadRecordType;
+};
 export type WorkspaceSkill = {
   name: string;
   description: string;
@@ -303,4 +322,6 @@ export type DeskEvent =
   | { type: 'thread'; thread: ThreadRecordType }
   | { type: 'schedule'; schedule: ScheduleRecord }
   | { type: 'schedule-deleted'; id: string }
-  | { type: 'plan'; plan: ThreadPlanRecord };
+  | { type: 'plan'; plan: ThreadPlanRecord }
+  | { type: 'webhook'; webhook: WebhookRecord }
+  | { type: 'webhook-deleted'; id: string };

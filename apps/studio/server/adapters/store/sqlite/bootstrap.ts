@@ -61,7 +61,7 @@ export function bootstrap(db: StudioDb): void {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       last_read_at TEXT NOT NULL,
-      CHECK(kind IN ('chat', 'schedule'))
+      CHECK(kind IN ('chat', 'schedule', 'webhook'))
     );`,
     `CREATE TABLE IF NOT EXISTS snapshots (
       session_id TEXT PRIMARY KEY,
@@ -110,6 +110,7 @@ export function bootstrap(db: StudioDb): void {
       target_agent_id TEXT NOT NULL REFERENCES agents(id),
       detail TEXT NOT NULL DEFAULT '',
       endpoint TEXT NOT NULL,
+      thread_id TEXT NOT NULL REFERENCES threads(id),
       last_fired_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -170,11 +171,55 @@ export function bootstrap(db: StudioDb): void {
     );`,
     `CREATE INDEX IF NOT EXISTS run_events_client_idx ON run_events(thread_id, client_event_id);`,
     `CREATE INDEX IF NOT EXISTS attachments_thread_idx ON attachments(thread_id);`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS webhooks_thread_idx ON webhooks(thread_id);`,
   ];
 
   for (const statement of statements) {
     db.run(sql.raw(statement));
   }
+
+  // Widen threads.kind CHECK for webhook threads (SQLite requires table rebuild).
+  try {
+    const master = db.all<{ sql: string }>(
+      sql`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'threads'`,
+    );
+    const createSql = master[0]?.sql ?? '';
+    if (createSql !== '' && !createSql.includes("'webhook'")) {
+      db.run(sql.raw('PRAGMA foreign_keys = OFF;'));
+      db.run(
+        sql.raw(`CREATE TABLE threads_kind_migration (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE RESTRICT,
+        title TEXT NOT NULL,
+        kind TEXT NOT NULL DEFAULT 'chat',
+        metadata TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        last_read_at TEXT NOT NULL,
+        CHECK(kind IN ('chat', 'schedule', 'webhook'))
+      );`),
+      );
+      db.run(sql.raw('INSERT INTO threads_kind_migration SELECT * FROM threads;'));
+      db.run(sql.raw('DROP TABLE threads;'));
+      db.run(sql.raw('ALTER TABLE threads_kind_migration RENAME TO threads;'));
+      db.run(sql.raw('PRAGMA foreign_keys = ON;'));
+    }
+  } catch {}
+
+  try {
+    db.run(sql.raw('ALTER TABLE webhooks ADD COLUMN thread_id text REFERENCES threads(id);'));
+  } catch {}
+
+  try {
+    db.run(sql.raw('DELETE FROM webhooks WHERE thread_id IS NULL;'));
+  } catch {}
+
+  try {
+    db.run(
+      sql.raw('CREATE UNIQUE INDEX IF NOT EXISTS webhooks_thread_idx ON webhooks(thread_id);'),
+    );
+  } catch {}
 
   // Drop legacy chat tables (big-bang stand wipe; no data migration)
   for (const table of ['steps', 'messages', 'timeline_entries', 'automations']) {

@@ -27,6 +27,15 @@ export class SqliteWebhookRepo implements WebhookRepository {
     return row ? toWebhook(row) : undefined;
   }
 
+  findByThreadId(threadId: string): Webhook | undefined {
+    const row = this.db
+      .select()
+      .from(webhooksTable)
+      .where(eq(webhooksTable.threadId, threadId))
+      .get();
+    return row ? toWebhook(row) : undefined;
+  }
+
   insert(rec: WebhookInsert): Webhook {
     try {
       const row = this.db.insert(webhooksTable).values(rec).returning().get();
@@ -75,6 +84,7 @@ function toWebhook(row: WebhookRow): Webhook {
     targetAgentId: row.targetAgentId,
     detail: row.detail,
     endpoint: row.endpoint,
+    threadId: row.threadId,
     lastFiredAt: row.lastFiredAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

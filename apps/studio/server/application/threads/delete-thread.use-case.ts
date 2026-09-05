@@ -4,6 +4,7 @@ import type { ScheduleRepository } from '../../domain/schedule.port.ts';
 import type { SemanticSessionCleanup } from '../../domain/semantic-session.port.ts';
 import { ConflictError, NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
+import type { WebhookRepository } from '../../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
 export type DeleteThreadRequest = {
@@ -20,6 +21,7 @@ export type DeleteThreadDeps = {
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
   schedules?: ScheduleRepository;
+  webhooks?: WebhookRepository;
   semanticSessions?: SemanticSessionCleanup;
 };
 
@@ -31,8 +33,8 @@ export class DeleteThreadUseCase implements DeleteThreadInput {
     if (!thread) {
       throw new NotFoundError('thread not found');
     }
-    if (thread.kind === 'schedule') {
-      throw new ConflictError('schedule thread belongs to a schedule');
+    if (thread.kind === 'schedule' || thread.kind === 'webhook') {
+      throw new ConflictError('trigger thread belongs to its trigger');
     }
     const workspace = this.deps.workspaces.findById(thread.workspaceId);
     const attachmentRows = this.deps.attachments.listByThread(request.id);
@@ -44,6 +46,10 @@ export class DeleteThreadUseCase implements DeleteThreadInput {
     });
     if (bound) {
       this.deps.schedules?.delete(bound.id);
+    }
+    const boundWebhook = this.deps.webhooks?.findByThreadId(request.id);
+    if (boundWebhook) {
+      this.deps.webhooks?.delete(boundWebhook.id);
     }
     this.deps.threads.delete(request.id);
     if (workspace && attachmentIds.length > 0) {

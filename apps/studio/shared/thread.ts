@@ -2,7 +2,7 @@ import type { Event, RunLifecycleStatus, SessionEvent, Snapshot } from 'harnesys
 
 export type { Event, SessionEvent, Snapshot };
 
-export const THREAD_KINDS = ['chat', 'schedule'] as const;
+export const THREAD_KINDS = ['chat', 'schedule', 'webhook'] as const;
 export type ThreadKind = (typeof THREAD_KINDS)[number];
 
 export type ThreadActiveRun = {

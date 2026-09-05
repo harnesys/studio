@@ -105,7 +105,10 @@ export function AssistantMessageView({
       (ev.type === 'tool' && (ev.phase === 'streaming' || ev.phase === 'requested')) ||
       ev.type === 'ask',
   );
-  const waitingForModel = streaming && !hasDone && !hasInFlight && segments.length === 0;
+  const lastSegment = segments[segments.length - 1];
+  const lastIsUser = lastSegment?.type === 'user';
+  const pendingReply =
+    streaming && !hasDone && !hasInFlight && (segments.length === 0 || lastIsUser);
 
   return (
     <div className="flex flex-col gap-3">
@@ -114,12 +117,12 @@ export function AssistantMessageView({
           <div key={segmentKey(segment, index)} className={segmentSpacing(segments, index)}>
             <TurnSegmentView
               segment={segment}
-              live={streaming && index === segments.length - 1 && !waitingForModel}
+              live={streaming && index === segments.length - 1 && !pendingReply}
               runId={runId}
             />
           </div>
         ))}
-        {waitingForModel ? (
+        {pendingReply ? (
           <div className={segments.length > 0 ? 'mt-3' : undefined}>
             <ActivityRail live={true}>
               <ThinkingLine text="" live={true} />

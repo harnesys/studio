@@ -151,6 +151,9 @@ export function AgentDashboard() {
       setActiveThreadId(agentId, next);
     } else {
       clearActiveThreadId(agentId);
+      if (agent) {
+        void navigate(studioPath.agent(agent.workspaceId, agentId));
+      }
     }
   };
 

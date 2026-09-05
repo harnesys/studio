@@ -205,6 +205,7 @@ export function IdeGroupTabs({
 
   function handleCloseTab(tabId: string) {
     const before = useIdeStore.getState().byWorkspace[workspaceId];
+    const closing = before?.tabs.find((tab) => tab.id === tabId) ?? null;
     const closingActive = before?.activeId === tabId;
     useIdeStore.getState().closeTab(workspaceId, tabId);
     if (!closingActive) {
@@ -212,6 +213,10 @@ export function IdeGroupTabs({
     }
     const after = useIdeStore.getState().byWorkspace[workspaceId];
     if (!after) {
+      if (closing?.kind === 'thread' && closing.agentId) {
+        void navigate(studioPath.agent(workspaceId, closing.agentId));
+        return;
+      }
       void navigate(studioPath.workspace(workspaceId));
       return;
     }

@@ -1,6 +1,11 @@
 import type { SessionEvent } from '@studio/shared';
 
-import { groupToolPairs, type ToolEventPair } from './session-event-groups';
+import {
+  askToolCallId,
+  attachAsksToPairs,
+  groupToolPairs,
+  type ToolEventPair,
+} from './session-event-groups';
 import { toolCaption } from './tool-caption';
 
 export type ToolRunSummary = {
@@ -40,12 +45,18 @@ export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
   const chunks: ActivityChunk[] = [];
   let toolEvents: SessionEvent[] = [];
   let reasoning: (SessionEvent & { type: 'reasoning-delta' })[] = [];
+  const toolCallIds = new Set<string>();
+  for (const ev of events) {
+    if (ev.type === 'tool') {
+      toolCallIds.add(ev.toolCallId);
+    }
+  }
 
   const flushTools = () => {
     if (toolEvents.length === 0) {
       return;
     }
-    const pairs = groupToolPairs(toolEvents);
+    const pairs = attachAsksToPairs(groupToolPairs(toolEvents), events);
     if (pairs.length > 0) {
       chunks.push({ type: 'tools', pairs });
     }
@@ -76,6 +87,11 @@ export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
       continue;
     }
     if (ev.type === 'ask') {
+      const callId = askToolCallId(ev);
+      if (callId && toolCallIds.has(callId)) {
+        flushReasoning();
+        continue;
+      }
       flushTools();
       flushReasoning();
       chunks.push({ type: 'ask', event: ev });

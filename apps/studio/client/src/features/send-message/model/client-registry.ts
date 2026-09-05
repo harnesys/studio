@@ -1,4 +1,5 @@
 import type { SessionEvent } from '@studio/shared';
+import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread } from '@/shared/api';
@@ -8,6 +9,7 @@ import {
   createRunStreamClient,
   type RunStreamClient,
   type RunStreamClientDeps,
+  type RunStreamState,
 } from './run-stream-client';
 
 const clientsByThread = new Map<string, RunStreamClient>();
@@ -37,6 +39,20 @@ export function connectThreadRun(threadId: string, runId: string): void {
     store.startRun(threadId, new AbortController(), runId);
   }
   getClient(threadId).connect(runId);
+}
+
+export function useRunStreamState(threadId: string | null): RunStreamState | null {
+  const [state, setState] = useState<RunStreamState | null>(null);
+  useEffect(() => {
+    if (!threadId) {
+      setState(null);
+      return;
+    }
+    const client = getClient(threadId);
+    setState(client.getState());
+    return client.onTransition(setState);
+  }, [threadId]);
+  return state;
 }
 
 export function maybeMarkUnread(threadId: string): void {

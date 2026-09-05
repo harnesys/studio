@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpIcon, SquareIcon, TriangleAlertIcon } from 'lucide-react';
+import { ArrowUpIcon, LoaderCircleIcon, SquareIcon, TriangleAlertIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useScheduleStore } from '@/entities/schedule';
 import { rollupUsage, useSessionStore } from '@/entities/session';
 import { useSelectedAgent, useSelectedThread, useThreadEvents } from '@/features/desk';
 import { ModelSelect } from '@/features/manage-agent';
-import { pendingHitl } from '@/features/send-message';
+import { pendingHitl, useRunStreamState } from '@/features/send-message';
 import { cancelRun, providersQuery } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { findModelLabel } from '@/shared/lib/model-label';
@@ -47,6 +47,8 @@ export function ChatComposer() {
   const streaming = useSessionStore((state) =>
     thread ? Boolean(state.activeRuns[thread.id]) : false,
   );
+  const streamState = useRunStreamState(thread?.id ?? null);
+  const streamLabel = streaming ? streamStatusLabel(streamState) : null;
   const activeRunId = useSessionStore((state) =>
     thread ? (state.activeRuns[thread.id]?.runId ?? null) : null,
   );
@@ -110,6 +112,12 @@ export function ChatComposer() {
 
   return (
     <div className="relative mx-auto w-full max-w-3xl px-4 pb-4" data-testid="chat-composer">
+      {streamLabel ? (
+        <div className="mb-1.5 flex items-center gap-1.5 px-1 font-mono text-[11px] text-muted-foreground">
+          <LoaderCircleIcon className="size-3 animate-spin text-live" />
+          <span>{streamLabel}</span>
+        </div>
+      ) : null}
       {slashOpen ? (
         <SlashMenu
           commands={slashMatches}
@@ -291,5 +299,24 @@ export function ChatComposer() {
       setValue,
       setPending,
     });
+  }
+}
+
+function streamStatusLabel(state: string | null): string | null {
+  switch (state) {
+    case 'connecting':
+      return 'Connecting…';
+    case 'queued':
+      return 'Queued…';
+    case 'live':
+      return 'Agent is working…';
+    case 'paused':
+      return 'Waiting for input…';
+    case 'reconnecting':
+      return 'Reconnecting…';
+    case 'offline':
+      return 'Connection lost';
+    default:
+      return 'Agent is thinking…';
   }
 }

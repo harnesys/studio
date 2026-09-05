@@ -1,7 +1,7 @@
 import type { RunMode, ThreadAttachment } from '@studio/shared';
 import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
-import { ApiError, sendThreadRun } from '@/shared/api';
+import { ApiError, cancelRun, sendThreadRun } from '@/shared/api';
 import { preview, trace } from '@/shared/lib/trace';
 
 import { connectThreadRun } from './client-registry';
@@ -29,6 +29,11 @@ export async function sendMessage(options: SendMessageOptions) {
   trace('client', 'send start', { threadId, text: preview(trimmed) });
 
   const clientEventId = crypto.randomUUID();
+  const startedHere = !useSessionStore.getState().activeRuns[threadId];
+  const optimisticController = startedHere ? new AbortController() : null;
+  if (startedHere && optimisticController) {
+    useSessionStore.getState().startRun(threadId, optimisticController);
+  }
   useSessionStore.getState().appendEvent(threadId, {
     type: 'user',
     text: trimmed,
@@ -53,6 +58,10 @@ export async function sendMessage(options: SendMessageOptions) {
       mode,
       clientEventId,
     });
+    if (optimisticController?.signal.aborted) {
+      void cancelRun(accepted.runId).catch(() => {});
+      return;
+    }
     useThreadStore.getState().touch(threadId);
     connectThreadRun(threadId, accepted.runId);
     trace('client', 'POST accepted', { runId: accepted.runId, status: accepted.status });
@@ -67,10 +76,16 @@ export async function sendMessage(options: SendMessageOptions) {
       if (body.pendingAskId) {
         // Ask card is already in the transcript and the composer is blocked: drop the bubble.
         useSessionStore.getState().removeEventByClientEventId(threadId, clientEventId);
+        if (startedHere) {
+          useSessionStore.getState().finishRun(threadId);
+        }
         return;
       }
     }
     trace('client', 'send failed', error instanceof Error ? error.message : error);
+    if (startedHere) {
+      useSessionStore.getState().finishRun(threadId);
+    }
     useSessionStore.getState().appendEvent(threadId, {
       type: 'error',
       code: 'send_failed',

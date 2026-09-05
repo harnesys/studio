@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import { useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import { useWorkspaces } from '@/entities/workspace';
 import { watchDesk } from '@/shared/api';
@@ -14,7 +15,7 @@ import { hydrateDesk } from '../model/hydrate-desk';
 export function DeskSync() {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
-  const { surface, threadId, agentId } = useStudioLocation();
+  const { surface, threadId, threadOrigin, originEntityId } = useStudioLocation();
   const workspacesQuery = useWorkspaces();
   const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
 
@@ -52,21 +53,23 @@ export function DeskSync() {
     if (surface === 'thread' && threadId) {
       const thread = threads.find((item) => item.id === threadId);
       if (!thread) {
-        void navigate(studioPath.workspace(workspaceId), { replace: true });
+        // Битый URL треда (все треды удалены): уводим на лендинг агента
+        // с кнопкой New thread, а не на пустой воркспейс.
+        const fallback = fallbackAgentId(workspaceId, threadOrigin, originEntityId);
+        if (fallback) {
+          void navigate(studioPath.agent(workspaceId, fallback), { replace: true });
+        } else {
+          void navigate(studioPath.workspace(workspaceId), { replace: true });
+        }
       }
       return;
-    }
-    if (surface === 'agent' && agentId) {
-      const agentThreads = threads.filter((item) => item.agentId === agentId);
-      if (agentThreads.length === 0) {
-        void navigate(studioPath.workspace(workspaceId), { replace: true });
-      }
     }
   }, [
     workspaceId,
     surface,
     threadId,
-    agentId,
+    threadOrigin,
+    originEntityId,
     hydratedWorkspaceId,
     workspacesQuery.status,
     workspacesQuery.data,
@@ -74,4 +77,23 @@ export function DeskSync() {
   ]);
 
   return null;
+}
+
+function fallbackAgentId(
+  workspaceId: string,
+  threadOrigin: string | null,
+  originEntityId: string | null,
+): string | null {
+  const agents = useAgentStore.getState().items.filter((item) => item.workspaceId === workspaceId);
+  const known = new Set(agents.map((item) => item.id));
+  const focusedThreadId = useDeskStore.getState().focusedThreadId;
+  const focusedThread = focusedThreadId
+    ? (useThreadStore.getState().byId(focusedThreadId) ?? null)
+    : null;
+  const candidates = [
+    threadOrigin === 'agent' ? originEntityId : null,
+    focusedThread?.agentId ?? null,
+    agents.length === 1 ? (agents[0]?.id ?? null) : null,
+  ];
+  return candidates.find((id) => id && known.has(id)) ?? null;
 }

@@ -44,6 +44,8 @@ export function ToolLine({
   const meta = toolMeta(detail);
   const Icon = ICONS[caption.kind];
   const awaitingConfirm = pair.call.phase === 'requested' && !pair.result;
+  const askPrompt = pair.ask?.prompt?.trim() ? pair.ask.prompt.trim() : null;
+  const hasConfirm = Boolean(pair.ask) || awaitingConfirm;
   // Спиннер живёт только пока ран не терминален: запись запроса в истории
   // (confirm отработавшего рана) показывается спокойно.
   const active = runLive && (live || awaitingConfirm);
@@ -62,7 +64,9 @@ export function ToolLine({
           ? ('destructive' as const)
           : ('default' as const),
     })),
-    ...(awaitingConfirm ? [{ text: 'confirm', tone: 'live' as const }] : []),
+    ...(hasConfirm
+      ? [{ text: 'confirm', tone: awaitingConfirm ? ('live' as const) : ('default' as const) }]
+      : []),
   ];
 
   return (
@@ -98,6 +102,11 @@ export function ToolLine({
           ) : null
         }
       >
+        {askPrompt ? (
+          <div className="whitespace-pre-wrap pb-1 text-[12px] text-muted-foreground/90 leading-5">
+            {askPrompt}
+          </div>
+        ) : null}
         <ToolDetailView detail={detail} />
       </ActivityLine>
 

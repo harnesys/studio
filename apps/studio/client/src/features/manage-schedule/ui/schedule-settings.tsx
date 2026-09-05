@@ -11,12 +11,6 @@ import {
   scheduleStatusLabel,
   scheduleStatusTone,
 } from '@/entities/schedule';
-import {
-  CronComposer,
-  humanizeCron,
-  ScheduleThreadField,
-  updateSchedule,
-} from '@/features/manage-schedule';
 import { formatDayTime } from '@/shared/lib/format-clock';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -32,10 +26,14 @@ import {
 } from '@/shared/ui/select';
 import { StatusDot } from '@/shared/ui/status-dot';
 import { Textarea } from '@/shared/ui/textarea';
+import { humanizeCron } from '../model/cron-composer';
+import { draftFrom, isDirty, MODE_LABELS } from '../model/schedule-draft';
+import { updateSchedule } from '../model/update-schedule';
+import { CronComposer } from './cron-composer';
 
 import { MetaChip, SectionLabel } from './schedule-chrome';
-import { draftFrom, isDirty, MODE_LABELS } from './schedule-draft';
 import { ScheduleHistoryFields } from './schedule-history-fields';
+import { ScheduleThreadField } from './schedule-thread-field';
 
 export function ScheduleSettings({ schedule: item }: { schedule: Schedule }) {
   const agents = useAgentStore(

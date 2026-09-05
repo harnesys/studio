@@ -24,8 +24,8 @@ import { ToolsPane } from './tools-pane';
 
 export function SettingsPage() {
   const { category } = useParams();
-  const { settingsProviderId } = useStudioLocation();
-  const { openChat, openSettings } = useStudioNavigation();
+  const { workspaceId, settingsProviderId } = useStudioLocation();
+  const { openWorkspace, openSettings } = useStudioNavigation();
   const active = parseSettingsCategory(category);
   const meta = findSettingsItem(active);
 
@@ -40,7 +40,11 @@ export function SettingsPage() {
             variant="ghost"
             size="sm"
             className="w-full justify-start text-muted-foreground"
-            onClick={() => openChat()}
+            onClick={() => {
+              if (workspaceId) {
+                openWorkspace(workspaceId);
+              }
+            }}
             data-testid="settings-back"
           >
             <ArrowLeftIcon data-icon="inline-start" />

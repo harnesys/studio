@@ -1,7 +1,7 @@
 import { PanelRightIcon } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Outlet } from 'react-router';
-import { useDeskStore, useSelectedAgent } from '@/features/desk';
+import { useDeskStore } from '@/features/desk';
 import { useIdeSync, useIdeTabs } from '@/features/ide';
 import { useStudioLocation } from '@/shared/config/location';
 import { cn } from '@/shared/lib/utils';
@@ -37,9 +37,9 @@ function WorkspaceShell({ children: _children }: { children: ReactNode }) {
   const isFileTab = activeTab?.kind === 'file';
   const inspectorOpen = useDeskStore((state) => state.inspectorOpen);
   const { width: inspectorWidth, dragging, shellRef, onResizeStart } = useInspectorWidth();
-  const agent = useSelectedAgent();
   useIdeSync();
-  const showInspector = inspectorOpen && (Boolean(agent) || Boolean(isFileTab));
+  const showInspector =
+    inspectorOpen && (activeTab?.kind === 'thread' || activeTab?.kind === 'file');
   const hasTabs = tabs.length > 0;
 
   return (

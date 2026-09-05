@@ -19,7 +19,6 @@ import {
 } from '@/shared/api/files';
 import { getGitFileStatus, gitFileStatusQueryKey } from '@/shared/api/git';
 import { knowledgeIndexStateQuery } from '@/shared/api/memory';
-import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { Button } from '@/shared/ui/button';
 import {
@@ -45,8 +44,7 @@ export function FilesSection({
 }) {
   const { state, isMobile } = useSidebar();
   const iconMode = state === 'collapsed' && !isMobile;
-  const { openFiles } = useStudioNavigation();
-  const { surface } = useStudioLocation();
+  const { openFile } = useStudioNavigation();
   const qc = useQueryClient();
   const [createDraft, setCreateDraft] = useState<CreateDraft | null>(null);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
@@ -212,9 +210,7 @@ export function FilesSection({
   const handleOpen = (path: string) => {
     openWorkspaceFile(workspaceId, path);
     useIdeStore.getState().openFile(workspaceId, path);
-    if (surface !== 'chat' && surface !== 'files') {
-      openFiles(workspaceId);
-    }
+    openFile(path);
   };
 
   const handleRefresh = () => {
@@ -275,7 +271,6 @@ export function FilesSection({
       actions={iconMode ? undefined : sectionActions}
       testId="nav-files"
       selected={selected}
-      onHeaderClick={() => openFiles(workspaceId)}
     >
       <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
         {gitTruncated ? (

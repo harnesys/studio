@@ -41,7 +41,7 @@ export function AgentLandingPage() {
     useIdeStore.getState().openThread(agent.workspaceId, agent.id, threadId);
     useDeskStore.getState().setFocusedThreadId(threadId);
     setActiveThreadId(agent.id, threadId);
-    void navigate(studioPath.workspaceThread(agent.workspaceId, agent.id, threadId));
+    void navigate(studioPath.thread(agent.workspaceId, threadId, { kind: 'agent', id: agent.id }));
   };
 
   return (

@@ -40,7 +40,7 @@ export function NoThreads({ agent }: { agent: Agent }) {
               void openNewThread(agent.id, workspaceId).then((threadId) => {
                 if (threadId) {
                   useDeskStore.getState().setFocusedThreadId(threadId);
-                  openThread(workspaceId, agent.id, threadId);
+                  openThread(threadId, { kind: 'agent', id: agent.id }, workspaceId);
                 }
               });
             }}

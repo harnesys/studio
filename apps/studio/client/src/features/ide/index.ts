@@ -12,4 +12,4 @@ export {
   useIdeTabs,
 } from './model/ide.store';
 export { useIdeSync } from './model/ide-sync';
-export { useOpenIde } from './model/open-ide';
+export { useOpenIdeTab } from './model/open-ide';

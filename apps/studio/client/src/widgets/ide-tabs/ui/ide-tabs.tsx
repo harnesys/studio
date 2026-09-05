@@ -1,7 +1,7 @@
 import { EllipsisIcon, PanelLeftIcon, PanelRightIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { setActiveThreadId } from '@/entities/thread';
+import { setActiveThreadId, useThreadStore } from '@/entities/thread';
 import { useDeskStore } from '@/features/desk';
 import { useIdeGroup, useIdeStore, useIdeTabs } from '@/features/ide';
 import { studioPath } from '@/shared/config/routes';
@@ -249,22 +249,17 @@ export function IdeGroupTabs({
 
   function handleSelect(tab: (typeof tabs)[number]) {
     useIdeStore.getState().setActive(workspaceId, tab.id);
-    if (tab.kind === 'thread' && tab.agentId && tab.threadId) {
+    if (tab.kind === 'thread' && tab.threadId) {
+      const thread = useThreadStore.getState().byId(tab.threadId);
       useDeskStore.getState().setFocusedThreadId(tab.threadId);
-      setActiveThreadId(tab.agentId, tab.threadId);
-      void navigate(studioPath.workspaceThread(workspaceId, tab.agentId, tab.threadId));
+      if (thread) {
+        setActiveThreadId(thread.agentId, tab.threadId);
+      }
+      void navigate(studioPath.thread(workspaceId, tab.threadId));
       return;
     }
-    if (tab.kind === 'file') {
-      void navigate(studioPath.files(workspaceId));
-      return;
-    }
-    if (tab.kind === 'schedule' && tab.scheduleId) {
-      void navigate(studioPath.schedule(workspaceId, tab.scheduleId));
-      return;
-    }
-    if (tab.kind === 'webhook' && tab.webhookId) {
-      void navigate(studioPath.webhook(workspaceId, tab.webhookId));
+    if (tab.kind === 'file' && tab.path) {
+      void navigate(studioPath.file(workspaceId, tab.path));
     }
   }
 

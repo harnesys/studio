@@ -14,10 +14,6 @@ import {
 } from '@/features/create-workspace';
 import {
   useDeskStore,
-  useSelectedSchedule,
-  useSelectedWebhook,
-  useSelectSchedule,
-  useSelectWebhook,
   useWorkspaceAgents,
   useWorkspaceSchedules,
   useWorkspaceWebhooks,
@@ -70,11 +66,7 @@ export function WorkspaceSidebar() {
   const agents = useWorkspaceAgents(workspaceId);
   const schedules = useWorkspaceSchedules(workspaceId);
   const webhooks = useWorkspaceWebhooks(workspaceId);
-  const schedule = useSelectedSchedule();
-  const webhook = useSelectedWebhook();
   const { openWorkspace, leaveWorkspace, openSettings } = useStudioNavigation();
-  const openSchedule = useSelectSchedule();
-  const openWebhook = useSelectWebhook();
   const { setOpenMobile } = useSidebar();
   const removeWorkspace = useDeleteWorkspace();
   const navigate = useNavigate();
@@ -161,7 +153,7 @@ export function WorkspaceSidebar() {
           icon={<BotIcon />}
           title="Agents"
           addLabel="New agent"
-          selected={surface === 'chat'}
+          selected={surface === 'thread'}
           onHeaderClick={() => {
             if (workspaceId) {
               openWorkspace(workspaceId);
@@ -177,7 +169,10 @@ export function WorkspaceSidebar() {
               if (result) {
                 useIdeStore.getState().openThread(workspaceId, result.agent.id, result.thread.id);
                 await navigate(
-                  studioPath.workspaceThread(workspaceId, result.agent.id, result.thread.id),
+                  studioPath.thread(workspaceId, result.thread.id, {
+                    kind: 'agent',
+                    id: result.agent.id,
+                  }),
                 );
               }
             });
@@ -207,7 +202,9 @@ export function WorkspaceSidebar() {
                       useIdeStore.getState().openThread(workspaceId, item.id, target.id);
                       useDeskStore.getState().setFocusedThreadId(target.id);
                       setActiveThreadId(item.id, target.id);
-                      void navigate(studioPath.workspaceThread(workspaceId, item.id, target.id));
+                      void navigate(
+                        studioPath.thread(workspaceId, target.id, { kind: 'agent', id: item.id }),
+                      );
                     } else {
                       void createThreadRecord({ workspaceId, agentId: item.id }).then((record) => {
                         const thread = toClientThread(record);
@@ -215,7 +212,12 @@ export function WorkspaceSidebar() {
                         useIdeStore.getState().openThread(workspaceId, item.id, thread.id);
                         useDeskStore.getState().setFocusedThreadId(thread.id);
                         setActiveThreadId(item.id, thread.id);
-                        void navigate(studioPath.workspaceThread(workspaceId, item.id, thread.id));
+                        void navigate(
+                          studioPath.thread(workspaceId, thread.id, {
+                            kind: 'agent',
+                            id: item.id,
+                          }),
+                        );
                       });
                     }
                     setOpenMobile(false);
@@ -246,9 +248,6 @@ export function WorkspaceSidebar() {
           workspaceId={workspaceId}
           agents={agents}
           schedules={schedules}
-          selectedScheduleId={schedule?.id ?? null}
-          selected={surface === 'schedules'}
-          onOpen={openSchedule}
           onSelectDone={() => setOpenMobile(false)}
         />
 
@@ -256,13 +255,10 @@ export function WorkspaceSidebar() {
           workspaceId={workspaceId}
           agents={agents}
           webhooks={webhooks}
-          selectedWebhookId={webhook?.id ?? null}
-          selected={surface === 'webhooks'}
-          onOpen={openWebhook}
           onSelectDone={() => setOpenMobile(false)}
         />
 
-        {workspaceId && <FilesSection workspaceId={workspaceId} selected={surface === 'files'} />}
+        {workspaceId && <FilesSection workspaceId={workspaceId} selected={false} />}
       </SidebarContent>
 
       {workspaceId ? (

@@ -7,6 +7,7 @@ export const SIDEBAR_SECTION_STORAGE_PREFIX = 'harnesys:sidebar-section:';
 export const FILE_PANE_RATIO_STORAGE_KEY = 'harnesys.file-pane-ratio';
 export const INSPECTOR_WIDTH_STORAGE_KEY = 'harnesys.inspector-width';
 export const IDE_WORKSPACES_STORAGE_KEY = 'harnesys.ide-workspaces';
+export const SIDEBAR_ACCORDION_STORAGE_KEY = 'harnesys.sidebar-accordion';
 export const SCALE_STORAGE_KEY = 'ui-scale';
 export const ACCENT_STORAGE_KEY = 'ui-accent';
 

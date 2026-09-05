@@ -143,7 +143,7 @@ export function AssistantMessageView({
               void branchThread(runId, agent.id, thread.id, workspaceId).then((nextId) => {
                 if (nextId) {
                   useDeskStore.getState().setFocusedThreadId(nextId);
-                  openThread(workspaceId, agent.id, nextId);
+                  openThread(nextId, { kind: 'agent', id: agent.id }, workspaceId);
                 }
               });
             }}

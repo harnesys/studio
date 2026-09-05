@@ -43,7 +43,7 @@ export function InspectorThreadsPane({ agent }: { agent: Agent | null }) {
                 useIdeStore.getState().openThread(agent.workspaceId, agent.id, threadId);
                 useDeskStore.getState().setFocusedThreadId(threadId);
                 setActiveThreadId(agent.id, threadId);
-                void navigate(studioPath.workspaceThread(agent.workspaceId, agent.id, threadId));
+                void navigate(studioPath.thread(agent.workspaceId, threadId));
                 useDeskStore.getState().setInspectorTab('threads');
               }
             });
@@ -68,7 +68,7 @@ export function InspectorThreadsPane({ agent }: { agent: Agent | null }) {
                   useIdeStore.getState().openThread(agent.workspaceId, agent.id, thread.id);
                   useDeskStore.getState().setFocusedThreadId(thread.id);
                   setActiveThreadId(agent.id, thread.id);
-                  void navigate(studioPath.workspaceThread(agent.workspaceId, agent.id, thread.id));
+                  void navigate(studioPath.thread(agent.workspaceId, thread.id));
                 }}
               >
                 <span className="flex items-center gap-1.5 truncate font-medium text-xs">

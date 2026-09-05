@@ -1,7 +1,7 @@
 import { Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
 import type { Schedule } from '@/entities/schedule';
-import { useSelectThread } from '@/features/desk';
 import { useIdeStore } from '@/features/ide';
 import {
   confirmDeleteSchedule,
@@ -9,7 +9,7 @@ import {
   deleteSchedule,
   openCreateScheduleDialog,
 } from '@/features/manage-schedule';
-import { useStudioNavigation } from '@/shared/config/navigation';
+import { studioPath } from '@/shared/config/routes';
 import { RailSection } from './rail-section';
 import { ScheduleRow } from './schedule-row';
 
@@ -17,9 +17,6 @@ type SchedulesSectionProps = {
   workspaceId: string | null;
   agents: Agent[];
   schedules: Schedule[];
-  selectedScheduleId: string | null;
-  selected: boolean;
-  onOpen: (workspaceId: string, scheduleId: string) => void;
   onSelectDone: () => void;
 };
 
@@ -27,13 +24,9 @@ export function SchedulesSection({
   workspaceId,
   agents,
   schedules,
-  selectedScheduleId,
-  selected,
-  onOpen,
   onSelectDone,
 }: SchedulesSectionProps) {
-  const { openSchedules } = useStudioNavigation();
-  const selectThread = useSelectThread();
+  const navigate = useNavigate();
 
   const create = () => {
     void openCreateScheduleDialog(agents).then(async (draft) => {
@@ -42,8 +35,11 @@ export function SchedulesSection({
       }
       const created = await createSchedule(workspaceId, draft);
       if (created) {
-        useIdeStore.getState().openSchedule(workspaceId, created.id);
-        onOpen(workspaceId, created.id);
+        useIdeStore.getState().openThread(workspaceId, created.targetAgentId, created.threadId);
+        void navigate(
+          studioPath.thread(workspaceId, created.threadId, { kind: 'scheduler', id: created.id }),
+        );
+        onSelectDone();
       }
     });
   };
@@ -54,13 +50,6 @@ export function SchedulesSection({
       icon={<Calendar />}
       title="Schedules"
       addLabel="New schedule"
-      selected={selected}
-      onHeaderClick={() => {
-        if (workspaceId) {
-          openSchedules(workspaceId);
-          onSelectDone();
-        }
-      }}
       onAdd={create}
       testId="nav-schedules"
     >
@@ -84,18 +73,16 @@ export function SchedulesSection({
             <ScheduleRow
               key={item.id}
               schedule={item}
-              selected={item.id === selectedScheduleId && selected}
-              onSelect={(waiting) => {
+              selected={false}
+              onSelect={() => {
                 if (workspaceId) {
-                  if (waiting) {
-                    useIdeStore
-                      .getState()
-                      .openThread(workspaceId, item.targetAgentId, item.threadId);
-                    selectThread(workspaceId, item.targetAgentId, item.threadId);
-                  } else {
-                    useIdeStore.getState().openSchedule(workspaceId, item.id);
-                    onOpen(workspaceId, item.id);
-                  }
+                  useIdeStore.getState().openThread(workspaceId, item.targetAgentId, item.threadId);
+                  void navigate(
+                    studioPath.thread(workspaceId, item.threadId, {
+                      kind: 'scheduler',
+                      id: item.id,
+                    }),
+                  );
                 }
                 onSelectDone();
               }}
@@ -106,10 +93,7 @@ export function SchedulesSection({
                   }
                   const removed = await deleteSchedule(workspaceId, item.id);
                   if (removed) {
-                    useIdeStore.getState().closeByEntity(workspaceId, 'schedule', item.id);
-                    if (item.id === selectedScheduleId) {
-                      openSchedules(workspaceId);
-                    }
+                    useIdeStore.getState().closeByEntity(workspaceId, 'thread', item.threadId);
                   }
                 });
               }}

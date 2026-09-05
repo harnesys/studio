@@ -5,32 +5,22 @@ import { useStudioLocation } from '@/shared/config/location';
 import { useIdeStore } from './ide.store';
 
 export function useIdeSync() {
-  const { workspaceId, agentId, threadId, scheduleId, webhookId } = useStudioLocation();
+  const { workspaceId, threadId, filePath } = useStudioLocation();
 
   useEffect(() => {
     if (!workspaceId) {
       return;
     }
-    if (threadId && agentId) {
+    if (threadId) {
       const thread = useThreadStore.getState().byId(threadId);
       if (thread) {
-        useIdeStore.getState().openThread(workspaceId, agentId, threadId);
+        useIdeStore.getState().openThread(workspaceId, thread.agentId, threadId);
         useDeskStore.getState().setFocusedThreadId(threadId);
-        setActiveThreadId(agentId, threadId);
-      }
-    } else if (agentId && !threadId) {
-      const latest = useThreadStore.getState().latestForAgent(agentId);
-      if (latest) {
-        useIdeStore.getState().openThread(workspaceId, agentId, latest.id);
-        useDeskStore.getState().setFocusedThreadId(latest.id);
-        setActiveThreadId(agentId, latest.id);
+        setActiveThreadId(thread.agentId, threadId);
       }
     }
-    if (scheduleId) {
-      useIdeStore.getState().openSchedule(workspaceId, scheduleId);
+    if (filePath) {
+      useIdeStore.getState().openFile(workspaceId, filePath);
     }
-    if (webhookId) {
-      useIdeStore.getState().openWebhook(workspaceId, webhookId);
-    }
-  }, [workspaceId, agentId, threadId, scheduleId, webhookId]);
+  }, [workspaceId, threadId, filePath]);
 }

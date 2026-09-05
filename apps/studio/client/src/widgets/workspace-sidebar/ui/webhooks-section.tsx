@@ -1,5 +1,7 @@
 import { Earth } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
+import { useThreadStore } from '@/entities/thread';
 import { useWebhookStore, type Webhook } from '@/entities/webhook';
 import { useIdeStore } from '@/features/ide';
 import {
@@ -7,7 +9,8 @@ import {
   createWebhook,
   openCreateWebhookDialog,
 } from '@/features/manage-webhook';
-import { useStudioNavigation } from '@/shared/config/navigation';
+import { deleteWebhookRecord } from '@/shared/api';
+import { studioPath } from '@/shared/config/routes';
 import { RailSection } from './rail-section';
 import { WebhookRow } from './webhook-row';
 
@@ -15,9 +18,6 @@ type WebhooksSectionProps = {
   workspaceId: string | null;
   agents: Agent[];
   webhooks: Webhook[];
-  selectedWebhookId: string | null;
-  selected: boolean;
-  onOpen: (workspaceId: string, webhookId: string) => void;
   onSelectDone: () => void;
 };
 
@@ -25,12 +25,19 @@ export function WebhooksSection({
   workspaceId,
   agents,
   webhooks,
-  selectedWebhookId,
-  selected,
-  onOpen,
   onSelectDone,
 }: WebhooksSectionProps) {
-  const { openWebhooks } = useStudioNavigation();
+  const navigate = useNavigate();
+
+  const openWebhook = (item: Webhook) => {
+    if (!workspaceId) {
+      return;
+    }
+    const agentId = useThreadStore.getState().byId(item.threadId)?.agentId;
+    useIdeStore.getState().openThread(workspaceId, agentId ?? item.targetAgentId, item.threadId);
+    void navigate(studioPath.thread(workspaceId, item.threadId, { kind: 'webhook', id: item.id }));
+  };
+
   const create = () => {
     void openCreateWebhookDialog(agents).then(async (draft) => {
       if (!draft || !workspaceId) {
@@ -38,8 +45,8 @@ export function WebhooksSection({
       }
       const created = await createWebhook(workspaceId, draft);
       if (created) {
-        useIdeStore.getState().openWebhook(workspaceId, created.id);
-        onOpen(workspaceId, created.id);
+        openWebhook(created);
+        onSelectDone();
       }
     });
   };
@@ -50,13 +57,6 @@ export function WebhooksSection({
       icon={<Earth />}
       title="Webhooks"
       addLabel="New webhook"
-      selected={selected}
-      onHeaderClick={() => {
-        if (workspaceId) {
-          openWebhooks(workspaceId);
-          onSelectDone();
-        }
-      }}
       onAdd={create}
       testId="nav-webhooks"
     >
@@ -80,22 +80,19 @@ export function WebhooksSection({
             <WebhookRow
               key={item.id}
               webhook={item}
-              selected={item.id === selectedWebhookId && selected}
+              selected={false}
               onSelect={() => {
-                if (workspaceId) {
-                  useIdeStore.getState().openWebhook(workspaceId, item.id);
-                  onOpen(workspaceId, item.id);
-                }
+                openWebhook(item);
                 onSelectDone();
               }}
               onDelete={() => {
-                void confirmDeleteWebhook(item).then((confirmed) => {
-                  if (confirmed) {
-                    useWebhookStore.getState().remove(item.id);
-                    if (workspaceId) {
-                      useIdeStore.getState().closeByEntity(workspaceId, 'webhook', item.id);
-                    }
+                void confirmDeleteWebhook(item).then(async (confirmed) => {
+                  if (!confirmed || !workspaceId) {
+                    return;
                   }
+                  await deleteWebhookRecord(workspaceId, item.id);
+                  useWebhookStore.getState().remove(item.id);
+                  useIdeStore.getState().closeByEntity(workspaceId, 'thread', item.threadId);
                 });
               }}
             />

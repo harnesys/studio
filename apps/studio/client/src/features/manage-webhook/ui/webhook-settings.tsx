@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/entities/agent';
 import type { Webhook, WebhookStatus } from '@/entities/webhook';
-import { useWebhookStore, WEBHOOK_STATUSES, webhookStatusLabel } from '@/entities/webhook';
-import { useSelectedWebhook, useWorkspaceWebhooks } from '@/features/desk';
-import { useStudioLocation } from '@/shared/config/location';
-import { useStudioNavigation } from '@/shared/config/navigation';
+import {
+  toClientWebhook,
+  useWebhookStore,
+  WEBHOOK_STATUSES,
+  webhookStatusLabel,
+} from '@/entities/webhook';
+import { updateWebhookRecord } from '@/shared/api';
 import { formatDayTime } from '@/shared/lib/format-clock';
 import { Button } from '@/shared/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
-import { ScrollArea } from '@/shared/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -20,7 +22,6 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
-import { WebhooksEmpty } from './webhooks-empty';
 
 type WebhookDraft = {
   name: string;
@@ -30,38 +31,7 @@ type WebhookDraft = {
   endpoint: string;
 };
 
-export function WebhooksList() {
-  const webhook = useSelectedWebhook();
-  const { workspaceId } = useStudioLocation();
-  const { openWebhook } = useStudioNavigation();
-  const agents = useAgentStore(
-    useShallow((state) =>
-      workspaceId ? state.items.filter((a) => a.workspaceId === workspaceId) : [],
-    ),
-  );
-  const webhooks = useWorkspaceWebhooks(workspaceId);
-
-  if (!webhook) {
-    return (
-      <WebhooksEmpty
-        workspaceId={workspaceId}
-        agents={agents}
-        webhooks={webhooks}
-        onOpen={openWebhook}
-      />
-    );
-  }
-
-  return (
-    <div className="flex h-full min-h-0 flex-1 flex-col" data-testid="webhooks-list">
-      <ScrollArea className="min-h-0 flex-1">
-        <WebhookSettings key={webhook.id} webhook={webhook} />
-      </ScrollArea>
-    </div>
-  );
-}
-
-function WebhookSettings({ webhook: item }: { webhook: Webhook }) {
+export function WebhookSettings({ webhook: item }: { webhook: Webhook }) {
   const agents = useAgentStore(
     useShallow((state) => state.items.filter((agent) => agent.workspaceId === item.workspaceId)),
   );
@@ -177,8 +147,11 @@ function WebhookSettings({ webhook: item }: { webhook: Webhook }) {
         <Button
           disabled={!dirty || draft.name.trim().length === 0}
           onClick={() => {
-            useWebhookStore.getState().update(item.id, draft);
-            setSaved(true);
+            void (async () => {
+              const record = await updateWebhookRecord(item.workspaceId, item.id, draft);
+              useWebhookStore.getState().upsert(toClientWebhook(record));
+              setSaved(true);
+            })();
           }}
         >
           Save webhook

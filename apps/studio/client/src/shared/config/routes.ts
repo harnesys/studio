@@ -1,37 +1,37 @@
 import { SETTINGS_CATEGORIES, type SettingsCategory } from './settings-nav';
 
-export type StudioSurface = 'chat' | 'schedules' | 'webhooks' | 'files' | 'settings';
+export type StudioSurface = 'home' | 'thread' | 'file' | 'agent' | 'settings';
+
+export type ThreadOrigin = 'agent' | 'scheduler' | 'webhook';
+
+export type ThreadOriginRef = { kind: ThreadOrigin; id: string };
 
 export type StudioLocation = {
   workspaceId: string | null;
   surface: StudioSurface;
-  agentId: string | null;
   threadId: string | null;
-  scheduleId: string | null;
-  webhookId: string | null;
+  threadOrigin: ThreadOrigin | null;
+  originEntityId: string | null;
+  agentId: string | null;
+  filePath: string | null;
   settingsCategory: SettingsCategory;
   settingsProviderId: string | null;
 };
 
+export const STUDIO_THREAD_PATTERN = '/w/:workspaceId/thread/:threadId';
+export const STUDIO_FILE_PATTERN = '/w/:workspaceId/file/*';
 export const STUDIO_AGENT_PATTERN = '/w/:workspaceId/agent/:agentId';
-export const STUDIO_THREAD_PATTERN = '/w/:workspaceId/agent/:agentId/:threadId';
-export const STUDIO_THREADS_PATTERN = '/w/:workspaceId/agent/:agentId/threads';
-export const STUDIO_SCHEDULE_PATTERN = '/w/:workspaceId/schedules/:scheduleId';
-export const STUDIO_WEBHOOK_PATTERN = '/w/:workspaceId/webhooks/:webhookId';
 
 export const studioPath = {
   gate: '/',
   workspace: (workspaceId: string) => `/w/${workspaceId}`,
-  workspaceAgent: (workspaceId: string, agentId: string) => `/w/${workspaceId}/agent/${agentId}`,
-  workspaceThread: (workspaceId: string, agentId: string, threadId: string) =>
-    `/w/${workspaceId}/agent/${agentId}/${threadId}`,
-  threads: (workspaceId: string, agentId: string) => `/w/${workspaceId}/agent/${agentId}/threads`,
-  schedules: (workspaceId: string) => `/w/${workspaceId}/schedules`,
-  schedule: (workspaceId: string, scheduleId: string) =>
-    `/w/${workspaceId}/schedules/${scheduleId}`,
-  webhooks: (workspaceId: string) => `/w/${workspaceId}/webhooks`,
-  webhook: (workspaceId: string, webhookId: string) => `/w/${workspaceId}/webhooks/${webhookId}`,
-  files: (workspaceId: string) => `/w/${workspaceId}/files`,
+  thread: (workspaceId: string, threadId: string, origin?: ThreadOriginRef) => {
+    const base = `/w/${workspaceId}/thread/${threadId}`;
+    return origin ? `${base}?${origin.kind}=${origin.id}` : base;
+  },
+  file: (workspaceId: string, path: string) =>
+    `/w/${workspaceId}/file${path.startsWith('/') ? path : `/${path}`}`,
+  agent: (workspaceId: string, agentId: string) => `/w/${workspaceId}/agent/${agentId}`,
   settings: (workspaceId: string, category?: SettingsCategory, providerId?: string) => {
     if (category === 'providers' && providerId) {
       return `/w/${workspaceId}/settings/providers/${providerId}`;

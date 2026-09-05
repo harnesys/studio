@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router';
 
-import { studioPath } from './routes';
+import { studioPath, type ThreadOriginRef } from './routes';
 import type { SettingsCategory } from './settings-nav';
 
 export function useStudioNavigation() {
@@ -14,39 +14,19 @@ export function useStudioNavigation() {
     leaveWorkspace() {
       void navigate(studioPath.gate);
     },
-    openChat(id: string | null = workspaceId) {
+    openThread(threadId: string, origin?: ThreadOriginRef, id: string | null = workspaceId) {
       if (id) {
-        void navigate(studioPath.workspace(id));
+        void navigate(studioPath.thread(id, threadId, origin));
       }
     },
-    openAgent(workspaceId: string, agentId: string) {
-      void navigate(studioPath.workspaceAgent(workspaceId, agentId));
-    },
-    openThread(workspaceId: string, agentId: string, threadId: string) {
-      void navigate(studioPath.workspaceThread(workspaceId, agentId, threadId));
-    },
-    openThreads(workspaceId: string, agentId: string) {
-      void navigate(studioPath.threads(workspaceId, agentId));
-    },
-    openSchedules(id: string | null = workspaceId) {
+    openFile(path: string, id: string | null = workspaceId) {
       if (id) {
-        void navigate(studioPath.schedules(id));
+        void navigate(studioPath.file(id, path));
       }
     },
-    openSchedule(workspaceId: string, scheduleId: string) {
-      void navigate(studioPath.schedule(workspaceId, scheduleId));
-    },
-    openWebhooks(id: string | null = workspaceId) {
+    openAgentLanding(agentId: string, id: string | null = workspaceId) {
       if (id) {
-        void navigate(studioPath.webhooks(id));
-      }
-    },
-    openWebhook(workspaceId: string, webhookId: string) {
-      void navigate(studioPath.webhook(workspaceId, webhookId));
-    },
-    openFiles(id: string | null = workspaceId) {
-      if (id) {
-        void navigate(studioPath.files(id));
+        void navigate(studioPath.agent(id, agentId));
       }
     },
     openSettings(

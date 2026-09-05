@@ -6,14 +6,10 @@ import { DeskSync } from '@/features/desk';
 import { KnowledgeIndexSync } from '@/features/manage-knowledge-index';
 import { AgentLandingPage } from '@/pages/agent-landing';
 import { SettingsPage } from '@/pages/settings';
-import { ChatWorkspace, WorkspacePage } from '@/pages/workspace';
+import { WorkspacePage } from '@/pages/workspace';
 import { WorkspaceGatePage } from '@/pages/workspace-gate';
 import { resolveStudioEntry, studioPath } from '@/shared/config/routes';
 import { OverlayProvider } from '@/shared/services/overlay';
-import { FilesMain } from '@/widgets/files-main';
-import { SchedulesList } from '@/widgets/schedules-list';
-import { ThreadsList } from '@/widgets/threads-list';
-import { WebhooksList } from '@/widgets/webhooks-list';
 
 function StudioLayout() {
   return (
@@ -71,20 +67,15 @@ const routes: RouteObject[] = [
           {
             element: <WorkspacePage />,
             children: [
-              { index: true, element: <ChatWorkspace /> },
-              { path: 'agent/:agentId/threads', element: <ThreadsList /> },
-              { path: 'agent/:agentId/:threadId', element: <ChatWorkspace /> },
-              { path: 'schedules', element: <SchedulesList /> },
-              { path: 'schedules/:scheduleId', element: <SchedulesList /> },
-              { path: 'webhooks', element: <WebhooksList /> },
-              { path: 'webhooks/:webhookId', element: <WebhooksList /> },
-              { path: 'files', element: <FilesMain /> },
+              { index: true, element: null },
+              { path: 'thread/:threadId', element: null },
+              { path: 'file/*', element: null },
             ],
           },
+          { path: 'agent/:agentId', element: <AgentLandingPage /> },
           { path: 'settings', element: <SettingsPage /> },
           { path: 'settings/:category', element: <SettingsPage /> },
           { path: 'settings/:category/:providerId', element: <SettingsPage /> },
-          { path: 'agent/:agentId', element: <AgentLandingPage /> },
         ],
       },
       { path: '*', element: <Navigate to={studioPath.gate} replace /> },

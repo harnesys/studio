@@ -1,54 +1,58 @@
-import { useMatch, useParams } from 'react-router';
-
-import { parseSettingsCategory, type StudioLocation, type StudioSurface } from './routes';
+import { useMatch, useParams, useSearchParams } from 'react-router';
+import {
+  parseSettingsCategory,
+  type StudioLocation,
+  type StudioSurface,
+  type ThreadOrigin,
+} from './routes';
 import type { SettingsCategory } from './settings-nav';
 
 export function useStudioLocation(): StudioLocation {
   const params = useParams();
+  const [search] = useSearchParams();
   const settingsWithProvider = useMatch('/w/:workspaceId/settings/:category/:providerId');
   const settingsFallback = useMatch('/w/:workspaceId/settings/:category?');
+  const thread = useMatch('/w/:workspaceId/thread/:threadId');
+  const file = useMatch('/w/:workspaceId/file/*');
+  const agent = useMatch('/w/:workspaceId/agent/:agentId');
   const settings = settingsWithProvider ?? settingsFallback;
-  const schedule = useMatch('/w/:workspaceId/schedules/:scheduleId');
-  const schedulesList = useMatch('/w/:workspaceId/schedules');
-  const webhook = useMatch('/w/:workspaceId/webhooks/:webhookId');
-  const webhooksList = useMatch('/w/:workspaceId/webhooks');
-  const files = useMatch('/w/:workspaceId/files');
-  const threadsList = useMatch('/w/:workspaceId/agent/:agentId/threads');
-  let surface: StudioSurface = 'chat';
+
+  let surface: StudioSurface = 'home';
   if (settings) {
     surface = 'settings';
-  } else if (schedule || schedulesList) {
-    surface = 'schedules';
-  } else if (webhook || webhooksList) {
-    surface = 'webhooks';
-  } else if (files) {
-    surface = 'files';
+  } else if (thread) {
+    surface = 'thread';
+  } else if (file) {
+    surface = 'file';
+  } else if (agent) {
+    surface = 'agent';
   }
-  const workspaceId = params.workspaceId ?? null;
-  const agentId = surface === 'chat' ? (params.agentId ?? null) : null;
-  let threadId: string | null = null;
-  if (surface === 'chat' && !threadsList) {
-    if (params.threadId === 'threads') {
-      threadId = null;
-    } else {
-      threadId = params.threadId ?? null;
+
+  let threadOrigin: ThreadOrigin | null = null;
+  let originEntityId: string | null = null;
+  for (const key of ['agent', 'scheduler', 'webhook'] as const) {
+    const value = search.get(key);
+    if (value) {
+      threadOrigin = key;
+      originEntityId = value;
+      break;
     }
   }
-  const scheduleId = surface === 'schedules' ? (schedule?.params.scheduleId ?? null) : null;
-  const webhookId = surface === 'webhooks' ? (webhook?.params.webhookId ?? null) : null;
+
   const settingsCategory: SettingsCategory = parseSettingsCategory(
     settings?.params.category ?? params.category,
   );
-  const settingsProviderId =
-    settingsCategory === 'providers' ? (settingsWithProvider?.params.providerId ?? null) : null;
+
   return {
-    workspaceId,
+    workspaceId: params.workspaceId ?? null,
     surface,
-    agentId,
-    threadId,
-    scheduleId,
-    webhookId,
+    threadId: thread?.params.threadId ?? null,
+    threadOrigin,
+    originEntityId,
+    agentId: agent?.params.agentId ?? null,
+    filePath: file?.params['*'] ? `/${file.params['*']}` : null,
     settingsCategory,
-    settingsProviderId,
+    settingsProviderId:
+      settingsCategory === 'providers' ? (settingsWithProvider?.params.providerId ?? null) : null,
   };
 }

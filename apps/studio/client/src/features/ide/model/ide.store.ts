@@ -3,6 +3,7 @@ import { IDE_WORKSPACES_STORAGE_KEY } from '@/shared/config/constants';
 import {
   closeGroupState,
   closeTabState,
+  collapseLayout,
   createEmptyWorkspace,
   groupOfTab,
   type IdeGroup,
@@ -17,7 +18,7 @@ import {
 
 export { firstGroupOfLayout, type IdeSplitNode, lastGroupOfLayout } from './ide-tree';
 
-export type IdeTabKind = 'thread' | 'file' | 'schedule' | 'webhook';
+export type IdeTabKind = 'thread' | 'file';
 export type IdeTab = {
   id: string;
   kind: IdeTabKind;
@@ -25,8 +26,6 @@ export type IdeTab = {
   agentId?: string;
   threadId?: string;
   path?: string;
-  scheduleId?: string;
-  webhookId?: string;
   dirty?: boolean;
 };
 export type { IdeGroup, IdeSplitSide, IdeWorkspaceState } from './ide-layout';
@@ -35,8 +34,6 @@ type IdeState = { byWorkspace: Record<string, IdeWorkspaceState> };
 type IdeStore = IdeState & {
   openThread: (workspaceId: string, agentId: string, threadId: string) => void;
   openFile: (workspaceId: string, path: string) => void;
-  openSchedule: (workspaceId: string, scheduleId: string) => void;
-  openWebhook: (workspaceId: string, webhookId: string) => void;
   closeTab: (workspaceId: string, tabId: string) => void;
   closeAll: (workspaceId: string) => void;
   setActive: (workspaceId: string, tabId: string) => void;
@@ -56,6 +53,47 @@ type IdeStore = IdeState & {
 
 const EMPTY_WORKSPACE: IdeWorkspaceState = createEmptyWorkspace();
 const EMPTY_IDE_TABS: IdeWorkspaceState = EMPTY_WORKSPACE;
+
+function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | null {
+  const alive = new Set(
+    ws.tabs.filter((t) => t.kind === 'thread' || t.kind === 'file').map((t) => t.id),
+  );
+  if (
+    alive.size === ws.tabs.length &&
+    ws.groups.every((g) => g.tabIds.every((id) => alive.has(id)))
+  ) {
+    return ws;
+  }
+  let layout = ws.layout;
+  const groups: IdeGroup[] = [];
+  for (const group of ws.groups) {
+    const tabIds = group.tabIds.filter((id) => alive.has(id));
+    if (tabIds.length === 0) {
+      if (layout) {
+        layout = collapseLayout(layout, group.id);
+      }
+      continue;
+    }
+    groups.push({
+      ...group,
+      tabIds,
+      activeId:
+        group.activeId && alive.has(group.activeId)
+          ? group.activeId
+          : (tabIds[tabIds.length - 1] ?? null),
+    });
+  }
+  const tabs = ws.tabs.filter((t) => alive.has(t.id));
+  if (groups.length === 0) {
+    return null;
+  }
+  const activeId = ws.activeId && alive.has(ws.activeId) ? ws.activeId : null;
+  const activeGroupId =
+    ws.activeGroupId && groups.some((g) => g.id === ws.activeGroupId)
+      ? ws.activeGroupId
+      : (groups[0]?.id ?? null);
+  return { tabs, activeId, activeGroupId, groups, layout };
+}
 
 function loadPersisted(): IdeState {
   try {
@@ -77,7 +115,10 @@ function loadPersisted(): IdeState {
         Array.isArray((ws as IdeWorkspaceState).groups) &&
         (ws as IdeWorkspaceState).layout
       ) {
-        valid[id] = ws as IdeWorkspaceState;
+        const sanitized = sanitizeWorkspace(ws as IdeWorkspaceState);
+        if (sanitized) {
+          valid[id] = sanitized;
+        }
       }
     }
     return { byWorkspace: valid };
@@ -129,18 +170,6 @@ export const useIdeStore = create<IdeStore>((set) => {
       set((state) => {
         const id = tabIdFor('file', path);
         const tab: IdeTab = { id, kind: 'file', workspaceId, path, dirty: false };
-        return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
-      }),
-    openSchedule: (workspaceId, scheduleId) =>
-      set((state) => {
-        const id = tabIdFor('schedule', scheduleId);
-        const tab: IdeTab = { id, kind: 'schedule', workspaceId, scheduleId };
-        return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
-      }),
-    openWebhook: (workspaceId, webhookId) =>
-      set((state) => {
-        const id = tabIdFor('webhook', webhookId);
-        const tab: IdeTab = { id, kind: 'webhook', workspaceId, webhookId };
         return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
       }),
     closeTab: (workspaceId, tabId) =>

@@ -57,7 +57,10 @@ export function IdeHome() {
                 }
                 useIdeStore.getState().openThread(workspaceId, result.agent.id, result.thread.id);
                 void navigate(
-                  studioPath.workspaceThread(workspaceId, result.agent.id, result.thread.id),
+                  studioPath.thread(workspaceId, result.thread.id, {
+                    kind: 'agent',
+                    id: result.agent.id,
+                  }),
                 );
               });
             }}
@@ -73,8 +76,15 @@ export function IdeHome() {
                 }
                 const schedule = await createSchedule(workspaceId, draft);
                 if (schedule) {
-                  useIdeStore.getState().openSchedule(workspaceId, schedule.id);
-                  void navigate(studioPath.schedule(workspaceId, schedule.id));
+                  useIdeStore
+                    .getState()
+                    .openThread(workspaceId, schedule.targetAgentId, schedule.threadId);
+                  void navigate(
+                    studioPath.thread(workspaceId, schedule.threadId, {
+                      kind: 'scheduler',
+                      id: schedule.id,
+                    }),
+                  );
                 }
               });
             }}
@@ -90,8 +100,15 @@ export function IdeHome() {
                 }
                 const created = await createWebhook(workspaceId, draft);
                 if (created) {
-                  useIdeStore.getState().openWebhook(workspaceId, created.id);
-                  void navigate(studioPath.webhook(workspaceId, created.id));
+                  useIdeStore
+                    .getState()
+                    .openThread(workspaceId, created.targetAgentId, created.threadId);
+                  void navigate(
+                    studioPath.thread(workspaceId, created.threadId, {
+                      kind: 'webhook',
+                      id: created.id,
+                    }),
+                  );
                 }
               });
             }}
@@ -119,7 +136,7 @@ export function IdeHome() {
                   try {
                     await createWorkspaceFile(workspaceId, { path: name.trim(), kind: 'file' });
                     useIdeStore.getState().openFile(workspaceId, name.trim());
-                    void navigate(studioPath.files(workspaceId));
+                    void navigate(studioPath.file(workspaceId, name.trim()));
                   } catch {}
                 });
             }}

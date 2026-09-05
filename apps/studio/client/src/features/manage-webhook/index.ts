@@ -4,3 +4,4 @@ export {
   CreateWebhookDialog,
   openCreateWebhookDialog,
 } from './ui/create-webhook-dialog';
+export { WebhookSettings } from './ui/webhook-settings';

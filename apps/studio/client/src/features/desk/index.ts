@@ -7,11 +7,7 @@ export {
   type WorkspaceOpenFiles,
 } from './model/desk.store';
 export { scheduleMarkThreadRead } from './model/mark-thread-read';
-export { useOpenAgent } from './model/open-agent';
 export { refreshThread } from './model/refresh-thread';
-export { useSelectSchedule } from './model/select-schedule';
-export { useSelectThread } from './model/select-thread';
-export { useSelectWebhook } from './model/select-webhook';
 export {
   useAgentHasUnread,
   useAgentLiveStatus,
@@ -22,9 +18,7 @@ export {
   useDesk,
   useDeskSelection,
   useSelectedAgent,
-  useSelectedSchedule,
   useSelectedThread,
-  useSelectedWebhook,
   useThreadEvents,
   useWorkspaceAgents,
   useWorkspaceSchedules,

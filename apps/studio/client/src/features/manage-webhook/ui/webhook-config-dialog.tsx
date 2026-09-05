@@ -56,8 +56,8 @@ export function WebhookConfigDialog({
           value: thread.id,
           label: thread.title.trim() || 'Untitled',
         })),
-        ...(webhook.threadId && !freeThreads.some((thread) => thread.id === webhook.threadId)
-          ? [{ value: webhook.threadId, label: 'Current thread' }]
+        ...(draft.threadId && !freeThreads.some((thread) => thread.id === draft.threadId)
+          ? [{ value: draft.threadId, label: 'Current thread' }]
           : []),
       ]
     : [
@@ -122,7 +122,7 @@ export function WebhookConfigDialog({
                 setDraft({
                   ...draft,
                   targetAgentId: value,
-                  threadId: webhook ? draft.threadId : undefined,
+                  threadId: undefined,
                 });
               }
             }}

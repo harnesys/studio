@@ -118,3 +118,52 @@ export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
   flushReasoning();
   return chunks;
 }
+
+/** Группа активности: подряд идущие reasoning/tools-чанки, сворачивается целиком. */
+export type GroupActivityChunk = Extract<ActivityChunk, { type: 'reasoning' | 'tools' }>;
+
+export type ActivityGroup = {
+  type: 'group';
+  chunks: GroupActivityChunk[];
+};
+
+export type ActivityItem = { type: 'chunk'; chunk: StandaloneActivityChunk } | ActivityGroup;
+
+/** Чанки вне групп: группируются только reasoning и tools. */
+export type StandaloneActivityChunk = Extract<
+  ActivityChunk,
+  { type: 'text' | 'ask' | 'source' | 'file' }
+>;
+
+export function groupActivityChunks(chunks: ActivityChunk[]): ActivityItem[] {
+  const items: ActivityItem[] = [];
+  let group: GroupActivityChunk[] = [];
+
+  const flushGroup = () => {
+    if (group.length > 0) {
+      items.push({ type: 'group', chunks: group });
+      group = [];
+    }
+  };
+
+  for (const chunk of chunks) {
+    if (chunk.type === 'reasoning' || chunk.type === 'tools') {
+      group.push(chunk);
+      continue;
+    }
+    flushGroup();
+    items.push({ type: 'chunk', chunk });
+  }
+  flushGroup();
+  return items;
+}
+
+export function groupPairs(chunks: GroupActivityChunk[]): ToolEventPair[] {
+  const pairs: ToolEventPair[] = [];
+  for (const chunk of chunks) {
+    if (chunk.type === 'tools') {
+      pairs.push(...chunk.pairs);
+    }
+  }
+  return pairs;
+}

@@ -1,12 +1,12 @@
 import type { SessionEvent } from '@studio/shared';
 import { FileTextIcon, Link2Icon } from 'lucide-react';
 
-import { chunkEvents } from '../model/tool-run-summary';
+import { chunkEvents, groupActivityChunks } from '../model/tool-run-summary';
 import { ActivityLine } from './activity-line';
 import { ActivityRail } from './activity-rail';
 import { AskLine } from './ask-line';
 import { ThinkingLine } from './thinking-line';
-import { ToolRun } from './tool-run';
+import { ToolGroup } from './tool-group';
 
 export function ActivityItems({
   events,
@@ -17,18 +17,26 @@ export function ActivityItems({
   live: boolean;
   runId?: string;
 }) {
-  const chunks = chunkEvents(events);
+  const items = groupActivityChunks(chunkEvents(events));
 
   return (
     <ActivityRail live={live}>
-      {chunks.map((chunk, index) => {
-        const chunkLive = live && index === chunks.length - 1;
-        if (chunk.type === 'reasoning') {
-          const text = chunk.events.map((e) => e.text).join('');
-          return <ThinkingLine key={`reasoning-${index}`} text={text} live={chunkLive} />;
+      {items.map((item, index) => {
+        const itemLive = live && index === items.length - 1;
+        if (item.type === 'group') {
+          const firstPair = item.chunks.find((chunk) => chunk.type === 'tools')?.pairs[0];
+          return (
+            <ToolGroup
+              key={firstPair?.call.toolCallId ?? `group-${index}`}
+              chunks={item.chunks}
+              live={itemLive}
+              runLive={live}
+            />
+          );
         }
+        const { chunk } = item;
         if (chunk.type === 'text') {
-          return <ThinkingLine key={`text-${index}`} text={chunk.event.text} live={chunkLive} />;
+          return <ThinkingLine key={`text-${index}`} text={chunk.event.text} live={itemLive} />;
         }
         if (chunk.type === 'ask') {
           return (
@@ -36,7 +44,7 @@ export function ActivityItems({
               key={chunk.event.askId}
               event={chunk.event}
               runId={runId ?? ''}
-              live={chunkLive}
+              live={itemLive}
             />
           );
         }
@@ -62,22 +70,12 @@ export function ActivityItems({
             </ActivityLine>
           );
         }
-        if (chunk.type === 'file') {
-          return (
-            <ActivityLine
-              key={`file-${index}`}
-              icon={FileTextIcon}
-              label="File"
-              hint={String((chunk.event as { file?: unknown }).file ?? '')}
-            />
-          );
-        }
         return (
-          <ToolRun
-            key={chunk.pairs[0]?.call.toolCallId ?? `tools-${index}`}
-            pairs={chunk.pairs}
-            live={chunkLive}
-            runLive={live}
+          <ActivityLine
+            key={`file-${index}`}
+            icon={FileTextIcon}
+            label="File"
+            hint={String((chunk.event as { file?: unknown }).file ?? '')}
           />
         );
       })}

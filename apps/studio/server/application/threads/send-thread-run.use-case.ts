@@ -8,10 +8,11 @@ import type { AttachmentRepository } from '../../domain/attachment.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { NotFoundError, RunConflictError, ValidationError } from '../../domain/studio.error.ts';
-import type { ThreadRepository } from '../../domain/thread.port.ts';
+import type { Thread, ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type { GetThreadPlanInput } from '../plans/get-thread-plan.use-case.ts';
 import { kindFromMediaType } from './attachment-kind.ts';
+import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { PLAN_MODE_PROMPT, planFollowPrompt } from './plan-mode-prompt.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
@@ -108,6 +109,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     const clientEventId = request.clientEventId ?? crypto.randomUUID();
     try {
       const { runId } = await handle.send(input, { clientEventId });
+      this.deriveTitle(thread, request.text);
       this.publishThread(thread.id);
       return { runId, status: 'queued' as const };
     } catch (error) {
@@ -154,6 +156,16 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     const reminder = planFollowPrompt(plan, next);
     return text ? `${reminder}\n\n${text}` : reminder;
   }
+  private deriveTitle(thread: Thread, text: string | undefined): void {
+    if (thread.kind !== 'chat' || thread.title !== DEFAULT_THREAD_TITLE) {
+      return;
+    }
+    const title = deriveThreadTitle(text ?? '');
+    if (title) {
+      this.threads.updateTitle(thread.id, title);
+    }
+  }
+
   private publishThread(threadId: string): void {
     publishDeskThread(this.getThread, this.deskEvents, threadId);
   }
@@ -164,6 +176,17 @@ function resolveRunMode(mode: RunMode | undefined): RunMode {
     return mode;
   }
   return 'ask';
+}
+
+function deriveThreadTitle(text: string): string {
+  const compact = text.trim().replace(/\s+/g, ' ');
+  if (!compact) {
+    return '';
+  }
+  if (compact.length <= 28) {
+    return compact;
+  }
+  return `${compact.slice(0, 28).trimEnd()}…`;
 }
 
 type SendInputObject = Exclude<SendInput, string>;

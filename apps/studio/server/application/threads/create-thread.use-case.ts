@@ -4,6 +4,8 @@ import { ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
+export const DEFAULT_THREAD_TITLE = 'New thread';
+
 export type CreateThreadRequest = {
   title?: string;
   agentId?: string;
@@ -38,7 +40,7 @@ export class CreateThreadUseCase implements CreateThreadInput {
       id: crypto.randomUUID(),
       workspaceId,
       agentId: agent.id,
-      title: request.title ?? 'New thread',
+      title: request.title ?? DEFAULT_THREAD_TITLE,
       kind,
       metadata: {},
       createdAt: now,

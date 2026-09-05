@@ -1,3 +1,4 @@
+import { memoryToolNames } from 'harnesys';
 import type {
   AgentGenerationSettings,
   AgentMemoryConfig,
@@ -38,7 +39,7 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
   ) {}
 
   async execute(request: UpdateAgentRequest): Promise<Agent> {
-    requireAgent(this.agents, request.workspaceId, request.id);
+    const agent = requireAgent(this.agents, request.workspaceId, request.id);
 
     const patch: AgentPatch = {};
     if (request.name !== undefined) {
@@ -101,7 +102,11 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.tools !== undefined) {
       patch.tools = request.tools;
-      patch.graph = buildReactGraph(request.tools);
+    }
+    if (request.tools !== undefined || request.memory !== undefined) {
+      const tools = request.tools !== undefined ? request.tools : agent.tools;
+      const memory = request.memory !== undefined ? request.memory : agent.memory;
+      patch.graph = buildReactGraph([...new Set([...tools, ...memoryToolNames(memory)])]);
     }
 
     return await Promise.resolve(this.agents.update(request.id, patch));

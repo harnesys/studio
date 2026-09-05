@@ -1,3 +1,4 @@
+import { memoryToolNames } from 'harnesys';
 import type {
   AgentGenerationSettings,
   AgentMemoryConfig,
@@ -68,7 +69,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const skills = request.skills ?? [];
     const mcpServers = request.mcpServers ?? [];
     const tools = request.tools ?? [];
-    const graph = buildReactGraph(tools);
+    const graph = buildReactGraph([...new Set([...tools, ...memoryToolNames(memory)])]);
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();

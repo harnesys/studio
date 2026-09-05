@@ -1,4 +1,3 @@
-import type { SessionEvent } from '@studio/shared';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
@@ -18,6 +17,7 @@ import {
   useMessageScroller,
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
+import { splitRuns } from '../model/run-groups';
 
 import { AssistantMessageView, FailedMessageView } from './agent-turn';
 import { ChatSkeleton } from './chat-skeleton';
@@ -101,56 +101,6 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
       </MessageScroller>
     </MessageScrollerProvider>
   );
-}
-
-type RunGroup = {
-  id: string | null;
-  runId: string | undefined;
-  events: SessionEvent[];
-  error: string | null;
-};
-
-const RUN_TERMINAL_EVENT_TYPES = new Set([
-  'done',
-  'error',
-  'run.completed',
-  'run.failed',
-  'run.cancelled',
-]);
-
-function splitRuns(events: SessionEvent[]): RunGroup[] {
-  const runs: RunGroup[] = [];
-  let current: SessionEvent[] = [];
-  let currentId: string | null = null;
-  let currentRunId: string | undefined;
-
-  const closeRun = (error: string | null) => {
-    if (current.length > 0) {
-      runs.push({ id: currentId, runId: currentRunId, events: current, error });
-    }
-    current = [];
-    currentId = null;
-    currentRunId = undefined;
-  };
-
-  for (const ev of events) {
-    if (RUN_TERMINAL_EVENT_TYPES.has(ev.type)) {
-      const failed =
-        (ev.type === 'error' || ev.type === 'run.failed') && 'message' in ev ? ev.message : null;
-      closeRun(failed);
-      continue;
-    }
-    if (!currentId && ev.type === 'tool' && ev.toolCallId) {
-      currentId = ev.toolCallId;
-    }
-    if (!currentRunId && ev.runId) {
-      currentRunId = ev.runId;
-    }
-    current.push(ev);
-  }
-
-  closeRun(null);
-  return runs;
 }
 
 function useThreadSync(threadId: string): boolean {

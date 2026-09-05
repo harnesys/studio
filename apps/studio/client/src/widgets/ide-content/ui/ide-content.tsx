@@ -7,6 +7,7 @@ import { HitlPrompt } from '@/features/send-message';
 import { ChatComposer } from '@/widgets/chat-composer';
 import { ThreadPanel } from '@/widgets/chat-transcript';
 import { MediaPreview, TextEditor } from '@/widgets/file-pane';
+import { ThreadJournal } from '@/widgets/thread-journal';
 
 export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: string }) {
   const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
@@ -25,13 +26,21 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
         </div>
       );
     }
+    if (thread.kind === 'chat') {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-thread">
+          <div className="min-h-0 flex-1">
+            <ThreadPanel threadId={thread.id} agent={agent} />
+          </div>
+          <HitlPrompt />
+          <ChatComposer />
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-thread">
-        <div className="min-h-0 flex-1">
-          <ThreadPanel threadId={thread.id} agent={agent} />
-        </div>
+        <ThreadJournal threadId={thread.id} agent={agent} kind={thread.kind} />
         <HitlPrompt />
-        {thread.kind === 'chat' ? <ChatComposer /> : null}
       </div>
     );
   }

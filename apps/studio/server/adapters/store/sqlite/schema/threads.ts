@@ -14,7 +14,7 @@ export const threadsTable = sqliteTable(
       .notNull()
       .references((): AnySQLiteColumn => agentsTable.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
-    kind: text('kind', { enum: ['chat', 'schedule'] })
+    kind: text('kind', { enum: ['chat', 'schedule', 'webhook'] })
       .notNull()
       .default('chat'),
     metadata: text('metadata').notNull().default('{}'),
@@ -23,7 +23,7 @@ export const threadsTable = sqliteTable(
     lastReadAt: text('last_read_at').notNull(),
   },
   (table) => ({
-    kindCheck: check('threads_kind_check', sql`${table.kind} IN ('chat', 'schedule')`),
+    kindCheck: check('threads_kind_check', sql`${table.kind} IN ('chat', 'schedule', 'webhook')`),
     workspaceIdx: index('threads_workspace_idx').on(table.workspaceId),
   }),
 );

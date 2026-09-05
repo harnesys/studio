@@ -4,6 +4,7 @@ import { Navigate, Outlet, useParams } from 'react-router';
 import { useWorkspaces } from '@/entities/workspace';
 import { DeskSync } from '@/features/desk';
 import { KnowledgeIndexSync } from '@/features/manage-knowledge-index';
+import { AgentLandingPage } from '@/pages/agent-landing';
 import { SettingsPage } from '@/pages/settings';
 import { ChatWorkspace, WorkspacePage } from '@/pages/workspace';
 import { WorkspaceGatePage } from '@/pages/workspace-gate';
@@ -71,7 +72,6 @@ const routes: RouteObject[] = [
             element: <WorkspacePage />,
             children: [
               { index: true, element: <ChatWorkspace /> },
-              { path: 'agent/:agentId', element: <ChatWorkspace /> },
               { path: 'agent/:agentId/threads', element: <ThreadsList /> },
               { path: 'agent/:agentId/:threadId', element: <ChatWorkspace /> },
               { path: 'schedules', element: <SchedulesList /> },
@@ -84,6 +84,7 @@ const routes: RouteObject[] = [
           { path: 'settings', element: <SettingsPage /> },
           { path: 'settings/:category', element: <SettingsPage /> },
           { path: 'settings/:category/:providerId', element: <SettingsPage /> },
+          { path: 'agent/:agentId', element: <AgentLandingPage /> },
         ],
       },
       { path: '*', element: <Navigate to={studioPath.gate} replace /> },

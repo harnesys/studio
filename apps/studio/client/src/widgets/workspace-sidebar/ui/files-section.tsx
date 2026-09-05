@@ -1,12 +1,6 @@
 import type { WorkspaceFileEntry } from '@studio/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  FileIcon,
-  FolderIcon,
-  LoaderCircleIcon,
-  MoreHorizontalIcon,
-  RefreshCwIcon,
-} from 'lucide-react';
+import { FileIcon, FolderIcon, LoaderCircleIcon, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
 import { openWorkspaceFile } from '@/features/open-file';
@@ -25,7 +19,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { useSidebar } from '@/shared/ui/sidebar';
@@ -55,13 +48,8 @@ export function ExplorerTitle({ workspaceId }: { workspaceId: string }) {
   );
 }
 
-export function ExplorerActions({ workspaceId }: { workspaceId: string }) {
-  const qc = useQueryClient();
+export function ExplorerActions() {
   const start = useExplorerDraftStore((state) => state.start);
-
-  const handleRefresh = () => {
-    void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
-  };
 
   return (
     <DropdownMenu>
@@ -75,7 +63,7 @@ export function ExplorerActions({ workspaceId }: { workspaceId: string }) {
           />
         }
       >
-        <MoreHorizontalIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
+        <PlusIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
         <span className="sr-only">Explorer actions</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -87,13 +75,6 @@ export function ExplorerActions({ workspaceId }: { workspaceId: string }) {
           <DropdownMenuItem onClick={() => start('dir', '')}>
             <FolderIcon />
             New folder
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={handleRefresh}>
-            <RefreshCwIcon />
-            Refresh
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

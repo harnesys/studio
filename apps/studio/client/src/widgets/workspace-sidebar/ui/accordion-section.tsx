@@ -1,4 +1,3 @@
-import { ChevronDownIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { ScrollArea } from '@/shared/ui/scroll-area';
@@ -52,9 +51,6 @@ export function AccordionSection({
           {count !== undefined ? (
             <span className="shrink-0 font-normal text-muted-foreground text-xs">{count}</span>
           ) : null}
-          <ChevronDownIcon
-            className={cn('size-3.5 shrink-0 transition-transform', collapsed && '-rotate-90')}
-          />
         </button>
         {actions ? <span className="flex shrink-0 items-center">{actions}</span> : null}
       </div>

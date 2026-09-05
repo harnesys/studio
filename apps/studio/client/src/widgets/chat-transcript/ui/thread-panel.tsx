@@ -6,7 +6,6 @@ import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
 import { refreshThread, scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
 import { connectThreadRun, retryRun } from '@/features/send-message';
-import { getThread } from '@/shared/api';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -31,7 +30,6 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useThreadSync(threadId);
-  useFollowLive(threadId);
   const failures = useSessionStore(
     useShallow((state) => {
       const next = state.failures.filter((item) => item.threadId === threadId);
@@ -110,6 +108,15 @@ function useThreadSync(threadId: string): boolean {
     let cancelled = false;
     setSynced(false);
     void refreshThread(threadId)
+      .then((record) => {
+        if (cancelled || !record) {
+          return;
+        }
+        const active = record.activeRun;
+        if (active && !TERMINAL_RUN_STATUSES.has(active.status)) {
+          connectThreadRun(threadId, active.runId);
+        }
+      })
       .catch(() => {})
       .finally(() => {
         if (!cancelled) {
@@ -125,27 +132,6 @@ function useThreadSync(threadId: string): boolean {
 }
 
 const TERMINAL_RUN_STATUSES = new Set(['completed', 'failed', 'cancelled']);
-
-/** Restores the live client for a non-terminal active run (e.g. after page load). */
-function useFollowLive(threadId: string): void {
-  useEffect(() => {
-    let cancelled = false;
-    void getThread(threadId)
-      .then((record) => {
-        if (cancelled) {
-          return;
-        }
-        const active = record.activeRun;
-        if (active && !TERMINAL_RUN_STATUSES.has(active.status)) {
-          connectThreadRun(threadId, active.runId);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [threadId]);
-}
 
 function EmptyThreadReadSync({ threadId }: { threadId: string }) {
   useEffect(() => {

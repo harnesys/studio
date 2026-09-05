@@ -52,7 +52,7 @@ import {
   useSidebar,
 } from '@/shared/ui/sidebar';
 import { AgentCard } from '@/widgets/agent-card';
-import { useAccordionStore } from '../model/accordion.store';
+import { normalizeShares, useAccordionStore } from '../model/accordion.store';
 import { AccordionSection } from './accordion-section';
 import { AutomationsAddMenu, AutomationsSection } from './automations-section';
 import { ExplorerActions, ExplorerContent, ExplorerTitle } from './files-section';
@@ -94,6 +94,7 @@ export function WorkspaceSidebar() {
   const [dragPair, setDragPair] = useState<string | null>(null);
 
   const expanded = SECTION_ORDER.filter((id) => !(collapsed[id] ?? false));
+  const shares = normalizeShares(expanded, sizes);
 
   const resizePairs: { upper: SidebarSectionId; lower: SidebarSectionId }[] = [];
   let lastExpanded: SidebarSectionId | null = null;
@@ -254,13 +255,13 @@ export function WorkspaceSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 group-data-[collapsible=icon]:overflow-y-auto">
-        <div ref={containerRef} className="flex min-h-0 flex-1 flex-col gap-1 px-2">
+        <div ref={containerRef} className="flex min-h-0 flex-auto flex-col gap-1 px-2">
           <AccordionSection
             id="agents"
             icon={<BotIcon />}
             title="Agents"
             count={agents.length}
-            size={sizes.agents ?? 1}
+            size={shares.agents ?? 1}
             actions={
               <Button
                 variant="ghost"
@@ -320,8 +321,8 @@ export function WorkspaceSidebar() {
             id="explorer"
             icon={<FolderIcon />}
             title={workspaceId ? <ExplorerTitle workspaceId={workspaceId} /> : 'Explorer'}
-            size={sizes.explorer ?? 1}
-            actions={workspaceId ? <ExplorerActions workspaceId={workspaceId} /> : undefined}
+            size={shares.explorer ?? 1}
+            actions={workspaceId ? <ExplorerActions /> : undefined}
           >
             {workspaceId ? <ExplorerContent workspaceId={workspaceId} /> : null}
           </AccordionSection>
@@ -332,7 +333,7 @@ export function WorkspaceSidebar() {
             icon={<ZapIcon />}
             title="Automations"
             count={schedules.length + webhooks.length}
-            size={sizes.automations ?? 1}
+            size={shares.automations ?? 1}
             actions={
               <AutomationsAddMenu
                 workspaceId={workspaceId}
@@ -354,7 +355,7 @@ export function WorkspaceSidebar() {
           </AccordionSection>
 
           {resizeNode('git')}
-          <AccordionSection id="git" icon={<GitBranchIcon />} title="Git" size={sizes.git ?? 1}>
+          <AccordionSection id="git" icon={<GitBranchIcon />} title="Git" size={shares.git ?? 1}>
             {workspaceId ? <GitSection workspaceId={workspaceId} /> : null}
           </AccordionSection>
         </div>

@@ -11,7 +11,7 @@ export function RunDivider({ index, task, failed, running }: RunDividerProps) {
   let statusClass = 'text-muted-foreground';
   let statusLabel = 'COMPLETED';
   if (failed) {
-    statusClass = 'text-danger';
+    statusClass = 'text-destructive';
     statusLabel = 'FAILED';
   } else if (running) {
     statusClass = 'text-live';

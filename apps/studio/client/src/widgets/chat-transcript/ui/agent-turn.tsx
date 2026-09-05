@@ -180,7 +180,7 @@ function TurnSegmentView({
           </div>
         ) : null}
         {segment.event.text ? (
-          <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3.5 py-2 text-secondary-foreground shadow-xs">
+          <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3.5 py-1.5 text-secondary-foreground shadow-xs">
             {segment.event.text}
           </div>
         ) : null}

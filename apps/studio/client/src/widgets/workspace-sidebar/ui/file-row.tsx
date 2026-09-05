@@ -146,7 +146,7 @@ export function FileRow({
           selected && 'bg-sidebar-accent text-sidebar-accent-foreground',
           'group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center',
         )}
-        style={!iconMode ? { paddingLeft: `${depth * 12 + 4}px` } : undefined}
+        style={!iconMode ? { paddingLeft: `${depth * 12}px` } : undefined}
         data-testid={`file-${fullPath}`}
         data-selected={selected ? 'true' : 'false'}
       >

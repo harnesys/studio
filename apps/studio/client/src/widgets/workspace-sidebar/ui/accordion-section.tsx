@@ -44,12 +44,13 @@ export function AccordionSection({
           aria-expanded={shown}
           className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left font-semibold text-sm outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
-          <span className="flex size-3.5 shrink-0 items-center justify-center [&>svg]:size-3.5">
+          <span className="flex size-3.5 shrink-0 items-center justify-center">
             {icon}
           </span>
-          <span className="min-w-0 flex-1 truncate">{title}</span>
+          <span className="truncate">{title}</span>
+
           {count !== undefined ? (
-            <span className="shrink-0 font-normal text-muted-foreground text-xs">{count}</span>
+            <span className="shrink-0 font-normal text-muted-foreground/80 text-xs">{count}</span>
           ) : null}
         </button>
         {actions ? <span className="flex shrink-0 items-center">{actions}</span> : null}

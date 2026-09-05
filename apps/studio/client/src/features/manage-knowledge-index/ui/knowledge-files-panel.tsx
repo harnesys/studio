@@ -1,4 +1,8 @@
-import type { KnowledgeFileRecord, KnowledgeFileStatus } from '@studio/shared';
+import type {
+  KnowledgeFileRecord,
+  KnowledgeFileStatus,
+  KnowledgeFilesByStatus,
+} from '@studio/shared';
 
 import { Badge } from '@/shared/ui/badge';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
@@ -23,6 +27,7 @@ type KnowledgeFilesPanelProps = {
   status: KnowledgeFileStatus;
   onStatusChange: (status: KnowledgeFileStatus) => void;
   files: KnowledgeFileRecord[];
+  counts?: KnowledgeFilesByStatus;
   loading?: boolean;
 };
 
@@ -30,6 +35,7 @@ export function KnowledgeFilesPanel({
   status,
   onStatusChange,
   files,
+  counts,
   loading,
 }: KnowledgeFilesPanelProps) {
   return (
@@ -51,6 +57,7 @@ export function KnowledgeFilesPanel({
           {FILE_FILTERS.map((item) => (
             <ToggleGroupItem key={item} value={item} className="min-w-[64px] px-2 text-xs">
               {FILTER_LABELS[item]}
+              <span className="ml-1 text-muted-foreground tabular-nums">{counts?.[item] ?? 0}</span>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>

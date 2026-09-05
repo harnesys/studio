@@ -1,4 +1,4 @@
-import type { KnowledgeFileStatus } from '@studio/shared';
+import type { KnowledgeFileStatus, KnowledgeStats } from '@studio/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -7,6 +7,7 @@ import {
   watchKnowledgeIndexState,
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
+import { toast } from '@/shared/ui/toast';
 import { useKnowledgeIndex } from '../model/use-knowledge-index';
 import { KnowledgeFilesPanel } from './knowledge-files-panel';
 import { KnowledgeIndexStatus } from './knowledge-index-status';
@@ -39,10 +40,26 @@ export function KnowledgeIndexPane() {
 
   useEffect(() => {
     if (prevStatus.current === 'running' && indexStatus && indexStatus !== 'running') {
-      void invalidateAll();
+      void (async () => {
+        await invalidateAll();
+        if (!workspaceId) {
+          return;
+        }
+        const stats = qc.getQueryData<KnowledgeStats>(knowledgeStatsQueryKey(workspaceId));
+        if (!stats) {
+          return;
+        }
+        const { indexed, skipped, error, pending } = stats.filesByStatus;
+        const failed = error > 0;
+        toast.add({
+          type: failed ? 'warning' : 'success',
+          title: failed ? 'Indexing finished with errors' : 'Indexing finished',
+          description: `${indexed} indexed · ${skipped} skipped · ${error} error · ${pending} pending`,
+        });
+      })();
     }
     prevStatus.current = indexStatus;
-  }, [indexStatus, invalidateAll]);
+  }, [indexStatus, invalidateAll, qc, workspaceId]);
 
   useEffect(() => {
     if (!workspaceId) {
@@ -95,6 +112,7 @@ export function KnowledgeIndexPane() {
         status={fileStatus}
         onStatusChange={setFileStatus}
         files={filesQuery.data ?? []}
+        counts={statsQuery.data?.filesByStatus}
         loading={filesQuery.isPending}
       />
 

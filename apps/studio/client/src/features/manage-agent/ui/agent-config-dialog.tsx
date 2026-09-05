@@ -1,5 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
+import {
+  BrainIcon,
+  CpuIcon,
+  FoldVerticalIcon,
+  type LucideIcon,
+  PuzzleIcon,
+  ScrollTextIcon,
+  ServerIcon,
+  UserRoundIcon,
+  WrenchIcon,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
@@ -45,15 +56,19 @@ export type AgentConfigCategory =
   | 'tools'
   | 'mcp';
 
-export const AGENT_CONFIG_CATEGORIES: { id: AgentConfigCategory; label: string }[] = [
-  { id: 'identity', label: 'Identity' },
-  { id: 'model', label: 'Model' },
-  { id: 'instructions', label: 'Instructions' },
-  { id: 'compaction', label: 'Compaction' },
-  { id: 'memory', label: 'Memory' },
-  { id: 'skills', label: 'Skills' },
-  { id: 'tools', label: 'Tools' },
-  { id: 'mcp', label: 'MCP' },
+export const AGENT_CONFIG_CATEGORIES: {
+  id: AgentConfigCategory;
+  label: string;
+  icon: LucideIcon;
+}[] = [
+  { id: 'identity', label: 'Identity', icon: UserRoundIcon },
+  { id: 'model', label: 'Model', icon: CpuIcon },
+  { id: 'instructions', label: 'Instructions', icon: ScrollTextIcon },
+  { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },
+  { id: 'memory', label: 'Memory', icon: BrainIcon },
+  { id: 'skills', label: 'Skills', icon: PuzzleIcon },
+  { id: 'tools', label: 'Tools', icon: WrenchIcon },
+  { id: 'mcp', label: 'MCP', icon: ServerIcon },
 ];
 
 function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
@@ -107,12 +122,13 @@ export function AgentConfigDialog({
               type="button"
               onClick={() => setCategory(item.id)}
               className={cn(
-                'rounded-md px-2 py-1.5 text-left text-sm',
+                'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm',
                 category === item.id
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                   : 'text-muted-foreground hover:bg-sidebar-accent/50',
               )}
             >
+              <item.icon className="size-3.5 shrink-0" />
               {item.label}
             </button>
           ))}

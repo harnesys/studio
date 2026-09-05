@@ -48,6 +48,7 @@ import { wireControllers } from './wire-controllers.ts';
 import { wireHostTools } from './wire-host-tools.ts';
 import { createStudioMemory, registerMemoryHttp } from './wire-memory.ts';
 import { wireSchedules } from './wire-schedules.ts';
+import { wireWebhooks } from './wire-webhooks.ts';
 
 export type StudioOptions = {
   db?: StudioDb;
@@ -98,6 +99,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
   });
   const getThread = new GetThreadUseCase(threadRepo, agentRepo, runEvents, runLifecycle);
   const scheduleQueueRef: { current: ScheduleFireQueue | null } = { current: null };
+  const webhookQueueRef: { current: ScheduleFireQueue | null } = { current: null };
   const targetRef: { current: RunTargets | null } = { current: null };
   const runClaimer = createRunClaimer({
     lifecycle: runLifecycle,
@@ -113,6 +115,10 @@ export function createStudio(options: StudioOptions = {}): Hono {
       const queue = scheduleQueueRef.current;
       if (queue !== null) {
         notifyIdleIfFree(runLifecycle, queue, record.threadId);
+      }
+      const webhookQueue = webhookQueueRef.current;
+      if (webhookQueue !== null) {
+        notifyIdleIfFree(runLifecycle, webhookQueue, record.threadId);
       }
     },
   });
@@ -203,6 +209,22 @@ export function createStudio(options: StudioOptions = {}): Hono {
   });
   scheduleQueueRef.current = scheduleQueue;
 
+  const webhookQueue = wireWebhooks({
+    app,
+    db,
+    webhooks: webhookRepo,
+    threads: threadRepo,
+    agents: agentRepo,
+    workspaces: workspaceRepo,
+    attachments: attachmentRepo,
+    attachmentsFs: attachments,
+    lifecycle: runLifecycle,
+    deskEvents,
+    sendThreadRun: undefined as never,
+    getThread: undefined as never,
+  });
+  webhookQueueRef.current = webhookQueue;
+
   wireHostTools({
     db,
     workspaceHarnesys,
@@ -217,6 +239,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     lifecycle: runLifecycle,
     queue: scheduleQueue,
     deskEvents,
+    getThread,
     semanticSessions: memory.semantic,
   });
 

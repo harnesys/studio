@@ -22,7 +22,9 @@ export type WebhookPatch = Partial<{
   targetAgentId: string;
   detail: string;
   endpoint: string;
+  threadId: string;
   lastFiredAt: string | null;
+  updatedAt: string;
 }>;
 
 export type WebhookRepository = {

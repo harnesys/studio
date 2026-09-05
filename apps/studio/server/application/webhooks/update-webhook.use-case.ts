@@ -1,7 +1,10 @@
 import type { AgentRepository } from '../../domain/agent.port.ts';
+import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WebhookPatch, WebhookRepository, WebhookStatus } from '../../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
+import { requireBindableWebhookThread } from './bind-webhook-thread.ts';
 import { toWebhookRecord, type WebhookRecord } from './webhook-record.ts';
 
 const WEBHOOK_STATUSES: readonly WebhookStatus[] = ['active', 'paused', 'failed'];
@@ -13,18 +16,35 @@ export type UpdateWebhookRequest = {
   status?: WebhookStatus;
   targetAgentId?: string;
   detail?: string;
+  threadId?: string;
 };
 
 export type UpdateWebhookInput = {
   execute(request: UpdateWebhookRequest): Promise<WebhookRecord>;
 };
 
+export type UpdateWebhookDeps = {
+  webhooks: WebhookRepository;
+  agents: AgentRepository;
+  workspaces: WorkspaceRepository;
+  threads: ThreadRepository;
+  deskEvents: DeskEventsPort;
+};
+
 export class UpdateWebhookUseCase implements UpdateWebhookInput {
-  constructor(
-    private readonly webhooks: WebhookRepository,
-    private readonly agents: AgentRepository,
-    private readonly workspaces: WorkspaceRepository,
-  ) {}
+  private readonly webhooks: WebhookRepository;
+  private readonly agents: AgentRepository;
+  private readonly workspaces: WorkspaceRepository;
+  private readonly threads: ThreadRepository;
+  private readonly deskEvents: DeskEventsPort;
+
+  constructor(deps: UpdateWebhookDeps) {
+    this.webhooks = deps.webhooks;
+    this.agents = deps.agents;
+    this.workspaces = deps.workspaces;
+    this.threads = deps.threads;
+    this.deskEvents = deps.deskEvents;
+  }
 
   async execute(request: UpdateWebhookRequest): Promise<WebhookRecord> {
     const workspace = this.workspaces.findById(request.workspaceId);
@@ -62,10 +82,27 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
       patch.targetAgentId = agent.id;
     }
 
+    if (request.threadId !== undefined && request.threadId !== current.threadId) {
+      requireBindableWebhookThread({
+        threads: this.threads,
+        webhooks: this.webhooks,
+        workspaceId: request.workspaceId,
+        agentId: request.targetAgentId ?? current.targetAgentId,
+        threadId: request.threadId,
+        exceptWebhookId: current.id,
+      });
+      patch.threadId = request.threadId;
+    }
+
     if (request.detail !== undefined) {
       patch.detail = request.detail.trim();
     }
 
-    return await Promise.resolve(toWebhookRecord(this.webhooks.update(request.id, patch)));
+    const updated = this.webhooks.update(request.id, patch);
+    this.deskEvents.emit(request.workspaceId, {
+      type: 'webhook',
+      webhook: toWebhookRecord(updated),
+    });
+    return await Promise.resolve(toWebhookRecord(updated));
   }
 }

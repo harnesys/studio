@@ -1,17 +1,7 @@
-import type { Webhook, WebhookStatus } from '../../domain/webhook.port.ts';
+import type { WebhookRecord } from '../../../shared/types.ts';
+import type { Webhook } from '../../domain/webhook.port.ts';
 
-export type WebhookRecord = {
-  id: string;
-  workspaceId: string;
-  name: string;
-  status: WebhookStatus;
-  targetAgentId: string;
-  detail: string;
-  endpoint: string;
-  lastFiredAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export type { WebhookRecord };
 
 export function toWebhookRecord(webhook: Webhook): WebhookRecord {
   return {
@@ -22,6 +12,7 @@ export function toWebhookRecord(webhook: Webhook): WebhookRecord {
     targetAgentId: webhook.targetAgentId,
     detail: webhook.detail,
     endpoint: webhook.endpoint,
+    threadId: webhook.threadId,
     lastFiredAt: webhook.lastFiredAt,
     createdAt: webhook.createdAt,
     updatedAt: webhook.updatedAt,

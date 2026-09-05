@@ -14,6 +14,7 @@ import { DeleteScheduleUseCase } from '../application/schedules/delete-schedule.
 import { ListSchedulesUseCase } from '../application/schedules/list-schedules.use-case.ts';
 import { PeekScheduleUseCase } from '../application/schedules/peek-schedule.use-case.ts';
 import { UpdateScheduleUseCase } from '../application/schedules/update-schedule.use-case.ts';
+import type { GetThreadInput } from '../application/threads/get-thread.use-case.ts';
 import { ListThreadsUseCase } from '../application/threads/list-threads.use-case.ts';
 import { CreateWebhookUseCase } from '../application/webhooks/create-webhook.use-case.ts';
 import { DeleteWebhookUseCase } from '../application/webhooks/delete-webhook.use-case.ts';
@@ -43,6 +44,7 @@ export type WireHostToolsDeps = {
   lifecycle: RunLifecycleStore;
   queue: ScheduleFireQueue;
   deskEvents: DeskEventsPort;
+  getThread: GetThreadInput;
   semanticSessions?: SemanticSessionCleanup;
 };
 
@@ -92,9 +94,30 @@ export function wireHostTools(deps: WireHostToolsDeps): void {
     }),
     ...createWebhookTools({
       listWebhooks: new ListWebhooksUseCase(deps.webhooks, deps.workspaces),
-      createWebhook: new CreateWebhookUseCase(deps.webhooks, deps.agents, deps.workspaces),
-      updateWebhook: new UpdateWebhookUseCase(deps.webhooks, deps.agents, deps.workspaces),
-      deleteWebhook: new DeleteWebhookUseCase(deps.webhooks, deps.workspaces),
+      createWebhook: new CreateWebhookUseCase({
+        webhooks: deps.webhooks,
+        threads: deps.threads,
+        agents: deps.agents,
+        workspaces: deps.workspaces,
+        deskEvents: deps.deskEvents,
+        getThread: deps.getThread,
+        db: deps.db,
+      }),
+      updateWebhook: new UpdateWebhookUseCase({
+        webhooks: deps.webhooks,
+        agents: deps.agents,
+        workspaces: deps.workspaces,
+        threads: deps.threads,
+        deskEvents: deps.deskEvents,
+      }),
+      deleteWebhook: new DeleteWebhookUseCase({
+        webhooks: deps.webhooks,
+        threads: deps.threads,
+        workspaces: deps.workspaces,
+        attachments: deps.attachments,
+        attachmentsFs: deps.attachmentsFs,
+        deskEvents: deps.deskEvents,
+      }),
     }),
   ];
   deps.workspaceHarnesys.setExtraTools(extraTools);

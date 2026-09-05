@@ -171,7 +171,6 @@ export function bootstrap(db: StudioDb): void {
     );`,
     `CREATE INDEX IF NOT EXISTS run_events_client_idx ON run_events(thread_id, client_event_id);`,
     `CREATE INDEX IF NOT EXISTS attachments_thread_idx ON attachments(thread_id);`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS webhooks_thread_idx ON webhooks(thread_id);`,
   ];
 
   for (const statement of statements) {

@@ -17,7 +17,11 @@ import {
   useThreadWaiting,
 } from '@/features/desk';
 import { useIdeStore } from '@/features/ide';
-import { openEditAgentDialog, updateAgent } from '@/features/manage-agent';
+import {
+  openAgentConfigDialog,
+  updateAgent,
+  updateAgentCapabilities,
+} from '@/features/manage-agent';
 import { openNewThread } from '@/features/switch-thread';
 import { studioPath } from '@/shared/config/routes';
 import { formatDayTime } from '@/shared/lib/format-clock';
@@ -95,10 +99,16 @@ export function AgentLandingPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    void openEditAgentDialog(agent).then((draft) => {
-                      if (draft) {
-                        void updateAgent(agent.workspaceId, agent.id, draft);
+                    void openAgentConfigDialog(agent, agent.workspaceId).then(async (result) => {
+                      if (!result) {
+                        return;
                       }
+                      await updateAgent(agent.workspaceId, agent.id, result.fields);
+                      await updateAgentCapabilities(
+                        agent.workspaceId,
+                        agent.id,
+                        result.capabilities,
+                      );
                     });
                   }}
                 >

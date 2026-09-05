@@ -1,25 +1,14 @@
 import type { Agent } from '@/entities/agent';
 import { alert, dialog } from '@/shared/services/overlay';
 
-import { CreateAgentDialog, EditAgentDialog } from '../ui/agent-dialogs';
+import { AgentConfigDialog } from '../ui/agent-config-dialog';
 
-export function openCreateAgentDialog() {
-  return dialog.open(CreateAgentDialog, {
-    title: 'New agent',
-    description:
-      'Give the agent a name, role, and instructions. You can change the rest in the inspector.',
-    className: 'sm:max-w-lg',
-    testId: 'create-agent-dialog',
-  });
-}
-
-export function openEditAgentDialog(agent: Agent) {
-  return dialog.open(EditAgentDialog, {
-    title: 'Edit agent',
-    description: 'Name, role, instructions, model, and generation settings for this agent.',
-    className: 'sm:max-w-lg',
-    testId: 'edit-agent-dialog',
-    data: { agent },
+export function openAgentConfigDialog(agent: Agent | null, workspaceId: string) {
+  return dialog.open(AgentConfigDialog, {
+    title: agent ? `Configure ${agent.name}` : 'New agent',
+    className: 'sm:max-w-3xl',
+    testId: 'agent-config-dialog',
+    data: { agent, workspaceId },
   });
 }
 

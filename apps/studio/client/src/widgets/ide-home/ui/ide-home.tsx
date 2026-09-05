@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/entities/agent';
 import { useIdeStore } from '@/features/ide';
-import { createAgent, openCreateAgentDialog } from '@/features/manage-agent';
+import {
+  createAgent,
+  openAgentConfigDialog,
+  updateAgentCapabilities,
+} from '@/features/manage-agent';
 import { createSchedule, openCreateScheduleDialog } from '@/features/manage-schedule';
 import { createWebhook, openCreateWebhookDialog } from '@/features/manage-webhook';
 import { useStudioLocation } from '@/shared/config/location';
@@ -47,19 +51,20 @@ export function IdeHome() {
             title="New agent"
             description="Name and a job. Opens as a thread tab."
             onClick={() => {
-              void openCreateAgentDialog().then(async (draft) => {
-                if (!draft || !workspaceId) {
-                  return;
-                }
-                const result = await createAgent(workspaceId, draft);
+              void openAgentConfigDialog(null, workspaceId).then(async (result) => {
                 if (!result) {
                   return;
                 }
-                useIdeStore.getState().openThread(workspaceId, result.agent.id, result.thread.id);
+                const created = await createAgent(workspaceId, result.fields);
+                if (!created) {
+                  return;
+                }
+                await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
+                useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
                 void navigate(
-                  studioPath.thread(workspaceId, result.thread.id, {
+                  studioPath.thread(workspaceId, created.thread.id, {
                     kind: 'agent',
-                    id: result.agent.id,
+                    id: created.agent.id,
                   }),
                 );
               });

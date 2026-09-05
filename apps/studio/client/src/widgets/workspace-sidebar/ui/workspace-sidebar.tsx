@@ -23,9 +23,9 @@ import {
   confirmDeleteAgent,
   createAgent,
   deleteAgent,
-  openCreateAgentDialog,
-  openEditAgentDialog,
+  openAgentConfigDialog,
   updateAgent,
+  updateAgentCapabilities,
 } from '@/features/manage-agent';
 import { createThreadRecord } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
@@ -161,17 +161,18 @@ export function WorkspaceSidebar() {
             }
           }}
           onAdd={() => {
-            void openCreateAgentDialog().then(async (draft) => {
-              if (!draft || !workspaceId) {
+            void openAgentConfigDialog(null, workspaceId ?? '').then(async (result) => {
+              if (!result || !workspaceId) {
                 return;
               }
-              const result = await createAgent(workspaceId, draft);
-              if (result) {
-                useIdeStore.getState().openThread(workspaceId, result.agent.id, result.thread.id);
+              const created = await createAgent(workspaceId, result.fields);
+              if (created) {
+                await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
+                useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
                 await navigate(
-                  studioPath.thread(workspaceId, result.thread.id, {
+                  studioPath.thread(workspaceId, created.thread.id, {
                     kind: 'agent',
-                    id: result.agent.id,
+                    id: created.agent.id,
                   }),
                 );
               }
@@ -223,11 +224,15 @@ export function WorkspaceSidebar() {
                     setOpenMobile(false);
                   }}
                   onEdit={() => {
-                    void openEditAgentDialog(item).then(async (draft) => {
-                      if (!draft || !workspaceId) {
+                    if (!workspaceId) {
+                      return;
+                    }
+                    void openAgentConfigDialog(item, workspaceId).then(async (result) => {
+                      if (!result) {
                         return;
                       }
-                      await updateAgent(workspaceId, item.id, draft);
+                      await updateAgent(workspaceId, item.id, result.fields);
+                      await updateAgentCapabilities(workspaceId, item.id, result.capabilities);
                     });
                   }}
                   onDelete={() => {

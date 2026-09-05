@@ -7,7 +7,7 @@ import {
   confirmDeleteSchedule,
   createSchedule,
   deleteSchedule,
-  openCreateScheduleDialog,
+  openScheduleConfigDialog,
 } from '@/features/manage-schedule';
 import { studioPath } from '@/shared/config/routes';
 import { RailSection } from './rail-section';
@@ -29,8 +29,11 @@ export function SchedulesSection({
   const navigate = useNavigate();
 
   const create = () => {
-    void openCreateScheduleDialog(agents).then(async (draft) => {
-      if (!draft || !workspaceId) {
+    if (!workspaceId) {
+      return;
+    }
+    void openScheduleConfigDialog(agents, workspaceId).then(async (draft) => {
+      if (!draft) {
         return;
       }
       const created = await createSchedule(workspaceId, draft);

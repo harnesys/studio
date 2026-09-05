@@ -1,7 +1,5 @@
 export { createWebhook } from './model/create-webhook';
-export { confirmDeleteWebhook } from './model/webhook-dialogs';
-export {
-  CreateWebhookDialog,
-  openCreateWebhookDialog,
-} from './ui/create-webhook-dialog';
-export { WebhookSettings } from './ui/webhook-settings';
+export { deleteWebhook } from './model/delete-webhook';
+export { updateWebhook } from './model/update-webhook';
+export { confirmDeleteWebhook, openWebhookConfigDialog } from './model/webhook-dialogs';
+export type { WebhookFormDraft } from './model/webhook-draft';

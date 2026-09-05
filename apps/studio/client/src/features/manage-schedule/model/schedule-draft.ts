@@ -1,3 +1,4 @@
+import type { Agent } from '@/entities/agent';
 import type {
   PermissionMode,
   Schedule,
@@ -5,7 +6,7 @@ import type {
   ScheduleStatus,
 } from '@/entities/schedule';
 
-export type ScheduleDraft = {
+export type ScheduleFormDraft = {
   name: string;
   status: ScheduleStatus;
   targetAgentId: string;
@@ -24,7 +25,7 @@ export const MODE_LABELS: Record<PermissionMode, string> = {
   bypass: 'Bypass',
 };
 
-export function draftFrom(item: Schedule): ScheduleDraft {
+export function draftFrom(item: Schedule): ScheduleFormDraft {
   return {
     name: item.name,
     status: item.status,
@@ -38,16 +39,16 @@ export function draftFrom(item: Schedule): ScheduleDraft {
   };
 }
 
-export function isDirty(item: Schedule, draft: ScheduleDraft): boolean {
-  return (
-    draft.name !== item.name ||
-    draft.status !== item.status ||
-    draft.targetAgentId !== item.targetAgentId ||
-    draft.detail !== item.detail ||
-    draft.cron !== item.cron ||
-    draft.mode !== item.mode ||
-    draft.history !== item.history ||
-    draft.historyLast !== item.historyLast ||
-    draft.threadId !== item.threadId
-  );
+export function emptyScheduleDraft(agents: Agent[]): ScheduleFormDraft {
+  return {
+    name: '',
+    status: 'active',
+    targetAgentId: agents[0]?.id ?? '',
+    detail: '',
+    cron: '0 * * * *',
+    mode: 'auto',
+    history: 'none',
+    historyLast: 1,
+    threadId: '',
+  };
 }

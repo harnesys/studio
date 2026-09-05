@@ -1,16 +1,12 @@
-import {
-  type Schedule,
-  type ScheduleDraft,
-  toClientSchedule,
-  useScheduleStore,
-} from '@/entities/schedule';
+import { type Schedule, toClientSchedule, useScheduleStore } from '@/entities/schedule';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { createScheduleRecord } from '@/shared/api';
+import type { ScheduleFormDraft } from './schedule-draft';
 
 export async function createSchedule(
   workspaceId: string,
-  draft: ScheduleDraft,
+  draft: ScheduleFormDraft,
 ): Promise<Schedule | null> {
   const name = draft.name.trim();
   if (!workspaceId || !name || !draft.targetAgentId) {
@@ -19,6 +15,11 @@ export async function createSchedule(
   const created = await createScheduleRecord(workspaceId, {
     name,
     targetAgentId: draft.targetAgentId,
+    detail: draft.detail.trim() || undefined,
+    cron: draft.cron.trim() || undefined,
+    mode: draft.mode,
+    history: draft.history,
+    historyLast: draft.historyLast,
     threadId: draft.threadId || undefined,
   });
   const schedule = toClientSchedule(created.schedule);

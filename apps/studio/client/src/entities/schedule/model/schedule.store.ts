@@ -2,12 +2,6 @@ import { create } from 'zustand';
 
 import type { PermissionMode, Schedule, ScheduleHistory, ScheduleStatus } from './schedule';
 
-export type ScheduleDraft = {
-  name: string;
-  targetAgentId: string;
-  threadId?: string;
-};
-
 export type SchedulePatch = {
   name?: string;
   status?: ScheduleStatus;

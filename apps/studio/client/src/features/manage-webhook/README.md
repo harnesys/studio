@@ -2,4 +2,4 @@
 
 Создание webhook и confirm delete.
 
-**API:** `createWebhook`, `openCreateWebhookDialog`, `confirmDeleteWebhook`, `WebhookSettings`.
+**API:** `createWebhook`, `updateWebhook`, `deleteWebhook`, `openWebhookConfigDialog`, `confirmDeleteWebhook`.

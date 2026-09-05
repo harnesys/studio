@@ -5,6 +5,8 @@ import type { Webhook, WebhookStatus } from './webhook';
 export type WebhookDraft = {
   name: string;
   targetAgentId: string;
+  detail?: string;
+  threadId?: string;
 };
 
 export type WebhookPatch = {

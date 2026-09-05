@@ -14,6 +14,8 @@ export type CreateScheduleInput = {
   detail?: string;
   cron?: string;
   mode?: PermissionMode;
+  history?: ScheduleHistory;
+  historyLast?: number;
   threadId?: string;
 };
 

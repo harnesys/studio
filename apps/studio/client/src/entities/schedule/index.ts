@@ -11,8 +11,4 @@ export {
   scheduleStatusTone,
   toClientSchedule,
 } from './model/schedule';
-export {
-  type ScheduleDraft,
-  type SchedulePatch,
-  useScheduleStore,
-} from './model/schedule.store';
+export { type SchedulePatch, useScheduleStore } from './model/schedule.store';

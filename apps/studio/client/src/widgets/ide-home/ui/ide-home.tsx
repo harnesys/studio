@@ -8,8 +8,8 @@ import {
   openAgentConfigDialog,
   updateAgentCapabilities,
 } from '@/features/manage-agent';
-import { createSchedule, openCreateScheduleDialog } from '@/features/manage-schedule';
-import { createWebhook, openCreateWebhookDialog } from '@/features/manage-webhook';
+import { createSchedule, openScheduleConfigDialog } from '@/features/manage-schedule';
+import { createWebhook, openWebhookConfigDialog } from '@/features/manage-webhook';
 import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 import { dialog } from '@/shared/services/overlay';
@@ -75,8 +75,8 @@ export function IdeHome() {
             title="New schedule"
             description="Cron fires a run."
             onClick={() => {
-              void openCreateScheduleDialog(agents).then(async (draft) => {
-                if (!draft || !workspaceId) {
+              void openScheduleConfigDialog(agents, workspaceId).then(async (draft) => {
+                if (!draft) {
                   return;
                 }
                 const schedule = await createSchedule(workspaceId, draft);
@@ -99,8 +99,8 @@ export function IdeHome() {
             title="New webhook"
             description="Inbound trigger for an agent."
             onClick={() => {
-              void openCreateWebhookDialog(agents).then(async (draft) => {
-                if (!draft || !workspaceId) {
+              void openWebhookConfigDialog(agents, workspaceId).then(async (draft) => {
+                if (!draft) {
                   return;
                 }
                 const created = await createWebhook(workspaceId, draft);

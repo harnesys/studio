@@ -19,6 +19,8 @@ export async function createWebhook(
   const created = await createWebhookRecord(workspaceId, {
     name,
     targetAgentId: draft.targetAgentId,
+    detail: draft.detail?.trim() || undefined,
+    threadId: draft.threadId || undefined,
   });
   const webhook = toClientWebhook(created.webhook);
   useWebhookStore.getState().upsert(webhook);

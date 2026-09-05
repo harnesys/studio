@@ -2,14 +2,14 @@ import { Earth } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
-import { useWebhookStore, type Webhook } from '@/entities/webhook';
+import type { Webhook } from '@/entities/webhook';
 import { useIdeStore } from '@/features/ide';
 import {
   confirmDeleteWebhook,
   createWebhook,
-  openCreateWebhookDialog,
+  deleteWebhook,
+  openWebhookConfigDialog,
 } from '@/features/manage-webhook';
-import { deleteWebhookRecord } from '@/shared/api';
 import { studioPath } from '@/shared/config/routes';
 import { RailSection } from './rail-section';
 import { WebhookRow } from './webhook-row';
@@ -39,8 +39,11 @@ export function WebhooksSection({
   };
 
   const create = () => {
-    void openCreateWebhookDialog(agents).then(async (draft) => {
-      if (!draft || !workspaceId) {
+    if (!workspaceId) {
+      return;
+    }
+    void openWebhookConfigDialog(agents, workspaceId).then(async (draft) => {
+      if (!draft) {
         return;
       }
       const created = await createWebhook(workspaceId, draft);
@@ -90,8 +93,7 @@ export function WebhooksSection({
                   if (!confirmed || !workspaceId) {
                     return;
                   }
-                  await deleteWebhookRecord(workspaceId, item.id);
-                  useWebhookStore.getState().remove(item.id);
+                  await deleteWebhook(workspaceId, item);
                   useIdeStore.getState().closeByEntity(workspaceId, 'thread', item.threadId);
                 });
               }}

@@ -152,3 +152,28 @@ export type {
   SemanticSessionTtl,
   SemanticUpsertInput,
 } from './src/ports/memory.ts';
+
+export {
+  createEpisodicTools,
+  type CreateEpisodicToolsParams,
+} from './src/application/memory/create-episodic-tools.ts';
+export {
+  createKnowledgeTools,
+  type CreateKnowledgeToolsParams,
+} from './src/application/memory/create-knowledge-tools.ts';
+export {
+  createPinTools,
+  type CreatePinToolsParams,
+} from './src/application/memory/create-pin-tools.ts';
+export {
+  createSemanticTools,
+  type CreateSemanticToolsParams,
+} from './src/application/memory/create-semantic-tools.ts';
+export { memoryToolNames } from './src/application/memory/memory-tool-names.ts';
+export {
+  memoryScopeResolver,
+  type MemoryToolPorts,
+  resolveMemoryTools,
+  type ResolveMemoryToolsInput,
+  type ResolveMemoryScope,
+} from './src/application/memory/resolve-memory-tools.ts';

@@ -3,7 +3,7 @@ import type { SessionEvent } from '@studio/shared';
 export type ToolCaption = {
   title: string;
   hint: string;
-  kind: 'terminal' | 'file' | 'search' | 'globe' | 'pencil';
+  kind: 'terminal' | 'file' | 'search' | 'globe' | 'pencil' | 'question';
 };
 
 export function toolCaption(
@@ -62,7 +62,85 @@ export function toolCaption(
   if (name === 'http' || name === 'fetch') {
     return { kind: 'globe', title: 'Fetch', hint: fields.url ?? firstLine(inputStr, outputStr) };
   }
-  return { kind: 'file', title: name, hint: firstLine(inputStr, outputStr) };
+  if (name === 'ask_user') {
+    return {
+      kind: 'question',
+      title: 'Question',
+      hint: fields.prompt ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'load_skill') {
+    return { kind: 'file', title: 'Skill', hint: fields.name ?? firstLine(inputStr, outputStr) };
+  }
+  if (name === 'schedule_list') {
+    return { kind: 'search', title: 'Schedules', hint: firstLine(inputStr, outputStr) };
+  }
+  if (name === 'thread_list') {
+    return { kind: 'search', title: 'Threads', hint: firstLine(inputStr, outputStr) };
+  }
+  if (name === 'schedule_peek') {
+    return {
+      kind: 'search',
+      title: 'Schedule Log',
+      hint: fields.id ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'schedule_set') {
+    return {
+      kind: 'pencil',
+      title: 'Schedule',
+      hint: fields.name ?? fields.id ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'schedule_pause') {
+    return {
+      kind: 'pencil',
+      title: 'Schedule Pause',
+      hint: fields.id ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'schedule_delete') {
+    return {
+      kind: 'pencil',
+      title: 'Schedule Delete',
+      hint: fields.id ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'plan_save') {
+    return {
+      kind: 'pencil',
+      title: 'Plan',
+      hint: fields.overview ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'plan_item_update') {
+    return {
+      kind: 'pencil',
+      title: 'Plan Item',
+      hint: fields.itemId ?? fields.status ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'plan_get') {
+    return { kind: 'search', title: 'Plan', hint: firstLine(inputStr, outputStr) };
+  }
+  if (name === 'webhook_list') {
+    return { kind: 'globe', title: 'Webhooks', hint: firstLine(inputStr, outputStr) };
+  }
+  if (name === 'webhook_set') {
+    return {
+      kind: 'pencil',
+      title: 'Webhook',
+      hint: fields.name ?? fields.id ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'webhook_delete') {
+    return {
+      kind: 'pencil',
+      title: 'Webhook Delete',
+      hint: fields.id ?? firstLine(inputStr, outputStr),
+    };
+  }
+  return { kind: 'file', title: humanizeToolName(name), hint: firstLine(inputStr, outputStr) };
 }
 
 function toolInput(call: SessionEvent & { type: 'tool' }): string {
@@ -121,4 +199,12 @@ function firstLine(input: string, output: string): string {
 function baseName(path: string): string {
   const parts = path.split('/').filter(Boolean);
   return parts.at(-1) ?? path;
+}
+
+function humanizeToolName(name: string): string {
+  const words = name
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1));
+  return words.length > 0 ? words.join(' ') : name;
 }

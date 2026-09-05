@@ -38,10 +38,21 @@ export function useThreadWaiting(threadId: string | null): boolean {
   });
 }
 
+const TERMINAL_EVENT_TYPES = new Set([
+  'done',
+  'error',
+  'run.completed',
+  'run.failed',
+  'run.cancelled',
+]);
+
 function isWaiting(events: SessionEvent[]): boolean {
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i];
-    if (event.type === 'done' || event.type === 'error') {
+    if (TERMINAL_EVENT_TYPES.has(event.type)) {
+      return false;
+    }
+    if (event.type === 'hitl.answer') {
       return false;
     }
     if (event.type === 'ask') {
@@ -52,5 +63,5 @@ function isWaiting(events: SessionEvent[]): boolean {
 }
 
 function hasRunningSession(events: SessionEvent[]): boolean {
-  return events.length > 0 && !events.some((e) => e.type === 'done' || e.type === 'error');
+  return events.length > 0 && !events.some((e) => TERMINAL_EVENT_TYPES.has(e.type));
 }

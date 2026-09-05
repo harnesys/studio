@@ -19,7 +19,7 @@ export function AskLine({
   return (
     <ActivityLine
       icon={MessageCircleQuestionIcon}
-      label="Ask"
+      label="Question"
       hint={prompt}
       active={waiting}
       defaultOpen={waiting}

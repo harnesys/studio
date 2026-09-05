@@ -2,6 +2,7 @@ import {
   Code2Icon,
   FileTextIcon,
   GlobeIcon,
+  MessageCircleQuestionIcon,
   PencilIcon,
   SearchIcon,
   SquareTerminalIcon,
@@ -26,6 +27,7 @@ const ICONS = {
   search: SearchIcon,
   globe: GlobeIcon,
   pencil: PencilIcon,
+  question: MessageCircleQuestionIcon,
 } as const;
 
 export function ToolLine({

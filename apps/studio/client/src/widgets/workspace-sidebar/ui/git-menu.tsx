@@ -57,7 +57,7 @@ export function GitTitle({ workspaceId }: { workspaceId: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5">
       Git
-      <span className="min-w-0 truncate rounded-sm bg-sidebar-accent px-1 font-mono font-normal text-[10px] text-muted-foreground">
+      <span className="min-w-0 truncate rounded-sm bg-sidebar-accent px-1 font-mono font-normal text-[10px] text-muted-foreground leading-4">
         {label}
       </span>
       {dirtyBadge}

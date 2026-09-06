@@ -77,6 +77,16 @@ export type SessionEvent =
     }
   | { type: 'run.started'; attempt: number; seq?: number; runId?: string }
   | { type: 'model.usage'; usage: ModelUsage; seq?: number; runId?: string }
+  | {
+      type: 'model.stats';
+      tools: number;
+      deferredPending: number;
+      systemChars: number;
+      notesChars: number;
+      notesErrors: string[];
+      seq?: number;
+      runId?: string;
+    }
   | { type: 'run.completed'; text?: string; seq?: number; runId?: string }
   | { type: 'run.cancelled'; reason: string; seq?: number; runId?: string }
   | { type: 'run.failed'; message: string; seq?: number; runId?: string }

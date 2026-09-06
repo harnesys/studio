@@ -165,6 +165,18 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
     }
     return { type: 'model.usage', usage };
   }
+  if (t === 'model.stats') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const errs = Array.isArray(m?.notesErrors) ? m.notesErrors : [];
+    return {
+      type: 'model.stats',
+      tools: num(m?.tools) ?? 0,
+      deferredPending: num(m?.deferredPending) ?? 0,
+      systemChars: num(m?.systemChars) ?? 0,
+      notesChars: num(m?.notesChars) ?? 0,
+      notesErrors: errs.filter((x): x is string => typeof x === 'string'),
+    };
+  }
   if (t === 'tool.completed' || t === 'tool.intent') {
     const m = ev.metadata as Record<string, unknown> | undefined;
     return {

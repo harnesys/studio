@@ -1,7 +1,7 @@
 import type { RunLifecycleStore } from 'harnesys';
 import type { Hono } from 'hono';
 import { ScheduleController } from '../adapters/http/schedule/schedule.controller.ts';
-import { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
+import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import { startScheduleTicker } from '../adapters/schedule-ticker.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { CreateScheduleUseCase } from '../application/schedules/create-schedule.use-case.ts';
@@ -35,10 +35,11 @@ export type WireSchedulesDeps = {
   sendThreadRun: SendThreadRunInput;
   getThread: GetThreadInput;
   semanticSessions?: SemanticSessionCleanup;
+  queue: ScheduleFireQueue;
 };
 
-export function wireSchedules(deps: WireSchedulesDeps): ScheduleFireQueue {
-  const queue = new ScheduleFireQueue();
+export function wireSchedules(deps: WireSchedulesDeps): void {
+  const queue = deps.queue;
   const fireDueSchedules = new FireDueSchedulesUseCase({
     schedules: deps.schedules,
     threads: deps.threads,
@@ -84,6 +85,4 @@ export function wireSchedules(deps: WireSchedulesDeps): ScheduleFireQueue {
       semanticSessions: deps.semanticSessions,
     }),
   }).register(deps.app);
-
-  return queue;
 }

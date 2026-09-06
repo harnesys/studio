@@ -1,5 +1,5 @@
-import type { RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
-import { ALL_MEMORY_TOOL_NAMES, memoryToolNames } from 'harnesys';
+import type { CapabilityRegistration, RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
+import { allCapabilityToolNames, capabilityToolNames } from 'harnesys';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
@@ -16,6 +16,7 @@ export type StudioRunTargetsDeps = {
   workspaces: WorkspaceRepository;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   runtimeStates: RuntimeStateRepository;
+  capabilityRegistrations: CapabilityRegistration[];
 };
 
 export class StudioRunTargets implements RunTargets {
@@ -54,10 +55,10 @@ export class StudioRunTargets implements RunTargets {
       return null;
     }
     const state = this.deps.runtimeStates.forState(threadId);
-    const enabledMemory = new Set(memoryToolNames(agentRow.memory));
+    const enabled = new Set(capabilityToolNames(agent, this.deps.capabilityRegistrations));
     const registry = new Map(hx.tools.registry());
-    for (const name of ALL_MEMORY_TOOL_NAMES) {
-      if (!enabledMemory.has(name)) {
+    for (const name of allCapabilityToolNames(this.deps.capabilityRegistrations)) {
+      if (!enabled.has(name)) {
         registry.delete(name);
       }
     }
@@ -66,7 +67,7 @@ export class StudioRunTargets implements RunTargets {
       agent,
       permissions: permissionMapFor(resolveThreadRunMode(thread)),
       paths: { allow: [workspace.path], cwd: workspace.path },
-      notes: this.deps.workspaceHarnesys.noteProviders,
+      capabilities: this.deps.capabilityRegistrations,
       toolRegistry: registry,
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
     };

@@ -3,20 +3,18 @@ import type {
   AgentDefinition,
   AgentGenerationSettings,
   AgentModelRef,
+  CapabilityRegistration,
   CursorMcpJson,
-  LlmNoteProvider,
   ModelsPort,
   RunClaimer,
   RunEventFeed,
   RunEventStore,
   RunLifecycleStore,
   RuntimeHandle,
-  ToolDefinition,
 } from 'harnesys';
 import { createRuntime } from 'harnesys';
 import { askUser, fetch, files, shell } from 'harnesys/actions';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
-import { composeAgentSystem } from '../../shared/default-agent-instructions.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import { ValidationError } from '../domain/studio.error.ts';
@@ -39,25 +37,13 @@ export type WorkspaceRuntimeWiring = {
 
 export class WorkspaceHarnesysRegistry {
   private readonly cache = new Map<string, Promise<RuntimeHandle>>();
-  private extraTools: ToolDefinition[] = [];
 
   constructor(
     private readonly models: ModelsPort,
     private readonly repos: WorkspaceHarnesysRepos = {},
     private readonly runtime?: WorkspaceRuntimeWiring,
-    private readonly notes: LlmNoteProvider[] = [],
+    private readonly capabilityRegistrations: CapabilityRegistration[] = [],
   ) {}
-
-  get noteProviders(): LlmNoteProvider[] {
-    return this.notes;
-  }
-
-  setExtraTools(tools: ToolDefinition[]): void {
-    this.extraTools = tools;
-    for (const workspaceId of [...this.cache.keys()]) {
-      void this.forget(workspaceId);
-    }
-  }
 
   get(workspace: Workspace): Promise<RuntimeHandle> {
     const cached = this.cache.get(workspace.id);
@@ -93,6 +79,13 @@ export class WorkspaceHarnesysRegistry {
     }
   }
 
+  /** Pack tools enter the runtime registry in full; per-run targets prune disabled packs. */
+  private capabilityTools() {
+    return this.capabilityRegistrations.flatMap((reg) =>
+      reg.pack.tools({ ports: reg.ports, resolveScope: reg.resolveScope, config: {} }),
+    );
+  }
+
   private create(workspace: Workspace): Promise<RuntimeHandle> {
     let mcpJson: CursorMcpJson;
     try {
@@ -105,12 +98,12 @@ export class WorkspaceHarnesysRegistry {
     });
     return createRuntime({
       models: this.models,
-      tools: [...files(), shell(), fetch(), askUser(), ...this.extraTools],
+      tools: [...files(), shell(), fetch(), askUser(), ...this.capabilityTools()],
+      capabilities: [...this.capabilityRegistrations],
       agents: { resolve: (id: string) => this.resolveAgent(id) },
       mcp: mcpJson,
       paths: { allow: [workspace.path], cwd: workspace.path },
       skills,
-      notes: this.notes,
       ...this.runtime,
     });
   }
@@ -127,10 +120,9 @@ export class WorkspaceHarnesysRegistry {
     if (!agent) {
       return undefined;
     }
-    const system = composeAgentSystem(agent.instructions);
     return {
       id: agent.id,
-      prompts: { main: { instructions: system } },
+      prompts: { main: { instructions: agent.instructions } },
       model: this.resolveModelRef(agent),
       skills: agent.skills.length ? agent.skills : undefined,
       tools: agent.tools.length ? agent.tools : undefined,
@@ -138,6 +130,7 @@ export class WorkspaceHarnesysRegistry {
       toolOutput: agent.toolOutput ?? undefined,
       compaction: agent.compaction,
       memory: agent.memory,
+      capabilities: agent.capabilities,
       graph: agent.graph,
       budget: agent.budget ?? undefined,
     };

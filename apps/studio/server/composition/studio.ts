@@ -16,7 +16,7 @@ import { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
 import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
 import { type HostToolScope, runInHostToolScope } from '../adapters/host-tool-scope.ts';
 import { handleHttpError } from '../adapters/http/http.error.ts';
-import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
+import { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import { bootstrap } from '../adapters/store/sqlite/bootstrap.ts';
 import { createSqliteConnection, type StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
@@ -41,15 +41,14 @@ import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.regist
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.use-case.ts';
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
-import { createPlanNotesProvider } from '../application/threads/plan-notes.ts';
 import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { env } from '../config/env.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
+import { createCapabilityRegistrations } from './wire-capabilities.ts';
 import { wireControllers } from './wire-controllers.ts';
-import { wireHostTools } from './wire-host-tools.ts';
 import { createStudioMemory, registerMemoryHttp } from './wire-memory.ts';
 import { wireSchedules } from './wire-schedules.ts';
 import { wireWebhooks } from './wire-webhooks.ts';
@@ -102,8 +101,10 @@ export function createStudio(options: StudioOptions = {}): Hono {
     toolMessages: 'ordered',
   });
   const getThread = new GetThreadUseCase(threadRepo, agentRepo, runEvents, runLifecycle);
-  const scheduleQueueRef: { current: ScheduleFireQueue | null } = { current: null };
-  const webhookQueueRef: { current: ScheduleFireQueue | null } = { current: null };
+  const scheduleQueue = new ScheduleFireQueue();
+  const webhookQueue = new ScheduleFireQueue();
+  const scheduleQueueRef: { current: ScheduleFireQueue | null } = { current: scheduleQueue };
+  const webhookQueueRef: { current: ScheduleFireQueue | null } = { current: webhookQueue };
   const targetRef: { current: RunTargets | null } = { current: null };
   const runClaimer = createRunClaimer({
     lifecycle: runLifecycle,
@@ -140,6 +141,22 @@ export function createStudio(options: StudioOptions = {}): Hono {
   });
   const planUow = new SqliteUnitOfWork(db);
   const getThreadPlan = new GetThreadPlanUseCase(planUow);
+  const capabilityRegistrations = createCapabilityRegistrations({
+    db,
+    schedules: scheduleRepo,
+    webhooks: webhookRepo,
+    threads: threadRepo,
+    agents: agentRepo,
+    workspaces: workspaceRepo,
+    attachments: attachmentRepo,
+    attachmentsFs: attachments,
+    lifecycle: runLifecycle,
+    scheduleQueue,
+    deskEvents,
+    getThread,
+    semanticSessions: memory.semantic,
+    memory,
+  });
   const workspaceHarnesys =
     options.workspaceHarnesys ??
     new WorkspaceHarnesysRegistry(
@@ -152,7 +169,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
         claimer: runClaimer,
         instanceId,
       },
-      [createPlanNotesProvider({ getThreadPlan })],
+      capabilityRegistrations,
     );
   const runTargets = new StudioRunTargets({
     threads: threadRepo,
@@ -162,6 +179,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     workspaceHarnesys,
     runtimeStates: runtimeStateRepo,
+    capabilityRegistrations,
   });
   targetRef.current = runTargets;
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
@@ -214,7 +232,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
 
   registerMemoryHttp(app, memory, { agents: agentRepo, workspaces: workspaceRepo });
 
-  const scheduleQueue = wireSchedules({
+  wireSchedules({
     app,
     db,
     startTicker: !options.db,
@@ -229,10 +247,10 @@ export function createStudio(options: StudioOptions = {}): Hono {
     sendThreadRun,
     getThread,
     semanticSessions: memory.semantic,
+    queue: scheduleQueue,
   });
-  scheduleQueueRef.current = scheduleQueue;
 
-  const webhookQueue = wireWebhooks({
+  wireWebhooks({
     app,
     db,
     webhooks: webhookRepo,
@@ -245,26 +263,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     deskEvents,
     sendThreadRun,
     getThread,
-  });
-  webhookQueueRef.current = webhookQueue;
-
-  wireHostTools({
-    db,
-    workspaceHarnesys,
-    toolRegistry,
-    schedules: scheduleRepo,
-    webhooks: webhookRepo,
-    threads: threadRepo,
-    agents: agentRepo,
-    workspaces: workspaceRepo,
-    attachments: attachmentRepo,
-    attachmentsFs: attachments,
-    lifecycle: runLifecycle,
-    queue: scheduleQueue,
-    deskEvents,
-    getThread,
-    semanticSessions: memory.semantic,
-    memory,
+    queue: webhookQueue,
   });
 
   app.onError(handleHttpError);

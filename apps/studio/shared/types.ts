@@ -32,9 +32,12 @@ export {
 
 import type {
   CapabilityConfig,
+  PermissionMode,
+  ScheduleHistory,
   McpResourceInfo as WorkspaceMcpResource,
   ToolCatalogEntry as WorkspaceTool,
 } from 'harnesys';
+import { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys';
 import type {
   AgentGenerationSettings,
   AgentMemoryConfig,
@@ -180,14 +183,12 @@ export type TokenUsage = {
 export const SCHEDULE_STATUSES = ['active', 'paused', 'failed'] as const;
 export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
 
-export const PERMISSION_MODES = ['ask', 'auto', 'dont_ask', 'bypass'] as const;
-export type PermissionMode = (typeof PERMISSION_MODES)[number];
+export type { PermissionMode, ScheduleHistory } from 'harnesys';
+export { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys';
+
 /** `plan` is read-only planning, never sent to the library as permissionMode. */
 export const RUN_MODES = [...PERMISSION_MODES, 'plan'] as const;
 export type RunMode = (typeof RUN_MODES)[number];
-
-export const SCHEDULE_HISTORIES = ['none', 'last', 'all'] as const;
-export type ScheduleHistory = (typeof SCHEDULE_HISTORIES)[number];
 
 export function isScheduleHistory(value: string): value is ScheduleHistory {
   return (SCHEDULE_HISTORIES as readonly string[]).includes(value);

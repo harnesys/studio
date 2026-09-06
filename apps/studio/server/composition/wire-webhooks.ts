@@ -1,7 +1,7 @@
 import type { RunLifecycleStore } from 'harnesys';
 import type { Hono } from 'hono';
 import { WebhookController } from '../adapters/http/webhook/webhook.controller.ts';
-import { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
+import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import type { GetThreadInput } from '../application/threads/get-thread.use-case.ts';
 import type { SendThreadRunInput } from '../application/threads/send-thread-run.use-case.ts';
@@ -31,10 +31,11 @@ export type WireWebhooksDeps = {
   deskEvents: DeskEventsPort;
   sendThreadRun: SendThreadRunInput;
   getThread: GetThreadInput;
+  queue: ScheduleFireQueue;
 };
 
-export function wireWebhooks(deps: WireWebhooksDeps): ScheduleFireQueue {
-  const queue = new ScheduleFireQueue();
+export function wireWebhooks(deps: WireWebhooksDeps): void {
+  const queue = deps.queue;
   const fireWebhook = new FireWebhookUseCase({
     webhooks: deps.webhooks,
     threads: deps.threads,
@@ -74,6 +75,4 @@ export function wireWebhooks(deps: WireWebhooksDeps): ScheduleFireQueue {
     }),
     fireWebhook,
   }).register(deps.app);
-
-  return queue;
 }

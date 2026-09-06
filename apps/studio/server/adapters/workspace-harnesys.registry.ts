@@ -4,6 +4,7 @@ import type {
   AgentGenerationSettings,
   AgentModelRef,
   CursorMcpJson,
+  LlmNoteProvider,
   ModelsPort,
   RunClaimer,
   RunEventFeed,
@@ -44,6 +45,7 @@ export class WorkspaceHarnesysRegistry {
     private readonly models: ModelsPort,
     private readonly repos: WorkspaceHarnesysRepos = {},
     private readonly runtime?: WorkspaceRuntimeWiring,
+    private readonly notes: LlmNoteProvider[] = [],
   ) {}
 
   setExtraTools(tools: ToolDefinition[]): void {
@@ -104,6 +106,7 @@ export class WorkspaceHarnesysRegistry {
       mcp: mcpJson,
       paths: { allow: [workspace.path], cwd: workspace.path },
       skills,
+      notes: this.notes,
       ...this.runtime,
     });
   }

@@ -48,6 +48,7 @@ export type { Plan } from './src/application/compile.ts';
 export { check } from './src/application/check.ts';
 export type { CheckOptions } from './src/application/check.ts';
 export { validateStructural } from './src/application/validate.ts';
+export type { LlmNote, LlmNoteContext, LlmNoteProvider } from './src/application/llm-notes.ts';
 export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
 export type {
   PendingSessionEvent,

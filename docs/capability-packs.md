@@ -43,7 +43,7 @@ capabilities?: Record<string, CapabilityConfig | null>;
 1. источник включения: `pack.configFrom(def)`, если задан; иначе `def.capabilities[name]`;
 2. `requires`: порт отсутствует в `registration.ports` — ошибка `capability_port_missing`, пачка выключена;
 3. `dependsOn`: зависимая пачка не резолвится — ошибка `capability_dep_missing` (рекурсивно, защита от циклов);
-4. ключ `def.capabilities` без регистрации у хоста — warning `unknown_capability`.
+4. незарегистрированная пачка со значением не-null в `def.capabilities` — warning `unknown_capability`; явная `null`-запись не предупреждает (`registry.ts:85-93`).
 
 Мост памяти: `AgentDefinition.memory` остаётся источником включения четырёх memory-пачек — их `configFrom` читает `def.memory.pin/semantic/episodic/knowledge` (`src/capabilities/memory/pin.ts:13`), запись в `capabilities` для них не нужна. Пачка `skills` включена по умолчанию: без явной записи `capabilities.skills` непустой `def.skills` превращается в `{ spec: { allow: [...] } }` (allowlist для `load_skill`), пустой `def.skills` — включена целиком; явная запись приоритетнее (`src/capabilities/skills.ts`).
 
@@ -64,7 +64,7 @@ CAPABILITY_IDENTITY
 <agentText>
 ```
 
-Порядок: identity-блок → фрагменты включённых пачек в порядке sort by `pack.name` (asc) → `## Agent` с текстом агента. Пустые фрагменты выбрасываются. Сортировка по имени фиксирует порядок фрагментов — требование prefix-caching провайдеров.
+Порядок: identity-блок → фрагменты включённых пачек в порядке sort by `pack.name` (asc) → `## Agent` с текстом агента (секция добавляется только при непустом `agentText`). Пустые фрагменты выбрасываются. Сортировка по имени фиксирует порядок фрагментов — требование prefix-caching провайдеров.
 
 Правила фрагментов:
 
@@ -72,7 +72,7 @@ CAPABILITY_IDENTITY
 - межпачечные связи — только `dependsOn`: выключенная зависимость убирает и инструменты, и текст;
 - правка текста фрагмента = bump `version` пачки; версия видна в каталоге и показывает расхождение промпта между хостами.
 
-`pack.notes(ctx)` возвращает `LlmNoteProvider`; провайдер вызывается перед каждым шагом LLM (`src/application/graph.ts:579-586`), скоуп резолвится внутри вызова провайдера — хост задаёт скоуп рана до этого (студия — через host-обёртку `requireHostToolScope` в run-engine).
+`pack.notes(ctx)` возвращает `LlmNoteProvider`; провайдер вызывается перед каждым шагом LLM (`src/application/graph.ts:579-586`), скоуп резолвится внутри вызова провайдера — хост задаёт скоуп рана до этого (студия — через host-обёртку `runInHostToolScope` в run-engine; `requireHostToolScope` — чтение внутри провайдера).
 
 ## Два уровня расширения
 

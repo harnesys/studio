@@ -22,6 +22,29 @@ export function gitStatusColor(status: GitFileStatus): string {
   }
 }
 
+export function gitFileStatusLabel(status: GitFileStatus): string {
+  switch (status) {
+    case 'untracked':
+      return 'U';
+    case 'modified':
+      return 'M';
+    case 'added':
+      return 'A';
+    case 'deleted':
+      return 'D';
+    case 'staged':
+      return 'S';
+    case 'conflicted':
+      return 'C';
+    case 'renamed':
+      return 'R';
+    case 'ignored':
+      return 'I';
+    default:
+      return status.slice(0, 1).toUpperCase();
+  }
+}
+
 export function getDirAggregatedStatus(
   dirPath: string,
   map?: GitFileStatusMap,

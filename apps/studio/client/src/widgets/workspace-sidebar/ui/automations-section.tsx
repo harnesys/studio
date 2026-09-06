@@ -1,4 +1,4 @@
-import { CalendarClockIcon, PlusIcon, WebhookIcon } from 'lucide-react';
+import { CalendarClockIcon, WebhookIcon } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
@@ -22,15 +22,9 @@ import {
 } from '@/features/manage-webhook';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { studioPath } from '@/shared/config/routes';
-import { Button } from '@/shared/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/shared/ui/dropdown-menu';
+import { DropdownMenuGroup, DropdownMenuItem } from '@/shared/ui/dropdown-menu';
 import { ScheduleRow } from './schedule-row';
+import { SectionMenu } from './section-menu';
 import { WebhookRow } from './webhook-row';
 
 export type AutomationsAddMenuProps = {
@@ -104,33 +98,18 @@ export function AutomationsAddMenu({ workspaceId, agents, onDone }: AutomationsA
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            title="New automation"
-            aria-label="New automation"
-          />
-        }
-      >
-        <PlusIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
-        <span className="sr-only">New automation</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={createScheduler}>
-            <CalendarClockIcon />
-            New scheduler
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={createHook}>
-            <WebhookIcon />
-            New webhook
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <SectionMenu label="Automations actions">
+      <DropdownMenuGroup>
+        <DropdownMenuItem onClick={createScheduler}>
+          <CalendarClockIcon />
+          New scheduler
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={createHook}>
+          <WebhookIcon />
+          New webhook
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+    </SectionMenu>
   );
 }
 

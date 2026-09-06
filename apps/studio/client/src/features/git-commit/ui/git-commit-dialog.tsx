@@ -27,6 +27,7 @@ import { GitCommitFileList } from './git-commit-file-list';
 type DialogData = {
   workspaceId: string;
   message?: string;
+  focusPath?: string;
 };
 
 export function GitCommitDialog({
@@ -61,7 +62,7 @@ export function GitCommitDialog({
       .sort((a, b) => a.path.localeCompare(b.path));
   }, [statusQuery.data]);
 
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(data?.focusPath ?? null);
 
   useEffect(() => {
     if (files.length === 0) {

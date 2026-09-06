@@ -5,6 +5,7 @@ import {
   GitBranchIcon,
   PlusIcon,
   SettingsIcon,
+  SparklesIcon,
   ZapIcon,
 } from 'lucide-react';
 import { type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
@@ -29,7 +30,6 @@ import {
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { studioPath } from '@/shared/config/routes';
-import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,12 +51,15 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/shared/ui/sidebar';
+import { toast } from '@/shared/ui/toast';
 import { AgentCard } from '@/widgets/agent-card';
 import { normalizeShares, useAccordionStore } from '../model/accordion.store';
 import { AccordionSection } from './accordion-section';
 import { AutomationsAddMenu, AutomationsSection } from './automations-section';
 import { ExplorerActions, ExplorerContent, ExplorerTitle } from './files-section';
+import { GitSectionMenu, GitTitle } from './git-menu';
 import { GitSection } from './git-section';
+import { SectionMenu } from './section-menu';
 
 type SidebarSectionId = 'agents' | 'explorer' | 'automations' | 'git';
 
@@ -145,10 +148,7 @@ export function WorkspaceSidebar() {
       const onMove = (moveEvent: MouseEvent) => {
         const current = useAccordionStore.getState().sizes;
         const pairSum = (current[upperId] ?? 1) + (current[lowerId] ?? 1);
-        const ratio = Math.min(
-          0.85,
-          Math.max(0.15, (upperPx + moveEvent.clientY - startY) / totalPx),
-        );
+        const ratio = Math.min(1, Math.max(0, (upperPx + moveEvent.clientY - startY) / totalPx));
         useAccordionStore
           .getState()
           .setSizes({ ...current, [upperId]: pairSum * ratio, [lowerId]: pairSum * (1 - ratio) });
@@ -255,7 +255,7 @@ export function WorkspaceSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 group-data-[collapsible=icon]:overflow-y-auto">
-        <div ref={containerRef} className="flex min-h-0 flex-auto flex-col gap-1 px-2">
+        <div ref={containerRef} className="flex min-h-0 flex-auto flex-col gap-1 px-2 pb-2">
           <AccordionSection
             id="agents"
             icon={<BotIcon />}
@@ -263,16 +263,18 @@ export function WorkspaceSidebar() {
             count={agents.length}
             size={shares.agents ?? 1}
             actions={
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                title="New agent"
-                aria-label="New agent"
-                onClick={createAgentFlow}
-              >
-                <PlusIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
-                <span className="sr-only">New agent</span>
-              </Button>
+              <SectionMenu label="Agent actions">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={createAgentFlow}>
+                    <BotIcon />
+                    Create Agent
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.add({ title: 'Presets are coming soon' })}>
+                    <SparklesIcon />
+                    From Preset
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </SectionMenu>
             }
           >
             {agents.length === 0 ? (
@@ -355,7 +357,13 @@ export function WorkspaceSidebar() {
           </AccordionSection>
 
           {resizeNode('git')}
-          <AccordionSection id="git" icon={<GitBranchIcon />} title="Git" size={shares.git ?? 1}>
+          <AccordionSection
+            id="git"
+            icon={<GitBranchIcon />}
+            title={workspaceId ? <GitTitle workspaceId={workspaceId} /> : 'Git'}
+            size={shares.git ?? 1}
+            actions={workspaceId ? <GitSectionMenu workspaceId={workspaceId} /> : undefined}
+          >
             {workspaceId ? <GitSection workspaceId={workspaceId} /> : null}
           </AccordionSection>
         </div>

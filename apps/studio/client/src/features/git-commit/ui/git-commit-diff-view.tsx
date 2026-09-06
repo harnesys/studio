@@ -85,7 +85,7 @@ export function GitCommitDiffView({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex h-7 shrink-0 items-center gap-2 border-b bg-muted/30 px-3">
         <span className="truncate font-mono text-xs">{data.path}</span>
-        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground uppercase">
+        <span className="ml-auto rounded bg-muted px-1.5 font-mono text-[9px] text-muted-foreground uppercase">
           {data.status}
         </span>
       </div>

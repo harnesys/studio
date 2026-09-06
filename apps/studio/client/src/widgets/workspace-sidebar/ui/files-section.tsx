@@ -1,6 +1,6 @@
 import type { WorkspaceFileEntry } from '@studio/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileIcon, FolderIcon, LoaderCircleIcon, PlusIcon } from 'lucide-react';
+import { FileIcon, FolderIcon, LoaderCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
 import { openWorkspaceFile } from '@/features/open-file';
@@ -13,19 +13,19 @@ import {
 import { getGitFileStatus, gitFileStatusQueryKey } from '@/shared/api/git';
 import { knowledgeIndexStateQuery } from '@/shared/api/memory';
 import { useStudioNavigation } from '@/shared/config/navigation';
-import { Button } from '@/shared/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/shared/ui/dropdown-menu';
 import { useSidebar } from '@/shared/ui/sidebar';
 import { useExplorerDraftStore } from '../model/explorer-draft.store';
+import { useExplorerHiddenStore } from '../model/explorer-hidden.store';
 import { useFileSelectionStore } from '../model/file-selection.store';
 import { useFilesHotkey } from '../model/use-files-hotkey';
 import { FileRow, InlineCreateInput } from './file-row';
+import { SectionMenu } from './section-menu';
 
 export function ExplorerTitle({ workspaceId }: { workspaceId: string }) {
   const indexStateQuery = useQuery({
@@ -50,35 +50,28 @@ export function ExplorerTitle({ workspaceId }: { workspaceId: string }) {
 
 export function ExplorerActions() {
   const start = useExplorerDraftStore((state) => state.start);
+  const showHidden = useExplorerHiddenStore((state) => state.showHidden);
+  const setShowHidden = useExplorerHiddenStore((state) => state.setShowHidden);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            title="Explorer actions"
-            aria-label="Explorer actions"
-          />
-        }
-      >
-        <PlusIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
-        <span className="sr-only">Explorer actions</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => start('file', '')}>
-            <FileIcon />
-            New file
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => start('dir', '')}>
-            <FolderIcon />
-            New folder
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <SectionMenu label="Explorer actions">
+      <DropdownMenuGroup>
+        <DropdownMenuItem onClick={() => start('file', '')}>
+          <FileIcon />
+          New file
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => start('dir', '')}>
+          <FolderIcon />
+          New folder
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuCheckboxItem checked={showHidden} onCheckedChange={setShowHidden}>
+          Show hidden files
+        </DropdownMenuCheckboxItem>
+      </DropdownMenuGroup>
+    </SectionMenu>
   );
 }
 
@@ -151,7 +144,11 @@ export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
     },
   });
 
-  const entries = filesQuery.data ?? [];
+  const showHidden = useExplorerHiddenStore((state) => state.showHidden);
+  const entries = useMemo(() => {
+    const all = filesQuery.data ?? [];
+    return showHidden ? all : all.filter((entry) => !entry.name.startsWith('.'));
+  }, [filesQuery.data, showHidden]);
 
   const computeVisible = useCallback((): string[] => {
     const out: string[] = [];

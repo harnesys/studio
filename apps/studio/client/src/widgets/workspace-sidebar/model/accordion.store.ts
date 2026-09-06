@@ -23,7 +23,7 @@ const DEFAULT_COLLAPSED: Record<string, boolean> = {
 };
 
 function isValidSize(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
 function sanitizeSizes(input: Record<string, number> | undefined): Record<string, number> {

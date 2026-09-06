@@ -1,5 +1,5 @@
 import type { CapabilityRegistration, RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
-import { allCapabilityToolNames, capabilityToolNames } from 'harnesys';
+import { allCapabilityToolNames, capabilityToolNames, capabilityTools } from 'harnesys';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
@@ -61,6 +61,11 @@ export class StudioRunTargets implements RunTargets {
       if (!enabled.has(name)) {
         registry.delete(name);
       }
+    }
+    // Per-agent instances win over the workspace-wide config:{} copies, so pack
+    // specs (e.g. memory.knowledge.spec.topK) reach the tool at execute time.
+    for (const t of capabilityTools(agent, this.deps.capabilityRegistrations)) {
+      registry.set(t.name, t);
     }
     return {
       state,

@@ -1,6 +1,8 @@
 import {
   type CapabilityRegistration,
   episodicMemoryCapability,
+  fetchCapability,
+  filesCapability,
   knowledgeMemoryCapability,
   pinMemoryCapability,
   planCapability,
@@ -8,6 +10,7 @@ import {
   registerCapability,
   schedulerCapability,
   semanticMemoryCapability,
+  shellCapability,
   threadsCapability,
   webhookCapability,
 } from 'harnesys';
@@ -71,10 +74,16 @@ export function createCapabilityRegistrations(
     const scope: HostToolScope = requireHostToolScope();
     return { ...scope, agentName: deps.agents.findById(scope.agentId)?.name };
   };
+  // Base packs need no ports and never read the scope; the stub mirrors the
+  // library auto-registration (create-runtime dedupes by pack name, first wins).
+  const stubScope = () => ({ workspaceId: '_', agentId: '_', threadId: '_' });
   const listThreads = new ListThreadsUseCase(deps.threads, deps.workspaces, deps.agents);
   const listSchedules = new ListSchedulesUseCase(deps.schedules, deps.workspaces);
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
   return [
+    registerCapability(filesCapability, {}, stubScope),
+    registerCapability(shellCapability, {}, stubScope),
+    registerCapability(fetchCapability, {}, stubScope),
     registerCapability(
       planCapability,
       {

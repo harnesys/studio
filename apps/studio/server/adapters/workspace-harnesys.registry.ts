@@ -13,7 +13,7 @@ import type {
   RuntimeHandle,
 } from 'harnesys';
 import { createRuntime } from 'harnesys';
-import { askUser, fetch, files, shell } from 'harnesys/actions';
+import { askUser } from 'harnesys/actions';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
@@ -98,7 +98,9 @@ export class WorkspaceHarnesysRegistry {
     });
     return createRuntime({
       models: this.models,
-      tools: [...files(), shell(), fetch(), askUser(), ...this.capabilityTools()],
+      // files/shell/fetch come from the base packs in capabilityRegistrations;
+      // ask_user has no pack. Per-agent gating happens in the run targets.
+      tools: [askUser(), ...this.capabilityTools()],
       capabilities: [...this.capabilityRegistrations],
       agents: { resolve: (id: string) => this.resolveAgent(id) },
       mcp: mcpJson,

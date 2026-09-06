@@ -22,6 +22,21 @@ export type {
   CapabilityScope,
 } from './src/domain/capability.ts';
 export { defineCapability, registerCapability } from './src/domain/capability.ts';
+export type {
+  CapabilityDiagnostic,
+  ResolvedCapability,
+} from './src/application/capabilities/registry.ts';
+export { resolveCapabilities } from './src/application/capabilities/registry.ts';
+export {
+  CAPABILITY_IDENTITY,
+  composeSystemPrompt,
+} from './src/application/capabilities/prompt.ts';
+export type { CapabilityCatalogEntry } from './src/application/capabilities/tool-names.ts';
+export {
+  allCapabilityToolNames,
+  capabilityCatalog,
+  capabilityToolNames,
+} from './src/application/capabilities/tool-names.ts';
 export {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,

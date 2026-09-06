@@ -217,3 +217,19 @@ export { planFollowPrompt } from './src/capabilities/plan/prompt.ts';
 export type { ThreadSummary, ThreadsPort } from './src/ports/threads.ts';
 export type { ThreadsCapabilityPorts } from './src/capabilities/threads/index.ts';
 export { threadsCapability } from './src/capabilities/threads/index.ts';
+export { PERMISSION_MODES, SCHEDULE_HISTORIES } from './src/domain/schedule.ts';
+export type { PermissionMode, ScheduleHistory } from './src/domain/schedule.ts';
+export type {
+  SchedulerPort,
+  ScheduleCreateInput,
+  ScheduleCreatedRecord,
+  ScheduleCreatedThread,
+  SchedulePeekFire,
+  SchedulePeekRecord,
+  ScheduleRecord,
+  ScheduleStatus,
+  ScheduleUpdateInput,
+} from './src/ports/scheduler.ts';
+export type { SchedulerCapabilityPorts } from './src/capabilities/scheduler/index.ts';
+export { schedulerCapability } from './src/capabilities/scheduler/index.ts';
+export { formatScheduleWake, SCHEDULER_PROMPT_FRAGMENT } from './src/capabilities/scheduler/prompt.ts';

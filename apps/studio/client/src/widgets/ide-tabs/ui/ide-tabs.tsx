@@ -70,7 +70,7 @@ export function IdeGroupTabs({
     // biome-ignore lint/a11y/noStaticElementInteractions: drop target for tabs dragged between editor groups
     <div
       className={cn(
-        'flex h-11 shrink-0 items-center gap-1 pr-2 pl-3 transition-colors duration-150',
+        'flex h-10 shrink-0 items-center gap-1 pr-2 pl-3 transition-colors duration-150',
         barDragOver && 'bg-muted/60 ring-1 ring-ring ring-inset',
       )}
       data-testid={`ide-group-tabs-${groupId}`}

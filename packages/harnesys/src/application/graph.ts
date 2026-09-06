@@ -184,6 +184,7 @@ const PASSTHROUGH_MODEL_EVENTS = new Set([
   'model.tool-call',
   'model.source',
   'model.file',
+  'model.stats',
 ]);
 
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
@@ -565,6 +566,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           if (left) {
             notes.push(budgetNote(left));
           }
+          const notesErrors: string[] = [];
           if (opts.notes?.length || caps.enabled.length > 0) {
             const noteCtx: LlmNoteContext = {
               agentId: opts.agent.id,
@@ -577,7 +579,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             for (const provider of opts.notes ?? []) {
               try {
                 notes.push(...(await provider(noteCtx)));
-              } catch {}
+              } catch (e) {
+                notesErrors.push(`${cur}: ${e instanceof Error ? e.message : String(e)}`);
+              }
             }
             for (const c of caps.enabled) {
               try {
@@ -589,7 +593,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
                 if (provider) {
                   notes.push(...(await provider(noteCtx)));
                 }
-              } catch {}
+              } catch (e) {
+                notesErrors.push(`${cur}: ${e instanceof Error ? e.message : String(e)}`);
+              }
             }
           }
           const stream = runLlmGenerate(
@@ -610,6 +616,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               toolRegistry: opts.toolRegistry,
               signal: opts.signal ?? new AbortController().signal,
               notes,
+              notesErrors,
               capabilities: caps.enabled,
             },
           );

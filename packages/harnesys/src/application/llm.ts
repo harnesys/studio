@@ -27,6 +27,7 @@ export type LlmContext = {
   toolRegistry: Map<string, ToolDefinition>;
   signal: AbortSignal;
   notes?: LlmNote[];
+  notesErrors?: string[];
   capabilities?: ResolvedCapability[];
 };
 
@@ -123,6 +124,17 @@ export async function* runLlmGenerate(
   const requestMessages = allNotes.length
     ? [...messages, { role: 'system', content: assembleNotes(allNotes) }]
     : messages;
+
+  yield {
+    type: 'model.stats',
+    data: {
+      tools: toolNames.length,
+      deferredPending: progressive.deferredPending.length,
+      systemChars: prompt.length,
+      notesChars: allNotes.reduce((sum, n) => sum + n.text.length, 0),
+      notesErrors: ctx.notesErrors ?? [],
+    },
+  };
 
   const stream = callModel(
     ctx.modelBinding,

@@ -208,3 +208,9 @@ export {
   type ResolveMemoryToolsInput,
   type ResolveMemoryScope,
 } from './src/application/memory/resolve-memory-tools.ts';
+export type { PlanItem, PlanPort, PlanSaveItemInput, PlanSnapshot } from './src/ports/plan.ts';
+export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from './src/domain/plan.ts';
+export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan.ts';
+export type { PlanCapabilityPorts } from './src/capabilities/plan/index.ts';
+export { planCapability } from './src/capabilities/plan/index.ts';
+export { planFollowPrompt } from './src/capabilities/plan/prompt.ts';

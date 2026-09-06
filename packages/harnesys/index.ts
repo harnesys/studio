@@ -245,3 +245,13 @@ export type {
 } from './src/ports/webhook.ts';
 export type { WebhookCapabilityPorts } from './src/capabilities/webhook/index.ts';
 export { webhookCapability } from './src/capabilities/webhook/index.ts';
+export type { EpisodicMemoryPorts } from './src/capabilities/memory/episodic.ts';
+export { episodicMemoryCapability } from './src/capabilities/memory/episodic.ts';
+export type { KnowledgeMemoryPorts } from './src/capabilities/memory/knowledge.ts';
+export { knowledgeMemoryCapability } from './src/capabilities/memory/knowledge.ts';
+export { memoryCapabilityList, memoryCapabilities } from './src/capabilities/memory/index.ts';
+export { memoryScopeOf } from './src/capabilities/memory/memory-scope.ts';
+export type { PinMemoryPorts } from './src/capabilities/memory/pin.ts';
+export { pinMemoryCapability } from './src/capabilities/memory/pin.ts';
+export type { SemanticMemoryPorts } from './src/capabilities/memory/semantic.ts';
+export { semanticMemoryCapability } from './src/capabilities/memory/semantic.ts';

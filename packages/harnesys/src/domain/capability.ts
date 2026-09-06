@@ -5,6 +5,8 @@ import type { AgentDefinition, PortRef } from './agent-definition.ts';
 export type CapabilityScope = {
   workspaceId: string;
   agentId: string;
+  /** Display name of the agent when the host has one; memory scoping prefers it over agentId. */
+  agentName?: string;
   threadId: string;
 };
 

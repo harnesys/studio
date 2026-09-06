@@ -6,7 +6,7 @@ export function memoryScopeOf(resolveScope: () => CapabilityScope): () => Memory
     const scope = resolveScope();
     return {
       workspaceId: scope.workspaceId,
-      agentName: scope.agentId,
+      agentName: scope.agentName ?? scope.agentId,
       threadId: scope.threadId,
     };
   };

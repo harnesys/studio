@@ -1,4 +1,5 @@
 import { validateStructural } from '../application/validate.ts';
+import type { CapabilityConfig } from './capability.ts';
 import { ValidationError } from './errors.ts';
 import type { Expr } from './expr.ts';
 import type { JsonSchema } from './json-schema.ts';
@@ -79,6 +80,7 @@ export type AgentDefinition = {
   };
   graph: AgentGraph;
   budget?: AgentBudget;
+  capabilities?: Record<string, CapabilityConfig | null>;
 };
 
 export type Edge = { from: string; to: string; when?: Expr };

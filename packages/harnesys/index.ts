@@ -14,6 +14,14 @@ export type {
   ToolCallFixed,
   ToolOutputSettings,
 } from './src/domain/agent-definition.ts';
+export type {
+  CapabilityConfig,
+  CapabilityPack,
+  CapabilityPackContext,
+  CapabilityRegistration,
+  CapabilityScope,
+} from './src/domain/capability.ts';
+export { defineCapability, registerCapability } from './src/domain/capability.ts';
 export {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,

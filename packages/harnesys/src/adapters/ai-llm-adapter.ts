@@ -61,13 +61,28 @@ export async function* callModel(
   const model = provider(binding.model.name) as never;
   const aiTools = toAiTools(names, registry);
 
-  const ms = toModelMessages(messages) as never[];
+  const raw = toModelMessages(messages);
+  const chat: unknown[] = [];
+  const noteTexts: string[] = [];
+  for (const message of raw) {
+    const record = message as Record<string, unknown>;
+    if (record && record.role === 'system') {
+      const text = typeof record.content === 'string' ? record.content : '';
+      if (text.trim()) {
+        noteTexts.push(text);
+      }
+      continue;
+    }
+    chat.push(message);
+  }
+  const systemText = [prompt, ...noteTexts].filter((part) => part?.trim()).join('\n\n');
+  const ms = chat as never[];
 
   const streamConfig: Record<string, unknown> = {
     model,
-    system: prompt || undefined,
+    system: systemText || undefined,
     messages: ms.length > 0 ? ms : undefined,
-    prompt: ms.length === 0 && prompt ? prompt : undefined,
+    prompt: ms.length === 0 && systemText ? systemText : undefined,
     tools: aiTools as never,
     abortSignal: signal,
   };

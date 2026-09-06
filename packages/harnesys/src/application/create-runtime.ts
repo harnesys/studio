@@ -44,15 +44,26 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
   const baseRegistrations = [filesCapability, shellCapability, fetchCapability]
     .filter((pack) => !suppliedNames.has(pack.name))
     .map((pack) => registerCapability(pack, {}, stubScope));
-  const capabilityRegistrations = options.skills
-    ? [
-        ...supplied,
-        ...baseRegistrations,
-        ...(suppliedNames.has(skillsCapability.name)
-          ? []
-          : [registerCapability(skillsCapability, { skills: options.skills }, stubScope)]),
-      ]
-    : [...supplied, ...baseRegistrations];
+  // Auto skills registration must also land its tools in the registry: a
+  // registration alone never reaches baseTools, and load_skill would vanish.
+  const autoSkills =
+    options.skills && !suppliedNames.has(skillsCapability.name)
+      ? registerCapability(skillsCapability, { skills: options.skills }, stubScope)
+      : undefined;
+  if (autoSkills) {
+    baseTools.push(
+      ...autoSkills.pack.tools({
+        ports: autoSkills.ports,
+        resolveScope: autoSkills.resolveScope,
+        config: {},
+      }),
+    );
+  }
+  const capabilityRegistrations = [
+    ...supplied,
+    ...baseRegistrations,
+    ...(autoSkills ? [autoSkills] : []),
+  ];
 
   let mcpRegistry: McpRegistry | undefined;
   if (options.mcp) {

@@ -4,7 +4,7 @@ import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
 import type { Thread, ThreadRepository } from '../domain/thread.port.ts';
-import type { WorkspaceRepository } from '../domain/workspace.port.ts';
+import type { Workspace, WorkspaceRepository } from '../domain/workspace.port.ts';
 import { isRunMode, permissionMapFor, type RunMode } from './tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from './workspace-harnesys.registry.ts';
 
@@ -16,7 +16,6 @@ export type StudioRunTargetsDeps = {
   workspaces: WorkspaceRepository;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   runtimeStates: RuntimeStateRepository;
-  capabilityRegistrations: CapabilityRegistration[];
 };
 
 export class StudioRunTargets implements RunTargets {
@@ -55,16 +54,19 @@ export class StudioRunTargets implements RunTargets {
       return null;
     }
     const state = this.deps.runtimeStates.forState(threadId);
-    const enabled = new Set(capabilityToolNames(agent, this.deps.capabilityRegistrations));
+    // Same list the runtime was built with (host packs + this workspace's
+    // skills pack), or agent capability gating and pruning diverge.
+    const registrations = this.effectiveRegistrations(workspace);
+    const enabled = new Set(capabilityToolNames(agent, registrations));
     const registry = new Map(hx.tools.registry());
-    for (const name of allCapabilityToolNames(this.deps.capabilityRegistrations)) {
+    for (const name of allCapabilityToolNames(registrations)) {
       if (!enabled.has(name)) {
         registry.delete(name);
       }
     }
     // Per-agent instances win over the workspace-wide config:{} copies, so pack
     // specs (e.g. memory.knowledge.spec.topK) reach the tool at execute time.
-    for (const t of capabilityTools(agent, this.deps.capabilityRegistrations)) {
+    for (const t of capabilityTools(agent, registrations)) {
       registry.set(t.name, t);
     }
     return {
@@ -72,10 +74,14 @@ export class StudioRunTargets implements RunTargets {
       agent,
       permissions: permissionMapFor(resolveThreadRunMode(thread)),
       paths: { allow: [workspace.path], cwd: workspace.path },
-      capabilities: this.deps.capabilityRegistrations,
+      capabilities: registrations,
       toolRegistry: registry,
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
     };
+  }
+
+  private effectiveRegistrations(workspace: Workspace): CapabilityRegistration[] {
+    return this.deps.workspaceHarnesys.effectiveRegistrations(workspace);
   }
 }
 

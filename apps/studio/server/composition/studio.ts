@@ -179,7 +179,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     workspaceHarnesys,
     runtimeStates: runtimeStateRepo,
-    capabilityRegistrations,
   });
   targetRef.current = runTargets;
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);

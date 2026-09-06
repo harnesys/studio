@@ -12,7 +12,7 @@ import type {
   RunLifecycleStore,
   RuntimeHandle,
 } from 'harnesys';
-import { createRuntime } from 'harnesys';
+import { createRuntime, registerCapability, skillsCapability } from 'harnesys';
 import { askUser } from 'harnesys/actions';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
 import type { AgentRepository } from '../domain/agent.port.ts';
@@ -84,6 +84,25 @@ export class WorkspaceHarnesysRegistry {
     return this.capabilityRegistrations.flatMap((reg) =>
       reg.pack.tools({ ports: reg.ports, resolveScope: reg.resolveScope, config: {} }),
     );
+  }
+
+  /**
+   * Host registrations plus the skills pack bound to this workspace's skill
+   * registry. Run targets must resolve against the same list, or agent
+   * capabilities referencing "skills" warn unknown and load_skill disappears.
+   */
+  effectiveRegistrations(workspace: Workspace): CapabilityRegistration[] {
+    const skills = new FsSkillRegistry({
+      roots: [join(workspace.path, '.agents', 'skills')],
+    });
+    return [
+      ...this.capabilityRegistrations,
+      registerCapability(skillsCapability, { skills }, () => ({
+        workspaceId: '_',
+        agentId: '_',
+        threadId: '_',
+      })),
+    ];
   }
 
   private create(workspace: Workspace): Promise<RuntimeHandle> {

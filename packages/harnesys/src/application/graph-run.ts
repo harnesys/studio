@@ -61,6 +61,7 @@ export async function runGraph(opts: GraphOpts): Promise<RunResult> {
     agent: opts.agent,
     permissions: opts.permissions,
     paths: opts.paths,
+    notes: opts.notes,
   });
   for (let i = 0; i < 200; i += 1) {
     const rec = await lifecycle.get(runId);

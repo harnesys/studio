@@ -13,6 +13,7 @@ import type { RunTarget, RunTargets } from '../ports/run-targets.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { SendInput, SessionHandle } from '../ports/session.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import type { LlmNoteProvider } from './llm-notes.ts';
 import { resolvePaths } from './paths.ts';
 import { resolvePermissions } from './permissions.ts';
 import type { RunClaimer } from './run-claimer.ts';
@@ -25,6 +26,7 @@ export type RuntimeContext = {
   middleware?: Middleware[];
   permissions?: PermissionMap;
   paths?: PathsConfig;
+  notes?: LlmNoteProvider[];
   toolMessages: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
   agents: { resolve: (id: string) => AgentDefinition | undefined };
@@ -126,6 +128,7 @@ export function createSession(
           ctx.permissions,
         ),
         paths: resolvePaths(def.paths, ctx.paths, opts.paths),
+        notes: ctx.notes,
       });
     },
   };

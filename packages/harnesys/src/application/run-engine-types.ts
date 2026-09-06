@@ -7,6 +7,7 @@ import type { RunEventStore } from '../ports/run-event-store.ts';
 import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import type { LlmNoteProvider } from './llm-notes.ts';
 import type { RunEventFeed } from './run-event-feed.ts';
 
 export type RunEngineDeps = {
@@ -29,6 +30,7 @@ export type RunTargetOpts = {
   agent: AgentDefinition;
   permissions?: PermissionMap;
   paths?: PathsConfig;
+  notes?: LlmNoteProvider[];
   /** Per-run registry; overrides RunEngineDeps.toolRegistry when present. */
   toolRegistry?: Map<string, ToolDefinition>;
 };

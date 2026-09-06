@@ -1,3 +1,4 @@
+import type { LlmNoteProvider } from '../application/llm-notes.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { PathsConfig } from './paths.ts';
 import type { PermissionMap } from './permissions.ts';
@@ -9,6 +10,7 @@ export type RunTarget = {
   agent: AgentDefinition;
   permissions?: PermissionMap;
   paths?: PathsConfig;
+  notes?: LlmNoteProvider[];
   /** Per-run tool registry; overrides the engine default when present. */
   toolRegistry?: Map<string, ToolDefinition>;
   /** Opaque host context, meaningless to the library; passed to deps.withScope. */

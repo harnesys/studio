@@ -1,8 +1,7 @@
 import type { Attachment } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
-import { compile } from './compile.ts';
+import { compileOrThrow } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
-import { restoreReActOutput } from './graph-helpers.ts';
 import { runStartedEvent } from './run-engine-events.ts';
 import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
 import { admit, flushJournal, runSegment } from './run-engine-segment.ts';
@@ -114,7 +113,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       const answer = await findLastAnswer(runId);
       const snap = await opts.state.load();
       const user = answer === null ? await findFirstUser(runId) : null;
-      const { plan } = compile(opts.agent);
+      const plan = compileOrThrow(opts.agent);
       const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
       const graphOpts: GraphOpts = {
         agent: opts.agent,
@@ -133,7 +132,9 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         mergeState: deps.mergeState,
         signal,
         startNodeId,
-        outputHint: startNodeId === undefined ? undefined : restoreReActOutput(snap),
+        notes: opts.notes,
+        outputHint:
+          startNodeId === undefined ? undefined : (snap?.cursor.interrupt?.output ?? null),
         rejected: answer?.rejected === true,
         resumePayload: answer?.payload,
         resumeInterruptId: answer?.interruptId,

@@ -11,7 +11,7 @@ import type { RunResult } from '../domain/run-result.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
 import { check } from './check.ts';
-import { compile } from './compile.ts';
+import { compile, compileOrThrow } from './compile.ts';
 import { startGraph } from './graph.ts';
 import { runGraph } from './graph-run.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
@@ -84,6 +84,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     middleware: options.middleware,
     permissions: options.permissions,
     paths: options.paths,
+    notes: options.notes,
     toolMessages: options.toolMessages ?? 'ordered',
     mergeState: options.mergeState,
     agents: options.agents,
@@ -98,13 +99,14 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
   return {
     run: async (agent, opts) => {
       const def = resolveAgent(agent);
-      const { plan } = compile(def);
+      const plan = compileOrThrow(def);
       return runGraph({
         agent: def,
         input: opts.input,
         state: opts.state,
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
+        notes: options.notes,
         artifacts: options.artifacts,
         models: options.models,
         toolRegistry,
@@ -116,13 +118,14 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     },
     start: (agent, opts) => {
       const def = resolveAgent(agent);
-      const { plan } = compile(def);
+      const plan = compileOrThrow(def);
       return startGraph({
         agent: def,
         input: opts.input,
         state: opts.state,
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
+        notes: options.notes,
         artifacts: options.artifacts,
         models: options.models,
         toolRegistry,

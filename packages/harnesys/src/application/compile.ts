@@ -1,5 +1,5 @@
 import type { AgentDefinition, AgentEdges, AgentNodes } from '../domain/agent-definition.ts';
-import type { Diagnostic } from '../domain/errors.ts';
+import { codedRunError, type Diagnostic } from '../domain/errors.ts';
 import { validateStructural } from './validate.ts';
 
 export type Plan = {
@@ -25,4 +25,13 @@ export function compile(def: AgentDefinition): { plan: Plan; diagnostics: Diagno
     order: Object.keys(def.graph.nodes),
   };
   return { plan, diagnostics };
+}
+
+export function compileOrThrow(def: AgentDefinition): Plan {
+  const { plan, diagnostics } = compile(def);
+  const errors = diagnostics.filter((d) => d.severity === 'error');
+  if (errors.length > 0) {
+    throw codedRunError('agent_invalid', errors.map((d) => `${d.code}: ${d.message}`).join('; '));
+  }
+  return plan;
 }

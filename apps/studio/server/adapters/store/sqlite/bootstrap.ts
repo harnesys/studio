@@ -273,6 +273,11 @@ export function bootstrap(db: StudioDb): void {
 
   try {
     db.run(sql.raw(`ALTER TABLE agents ADD COLUMN capabilities_json text NOT NULL DEFAULT '{}';`));
+    const legacyPacks =
+      '{"plan":{},"threads":{},"scheduler":{},"webhook":{},"files":{},"shell":{},"fetch":{},"skills":{},"pin-memory":{},"semantic-memory":{},"episodic-memory":{},"knowledge-memory":{}}';
+    db.run(
+      sql`UPDATE agents SET capabilities_json = ${legacyPacks} WHERE capabilities_json = '{}'`,
+    );
   } catch {}
 
   try {

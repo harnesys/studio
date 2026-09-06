@@ -16,7 +16,6 @@ export const TOOL_GROUP_META: Record<string, { label: string; hint?: string }> =
   webhooks: { label: 'Webhooks' },
   memory: {
     label: 'Memory',
-    hint: 'Gated per agent by its memory settings, not by tool toggles.',
   },
 };
 

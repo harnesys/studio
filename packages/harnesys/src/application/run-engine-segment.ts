@@ -95,7 +95,7 @@ export async function flushJournal(env: SegmentEnv, ctx: SegmentCtx): Promise<bo
  * Transition-embedded events are journaled by the store and published here
  * so live subscribers receive ask/terminal frames at-least-once.
  */
-async function guardedTransition(
+export async function guardedTransition(
   env: SegmentEnv,
   runId: string,
   expectedEpoch: number,

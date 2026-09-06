@@ -14,6 +14,9 @@ export function mapCodedError(error: unknown): Error {
   if (code === 'resume_validation_failed') {
     return new ValidationError(message);
   }
+  if (code === 'agent_invalid') {
+    return new ValidationError(message);
+  }
   if (typeof code === 'string' && CONFLICT_CODES.has(code)) {
     return new RunConflictError({ code });
   }

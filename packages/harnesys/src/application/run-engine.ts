@@ -2,9 +2,9 @@ import type { Attachment } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
 import { compileOrThrow } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
-import { runStartedEvent } from './run-engine-events.ts';
+import { runFailedEvent, runStartedEvent } from './run-engine-events.ts';
 import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
-import { admit, flushJournal, runSegment } from './run-engine-segment.ts';
+import { admit, flushJournal, guardedTransition, runSegment } from './run-engine-segment.ts';
 import type { RunEngine, RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
 
 export type { RunEngine, RunEngineDeps, RunTargetOpts };
@@ -110,35 +110,50 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       if (!(await flushJournal(env, ctx))) {
         return;
       }
-      const answer = await findLastAnswer(runId);
-      const snap = await opts.state.load();
-      const user = answer === null ? await findFirstUser(runId) : null;
-      const plan = compileOrThrow(opts.agent);
-      const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
-      const graphOpts: GraphOpts = {
-        agent: opts.agent,
-        input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
-        // Ввод уже записан в лог жизненным циклом (SessionHandle.send):
-        // граф не должен коммитить user.message второй раз.
-        inputRecorded: answer === null && user !== null,
-        state: opts.state,
-        permissions: opts.permissions,
-        paths: opts.paths,
-        artifacts: deps.artifacts,
-        models: deps.models,
-        toolRegistry: opts.toolRegistry ?? deps.toolRegistry,
-        plan,
-        toolMessages: deps.toolMessages,
-        mergeState: deps.mergeState,
-        signal,
-        startNodeId,
-        notes: opts.notes,
-        outputHint:
-          startNodeId === undefined ? undefined : (snap?.cursor.interrupt?.output ?? null),
-        rejected: answer?.rejected === true,
-        resumePayload: answer?.payload,
-        resumeInterruptId: answer?.interruptId,
-      };
+      let graphOpts: GraphOpts;
+      try {
+        const answer = await findLastAnswer(runId);
+        const snap = await opts.state.load();
+        const user = answer === null ? await findFirstUser(runId) : null;
+        const plan = compileOrThrow(opts.agent);
+        const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
+        graphOpts = {
+          agent: opts.agent,
+          input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
+          // Ввод уже записан в лог жизненным циклом (SessionHandle.send):
+          // граф не должен коммитить user.message второй раз.
+          inputRecorded: answer === null && user !== null,
+          state: opts.state,
+          permissions: opts.permissions,
+          paths: opts.paths,
+          artifacts: deps.artifacts,
+          models: deps.models,
+          toolRegistry: opts.toolRegistry ?? deps.toolRegistry,
+          plan,
+          toolMessages: deps.toolMessages,
+          mergeState: deps.mergeState,
+          signal,
+          startNodeId,
+          notes: opts.notes,
+          outputHint:
+            startNodeId === undefined ? undefined : (snap?.cursor.interrupt?.output ?? null),
+          rejected: answer?.rejected === true,
+          resumePayload: answer?.payload,
+          resumeInterruptId: answer?.interruptId,
+        };
+      } catch (err) {
+        if (env.isLeaseLost() || (err as { code?: string }).code === 'lease_stale') {
+          return;
+        }
+        await guardedTransition(env, runId, epoch, {
+          from: 'running',
+          to: 'failed',
+          events: [
+            runFailedEvent(err instanceof Error && err.message ? err.message : 'run failed'),
+          ],
+        });
+        return;
+      }
       await runSegment(env, runId, epoch, graphOpts);
     } finally {
       haltRun(run);

@@ -121,7 +121,9 @@ export function agentFieldsFrom(agent: {
     budgetMaxSteps: stringify(agent.budget?.maxSteps),
     budgetMaxTokens: stringify(agent.budget?.maxTokens),
     budgetDeadlineSec:
-      agent.budget?.deadlineMs !== undefined ? stringify(agent.budget.deadlineMs / 1000) : '',
+      agent.budget?.deadlineMs !== undefined
+        ? stringify(Math.round(agent.budget.deadlineMs / 1000))
+        : '',
     budgetPolicy: agent.budget?.policy ?? 'ask',
   };
 }

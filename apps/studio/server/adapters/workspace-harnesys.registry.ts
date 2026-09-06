@@ -48,6 +48,10 @@ export class WorkspaceHarnesysRegistry {
     private readonly notes: LlmNoteProvider[] = [],
   ) {}
 
+  get noteProviders(): LlmNoteProvider[] {
+    return this.notes;
+  }
+
   setExtraTools(tools: ToolDefinition[]): void {
     this.extraTools = tools;
     for (const workspaceId of [...this.cache.keys()]) {

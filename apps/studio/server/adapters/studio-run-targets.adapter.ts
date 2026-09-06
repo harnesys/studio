@@ -66,6 +66,7 @@ export class StudioRunTargets implements RunTargets {
       agent,
       permissions: permissionMapFor(resolveThreadRunMode(thread)),
       paths: { allow: [workspace.path], cwd: workspace.path },
+      notes: this.deps.workspaceHarnesys.noteProviders,
       toolRegistry: registry,
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
     };

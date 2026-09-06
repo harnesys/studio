@@ -38,6 +38,14 @@ import { executeToolCall, type ToolCallResult } from './tool-call.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
 
+function isApprovedFalse(payload: unknown): boolean {
+  return Boolean(
+    payload &&
+      typeof payload === 'object' &&
+      (payload as { approved?: unknown }).approved === false,
+  );
+}
+
 function normalizeInputAttachments(input: unknown): {
   text?: string;
   attachments?: Attachment[];
@@ -362,7 +370,10 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
 
     if (entryPending && cur === opts.startNodeId) {
       entryPending = false;
-      if (interruptSource === 'budget' && opts.rejected === true) {
+      if (
+        interruptSource === 'budget' &&
+        (opts.rejected === true || isApprovedFalse(opts.resumePayload))
+      ) {
         const e = await commit('cancelled', 'run.cancelled', 'recorded', {
           reason: 'budget_exceeded',
         });

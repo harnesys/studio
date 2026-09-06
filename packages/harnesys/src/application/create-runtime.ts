@@ -5,7 +5,9 @@ import {
   InMemoryRunEventStore,
   InMemoryRunLifecycleStore,
 } from '../adapters/in-memory-run-store.ts';
+import { skillsCapability } from '../capabilities/skills.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
+import { registerCapability } from '../domain/capability.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { RunResult } from '../domain/run-result.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
@@ -17,7 +19,6 @@ import { startGraph } from './graph.ts';
 import { runGraph } from './graph-run.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
-import { createLoadSkillTool } from './skills/create-load-skill-tool.ts';
 import { createToolRegistry } from './tool-registry.ts';
 
 function isMcpRegistry(value: unknown): boolean {
@@ -31,11 +32,18 @@ function isMcpRegistry(value: unknown): boolean {
 }
 
 export async function createRuntime(options: CreateRuntimeOptions): Promise<RuntimeHandle> {
-  let baseTools = options.tools ?? [];
+  const baseTools = [...(options.tools ?? [])];
 
-  if (options.skills) {
-    baseTools = [...baseTools, createLoadSkillTool(options.skills)];
-  }
+  const capabilityRegistrations = options.skills
+    ? [
+        ...(options.capabilities ?? []),
+        registerCapability(skillsCapability, { skills: options.skills }, () => ({
+          workspaceId: '_',
+          agentId: '_',
+          threadId: '_',
+        })),
+      ]
+    : (options.capabilities ?? []);
 
   let mcpRegistry: McpRegistry | undefined;
   if (options.mcp) {
@@ -47,7 +55,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       await mcpRegistry.loadJson(options.mcp as CursorMcpJson);
     }
     const mcpTools = await mcpRegistry.tools();
-    baseTools = [...baseTools, ...mcpTools];
+    baseTools.push(...mcpTools);
   }
 
   const toolRegistry = createToolRegistry(baseTools);
@@ -86,7 +94,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     permissions: options.permissions,
     paths: options.paths,
     notes: options.notes,
-    capabilityRegistrations: options.capabilities ?? [],
+    capabilityRegistrations,
     toolMessages: options.toolMessages ?? 'ordered',
     mergeState: options.mergeState,
     agents: options.agents,
@@ -109,7 +117,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
         notes: options.notes,
-        capabilityRegistrations: options.capabilities ?? [],
+        capabilityRegistrations,
         artifacts: options.artifacts,
         models: options.models,
         toolRegistry,
@@ -129,7 +137,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
         notes: options.notes,
-        capabilityRegistrations: options.capabilities ?? [],
+        capabilityRegistrations,
         artifacts: options.artifacts,
         models: options.models,
         toolRegistry,
@@ -156,7 +164,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       list: () => options.skills?.list() ?? [],
     },
     capabilities: {
-      list: () => capabilityCatalog(options.capabilities ?? []),
+      list: () => capabilityCatalog(capabilityRegistrations),
     },
     tools: {
       list: () =>

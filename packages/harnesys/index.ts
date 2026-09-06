@@ -27,6 +27,9 @@ export type {
   ResolvedCapability,
 } from './src/application/capabilities/registry.ts';
 export { resolveCapabilities } from './src/application/capabilities/registry.ts';
+export { fetchCapability, filesCapability, shellCapability } from './src/capabilities/base.ts';
+export type { SkillsCapabilityPorts } from './src/capabilities/skills.ts';
+export { skillsCapability } from './src/capabilities/skills.ts';
 export {
   CAPABILITY_IDENTITY,
   composeSystemPrompt,

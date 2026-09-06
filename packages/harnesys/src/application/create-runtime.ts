@@ -21,6 +21,7 @@ import { runGraph } from './graph-run.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createToolRegistry } from './tool-registry.ts';
+import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 
 function isMcpRegistry(value: unknown): boolean {
   return (
@@ -79,6 +80,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
   }
 
   const toolRegistry = createToolRegistry(baseTools);
+  toolRegistry.set('load_tools', createLoadToolsTool(toolRegistry));
 
   const resolveAgent = (agent: AgentDefinition | string): AgentDefinition => {
     if (typeof agent !== 'string') {

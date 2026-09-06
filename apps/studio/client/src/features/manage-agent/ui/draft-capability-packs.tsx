@@ -62,11 +62,14 @@ export function DraftCapabilityPacks({
   );
 }
 
-/** Runtime truth: absent key is default-on for `skills` only, off for the rest. */
+/**
+ * Runtime truth: absent key is default-on for `skills` only, off for the rest;
+ * explicit null is off; explicit spec or {} is on.
+ */
 function isPackEnabled(value: Record<string, CapabilityConfig | null>, name: string): boolean {
   const config = value[name];
-  if (config == null) {
+  if (config === undefined) {
     return name === 'skills';
   }
-  return true;
+  return config != null;
 }

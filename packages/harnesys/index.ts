@@ -233,3 +233,15 @@ export type {
 export type { SchedulerCapabilityPorts } from './src/capabilities/scheduler/index.ts';
 export { schedulerCapability } from './src/capabilities/scheduler/index.ts';
 export { formatScheduleWake, SCHEDULER_PROMPT_FRAGMENT } from './src/capabilities/scheduler/prompt.ts';
+export type {
+  WebhookCreateInput,
+  WebhookCreatedRecord,
+  WebhookCreatedThread,
+  WebhookPort,
+  WebhookRecord,
+  WebhookStatus,
+  WebhookThreadActiveRun,
+  WebhookUpdateInput,
+} from './src/ports/webhook.ts';
+export type { WebhookCapabilityPorts } from './src/capabilities/webhook/index.ts';
+export { webhookCapability } from './src/capabilities/webhook/index.ts';

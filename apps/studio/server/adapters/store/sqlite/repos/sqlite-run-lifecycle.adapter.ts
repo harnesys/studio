@@ -20,13 +20,12 @@ const DEFAULT_LIST_LIMIT = 50;
 
 const NON_TERMINAL: RunLifecycleStatus[] = ['queued', 'running', 'needs_input'];
 
-/** Task 5 seam: writes events and assigns seq within the caller's transaction. */
-// biome-ignore lint/complexity/useMaxParams: Task 5 appendWithinTx signature (tx, runId, threadId, fromSeq, events)
+/** Task 5 seam: writes events inside the caller's transaction; seq выдаёт
+ *  аллокатор стора (RunSeqAllocator), события с присвоенным seq сохраняются как есть. */
 export type RunEventAppendWithinTx = (
   tx: StudioDb,
   runId: string,
   threadId: string,
-  fromSeq: number,
   events: PendingSessionEvent[],
 ) => SessionEvent[];
 
@@ -142,7 +141,7 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
         throw err;
       }
       if (events.length > 0) {
-        const stored = this.appendWithinTx(tx as StudioDb, run.runId, run.threadId, 0, events);
+        const stored = this.appendWithinTx(tx as StudioDb, run.runId, run.threadId, events);
         tx.update(runsTable)
           .set({ lastSeq: maxSeqOf(stored, 0), updatedAt: new Date().toISOString() })
           .where(eq(runsTable.runId, run.runId))
@@ -220,7 +219,6 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
         tx as StudioDb,
         runId,
         record.threadId,
-        record.lastSeq,
         patch.events ?? [],
       );
       const lastSeq = maxSeqOf(stored, record.lastSeq);

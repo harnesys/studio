@@ -21,10 +21,13 @@ export type SegmentEnv = {
   isLeaseLost: () => boolean;
 };
 
-type SegmentCtx = {
+/** Событий в батче журнала: запись группируется, публикация в feed — нет. */
+const JOURNAL_BATCH = 16;
+
+export type SegmentCtx = {
   runId: string;
   epoch: number;
-  pending: PendingSessionEvent[];
+  pending: SessionEvent[];
 };
 
 type SegmentTail = {
@@ -58,22 +61,30 @@ function lastText(snap: Snapshot | null): string | undefined {
   return typeof content === 'string' && content ? content : undefined;
 }
 
-export async function appendJournal(
-  env: SegmentEnv,
-  runId: string,
-  epoch: number,
-  pending: PendingSessionEvent[],
-): Promise<boolean> {
-  if (pending.length === 0) {
+/**
+ * Group-commit журнал: seq выдаёт стор и событие сразу уходит подписчикам,
+ * запись в стор группируется в батчи. Между publish и append событие живёт
+ * только в ctx.pending; сброс буфера при lease_stale оставляет пробел в seq.
+ */
+export function admit(env: SegmentEnv, runId: string, event: PendingSessionEvent): SessionEvent {
+  const seq = env.events.next(runId);
+  const full = { ...event, seq, runId } as SessionEvent;
+  env.feed.publish(runId, [full]);
+  return full;
+}
+
+/** Пишет батч в журнал; false = lease потерян, буфер сброшен. */
+export async function flushJournal(env: SegmentEnv, ctx: SegmentCtx): Promise<boolean> {
+  if (ctx.pending.length === 0) {
     return true;
   }
   try {
-    const stored = await env.events.append(runId, epoch, pending);
-    env.feed.publish(runId, stored);
-    pending.length = 0;
+    await env.events.append(ctx.runId, ctx.epoch, ctx.pending);
+    ctx.pending.length = 0;
     return true;
   } catch (err) {
     if ((err as { code?: string }).code === 'lease_stale') {
+      ctx.pending.length = 0;
       return false;
     }
     throw err;
@@ -114,7 +125,7 @@ async function pauseOnAsk(
   ask: PendingSessionEvent,
   askId: string,
 ): Promise<void> {
-  if (!(await appendJournal(env, ctx.runId, ctx.epoch, ctx.pending))) {
+  if (!(await flushJournal(env, ctx))) {
     return;
   }
   if (env.isLeaseLost()) {
@@ -177,7 +188,7 @@ async function settleTerminal(
   tail: SegmentTail,
   snap: Snapshot | null,
 ): Promise<void> {
-  if (!(await appendJournal(env, ctx.runId, ctx.epoch, ctx.pending))) {
+  if (!(await flushJournal(env, ctx))) {
     return;
   }
   if (env.isLeaseLost()) {
@@ -224,7 +235,7 @@ async function failSegment(
     await pauseOnInterrupt(env, ctx, err, graphOpts.state);
     return;
   }
-  if (!(await appendJournal(env, ctx.runId, ctx.epoch, ctx.pending))) {
+  if (!(await flushJournal(env, ctx))) {
     return;
   }
   if (env.isLeaseLost()) {
@@ -277,9 +288,9 @@ export async function runSegment(
         }
         continue;
       }
-      ctx.pending.push(mapped);
-      if (ctx.pending.length >= 16 || isToolTerminal(mapped)) {
-        if (!(await appendJournal(env, ctx.runId, ctx.epoch, ctx.pending))) {
+      ctx.pending.push(admit(env, runId, mapped));
+      if (ctx.pending.length >= JOURNAL_BATCH || isToolTerminal(mapped)) {
+        if (!(await flushJournal(env, ctx))) {
           return;
         }
       }

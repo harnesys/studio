@@ -14,27 +14,59 @@ function clientEventIdOf(event: PendingSessionEvent): string | undefined {
   return (event as { clientEventId?: string }).clientEventId;
 }
 
+function seqOf(event: PendingSessionEvent | SessionEvent): number {
+  return (event as { seq?: number }).seq ?? 0;
+}
+
 function rowToEvent(row: RunEventRow): SessionEvent {
   const meta = row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : {};
   return { ...(meta as object), type: row.type, seq: row.seq, runId: row.runId } as SessionEvent;
 }
 
 export class SqliteRunEventStore implements RunEventStore {
+  /** Верхняя граница выданного seq по рану; инициализируется лениво из runs.lastSeq.
+   *  In-process single-writer на ран гарантируется lease/epoch. */
+  private readonly seqByRun = new Map<string, number>();
+
   constructor(private readonly db: StudioDb) {}
 
-  /** Internal write inside the caller's transaction; returns assigned seq.
+  private lastSeqOf(runId: string, tx: StudioDb): number {
+    const known = this.seqByRun.get(runId);
+    if (known !== undefined) {
+      return known;
+    }
+    const row = tx.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
+    return row?.lastSeq ?? 0;
+  }
+
+  private bump(runId: string, seq: number): void {
+    const known = this.seqByRun.get(runId) ?? 0;
+    if (seq > known) {
+      this.seqByRun.set(runId, seq);
+    }
+  }
+
+  next(runId: string): number {
+    const seq = this.lastSeqOf(runId, this.db) + 1;
+    this.bump(runId, seq);
+    return seq;
+  }
+
+  /** Internal write inside the caller's transaction.
+   *  События с seq от аллокатора сохраняются как есть (они дозаполняют журнал,
+   *  но не сдвигают счётчик); без seq — получают от аллокатора.
    *  Signature matches RunEventAppendWithinTx in sqlite-run-lifecycle.adapter.ts. */
-  // biome-ignore lint/complexity/useMaxParams: seam signature (tx, runId, threadId, fromSeq, events)
   appendWithinTx(
     tx: StudioDb,
     runId: string,
     threadId: string,
-    fromSeq: number,
     events: PendingSessionEvent[],
   ): SessionEvent[] {
     const now = Date.now();
     const assigned: SessionEvent[] = [];
-    let seq = fromSeq;
+    let counter = this.lastSeqOf(runId, tx);
+    let persistedMax =
+      tx.select().from(runsTable).where(eq(runsTable.runId, runId)).get()?.lastSeq ?? 0;
     for (const pending of events) {
       const clientEventId = clientEventIdOf(pending);
       if (clientEventId !== undefined) {
@@ -53,7 +85,14 @@ export class SqliteRunEventStore implements RunEventStore {
           continue;
         }
       }
-      seq += 1;
+      const pre = seqOf(pending);
+      const seq = pre > 0 ? pre : counter + 1;
+      if (seq > counter) {
+        counter = seq;
+      }
+      if (seq > persistedMax) {
+        persistedMax = seq;
+      }
       const full = { ...pending, seq, runId } as SessionEvent;
       const meta = { ...pending };
       tx.insert(runEventsTable)
@@ -70,8 +109,9 @@ export class SqliteRunEventStore implements RunEventStore {
       assigned.push(full);
     }
     if (events.length > 0) {
+      this.bump(runId, counter);
       tx.update(runsTable)
-        .set({ lastSeq: seq, updatedAt: new Date().toISOString() })
+        .set({ lastSeq: persistedMax, updatedAt: new Date().toISOString() })
         .where(eq(runsTable.runId, runId))
         .run();
     }
@@ -81,14 +121,14 @@ export class SqliteRunEventStore implements RunEventStore {
   async append(
     runId: string,
     expectedEpoch: number,
-    events: PendingSessionEvent[],
+    events: SessionEvent[],
   ): Promise<SessionEvent[]> {
     return this.db.transaction((tx): SessionEvent[] => {
       const row = tx.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
       if (row?.status !== 'running' || row?.leaseEpoch !== expectedEpoch) {
         throw codedRunError('lease_stale', `run ${runId} not executable by epoch ${expectedEpoch}`);
       }
-      return this.appendWithinTx(tx as StudioDb, runId, row.threadId, row.lastSeq, events);
+      return this.appendWithinTx(tx as StudioDb, runId, row.threadId, events);
     });
   }
 

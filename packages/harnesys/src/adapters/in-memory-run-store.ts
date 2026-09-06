@@ -32,7 +32,7 @@ export class InMemoryRunEventStore implements RunEventStore {
   async append(
     runId: string,
     expectedEpoch: number,
-    events: PendingSessionEvent[],
+    events: SessionEvent[],
   ): Promise<SessionEvent[]> {
     const record = this.runs?.get(runId);
     if (record?.status !== 'running' || record.leaseEpoch !== expectedEpoch) {
@@ -40,22 +40,35 @@ export class InMemoryRunEventStore implements RunEventStore {
     }
     return this.appendLocked(runId, events);
   }
+  next(runId: string): number {
+    const seq = (this.nextSeq.get(runId) ?? 0) + 1;
+    this.nextSeq.set(runId, seq);
+    return seq;
+  }
+  /** События с seq от аллокатора сохраняются как есть; без seq — получают от аллокатора.
+   *  pre-assigned seq всегда ≤ high-water: он дозаполняет журнал и не сдвигает счётчик назад. */
   appendLocked(runId: string, events: PendingSessionEvent[]): SessionEvent[] {
     const stored = this.events.get(runId) ?? [];
     const record = this.runs?.get(runId);
-    let seq = this.nextSeq.get(runId) ?? 0;
+    let maxSeq = this.nextSeq.get(runId) ?? 0;
+    const assigned: SessionEvent[] = [];
     for (const event of events) {
-      seq += 1;
+      const pre = seqOf(event as SessionEvent);
+      const seq = pre > 0 ? pre : maxSeq + 1;
+      if (seq > maxSeq) {
+        maxSeq = seq;
+      }
       const full = { ...event, seq, runId } as SessionEvent;
       stored.push(full);
       this.insertion.push({ threadId: record?.threadId ?? '', event: full });
+      assigned.push(full);
     }
     this.events.set(runId, stored);
-    this.nextSeq.set(runId, seq);
+    this.nextSeq.set(runId, maxSeq);
     if (record) {
-      record.lastSeq = seq;
+      record.lastSeq = maxSeq;
     }
-    return stored.slice(stored.length - events.length).map((event) => ({ ...event }));
+    return assigned.map((event) => ({ ...event }));
   }
   async tail(runId: string, fromSeq: number): Promise<SessionEvent[]> {
     return (this.events.get(runId) ?? []).filter((event) => seqOf(event) > fromSeq);

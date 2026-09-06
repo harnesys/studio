@@ -44,9 +44,7 @@ export function AccordionSection({
           aria-expanded={shown}
           className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left font-semibold text-sm outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
-          <span className="flex size-3.5 shrink-0 items-center justify-center">
-            {icon}
-          </span>
+          <span className="flex size-3.5 shrink-0 items-center justify-center">{icon}</span>
           <span className="truncate">{title}</span>
 
           {count !== undefined ? (

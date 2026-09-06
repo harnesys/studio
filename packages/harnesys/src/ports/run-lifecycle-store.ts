@@ -51,7 +51,8 @@ export interface RunLifecycleStore {
   childrenByParent(parentRunId: string): Promise<RunRecord[]>;
   /** CAS queued → running + lease + epoch+1. null = гонку проиграли. */
   claim(runId: string, instanceId: string, ttlMs: number): Promise<RunRecord | null>;
-  /** Атомарный CAS from → to; epoch+1 на каждом успешном переходе; events той же транзакцией.
+  /** Атомарный CAS from → to; epoch+1 на каждом успешном переходе; events той же транзакцией,
+   *  seq для событий без него выдаёт аллокатор стора.
    *  Coded: 'run_terminal' | 'already_resumed' | 'unknown_interrupt' | 'lease_stale' | 'already_queued'.
    *  Порядок проверки: run_terminal, already_queued, lease_stale, from-mismatch, unknown_interrupt. */
   transition(runId: string, expectedEpoch: number, patch: RunTransitionPatch): Promise<RunRecord>;

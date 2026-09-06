@@ -1,12 +1,11 @@
 import type { Attachment } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
-import type { PendingSessionEvent } from '../ports/run-event-store.ts';
 import { compile } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
 import { restoreReActOutput } from './graph-helpers.ts';
 import { runStartedEvent } from './run-engine-events.ts';
-import type { SegmentEnv } from './run-engine-segment.ts';
-import { appendJournal, runSegment } from './run-engine-segment.ts';
+import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
+import { admit, flushJournal, runSegment } from './run-engine-segment.ts';
 import type { RunEngine, RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
 
 export type { RunEngine, RunEngineDeps, RunTargetOpts };
@@ -104,8 +103,12 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
     }, renewMs);
 
     try {
-      const started: PendingSessionEvent[] = [runStartedEvent(record.attempt)];
-      if (!(await appendJournal(env, runId, epoch, started))) {
+      const ctx: SegmentCtx = {
+        runId,
+        epoch,
+        pending: [admit(env, runId, runStartedEvent(record.attempt))],
+      };
+      if (!(await flushJournal(env, ctx))) {
         return;
       }
       const answer = await findLastAnswer(runId);

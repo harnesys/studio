@@ -92,6 +92,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
       mcpServers,
       tools,
       graph,
+      budget: null,
       createdAt: now,
       updatedAt: now,
     });

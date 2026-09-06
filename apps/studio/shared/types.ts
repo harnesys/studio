@@ -117,6 +117,15 @@ export { THREAD_KINDS } from './thread.ts';
 export type { TranscriptItem } from './transcript.ts';
 export { toTranscript } from './transcript.ts';
 
+export type BudgetPolicy = 'ask' | 'error';
+
+export type AgentBudget = {
+  maxSteps?: number;
+  maxTokens?: number;
+  deadlineMs?: number;
+  policy?: BudgetPolicy;
+};
+
 export type AgentRecord = {
   id: string;
   name: string;
@@ -135,6 +144,7 @@ export type AgentRecord = {
   mcpServers?: string[];
   /** Tool name allowlist; empty = all workspace tools. Memory tools are gated by `memory`. */
   tools?: string[];
+  budget?: AgentBudget | null;
   createdAt: string;
   updatedAt: string;
 };

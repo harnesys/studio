@@ -22,6 +22,7 @@ export const agentsTable = sqliteTable(
     mcpServers: text('mcp_servers').notNull().default('[]'),
     tools: text('tools').notNull().default('[]'),
     graphJson: text('graph_json'),
+    budgetJson: text('budget_json'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },

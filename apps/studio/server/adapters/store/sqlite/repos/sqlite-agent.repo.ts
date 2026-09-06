@@ -59,6 +59,7 @@ export class SqliteAgentRepo implements AgentRepository {
         compaction,
         memory,
         graph,
+        budget,
         ...rest
       } = rec;
       const row = this.db
@@ -73,6 +74,7 @@ export class SqliteAgentRepo implements AgentRepository {
           compactionJson: serializeJsonColumn(compaction),
           memoryJson: serializeJsonColumn(memory),
           graphJson: JSON.stringify(graph),
+          budgetJson: serializeJsonColumn(budget),
         })
         .returning()
         .get();
@@ -93,6 +95,7 @@ export class SqliteAgentRepo implements AgentRepository {
         compaction,
         memory,
         graph,
+        budget,
         ...rest
       } = patch;
       const row = this.db
@@ -107,6 +110,7 @@ export class SqliteAgentRepo implements AgentRepository {
           ...(compaction !== undefined ? { compactionJson: serializeJsonColumn(compaction) } : {}),
           ...(memory !== undefined ? { memoryJson: serializeJsonColumn(memory) } : {}),
           ...(graph !== undefined ? { graphJson: JSON.stringify(graph) } : {}),
+          ...(budget !== undefined ? { budgetJson: serializeJsonColumn(budget) } : {}),
         })
         .where(eq(agentsTable.id, id))
         .returning()
@@ -146,6 +150,7 @@ function toAgent(row: AgentRow): Agent {
     mcpServers: parseStringList(row.mcpServers),
     tools: parseStringList(row.tools),
     graph: parseGraph(row.graphJson),
+    budget: parseJsonObject(row.budgetJson),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

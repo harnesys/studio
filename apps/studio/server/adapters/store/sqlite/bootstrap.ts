@@ -268,6 +268,10 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   try {
+    db.run(sql.raw('ALTER TABLE agents ADD COLUMN budget_json text;'));
+  } catch {}
+
+  try {
     db.run(sql.raw(`ALTER TABLE threads ADD COLUMN kind text NOT NULL DEFAULT 'chat';`));
   } catch {}
 

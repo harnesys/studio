@@ -1,5 +1,6 @@
 import type { Edge, Node } from 'harnesys';
 import type {
+  AgentBudget,
   AgentGenerationSettings,
   AgentMemoryConfig,
   PortRef,
@@ -30,6 +31,7 @@ export type Agent = {
   /** Tool name allowlist; empty = all workspace tools. */
   tools: string[];
   graph: AgentGraph;
+  budget: AgentBudget | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -50,6 +52,7 @@ export type AgentPatch = {
   mcpServers?: string[];
   tools?: string[];
   graph?: AgentGraph;
+  budget?: AgentBudget | null;
 };
 
 export type AgentRepository = {

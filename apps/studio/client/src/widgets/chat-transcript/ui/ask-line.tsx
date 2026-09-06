@@ -15,11 +15,12 @@ export function AskLine({
 }) {
   const prompt = event.prompt ?? '';
   const waiting = Boolean(live);
+  const label = event.source === 'budget' ? 'Budget limit reached' : 'Question';
 
   return (
     <ActivityLine
       icon={MessageCircleQuestionIcon}
-      label="Question"
+      label={label}
       hint={prompt}
       active={waiting}
       defaultOpen={waiting}

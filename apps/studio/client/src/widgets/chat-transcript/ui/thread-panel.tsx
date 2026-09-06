@@ -64,6 +64,11 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
                 messageId={run.id ?? `run-${index}`}
               >
                 <div className="group/turn flex flex-col">
+                  <AssistantMessageView
+                    events={run.events}
+                    runId={run.id ?? ''}
+                    streaming={streaming && index === runs.length - 1}
+                  />
                   {run.error ? (
                     <FailedMessageView
                       text={run.error}
@@ -74,11 +79,6 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
                       }
                     />
                   ) : null}
-                  <AssistantMessageView
-                    events={run.events}
-                    runId={run.id ?? ''}
-                    streaming={streaming && index === runs.length - 1}
-                  />
                 </div>
               </MessageScrollerItem>
             ))}

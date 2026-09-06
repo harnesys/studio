@@ -10,7 +10,7 @@ import { Markdown } from '@/shared/ui/markdown';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { toast } from '@/shared/ui/toast';
 
-import { respondToAsk } from '../model/hitl-actions';
+import { rejectAsk, respondToAsk } from '../model/hitl-actions';
 import { type PendingHitl, pendingHitl } from '../model/pending-hitl';
 import { summarizeToolInput } from '../model/tool-input-summary';
 import { HitlPreview } from './hitl-preview';
@@ -25,6 +25,14 @@ export function HitlPrompt() {
 
   if (!pending || !streaming) {
     return null;
+  }
+
+  if (pending.source === 'budget') {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
+        <BudgetCard pending={pending} threadId={thread?.id ?? ''} />
+      </div>
+    );
   }
 
   const isConfirm = pending.source === 'permission' || pending.source === 'approve';
@@ -125,6 +133,61 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
           onClick={() => void decide(true)}
         >
           Allow
+        </Button>
+      </InputGroupAddon>
+    </HitlShell>
+  );
+}
+
+function BudgetCard({ pending, threadId }: { pending: PendingHitl; threadId: string }) {
+  const [busy, setBusy] = useState(false);
+  const decide = async (continueRun: boolean) => {
+    if (busy) {
+      return;
+    }
+    setBusy(true);
+    try {
+      if (continueRun) {
+        await respondToAsk(threadId, pending.askId, { approved: true });
+      } else {
+        await rejectAsk(threadId, pending.askId);
+      }
+    } catch (error) {
+      toast.add({
+        title: continueRun ? 'Could not continue' : 'Could not stop',
+        description: error instanceof Error ? error.message : 'Budget confirm failed',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <HitlShell>
+      <div className="flex flex-col gap-1 px-3 pt-2.5">
+        <p className="font-medium text-sm">Budget limit reached</p>
+        {pending.prompt ? (
+          <Markdown text={pending.prompt} className="px-0 text-[11px] text-muted-foreground" />
+        ) : null}
+      </div>
+      <InputGroupAddon align="block-end" className="justify-end gap-1 px-2 pb-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          className="h-7 text-muted-foreground hover:bg-muted hover:text-foreground"
+          onClick={() => void decide(false)}
+        >
+          Stop
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          disabled={busy}
+          className="h-7"
+          onClick={() => void decide(true)}
+        >
+          Continue
         </Button>
       </InputGroupAddon>
     </HitlShell>

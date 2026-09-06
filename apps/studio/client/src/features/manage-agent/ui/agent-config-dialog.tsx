@@ -5,6 +5,7 @@ import {
   CpuIcon,
   FoldVerticalIcon,
   GaugeIcon,
+  LayersIcon,
   type LucideIcon,
   PuzzleIcon,
   ScrollTextIcon,
@@ -39,6 +40,7 @@ import {
   AgentModelPane,
 } from './agent-config-panes';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
+import { DraftCapabilityPacks } from './draft-capability-packs';
 import { DraftCompaction } from './draft-compaction';
 import { DraftMemory } from './draft-memory';
 
@@ -56,6 +58,7 @@ export type AgentConfigCategory =
   | 'identity'
   | 'model'
   | 'instructions'
+  | 'capabilities'
   | 'compaction'
   | 'memory'
   | 'skills'
@@ -71,6 +74,7 @@ export const AGENT_CONFIG_CATEGORIES: {
   { id: 'identity', label: 'Identity', icon: UserRoundIcon },
   { id: 'model', label: 'Model', icon: CpuIcon },
   { id: 'instructions', label: 'Instructions', icon: ScrollTextIcon },
+  { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
   { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },
   { id: 'memory', label: 'Memory', icon: BrainIcon },
   { id: 'skills', label: 'Skills', icon: PuzzleIcon },
@@ -86,6 +90,7 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
     mcpServers: agent?.mcpServers ?? [],
     compaction: agent?.compaction,
     memory: agent?.memory,
+    capabilities: agent?.capabilities ?? {},
   };
 }
 
@@ -96,7 +101,6 @@ export function AgentConfigDialog({
   const agent = data?.agent ?? null;
   const workspaceId = data?.workspaceId ?? '';
   const [category, setCategory] = useState<AgentConfigCategory>('identity');
-  const [memoryDraft, setMemoryDraft] = useState(agent?.memory);
   const providers = useQuery(providersQuery).data ?? [];
   const capabilitiesRef = useRef<AgentCapabilitiesDraft>(initialCapabilities(agent));
   const form = useForm<AgentFieldsInput, unknown, AgentFieldsOutput>({
@@ -151,6 +155,15 @@ export function AgentConfigDialog({
           <div className={cn(category !== 'instructions' && 'hidden')}>
             <AgentInstructionsPane form={form} />
           </div>
+          <div className={cn(category !== 'capabilities' && 'hidden')}>
+            <DraftCapabilityPacks
+              workspaceId={workspaceId}
+              value={agent?.capabilities ?? {}}
+              onChange={(capabilities) => {
+                capabilitiesRef.current = { ...capabilitiesRef.current, capabilities };
+              }}
+            />
+          </div>
           <div className={cn(category !== 'compaction' && 'hidden')}>
             <DraftCompaction
               agent={agent}
@@ -164,7 +177,6 @@ export function AgentConfigDialog({
               agent={agent}
               onChange={(memory) => {
                 capabilitiesRef.current = { ...capabilitiesRef.current, memory };
-                setMemoryDraft(memory);
               }}
             />
           </div>
@@ -176,7 +188,6 @@ export function AgentConfigDialog({
             <DraftCapabilities
               agent={agent}
               workspaceId={workspaceId}
-              memory={memoryDraft}
               section={capabilitiesSection(category)}
               onChange={(snapshot) => {
                 capabilitiesRef.current = { ...capabilitiesRef.current, ...snapshot };

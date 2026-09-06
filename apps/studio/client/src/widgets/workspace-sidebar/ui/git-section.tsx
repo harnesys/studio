@@ -194,7 +194,7 @@ export function GitSection({ workspaceId }: { workspaceId: string }) {
             render={<SidebarMenuButton tooltip={display} aria-label="Git branch" />}
             className="opacity-80"
           >
-            <GitBranchIcon />
+            <GitBranchIcon className="h-3.5!"/>
             <span>{branchLabel}</span>
             {dirtyBadge}
             {gitStatus.ahead || gitStatus.behind ? (

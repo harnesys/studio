@@ -50,6 +50,15 @@ export type AgentNodes = Record<string, Node>;
 export type AgentEdges = Edge[];
 export type AgentGraph = { nodes: AgentNodes; edges: AgentEdges };
 
+export type BudgetPolicy = 'ask' | 'error';
+
+export type AgentBudget = {
+  maxSteps?: number;
+  maxTokens?: number;
+  deadlineMs?: number;
+  policy?: BudgetPolicy;
+};
+
 export type AgentDefinition = {
   id: string;
   version?: string;
@@ -69,11 +78,7 @@ export type AgentDefinition = {
     reducers?: Record<string, 'replace' | 'merge'>;
   };
   graph: AgentGraph;
-  budget?: {
-    maxSteps?: number;
-    maxTokens?: number;
-    deadlineMs?: number;
-  };
+  budget?: AgentBudget;
 };
 
 export type Edge = { from: string; to: string; when?: Expr };

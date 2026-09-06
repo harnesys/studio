@@ -12,9 +12,11 @@ export type Cursor = {
     reason: string;
     resumeSchema: JsonSchema;
     nodeId: string;
+    source?: string;
+    output?: unknown;
   };
   cancellation?: unknown;
-  budget?: { steps: number; tokens: number };
+  budget?: { steps: number; tokens: number; startedAt: number };
   barriers?: Record<string, unknown>;
   timers?: { id: string; fireAt: number }[];
 };

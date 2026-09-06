@@ -419,6 +419,28 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
     add('cycle_budget', 'error', 'graph has cycle but no budget.maxSteps/deadlineMs', 'budget');
   }
 
+  if (def.budget !== undefined) {
+    const b = def.budget;
+    if (b.policy !== undefined && b.policy !== 'ask' && b.policy !== 'error') {
+      add(
+        'budget_policy',
+        'error',
+        `budget.policy "${String(b.policy)}" must be "ask" or "error"`,
+        'budget.policy',
+      );
+    }
+    const positive: [string, number | undefined][] = [
+      ['maxSteps', b.maxSteps],
+      ['maxTokens', b.maxTokens],
+      ['deadlineMs', b.deadlineMs],
+    ];
+    for (const [name, value] of positive) {
+      if (value !== undefined && (!Number.isFinite(value) || value <= 0)) {
+        add('budget_value', 'error', `budget.${name} must be a positive number`, `budget.${name}`);
+      }
+    }
+  }
+
   const spawnNodes = Object.entries(nodes).filter(([, v]) => v.type === 'control:spawn');
   if (spawnNodes.length > 0 && def.state?.reducers) {
     const replaceKeys = Object.entries(def.state.reducers)

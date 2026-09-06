@@ -19,7 +19,8 @@
 - Описания и JsonSchema переезжающих инструментов — дословно, ни одного изменения формулировок.
 - Фрагменты промпта самодостаточны, порядок сборки — sort by pack name (prefix-cache).
 - Коммиты: `feat(harnesys): …`, `feat(studio): …`, `docs: …`.
-- До таска 11 студия работает по-старому (host-tools + composeAgentSystem): переключение — один атомарный таск, промежуточных состояний с двойной регистрацией не делать.
+- До переключения (таск 11) студия работает по-старому (host-tools + composeAgentSystem): переключение — один атомарный таск, промежуточных состояний с двойной регистрацией не делать.
+- Порядок исполнения: 1–10, **12, 11**, 13–16. Таск 12 идёт до 11: смоук-тест 11 (PATCH `capabilities`) требует колонку `capabilities_json` и прокинутого поля.
 
 ---
 
@@ -775,7 +776,7 @@ export const skillsCapability = defineCapability<SkillsCapabilityPorts>({
 });
 ```
 
-`configFrom: (def) => (def.skills ? { spec: { allow: def.skills } } : def.capabilities?.skills)` — allowlist `agent.skills` наконец применяется (`filterSkills`, задел из спеки).
+`configFrom: (def) => def.capabilities?.skills ?? (def.skills?.length ? { spec: { allow: def.skills } } : {})` — пачка включена по умолчанию (сохраняет текущее поведение: `load_skill` есть у всех), allowlist `agent.skills` применяется через `filterSkills` только когда список непустой (задел из спеки), `capabilities.skills: null` — выключить.
 
 - [ ] **Step 3: create-runtime**
 

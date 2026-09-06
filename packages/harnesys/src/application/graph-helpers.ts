@@ -106,6 +106,14 @@ export function hashStr(s: string): string {
   return String(h);
 }
 
+export function stateKeyOf(expr: string): string | undefined {
+  const key = expr
+    .trim()
+    .replace(/^\$state\./, '')
+    .split(/[.[]/)[0];
+  return key || undefined;
+}
+
 export type ReActToolCall = {
   id: string;
   name: string;

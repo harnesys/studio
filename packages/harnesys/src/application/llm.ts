@@ -3,6 +3,8 @@ import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
+import { stateKeyOf } from './graph-helpers.ts';
+import { assembleNotes, type LlmNote } from './llm-notes.ts';
 
 export type LlmNode = {
   type: 'llm:generate';
@@ -21,6 +23,7 @@ export type LlmContext = {
   modelBinding: ModelBinding;
   toolRegistry: Map<string, ToolDefinition>;
   signal: AbortSignal;
+  notes?: LlmNote[];
 };
 
 export type LlmResult = {
@@ -39,10 +42,7 @@ function ensureMessages(node: LlmNode, state: Record<string, unknown>, input: un
   if (!node.messages) {
     return;
   }
-  const key = node.messages
-    .trim()
-    .replace(/^\$state\./, '')
-    .split(/[.[]/)[0] as string;
+  const key = stateKeyOf(node.messages);
   if (!key) {
     return;
   }
@@ -70,6 +70,20 @@ function resolveMessages(node: LlmNode, ctx: LlmContext): unknown[] {
   }
 }
 
+const LLM_CHUNK_EVENTS: Record<string, string> = {
+  delta: 'model.delta',
+  'reasoning-delta': 'model.reasoning',
+  'reasoning-start': 'model.reasoning-start',
+  'reasoning-end': 'model.reasoning-end',
+  'tool-input-start': 'model.tool-input-start',
+  'tool-input-delta': 'model.tool-input-delta',
+  'tool-input-end': 'model.tool-input-end',
+  'tool-call': 'model.tool-call',
+  source: 'model.source',
+  file: 'model.file',
+  chunk: 'model.chunk',
+};
+
 export async function* runLlmGenerate(
   node: LlmNode,
   ctx: LlmContext,
@@ -88,10 +102,14 @@ export async function* runLlmGenerate(
   const messages = resolveMessages(node, ctx);
   const toolNames = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
 
+  const requestMessages = ctx.notes?.length
+    ? [...messages, { role: 'system', content: assembleNotes(ctx.notes) }]
+    : messages;
+
   const stream = callModel(
     ctx.modelBinding,
     prompt,
-    messages,
+    requestMessages,
     toolNames,
     ctx.toolRegistry,
     ctx.signal,
@@ -100,28 +118,9 @@ export async function* runLlmGenerate(
 
   let lastChunk: StreamChunk | undefined;
   for await (const chunk of stream) {
-    if (chunk.type === 'delta') {
-      yield { type: 'model.delta', data: chunk };
-    } else if (chunk.type === 'reasoning-delta') {
-      yield { type: 'model.reasoning', data: chunk };
-    } else if (chunk.type === 'reasoning-start') {
-      yield { type: 'model.reasoning-start', data: chunk };
-    } else if (chunk.type === 'reasoning-end') {
-      yield { type: 'model.reasoning-end', data: chunk };
-    } else if (chunk.type === 'tool-input-start') {
-      yield { type: 'model.tool-input-start', data: chunk };
-    } else if (chunk.type === 'tool-input-delta') {
-      yield { type: 'model.tool-input-delta', data: chunk };
-    } else if (chunk.type === 'tool-input-end') {
-      yield { type: 'model.tool-input-end', data: chunk };
-    } else if (chunk.type === 'tool-call') {
-      yield { type: 'model.tool-call', data: chunk };
-    } else if (chunk.type === 'source') {
-      yield { type: 'model.source', data: chunk };
-    } else if (chunk.type === 'file') {
-      yield { type: 'model.file', data: chunk };
-    } else if (chunk.type === 'chunk') {
-      yield { type: 'model.chunk', data: chunk };
+    const type = LLM_CHUNK_EVENTS[chunk.type];
+    if (type) {
+      yield { type, data: chunk };
     } else if (chunk.type === 'completed') {
       lastChunk = chunk;
     }

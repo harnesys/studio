@@ -4,6 +4,7 @@ import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr } from './expr-eval.ts';
+import { stateKeyOf } from './graph-helpers.ts';
 import { executeApproveBatch, type PreparedToolCall, runSingleToolCall } from './tool-approve.ts';
 import {
   clearCheckpoint,
@@ -76,15 +77,11 @@ function resolveConcurrency(
 }
 
 function getStateMessages(state: Record<string, unknown>, path?: string): unknown[] | null {
-  if (path) {
-    const key = path
-      .trim()
-      .replace(/^\$state\./, '')
-      .split(/[.[]/)[0] as string;
-    const v = state[key];
-    return Array.isArray(v) ? (v as unknown[]) : null;
+  const key = path ? stateKeyOf(path) : 'messages';
+  if (!key) {
+    return null;
   }
-  const v = state.messages;
+  const v = state[key];
   return Array.isArray(v) ? (v as unknown[]) : null;
 }
 

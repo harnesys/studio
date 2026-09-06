@@ -22,11 +22,18 @@ import {
   findBind,
   isPort,
   type MergeStateFn,
-  type ReActOutput,
   resolveModelForPort,
+  stateKeyOf,
 } from './graph-helpers.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
 import { type LlmResult, runLlmGenerate } from './llm.ts';
+import {
+  type BudgetLeft,
+  budgetNote,
+  type LlmNote,
+  type LlmNoteContext,
+  type LlmNoteProvider,
+} from './llm-notes.ts';
 import { executeToolCall, type ToolCallResult } from './tool-call.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
@@ -119,33 +126,54 @@ export type GraphOpts = {
   resumePayload?: unknown;
   resumeInterruptId?: string;
   startNodeId?: string;
-  outputHint?: ReActOutput | null;
+  outputHint?: unknown;
+  notes?: LlmNoteProvider[];
   rejected?: boolean;
   /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
   inputRecorded?: boolean;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
 };
 
-function resolveFallbackBindings(
+async function resolveFallbackBindings(
   agent: AgentDefinition,
   models: ProviderConfig[] | ModelsPort,
-): ModelBinding[] {
+): Promise<ModelBinding[]> {
   const fallbacks = agent.fallback;
   if (!fallbacks || fallbacks.length === 0) {
     return [];
   }
-  if (isPort(models)) {
-    return [];
-  }
   const bindings: ModelBinding[] = [];
   for (const ref of fallbacks) {
-    const result = findBind(models as ProviderConfig[], ref, agent);
-    if (result?.binding) {
-      bindings.push(result.binding);
+    if (isPort(models)) {
+      const coords = resolveModelForPort(ref, agent);
+      if (!coords) {
+        continue;
+      }
+      try {
+        bindings.push(await (models as ModelsPort).get(coords.provider, coords.model));
+      } catch {}
+    } else {
+      const result = findBind(models as ProviderConfig[], ref, agent);
+      if (result?.binding) {
+        bindings.push(result.binding);
+      }
     }
   }
   return bindings;
 }
+
+const PASSTHROUGH_MODEL_EVENTS = new Set([
+  'model.delta',
+  'model.reasoning',
+  'model.reasoning-start',
+  'model.reasoning-end',
+  'model.tool-input-start',
+  'model.tool-input-delta',
+  'model.tool-input-end',
+  'model.tool-call',
+  'model.source',
+  'model.file',
+]);
 
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   const loaded = await opts.state.load();
@@ -195,10 +223,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
     entryPending = true;
   }
+  const interruptSource = loaded?.cursor?.interrupt?.source;
   let output: unknown = opts.startNodeId === undefined ? null : (opts.outputHint ?? null);
-  let steps = 0;
-  let tokens = 0;
-  const t0 = performance.now();
+  let steps = loaded?.cursor?.budget?.steps ?? 0;
+  let tokens = loaded?.cursor?.budget?.tokens ?? 0;
+  let t0 = loaded?.cursor?.budget?.startedAt ?? Date.now();
   let lastMsg: string | undefined;
   const nodeSteps = new Map<string, number>();
   const agentJson = JSON.stringify(opts.agent);
@@ -214,6 +243,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     cur,
     steps,
     tokens,
+    startedAt: t0,
     nodeStep: nodeSteps.get(cur) ?? 0,
   });
   const commit = async (
@@ -233,6 +263,89 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     });
     return ev;
   };
+  type BudgetOver = { kind: 'steps' | 'tokens' | 'deadline'; limit: number; used: number };
+
+  function budgetOver(): BudgetOver | null {
+    const b = opts.agent.budget;
+    if (!b) {
+      return null;
+    }
+    if (b.maxSteps !== undefined && steps >= b.maxSteps) {
+      return { kind: 'steps', limit: b.maxSteps, used: steps };
+    }
+    if (b.maxTokens !== undefined && tokens >= b.maxTokens) {
+      return { kind: 'tokens', limit: b.maxTokens, used: tokens };
+    }
+    if (b.deadlineMs !== undefined && Date.now() - t0 > b.deadlineMs) {
+      return { kind: 'deadline', limit: b.deadlineMs, used: Date.now() - t0 };
+    }
+    return null;
+  }
+
+  function budgetReason(over: BudgetOver): string {
+    if (over.kind === 'steps') {
+      return `Step budget of ${over.limit} reached`;
+    }
+    if (over.kind === 'tokens') {
+      return `Token budget of ${over.limit} reached`;
+    }
+    return `Deadline of ${over.limit}ms exceeded`;
+  }
+
+  async function budgetStop(over: BudgetOver): Promise<Event> {
+    if ((opts.agent.budget?.policy ?? 'error') === 'ask') {
+      const interruptId = `budget/${runId}/${cur}/${steps}`;
+      delete (st as Record<string, unknown>).$resume;
+      const resumeSchema = {
+        type: 'object',
+        properties: { approved: { type: 'boolean' }, reason: { type: 'string' } },
+      } as JsonSchema;
+      const snap = mkSnap(ctx(), 'needs_input');
+      (snap.cursor as Record<string, unknown>).interrupt = {
+        interruptId,
+        reason: budgetReason(over),
+        resumeSchema,
+        nodeId: cur,
+        source: 'budget',
+        output,
+      };
+      seq += 1;
+      const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
+      ev.metadata = { interruptId, reason: budgetReason(over), resumeSchema, source: 'budget' };
+      await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
+      return ev;
+    }
+    return commit('budget_exceeded', 'run.failed', 'recorded', {
+      code: 'budget_exceeded',
+      kind: over.kind,
+      limit: over.limit,
+      used: over.used,
+    });
+  }
+
+  function budgetLeftForPrompt(): BudgetLeft | undefined {
+    const b = opts.agent.budget;
+    if (!b) {
+      return undefined;
+    }
+    const out: BudgetLeft = {};
+    let any = false;
+    if (b.maxSteps !== undefined) {
+      out.stepsLeft = Math.max(0, b.maxSteps - steps);
+      out.stepsTotal = b.maxSteps;
+      any = true;
+    }
+    if (b.maxTokens !== undefined) {
+      out.tokensLeft = Math.max(0, b.maxTokens - tokens);
+      out.tokensTotal = b.maxTokens;
+      any = true;
+    }
+    if (b.deadlineMs !== undefined) {
+      out.msLeft = Math.max(0, b.deadlineMs - (Date.now() - t0));
+      any = true;
+    }
+    return any ? out : undefined;
+  }
   while (true) {
     if (opts.signal?.aborted) {
       const e = await commit('cancelled', 'run.cancelled');
@@ -249,7 +362,19 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
 
     if (entryPending && cur === opts.startNodeId) {
       entryPending = false;
-      if (isSkippedEntry(node.type, opts.rejected)) {
+      if (interruptSource === 'budget' && opts.rejected === true) {
+        const e = await commit('cancelled', 'run.cancelled', 'recorded', {
+          reason: 'budget_exceeded',
+        });
+        yield e;
+        break;
+      }
+      if (interruptSource === 'budget') {
+        steps = 0;
+        tokens = 0;
+        t0 = Date.now();
+      }
+      if (isSkippedEntry(node.type, opts.rejected, interruptSource)) {
         st.$resume = opts.rejected ? null : opts.resumePayload;
         const edgeSlots = { input, state: st, output, resume: st.$resume ?? null };
         let nxt: string | undefined;
@@ -269,17 +394,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         delete st.$resume;
         nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
         steps += 1;
-        if (opts.agent.budget?.maxSteps !== undefined && steps >= opts.agent.budget.maxSteps) {
-          const e = await commit('budget_exceeded', 'run.failed');
-          yield e;
-          break;
-        }
-        if (
-          opts.agent.budget?.deadlineMs !== undefined &&
-          performance.now() - t0 > opts.agent.budget.deadlineMs
-        ) {
-          const e = await commit('budget_exceeded', 'run.failed');
-          yield e;
+        const over = budgetOver();
+        if (over) {
+          yield await budgetStop(over);
           break;
         }
         continue;
@@ -400,25 +517,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             binding = null;
           }
         }
-        if (opts.agent.fallback) {
-          const fallbacks: ModelBinding[] = [];
-          for (const fb of opts.agent.fallback) {
-            const c = resolveModelForPort(fb, opts.agent);
-            if (!c) {
-              continue;
-            }
-            try {
-              const b = await (opts.models as ModelsPort).get(c.provider, c.model);
-              fallbacks.push(b);
-            } catch {}
-          }
-          fallbackBindings = fallbacks;
-        }
       } else {
         binding =
           findBind(opts.models as ProviderConfig[], ln.model as never, opts.agent)?.binding ?? null;
-        fallbackBindings = resolveFallbackBindings(opts.agent, opts.models);
       }
+      fallbackBindings = await resolveFallbackBindings(opts.agent, opts.models);
       if (!binding) {
         const e = await commit('failed', 'run.failed');
         yield e;
@@ -438,6 +541,26 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           await commit('running', 'model.requested', 'recorded');
           usedModel = currentBinding.model.name;
           startedAt = Date.now();
+          const notes: LlmNote[] = [];
+          const left = budgetLeftForPrompt();
+          if (left) {
+            notes.push(budgetNote(left));
+          }
+          if (opts.notes?.length) {
+            const noteCtx: LlmNoteContext = {
+              agentId: opts.agent.id,
+              runId,
+              sessionId: opts.state.sessionId,
+              nodeId: cur,
+              steps,
+              state: st,
+            };
+            for (const provider of opts.notes) {
+              try {
+                notes.push(...(await provider(noteCtx)));
+              } catch {}
+            }
+          }
           const stream = runLlmGenerate(
             {
               type: 'llm:generate',
@@ -455,66 +578,13 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               modelBinding: currentBinding,
               toolRegistry: opts.toolRegistry,
               signal: opts.signal ?? new AbortController().signal,
+              notes,
             },
           );
           for await (const event of stream) {
-            if (event.type === 'model.delta') {
+            if (PASSTHROUGH_MODEL_EVENTS.has(event.type)) {
               yield {
-                ...mkEv(ctx(), 'model.delta'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.reasoning') {
-              yield {
-                ...mkEv(ctx(), 'model.reasoning'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.reasoning-start') {
-              yield {
-                ...mkEv(ctx(), 'model.reasoning-start'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.reasoning-end') {
-              yield {
-                ...mkEv(ctx(), 'model.reasoning-end'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.tool-input-start') {
-              yield {
-                ...mkEv(ctx(), 'model.tool-input-start'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.tool-input-delta') {
-              yield {
-                ...mkEv(ctx(), 'model.tool-input-delta'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.tool-input-end') {
-              yield {
-                ...mkEv(ctx(), 'model.tool-input-end'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.tool-call') {
-              yield {
-                ...mkEv(ctx(), 'model.tool-call'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.source') {
-              yield {
-                ...mkEv(ctx(), 'model.source'),
-                metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
-              };
-            } else if (event.type === 'model.file') {
-              yield {
-                ...mkEv(ctx(), 'model.file'),
+                ...mkEv(ctx(), event.type),
                 metadata: event.data as Record<string, unknown>,
                 agentId: opts.agent.id,
               };
@@ -547,10 +617,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
       output = res;
       if (lastMsg) {
-        const key = lastMsg
-          .trim()
-          .replace(/^\$state\./, '')
-          .split(/[.[]/)[0] as string;
+        const key = stateKeyOf(lastMsg);
         if (key) {
           let arr = st[key] as unknown[] | undefined;
           if (!Array.isArray(arr)) {
@@ -572,12 +639,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
       if (res.usage && typeof res.usage === 'object') {
         const u = res.usage as Record<string, unknown>;
-        const total = typeof u.totalTokens === 'number' ? u.totalTokens : undefined;
-        if (typeof total === 'number') {
-          tokens += total;
-        } else {
-          tokens += 1;
-        }
+        const total =
+          typeof u.totalTokens === 'number' && Number.isFinite(u.totalTokens)
+            ? u.totalTokens
+            : (typeof u.inputTokens === 'number' ? u.inputTokens : 0) +
+              (typeof u.outputTokens === 'number' ? u.outputTokens : 0);
+        tokens += total;
       }
       const completedMeta: Record<string, unknown> = {};
       if (usedModel) {
@@ -672,6 +739,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             nodeId: cur,
             source: e.source ?? 'ask_user',
             tool: e.tool,
+            output,
           };
           seq += 1;
           const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
@@ -768,17 +836,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       cur = tgt;
       nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
       steps += 1;
-      if (opts.agent.budget?.maxSteps !== undefined && steps >= opts.agent.budget.maxSteps) {
-        const ev = await commit('budget_exceeded', 'run.failed');
-        yield ev;
-        break;
-      }
-      if (
-        opts.agent.budget?.deadlineMs !== undefined &&
-        performance.now() - t0 > opts.agent.budget.deadlineMs
-      ) {
-        const ev = await commit('budget_exceeded', 'run.failed');
-        yield ev;
+      const over = budgetOver();
+      if (over) {
+        yield await budgetStop(over);
         break;
       }
       continue;
@@ -796,6 +856,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         reason: ir.reason,
         resumeSchema: ir.resumeSchema,
         nodeId: cur,
+        source: 'interrupt',
+        output,
       };
       seq += 1;
       const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
@@ -808,21 +870,20 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       yield ev;
       break;
     } else {
-      const e = await commit('running', 'node.completed');
+      const e = await commit('failed', 'run.failed', 'recorded', {
+        code: 'node_unsupported',
+        nodeType: node.type,
+      });
       yield e;
+      throw Object.assign(new Error(`unsupported node type: ${node.type}`), {
+        code: 'node_unsupported',
+      });
     }
     nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
     steps += 1;
-    if (opts.agent.budget?.maxSteps !== undefined && steps >= opts.agent.budget.maxSteps) {
-      const e = await commit('budget_exceeded', 'run.failed');
-      yield e;
-      break;
-    }
-    if (
-      opts.agent.budget?.deadlineMs !== undefined &&
-      performance.now() - t0 > opts.agent.budget.deadlineMs
-    ) {
-      const e = await commit('budget_exceeded', 'run.failed');
+    const over = budgetOver();
+    if (over) {
+      const e = await budgetStop(over);
       yield e;
       break;
     }

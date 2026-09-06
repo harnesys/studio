@@ -20,8 +20,12 @@ export function matchOutgoing(edges: Edge[], slots: Slots): string | undefined {
   return undefined;
 }
 
-export function isSkippedEntry(nodeType: string, rejected: boolean | undefined): boolean {
-  if (nodeType === 'control:interrupt') {
+export function isSkippedEntry(
+  nodeType: string,
+  rejected: boolean | undefined,
+  interruptSource?: string,
+): boolean {
+  if (nodeType === 'control:interrupt' || interruptSource === 'budget') {
     return true;
   }
   return nodeType === 'tool:call' && rejected === true;

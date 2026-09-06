@@ -1,4 +1,5 @@
 import type {
+  AgentBudget,
   AgentGenerationSettings,
   Effort,
   ProviderModelPublic,
@@ -39,6 +40,10 @@ export const agentFieldsSchema = z.object({
   toolOutputMaxChars: optionalPositiveInt,
   toolOutputHeadChars: optionalPositiveInt,
   toolOutputTailChars: optionalPositiveInt,
+  budgetMaxSteps: optionalPositiveInt,
+  budgetMaxTokens: optionalPositiveInt,
+  budgetDeadlineSec: optionalPositiveInt,
+  budgetPolicy: z.enum(['ask', 'error']),
 });
 
 export type AgentFieldsInput = z.input<typeof agentFieldsSchema>;
@@ -80,6 +85,10 @@ export function emptyAgentFields(): AgentFieldsInput {
     toolOutputMaxChars: '',
     toolOutputHeadChars: '',
     toolOutputTailChars: '',
+    budgetMaxSteps: '',
+    budgetMaxTokens: '',
+    budgetDeadlineSec: '',
+    budgetPolicy: 'ask',
   };
 }
 
@@ -91,6 +100,7 @@ export function agentFieldsFrom(agent: {
   effort?: string | null;
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
+  budget?: AgentBudget | null;
 }): AgentFieldsInput {
   return {
     name: agent.name,
@@ -108,6 +118,11 @@ export function agentFieldsFrom(agent: {
     toolOutputMaxChars: stringify(agent.toolOutput?.maxChars),
     toolOutputHeadChars: stringify(agent.toolOutput?.headChars),
     toolOutputTailChars: stringify(agent.toolOutput?.tailChars),
+    budgetMaxSteps: stringify(agent.budget?.maxSteps),
+    budgetMaxTokens: stringify(agent.budget?.maxTokens),
+    budgetDeadlineSec:
+      agent.budget?.deadlineMs !== undefined ? stringify(agent.budget.deadlineMs / 1000) : '',
+    budgetPolicy: agent.budget?.policy ?? 'ask',
   };
 }
 
@@ -119,6 +134,7 @@ export function toAgentDraft(values: AgentFieldsOutput): {
   effort: string | null;
   generation: AgentGenerationSettings | null;
   toolOutput: ToolOutputSettings | null;
+  budget: AgentBudget | null;
 } {
   const generation = compactGeneration({
     temperature: values.temperature,
@@ -129,6 +145,24 @@ export function toAgentDraft(values: AgentFieldsOutput): {
     seed: values.seed,
     maxTokens: values.maxTokens,
   });
+  const limits = {
+    maxSteps: values.budgetMaxSteps,
+    maxTokens: values.budgetMaxTokens,
+    deadlineMs:
+      values.budgetDeadlineSec !== undefined ? values.budgetDeadlineSec * 1000 : undefined,
+  };
+  const hasLimit =
+    limits.maxSteps !== undefined ||
+    limits.maxTokens !== undefined ||
+    limits.deadlineMs !== undefined;
+  const budget = hasLimit
+    ? {
+        ...(limits.maxSteps !== undefined ? { maxSteps: limits.maxSteps } : {}),
+        ...(limits.maxTokens !== undefined ? { maxTokens: limits.maxTokens } : {}),
+        ...(limits.deadlineMs !== undefined ? { deadlineMs: limits.deadlineMs } : {}),
+        policy: values.budgetPolicy,
+      }
+    : null;
   return {
     name: values.name,
     role: values.role,
@@ -141,6 +175,7 @@ export function toAgentDraft(values: AgentFieldsOutput): {
       headChars: values.toolOutputHeadChars,
       tailChars: values.toolOutputTailChars,
     }),
+    budget,
   };
 }
 

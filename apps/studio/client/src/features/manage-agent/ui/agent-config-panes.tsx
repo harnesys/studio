@@ -11,6 +11,7 @@ import {
   type AgentFieldsOutput,
   sanitizeForModel,
 } from '../model/agent-fields';
+import { AgentBudgetFields } from './agent-budget-fields';
 import { AgentEffortField, AgentGenerationFields } from './agent-generation-fields';
 import { ModelSelect } from './model-select';
 
@@ -147,6 +148,14 @@ export function AgentInstructionsPane({ form }: { form: AgentFieldsForm }) {
           </Field>
         )}
       />
+    </FieldGroup>
+  );
+}
+
+export function AgentLimitsPane({ form }: { form: AgentFieldsForm }) {
+  return (
+    <FieldGroup className="gap-3">
+      <AgentBudgetFields control={form.control} idPrefix="agent" />
     </FieldGroup>
   );
 }

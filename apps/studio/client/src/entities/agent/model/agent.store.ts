@@ -37,6 +37,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       effort: draft.effort ?? null,
       generation: draft.generation ?? null,
       toolOutput: draft.toolOutput ?? null,
+      budget: draft.budget ?? null,
       compaction: draft.compaction === undefined ? defaultAgentCompaction() : draft.compaction,
       memory: draft.memory ?? defaultAgentMemory(),
       skills: [],

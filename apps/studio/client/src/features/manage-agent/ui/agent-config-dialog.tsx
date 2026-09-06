@@ -4,6 +4,7 @@ import {
   BrainIcon,
   CpuIcon,
   FoldVerticalIcon,
+  GaugeIcon,
   type LucideIcon,
   PuzzleIcon,
   ScrollTextIcon,
@@ -31,7 +32,12 @@ import {
   sanitizeForModel,
   toAgentDraft,
 } from '../model/agent-fields';
-import { AgentIdentityPane, AgentInstructionsPane, AgentModelPane } from './agent-config-panes';
+import {
+  AgentIdentityPane,
+  AgentInstructionsPane,
+  AgentLimitsPane,
+  AgentModelPane,
+} from './agent-config-panes';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
 import { DraftCompaction } from './draft-compaction';
 import { DraftMemory } from './draft-memory';
@@ -54,7 +60,8 @@ export type AgentConfigCategory =
   | 'memory'
   | 'skills'
   | 'tools'
-  | 'mcp';
+  | 'mcp'
+  | 'limits';
 
 export const AGENT_CONFIG_CATEGORIES: {
   id: AgentConfigCategory;
@@ -69,6 +76,7 @@ export const AGENT_CONFIG_CATEGORIES: {
   { id: 'skills', label: 'Skills', icon: PuzzleIcon },
   { id: 'tools', label: 'Tools', icon: WrenchIcon },
   { id: 'mcp', label: 'MCP', icon: ServerIcon },
+  { id: 'limits', label: 'Limits', icon: GaugeIcon },
 ];
 
 function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
@@ -174,6 +182,9 @@ export function AgentConfigDialog({
                 capabilitiesRef.current = { ...capabilitiesRef.current, ...snapshot };
               }}
             />
+          </div>
+          <div className={cn(category !== 'limits' && 'hidden')}>
+            <AgentLimitsPane form={form} />
           </div>
         </div>
       </div>

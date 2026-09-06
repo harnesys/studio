@@ -1,4 +1,5 @@
 import type {
+  AgentBudget,
   AgentGenerationSettings,
   AgentMemoryConfig,
   PortRef,
@@ -19,6 +20,7 @@ export type Agent = {
   effort: string | null;
   generation: AgentGenerationSettings | null;
   toolOutput: ToolOutputSettings | null;
+  budget: AgentBudget | null;
   compaction: PortRef;
   memory: AgentMemoryConfig;
   skills: string[];
@@ -40,6 +42,7 @@ export type AgentDraft = {
   effort?: string | null;
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
+  budget?: AgentBudget | null;
   compaction?: PortRef;
   memory?: AgentMemoryConfig | null;
 };
@@ -54,6 +57,7 @@ export type AgentPatch = Partial<
     | 'effort'
     | 'generation'
     | 'toolOutput'
+    | 'budget'
     | 'compaction'
     | 'memory'
     | 'skills'

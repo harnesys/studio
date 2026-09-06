@@ -13,6 +13,7 @@ export function toClientAgent(record: AgentRecord): Agent {
     effort: record.effort ?? null,
     generation: record.generation ?? null,
     toolOutput: record.toolOutput ?? null,
+    budget: record.budget ?? null,
     compaction: record.compaction === undefined ? defaultAgentCompaction() : record.compaction,
     memory: record.memory ?? defaultAgentMemory(),
     skills: record.skills ?? [],

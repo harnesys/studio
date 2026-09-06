@@ -24,6 +24,7 @@ export async function createAgent(
     effort: draft.effort ?? null,
     generation: draft.generation ?? null,
     toolOutput: draft.toolOutput ?? null,
+    budget: draft.budget ?? null,
   });
   const agent = toClientAgent(record);
   useAgentStore.getState().upsert(agent);

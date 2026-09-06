@@ -18,6 +18,7 @@ export async function updateAgent(workspaceId: string, agentId: string, draft: A
   let effort = draft.effort !== undefined ? draft.effort : current.effort;
   let generation = draft.generation !== undefined ? draft.generation : current.generation;
   const toolOutput = draft.toolOutput !== undefined ? draft.toolOutput : current.toolOutput;
+  const budget = draft.budget !== undefined ? draft.budget : current.budget;
 
   if (draft.modelId !== current.modelId) {
     const providers = await listProviders();
@@ -34,6 +35,7 @@ export async function updateAgent(workspaceId: string, agentId: string, draft: A
     effort,
     generation,
     toolOutput,
+    budget,
     ...(draft.compaction !== undefined ? { compaction: draft.compaction } : {}),
     ...(draft.memory !== undefined ? { memory: draft.memory } : {}),
   });

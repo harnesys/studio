@@ -1,4 +1,5 @@
 import type {
+  AgentBudget,
   AgentGenerationSettings,
   AgentMemoryConfig,
   AgentRecord,
@@ -16,6 +17,7 @@ export type CreateAgentInput = {
   effort?: string | null;
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
+  budget?: AgentBudget | null;
   compaction?: PortRef;
   memory?: AgentMemoryConfig | null;
   skills?: string[];
@@ -31,6 +33,7 @@ export type UpdateAgentInput = {
   effort?: string | null;
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
+  budget?: AgentBudget | null;
   compaction?: PortRef;
   memory?: AgentMemoryConfig | null;
   skills?: string[];

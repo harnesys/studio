@@ -49,6 +49,7 @@ import type { ThreadPlanRecord } from './plan-types.ts';
 import type { ThreadRecord as ThreadRecordType } from './thread.ts';
 
 export type {
+  CapabilityCatalogEntry,
   CapabilityConfig,
   KnowledgeHit,
   McpResourceInfo as WorkspaceMcpResource,

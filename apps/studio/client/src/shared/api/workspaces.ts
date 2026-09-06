@@ -1,6 +1,7 @@
 import type {
   CreateWorkspaceSkillRequest,
   UpsertWorkspaceMcpServerRequest,
+  CapabilityCatalogEntry as WorkspaceCapability,
   WorkspaceMcpConfigServer,
   WorkspaceMcpServer,
   WorkspaceRecord,
@@ -14,6 +15,7 @@ import { apiJson } from './client';
 export type {
   CreateWorkspaceSkillRequest,
   UpsertWorkspaceMcpServerRequest,
+  WorkspaceCapability,
   WorkspaceMcpConfigServer,
   WorkspaceMcpServer,
   WorkspaceSkill,
@@ -26,6 +28,10 @@ export type WorkspaceSkillsResponse = {
 
 export type WorkspaceToolsResponse = {
   tools: WorkspaceTool[];
+};
+
+export type WorkspaceCapabilitiesResponse = {
+  capabilities: WorkspaceCapability[];
 };
 
 export type CreateWorkspaceSkillResponse = {
@@ -118,6 +124,22 @@ export function workspaceToolsQuery(workspaceId: string) {
   return queryOptions({
     queryKey: workspaceToolsQueryKey(workspaceId),
     queryFn: () => listWorkspaceTools(workspaceId),
+    staleTime: 20_000,
+  });
+}
+
+export function workspaceCapabilitiesQueryKey(workspaceId: string) {
+  return [...workspacesQueryKey, workspaceId, 'capabilities'] as const;
+}
+
+export function listWorkspaceCapabilities(workspaceId: string) {
+  return apiJson<WorkspaceCapabilitiesResponse>(`/api/workspaces/${workspaceId}/capabilities`);
+}
+
+export function workspaceCapabilitiesQuery(workspaceId: string) {
+  return queryOptions({
+    queryKey: workspaceCapabilitiesQueryKey(workspaceId),
+    queryFn: () => listWorkspaceCapabilities(workspaceId),
     staleTime: 20_000,
   });
 }

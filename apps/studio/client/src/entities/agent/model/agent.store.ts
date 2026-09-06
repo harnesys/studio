@@ -43,6 +43,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       skills: [],
       mcpServers: [],
       tools: [],
+      capabilities: draft.capabilities ?? {},
       createdAt: now,
       updatedAt: now,
       status: 'idle',
@@ -92,6 +93,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
               skills: patch.skills !== undefined ? patch.skills : agent.skills,
               mcpServers: patch.mcpServers !== undefined ? patch.mcpServers : agent.mcpServers,
               tools: patch.tools !== undefined ? patch.tools : agent.tools,
+              capabilities:
+                patch.capabilities !== undefined ? patch.capabilities : agent.capabilities,
               initials: name ? initialsFromName(name) : agent.initials,
             }
           : agent,

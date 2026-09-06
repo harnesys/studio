@@ -3,6 +3,7 @@ import type {
   AgentGenerationSettings,
   AgentMemoryConfig,
   AgentRecord,
+  CapabilityConfig,
   PortRef,
   ToolOutputSettings,
 } from '@studio/shared';
@@ -23,6 +24,7 @@ export type CreateAgentInput = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  capabilities?: Record<string, CapabilityConfig | null>;
 };
 
 export type UpdateAgentInput = {
@@ -39,6 +41,7 @@ export type UpdateAgentInput = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  capabilities?: Record<string, CapabilityConfig | null>;
 };
 
 export function listAgents() {

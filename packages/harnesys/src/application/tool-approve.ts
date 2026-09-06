@@ -126,6 +126,19 @@ export async function runSingleToolCall(
         : undefined,
     };
     const value = await def.execute(call.args, toolCtx);
+    if (def.revealsTools) {
+      const loaded = (value as { loaded?: unknown } | null)?.loaded;
+      if (Array.isArray(loaded)) {
+        const names = loaded.filter((n): n is string => typeof n === 'string');
+        const prev = Array.isArray(ctx.state.loadedTools)
+          ? (ctx.state.loadedTools as string[])
+          : [];
+        // Кламп по реестру рана: фильтр mcpServers не должен обходиться через load_tools.
+        ctx.state.loadedTools = [
+          ...new Set([...prev, ...names.filter((n) => ctx.toolRegistry.has(n))]),
+        ];
+      }
+    }
     return {
       result: { id: call.id, name: call.name, result: value, isError: false },
       message: message(serializeToolOutput(value)),

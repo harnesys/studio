@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import type { Edge, Node } from 'harnesys';
 import {
   type AgentMemoryConfig,
+  type CapabilityConfig,
   defaultAgentCompaction,
   defaultAgentMemory,
   type PortRef,
@@ -60,6 +61,7 @@ export class SqliteAgentRepo implements AgentRepository {
         memory,
         graph,
         budget,
+        capabilities,
         ...rest
       } = rec;
       const row = this.db
@@ -75,6 +77,7 @@ export class SqliteAgentRepo implements AgentRepository {
           memoryJson: serializeJsonColumn(memory),
           graphJson: JSON.stringify(graph),
           budgetJson: serializeJsonColumn(budget),
+          capabilitiesJson: JSON.stringify(capabilities),
         })
         .returning()
         .get();
@@ -96,6 +99,7 @@ export class SqliteAgentRepo implements AgentRepository {
         memory,
         graph,
         budget,
+        capabilities,
         ...rest
       } = patch;
       const row = this.db
@@ -111,6 +115,7 @@ export class SqliteAgentRepo implements AgentRepository {
           ...(memory !== undefined ? { memoryJson: serializeJsonColumn(memory) } : {}),
           ...(graph !== undefined ? { graphJson: JSON.stringify(graph) } : {}),
           ...(budget !== undefined ? { budgetJson: serializeJsonColumn(budget) } : {}),
+          ...(capabilities !== undefined ? { capabilitiesJson: JSON.stringify(capabilities) } : {}),
         })
         .where(eq(agentsTable.id, id))
         .returning()
@@ -151,6 +156,8 @@ function toAgent(row: AgentRow): Agent {
     tools: parseStringList(row.tools),
     graph: parseGraph(row.graphJson),
     budget: parseJsonObject(row.budgetJson),
+    capabilities:
+      parseJsonObject<Record<string, CapabilityConfig | null>>(row.capabilitiesJson) ?? {},
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

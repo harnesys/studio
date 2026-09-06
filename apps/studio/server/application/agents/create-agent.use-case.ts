@@ -3,6 +3,7 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentMemoryConfig,
+  CapabilityConfig,
   PortRef,
   ToolOutputSettings,
 } from '../../../shared/types.ts';
@@ -28,6 +29,7 @@ export type CreateAgentRequest = {
   mcpServers?: string[];
   tools?: string[];
   budget?: AgentBudget | null;
+  capabilities?: Record<string, CapabilityConfig | null>;
 };
 
 export type CreateAgentInput = {
@@ -67,6 +69,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const generation = request.generation ?? null;
     const toolOutput = request.toolOutput ?? null;
     const budget = request.budget ?? null;
+    const capabilities = request.capabilities ?? {};
     const compaction =
       request.compaction !== undefined ? request.compaction : defaultAgentCompaction();
     const memory = request.memory ?? defaultAgentMemory();
@@ -99,6 +102,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
       tools,
       graph,
       budget,
+      capabilities,
       createdAt: now,
       updatedAt: now,
     });

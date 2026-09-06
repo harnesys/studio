@@ -31,6 +31,7 @@ export {
 } from './catalog.ts';
 
 import type {
+  CapabilityConfig,
   McpResourceInfo as WorkspaceMcpResource,
   ToolCatalogEntry as WorkspaceTool,
 } from 'harnesys';
@@ -45,6 +46,7 @@ import type { ThreadPlanRecord } from './plan-types.ts';
 import type { ThreadRecord as ThreadRecordType } from './thread.ts';
 
 export type {
+  CapabilityConfig,
   KnowledgeHit,
   McpResourceInfo as WorkspaceMcpResource,
   MemoryRecord,
@@ -145,6 +147,7 @@ export type AgentRecord = {
   /** Tool name allowlist; empty = all workspace tools. Memory tools are gated by `memory`. */
   tools?: string[];
   budget?: AgentBudget | null;
+  capabilities?: Record<string, CapabilityConfig | null>;
   createdAt: string;
   updatedAt: string;
 };

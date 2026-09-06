@@ -3,6 +3,7 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentMemoryConfig,
+  CapabilityConfig,
   PortRef,
   ToolOutputSettings,
 } from '../../../shared/types.ts';
@@ -29,6 +30,7 @@ export type UpdateAgentRequest = {
   mcpServers?: string[];
   tools?: string[];
   budget?: AgentBudget | null;
+  capabilities?: Record<string, CapabilityConfig | null>;
 };
 
 export type UpdateAgentInput = {
@@ -109,6 +111,10 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.budget !== undefined) {
       patch.budget = request.budget;
+    }
+
+    if (request.capabilities !== undefined) {
+      patch.capabilities = request.capabilities;
     }
 
     if (request.tools !== undefined || request.memory !== undefined) {

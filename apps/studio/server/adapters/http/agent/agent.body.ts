@@ -32,6 +32,10 @@ const budgetBody = z
   .nullable()
   .optional();
 
+const capabilitiesBody = z
+  .record(z.string(), z.object({ spec: z.record(z.string(), z.unknown()).optional() }).nullable())
+  .optional();
+
 const portRefObject = z.object({
   name: z.string().trim().min(1),
   version: z.string().optional(),
@@ -64,6 +68,7 @@ export const createAgentBody = z.object({
   generation: generationBody,
   toolOutput: toolOutputBody,
   budget: budgetBody,
+  capabilities: capabilitiesBody,
   compaction: compactionBody,
   memory: memoryBody,
   skills: z.array(z.string()).optional(),
@@ -80,6 +85,7 @@ export const updateAgentBody = z.object({
   generation: generationBody,
   toolOutput: toolOutputBody,
   budget: budgetBody,
+  capabilities: capabilitiesBody,
   compaction: compactionBody,
   memory: memoryBody,
   skills: z.array(z.string()).optional(),

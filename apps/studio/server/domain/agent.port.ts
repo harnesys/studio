@@ -3,6 +3,7 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentMemoryConfig,
+  CapabilityConfig,
   PortRef,
   ToolOutputSettings,
 } from '../../shared/types.ts';
@@ -32,6 +33,7 @@ export type Agent = {
   tools: string[];
   graph: AgentGraph;
   budget: AgentBudget | null;
+  capabilities: Record<string, CapabilityConfig | null>;
   createdAt: string;
   updatedAt: string;
 };
@@ -53,6 +55,7 @@ export type AgentPatch = {
   tools?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
+  capabilities?: Record<string, CapabilityConfig | null>;
 };
 
 export type AgentRepository = {

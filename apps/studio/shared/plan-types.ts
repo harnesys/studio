@@ -1,7 +1,7 @@
-import type { PlanItemStatus, PlanStatus, SubagentRole } from 'harnesys';
+import type { PlanItemStatus, PlanStatus, SubagentRole } from 'harnesys/domain';
 
-export type { PlanItemStatus, PlanStatus, SubagentRole } from 'harnesys';
-export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from 'harnesys';
+export type { PlanItemStatus, PlanStatus, SubagentRole } from 'harnesys/domain';
+export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from 'harnesys/domain';
 
 export type PlanItemRecord = {
   id: string;

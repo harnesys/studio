@@ -1,7 +1,7 @@
-import type { Driver } from 'harnesys';
+import type { Driver } from 'harnesys/domain';
 
-export type { Driver } from 'harnesys';
-export { DRIVERS, isDriver } from 'harnesys';
+export type { Driver } from 'harnesys/domain';
+export { DRIVERS, isDriver } from 'harnesys/domain';
 
 export type DriverEndpoint = {
   id: string;

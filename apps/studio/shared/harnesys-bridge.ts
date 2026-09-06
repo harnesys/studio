@@ -14,7 +14,7 @@ import {
   filterGenerationSettings,
   THRESHOLD_SUMMARY_NAME,
   withChatGenerationParameters,
-} from 'harnesys';
+} from 'harnesys/domain';
 
 export type {
   AgentGenerationSettings,

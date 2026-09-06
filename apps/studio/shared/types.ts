@@ -37,7 +37,7 @@ import type {
   McpResourceInfo as WorkspaceMcpResource,
   ToolCatalogEntry as WorkspaceTool,
 } from 'harnesys';
-import { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys';
+import { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys/domain';
 import type {
   AgentGenerationSettings,
   AgentMemoryConfig,
@@ -184,8 +184,8 @@ export type TokenUsage = {
 export const SCHEDULE_STATUSES = ['active', 'paused', 'failed'] as const;
 export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
 
-export type { PermissionMode, ScheduleHistory } from 'harnesys';
-export { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys';
+export type { PermissionMode, ScheduleHistory } from 'harnesys/domain';
+export { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys/domain';
 
 /** `plan` is read-only planning, never sent to the library as permissionMode. */
 export const RUN_MODES = [...PERMISSION_MODES, 'plan'] as const;

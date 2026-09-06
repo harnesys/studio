@@ -6,6 +6,7 @@
   "private": true,
   "exports": {
     ".": "./index.ts",
+    "./domain": "./domain.ts",
     "./actions": "./src/adapters/actions/index.ts",
     "./adapters/node": "./src/adapters/node/index.ts"
   },

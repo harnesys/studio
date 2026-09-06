@@ -214,3 +214,6 @@ export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan
 export type { PlanCapabilityPorts } from './src/capabilities/plan/index.ts';
 export { planCapability } from './src/capabilities/plan/index.ts';
 export { planFollowPrompt } from './src/capabilities/plan/prompt.ts';
+export type { ThreadSummary, ThreadsPort } from './src/ports/threads.ts';
+export type { ThreadsCapabilityPorts } from './src/capabilities/threads/index.ts';
+export { threadsCapability } from './src/capabilities/threads/index.ts';

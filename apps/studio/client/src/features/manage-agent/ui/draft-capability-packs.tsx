@@ -41,7 +41,7 @@ export function DraftCapabilityPacks({
                 <Switch
                   size="sm"
                   className="mt-0.5"
-                  checked={packs[pack.name] != null}
+                  checked={isPackEnabled(packs, pack.name)}
                   onCheckedChange={(next) => toggle(pack.name, Boolean(next))}
                 />
                 <div className="min-w-0 flex-1">
@@ -60,4 +60,13 @@ export function DraftCapabilityPacks({
         ))}
     </section>
   );
+}
+
+/** Runtime truth: absent key is default-on for `skills` only, off for the rest. */
+function isPackEnabled(value: Record<string, CapabilityConfig | null>, name: string): boolean {
+  const config = value[name];
+  if (config == null) {
+    return name === 'skills';
+  }
+  return true;
 }

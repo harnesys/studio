@@ -26,34 +26,61 @@ export function resolveCapabilities(
 ): { enabled: ResolvedCapability[]; diagnostics: CapabilityDiagnostic[] } {
   const diagnostics: CapabilityDiagnostic[] = [];
   const byName = new Map(registrations.map((r) => [r.pack.name, r]));
-  const enabled: ResolvedCapability[] = [];
-  const sorted = [...registrations].sort((a, b) => a.pack.name.localeCompare(b.pack.name));
-  for (const reg of sorted) {
+  const resolved = new Map<string, ResolvedCapability | null>();
+  const resolving = new Set<string>();
+
+  function resolveReg(reg: CapabilityRegistration): ResolvedCapability | null {
+    const name = reg.pack.name;
+    if (resolved.has(name)) {
+      return resolved.get(name) ?? null;
+    }
+    const fail = () => {
+      resolved.set(name, null);
+      return null;
+    };
     const config = enabledConfig(reg, def);
     if (config === null) {
-      continue;
+      return fail();
     }
     const missingPort = (reg.pack.requires ?? []).find((p) => !(p in reg.ports));
     if (missingPort) {
       diagnostics.push({
         severity: 'error',
         code: 'capability_port_missing',
-        message: `${reg.pack.name}: port "${missingPort}" not provided by host`,
+        message: `${name}: port "${missingPort}" not provided by host`,
       });
-      continue;
+      return fail();
     }
-    const missingDep = (reg.pack.dependsOn ?? []).find(
-      (d) => !byName.has(d) || enabledConfig(byName.get(d) as CapabilityRegistration, def) === null,
-    );
+    resolving.add(name);
+    let missingDep: string | undefined;
+    for (const d of reg.pack.dependsOn ?? []) {
+      const depReg = byName.get(d);
+      if (!depReg || resolving.has(d) || resolveReg(depReg) === null) {
+        missingDep = d;
+        break;
+      }
+    }
+    resolving.delete(name);
     if (missingDep) {
       diagnostics.push({
         severity: 'error',
         code: 'capability_dep_missing',
-        message: `${reg.pack.name}: depends on "${missingDep}"`,
+        message: `${name}: depends on "${missingDep}"`,
       });
-      continue;
+      return fail();
     }
-    enabled.push({ reg, config });
+    const cap = { reg, config };
+    resolved.set(name, cap);
+    return cap;
+  }
+
+  const enabled: ResolvedCapability[] = [];
+  const sorted = [...registrations].sort((a, b) => a.pack.name.localeCompare(b.pack.name));
+  for (const reg of sorted) {
+    const cap = resolveReg(reg);
+    if (cap) {
+      enabled.push(cap);
+    }
   }
   for (const name of Object.keys(def.capabilities ?? {})) {
     if (!byName.has(name) && def.capabilities?.[name] != null) {

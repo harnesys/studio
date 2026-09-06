@@ -1,13 +1,15 @@
 import type { Edge, Node } from 'harnesys';
 import type { AgentGraph } from '../../domain/agent.port.ts';
 
+const THINK_NODE: Extract<Node, { type: 'llm:generate' }> = {
+  type: 'llm:generate',
+  prompt: 'main',
+  messages: '$state.messages',
+};
+
 const REACT_NODES: Record<string, Node> = {
   start: { type: 'core:start' },
-  think: {
-    type: 'llm:generate',
-    prompt: 'main',
-    messages: '$state.messages',
-  },
+  think: THINK_NODE,
   act: {
     type: 'tool:call',
     calls: '$output.toolCalls',
@@ -26,7 +28,7 @@ const REACT_EDGES: Edge[] = [
 
 export function buildReactGraph(tools: string[]): AgentGraph {
   const thinkNode: Node = {
-    ...REACT_NODES.think,
+    ...THINK_NODE,
     tools,
   };
 

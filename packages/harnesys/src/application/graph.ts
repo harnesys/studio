@@ -5,6 +5,7 @@ import type {
   ToolCallFixed,
 } from '../domain/agent-definition.ts';
 import type { Attachment, AttachmentKind } from '../domain/attachment.ts';
+import type { CapabilityRegistration } from '../domain/capability.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import type { Event } from '../domain/snapshot.ts';
@@ -14,6 +15,7 @@ import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import { resolveCapabilities } from './capabilities/registry.ts';
 import type { Plan } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import { isSkippedEntry, matchOutgoing } from './graph-edges.ts';
@@ -136,6 +138,7 @@ export type GraphOpts = {
   startNodeId?: string;
   outputHint?: unknown;
   notes?: LlmNoteProvider[];
+  capabilityRegistrations?: CapabilityRegistration[];
   rejected?: boolean;
   /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
   inputRecorded?: boolean;
@@ -184,6 +187,7 @@ const PASSTHROUGH_MODEL_EVENTS = new Set([
 ]);
 
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
+  const caps = resolveCapabilities(opts.agent, opts.capabilityRegistrations ?? []);
   const loaded = await opts.state.load();
   const runId = loaded?.runId ?? crypto.randomUUID();
   let seq = loaded?.sequence ?? 0;
@@ -557,7 +561,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           if (left) {
             notes.push(budgetNote(left));
           }
-          if (opts.notes?.length) {
+          if (opts.notes?.length || caps.enabled.length > 0) {
             const noteCtx: LlmNoteContext = {
               agentId: opts.agent.id,
               runId,
@@ -566,10 +570,22 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               steps,
               state: st,
             };
-            for (const provider of opts.notes) {
+            for (const provider of opts.notes ?? []) {
               try {
                 notes.push(...(await provider(noteCtx)));
               } catch {}
+            }
+            for (const c of caps.enabled) {
+              const provider = c.reg.pack.notes?.({
+                ports: c.reg.ports,
+                resolveScope: c.reg.resolveScope,
+                config: c.config,
+              });
+              if (provider) {
+                try {
+                  notes.push(...(await provider(noteCtx)));
+                } catch {}
+              }
             }
           }
           const stream = runLlmGenerate(
@@ -590,6 +606,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               toolRegistry: opts.toolRegistry,
               signal: opts.signal ?? new AbortController().signal,
               notes,
+              capabilities: caps.enabled,
             },
           );
           for await (const event of stream) {

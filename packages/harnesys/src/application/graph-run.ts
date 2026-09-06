@@ -55,6 +55,7 @@ export async function runGraph(opts: GraphOpts): Promise<RunResult> {
     toolMessages: opts.toolMessages,
     mergeState: opts.mergeState,
     artifacts: opts.artifacts,
+    capabilityRegistrations: opts.capabilityRegistrations,
   });
   await engine.execute(runId, {
     state: opts.state,

@@ -1,9 +1,11 @@
 // biome-ignore-all lint/suspicious/noConfusingVoidType: RuntimeHandle reload/close use void|Promise<void> per docs/05
 
+import type { CapabilityCatalogEntry } from '../application/capabilities/tool-names.ts';
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
 import type { RunClaimer } from '../application/run-claimer.ts';
 import type { RunEventFeed } from '../application/run-event-feed.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
+import type { CapabilityRegistration } from '../domain/capability.ts';
 import type { Middleware } from '../domain/middleware.ts';
 import type { Command, RunResult } from '../domain/run-result.ts';
 import type { SkillSummary } from '../domain/skill.ts';
@@ -34,6 +36,7 @@ export type CreateRuntimeOptions = {
   permissions?: PermissionMap;
   paths?: PathsConfig;
   notes?: LlmNoteProvider[];
+  capabilities?: CapabilityRegistration[];
   artifacts?: ArtifactStore;
   nodes?: Record<string, CustomNodeImpl>;
   middleware?: Middleware[];
@@ -87,6 +90,9 @@ export type RuntimeHandle = {
   ): SessionHandle;
   skills: {
     list(): SkillSummary[] | Promise<SkillSummary[]>;
+  };
+  capabilities: {
+    list(): CapabilityCatalogEntry[];
   };
   tools: {
     list(): ToolCatalogEntry[];

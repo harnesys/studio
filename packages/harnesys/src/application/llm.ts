@@ -2,6 +2,8 @@ import { callModel, type StreamChunk } from '../adapters/ai-llm-adapter.ts';
 import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import { composeSystemPrompt } from './capabilities/prompt.ts';
+import type { ResolvedCapability } from './capabilities/registry.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 import { assembleNotes, type LlmNote } from './llm-notes.ts';
@@ -24,6 +26,7 @@ export type LlmContext = {
   toolRegistry: Map<string, ToolDefinition>;
   signal: AbortSignal;
   notes?: LlmNote[];
+  capabilities?: ResolvedCapability[];
 };
 
 export type LlmResult = {
@@ -91,14 +94,14 @@ export async function* runLlmGenerate(
   ensureMessages(node, ctx.state, ctx.input);
 
   const promptDef = ctx.agent.prompts[node.prompt];
-  const rawInstructions = promptDef ? promptDef.instructions : '';
+  const agentText = promptDef ? promptDef.instructions : '';
   const slots = {
     input: ctx.input,
     state: ctx.state,
     output: ctx.output ?? null,
     resume: null,
   };
-  const prompt = substitutePrompt(rawInstructions, slots);
+  const prompt = substitutePrompt(composeSystemPrompt(agentText, ctx.capabilities ?? []), slots);
   const messages = resolveMessages(node, ctx);
   const toolNames = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
 

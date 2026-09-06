@@ -10,6 +10,7 @@ import { codedRunError } from '../domain/errors.ts';
 import type { RunResult } from '../domain/run-result.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
+import { capabilityCatalog } from './capabilities/tool-names.ts';
 import { check } from './check.ts';
 import { compile, compileOrThrow } from './compile.ts';
 import { startGraph } from './graph.ts';
@@ -85,6 +86,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     permissions: options.permissions,
     paths: options.paths,
     notes: options.notes,
+    capabilityRegistrations: options.capabilities ?? [],
     toolMessages: options.toolMessages ?? 'ordered',
     mergeState: options.mergeState,
     agents: options.agents,
@@ -107,6 +109,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
         notes: options.notes,
+        capabilityRegistrations: options.capabilities ?? [],
         artifacts: options.artifacts,
         models: options.models,
         toolRegistry,
@@ -126,6 +129,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
         notes: options.notes,
+        capabilityRegistrations: options.capabilities ?? [],
         artifacts: options.artifacts,
         models: options.models,
         toolRegistry,
@@ -150,6 +154,9 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     },
     skills: {
       list: () => options.skills?.list() ?? [],
+    },
+    capabilities: {
+      list: () => capabilityCatalog(options.capabilities ?? []),
     },
     tools: {
       list: () =>

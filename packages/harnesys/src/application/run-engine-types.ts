@@ -1,4 +1,5 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
+import type { CapabilityRegistration } from '../domain/capability.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
@@ -23,6 +24,8 @@ export type RunEngineDeps = {
   toolMessages: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
   artifacts?: ArtifactStore;
+  /** Runtime-wide registrations (RuntimeContext); RunTargetOpts.capabilities wins when set. */
+  capabilityRegistrations?: CapabilityRegistration[];
 };
 
 export type RunTargetOpts = {
@@ -31,6 +34,8 @@ export type RunTargetOpts = {
   permissions?: PermissionMap;
   paths?: PathsConfig;
   notes?: LlmNoteProvider[];
+  /** Per-run capability registrations; overrides RunEngineDeps.capabilityRegistrations. */
+  capabilities?: CapabilityRegistration[];
   /** Per-run registry; overrides RunEngineDeps.toolRegistry when present. */
   toolRegistry?: Map<string, ToolDefinition>;
 };

@@ -1,6 +1,7 @@
 import Ajv from 'ajv';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Attachment, AttachmentKind } from '../domain/attachment.ts';
+import type { CapabilityRegistration } from '../domain/capability.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Middleware } from '../domain/middleware.ts';
 import type { ArtifactStore, SendFile } from '../ports/artifacts.ts';
@@ -27,6 +28,7 @@ export type RuntimeContext = {
   permissions?: PermissionMap;
   paths?: PathsConfig;
   notes?: LlmNoteProvider[];
+  capabilityRegistrations: CapabilityRegistration[];
   toolMessages: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
   agents: { resolve: (id: string) => AgentDefinition | undefined };
@@ -129,6 +131,7 @@ export function createSession(
         ),
         paths: resolvePaths(def.paths, ctx.paths, opts.paths),
         notes: ctx.notes,
+        capabilities: ctx.capabilityRegistrations,
       });
     },
   };

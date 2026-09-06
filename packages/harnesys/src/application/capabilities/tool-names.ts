@@ -1,5 +1,6 @@
 import type { AgentDefinition } from '../../domain/agent-definition.ts';
 import type { CapabilityRegistration } from '../../domain/capability.ts';
+import type { ToolDefinition } from '../../ports/tools.ts';
 import { resolveCapabilities } from './registry.ts';
 
 export type CapabilityCatalogEntry = {
@@ -14,11 +15,20 @@ export function capabilityToolNames(
   def: AgentDefinition,
   registrations: CapabilityRegistration[],
 ): string[] {
+  return capabilityTools(def, registrations).map((t) => t.name);
+}
+
+/**
+ * Per-definition tool instances: config comes from resolveCapabilities, so
+ * pack specs (e.g. memory.knowledge.spec.topK) reach the tool at execute time.
+ */
+export function capabilityTools(
+  def: AgentDefinition,
+  registrations: CapabilityRegistration[],
+): ToolDefinition[] {
   const { enabled } = resolveCapabilities(def, registrations);
   return enabled.flatMap((c) =>
-    c.reg.pack
-      .tools({ ports: c.reg.ports, resolveScope: c.reg.resolveScope, config: c.config })
-      .map((t) => t.name),
+    c.reg.pack.tools({ ports: c.reg.ports, resolveScope: c.reg.resolveScope, config: c.config }),
   );
 }
 

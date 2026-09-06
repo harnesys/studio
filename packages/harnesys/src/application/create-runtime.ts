@@ -5,6 +5,7 @@ import {
   InMemoryRunEventStore,
   InMemoryRunLifecycleStore,
 } from '../adapters/in-memory-run-store.ts';
+import { fetchCapability, filesCapability, shellCapability } from '../capabilities/base.ts';
 import { skillsCapability } from '../capabilities/skills.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { registerCapability } from '../domain/capability.ts';
@@ -34,16 +35,22 @@ function isMcpRegistry(value: unknown): boolean {
 export async function createRuntime(options: CreateRuntimeOptions): Promise<RuntimeHandle> {
   const baseTools = [...(options.tools ?? [])];
 
+  // Base packs are always registered (R20: availability unconditional, prompt
+  // fragments always composable); a host-supplied registration with the same
+  // pack name wins — dedupe by name, first occurrence kept.
+  const supplied = options.capabilities ?? [];
+  const suppliedNames = new Set(supplied.map((reg) => reg.pack.name));
+  const stubScope = () => ({ workspaceId: '_', agentId: '_', threadId: '_' });
+  const baseRegistrations = [filesCapability, shellCapability, fetchCapability]
+    .filter((pack) => !suppliedNames.has(pack.name))
+    .map((pack) => registerCapability(pack, {}, stubScope));
   const capabilityRegistrations = options.skills
     ? [
-        ...(options.capabilities ?? []),
-        registerCapability(skillsCapability, { skills: options.skills }, () => ({
-          workspaceId: '_',
-          agentId: '_',
-          threadId: '_',
-        })),
+        ...supplied,
+        ...baseRegistrations,
+        registerCapability(skillsCapability, { skills: options.skills }, stubScope),
       ]
-    : (options.capabilities ?? []);
+    : [...supplied, ...baseRegistrations];
 
   let mcpRegistry: McpRegistry | undefined;
   if (options.mcp) {

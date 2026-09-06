@@ -39,6 +39,7 @@ export {
   allCapabilityToolNames,
   capabilityCatalog,
   capabilityToolNames,
+  capabilityTools,
 } from './src/application/capabilities/tool-names.ts';
 export {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,

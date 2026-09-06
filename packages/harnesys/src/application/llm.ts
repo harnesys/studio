@@ -7,6 +7,7 @@ import type { ResolvedCapability } from './capabilities/registry.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 import { assembleNotes, type LlmNote } from './llm-notes.ts';
+import { formatDeferredCatalog, loadedToolsOf, resolveProgressiveTools } from './tools/exposure.ts';
 
 export type LlmNode = {
   type: 'llm:generate';
@@ -103,10 +104,24 @@ export async function* runLlmGenerate(
   };
   const prompt = substitutePrompt(composeSystemPrompt(agentText, ctx.capabilities ?? []), slots);
   const messages = resolveMessages(node, ctx);
-  const toolNames = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
+  const resolved = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
+  // Прогрессивный набор применяется только к «всем тулам реестра»; явный
+  // node.tools кастомного графа — контракт автора, без инъекций.
+  const progressive =
+    node.tools === undefined
+      ? resolveProgressiveTools(resolved, ctx.toolRegistry, loadedToolsOf(ctx.state))
+      : { toolNames: resolved, deferredPending: [] as string[] };
+  const toolNames = progressive.toolNames;
 
-  const requestMessages = ctx.notes?.length
-    ? [...messages, { role: 'system', content: assembleNotes(ctx.notes) }]
+  const allNotes = ctx.notes ? [...ctx.notes] : [];
+  if (progressive.deferredPending.length > 0) {
+    allNotes.push({
+      tag: 'tools',
+      text: formatDeferredCatalog(progressive.deferredPending, ctx.toolRegistry),
+    });
+  }
+  const requestMessages = allNotes.length
+    ? [...messages, { role: 'system', content: assembleNotes(allNotes) }]
     : messages;
 
   const stream = callModel(

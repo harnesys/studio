@@ -49,7 +49,7 @@
     90deg,
     var(--muted-foreground) 0%,
     var(--muted-foreground) 35%,
-    var(--live) 50%,
+    var(--color-white) 50%,
     var(--muted-foreground) 65%,
     var(--muted-foreground) 100%
   );

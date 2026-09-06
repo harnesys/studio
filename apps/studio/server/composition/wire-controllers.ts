@@ -6,6 +6,7 @@ import { AgentController } from '../adapters/http/agent/agent.controller.ts';
 import { CatalogController } from '../adapters/http/catalog/catalog.controller.ts';
 import { ProviderController } from '../adapters/http/provider/provider.controller.ts';
 import { ThreadController } from '../adapters/http/thread/thread.controller.ts';
+import { CapabilitiesController } from '../adapters/http/workspace/capabilities.controller.ts';
 import { ToolsController } from '../adapters/http/workspace/tools.controller.ts';
 import { WorkspaceController } from '../adapters/http/workspace/workspace.controller.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
@@ -72,6 +73,7 @@ import { GetWorkspaceFileContentUseCase } from '../application/workspaces/get-wo
 import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-mcp.use-case.ts';
 import { GetWorkspaceMcpConfigUseCase } from '../application/workspaces/get-workspace-mcp-config.use-case.ts';
 import { GetWorkspaceStatusUseCase } from '../application/workspaces/get-workspace-status.use-case.ts';
+import { ListWorkspaceCapabilitiesUseCase } from '../application/workspaces/list-workspace-capabilities.use-case.ts';
 import { ListWorkspaceFilesUseCase } from '../application/workspaces/list-workspace-files.use-case.ts';
 import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
 import { ListWorkspaceToolsUseCase } from '../application/workspaces/list-workspace-tools.use-case.ts';
@@ -188,6 +190,13 @@ export function wireControllers(d: ControllerDeps): void {
 
   new ToolsController({
     listWorkspaceTools: new ListWorkspaceToolsUseCase(d.workspaceRepo, d.workspaceHarnesys),
+  }).register(d.app);
+
+  new CapabilitiesController({
+    listWorkspaceCapabilities: new ListWorkspaceCapabilitiesUseCase(
+      d.workspaceRepo,
+      d.workspaceHarnesys,
+    ),
   }).register(d.app);
 
   new ProviderController({

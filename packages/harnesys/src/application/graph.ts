@@ -188,6 +188,10 @@ const PASSTHROUGH_MODEL_EVENTS = new Set([
 
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   const caps = resolveCapabilities(opts.agent, opts.capabilityRegistrations ?? []);
+  for (const d of caps.diagnostics) {
+    // biome-ignore lint/suspicious/noConsole: no logger in graph.ts; diagnostics must reach run logs
+    console.warn(`[capabilities] ${d.code}: ${d.message}`);
+  }
   const loaded = await opts.state.load();
   const runId = loaded?.runId ?? crypto.randomUUID();
   let seq = loaded?.sequence ?? 0;
@@ -576,16 +580,16 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               } catch {}
             }
             for (const c of caps.enabled) {
-              const provider = c.reg.pack.notes?.({
-                ports: c.reg.ports,
-                resolveScope: c.reg.resolveScope,
-                config: c.config,
-              });
-              if (provider) {
-                try {
+              try {
+                const provider = c.reg.pack.notes?.({
+                  ports: c.reg.ports,
+                  resolveScope: c.reg.resolveScope,
+                  config: c.config,
+                });
+                if (provider) {
                   notes.push(...(await provider(noteCtx)));
-                } catch {}
-              }
+                }
+              } catch {}
             }
           }
           const stream = runLlmGenerate(

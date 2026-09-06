@@ -48,7 +48,9 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     ? [
         ...supplied,
         ...baseRegistrations,
-        registerCapability(skillsCapability, { skills: options.skills }, stubScope),
+        ...(suppliedNames.has(skillsCapability.name)
+          ? []
+          : [registerCapability(skillsCapability, { skills: options.skills }, stubScope)]),
       ]
     : [...supplied, ...baseRegistrations];
 

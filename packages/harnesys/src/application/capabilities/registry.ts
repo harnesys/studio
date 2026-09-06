@@ -20,6 +20,16 @@ function enabledConfig(reg: CapabilityRegistration, def: AgentDefinition): Capab
   return 'spec' in source ? (source as CapabilityConfig) : {};
 }
 
+export function compareStrings(a: string, b: string): number {
+  if (a < b) {
+    return -1;
+  }
+  if (a > b) {
+    return 1;
+  }
+  return 0;
+}
+
 export function resolveCapabilities(
   def: AgentDefinition,
   registrations: CapabilityRegistration[],
@@ -75,7 +85,7 @@ export function resolveCapabilities(
   }
 
   const enabled: ResolvedCapability[] = [];
-  const sorted = [...registrations].sort((a, b) => a.pack.name.localeCompare(b.pack.name));
+  const sorted = [...registrations].sort((a, b) => compareStrings(a.pack.name, b.pack.name));
   for (const reg of sorted) {
     const cap = resolveReg(reg);
     if (cap) {

@@ -1,7 +1,7 @@
 import type { AgentDefinition } from '../../domain/agent-definition.ts';
 import type { CapabilityRegistration } from '../../domain/capability.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
-import { resolveCapabilities } from './registry.ts';
+import { compareStrings, resolveCapabilities } from './registry.ts';
 
 export type CapabilityCatalogEntry = {
   name: string;
@@ -45,7 +45,7 @@ export function capabilityCatalog(
 ): CapabilityCatalogEntry[] {
   const stub = { workspaceId: '_', agentId: '_', threadId: '_' };
   return [...registrations]
-    .sort((a, b) => a.pack.name.localeCompare(b.pack.name))
+    .sort((a, b) => compareStrings(a.pack.name, b.pack.name))
     .map((r) => ({
       name: r.pack.name,
       version: r.pack.version,

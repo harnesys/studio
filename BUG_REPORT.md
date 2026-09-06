@@ -1,30 +1,8 @@
 # Баг-репорт: Studio чат и run lifecycle
 
-Обновлён: 2026-09-04 (вечер). Стенд: `main` @ `2fae969` (мерж `feat/run-lifecycle-rework`), API 3000, Vite 5173, агент Jarvis (qwen3.8-flash, BAI), dev-БД `~/.harnesys/studio.db`. Пункты 1–3 открыты, раздел «Исправлено» — справка.
+Обновлён: 2026-09-06. Стенд: `main` @ `fbd5c50`, API 3000, Vite 5173, агент Jarvis (qwen3.8-flash, BAI), dev-БД `~/.harnesys/studio.db`. Открыт пункт 1, раздел «Исправлено» — справка.
 
-## 1. Тред после оборванного рана ломается навсегда (`unknown_path $output.toolCalls`)
-
-Симптом: каждый новый ран в таком треде мгновенно падает — `run.failed: "unknown_path $output.toolCalls missing toolCalls"` без вызова модели (между `run.started` и `run.failed` нет model-событий). Авто-retry повторяет фейл (`attempt` 2, 3 — ран `a2b4e905`). Лечения нет, тред остаётся мусором.
-
-Evidence: тред `a8f4c950` (после permission-loop рана `584a1b73`) — 6+ подряд фейлов 17:38–18:11. Тред `91eec6a5` (после параллельных `ask_user` с confirm) — тот же фейл. Свежие треды работают полностью: ask → Allow → `tool.completed` → `run.completed` (ран `232dfbe4`).
-
-Что известно:
-
-- Снапшот отравленного треда содержит `state.messages` с записями `finishReason: "tool-calls"` (снапшот `a8f4c950`, seq 17, `messages[1]`, `messages[3]`).
-- Провайдер и AI SDK здоровы: прямой `streamText` c теми же версииями (`ai@7.0.47`, `@ai-sdk/openai-compatible@3.0.30`) отдаёт `tool-call` части; provider non-stream и raw SSE тоже.
-- Гипотеза (не проверена): при старте рана состояние из снапшота даёт edge `act` предикат `$output.finishReason = "tool-calls"` истинным до первого `think`, а `$output.toolCalls` при этом пуст. Место восстановления — `graph-helpers.ts` (`restoreReActOutput`) и стартовая логика `graph.ts`; докопать не успели.
-
-Чинить: разобраться, откуда `$output.finishReason` в начале рана; вариант защиты — `act` не должен запускаться без непустых `toolCalls` (падать мягко или идти в `think`).
-
-## 2. Отправка из композера уходит не в тред из URL
-
-Симптом: открыта страница треда X (URL `/w/.../agent/{agentId}/{threadId X}`), сообщение уходит в другой тред Y — обычно последний активный тред агента.
-
-Evidence: тред `46b59ff7` создан и открыт, ран `a2b4e905` записан в `91eec6a5` (БД `runs.thread_id`). В моей сессии воспроизводилось стабильно: клик «New thread» менял URL, но раны уходили в старый тред — из-за этого все «свежие» проверки попадали в отравленный тред из п. 1.
-
-Направление: композер берёт `threadId` не из URL (`ide-content.tsx` рендерит `ThreadPanel` по `tab.threadId` IDE-вкладки; вкладка может не соответствовать URL). Механику до конца не докопали.
-
-## 3. Очередь параллельных `ask_user` — фикс есть, live-проверка не доведена
+## 1. Очередь параллельных `ask_user` — фикс есть, live-проверка не доведена
 
 Код: `9ee1717` — `ask_user` назначает `interruptId = ask/{toolCallId}`, resume отдаётся только вызову с совпавшим id, остальные переспрашивают (очередь вместо broadcast «first-wins по показу, ответ всем троим» — тест-лог хозяина `.studio/ask-user-test.md`).
 

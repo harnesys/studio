@@ -1,5 +1,6 @@
 import { memoryToolNames } from 'harnesys';
 import type {
+  AgentBudget,
   AgentGenerationSettings,
   AgentMemoryConfig,
   PortRef,
@@ -9,6 +10,7 @@ import { defaultAgentCompaction, defaultAgentMemory } from '../../../shared/type
 import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { buildReactGraph } from './react-preset.ts';
 
 export type CreateAgentRequest = {
@@ -25,6 +27,7 @@ export type CreateAgentRequest = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  budget?: AgentBudget | null;
 };
 
 export type CreateAgentInput = {
@@ -63,6 +66,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const effort = request.effort?.trim() || null;
     const generation = request.generation ?? null;
     const toolOutput = request.toolOutput ?? null;
+    const budget = request.budget ?? null;
     const compaction =
       request.compaction !== undefined ? request.compaction : defaultAgentCompaction();
     const memory = request.memory ?? defaultAgentMemory();
@@ -75,6 +79,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
+
+    assertAgentGraphValid({ id, graph, budget });
 
     const created = this.agents.insert({
       id,
@@ -92,7 +98,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
       mcpServers,
       tools,
       graph,
-      budget: null,
+      budget,
       createdAt: now,
       updatedAt: now,
     });

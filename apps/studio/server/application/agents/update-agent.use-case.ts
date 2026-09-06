@@ -1,5 +1,6 @@
 import { memoryToolNames } from 'harnesys';
 import type {
+  AgentBudget,
   AgentGenerationSettings,
   AgentMemoryConfig,
   PortRef,
@@ -9,6 +10,7 @@ import type { Agent, AgentPatch, AgentRepository } from '../../domain/agent.port
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { requireAgent } from './agent.helpers.ts';
+import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { buildReactGraph } from './react-preset.ts';
 
 export type UpdateAgentRequest = {
@@ -26,6 +28,7 @@ export type UpdateAgentRequest = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  budget?: AgentBudget | null;
 };
 
 export type UpdateAgentInput = {
@@ -103,6 +106,11 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
     if (request.tools !== undefined) {
       patch.tools = request.tools;
     }
+
+    if (request.budget !== undefined) {
+      patch.budget = request.budget;
+    }
+
     if (request.tools !== undefined || request.memory !== undefined) {
       const tools = request.tools !== undefined ? request.tools : agent.tools;
       const memory = request.memory !== undefined ? request.memory : agent.memory;
@@ -110,6 +118,12 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
         tools.length > 0 ? [...new Set([...tools, ...memoryToolNames(memory)])] : tools;
       patch.graph = buildReactGraph(graphTools);
     }
+
+    assertAgentGraphValid({
+      id: agent.id,
+      graph: patch.graph ?? agent.graph,
+      budget: patch.budget !== undefined ? patch.budget : agent.budget,
+    });
 
     return await Promise.resolve(this.agents.update(request.id, patch));
   }

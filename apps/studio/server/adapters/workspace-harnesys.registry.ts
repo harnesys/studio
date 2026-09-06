@@ -132,6 +132,7 @@ export class WorkspaceHarnesysRegistry {
       compaction: agent.compaction,
       memory: agent.memory,
       graph: agent.graph,
+      budget: agent.budget ?? undefined,
     };
   }
 

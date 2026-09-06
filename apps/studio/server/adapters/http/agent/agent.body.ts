@@ -22,6 +22,16 @@ const toolOutputBody = z
   .nullable()
   .optional();
 
+const budgetBody = z
+  .object({
+    maxSteps: z.number().int().positive().optional(),
+    maxTokens: z.number().int().positive().optional(),
+    deadlineMs: z.number().int().positive().optional(),
+    policy: z.enum(['ask', 'error']).optional(),
+  })
+  .nullable()
+  .optional();
+
 const portRefObject = z.object({
   name: z.string().trim().min(1),
   version: z.string().optional(),
@@ -53,6 +63,7 @@ export const createAgentBody = z.object({
   effort: z.string().trim().min(1).nullish(),
   generation: generationBody,
   toolOutput: toolOutputBody,
+  budget: budgetBody,
   compaction: compactionBody,
   memory: memoryBody,
   skills: z.array(z.string()).optional(),
@@ -68,6 +79,7 @@ export const updateAgentBody = z.object({
   effort: z.string().trim().min(1).nullish(),
   generation: generationBody,
   toolOutput: toolOutputBody,
+  budget: budgetBody,
   compaction: compactionBody,
   memory: memoryBody,
   skills: z.array(z.string()).optional(),

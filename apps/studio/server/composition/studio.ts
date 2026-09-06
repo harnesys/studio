@@ -41,6 +41,7 @@ import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.regist
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.use-case.ts';
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
+import { createPlanNotesProvider } from '../application/threads/plan-notes.ts';
 import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { env } from '../config/env.ts';
@@ -137,6 +138,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     filesWatcher,
   });
+  const planUow = new SqliteUnitOfWork(db);
+  const getThreadPlan = new GetThreadPlanUseCase(planUow);
   const workspaceHarnesys =
     options.workspaceHarnesys ??
     new WorkspaceHarnesysRegistry(
@@ -149,6 +152,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
         claimer: runClaimer,
         instanceId,
       },
+      [createPlanNotesProvider({ getThreadPlan })],
     );
   const runTargets = new StudioRunTargets({
     threads: threadRepo,
@@ -162,8 +166,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
   targetRef.current = runTargets;
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
 
-  const planUow = new SqliteUnitOfWork(db);
-  const getThreadPlan = new GetThreadPlanUseCase(planUow);
   const sendThreadRun = new SendThreadRunUseCase({
     threads: threadRepo,
     agents: agentRepo,
@@ -175,7 +177,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     registry: threadRegistry,
     deskEvents,
     getThread,
-    getThreadPlan,
   });
 
   const app = new Hono();

@@ -1,5 +1,5 @@
 import type { Attachment, SendFile, SendInput } from 'harnesys';
-import type { AcceptedRunResponse, ThreadPlanRecord } from '../../../shared/types.ts';
+import type { AcceptedRunResponse } from '../../../shared/types.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import { isRunMode, type RunMode } from '../../adapters/tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
@@ -10,11 +10,10 @@ import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm
 import { NotFoundError, RunConflictError, ValidationError } from '../../domain/studio.error.ts';
 import type { Thread, ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-import type { GetThreadPlanInput } from '../plans/get-thread-plan.use-case.ts';
 import { kindFromMediaType } from './attachment-kind.ts';
 import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
-import { PLAN_MODE_PROMPT, planFollowPrompt } from './plan-mode-prompt.ts';
+import { PLAN_MODE_PROMPT } from './plan-mode-prompt.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
 
 export type SendThreadRunRequest = {
@@ -42,7 +41,6 @@ export type SendThreadRunDeps = {
   registry: ThreadRuntimeRegistry;
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
-  getThreadPlan?: GetThreadPlanInput;
 };
 
 export class SendThreadRunUseCase implements SendThreadRunInput {
@@ -56,7 +54,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   private readonly registry: ThreadRuntimeRegistry;
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
-  private readonly getThreadPlan: GetThreadPlanInput | undefined;
 
   constructor(deps: SendThreadRunDeps) {
     this.threads = deps.threads;
@@ -69,7 +66,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     this.registry = deps.registry;
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
-    this.getThreadPlan = deps.getThreadPlan;
   }
 
   async execute(request: SendThreadRunRequest): Promise<AcceptedRunResponse> {
@@ -102,7 +98,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
 
     const input = buildSendInput(request, this.attachments, request.threadId);
     const runMode = resolveRunMode(request.mode);
-    input.text = await this.decorateText(request.threadId, runMode, input.text);
+    input.text = this.decorateText(runMode, input.text);
 
     const hx = await this.workspaceHarnesys.get(workspace);
     const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
@@ -126,35 +122,12 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     }
   }
 
-  /** Injects plan-mode contract or the active-plan reminder into the outgoing text. */
-  private async decorateText(
-    threadId: string,
-    runMode: RunMode,
-    text: string | undefined,
-  ): Promise<string | undefined> {
+  /** Injects the plan-mode contract into the outgoing text. Active-plan status rides runtime notes. */
+  private decorateText(runMode: RunMode, text: string | undefined): string | undefined {
     if (runMode === 'plan') {
       return text ? `${PLAN_MODE_PROMPT}\n\n${text}` : PLAN_MODE_PROMPT;
     }
-    if (!this.getThreadPlan) {
-      return text;
-    }
-    let plan: ThreadPlanRecord | null = null;
-    try {
-      plan = await this.getThreadPlan.execute({ threadId });
-    } catch {
-      return text;
-    }
-    if (!plan || plan.status === 'completed' || plan.status === 'cancelled') {
-      return text;
-    }
-    const next =
-      plan.items.find((item) => item.status === 'in_progress') ??
-      plan.items.find((item) => item.status === 'pending');
-    if (!next) {
-      return text;
-    }
-    const reminder = planFollowPrompt(plan, next);
-    return text ? `${reminder}\n\n${text}` : reminder;
+    return text;
   }
   private deriveTitle(thread: Thread, text: string | undefined): void {
     if (thread.kind !== 'chat' || thread.title !== DEFAULT_THREAD_TITLE) {

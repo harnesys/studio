@@ -31,7 +31,6 @@ export { fetchCapability, filesCapability, shellCapability } from './src/capabil
 export type { SkillsCapabilityPorts } from './src/capabilities/skills.ts';
 export { skillsCapability } from './src/capabilities/skills.ts';
 export {
-  CAPABILITY_IDENTITY,
   composeSystemPrompt,
 } from './src/application/capabilities/prompt.ts';
 export type { CapabilityCatalogEntry } from './src/application/capabilities/tool-names.ts';

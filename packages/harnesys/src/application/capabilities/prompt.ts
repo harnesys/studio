@@ -1,7 +1,5 @@
 import type { ResolvedCapability } from './registry.ts';
 
-export const CAPABILITY_IDENTITY = `You are an agent working in a workspace. Use only the tools listed in this session; never output <tool_call> XML tags, and if a tool you want is missing, describe your intent in plain text. Project conventions live in AGENTS.md at the workspace root; a nested AGENTS.md applies in its subtree — read it before editing there. Your role and extra rules follow at the end of this prompt.`;
-
 export function composeSystemPrompt(agentText: string, enabled: ResolvedCapability[]): string {
   const fragments = enabled
     .map(
@@ -14,7 +12,7 @@ export function composeSystemPrompt(agentText: string, enabled: ResolvedCapabili
     )
     .filter((t) => t.trim().length > 0);
   const extra = agentText.trim();
-  const parts = [CAPABILITY_IDENTITY, ...fragments];
+  const parts = [...fragments];
   if (extra) {
     parts.push(`## Agent\n${extra}`);
   }

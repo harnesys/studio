@@ -27,7 +27,7 @@ const REACT_EDGES: Edge[] = [
 export function buildReactGraph(tools: string[]): AgentGraph {
   const thinkNode: Node = {
     ...REACT_NODES.think,
-    ...(tools.length > 0 ? { tools } : {}),
+    tools,
   };
 
   return {

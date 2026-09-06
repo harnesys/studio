@@ -6,7 +6,7 @@ export type ThreadSummary = {
   kind: string;
   agentId: string;
   agentName: string;
-  hasSchedule?: boolean;
+  hasSchedule: boolean;
 };
 
 export type ThreadsPort = {

@@ -11,7 +11,7 @@ export const webhookCapability = defineCapability<WebhookCapabilityPorts>({
   requires: ['webhook'],
   tools: (ctx) =>
     createWebhookTools({ webhook: ctx.ports.webhook, resolveScope: ctx.resolveScope }),
-  prompt:
-    () => `- webhook_list / webhook_set / webhook_delete — inbound HTTP that wakes an agent with detail.
+  prompt: () => `## Webhooks
+- webhook_list / webhook_set / webhook_delete — inbound HTTP that wakes an agent with detail.
 - Webhooks deliver their own detail text as the wake message.`,
 });

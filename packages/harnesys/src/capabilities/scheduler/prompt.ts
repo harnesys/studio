@@ -5,7 +5,12 @@ export const SCHEDULER_PROMPT_FRAGMENT = `## Wake
 - Write detail as a checklist of concrete work for the waking agent; do one quantum, update project files per your instructions, stop.
 - Prefer schedule_set yourself for heartbeats and follow-ups; human can also manage Schedules / Webhooks in the Studio sidebar.`;
 
+/** Attribute-safe schedule name: no quotes or angle brackets inside name="...". */
+function scheduleNameAttr(name: string): string {
+  return name.replaceAll('"', "'").replaceAll('<', '').replaceAll('>', '');
+}
+
 /** Wake envelope the scheduler fires into the target thread transcript. */
 export function formatScheduleWake(name: string, detail: string): string {
-  return `<schedule name="${name}">\n${detail}\n</schedule>`;
+  return `<schedule name="${scheduleNameAttr(name)}">\n${detail}\n</schedule>`;
 }

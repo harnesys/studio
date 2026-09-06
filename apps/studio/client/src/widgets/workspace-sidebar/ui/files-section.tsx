@@ -1,6 +1,6 @@
 import type { WorkspaceFileEntry } from '@studio/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileIcon, FolderIcon, LoaderCircleIcon } from 'lucide-react';
+import { EyeIcon, FileIcon, FolderIcon, LoaderCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
 import { openWorkspaceFile } from '@/features/open-file';
@@ -54,20 +54,21 @@ export function ExplorerActions() {
   const setShowHidden = useExplorerHiddenStore((state) => state.setShowHidden);
 
   return (
-    <SectionMenu label="Explorer actions">
+    <SectionMenu label="Explorer actions" contentClassName="min-w-44">
       <DropdownMenuGroup>
         <DropdownMenuItem onClick={() => start('file', '')}>
-          <FileIcon />
+          <FileIcon className="h-3.5!"/>
           New file
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => start('dir', '')}>
-          <FolderIcon />
+          <FolderIcon className="h-3.5!"/>
           New folder
         </DropdownMenuItem>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <DropdownMenuCheckboxItem checked={showHidden} onCheckedChange={setShowHidden}>
+          <EyeIcon className="h-3.5!"/>
           Show hidden files
         </DropdownMenuCheckboxItem>
       </DropdownMenuGroup>

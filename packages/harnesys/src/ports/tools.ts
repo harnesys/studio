@@ -28,6 +28,8 @@ export type ToolDefinition = {
   input: JsonSchema;
   execute: ToolExecute;
   sideEffect?: SideEffect;
+  exposure?: 'always' | 'deferred';
+  revealsTools?: boolean;
 };
 
 export type ToolCatalogEntry = {
@@ -49,6 +51,8 @@ export function tool(
     input: JsonSchema;
     execute: ToolExecute;
     sideEffect?: SideEffect;
+    exposure?: 'always' | 'deferred';
+    revealsTools?: boolean;
   },
 ): ToolDefinition {
   if (!name || typeof name !== 'string') {
@@ -65,5 +69,7 @@ export function tool(
     input: spec.input,
     execute: spec.execute,
     sideEffect: spec.sideEffect,
+    exposure: spec.exposure,
+    revealsTools: spec.revealsTools,
   };
 }

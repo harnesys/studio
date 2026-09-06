@@ -15,6 +15,7 @@ export function createMcpTool(params: CreateMcpToolParams): ToolDefinition {
     group: serverId,
     description: raw.description || `MCP tool ${raw.name} @ ${serverId}`,
     operations: ['mcp'],
+    exposure: 'deferred',
     input: { type: 'object', additionalProperties: true },
     async execute(input) {
       try {

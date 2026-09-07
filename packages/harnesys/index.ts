@@ -1,6 +1,11 @@
 export { defineAgent } from './src/domain/agent-definition.ts';
 export { THRESHOLD_SUMMARY_NAME } from './src/domain/compaction.ts';
 export type {
+  CompactionMessage,
+  CompactionSpec,
+  ParsedCompactionSpec,
+} from './src/domain/compaction.ts';
+export type {
   AgentDefinition,
   AgentGenerationSettings,
   AgentMemoryConfig,
@@ -258,3 +263,7 @@ export type { PinMemoryPorts } from './src/capabilities/memory/pin.ts';
 export { pinMemoryCapability } from './src/capabilities/memory/pin.ts';
 export type { SemanticMemoryPorts } from './src/capabilities/memory/semantic.ts';
 export { semanticMemoryCapability } from './src/capabilities/memory/semantic.ts';
+
+export { compactForced } from './src/application/compaction/run.ts';
+export { estimateTokens } from './src/application/compaction/estimate.ts';
+export { projectCompacted } from './src/application/llm.ts';

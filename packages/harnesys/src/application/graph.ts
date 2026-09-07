@@ -16,6 +16,7 @@ import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { resolveCapabilities } from './capabilities/registry.ts';
+import { runSummaryPassIfDue } from './compaction/run.ts';
 import type { Plan } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import { isSkippedEntry, matchOutgoing } from './graph-edges.ts';
@@ -231,6 +232,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
   }
   let entryPending = false;
+  let compactionAttempted = false;
   if (opts.startNodeId && (opts.resumePayload !== undefined || opts.rejected === true)) {
     cur = opts.startNodeId;
     if (opts.rejected) {
@@ -546,6 +548,47 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         const e = await commit('failed', 'run.failed');
         yield e;
         throw Object.assign(new Error('model_unresolved'), { code: 'model_unresolved' });
+      }
+      if (!compactionAttempted) {
+        compactionAttempted = true;
+        for await (const ev of runSummaryPassIfDue({
+          agent: opts.agent,
+          state: st,
+          sessionId: opts.state.sessionId,
+          binding,
+          models: opts.models,
+          toolRegistry: opts.toolRegistry,
+          paths: opts.paths,
+          signal: opts.signal ?? new AbortController().signal,
+        })) {
+          if (ev.type === 'completed') {
+            const m = ev.message;
+            const u = m.stats.usage as Record<string, unknown> | undefined;
+            tokens +=
+              typeof u?.totalTokens === 'number' && Number.isFinite(u.totalTokens)
+                ? u.totalTokens
+                : (typeof u?.inputTokens === 'number' ? u.inputTokens : 0) +
+                  (typeof u?.outputTokens === 'number' ? u.outputTokens : 0);
+            const e = await commit('running', 'compaction.completed', 'recorded', {
+              id: m.id,
+              coveredFrom: m.coveredFrom,
+              coveredUntil: m.coveredUntil,
+              reason: m.reason,
+              tokensBefore: m.stats.tokensBefore,
+              tokensAfter: m.stats.tokensAfter,
+            });
+            yield e;
+          } else if (ev.type === 'failed') {
+            const e = await commit('running', 'compaction.failed', 'recorded', { error: ev.error });
+            yield e;
+          } else if (PASSTHROUGH_MODEL_EVENTS.has(ev.type)) {
+            yield {
+              ...mkEv(ctx(), ev.type),
+              metadata: ev.data as Record<string, unknown>,
+              agentId: opts.agent.id,
+            };
+          }
+        }
       }
       const bindingsToTry = [binding, ...fallbackBindings];
       let lastError: unknown;

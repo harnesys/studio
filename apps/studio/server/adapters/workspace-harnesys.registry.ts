@@ -147,7 +147,7 @@ export class WorkspaceHarnesysRegistry {
       model: this.resolveModelRef(agent),
       skills: agent.skills.length ? agent.skills : undefined,
       tools: agent.tools.length ? agent.tools : undefined,
-      mcpServers: agent.mcpServers.length ? agent.mcpServers : undefined,
+      mcpServers: agent.mcpServers,
       toolOutput: agent.toolOutput ?? undefined,
       compaction: agent.compaction,
       memory: agent.memory,

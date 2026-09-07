@@ -287,6 +287,18 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       clientEventId: typeof m?.clientEventId === 'string' ? m.clientEventId : undefined,
     };
   }
+  if (t === 'agent.handoff' || t === 'agent.spawned') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    if (t === 'agent.spawned' && m?.handoff !== true) {
+      return null;
+    }
+    const fromMeta = typeof m?.agentId === 'string' ? m.agentId : '';
+    const agentId = fromMeta || ev.agentId;
+    if (!agentId) {
+      return null;
+    }
+    return { type: 'agent.handoff', agentId };
+  }
   return null;
 }
 
@@ -304,4 +316,8 @@ export function runCancelledEvent(reason: string): PendingSessionEvent {
 
 export function runFailedEvent(message: string): PendingSessionEvent {
   return { type: 'run.failed', message } as PendingSessionEvent;
+}
+
+export function agentHandoffEvent(agentId: string): PendingSessionEvent {
+  return { type: 'agent.handoff', agentId } as PendingSessionEvent;
 }

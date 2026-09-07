@@ -39,6 +39,7 @@ export const EVENT_TYPES = {
   CONTROL_CANCELLATION: 'control.cancellation',
   CONTROL_REPAIR: 'control.repair',
   AGENT_SPAWNED: 'agent.spawned',
+  AGENT_HANDOFF: 'agent.handoff',
   AGENT_COMPLETED: 'agent.completed',
   AGENT_FAILED: 'agent.failed',
   WORK_ISSUED: 'work.issued',
@@ -96,4 +97,6 @@ export type ControlEventMeta = {
 export type AgentEventMeta = {
   agentId: string;
   spawnId?: string;
+  /** When true on `agent.spawned`, maps to SessionEvent `agent.handoff`. */
+  handoff?: boolean;
 };

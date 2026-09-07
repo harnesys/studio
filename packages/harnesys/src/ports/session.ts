@@ -103,7 +103,8 @@ export type SessionEvent =
   | { type: 'run.cancelled'; reason: string; seq?: number; runId?: string }
   | { type: 'run.failed'; message: string; seq?: number; runId?: string }
   | { type: 'done'; text?: string; seq?: number; runId?: string }
-  | { type: 'error'; code: string; message: string; seq?: number; runId?: string };
+  | { type: 'error'; code: string; message: string; seq?: number; runId?: string }
+  | { type: 'agent.handoff'; agentId: string; seq?: number; runId?: string };
 
 export type SendOpts = {
   signal?: AbortSignal;

@@ -8,6 +8,7 @@ import { watchDesk } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 
+import { useAgentsSlideStore } from '../model/agents-slide.store';
 import { applyDeskEvent } from '../model/apply-desk-event';
 import { useDeskStore } from '../model/desk.store';
 import { hydrateDesk } from '../model/hydrate-desk';
@@ -15,7 +16,7 @@ import { hydrateDesk } from '../model/hydrate-desk';
 export function DeskSync() {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
-  const { surface, threadId, threadOrigin, originEntityId } = useStudioLocation();
+  const { surface, threadId, threadOrigin, originEntityId, agentId } = useStudioLocation();
   const workspacesQuery = useWorkspaces();
   const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
 
@@ -50,24 +51,27 @@ export function DeskSync() {
       .getState()
       .items.filter((item) => item.workspaceId === workspaceId);
 
+    if (surface === 'agent' && agentId) {
+      useAgentsSlideStore.getState().open(agentId);
+      void navigate(studioPath.workspace(workspaceId), { replace: true });
+      return;
+    }
+
     if (surface === 'thread' && threadId) {
       const thread = threads.find((item) => item.id === threadId);
       if (!thread) {
-        // Битый URL треда (все треды удалены): уводим на лендинг агента
-        // с кнопкой New thread, а не на пустой воркспейс.
         const fallback = fallbackAgentId(workspaceId, threadOrigin, originEntityId);
         if (fallback) {
-          void navigate(studioPath.agent(workspaceId, fallback), { replace: true });
-        } else {
-          void navigate(studioPath.workspace(workspaceId), { replace: true });
+          useAgentsSlideStore.getState().open(fallback);
         }
+        void navigate(studioPath.workspace(workspaceId), { replace: true });
       }
-      return;
     }
   }, [
     workspaceId,
     surface,
     threadId,
+    agentId,
     threadOrigin,
     originEntityId,
     hydratedWorkspaceId,
@@ -93,6 +97,7 @@ function fallbackAgentId(
   const candidates = [
     threadOrigin === 'agent' ? originEntityId : null,
     focusedThread?.agentId ?? null,
+    focusedThread?.originAgentId ?? null,
     agents.length === 1 ? (agents[0]?.id ?? null) : null,
   ];
   return candidates.find((id) => id && known.has(id)) ?? null;

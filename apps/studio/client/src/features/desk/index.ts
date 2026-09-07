@@ -1,3 +1,4 @@
+export { useAgentsSlideStore } from './model/agents-slide.store';
 export {
   type AgentFileTab,
   type AgentOpenFiles,

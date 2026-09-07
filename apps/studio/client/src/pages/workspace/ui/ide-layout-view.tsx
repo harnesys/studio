@@ -7,10 +7,8 @@ import {
   useIdeStore,
   useIdeTabs,
 } from '@/features/ide';
-import { useStudioLocation } from '@/shared/config/location';
 import { cn } from '@/shared/lib/utils';
 import { Resizer } from '@/shared/ui/resizer';
-import { AgentDashboard } from '@/widgets/agent-dashboard';
 import { IdeTabContent } from '@/widgets/ide-content';
 import { IdeGroupTabs, ideDrag, takeIdeDrag } from '@/widgets/ide-tabs';
 
@@ -61,17 +59,12 @@ function SplitNodeView({
 }
 
 function GroupContent({
-  surface,
   workspaceId,
   activeTab,
 }: {
-  surface: string;
   workspaceId: string;
   activeTab: IdeTab | null;
 }) {
-  if (surface === 'agent') {
-    return <AgentDashboard />;
-  }
   if (activeTab) {
     return <IdeTabContent tab={activeTab} workspaceId={workspaceId} />;
   }
@@ -164,7 +157,6 @@ function IdeGroupPane({
 }) {
   const group = useIdeGroup(workspaceId, groupId);
   const ws = useIdeTabs(workspaceId);
-  const { surface } = useStudioLocation();
   const [dragOver, setDragOver] = useState(false);
   if (!group) {
     return null;
@@ -204,7 +196,7 @@ function IdeGroupPane({
         trailing={trailing}
       />
       <div className="flex min-h-0 flex-1 flex-col">
-        <GroupContent surface={surface} workspaceId={workspaceId} activeTab={activeTab} />
+        <GroupContent workspaceId={workspaceId} activeTab={activeTab} />
       </div>
     </div>
   );

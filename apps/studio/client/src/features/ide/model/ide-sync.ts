@@ -9,10 +9,16 @@ import { useIdeStore } from './ide.store';
  * hydrate fills thread/file stores, so deep links open their tab instead
  * of relying on persisted tab state. User clicks navigate first and land
  * here as an idempotent no-op.
+ *
+ * Tab identity is threadId. When current speaker (thread.agentId) changes,
+ * the same tab is patched in place — no remount / no new tab.
  */
 export function useIdeSync() {
   const { workspaceId, threadId, filePath } = useStudioLocation();
   const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
+  const threadAgentId = useThreadStore((state) =>
+    threadId ? (state.byId(threadId)?.agentId ?? null) : null,
+  );
 
   useEffect(() => {
     if (!workspaceId) {
@@ -33,5 +39,5 @@ export function useIdeSync() {
       useDeskStore.getState().setFocusedThreadId(threadId);
     }
     setActiveThreadId(thread.agentId, threadId);
-  }, [workspaceId, threadId, filePath, hydratedWorkspaceId]);
+  }, [workspaceId, threadId, threadAgentId, filePath, hydratedWorkspaceId]);
 }

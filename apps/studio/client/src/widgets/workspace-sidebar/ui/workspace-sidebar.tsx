@@ -5,11 +5,9 @@ import {
   GitBranchIcon,
   PlusIcon,
   SettingsIcon,
-  SparklesIcon,
   ZapIcon,
 } from 'lucide-react';
 import { type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { useThreadStore } from '@/entities/thread';
 import { useDeleteWorkspace, useWorkspaces } from '@/entities/workspace';
 import {
@@ -17,19 +15,16 @@ import {
   openCreateWorkspaceDialog,
   openEditWorkspaceDialog,
 } from '@/features/create-workspace';
-import { useWorkspaceAgents, useWorkspaceSchedules, useWorkspaceWebhooks } from '@/features/desk';
-import { useIdeStore, useIdeTabs } from '@/features/ide';
 import {
-  confirmDeleteAgent,
-  createAgent,
-  deleteAgent,
-  openAgentConfigDialog,
-  updateAgent,
-  updateAgentCapabilities,
-} from '@/features/manage-agent';
+  useAgentsSlideStore,
+  useAgentThreads,
+  useWorkspaceAgents,
+  useWorkspaceSchedules,
+  useWorkspaceWebhooks,
+} from '@/features/desk';
+import { useIdeTabs } from '@/features/ide';
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
-import { studioPath } from '@/shared/config/routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,43 +46,43 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/shared/ui/sidebar';
-import { toast } from '@/shared/ui/toast';
-import { AgentCard } from '@/widgets/agent-card';
 import { normalizeShares, useAccordionStore } from '../model/accordion.store';
 import { AccordionSection } from './accordion-section';
+import { AgentsSection, AgentsSectionActions } from './agents-section';
 import { AutomationsAddMenu, AutomationsSection } from './automations-section';
 import { ExplorerActions, ExplorerContent, ExplorerTitle } from './files-section';
 import { GitSectionMenu, GitTitle } from './git-menu';
 import { GitSection } from './git-section';
-import { SectionMenu } from './section-menu';
 
 type SidebarSectionId = 'agents' | 'explorer' | 'automations' | 'git';
 
 const SECTION_ORDER: SidebarSectionId[] = ['agents', 'explorer', 'automations', 'git'];
 
 export function WorkspaceSidebar() {
-  const { workspaceId, threadId, threadOrigin, originEntityId, surface, agentId } =
-    useStudioLocation();
+  const { workspaceId, threadId, threadOrigin, originEntityId } = useStudioLocation();
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
   const workspace = workspaces.find((item) => item.id === workspaceId) ?? null;
   const agents = useWorkspaceAgents(workspaceId);
   const schedules = useWorkspaceSchedules(workspaceId);
   const webhooks = useWorkspaceWebhooks(workspaceId);
-  const { openWorkspace, leaveWorkspace, openSettings, openAgentLanding } = useStudioNavigation();
+  const { openWorkspace, leaveWorkspace, openSettings } = useStudioNavigation();
   const { setOpenMobile } = useSidebar();
   const removeWorkspace = useDeleteWorkspace();
-  const navigate = useNavigate();
   const ideTabs = useIdeTabs(workspaceId);
   const activeThreadId = ideTabs.tabs.find((tab) => tab.id === ideTabs.activeId)?.threadId ?? null;
+  const slideAgentId = useAgentsSlideStore((state) => state.agentId);
+  const slideAgent = agents.find((item) => item.id === slideAgentId) ?? null;
+  const slideThreads = useAgentThreads(slideAgent?.id ?? null);
   const threadAgentId = useThreadStore((state) =>
     threadId ? (state.byId(threadId)?.agentId ?? null) : null,
   );
   let activeAgentId: string | null = threadAgentId;
-  if (surface === 'agent') {
-    activeAgentId = agentId;
-  } else if (threadOrigin === 'agent') {
+  if (threadOrigin === 'agent') {
     activeAgentId = originEntityId;
+  }
+  if (slideAgentId) {
+    activeAgentId = slideAgentId;
   }
   const activeScheduleId = threadOrigin === 'scheduler' ? originEntityId : null;
   const activeWebhookId = threadOrigin === 'webhook' ? originEntityId : null;
@@ -161,25 +156,6 @@ export function WorkspaceSidebar() {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     };
-
-  const createAgentFlow = () => {
-    void openAgentConfigDialog(null, workspaceId ?? '').then(async (result) => {
-      if (!result || !workspaceId) {
-        return;
-      }
-      const created = await createAgent(workspaceId, result.fields);
-      if (created) {
-        await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
-        useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
-        await navigate(
-          studioPath.thread(workspaceId, created.thread.id, {
-            kind: 'agent',
-            id: created.agent.id,
-          }),
-        );
-      }
-    });
-  };
 
   return (
     <Sidebar collapsible="icon" data-testid="workspace-sidebar">
@@ -259,63 +235,18 @@ export function WorkspaceSidebar() {
           <AccordionSection
             id="agents"
             icon={<BotIcon />}
-            title="Agents"
-            count={agents.length}
+            title={slideAgent ? `Threads · ${slideAgent.name}` : 'Agents'}
+            count={slideAgent ? slideThreads.length : agents.length}
             size={shares.agents ?? 1}
-            actions={
-              <SectionMenu label="Agent actions">
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={createAgentFlow}>
-                    <BotIcon />
-                    Create Agent
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.add({ title: 'Presets are coming soon' })}>
-                    <SparklesIcon />
-                    From Preset
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </SectionMenu>
-            }
+            actions={<AgentsSectionActions workspaceId={workspaceId} />}
           >
-            {agents.length === 0 ? (
-              <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
-                No agents in this workspace yet.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
-                {agents.map((item) => (
-                  <AgentCard
-                    key={item.id}
-                    agent={item}
-                    selected={activeAgentId === item.id}
-                    onSelect={() => {
-                      openAgentLanding(item.id);
-                      setOpenMobile(false);
-                    }}
-                    onSettings={() => {
-                      if (!workspaceId) {
-                        return;
-                      }
-                      void openAgentConfigDialog(item, workspaceId).then(async (result) => {
-                        if (!result) {
-                          return;
-                        }
-                        await updateAgent(workspaceId, item.id, result.fields);
-                        await updateAgentCapabilities(workspaceId, item.id, result.capabilities);
-                      });
-                    }}
-                    onDelete={() => {
-                      void confirmDeleteAgent(item).then(async (confirmed) => {
-                        if (!confirmed || !workspaceId) {
-                          return;
-                        }
-                        await deleteAgent(workspaceId, item.id);
-                      });
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+            <AgentsSection
+              workspaceId={workspaceId}
+              agents={agents}
+              activeAgentId={activeAgentId}
+              activeThreadId={activeThreadId}
+              onSelectDone={() => setOpenMobile(false)}
+            />
           </AccordionSection>
 
           {resizeNode('explorer')}

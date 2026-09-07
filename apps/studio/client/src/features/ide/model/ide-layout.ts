@@ -37,8 +37,21 @@ export function groupOfTab(ws: IdeWorkspaceState, tabId: string): IdeGroup | nul
 }
 
 export function upsertTabState(ws: IdeWorkspaceState, tab: IdeTab): IdeWorkspaceState | null {
-  if (ws.tabs.some((t) => t.id === tab.id)) {
-    return withActiveTabState(ws, tab.id);
+  const existing = ws.tabs.find((t) => t.id === tab.id);
+  if (existing) {
+    const agentChanged =
+      tab.kind === 'thread' && existing.kind === 'thread' && existing.agentId !== tab.agentId;
+    const patched = agentChanged
+      ? {
+          ...ws,
+          tabs: ws.tabs.map((t) => (t.id === tab.id ? { ...t, agentId: tab.agentId } : t)),
+        }
+      : ws;
+    const activated = withActiveTabState(patched, tab.id);
+    if (activated) {
+      return activated;
+    }
+    return agentChanged ? patched : null;
   }
   const target = findGroup(ws, ws.activeGroupId ?? '') ?? ws.groups[0];
   if (!target) {

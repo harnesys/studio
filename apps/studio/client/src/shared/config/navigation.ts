@@ -24,11 +24,6 @@ export function useStudioNavigation() {
         void navigate(studioPath.file(id, path));
       }
     },
-    openAgentLanding(agentId: string, id: string | null = workspaceId) {
-      if (id) {
-        void navigate(studioPath.agent(id, agentId));
-      }
-    },
     openSettings(
       category?: SettingsCategory,
       id: string | null = workspaceId,

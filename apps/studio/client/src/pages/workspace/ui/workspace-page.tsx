@@ -8,7 +8,6 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Resizer } from '@/shared/ui/resizer';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/shared/ui/sidebar';
-import { AgentDashboard } from '@/widgets/agent-dashboard';
 import { AgentInspector } from '@/widgets/agent-inspector';
 import { FileInspector } from '@/widgets/file-inspector';
 import { IdeHome } from '@/widgets/ide-home';
@@ -31,7 +30,7 @@ export function WorkspacePage() {
 }
 
 function WorkspaceShell({ children: _children }: { children: ReactNode }) {
-  const { workspaceId, surface } = useStudioLocation();
+  const { workspaceId } = useStudioLocation();
   const ide = useIdeTabs(workspaceId);
   const tabs = ide.tabs;
   const activeTab = tabs.find((t) => t.id === ide.activeId) ?? null;
@@ -69,7 +68,7 @@ function WorkspaceShell({ children: _children }: { children: ReactNode }) {
               </Button>
             </div>
             <div className="flex min-h-0 flex-1 flex-col">
-              {surface === 'agent' ? <AgentDashboard /> : <IdeHome />}
+              <IdeHome />
             </div>
           </>
         )}

@@ -2,9 +2,8 @@ import { EllipsisIcon, PanelLeftIcon, PanelRightIcon, Trash2Icon, XIcon } from '
 import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { setActiveThreadId, useThreadStore } from '@/entities/thread';
-import { useDeskStore } from '@/features/desk';
+import { useAgentsSlideStore, useDeskStore } from '@/features/desk';
 import { type IdeTab, useIdeGroup, useIdeStore, useIdeTabs } from '@/features/ide';
-import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -33,7 +32,6 @@ export function IdeGroupTabs({
 }) {
   const group = useIdeGroup(workspaceId, groupId);
   const ws = useIdeTabs(workspaceId);
-  const { surface } = useStudioLocation();
   const navigate = useNavigate();
   const inspectorOpen = useDeskStore((state) => state.inspectorOpen);
   const activeRef = useRef<HTMLDivElement | null>(null);
@@ -107,7 +105,6 @@ export function IdeGroupTabs({
               workspaceId={workspaceId}
               groupId={groupId}
               isActive={tab.id === activeId}
-              dimmed={surface === 'agent'}
               scrollRef={activeRef}
               isDragOver={dragOverId === tab.id}
               onDragOverTab={setDragOverId}
@@ -189,11 +186,16 @@ export function IdeGroupTabs({
     useIdeStore.getState().setActive(workspaceId, tab.id);
     if (tab.kind === 'thread' && tab.threadId) {
       const thread = useThreadStore.getState().byId(tab.threadId);
+      const currentAgentId = thread?.agentId ?? tab.agentId;
       if (useDeskStore.getState().focusedThreadId !== tab.threadId) {
         useDeskStore.getState().setFocusedThreadId(tab.threadId);
       }
-      if (thread) {
-        setActiveThreadId(thread.agentId, tab.threadId);
+      if (currentAgentId) {
+        setActiveThreadId(currentAgentId, tab.threadId);
+        void navigate(
+          studioPath.thread(workspaceId, tab.threadId, { kind: 'agent', id: currentAgentId }),
+        );
+        return;
       }
       void navigate(studioPath.thread(workspaceId, tab.threadId));
       return;
@@ -214,8 +216,7 @@ export function IdeGroupTabs({
     const after = useIdeStore.getState().byWorkspace[workspaceId];
     if (!after) {
       if (closing?.kind === 'thread' && closing.agentId) {
-        void navigate(studioPath.agent(workspaceId, closing.agentId));
-        return;
+        useAgentsSlideStore.getState().open(closing.agentId);
       }
       void navigate(studioPath.workspace(workspaceId));
       return;
@@ -249,7 +250,6 @@ function IdeTabView({
   workspaceId,
   groupId,
   isActive,
-  dimmed,
   scrollRef,
   isDragOver,
   onDragOverTab,
@@ -261,7 +261,6 @@ function IdeTabView({
   workspaceId: string;
   groupId: string;
   isActive: boolean;
-  dimmed: boolean;
   scrollRef: RefObject<HTMLDivElement | null>;
   isDragOver: boolean;
   onDragOverTab: (tabId: string) => void;
@@ -269,8 +268,7 @@ function IdeTabView({
   onSelect: () => void;
   onClose: () => void;
 }) {
-  // Dashboard surface shows tabs for navigation only: none reads as selected.
-  const selected = isActive && !dimmed;
+  const selected = isActive;
   const label = useTabLabel(tab);
   return (
     <div

@@ -8,6 +8,7 @@ import { useWebhookStore } from '@/entities/webhook';
 import { useWorkspaces } from '@/entities/workspace';
 import { useStudioLocation } from '@/shared/config/location';
 
+import { useAgentsSlideStore } from './agents-slide.store';
 import { useDeskStore } from './desk.store';
 
 const EMPTY_EVENTS: SessionEvent[] = [];
@@ -30,9 +31,7 @@ export function useWorkspaceAgents(workspaceId: string | null) {
 }
 
 export function useAgentThreads(agentId: string | null) {
-  return useThreadStore(
-    useShallow((state) => (agentId ? state.items.filter((item) => item.agentId === agentId) : [])),
-  );
+  return useThreadStore(useShallow((state) => (agentId ? state.forAgent(agentId) : [])));
 }
 
 export function useThreadEvents(threadId: string | null) {
@@ -58,16 +57,17 @@ export function useWorkspaceWebhooks(workspaceId: string | null) {
 }
 
 export function useSelectedAgent() {
-  const { workspaceId, surface, threadId, agentId } = useStudioLocation();
+  const { workspaceId, threadId } = useStudioLocation();
   const agents = useWorkspaceAgents(workspaceId);
+  const slideAgentId = useAgentsSlideStore((state) => state.agentId);
   const thread = useThreadStore(
     useShallow((state) => (threadId ? (state.byId(threadId) ?? null) : null)),
   );
-  if (surface === 'agent' && agentId) {
-    return agents.find((item) => item.id === agentId) ?? null;
-  }
   if (thread) {
     return agents.find((item) => item.id === thread.agentId) ?? null;
+  }
+  if (slideAgentId) {
+    return agents.find((item) => item.id === slideAgentId) ?? null;
   }
   return null;
 }

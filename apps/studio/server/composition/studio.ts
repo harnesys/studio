@@ -42,6 +42,7 @@ import { createEpisodicOnCompacted } from '../application/memory/episodic-on-com
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.use-case.ts';
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
+import { withHandoffCurrentPersist } from '../application/threads/persist-handoff-current.ts';
 import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { env } from '../config/env.ts';
@@ -119,7 +120,17 @@ export function createStudio(options: StudioOptions = {}): Hono {
   const eventBus = createRunEventBus();
   const runEvents = new SqliteRunEventStore(db);
   const runLifecycle = new SqliteRunLifecycleStore(db, runEvents.appendWithinTx.bind(runEvents));
-  const runFeed = createRunEventFeed({ events: runEvents, lifecycle: runLifecycle, bus: eventBus });
+  const getThread = new GetThreadUseCase(threadRepo, agentRepo, runEvents, runLifecycle);
+  const runFeed = withHandoffCurrentPersist(
+    createRunEventFeed({ events: runEvents, lifecycle: runLifecycle, bus: eventBus }),
+    {
+      lifecycle: runLifecycle,
+      threads: threadRepo,
+      agents: agentRepo,
+      deskEvents,
+      getThread,
+    },
+  );
   const instanceId = env.STUDIO_INSTANCE_ID ?? 'studio-local';
   const toolRegistry = createToolRegistry([...files(), shell(), fetch(), askUser()]);
   const runEngine = createRunEngine({
@@ -131,7 +142,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     toolRegistry,
     toolMessages: 'ordered',
   });
-  const getThread = new GetThreadUseCase(threadRepo, agentRepo, runEvents, runLifecycle);
   const scheduleQueue = new ScheduleFireQueue();
   const webhookQueue = new ScheduleFireQueue();
   const scheduleQueueRef: { current: ScheduleFireQueue | null } = { current: scheduleQueue };

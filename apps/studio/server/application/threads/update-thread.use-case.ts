@@ -1,7 +1,7 @@
 import type { RunEventStore, RunLifecycleStore } from 'harnesys';
 import type { ThreadRecord } from '../../../shared/types.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
-import { NotFoundError } from '../../domain/studio.error.ts';
+import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { GetThreadUseCase } from './get-thread.use-case.ts';
 
@@ -22,7 +22,7 @@ export class UpdateThreadUseCase implements UpdateThreadInput {
 
   constructor(
     private readonly threads: ThreadRepository,
-    agents: AgentRepository,
+    private readonly agents: AgentRepository,
     runEvents: RunEventStore,
     lifecycle: RunLifecycleStore,
   ) {
@@ -36,6 +36,13 @@ export class UpdateThreadUseCase implements UpdateThreadInput {
     }
     if (request.title) {
       this.threads.updateTitle(request.id, request.title);
+    }
+    if (request.agentId) {
+      const agent = this.agents.findById(request.agentId);
+      if (!agent || agent.workspaceId !== thread.workspaceId) {
+        return Promise.reject(new ValidationError('agent not found'));
+      }
+      this.threads.patch(request.id, { agentId: request.agentId });
     }
     if (request.pinned !== undefined) {
       this.threads.setPinned(request.id, request.pinned);

@@ -85,6 +85,7 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
           id: threadId,
           workspaceId: request.workspaceId,
           agentId: agent.id,
+          originAgentId: agent.id,
           title: name,
           kind: 'webhook',
           metadata: {},

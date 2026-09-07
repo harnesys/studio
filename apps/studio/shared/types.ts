@@ -115,11 +115,12 @@ export type {
   SessionEvent,
   Snapshot,
   ThreadActiveRun,
+  ThreadAgentRef,
   ThreadKind,
   ThreadRecord,
   ThreadSummary,
 } from './thread.ts';
-export { THREAD_KINDS } from './thread.ts';
+export { THREAD_KINDS, threadsForAgent } from './thread.ts';
 export type { TranscriptItem } from './transcript.ts';
 export { toTranscript } from './transcript.ts';
 
@@ -262,7 +263,7 @@ export type WorkspaceMcpServer = {
   resources: WorkspaceMcpResource[];
 };
 
-/** Editable `.studio/mcp.json` entry merged with live connection status. */
+/** Editable `.harnesys/mcp.json` entry merged with live connection status. */
 export type WorkspaceMcpConfigServer = {
   serverId: string;
   enabled: boolean;

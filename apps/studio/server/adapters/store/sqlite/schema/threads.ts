@@ -13,10 +13,17 @@ export const threadsTable = sqliteTable(
     agentId: text('agent_id')
       .notNull()
       .references((): AnySQLiteColumn => agentsTable.id, { onDelete: 'cascade' }),
+    originAgentId: text('origin_agent_id')
+      .notNull()
+      .references((): AnySQLiteColumn => agentsTable.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     kind: text('kind', { enum: ['chat', 'schedule', 'webhook'] })
       .notNull()
       .default('chat'),
+    parentThreadId: text('parent_thread_id').references((): AnySQLiteColumn => threadsTable.id, {
+      onDelete: 'set null',
+    }),
+    forkAt: text('fork_at'),
     metadata: text('metadata').notNull().default('{}'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),

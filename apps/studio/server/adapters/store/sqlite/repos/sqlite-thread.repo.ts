@@ -1,6 +1,12 @@
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import { NotFoundError } from '../../../../domain/studio.error.ts';
-import type { Thread, ThreadInsert, ThreadRepository } from '../../../../domain/thread.port.ts';
+import type {
+  Thread,
+  ThreadInsert,
+  ThreadKind,
+  ThreadPatch,
+  ThreadRepository,
+} from '../../../../domain/thread.port.ts';
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type ThreadRow, threadsTable } from '../schema/index.ts';
@@ -32,6 +38,45 @@ export class SqliteThreadRepo implements ThreadRepository {
         .get();
       return toThread(row);
     } catch (err) {
+      return mapSqliteError(err, { notFound: 'workspace or agent not found' });
+    }
+  }
+
+  patch(id: string, patch: ThreadPatch): Thread {
+    const updates: {
+      agentId?: string;
+      title?: string;
+      kind?: ThreadKind;
+      metadata?: string;
+      updatedAt: string;
+    } = { updatedAt: new Date().toISOString() };
+    if (patch.agentId !== undefined) {
+      updates.agentId = patch.agentId;
+    }
+    if (patch.title !== undefined) {
+      updates.title = patch.title;
+    }
+    if (patch.kind !== undefined) {
+      updates.kind = patch.kind;
+    }
+    if (patch.metadata !== undefined) {
+      updates.metadata = JSON.stringify(patch.metadata);
+    }
+    try {
+      const row = this.db
+        .update(threadsTable)
+        .set(updates)
+        .where(eq(threadsTable.id, id))
+        .returning()
+        .get();
+      if (!row) {
+        throw new NotFoundError('thread not found');
+      }
+      return toThread(row);
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        throw err;
+      }
       return mapSqliteError(err, { notFound: 'workspace or agent not found' });
     }
   }
@@ -113,7 +158,10 @@ export class SqliteThreadRepo implements ThreadRepository {
   }
 
   deleteByAgent(agentId: string): void {
-    this.db.delete(threadsTable).where(eq(threadsTable.agentId, agentId)).run();
+    this.db
+      .delete(threadsTable)
+      .where(or(eq(threadsTable.agentId, agentId), eq(threadsTable.originAgentId, agentId)))
+      .run();
   }
 
   deleteByWorkspace(workspaceId: string): void {
@@ -126,8 +174,11 @@ function toThread(row: ThreadRow): Thread {
     id: row.id,
     workspaceId: row.workspaceId,
     agentId: row.agentId,
+    originAgentId: row.originAgentId,
     title: row.title,
     kind: row.kind,
+    parentThreadId: row.parentThreadId ?? null,
+    forkAt: row.forkAt ?? null,
     metadata: JSON.parse(row.metadata) as unknown,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

@@ -1,3 +1,4 @@
+import { threadsForAgent } from '@studio/shared';
 import { create } from 'zustand';
 
 import { latestThread, type Thread } from './thread';
@@ -29,7 +30,7 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
 
   byId: (id) => get().items.find((item) => item.id === id),
 
-  forAgent: (agentId) => get().items.filter((item) => item.agentId === agentId),
+  forAgent: (agentId) => threadsForAgent(get().items, agentId),
 
   latestForAgent: (agentId) => latestThread(get().forAgent(agentId)),
 
@@ -45,6 +46,7 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
     const thread: Thread = {
       id: crypto.randomUUID(),
       agentId,
+      originAgentId: agentId,
       title,
       kind: 'chat',
       updatedAt: new Date().toISOString(),
@@ -127,16 +129,15 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
   },
 
   removeForAgent: (agentId) => {
-    const removed = get()
-      .items.filter((item) => item.agentId === agentId)
-      .map((item) => item.id);
+    const removed = threadsForAgent(get().items, agentId).map((item) => item.id);
+    const removedIds = new Set(removed);
     set((state) => {
       const viewingAtEnd = { ...state.viewingAtEnd };
       for (const id of removed) {
         delete viewingAtEnd[id];
       }
       return {
-        items: state.items.filter((item) => item.agentId !== agentId),
+        items: state.items.filter((item) => !removedIds.has(item.id)),
         viewingAtEnd,
       };
     });

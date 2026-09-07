@@ -55,8 +55,11 @@ export function bootstrap(db: StudioDb): void {
       id TEXT PRIMARY KEY,
       workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE RESTRICT,
+      origin_agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE RESTRICT,
       title TEXT NOT NULL,
       kind TEXT NOT NULL DEFAULT 'chat',
+      parent_thread_id TEXT REFERENCES threads(id) ON DELETE SET NULL,
+      fork_at TEXT,
       metadata TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -290,6 +293,26 @@ export function bootstrap(db: StudioDb): void {
 
   try {
     db.run(sql.raw('UPDATE threads SET last_read_at = updated_at WHERE last_read_at IS NULL;'));
+  } catch {}
+
+  try {
+    db.run(sql.raw("ALTER TABLE threads ADD COLUMN origin_agent_id text NOT NULL DEFAULT '';"));
+  } catch {}
+
+  try {
+    db.run(
+      sql.raw(
+        "UPDATE threads SET origin_agent_id = agent_id WHERE origin_agent_id IS NULL OR origin_agent_id = '';",
+      ),
+    );
+  } catch {}
+
+  try {
+    db.run(sql.raw('ALTER TABLE threads ADD COLUMN parent_thread_id text;'));
+  } catch {}
+
+  try {
+    db.run(sql.raw('ALTER TABLE threads ADD COLUMN fork_at text;'));
   } catch {}
 
   try {

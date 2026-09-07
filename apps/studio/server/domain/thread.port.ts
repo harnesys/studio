@@ -3,9 +3,16 @@ export type ThreadKind = 'chat' | 'schedule' | 'webhook';
 export type Thread = {
   id: string;
   workspaceId: string;
+  /** Current speaker: RunTargets / next send. */
   agentId: string;
+  /** Who opened the thread; stable for lists and «opened by». */
+  originAgentId: string;
   title: string;
   kind: ThreadKind;
+  /** Branch: parent conversation. */
+  parentThreadId?: string | null;
+  /** Branch: journal/session event id (or message id) where the fork starts. */
+  forkAt?: string | null;
   metadata: unknown;
   createdAt: string;
   updatedAt: string;
@@ -15,6 +22,7 @@ export type Thread = {
 export type ThreadInsert = Thread;
 
 export type ThreadPatch = Partial<{
+  agentId: string;
   title: string;
   kind: ThreadKind;
   metadata: unknown;
@@ -24,6 +32,7 @@ export type ThreadRepository = {
   listByWorkspace(workspaceId: string): Thread[];
   findById(id: string): Thread | undefined;
   insert(rec: ThreadInsert): Thread;
+  patch(id: string, patch: ThreadPatch): Thread;
   updateTitle(id: string, title: string): Thread;
   /** Store the run mode in thread metadata. Read back by StudioRunTargets. */
   setRunMode(id: string, mode: ThreadRunMode): Thread;

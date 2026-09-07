@@ -133,6 +133,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
   );
   const instanceId = env.STUDIO_INSTANCE_ID ?? 'studio-local';
   const toolRegistry = createToolRegistry([...files(), shell(), fetch(), askUser()]);
+  const agentsRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
   const runEngine = createRunEngine({
     lifecycle: runLifecycle,
     events: runEvents,
@@ -141,6 +142,9 @@ export function createStudio(options: StudioOptions = {}): Hono {
     models: modelsPort,
     toolRegistry,
     toolMessages: 'ordered',
+    agents: {
+      resolve: (id) => agentsRef.current?.resolveAgentDefinition(id),
+    },
   });
   const scheduleQueue = new ScheduleFireQueue();
   const webhookQueue = new ScheduleFireQueue();
@@ -212,6 +216,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
       },
       capabilityRegistrations,
     );
+  agentsRef.current = workspaceHarnesys;
   const runTargets = new StudioRunTargets({
     threads: threadRepo,
     agents: agentRepo,

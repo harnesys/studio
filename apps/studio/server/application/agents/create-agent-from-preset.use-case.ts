@@ -1,5 +1,5 @@
 import { readAgentPreset } from '../../adapters/agent-presets-fs.adapter.ts';
-import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
+import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
 import type { CreateAgentInput } from './create-agent.use-case.ts';
 import { uniqueAgentName } from './unique-agent-name.ts';
 
@@ -32,6 +32,7 @@ export class CreateAgentFromPresetUseCase implements CreateAgentFromPresetInput 
       // ReAct default graph is cyclic; structural validate needs a step/deadline limit.
       budget: preset.budget ?? { maxSteps: 50, policy: 'ask' },
       capabilities: preset.capabilities,
+      ...(preset.graph !== undefined ? { graph: preset.graph as AgentGraph } : {}),
     });
   }
 }

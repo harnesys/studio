@@ -21,6 +21,13 @@ const capabilitiesSchema = z
   .record(z.string(), z.object({ spec: z.record(z.string(), z.unknown()).optional() }).nullable())
   .optional();
 
+const graphSchema = z
+  .object({
+    nodes: z.record(z.string(), z.unknown()),
+    edges: z.array(z.unknown()),
+  })
+  .optional();
+
 const agentPresetBodySchema = z.object({
   name: z.string().trim().min(1),
   role: z.string().trim().min(1),
@@ -30,7 +37,13 @@ const agentPresetBodySchema = z.object({
   mcpServers: z.array(z.string()).optional(),
   budget: budgetSchema,
   capabilities: capabilitiesSchema,
+  graph: graphSchema,
 });
+
+export type AgentPresetGraph = {
+  nodes: Record<string, unknown>;
+  edges: unknown[];
+};
 
 export type AgentPreset = {
   id: string;
@@ -42,6 +55,7 @@ export type AgentPreset = {
   mcpServers?: string[];
   budget?: AgentBudget;
   capabilities?: Record<string, CapabilityConfig | null>;
+  graph?: AgentPresetGraph;
 };
 
 export function agentPresetsDir(homeSkills: string = systemSkillsPath()): string {
@@ -97,5 +111,6 @@ export function readAgentPreset(id: string): AgentPreset {
     ...(body.mcpServers !== undefined ? { mcpServers: body.mcpServers } : {}),
     ...(body.budget !== undefined ? { budget: body.budget } : {}),
     ...(body.capabilities !== undefined ? { capabilities: body.capabilities } : {}),
+    ...(body.graph !== undefined ? { graph: body.graph } : {}),
   };
 }

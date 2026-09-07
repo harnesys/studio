@@ -30,6 +30,6 @@ export const fetchCapability = defineCapability<Record<string, never>>({
   requires: [],
   configFrom: (def) => def.capabilities?.fetch,
   tools: () => [fetch()],
-  prompt: () => `## Retrieval
-- Network: fetch.`,
+  prompt: () => `## Network
+- fetch: HTTP requests.`,
 });

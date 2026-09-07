@@ -21,6 +21,7 @@ import { runSummaryPassIfDue } from './compaction/run.ts';
 import type { Plan } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import { isSkippedEntry, matchOutgoing } from './graph-edges.ts';
+import { type HandoffNodeSpec, prepareHandoff } from './graph-handoff.ts';
 import {
   applyReducer,
   findBind,
@@ -192,7 +193,12 @@ const PASSTHROUGH_MODEL_EVENTS = new Set([
 ]);
 
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
-  const caps = resolveCapabilities(opts.agent, opts.capabilityRegistrations ?? []);
+  let agent = opts.agent;
+  let plan = opts.plan;
+  let input = opts.input;
+  let toolRegistry = opts.toolRegistry;
+  let inputRecorded = opts.inputRecorded === true;
+  let caps = resolveCapabilities(agent, opts.capabilityRegistrations ?? []);
   for (const d of caps.diagnostics) {
     // biome-ignore lint/suspicious/noConsole: no logger in graph.ts; diagnostics must reach run logs
     console.warn(`[capabilities] ${d.code}: ${d.message}`);
@@ -200,13 +206,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   const loaded = await opts.state.load();
   const runId = loaded?.runId ?? crypto.randomUUID();
   let seq = loaded?.sequence ?? 0;
-  const input = opts.input;
   const st: Record<string, unknown> = loaded
     ? { ...(loaded.state as Record<string, unknown>) }
     : {};
-  if (!loaded && opts.agent.state?.initial) {
+  if (!loaded && agent.state?.initial) {
     const sl0 = { input, state: {} as Record<string, unknown>, output: null, resume: null };
-    for (const [k, v] of Object.entries(opts.agent.state.initial)) {
+    for (const [k, v] of Object.entries(agent.state.initial)) {
       if (typeof v === 'string' && v.trim().startsWith('$')) {
         st[k] = evalExpr(v, sl0);
       } else {
@@ -214,7 +219,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
     }
   }
-  const startId = Object.entries(opts.plan.nodes).find(([, n]) => n.type === 'core:start')?.[0];
+  const startId = Object.entries(plan.nodes).find(([, n]) => n.type === 'core:start')?.[0];
   if (!startId) {
     throw Object.assign(new Error('missing start'), { code: 'start_count' });
   }
@@ -252,8 +257,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   let t0 = loaded?.cursor?.budget?.startedAt ?? Date.now();
   let lastMsg: string | undefined;
   const nodeSteps = new Map<string, number>();
-  const agentJson = JSON.stringify(opts.agent);
-  const orderJson = JSON.stringify(opts.plan.order);
+  let agentJson = JSON.stringify(agent);
+  let orderJson = JSON.stringify(plan.order);
   const ctx = (): SnapCtx => ({
     sessionId: opts.state.sessionId,
     runId,
@@ -275,7 +280,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     metadata?: Record<string, unknown>,
   ): Promise<Event> => {
     seq += 1;
-    const ev: Event = { ...mkEv(ctx(), type), agentId: opts.agent.id };
+    const ev: Event = { ...mkEv(ctx(), type), agentId: agent.id };
     if (metadata) {
       ev.metadata = { ...(ev.metadata as Record<string, unknown>), ...metadata };
     }
@@ -288,7 +293,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   type BudgetOver = { kind: 'steps' | 'tokens' | 'deadline'; limit: number; used: number };
 
   function budgetOver(): BudgetOver | null {
-    const b = opts.agent.budget;
+    const b = agent.budget;
     if (!b) {
       return null;
     }
@@ -315,7 +320,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
 
   async function budgetStop(over: BudgetOver): Promise<Event> {
-    if ((opts.agent.budget?.policy ?? 'error') === 'ask') {
+    if ((agent.budget?.policy ?? 'error') === 'ask') {
       const interruptId = `budget/${runId}/${cur}/${steps}`;
       delete (st as Record<string, unknown>).$resume;
       const resumeSchema = {
@@ -332,7 +337,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         output,
       };
       seq += 1;
-      const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
+      const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: agent.id };
       ev.metadata = { interruptId, reason: budgetReason(over), resumeSchema, source: 'budget' };
       await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
       return ev;
@@ -346,7 +351,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
 
   function budgetLeftForPrompt(): BudgetLeft | undefined {
-    const b = opts.agent.budget;
+    const b = agent.budget;
     if (!b) {
       return undefined;
     }
@@ -374,7 +379,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       yield e;
       break;
     }
-    const node = opts.plan.nodes[cur] as Node | undefined;
+    const node = plan.nodes[cur] as Node | undefined;
     if (!node) {
       const e = await commit('failed', 'run.failed');
       yield e;
@@ -404,7 +409,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         const edgeSlots = { input, state: st, output, resume: st.$resume ?? null };
         let nxt: string | undefined;
         try {
-          nxt = matchOutgoing(opts.plan.edgesByFrom.get(cur) ?? [], edgeSlots);
+          nxt = matchOutgoing(plan.edgesByFrom.get(cur) ?? [], edgeSlots);
         } catch (err) {
           const e = await commit('failed', 'run.failed');
           yield e;
@@ -451,7 +456,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             userMsg.origin = normalized.origin;
           }
           arr.push(userMsg);
-          if (!opts.inputRecorded) {
+          if (!inputRecorded) {
             const meta: Record<string, unknown> = {};
             if (normalized.text) {
               meta.text = normalized.text;
@@ -476,7 +481,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           st[msgKey] = arr;
         }
         arr.push({ role: 'user', content: input });
-        if (!opts.inputRecorded) {
+        if (!inputRecorded) {
           const ue = await commit('running', 'user.message', 'recorded', { text: input });
           yield ue;
         }
@@ -533,7 +538,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       if (isPort(opts.models)) {
         const coords = resolveModelForPort(
           ln.model as string | { provider: string; model: string } | undefined,
-          opts.agent,
+          agent,
         );
         if (coords) {
           try {
@@ -544,9 +549,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         }
       } else {
         binding =
-          findBind(opts.models as ProviderConfig[], ln.model as never, opts.agent)?.binding ?? null;
+          findBind(opts.models as ProviderConfig[], ln.model as never, agent)?.binding ?? null;
       }
-      fallbackBindings = await resolveFallbackBindings(opts.agent, opts.models);
+      fallbackBindings = await resolveFallbackBindings(agent, opts.models);
       if (!binding) {
         const e = await commit('failed', 'run.failed');
         yield e;
@@ -555,12 +560,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       if (!compactionAttempted) {
         compactionAttempted = true;
         for await (const ev of runSummaryPassIfDue({
-          agent: opts.agent,
+          agent: agent,
           state: st,
           sessionId: opts.state.sessionId,
           binding,
           models: opts.models,
-          toolRegistry: opts.toolRegistry,
+          toolRegistry: toolRegistry,
           paths: opts.paths,
           signal: opts.signal ?? new AbortController().signal,
         })) {
@@ -588,7 +593,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             yield {
               ...mkEv(ctx(), ev.type),
               metadata: ev.data as Record<string, unknown>,
-              agentId: opts.agent.id,
+              agentId: agent.id,
             };
           }
         }
@@ -615,7 +620,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           const notesErrors: string[] = [];
           if (opts.notes?.length || caps.enabled.length > 0) {
             const noteCtx: LlmNoteContext = {
-              agentId: opts.agent.id,
+              agentId: agent.id,
               runId,
               sessionId: opts.state.sessionId,
               nodeId: cur,
@@ -654,12 +659,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               output: ln.output,
             },
             {
-              agent: opts.agent,
+              agent: agent,
               state: st,
               input,
               output,
               modelBinding: currentBinding,
-              toolRegistry: opts.toolRegistry,
+              toolRegistry: toolRegistry,
               signal: opts.signal ?? new AbortController().signal,
               notes,
               notesErrors,
@@ -671,7 +676,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               yield {
                 ...mkEv(ctx(), event.type),
                 metadata: event.data as Record<string, unknown>,
-                agentId: opts.agent.id,
+                agentId: agent.id,
               };
             } else if (event.type === 'model.chunk') {
               await commit(
@@ -767,7 +772,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const needsIntent = (() => {
         const names: string[] = 'name' in tn && tn.name ? [tn.name] : [];
         return names.some((n) => {
-          const def = opts.toolRegistry.get(n);
+          const def = toolRegistry.get(n);
           const se = def?.sideEffect;
           return se === 'financial' || se === 'destructive' || se === 'credentialed';
         });
@@ -792,7 +797,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           output: outputBeforeBarrier,
           input,
           resume: st.$resume ?? null,
-          toolRegistry: opts.toolRegistry,
+          toolRegistry: toolRegistry,
           permissions: opts.permissions,
           paths: opts.paths,
           artifacts: opts.artifacts,
@@ -827,7 +832,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             output,
           };
           seq += 1;
-          const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
+          const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: agent.id };
           ev.metadata = {
             interruptId,
             reason: e.prompt,
@@ -895,7 +900,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           });
         }
         st[k] = applyReducer(k, st[k], ev, {
-          reducers: opts.agent.state?.reducers,
+          reducers: agent.state?.reducers,
           mergeState: opts.mergeState,
         });
         patched.push(k);
@@ -913,7 +918,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         yield ev;
         throw Object.assign(new Error((e as Error).message), { code: 'goto_target_missing' });
       }
-      if (typeof tgt !== 'string' || !opts.plan.nodes[tgt]) {
+      if (typeof tgt !== 'string' || !plan.nodes[tgt]) {
         const ev = await commit('failed', 'run.failed');
         yield ev;
         throw Object.assign(new Error('goto_target_missing'), { code: 'goto_target_missing' });
@@ -945,7 +950,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         output,
       };
       seq += 1;
-      const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: opts.agent.id };
+      const ev: Event = { ...mkEv(ctx(), 'interrupt.triggered'), agentId: agent.id };
       ev.metadata = {
         interruptId,
         reason: ir.reason,
@@ -957,7 +962,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     } else if (node.type === 'control:spawn') {
       let spawnOutcome: Awaited<ReturnType<typeof runSpawnNode>>;
       try {
-        spawnOutcome = await runSpawnNode(node as SpawnNodeSpec, opts, slots, startGraph);
+        spawnOutcome = await runSpawnNode(
+          node as SpawnNodeSpec,
+          { ...opts, agent, plan, input, toolRegistry },
+          slots,
+          startGraph,
+        );
       } catch (err) {
         const code =
           err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
@@ -975,6 +985,40 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       output = spawnOutcome.results;
       const e = await commit('running', 'node.completed');
       yield e;
+    } else if (node.type === 'control:handoff') {
+      let prepared: ReturnType<typeof prepareHandoff>;
+      try {
+        prepared = prepareHandoff(node as HandoffNodeSpec, opts.agents, opts.toolRegistry, slots);
+      } catch (err) {
+        const code =
+          err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
+            ? (err as { code: string }).code
+            : 'handoff_target';
+        const message = err instanceof Error && err.message ? err.message : 'handoff failed';
+        const e = await commit('failed', 'run.failed', 'recorded', { code, message });
+        yield e;
+        throw Object.assign(new Error(message), { code });
+      }
+      yield await commit('running', prepared.emission.type, 'recorded', prepared.emission.metadata);
+      agent = prepared.agent;
+      plan = prepared.plan;
+      input = prepared.input;
+      toolRegistry = prepared.toolRegistry;
+      inputRecorded = false;
+      caps = resolveCapabilities(agent, opts.capabilityRegistrations ?? []);
+      agentJson = JSON.stringify(agent);
+      orderJson = JSON.stringify(plan.order);
+      output = { agentId: prepared.agent.id };
+      yield await commit('running', 'node.completed');
+      cur = prepared.startNodeId;
+      nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
+      steps += 1;
+      const overHandoff = budgetOver();
+      if (overHandoff) {
+        yield await budgetStop(overHandoff);
+        break;
+      }
+      continue;
     } else {
       const e = await commit('failed', 'run.failed', 'recorded', {
         code: 'node_unsupported',
@@ -996,7 +1040,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     const edgeSlots = { input, state: st, output, resume: st.$resume ?? null };
     let nxt: string | undefined;
     try {
-      nxt = matchOutgoing(opts.plan.edgesByFrom.get(cur) ?? [], edgeSlots);
+      nxt = matchOutgoing(plan.edgesByFrom.get(cur) ?? [], edgeSlots);
     } catch (err) {
       const e = await commit('failed', 'run.failed');
       yield e;

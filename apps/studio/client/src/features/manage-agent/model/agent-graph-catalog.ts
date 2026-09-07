@@ -8,6 +8,10 @@ export type GraphNodeSpec = {
   type: string;
   group: GraphNodeGroup;
   label: string;
+  /** One line under the palette card. */
+  summary: string;
+  /** Full copy in the palette info popover. */
+  description: string;
   inPalette: boolean;
   ports: GraphNodePorts;
   defaults: () => Node;
@@ -20,6 +24,9 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     type: 'core:start',
     group: 'core',
     label: 'Start',
+    summary: 'Run enters here.',
+    description:
+      'Single entry of the graph. No incoming edges. The interpreter starts at this node on every run and after a handoff onto a new agent.',
     inPalette: true,
     ports: { in: false, out: true },
     defaults: () => ({ type: 'core:start' }),
@@ -28,6 +35,9 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     type: 'core:end',
     group: 'core',
     label: 'End',
+    summary: 'Run stops here.',
+    description:
+      'Terminal node. Optional output expr is the run result. No outgoing edges. Use a default edge into End when no when-condition matched.',
     inPalette: true,
     ports: { in: true, out: false },
     defaults: () => ({ type: 'core:end' }),
@@ -36,6 +46,9 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     type: 'llm:generate',
     group: 'llm',
     label: 'Generate',
+    summary: 'Model step.',
+    description:
+      'Calls the model with a prompt id and optional messages expr. finishReason "tool-calls" vs "stop" is what ReAct edges typically switch on. Optional tools allowlist on the node.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({
@@ -48,6 +61,9 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     type: 'tool:call',
     group: 'tool',
     label: 'Tool call',
+    summary: 'Execute tools.',
+    description:
+      'Runs tool calls from an expr (usually $output.toolCalls) in parallel or sequential. After tools, edge back to Generate to close the ReAct loop.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({
@@ -60,6 +76,9 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     type: 'control:assign',
     group: 'control',
     label: 'Assign',
+    summary: 'Patch state.',
+    description:
+      'Writes keys into run state via a patch map. Values may be exprs. Use after spawn or tools when the next node needs named slots.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({ type: 'control:assign', patch: {} }),
@@ -68,6 +87,9 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     type: 'control:spawn',
     group: 'control',
     label: 'Spawn',
+    summary: 'Subcontract agents.',
+    description:
+      'Starts child runs. calls is an expr that must eval to [{ agentId, input }]. Parent waits (barrier all). Results land in $output; the parent thread current agent does not change.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({
@@ -80,18 +102,24 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     type: 'control:handoff',
     group: 'control',
     label: 'Handoff',
+    summary: 'Switch current agent.',
+    description:
+      'Rebinds this thread to another agent (agentId string or expr). Emits agent.handoff. Origin stays. The interpreter continues on the target graph from its start node.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({
       type: 'control:handoff',
-      agentId: '',
-      input: {},
+      agentId: '$output.handoffAgentId',
+      input: '$state.messages',
     }),
   },
   {
     type: 'control:goto',
     group: 'control',
     label: 'Goto',
+    summary: 'Jump to a node.',
+    description:
+      'Jumps to target (node id or expr). No implicit outgoing needed beyond the jump. Use for loops that are not a ReAct act→think edge.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({ type: 'control:goto', target: '' }),
@@ -100,6 +128,9 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     type: 'control:interrupt',
     group: 'control',
     label: 'Interrupt',
+    summary: 'Pause for a human.',
+    description:
+      'Stops the run for HITL. reason is a known interrupt code; resumeSchema is JSON Schema for the resume payload. Outgoing edges run after resume.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({

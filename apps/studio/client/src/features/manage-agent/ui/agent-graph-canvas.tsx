@@ -140,7 +140,7 @@ export function AgentGraphCanvas({
   return (
     <div className="agent-graph-flow relative min-h-0 min-w-0 flex-1">
       <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 rounded-md border border-border bg-popover p-1 shadow-sm">
-        <Button type="button" size="xs" variant="outline" onClick={runAutoLayout}>
+        <Button type="button" size="xs" variant="outline" className="h-6" onClick={runAutoLayout}>
           Auto
         </Button>
         <ToggleGroup
@@ -155,10 +155,10 @@ export function AgentGraphCanvas({
             }
           }}
         >
-          <ToggleGroupItem value="TB" className="px-2 text-[11px]">
+          <ToggleGroupItem value="TB" className="h-6 min-h-6 min-w-6 px-2 text-[11px]">
             TB
           </ToggleGroupItem>
-          <ToggleGroupItem value="LR" className="px-2 text-[11px]">
+          <ToggleGroupItem value="LR" className="h-6 min-h-6 min-w-6 px-2 text-[11px]">
             LR
           </ToggleGroupItem>
         </ToggleGroup>

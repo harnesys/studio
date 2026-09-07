@@ -1,7 +1,10 @@
 export {
+  type AgentPresetRecord,
   type CreateAgentInput,
+  createAgentFromPresetRecord,
   createAgentRecord,
   deleteAgentRecord,
+  listAgentPresets,
   listAgents,
   type UpdateAgentInput,
   updateAgentRecord,

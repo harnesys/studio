@@ -27,7 +27,9 @@ import type { WorkspaceAdapter } from '../adapters/workspace/workspace.adapter.t
 import type { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
 import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
+import { CreateAgentFromPresetUseCase } from '../application/agents/create-agent-from-preset.use-case.ts';
 import { DeleteAgentUseCase } from '../application/agents/delete-agent.use-case.ts';
+import { ListAgentPresetsUseCase } from '../application/agents/list-agent-presets.use-case.ts';
 import { ListAgentsUseCase } from '../application/agents/list-agents.use-case.ts';
 import { UpdateAgentUseCase } from '../application/agents/update-agent.use-case.ts';
 import { GetCatalogUseCase } from '../application/catalog/get-catalog.use-case.ts';
@@ -215,9 +217,12 @@ export function wireControllers(d: ControllerDeps): void {
     deleteProviderModel: new DeleteProviderModelUseCase(d.llmProviderRepo, d.llmModelRepo),
   }).register(d.app);
 
+  const createAgent = new CreateAgentUseCase(d.agentRepo);
   new AgentController({
     listAgents: new ListAgentsUseCase(d.agentRepo),
-    createAgent: new CreateAgentUseCase(d.agentRepo),
+    listAgentPresets: new ListAgentPresetsUseCase(),
+    createAgent,
+    createAgentFromPreset: new CreateAgentFromPresetUseCase(d.agentRepo, createAgent),
     updateAgent: new UpdateAgentUseCase(d.agentRepo),
     deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo),
   }).register(d.app);

@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { BotIcon, SparklesIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
@@ -7,13 +8,21 @@ import { useIdeStore } from '@/features/ide';
 import {
   confirmDeleteAgent,
   createAgent,
+  createAgentFromPreset,
   deleteAgent,
   openAgentConfigDialog,
   updateAgent,
   updateAgentCapabilities,
 } from '@/features/manage-agent';
+import { listAgentPresets } from '@/shared/api';
 import { studioPath } from '@/shared/config/routes';
-import { DropdownMenuGroup, DropdownMenuItem } from '@/shared/ui/dropdown-menu';
+import {
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from '@/shared/ui/dropdown-menu';
 import { toast } from '@/shared/ui/toast';
 import { AgentCard } from '@/widgets/agent-card';
 import { useAccordionStore } from '../model/accordion.store';
@@ -23,9 +32,28 @@ import { SectionMenu } from './section-menu';
 export function AgentsSectionActions({ workspaceId }: { workspaceId: string | null }) {
   const navigate = useNavigate();
   const slideAgentId = useAgentsSlideStore((state) => state.agentId);
+  const presetsQuery = useQuery({
+    queryKey: ['agent-presets'],
+    queryFn: listAgentPresets,
+    staleTime: 60_000,
+  });
   if (slideAgentId) {
     return null;
   }
+
+  const openCreated = async (created: { agent: Agent; thread: { id: string } }) => {
+    if (!workspaceId) {
+      return;
+    }
+    useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
+    useAgentsSlideStore.getState().open(created.agent.id);
+    await navigate(
+      studioPath.thread(workspaceId, created.thread.id, {
+        kind: 'agent',
+        id: created.agent.id,
+      }),
+    );
+  };
 
   const createAgentFlow = () => {
     void openAgentConfigDialog(null, workspaceId ?? '').then(async (result) => {
@@ -35,17 +63,30 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
       const created = await createAgent(workspaceId, result.fields);
       if (created) {
         await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
-        useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
-        useAgentsSlideStore.getState().open(created.agent.id);
-        await navigate(
-          studioPath.thread(workspaceId, created.thread.id, {
-            kind: 'agent',
-            id: created.agent.id,
-          }),
-        );
+        await openCreated(created);
       }
     });
   };
+
+  const createFromPreset = (presetId: string) => {
+    if (!workspaceId) {
+      return;
+    }
+    void createAgentFromPreset(workspaceId, presetId)
+      .then(async (created) => {
+        if (created) {
+          await openCreated(created);
+        }
+      })
+      .catch((err: unknown) => {
+        toast.add({
+          title: 'Could not create from preset',
+          description: err instanceof Error ? err.message : String(err),
+        });
+      });
+  };
+
+  const presets = presetsQuery.data ?? [];
 
   return (
     <SectionMenu label="Agent actions">
@@ -54,10 +95,25 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
           <BotIcon />
           Create Agent
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => toast.add({ title: 'Presets are coming soon' })}>
-          <SparklesIcon />
-          From Preset
-        </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <SparklesIcon />
+            From Preset
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="min-w-44">
+            {presets.length === 0 ? (
+              <DropdownMenuItem disabled>
+                {presetsQuery.isLoading ? 'Loading…' : 'No presets found'}
+              </DropdownMenuItem>
+            ) : (
+              presets.map((preset) => (
+                <DropdownMenuItem key={preset.id} onClick={() => createFromPreset(preset.id)}>
+                  {preset.name}
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
       </DropdownMenuGroup>
     </SectionMenu>
   );

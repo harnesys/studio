@@ -1,13 +1,17 @@
 import type { Hono } from 'hono';
 import type { CreateAgentInput } from '../../../application/agents/create-agent.use-case.ts';
+import type { CreateAgentFromPresetInput } from '../../../application/agents/create-agent-from-preset.use-case.ts';
 import type { DeleteAgentInput } from '../../../application/agents/delete-agent.use-case.ts';
+import type { ListAgentPresetsInput } from '../../../application/agents/list-agent-presets.use-case.ts';
 import type { ListAgentsInput } from '../../../application/agents/list-agents.use-case.ts';
 import type { UpdateAgentInput } from '../../../application/agents/update-agent.use-case.ts';
-import { createAgentBody, updateAgentBody } from './agent.body.ts';
+import { createAgentBody, createAgentFromPresetBody, updateAgentBody } from './agent.body.ts';
 
 export type AgentControllerDeps = {
   listAgents: ListAgentsInput;
+  listAgentPresets: ListAgentPresetsInput;
   createAgent: CreateAgentInput;
+  createAgentFromPreset: CreateAgentFromPresetInput;
   updateAgent: UpdateAgentInput;
   deleteAgent: DeleteAgentInput;
 };
@@ -18,6 +22,10 @@ export class AgentController {
   register(app: Hono): void {
     app.get('/api/agents', async (c) => {
       return c.json(await this.deps.listAgents.execute());
+    });
+
+    app.get('/api/agent-presets', (c) => {
+      return c.json(this.deps.listAgentPresets.execute());
     });
 
     app.post('/api/workspaces/:id/agents', async (c) => {
@@ -38,6 +46,15 @@ export class AgentController {
         skills: body.skills,
         mcpServers: body.mcpServers,
         tools: body.tools,
+      });
+      return c.json(agent, 201);
+    });
+
+    app.post('/api/workspaces/:id/agents/from-preset', async (c) => {
+      const body = createAgentFromPresetBody.parse(await c.req.json());
+      const agent = await this.deps.createAgentFromPreset.execute({
+        workspaceId: c.req.param('id'),
+        presetId: body.presetId,
       });
       return c.json(agent, 201);
     });

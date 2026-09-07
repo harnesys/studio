@@ -44,14 +44,37 @@ export type UpdateAgentInput = {
   capabilities?: Record<string, CapabilityConfig | null>;
 };
 
+export type AgentPresetRecord = {
+  id: string;
+  name: string;
+  role: string;
+  instructions: string;
+  tools?: string[];
+  skills?: string[];
+  mcpServers?: string[];
+  budget?: AgentBudget | null;
+  capabilities?: Record<string, CapabilityConfig | null>;
+};
+
 export function listAgents() {
   return apiJson<AgentRecord[]>('/api/agents');
+}
+
+export function listAgentPresets() {
+  return apiJson<AgentPresetRecord[]>('/api/agent-presets');
 }
 
 export function createAgentRecord(workspaceId: string, body: CreateAgentInput) {
   return apiJson<AgentRecord>(`/api/workspaces/${workspaceId}/agents`, {
     method: 'POST',
     body: JSON.stringify(body),
+  });
+}
+
+export function createAgentFromPresetRecord(workspaceId: string, presetId: string) {
+  return apiJson<AgentRecord>(`/api/workspaces/${workspaceId}/agents/from-preset`, {
+    method: 'POST',
+    body: JSON.stringify({ presetId }),
   });
 }
 

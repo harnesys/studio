@@ -13,6 +13,10 @@ export {
   toAgentDraft,
 } from './model/agent-fields';
 export { type CreateAgentResult, createAgent } from './model/create-agent';
+export {
+  type CreateAgentFromPresetResult,
+  createAgentFromPreset,
+} from './model/create-agent-from-preset';
 export { deleteAgent } from './model/delete-agent';
 export type { ModelGroup, ModelOption } from './model/model-groups';
 export { modelGroups, modelOptions } from './model/model-groups';

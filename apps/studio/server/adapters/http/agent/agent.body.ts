@@ -92,3 +92,7 @@ export const updateAgentBody = z.object({
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
 });
+
+export const createAgentFromPresetBody = z.object({
+  presetId: z.string().trim().min(1),
+});

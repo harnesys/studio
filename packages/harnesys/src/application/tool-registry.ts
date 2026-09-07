@@ -28,6 +28,25 @@ export function mergeTools(
   return merged;
 }
 
+export function filterToolsForAgent(
+  registry: Map<string, ToolDefinition>,
+  agent: { mcpServers?: string[] },
+): Map<string, ToolDefinition> {
+  if (agent.mcpServers === undefined) {
+    return registry;
+  }
+  const allowed = new Set(agent.mcpServers);
+  const out = new Map<string, ToolDefinition>();
+  for (const [name, def] of registry) {
+    const isMcp = def.operations?.includes('mcp') ?? false;
+    if (isMcp && def.group !== undefined && !allowed.has(def.group)) {
+      continue;
+    }
+    out.set(name, def);
+  }
+  return out;
+}
+
 export function validateToolInput(
   schema: unknown,
   data: unknown,

@@ -20,7 +20,7 @@ import { startGraph } from './graph.ts';
 import { runGraph } from './graph-run.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
-import { createToolRegistry } from './tool-registry.ts';
+import { createToolRegistry, filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 
 function isMcpRegistry(value: unknown): boolean {
@@ -142,7 +142,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         capabilityRegistrations,
         artifacts: options.artifacts,
         models: options.models,
-        toolRegistry,
+        toolRegistry: filterToolsForAgent(toolRegistry, def),
         plan,
         toolMessages: options.toolMessages ?? 'ordered',
         mergeState: options.mergeState,
@@ -162,7 +162,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         capabilityRegistrations,
         artifacts: options.artifacts,
         models: options.models,
-        toolRegistry,
+        toolRegistry: filterToolsForAgent(toolRegistry, def),
         plan,
         toolMessages: options.toolMessages ?? 'ordered',
         mergeState: options.mergeState,

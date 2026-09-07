@@ -6,6 +6,7 @@ import { runFailedEvent, runStartedEvent } from './run-engine-events.ts';
 import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
 import { admit, flushJournal, guardedTransition, runSegment } from './run-engine-segment.ts';
 import type { RunEngine, RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
+import { filterToolsForAgent } from './tool-registry.ts';
 
 export type { RunEngine, RunEngineDeps, RunTargetOpts };
 
@@ -128,7 +129,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           paths: opts.paths,
           artifacts: deps.artifacts,
           models: deps.models,
-          toolRegistry: opts.toolRegistry ?? deps.toolRegistry,
+          toolRegistry: filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, opts.agent),
           plan,
           toolMessages: deps.toolMessages,
           mergeState: deps.mergeState,

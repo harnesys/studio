@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { setActiveThreadId, useThreadStore } from '@/entities/thread';
 import { useDeskStore } from '@/features/desk';
 import { useStudioLocation } from '@/shared/config/location';
+import { studioPath } from '@/shared/config/routes';
 import { useIdeStore } from './ide.store';
 
 /**
@@ -11,10 +13,11 @@ import { useIdeStore } from './ide.store';
  * here as an idempotent no-op.
  *
  * Tab identity is threadId. When current speaker (thread.agentId) changes,
- * the same tab is patched in place — no remount / no new tab.
+ * the same tab is patched in place and `?agent=` is replaced — no remount.
  */
 export function useIdeSync() {
-  const { workspaceId, threadId, filePath } = useStudioLocation();
+  const navigate = useNavigate();
+  const { workspaceId, threadId, filePath, threadOrigin, originEntityId } = useStudioLocation();
   const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
   const threadAgentId = useThreadStore((state) =>
     threadId ? (state.byId(threadId)?.agentId ?? null) : null,
@@ -39,5 +42,21 @@ export function useIdeSync() {
       useDeskStore.getState().setFocusedThreadId(threadId);
     }
     setActiveThreadId(thread.agentId, threadId);
-  }, [workspaceId, threadId, threadAgentId, filePath, hydratedWorkspaceId]);
+    // Handoff keeps the thread route; only `?agent=` (or missing origin) tracks current.
+    if ((threadOrigin === 'agent' || threadOrigin === null) && originEntityId !== thread.agentId) {
+      void navigate(
+        studioPath.thread(workspaceId, threadId, { kind: 'agent', id: thread.agentId }),
+        { replace: true },
+      );
+    }
+  }, [
+    workspaceId,
+    threadId,
+    threadAgentId,
+    filePath,
+    hydratedWorkspaceId,
+    threadOrigin,
+    originEntityId,
+    navigate,
+  ]);
 }

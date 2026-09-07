@@ -21,6 +21,7 @@ import { ActivityItems } from './activity-items';
 import { ActivityRail } from './activity-rail';
 import { CompactionMessageCard } from './compaction-card';
 import { FeedNotice } from './feed-notice';
+import { HandoffCard } from './handoff-card';
 import { MessageActions } from './message-actions';
 import { ThinkingLine } from './thinking-line';
 
@@ -202,6 +203,9 @@ function TurnSegmentView({
   }
   if (segment.type === 'compaction') {
     return <CompactionMessageCard text={segment.text} meta={segment.meta} />;
+  }
+  if (segment.type === 'handoff') {
+    return <HandoffCard agentId={segment.agentId} />;
   }
 
   return <Markdown text={segment.text} />;

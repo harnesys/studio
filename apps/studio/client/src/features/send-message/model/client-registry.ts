@@ -66,6 +66,9 @@ function onStreamEvent(threadId: string, event: SessionEvent): void {
   const store = useSessionStore.getState();
   store.appendEvent(threadId, event);
   maybeMarkUnread(threadId);
+  if (event.type === 'agent.handoff' && event.agentId) {
+    patchThreadCurrentAgent(threadId, event.agentId);
+  }
   if (event.type === 'error') {
     store.setFailure({
       id: `failed-${threadId}-${Date.now()}`,
@@ -73,6 +76,15 @@ function onStreamEvent(threadId: string, event: SessionEvent): void {
       text: event.message,
     });
   }
+}
+
+/** Live handoff: update current speaker before desk SSE arrives (tab/URL follow via ide-sync). */
+function patchThreadCurrentAgent(threadId: string, agentId: string): void {
+  const thread = useThreadStore.getState().byId(threadId);
+  if (!thread || thread.agentId === agentId) {
+    return;
+  }
+  useThreadStore.getState().upsert({ ...thread, agentId });
 }
 
 async function onRunTerminal(threadId: string, runId: string): Promise<void> {

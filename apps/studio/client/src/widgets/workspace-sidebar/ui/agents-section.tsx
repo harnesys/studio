@@ -128,7 +128,6 @@ export function AgentsSection({
             if (useAccordionStore.getState().collapsed.agents) {
               useAccordionStore.getState().toggle('agents');
             }
-            onSelectDone();
           }}
           onSettings={() => {
             if (!workspaceId) {

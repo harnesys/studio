@@ -116,6 +116,7 @@ Output exactly the Markdown structure shown inside <template> and keep the secti
 </template>
 
 Rules:
+- Tools are not available in this pass. Respond with the summary text only; never call tools.
 - Keep every section, even when empty.
 - Use terse bullets, not prose paragraphs.
 - Preserve exact file paths, symbols, commands, error strings, URLs, and identifiers when known.

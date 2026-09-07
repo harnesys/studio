@@ -1,5 +1,7 @@
 // Browser-safe entry: pure domain constants and helpers, no node builtins.
 export { THRESHOLD_SUMMARY_NAME } from './src/domain/compaction.ts';
+export type { CompactionMessage, CompactionSpec, ParsedCompactionSpec } from './src/domain/compaction.ts';
+export { isCompactionMessage, parseThresholdSpec } from './src/domain/compaction.ts';
 export type { AgentGenerationSettings } from './src/domain/agent-definition.ts';
 export { filterGenerationSettings, withChatGenerationParameters } from './src/domain/generation-settings.ts';
 export {

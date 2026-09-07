@@ -13,9 +13,9 @@ import { branchThread } from '@/features/switch-thread';
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { formatClock } from '@/shared/lib/format-clock';
-import { Message, MessageContent, MessageFooter, MessageHeader } from '@/shared/ui/message';
 import { toast } from '@/shared/ui/toast';
 
+import { FeedNotice, FeedNoticeMetaSep } from './feed-notice';
 import { MessageActions } from './message-actions';
 import { MessageAttachments } from './message-attachments';
 
@@ -33,52 +33,50 @@ export function ScheduleWakeMessage({ entry, threadId }: { entry: HumanEntry; th
   const body = visibleWakeText(text);
 
   return (
-    <Message align="start" className="py-0" data-testid={`schedule-wake-${entry.id}`}>
-      <MessageContent className="gap-1.5">
-        <MessageHeader className="gap-2 px-0 font-normal text-[11px]">
-          <span className="inline-flex items-center gap-1.5 text-live">
-            <CalendarClockIcon className="size-3" />
-            Schedule
-          </span>
-          <span className="truncate text-muted-foreground">{title}</span>
-          <span className="font-mono text-muted-foreground">{formatClock(entry.createdAt)}</span>
-        </MessageHeader>
+    <div className="flex flex-col gap-1.5" data-testid={`schedule-wake-${entry.id}`}>
+      <FeedNotice
+        tone="live"
+        icon={CalendarClockIcon}
+        label="Schedule"
+        meta={
+          <>
+            <span className="truncate">{title}</span>
+            <FeedNoticeMetaSep />
+            <span className="font-mono">{formatClock(entry.createdAt)}</span>
+          </>
+        }
+      >
         <MessageAttachments entry={entry} threadId={threadId} />
-        {body ? (
-          <div className="max-w-[80%] rounded-xl border border-live/25 bg-[color-mix(in_oklab,var(--live)_8%,transparent)] px-3 py-2 text-sm leading-relaxed">
-            <p className="whitespace-pre-wrap">{body}</p>
-          </div>
-        ) : null}
-        <MessageActions
-          entryId={entry.id}
-          align="start"
-          onCopy={() => {
-            void navigator.clipboard.writeText(body);
-            toast.add({ title: 'Copied.' });
-          }}
-          onBranch={() => {
-            if (!agent || !thread || !workspaceId) {
-              return;
+        {body ? <p className="whitespace-pre-wrap text-sm">{body}</p> : null}
+      </FeedNotice>
+      <MessageActions
+        entryId={entry.id}
+        align="start"
+        onCopy={() => {
+          void navigator.clipboard.writeText(body);
+          toast.add({ title: 'Copied.' });
+        }}
+        onBranch={() => {
+          if (!agent || !thread || !workspaceId) {
+            return;
+          }
+          void branchThread(entry.id, agent.id, thread.id, workspaceId).then((nextId) => {
+            if (nextId) {
+              useDeskStore.getState().setFocusedThreadId(nextId);
+              openThread(nextId, { kind: 'agent', id: agent.id }, workspaceId);
             }
-            void branchThread(entry.id, agent.id, thread.id, workspaceId).then((nextId) => {
-              if (nextId) {
-                useDeskStore.getState().setFocusedThreadId(nextId);
-                openThread(nextId, { kind: 'agent', id: agent.id }, workspaceId);
-              }
+          });
+        }}
+        onDelete={() => {
+          void deleteTurn(threadId, entry.id).catch((error) => {
+            toast.add({
+              title: 'Could not delete',
+              description: error instanceof Error ? error.message : 'Delete failed',
             });
-          }}
-          onDelete={() => {
-            void deleteTurn(threadId, entry.id).catch((error) => {
-              toast.add({
-                title: 'Could not delete',
-                description: error instanceof Error ? error.message : 'Delete failed',
-              });
-            });
-          }}
-        />
-        <MessageFooter className="sr-only">{formatClock(entry.createdAt)}</MessageFooter>
-      </MessageContent>
-    </Message>
+          });
+        }}
+      />
+    </div>
   );
 }
 

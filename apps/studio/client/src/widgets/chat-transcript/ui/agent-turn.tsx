@@ -1,6 +1,6 @@
 import type { SessionEvent } from '@studio/shared';
 import { isScheduledHumanText, scheduledTaskName, visibleScheduledText } from '@studio/shared';
-import { AlertCircleIcon, CalendarClockIcon, RotateCcwIcon } from 'lucide-react';
+import { AlertCircleIcon, CalendarClockIcon, RotateCcwIcon, TerminalIcon } from 'lucide-react';
 
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
@@ -20,29 +20,33 @@ import {
 import { ActivityItems } from './activity-items';
 import { ActivityRail } from './activity-rail';
 import { CompactionMessageCard } from './compaction-card';
+import { FeedNotice } from './feed-notice';
 import { MessageActions } from './message-actions';
 import { ThinkingLine } from './thinking-line';
 
 export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
   return (
-    <div
-      data-testid="error-message-view"
-      className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-3 text-destructive text-sm"
+    <FeedNotice
+      testId="error-message-view"
+      tone="danger"
+      icon={AlertCircleIcon}
+      label="Error"
+      actions={
+        onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            title="Retry run"
+            className="inline-flex items-center gap-1 rounded-md border border-destructive/35 px-2 py-0.5 text-[11px] text-destructive transition-colors hover:bg-destructive/10"
+          >
+            <RotateCcwIcon className="size-3" />
+            Retry
+          </button>
+        ) : null
+      }
     >
-      <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
-      <div className="flex-1 break-words font-mono text-xs leading-relaxed">{text}</div>
-      {onRetry ? (
-        <button
-          type="button"
-          onClick={onRetry}
-          title="Retry run"
-          className="flex shrink-0 items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 text-destructive text-xs transition-colors hover:bg-destructive/10"
-        >
-          <RotateCcwIcon className="size-3" />
-          Retry
-        </button>
-      ) : null}
-    </div>
+      <div className="break-words font-mono text-destructive text-xs leading-relaxed">{text}</div>
+    </FeedNotice>
   );
 }
 
@@ -51,13 +55,9 @@ export function SystemMessageView({ text }: { text: string }) {
     return null;
   }
   return (
-    <div
-      data-testid="system-message-view"
-      className="rounded-lg border bg-muted/40 px-3.5 py-2.5 text-muted-foreground text-sm"
-    >
-      <p className="font-mono text-[11px] uppercase tracking-wide">System</p>
-      <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{text}</p>
-    </div>
+    <FeedNotice testId="system-message-view" tone="neutral" icon={TerminalIcon} label="System">
+      <p className="whitespace-pre-wrap text-muted-foreground text-xs leading-relaxed">{text}</p>
+    </FeedNotice>
   );
 }
 
@@ -217,17 +217,15 @@ function ScheduleWakeBanner({ text }: { text: string }) {
   const title = scheduledTaskName(text) ?? 'Schedule';
   const body = visibleScheduledText(text);
   return (
-    <div className="max-w-[80%] self-end rounded-2xl rounded-br-md border border-live/25 bg-[color-mix(in_oklab,var(--live)_8%,transparent)] px-3.5 py-2.5 text-sm leading-relaxed">
-      <div className="mb-1 flex items-center justify-end gap-1.5 text-[11px] text-live">
-        <span className="truncate">{title}</span>
-        <span className="shrink-0 text-muted-foreground">·</span>
-        <span className="inline-flex shrink-0 items-center gap-1">
-          <CalendarClockIcon className="size-3" />
-          Schedule
-        </span>
-      </div>
-      {body ? <p className="whitespace-pre-wrap">{body}</p> : null}
-    </div>
+    <FeedNotice
+      tone="live"
+      icon={CalendarClockIcon}
+      label="Schedule"
+      meta={<span className="truncate">{title}</span>}
+      className="max-w-[min(100%,36rem)] self-end"
+    >
+      {body ? <p className="whitespace-pre-wrap text-sm">{body}</p> : null}
+    </FeedNotice>
   );
 }
 

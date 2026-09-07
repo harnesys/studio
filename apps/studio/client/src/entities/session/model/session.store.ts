@@ -1,6 +1,8 @@
 import type { SessionEvent } from '@studio/shared';
 import { create } from 'zustand';
 
+import { coalesceStreamDeltas, mergeIncomingEvent, streamDeltaKey } from './coalesce-events';
+
 export type ActiveRun = {
   runId: string;
   controller: AbortController;
@@ -40,14 +42,42 @@ const EMPTY_EVENTS: SessionEvent[] = [];
 
 let timestampCounter = 0;
 
+/** Throttle read-sync epoch bumps during token spam. */
+const EPOCH_DELTA_MS = 400;
+const lastEpochBump: Record<string, number> = {};
+
 function eventKey(ev: SessionEvent): string {
   if ('clientEventId' in ev && ev.clientEventId) {
     return `ce:${ev.clientEventId}`;
+  }
+  const deltaKey = streamDeltaKey(ev);
+  if (deltaKey) {
+    return deltaKey;
   }
   if (ev.runId !== undefined && ev.seq !== undefined) {
     return `${ev.runId}:${ev.seq}`;
   }
   return `t:${timestampCounter++}`;
+}
+
+function isStreamDeltaType(type: SessionEvent['type']): boolean {
+  return type === 'text-delta' || type === 'reasoning-delta';
+}
+
+function nextEpoch(
+  state: SessionStoreState,
+  threadId: string,
+  eventType: SessionEvent['type'],
+): Record<string, number> {
+  const now = Date.now();
+  if (isStreamDeltaType(eventType)) {
+    const prev = lastEpochBump[threadId] ?? 0;
+    if (now - prev < EPOCH_DELTA_MS) {
+      return state.contentEpoch;
+    }
+  }
+  lastEpochBump[threadId] = now;
+  return { ...state.contentEpoch, [threadId]: now };
 }
 
 export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => ({
@@ -62,7 +92,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
 
   replaceEvents(threadId, events) {
     set((state) => ({
-      events: { ...state.events, [threadId]: events },
+      events: { ...state.events, [threadId]: coalesceStreamDeltas(events) },
       contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
     }));
   },
@@ -72,13 +102,14 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       const existing = state.events[threadId] ?? EMPTY_EVENTS;
       // Слияние по ключу сохраняет порядок вставки: позицию держит первое
       // вхождение (optimistic или live), серверная строка подменяет значение.
-      // Seq здесь не сортируется: он уникален внутри рана, между ранами
-      // порядок задаёт сам лог (сервер отдаёт список уже упорядоченным).
+      // Delta-слоты склеены: один ключ на (type, runId, id), текст конкатенируется.
       const byKey = new Map<string, SessionEvent>();
       for (const ev of existing) {
         byKey.set(eventKey(ev), ev);
       }
-      for (const ev of serverEvents) {
+      // Полный серверный лог — источник правды: delta-слоты уже склеены,
+      // подмена по ключу, без конкатенации с live-копией (иначе удвоение текста).
+      for (const ev of coalesceStreamDeltas(serverEvents)) {
         byKey.set(eventKey(ev), ev);
       }
       return {
@@ -91,21 +122,25 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   appendEvent(threadId, event) {
     set((state) => {
       const current = state.events[threadId] ?? [];
-      // Один идентитет — одно событие: серверное эхо заменяет optimistic-копию
-      // на её месте; дельты хранятся сырыми, склейка выполняет проекция рендера.
       const key = eventKey(event);
-      const index = current.findIndex((ev) => eventKey(ev) === key);
+      // Live deltas almost always extend the tail slot — check it before O(n) scan.
+      const lastIndex = current.length - 1;
+      const tail = lastIndex >= 0 ? current[lastIndex] : undefined;
+      const index =
+        tail && eventKey(tail) === key
+          ? lastIndex
+          : current.findIndex((ev) => eventKey(ev) === key);
       if (index === -1) {
         return {
           events: { ...state.events, [threadId]: [...current, event] },
-          contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+          contentEpoch: nextEpoch(state, threadId, event.type),
         };
       }
       const next = [...current];
-      next[index] = event;
+      next[index] = mergeIncomingEvent(current[index], event);
       return {
         events: { ...state.events, [threadId]: next },
-        contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+        contentEpoch: nextEpoch(state, threadId, event.type),
       };
     });
   },
@@ -200,6 +235,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         delete events[id];
         delete activeRuns[id];
         delete contentEpoch[id];
+        delete lastEpochBump[id];
       }
       return { events, activeRuns, contentEpoch };
     });

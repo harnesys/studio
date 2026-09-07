@@ -18,10 +18,10 @@ import {
 } from '@/shared/ui/message-scroller';
 import { isCompactRun, splitRuns } from '../model/run-groups';
 import { useSyncedThread } from '../model/thread-sync';
-
-import { AssistantMessageView, FailedMessageView } from './agent-turn';
+import { FailedMessageView } from './agent-turn';
 import { ChatSkeleton } from './chat-skeleton';
 import { CompactionPendingCard } from './compaction-card';
+import { RunTurn } from './run-turn';
 import { ThreadEmpty } from './thread-empty';
 
 const EMPTY_FAILURES: RunFailure[] = [];
@@ -62,30 +62,21 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
             {runs.map((run, index) => {
               const last = index === runs.length - 1;
               const runStreaming =
-                (streaming && last && !compacting) ||
-                (compacting && last && isCompactRun(run));
+                (streaming && last && !compacting) || (compacting && last && isCompactRun(run));
+              const runKey = run.id ?? `run-${index}`;
               return (
-                <MessageScrollerItem
-                  key={run.id ?? `run-${index}`}
-                  messageId={run.id ?? `run-${index}`}
-                >
-                  <div className="group/turn flex flex-col">
-                    <AssistantMessageView
-                      events={run.events}
-                      runId={run.id ?? ''}
-                      streaming={runStreaming}
-                    />
-                    {run.error ? (
-                      <FailedMessageView
-                        text={run.error}
-                        onRetry={
-                          run.runId && last && !streaming && !compacting
-                            ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
-                            : undefined
-                        }
-                      />
-                    ) : null}
-                  </div>
+                <MessageScrollerItem key={runKey} messageId={runKey}>
+                  <RunTurn
+                    events={run.events}
+                    runId={run.id ?? ''}
+                    streaming={runStreaming}
+                    error={run.error}
+                    onRetry={
+                      run.runId && last && !streaming && !compacting
+                        ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
+                        : undefined
+                    }
+                  />
                 </MessageScrollerItem>
               );
             })}

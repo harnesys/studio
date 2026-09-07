@@ -3,16 +3,17 @@ import { Layers2Icon } from 'lucide-react';
 import { Markdown } from '@/shared/ui/markdown';
 
 import type { CompactionSegmentMeta } from '../model/turn-segments';
+import { FeedNotice, FeedNoticeMetaSep } from './feed-notice';
 
 export function CompactionPendingCard() {
   return (
-    <div
-      data-testid="compaction-pending"
-      className="flex items-center gap-2 rounded-lg border border-border/80 bg-muted/20 px-3.5 py-3 text-muted-foreground"
-    >
-      <Layers2Icon className="thinking-icon-pulse size-3.5 shrink-0" />
-      <p className="thinking-shimmer font-medium text-[13px] leading-none">Compacting…</p>
-    </div>
+    <FeedNotice
+      testId="compaction-pending"
+      tone="accent"
+      icon={Layers2Icon}
+      label="Compacting…"
+      pending
+    />
   );
 }
 
@@ -33,27 +34,23 @@ export function CompactionMessageCard({
 }) {
   const reasonLabel = meta.reason === 'manual' ? 'Manual' : 'Auto';
   return (
-    <div
-      data-testid="compaction-message"
-      className="overflow-hidden rounded-lg border border-border/80 bg-muted/15"
+    <FeedNotice
+      testId="compaction-message"
+      tone="accent"
+      icon={Layers2Icon}
+      label="Compaction"
+      meta={
+        <>
+          <FeedNoticeMetaSep />
+          <span>{reasonLabel}</span>
+          <FeedNoticeMetaSep />
+          <span className="font-mono tabular-nums">
+            {formatTokenCount(meta.tokensBefore)} → {formatTokenCount(meta.tokensAfter)}
+          </span>
+        </>
+      }
     >
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-border/60 border-b px-3.5 py-2 text-[11px] text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
-          <Layers2Icon className="size-3.5 shrink-0 opacity-70" />
-          Compaction
-        </span>
-        <span className="text-border">·</span>
-        <span>{reasonLabel}</span>
-        <span className="text-border">·</span>
-        <span className="font-mono tabular-nums">
-          {formatTokenCount(meta.tokensBefore)} → {formatTokenCount(meta.tokensAfter)}
-        </span>
-      </div>
-      {text.trim() ? (
-        <div className="px-3.5 py-3 text-sm leading-relaxed">
-          <Markdown text={text} />
-        </div>
-      ) : null}
-    </div>
+      {text.trim() ? <Markdown text={text} className="px-0" /> : null}
+    </FeedNotice>
   );
 }

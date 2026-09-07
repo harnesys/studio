@@ -104,7 +104,7 @@ export async function* runLlmGenerate(
     resume: null,
   };
   const prompt = substitutePrompt(composeSystemPrompt(agentText, ctx.capabilities ?? []), slots);
-  const messages = resolveMessages(node, ctx);
+  const messages = projectCompacted(resolveMessages(node, ctx));
   const resolved = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
   // Прогрессивный набор применяется только к «всем тулам реестра»; явный
   // node.tools кастомного графа — контракт автора, без инъекций.
@@ -193,4 +193,33 @@ export async function* runLlmGenerate(
 
     yield { type: 'model.completed', data: out };
   }
+}
+
+/**
+ * Последний якорь (kind:'compaction') поднимается как system-ход,
+ * ходы до coveredUntil и сам слот якоря выпадают, хвост остаётся.
+ * Без якорей массив возвращается как есть.
+ */
+export function projectCompacted(messages: readonly unknown[]): unknown[] {
+  let anchorIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i] as Record<string, unknown> | null | undefined;
+    if (m && typeof m === 'object' && m.kind === 'compaction') {
+      anchorIndex = i;
+      break;
+    }
+  }
+  if (anchorIndex === -1) {
+    return [...messages];
+  }
+  const anchor = messages[anchorIndex] as Record<string, unknown>;
+  const until = typeof anchor.coveredUntil === 'number' ? anchor.coveredUntil : -1;
+  const out: unknown[] = [{ role: 'system', content: String(anchor.content ?? '') }];
+  for (let i = 0; i < messages.length; i++) {
+    if (i === anchorIndex || i <= until) {
+      continue;
+    }
+    out.push(messages[i]);
+  }
+  return out;
 }

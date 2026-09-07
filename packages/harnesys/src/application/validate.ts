@@ -255,6 +255,14 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
           }
         }
       }
+      if (Array.isArray(n.tools) && n.tools.length === 0) {
+        // 'tools: []' exposes nothing (regression f48b03b); omit the key for all registry tools.
+        add(
+          'tools_empty',
+          'error',
+          'llm node tools:[] exposes no tools; omit the key for all registry tools',
+        );
+      }
     }
     if ((n as { type: string }).type === 'tool:call') {
       const tc = n as {

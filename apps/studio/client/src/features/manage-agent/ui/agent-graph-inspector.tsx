@@ -1,8 +1,10 @@
+import './agent-graph-flow.css';
+
 import type { Diagnostic, Edge, Node } from 'harnesys';
 
 import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
-import { Input } from '@/shared/ui/input';
 import { specByType } from '../model/agent-graph-catalog';
+import { GraphInput } from './agent-graph-input';
 import { AgentGraphNodeFields, JsonNodeEditor } from './agent-graph-node-fields';
 
 export type AgentGraphSelection =
@@ -26,13 +28,13 @@ export function AgentGraphInspector({
   onChangeEdge,
 }: AgentGraphInspectorProps) {
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-border border-l bg-popover">
-      <div className="border-border border-b px-3 py-2">
-        <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+    <aside className="agent-graph-inspector flex h-full w-64 shrink-0 flex-col overflow-hidden border-border border-l bg-popover">
+      <div className="border-border border-b px-2.5 py-1.5">
+        <p className="font-medium text-[10px] text-muted-foreground uppercase tracking-[0.08em]">
           Inspector
         </p>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
         <InspectorBody
           selection={selection}
           onChangeNode={onChangeNode}
@@ -110,14 +112,16 @@ function NodeInspectorBody({
 
   if (!known || isCustom) {
     return (
-      <FieldGroup className="gap-3">
+      <FieldGroup className="gap-2">
         <Field>
-          <FieldLabel htmlFor="graph-unknown-id">Id</FieldLabel>
-          <Input
+          <FieldLabel htmlFor="graph-unknown-id" className="text-[11px]">
+            Id
+          </FieldLabel>
+          <GraphInput
             id="graph-unknown-id"
             value={id}
             onChange={(event) => onRenameNode(id, event.target.value)}
-            className="font-mono text-sm"
+            className="font-mono"
           />
         </Field>
         <JsonNodeEditor node={node} onChange={(next) => onChangeNode(id, next)} />
@@ -137,13 +141,15 @@ function NodeInspectorBody({
 
 function EdgeWhenFields({ edge, onChange }: { edge: Edge; onChange: (edge: Edge) => void }) {
   return (
-    <FieldGroup className="gap-3">
+    <FieldGroup className="gap-2">
       <p className="font-mono text-[11px] text-muted-foreground">
         {edge.from} → {edge.to}
       </p>
       <Field>
-        <FieldLabel htmlFor="graph-edge-when">When (expr)</FieldLabel>
-        <Input
+        <FieldLabel htmlFor="graph-edge-when" className="text-[11px]">
+          When (expr)
+        </FieldLabel>
+        <GraphInput
           id="graph-edge-when"
           value={edge.when ?? ''}
           placeholder="optional"

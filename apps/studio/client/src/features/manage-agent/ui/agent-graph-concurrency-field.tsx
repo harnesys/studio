@@ -14,6 +14,7 @@ export function ConcurrencyField({
       <ToggleGroup
         variant="outline"
         spacing={0}
+        size="sm"
         value={[value === 'sequential' ? 'sequential' : 'parallel']}
         onValueChange={(next) => {
           const item = next[0];

@@ -1,3 +1,5 @@
+import './agent-graph-flow.css';
+
 import {
   applyEdgeChanges,
   applyNodeChanges,
@@ -136,7 +138,7 @@ export function AgentGraphCanvas({
   const defaultEdgeOptions = useMemo(() => ({ type: 'default' as const }), []);
 
   return (
-    <div className="relative min-h-0 min-w-0 flex-1">
+    <div className="agent-graph-flow relative min-h-0 min-w-0 flex-1">
       <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 rounded-md border border-border bg-popover p-1 shadow-sm">
         <Button type="button" size="xs" variant="outline" onClick={runAutoLayout}>
           Auto
@@ -198,7 +200,7 @@ export function AgentGraphCanvas({
         }}
       >
         <Background gap={16} size={1} />
-        <Controls showInteractive={false} />
+        <Controls showInteractive={false} showFitView />
       </ReactFlow>
     </div>
   );

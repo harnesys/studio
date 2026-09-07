@@ -1,11 +1,10 @@
 import type { Node, ToolCallBatch } from 'harnesys';
 
 import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
-import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
-
 import { ConcurrencyField, concurrencyString } from './agent-graph-concurrency-field';
 import { ControlNodeFields } from './agent-graph-control-fields';
+import { GraphInput } from './agent-graph-input';
 
 export type AgentGraphNodeFieldsProps = {
   id: string;
@@ -21,14 +20,16 @@ export function AgentGraphNodeFields({
   onChange,
 }: AgentGraphNodeFieldsProps) {
   return (
-    <FieldGroup className="gap-3">
+    <FieldGroup className="gap-2">
       <Field>
-        <FieldLabel htmlFor="graph-node-id">Id</FieldLabel>
-        <Input
+        <FieldLabel htmlFor="graph-node-id" className="text-[11px]">
+          Id
+        </FieldLabel>
+        <GraphInput
           id="graph-node-id"
           value={id}
           onChange={(event) => onChangeId(event.target.value)}
-          className="font-mono text-sm"
+          className="font-mono"
         />
       </Field>
       <NodeTypeFields node={node} onChange={onChange} />
@@ -44,7 +45,7 @@ function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node)
       return (
         <Field>
           <FieldLabel htmlFor="graph-end-output">Output (expr)</FieldLabel>
-          <Input
+          <GraphInput
             id="graph-end-output"
             value={typeof node.output === 'string' ? node.output : ''}
             placeholder="optional"
@@ -60,7 +61,7 @@ function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node)
         <>
           <Field>
             <FieldLabel htmlFor="graph-llm-prompt">Prompt</FieldLabel>
-            <Input
+            <GraphInput
               id="graph-llm-prompt"
               value={node.prompt}
               onChange={(event) => onChange({ ...node, prompt: event.target.value })}
@@ -68,7 +69,7 @@ function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node)
           </Field>
           <Field>
             <FieldLabel htmlFor="graph-llm-messages">Messages (expr)</FieldLabel>
-            <Input
+            <GraphInput
               id="graph-llm-messages"
               value={typeof node.messages === 'string' ? node.messages : ''}
               onChange={(event) => {
@@ -88,7 +89,7 @@ function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node)
           </Field>
           <Field>
             <FieldLabel htmlFor="graph-llm-tools">Tools (comma-separated)</FieldLabel>
-            <Input
+            <GraphInput
               id="graph-llm-tools"
               value={(node.tools ?? []).join(', ')}
               placeholder="empty = registry default"
@@ -117,7 +118,7 @@ function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node)
         <>
           <Field>
             <FieldLabel htmlFor="graph-tool-calls">Calls (expr)</FieldLabel>
-            <Input
+            <GraphInput
               id="graph-tool-calls"
               value={batch.calls}
               onChange={(event) =>

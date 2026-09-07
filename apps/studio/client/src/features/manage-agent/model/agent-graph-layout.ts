@@ -2,8 +2,8 @@ import dagre from 'dagre';
 
 import type { GraphNodePosition, GraphRankdir } from './agent-graph-document';
 
-export const GRAPH_NODE_WIDTH = 200;
-export const GRAPH_NODE_HEIGHT = 64;
+export const GRAPH_NODE_WIDTH = 168;
+export const GRAPH_NODE_HEIGHT = 48;
 
 export type LayoutGraphNode = { id: string };
 export type LayoutGraphEdge = { source: string; target: string };

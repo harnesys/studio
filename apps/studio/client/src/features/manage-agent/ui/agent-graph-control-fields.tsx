@@ -1,11 +1,11 @@
 import type { InterruptReason, JsonSchema, Node } from 'harnesys';
 
 import { Field, FieldLabel } from '@/shared/ui/field';
-import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
 
 import { ConcurrencyField, concurrencyString } from './agent-graph-concurrency-field';
+import { GraphInput } from './agent-graph-input';
 
 const INTERRUPT_REASONS: InterruptReason[] = [
   'human_review',
@@ -55,7 +55,7 @@ export function ControlNodeFields({
         <>
           <Field>
             <FieldLabel htmlFor="graph-spawn-calls">Calls (expr)</FieldLabel>
-            <Input
+            <GraphInput
               id="graph-spawn-calls"
               value={node.calls}
               onChange={(event) =>
@@ -80,7 +80,7 @@ export function ControlNodeFields({
         <>
           <Field>
             <FieldLabel htmlFor="graph-handoff-agent">Agent id</FieldLabel>
-            <Input
+            <GraphInput
               id="graph-handoff-agent"
               value={typeof node.agentId === 'string' ? node.agentId : String(node.agentId)}
               onChange={(event) =>
@@ -113,7 +113,7 @@ export function ControlNodeFields({
       return (
         <Field>
           <FieldLabel htmlFor="graph-goto-target">Target (expr)</FieldLabel>
-          <Input
+          <GraphInput
             id="graph-goto-target"
             value={typeof node.target === 'string' ? node.target : String(node.target)}
             onChange={(event) => onChange({ type: 'control:goto', target: event.target.value })}

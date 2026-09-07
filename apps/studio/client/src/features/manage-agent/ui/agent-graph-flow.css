@@ -1,0 +1,41 @@
+.agent-graph-flow .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: none;
+  background: var(--popover);
+}
+
+.agent-graph-flow .react-flow__controls-button {
+  width: 22px;
+  height: 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--popover);
+  fill: var(--muted-foreground);
+}
+
+.agent-graph-flow .react-flow__controls-button:hover {
+  background: var(--sidebar-accent);
+}
+
+.agent-graph-flow .react-flow__controls-button svg {
+  max-width: 12px;
+  max-height: 12px;
+}
+
+.agent-graph-flow .react-flow__edge-path {
+  stroke: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+}
+
+.agent-graph-flow .react-flow__attribution {
+  display: none;
+}
+
+.agent-graph-inspector [data-slot='field-label'] {
+  font-size: 11px;
+}
+
+.agent-graph-inspector textarea {
+  min-height: 4.5rem;
+  font-size: 12px;
+}

@@ -38,6 +38,7 @@ import { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter
 import { WorkspaceAdapter } from '../adapters/workspace/workspace.adapter.ts';
 import { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.adapter.ts';
 import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
+import { createEpisodicOnCompacted } from '../application/memory/episodic-on-compacted.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.use-case.ts';
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
@@ -84,7 +85,37 @@ export function createStudio(options: StudioOptions = {}): Hono {
   const deskEvents = new DeskEventsAdapter();
   const attachments = options.attachments ?? new FsAttachmentsAdapter();
   const modelsPort = createHarnesysModelsPort(llmProviderRepo, llmModelRepo);
-  const runtimeStateRepo = new SqliteRuntimeStateRepo(db);
+  const runtimeStateRepo = new SqliteRuntimeStateRepo(db, (threadId, events) => {
+    const compaction = events.find((e) => e.type === 'compaction.completed');
+    if (!compaction) {
+      return;
+    }
+    void (async () => {
+      const thread = threadRepo.findById(threadId);
+      if (!thread) {
+        return;
+      }
+      const agentRow = agentRepo.findById(thread.agentId);
+      if (!agentRow) {
+        return;
+      }
+      const meta = (compaction.metadata ?? {}) as Record<string, unknown>;
+      await createEpisodicOnCompacted({
+        episodic: memory.episodic,
+        workspaceId: thread.workspaceId,
+        threadId,
+        episodicRef: agentRow.memory?.episodic ?? undefined,
+      })({
+        fromSeq: typeof meta.coveredFrom === 'number' ? meta.coveredFrom : 0,
+        toSeq: typeof meta.coveredUntil === 'number' ? meta.coveredUntil : 0,
+        compactionEntryId: typeof meta.id === 'string' ? meta.id : undefined,
+      });
+    })().catch((e: unknown) => {
+      console.warn(
+        `[compaction] episodic index failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    });
+  });
   const eventBus = createRunEventBus();
   const runEvents = new SqliteRunEventStore(db);
   const runLifecycle = new SqliteRunLifecycleStore(db, runEvents.appendWithinTx.bind(runEvents));

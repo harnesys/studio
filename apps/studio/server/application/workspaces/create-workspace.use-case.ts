@@ -1,3 +1,5 @@
+import { appendFile, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { writeWorkspaceMcpJson } from '../../adapters/mcp-json.adapter.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspacePort, WorkspaceRepository } from '../../domain/workspace.port.ts';
@@ -52,8 +54,25 @@ export class CreateWorkspaceUseCase implements CreateWorkspaceInput {
       createdAt: now,
     });
     writeWorkspaceMcpJson(targetPath, {});
+    await ensureHarnesysIgnored(targetPath);
     return { workspace };
   }
+}
+
+/** Журнал компакций не должен уезжать в git пользователя. Идемпотентно. */
+async function ensureHarnesysIgnored(workspacePath: string): Promise<void> {
+  const gitignore = join(workspacePath, '.gitignore');
+  let lines: string[] = [];
+  try {
+    lines = (await readFile(gitignore, 'utf8')).split(/\r?\n/);
+  } catch {
+    lines = [];
+  }
+  if (lines.includes('.harnesys/')) {
+    return;
+  }
+  const needsNewline = lines.length > 0 && lines[lines.length - 1] !== '';
+  await appendFile(gitignore, `${needsNewline ? '\n' : ''}.harnesys/\n`, 'utf8');
 }
 
 function basename(path: string): string | undefined {

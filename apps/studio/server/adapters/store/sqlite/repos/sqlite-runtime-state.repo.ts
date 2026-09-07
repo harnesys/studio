@@ -10,6 +10,7 @@ export class SqliteRuntimeState implements RuntimeState {
     private readonly db: StudioDb,
     private readonly threadId: string,
     sessionId?: string,
+    private readonly onEvents?: (threadId: string, events: readonly Event[]) => void,
   ) {
     this.sessionId = sessionId ?? crypto.randomUUID();
   }
@@ -26,7 +27,7 @@ export class SqliteRuntimeState implements RuntimeState {
     return JSON.parse(row.snapshot) as Snapshot;
   }
 
-  commit(snapshot: Snapshot, _events: readonly Event[], meta: CommitMeta): Promise<void> {
+  commit(snapshot: Snapshot, events: readonly Event[], meta: CommitMeta): Promise<void> {
     const now = new Date().toISOString();
     this.db
       .insert(snapshotsTable)
@@ -46,6 +47,10 @@ export class SqliteRuntimeState implements RuntimeState {
         },
       })
       .run();
+
+    if (this.onEvents) {
+      this.onEvents(this.threadId, events);
+    }
 
     return Promise.resolve();
   }

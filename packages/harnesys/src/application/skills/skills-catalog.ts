@@ -27,18 +27,29 @@ export function filterSkills(
   };
 }
 
+const MAX_ENTRIES = 40;
+const MAX_CHARS = 4000;
+
 export function formatSkillsCatalog(skills: SkillSummary[]): string {
   if (skills.length === 0) {
     return '';
   }
+  const shown = skills.slice(0, MAX_ENTRIES);
   const lines = [
     '## Available skills',
     'Catalog (full text via load_skill):',
-    ...skills.map((s) =>
+    ...shown.map((s) =>
       s.whenToUse
         ? `- ${s.name}: ${s.description} (when: ${s.whenToUse})`
         : `- ${s.name}: ${s.description}`,
     ),
   ];
-  return lines.join('\n');
+  if (skills.length > shown.length) {
+    lines.push(`+${skills.length - shown.length} more (raise the limit or trim skills)`);
+  }
+  let text = lines.join('\n');
+  if (text.length > MAX_CHARS) {
+    text = `${text.slice(0, MAX_CHARS)}\n…(catalog truncated)`;
+  }
+  return text;
 }

@@ -48,7 +48,13 @@ export type AcceptedRunResponse = {
   status: 'queued';
 };
 
-/** Manual `/compact`: stub response. */
-export type CompactThreadResponse = {
-  compacted: boolean;
-};
+export type CompactThreadResponse =
+  | {
+      compacted: true;
+      id: string;
+      coveredFrom: number;
+      coveredUntil: number;
+      tokensBefore: number;
+      tokensAfter: number;
+    }
+  | { compacted: false };

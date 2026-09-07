@@ -224,6 +224,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     feed: runFeed,
     memory,
     db,
+    modelsPort,
     getThread,
     getThreadPlan,
     sendThreadRun,

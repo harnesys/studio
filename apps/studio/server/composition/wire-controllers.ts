@@ -1,4 +1,10 @@
-import type { RunClaimer, RunEventFeed, RunEventStore, RunLifecycleStore } from 'harnesys';
+import type {
+  ModelsPort,
+  RunClaimer,
+  RunEventFeed,
+  RunEventStore,
+  RunLifecycleStore,
+} from 'harnesys';
 import type { Hono } from 'hono';
 import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import type { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
@@ -117,6 +123,7 @@ type ControllerDeps = {
   feed: RunEventFeed;
   memory: StudioMemoryPorts;
   db: StudioDb;
+  modelsPort: ModelsPort;
   getThread: GetThreadInput;
   getThreadPlan: GetThreadPlanInput;
   sendThreadRun: SendThreadRunInput;
@@ -244,7 +251,18 @@ export function wireControllers(d: ControllerDeps): void {
       semanticSessions: d.memory.semantic,
     }),
     sendThreadRun: d.sendThreadRun,
-    compactThread: new CompactThreadUseCase(),
+    compactThread: new CompactThreadUseCase({
+      threads: d.threadRepo,
+      agents: d.agentRepo,
+      workspaces: d.workspaceRepo,
+      workspaceHarnesys: d.workspaceHarnesys,
+      registry: d.threadRegistry,
+      runtimeStates: d.runtimeStateRepo,
+      models: d.modelsPort,
+      episodic: d.memory.episodic,
+      deskEvents: d.deskEvents,
+      getThread: d.getThread,
+    }),
     streamRunEvents: new StreamRunEventsUseCase({ lifecycle: d.lifecycle, feed: d.feed }),
     cancelRun: new CancelRunUseCase({ lifecycle: d.lifecycle, sessions }),
     lifecycle: d.lifecycle,

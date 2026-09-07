@@ -202,7 +202,7 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
   );
 
   return (
-    <div className="flex h-full min-h-0 w-full overflow-hidden rounded-md border border-border">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden rounded-md border border-border">
       <AgentGraphPalette onAdd={(type) => addNode(type)} />
       <AgentGraphCanvas
         nodes={nodes}

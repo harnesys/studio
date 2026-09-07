@@ -50,7 +50,7 @@ function DialogHost() {
     <Dialog open onOpenChange={handleOpenChange}>
       <DialogContent
         data-testid={options.testId}
-        className={cn('flex max-h-[90vh] flex-col', options.className ?? 'sm:max-w-md')}
+        className={cn('flex max-h-[90vh] min-h-0 flex-col', options.className ?? 'sm:max-w-md')}
       >
         {(options.title || options.description) && (
           <DialogHeader>

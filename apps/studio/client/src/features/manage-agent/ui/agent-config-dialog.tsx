@@ -50,7 +50,7 @@ import { DraftCompaction } from './draft-compaction';
 import { DraftMemory } from './draft-memory';
 
 const GRAPH_DIALOG_CLASS =
-  'flex h-[min(78vh,48rem)] w-[min(80vw,64rem)] max-w-[min(80vw,64rem)] overflow-hidden';
+  'flex min-h-0 h-[min(78vh,48rem)] w-[min(80vw,64rem)] max-w-[min(80vw,64rem)] sm:max-w-[min(80vw,64rem)] overflow-hidden';
 const DEFAULT_DIALOG_CLASS = 'sm:max-w-3xl';
 
 function capabilitiesSection(category: AgentConfigCategory): DraftCapabilitiesSection {
@@ -259,7 +259,7 @@ export function AgentConfigDialog({
             <AgentLimitsPane form={form} />
           </div>
           {category === 'graph' ? (
-            <div className="h-full min-h-0">
+            <div className="flex h-full min-h-0 min-w-0">
               <AgentGraphPane
                 value={graphDoc}
                 onChange={(next) => {

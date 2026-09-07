@@ -2,7 +2,11 @@ import { type Dirent, watch } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { WorkspaceFileEntry, WorkspaceFileEvent } from '../../../shared/types.ts';
-import { FILES_WATCHER_DEBOUNCE_MS, HOME_DIR_NAME } from '../../config/constants.ts';
+import {
+  FILES_WATCHER_DEBOUNCE_MS,
+  HOME_DIR_NAME,
+  STUDIO_DIR_LEGACY,
+} from '../../config/constants.ts';
 import type { FilesWatcherInput } from '../../domain/files-watcher.port.ts';
 import { trace } from '../../trace.ts';
 import { startGitWatcher } from './files-watcher-git.ts';
@@ -18,6 +22,7 @@ const SKIP_DIRS = new Set([
   '.cache',
   'coverage',
   HOME_DIR_NAME,
+  STUDIO_DIR_LEGACY,
 ]);
 
 type Listener = (event: WorkspaceFileEvent) => void;

@@ -96,7 +96,9 @@ export function SkillsPane() {
           <Empty className="min-h-0 border-0 py-8">
             <EmptyHeader>
               <EmptyTitle>No skills yet</EmptyTitle>
-              <EmptyDescription>Add one or drop SKILL.md under `.agents/skills`.</EmptyDescription>
+              <EmptyDescription>
+                Add one or drop SKILL.md under `.harnesys/skills`.
+              </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (

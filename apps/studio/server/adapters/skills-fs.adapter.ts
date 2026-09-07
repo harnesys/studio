@@ -2,10 +2,11 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { CreateWorkspaceSkillRequest } from '../../shared/types.ts';
 import { ConflictError, ValidationError } from '../domain/studio.error.ts';
+import { workspaceSkillsPath } from './store/studio-layout.ts';
 
 const SKILL_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 
-/** Create `<workspace>/.agents/skills/<name>/SKILL.md`. Folder name matches frontmatter name. */
+/** Create `<workspace>/.harnesys/skills/<name>/SKILL.md`. Folder name matches frontmatter name. */
 export function createWorkspaceSkillFile(
   workspacePath: string,
   input: CreateWorkspaceSkillRequest,
@@ -20,7 +21,7 @@ export function createWorkspaceSkillFile(
     throw new ValidationError('instructions is required');
   }
 
-  const skillDir = join(workspacePath, '.agents', 'skills', input.name);
+  const skillDir = join(workspaceSkillsPath(workspacePath), input.name);
   if (existsSync(skillDir)) {
     throw new ConflictError(`skill ${input.name} already exists`);
   }

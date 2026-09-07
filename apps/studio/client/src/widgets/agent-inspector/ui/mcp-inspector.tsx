@@ -19,7 +19,7 @@ export function McpInspector({ agent }: { agent: Agent }) {
     <Section label="MCP">
       {!query.isPending &&
         (catalog.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground">No servers in `.studio/mcp.json`.</p>
+          <p className="text-[12px] text-muted-foreground">No servers in `.harnesys/mcp.json`.</p>
         ) : (
           <div className="flex flex-col gap-1.5">
             {catalog.map((server) => {

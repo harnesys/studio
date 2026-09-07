@@ -26,7 +26,7 @@ export function SkillsInspector({ agent }: { agent: Agent }) {
     <Section label="Skills" hint={hint}>
       {!query.isPending &&
         (catalog.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground">No skills in `.agents/skills`.</p>
+          <p className="text-[12px] text-muted-foreground">No skills in `.harnesys/skills`.</p>
         ) : (
           <div className="flex flex-col gap-1">
             {names.map((name) => (

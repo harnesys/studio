@@ -28,7 +28,7 @@ function mcpJsonPath(workspacePath: string): string {
   return join(studioDir(workspacePath), 'mcp.json');
 }
 
-/** Read `<workspace>/.studio/mcp.json` including disabled entries. */
+/** Read `<workspace>/.harnesys/mcp.json` including disabled entries. */
 export function readWorkspaceMcpJson(workspacePath: string): Record<string, StdioEntry | UrlEntry> {
   const path = mcpJsonPath(workspacePath);
   if (!existsSync(path)) {
@@ -46,13 +46,13 @@ export function readWorkspaceMcpJson(workspacePath: string): Record<string, Stdi
 
   const result = mcpJsonSchema.safeParse(parsed);
   if (!result.success) {
-    throw new ValidationError(`Invalid .studio/mcp.json: ${result.error.message}`);
+    throw new ValidationError(`Invalid .harnesys/mcp.json: ${result.error.message}`);
   }
 
   return result.data.mcpServers as Record<string, StdioEntry | UrlEntry>;
 }
 
-/** Write `<workspace>/.studio/mcp.json` (2-space pretty JSON). */
+/** Write `<workspace>/.harnesys/mcp.json` (2-space pretty JSON). */
 export function writeWorkspaceMcpJson(
   workspacePath: string,
   mcpServers: Record<string, StdioEntry | UrlEntry>,
@@ -61,7 +61,7 @@ export function writeWorkspaceMcpJson(
   writeFileSync(mcpJsonPath(workspacePath), `${JSON.stringify({ mcpServers }, null, 2)}\n`, 'utf8');
 }
 
-/** Read `.studio/mcp.json` and normalize enabled servers to domain configs. */
+/** Read `.harnesys/mcp.json` and normalize enabled servers to domain configs. */
 export function loadWorkspaceMcpServers(workspacePath: string): McpServerConfig[] {
   const map = readWorkspaceMcpJson(workspacePath);
   const out: McpServerConfig[] = [];

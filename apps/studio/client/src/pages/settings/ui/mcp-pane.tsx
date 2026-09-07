@@ -145,7 +145,7 @@ export function McpPane() {
             <EmptyHeader>
               <EmptyTitle>No MCP servers</EmptyTitle>
               <EmptyDescription>
-                No servers in `.studio/mcp.json`. Add a server to connect tools.
+                No servers in `.harnesys/mcp.json`. Add a server to connect tools.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

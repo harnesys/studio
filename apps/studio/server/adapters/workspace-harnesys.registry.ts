@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import type {
   AgentDefinition,
   AgentGenerationSettings,
@@ -20,6 +19,7 @@ import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-pr
 import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
+import { skillRegistryRoots } from './store/studio-layout.ts';
 
 export type WorkspaceHarnesysRepos = {
   agents?: AgentRepository;
@@ -93,7 +93,7 @@ export class WorkspaceHarnesysRegistry {
    */
   effectiveRegistrations(workspace: Workspace): CapabilityRegistration[] {
     const skills = new FsSkillRegistry({
-      roots: [join(workspace.path, '.agents', 'skills')],
+      roots: skillRegistryRoots(workspace.path),
     });
     return [
       ...this.capabilityRegistrations,
@@ -113,7 +113,7 @@ export class WorkspaceHarnesysRegistry {
       return Promise.reject(new ValidationError(err instanceof Error ? err.message : String(err)));
     }
     const skills = new FsSkillRegistry({
-      roots: [join(workspace.path, '.agents', 'skills')],
+      roots: skillRegistryRoots(workspace.path),
     });
     return createRuntime({
       models: this.models,

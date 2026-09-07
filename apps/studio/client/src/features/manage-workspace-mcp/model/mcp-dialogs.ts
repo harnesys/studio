@@ -7,7 +7,7 @@ import { AddMcpServerDialog, EditMcpServerDialog } from '../ui/mcp-dialogs';
 export function openAddMcpServerDialog() {
   return dialog.open(AddMcpServerDialog, {
     title: 'Add MCP server',
-    description: 'Writes an entry into workspace `.studio/mcp.json`.',
+    description: 'Writes an entry into workspace `.harnesys/mcp.json`.',
     className: 'sm:max-w-lg',
     testId: 'add-mcp-server-dialog',
   });
@@ -16,7 +16,7 @@ export function openAddMcpServerDialog() {
 export function openEditMcpServerDialog(server: WorkspaceMcpConfigServer) {
   return dialog.open(EditMcpServerDialog, {
     title: 'Edit MCP server',
-    description: `Update ${server.serverId} in \`.studio/mcp.json\`.`,
+    description: `Update ${server.serverId} in \`.harnesys/mcp.json\`.`,
     className: 'sm:max-w-lg',
     testId: 'edit-mcp-server-dialog',
     data: { server },
@@ -26,7 +26,7 @@ export function openEditMcpServerDialog(server: WorkspaceMcpConfigServer) {
 export function confirmDeleteMcpServer(serverId: string) {
   return alert.confirm({
     title: `Delete ${serverId}?`,
-    description: 'Removes this server from `.studio/mcp.json`.',
+    description: 'Removes this server from `.harnesys/mcp.json`.',
     confirmText: 'Delete',
     variant: 'destructive',
     testId: 'delete-mcp-server-dialog',

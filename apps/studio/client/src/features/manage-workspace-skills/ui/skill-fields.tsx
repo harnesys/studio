@@ -22,7 +22,7 @@ export function SkillFields({ control }: { control: Control<SkillFieldsInput> })
               placeholder="code-review"
               aria-invalid={fieldState.invalid || undefined}
             />
-            <FieldDescription>Kebab-case folder name under `.agents/skills`.</FieldDescription>
+            <FieldDescription>Kebab-case folder name under `.harnesys/skills`.</FieldDescription>
             {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
           </Field>
         )}

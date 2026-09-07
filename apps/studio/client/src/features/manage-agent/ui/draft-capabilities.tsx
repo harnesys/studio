@@ -73,7 +73,7 @@ export function DraftCapabilities({
           </h3>
           {!skillsQuery.isPending &&
             (skillNames.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground">No skills in `.agents/skills`.</p>
+              <p className="text-[12px] text-muted-foreground">No skills in `.harnesys/skills`.</p>
             ) : (
               <div className="flex flex-col gap-2.5">
                 {skillCatalog.map((skill) => (
@@ -131,7 +131,9 @@ export function DraftCapabilities({
           </h3>
           {!mcpQuery.isPending &&
             (servers.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground">No servers in `.studio/mcp.json`.</p>
+              <p className="text-[12px] text-muted-foreground">
+                No servers in `.harnesys/mcp.json`.
+              </p>
             ) : (
               <div className="flex flex-col gap-2.5">
                 {servers.map((server) => {

@@ -47,12 +47,12 @@ export const SETTINGS_GROUPS = [
       {
         id: 'skills' as const,
         label: 'Skills',
-        description: 'Workspace skill packs under `.agents/skills`.',
+        description: 'Workspace skill packs under `.harnesys/skills`.',
       },
       {
         id: 'mcp' as const,
         label: 'MCP',
-        description: 'Model Context Protocol servers in `.studio/mcp.json`.',
+        description: 'Model Context Protocol servers in `.harnesys/mcp.json`.',
       },
       {
         id: 'tools' as const,

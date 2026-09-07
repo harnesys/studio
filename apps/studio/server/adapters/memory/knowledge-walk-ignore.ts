@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 import ignore, { type Ignore } from 'ignore';
-import { HOME_DIR_NAME } from '../../config/constants.ts';
+import { HOME_DIR_NAME, STUDIO_DIR_LEGACY } from '../../config/constants.ts';
 
 const SAFETY_NAMES = new Set([
   'node_modules',
@@ -13,6 +13,7 @@ const SAFETY_NAMES = new Set([
   '.cache',
   'coverage',
   HOME_DIR_NAME,
+  STUDIO_DIR_LEGACY,
 ]);
 
 export type SkipReason = 'gitignore' | 'harnesysignore' | 'binary_or_ext' | 'too_large' | 'safety';

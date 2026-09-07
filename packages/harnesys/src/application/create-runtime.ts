@@ -22,6 +22,7 @@ import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createToolRegistry, filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
+import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
 
 function isMcpRegistry(value: unknown): boolean {
   return (
@@ -132,6 +133,8 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     run: async (agent, opts) => {
       const def = resolveAgent(agent);
       const plan = compileOrThrow(def);
+      const runRegistry = new Map(filterToolsForAgent(toolRegistry, def));
+      runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
       return runGraph({
         agent: def,
         input: opts.input,
@@ -142,7 +145,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         capabilityRegistrations,
         artifacts: options.artifacts,
         models: options.models,
-        toolRegistry: filterToolsForAgent(toolRegistry, def),
+        toolRegistry: runRegistry,
         plan,
         toolMessages: options.toolMessages ?? 'ordered',
         mergeState: options.mergeState,
@@ -152,6 +155,8 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     start: (agent, opts) => {
       const def = resolveAgent(agent);
       const plan = compileOrThrow(def);
+      const runRegistry = new Map(filterToolsForAgent(toolRegistry, def));
+      runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
       return startGraph({
         agent: def,
         input: opts.input,
@@ -162,7 +167,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         capabilityRegistrations,
         artifacts: options.artifacts,
         models: options.models,
-        toolRegistry: filterToolsForAgent(toolRegistry, def),
+        toolRegistry: runRegistry,
         plan,
         toolMessages: options.toolMessages ?? 'ordered',
         mergeState: options.mergeState,

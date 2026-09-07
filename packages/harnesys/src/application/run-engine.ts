@@ -7,6 +7,8 @@ import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
 import { admit, flushJournal, guardedTransition, runSegment } from './run-engine-segment.ts';
 import type { RunEngine, RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
 import { filterToolsForAgent } from './tool-registry.ts';
+import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
+import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
 
 export type { RunEngine, RunEngineDeps, RunTargetOpts };
 
@@ -118,6 +120,10 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         const user = answer === null ? await findFirstUser(runId) : null;
         const plan = compileOrThrow(opts.agent);
         const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
+        const runRegistry = new Map(
+          filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, opts.agent),
+        );
+        runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
         graphOpts = {
           agent: opts.agent,
           input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
@@ -129,7 +135,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           paths: opts.paths,
           artifacts: deps.artifacts,
           models: deps.models,
-          toolRegistry: filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, opts.agent),
+          toolRegistry: runRegistry,
           plan,
           toolMessages: deps.toolMessages,
           mergeState: deps.mergeState,

@@ -56,6 +56,7 @@ export type AgentPatch = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, CapabilityConfig | null>;
+  updatedAt?: string;
 };
 
 export type AgentRepository = {

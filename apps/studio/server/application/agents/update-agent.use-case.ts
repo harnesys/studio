@@ -131,6 +131,8 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       budget: patch.budget !== undefined ? patch.budget : agent.budget,
     });
 
+    patch.updatedAt = new Date().toISOString();
+
     return await Promise.resolve(this.agents.update(request.id, patch));
   }
 }

@@ -10,6 +10,7 @@ import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
+import type { AgentsResolve } from '../ports/create-runtime.ts';
 import type { ModelBinding, ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
@@ -29,6 +30,7 @@ import {
   stateKeyOf,
 } from './graph-helpers.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
+import { runSpawnNode, type SpawnNodeSpec } from './graph-spawn.ts';
 import { type LlmResult, runLlmGenerate } from './llm.ts';
 import {
   type BudgetLeft,
@@ -144,6 +146,7 @@ export type GraphOpts = {
   /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
   inputRecorded?: boolean;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
+  agents: AgentsResolve;
 };
 
 async function resolveFallbackBindings(
@@ -951,6 +954,27 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
       yield ev;
       break;
+    } else if (node.type === 'control:spawn') {
+      let spawnOutcome: Awaited<ReturnType<typeof runSpawnNode>>;
+      try {
+        spawnOutcome = await runSpawnNode(node as SpawnNodeSpec, opts, slots, startGraph);
+      } catch (err) {
+        const code =
+          err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
+            ? (err as { code: string }).code
+            : 'spawn_failed';
+        const message = err instanceof Error && err.message ? err.message : 'spawn failed';
+        const e = await commit('failed', 'run.failed', 'recorded', { code, message });
+        yield e;
+        throw Object.assign(new Error(message), { code });
+      }
+      for (const emission of spawnOutcome.emissions) {
+        const e = await commit('running', emission.type, 'recorded', emission.metadata);
+        yield e;
+      }
+      output = spawnOutcome.results;
+      const e = await commit('running', 'node.completed');
+      yield e;
     } else {
       const e = await commit('failed', 'run.failed', 'recorded', {
         code: 'node_unsupported',

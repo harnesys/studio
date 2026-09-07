@@ -1,6 +1,7 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { CapabilityRegistration } from '../domain/capability.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
+import type { AgentsResolve } from '../ports/create-runtime.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
@@ -26,6 +27,7 @@ export type RunEngineDeps = {
   artifacts?: ArtifactStore;
   /** Runtime-wide registrations (RuntimeContext); RunTargetOpts.capabilities wins when set. */
   capabilityRegistrations?: CapabilityRegistration[];
+  agents: AgentsResolve;
 };
 
 export type RunTargetOpts = {

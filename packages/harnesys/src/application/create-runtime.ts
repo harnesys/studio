@@ -150,6 +150,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         toolMessages: options.toolMessages ?? 'ordered',
         mergeState: options.mergeState,
         stream: options.stream,
+        agents: options.agents,
       });
     },
     start: (agent, opts) => {
@@ -172,6 +173,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         toolMessages: options.toolMessages ?? 'ordered',
         mergeState: options.mergeState,
         stream: options.stream,
+        agents: options.agents,
       });
     },
     // Resume path removed with the journal-first engine: use SessionHandle.respond.

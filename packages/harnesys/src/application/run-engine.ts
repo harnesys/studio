@@ -143,6 +143,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           startNodeId,
           notes: opts.notes,
           capabilityRegistrations: opts.capabilities ?? deps.capabilityRegistrations,
+          agents: deps.agents,
           outputHint:
             startNodeId === undefined ? undefined : (snap?.cursor.interrupt?.output ?? null),
           rejected: answer?.rejected === true,

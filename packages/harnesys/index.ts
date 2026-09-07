@@ -6,8 +6,10 @@ export type {
   ParsedCompactionSpec,
 } from './src/domain/compaction.ts';
 export type {
+  AgentBudget,
   AgentDefinition,
   AgentGenerationSettings,
+  AgentGraph,
   AgentMemoryConfig,
   AgentModelRef,
   AgentPaths,
@@ -225,6 +227,14 @@ export { planFollowPrompt } from './src/capabilities/plan/prompt.ts';
 export type { ThreadSummary, ThreadsPort } from './src/ports/threads.ts';
 export type { ThreadsCapabilityPorts } from './src/capabilities/threads/index.ts';
 export { threadsCapability } from './src/capabilities/threads/index.ts';
+export type {
+  AgentCatalogCreateInput,
+  AgentCatalogSummary,
+  AgentsCatalogPort,
+} from './src/ports/agents-catalog.ts';
+export type { AgentsCapabilityPorts } from './src/capabilities/agents/index.ts';
+export { agentsCapability } from './src/capabilities/agents/index.ts';
+export { AGENTS_PROMPT_FRAGMENT } from './src/capabilities/agents/prompt.ts';
 export { PERMISSION_MODES, SCHEDULE_HISTORIES } from './src/domain/schedule.ts';
 export type { PermissionMode, ScheduleHistory } from './src/domain/schedule.ts';
 export type {

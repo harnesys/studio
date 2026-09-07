@@ -8,6 +8,7 @@ export type Thread = {
   kind: ThreadKind;
   updatedAt: string;
   unread: boolean;
+  pinned?: boolean;
   /** Live run known from the last full record. Drives stream reconnect without refetch. */
   activeRunId?: string | null;
 };

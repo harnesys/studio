@@ -9,7 +9,9 @@ export const createThreadBody = z.object({
   kind: z.enum(['chat', 'schedule']).optional(),
 });
 
-export const updateThreadBody = createThreadBody;
+export const updateThreadBody = createThreadBody.extend({
+  pinned: z.boolean().optional(),
+});
 
 export const sendThreadRunBody = z
   .object({

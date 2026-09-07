@@ -22,6 +22,7 @@ export type ThreadRecord = {
   updatedAt: string;
   lastReadAt: string;
   unread: boolean;
+  pinned: boolean;
   events: SessionEvent[];
   activeRun: ThreadActiveRun | null;
 };
@@ -38,6 +39,7 @@ export type ThreadSummary = Pick<
   | 'updatedAt'
   | 'lastReadAt'
   | 'unread'
+  | 'pinned'
 >;
 
 /** Accepted send: queued run id from the journal. */

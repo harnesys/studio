@@ -1,11 +1,4 @@
-import {
-  CalendarClockIcon,
-  EarthIcon,
-  MessageSquareIcon,
-  MessageSquarePlusIcon,
-  MoreHorizontalIcon,
-} from 'lucide-react';
-import type { ReactNode } from 'react';
+import { CalendarClockIcon, EarthIcon, MessageSquarePlusIcon } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { type AgentStatus, statusLabel } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
@@ -20,7 +13,6 @@ import {
   useAgentThreads,
   useDeskStore,
   useSelectedAgent,
-  useThreadWaiting,
   useWorkspaceAgents,
   useWorkspaceSchedules,
   useWorkspaceWebhooks,
@@ -39,28 +31,18 @@ import {
   openWebhookConfigDialog,
 } from '@/features/manage-webhook';
 import { confirmDeleteThread, openNewThread } from '@/features/switch-thread';
-import { deleteThreadRecord } from '@/shared/api';
+import { deleteThreadRecord, setThreadPinned } from '@/shared/api';
 import { studioPath, type ThreadOriginRef } from '@/shared/config/routes';
-import { formatDayTime } from '@/shared/lib/format-clock';
 import { cn } from '@/shared/lib/utils';
-import { Button } from '@/shared/ui/button';
 import {
   CategoryLanding,
   CategoryLandingActionCard,
   CategoryLandingActions,
   CategoryLandingDescription,
   CategoryLandingEyebrow,
-  CategoryLandingList,
-  CategoryLandingSectionLabel,
   CategoryLandingTitle,
 } from '@/shared/ui/category-landing';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/shared/ui/dropdown-menu';
+import { ThreadSection } from './thread-section';
 
 export function AgentDashboard() {
   const agent = useSelectedAgent();
@@ -70,7 +52,13 @@ export function AgentDashboard() {
   const agents = useWorkspaceAgents(agent?.workspaceId ?? null);
   const schedules = useWorkspaceSchedules(agent?.workspaceId ?? null);
   const webhooks = useWorkspaceWebhooks(agent?.workspaceId ?? null);
-  const sorted = [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const sorted = [...threads].sort((a, b) => {
+    const pinDelta = Number(b.pinned === true) - Number(a.pinned === true);
+    if (pinDelta !== 0) {
+      return pinDelta;
+    }
+    return b.updatedAt.localeCompare(a.updatedAt);
+  });
   const chats = sorted.filter((thread) => thread.kind === 'chat');
   const automations = sorted.filter((thread) => thread.kind !== 'chat');
 
@@ -157,6 +145,15 @@ export function AgentDashboard() {
     }
   };
 
+  const handleTogglePin = (thread: Thread) => {
+    const next = thread.pinned !== true;
+    void setThreadPinned(thread.id, next)
+      .catch(() => null)
+      .then((record) => {
+        useThreadStore.getState().setPinned(thread.id, record ? record.pinned : next);
+      });
+  };
+
   const handleDeleteThread = (thread: Thread) => {
     if (!agent) {
       return;
@@ -226,7 +223,9 @@ export function AgentDashboard() {
     >
       <CategoryLandingEyebrow>READY</CategoryLandingEyebrow>
       <CategoryLandingTitle>{agent.name} is on the floor</CategoryLandingTitle>
-      <CategoryLandingDescription>{agent.instructions || agent.role}</CategoryLandingDescription>
+      <CategoryLandingDescription className="line-clamp-4">
+        {agent.instructions || agent.role}
+      </CategoryLandingDescription>
       <div className="mt-2 flex items-center gap-2">
         {agent.role && agent.instructions ? (
           <p className="min-w-0 truncate text-[11px] text-muted-foreground leading-4">
@@ -263,121 +262,24 @@ export function AgentDashboard() {
         </CategoryLandingActions>
       </div>
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        <div className="min-w-0">
-          <CategoryLandingSectionLabel>{`Chats · ${chats.length}`}</CategoryLandingSectionLabel>
-          {chats.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No chats yet.</p>
-          ) : (
-            <div className="max-h-[416px] overflow-y-auto pr-1">
-              <CategoryLandingList>
-                {chats.map((thread) => (
-                  <ThreadRow
-                    key={thread.id}
-                    thread={thread}
-                    onOpen={() => openThread(thread.id)}
-                    onDelete={() => handleDeleteThread(thread)}
-                  />
-                ))}
-              </CategoryLandingList>
-            </div>
-          )}
-        </div>
-        <div className="min-w-0">
-          <CategoryLandingSectionLabel>{`Automations · ${automations.length}`}</CategoryLandingSectionLabel>
-          {automations.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No automations yet.</p>
-          ) : (
-            <div className="max-h-[416px] overflow-y-auto pr-1">
-              <CategoryLandingList>
-                {automations.map((thread) => (
-                  <ThreadRow
-                    key={thread.id}
-                    thread={thread}
-                    onOpen={() => openThread(thread.id)}
-                    onDelete={() => handleDeleteThread(thread)}
-                  />
-                ))}
-              </CategoryLandingList>
-            </div>
-          )}
-        </div>
+        <ThreadSection
+          label="Chats"
+          emptyLabel="No chats yet."
+          threads={chats}
+          onOpen={(thread) => openThread(thread.id)}
+          onPinToggle={handleTogglePin}
+          onDelete={handleDeleteThread}
+        />
+        <ThreadSection
+          label="Automations"
+          emptyLabel="No automations yet."
+          threads={automations}
+          onOpen={(thread) => openThread(thread.id)}
+          onPinToggle={handleTogglePin}
+          onDelete={handleDeleteThread}
+        />
       </div>
     </CategoryLanding>
-  );
-}
-
-function ThreadRow({
-  thread,
-  onOpen,
-  onDelete,
-}: {
-  thread: Thread;
-  onOpen: () => void;
-  onDelete: () => void;
-}) {
-  const running = useSessionStore((state) => Boolean(state.activeRuns[thread.id]));
-  const waiting = useThreadWaiting(thread.id);
-  let runState: 'running' | 'waiting' | null = null;
-  if (running) {
-    runState = 'running';
-  } else if (waiting) {
-    runState = 'waiting';
-  }
-  const parts: string[] = [];
-  if (runState) {
-    parts.push(runState);
-  }
-  if (thread.unread) {
-    parts.push('unread');
-  }
-  let status: ReactNode = null;
-  if (parts.length > 0) {
-    const tone = runState === 'waiting' ? 'text-live/70' : 'text-live';
-    status = <span className={tone}>{parts.join(' · ')}</span>;
-  }
-  return (
-    <li className="group/row relative">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="flex w-full items-center gap-2.5 rounded-lg border border-transparent py-2 pr-9 pl-2 text-left transition-colors hover:border-border/70 hover:bg-background/60 focus-visible:border-live/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-live/15"
-      >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground [&_svg]:size-3.5">
-          {thread.kind === 'schedule' ? <CalendarClockIcon /> : <MessageSquareIcon />}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm leading-4">{thread.title}</span>
-          <span className="block truncate font-mono text-[11px] text-muted-foreground leading-4">
-            {formatDayTime(thread.updatedAt)}
-          </span>
-        </span>
-        {status ? (
-          <span className="shrink-0 font-mono text-[10px] leading-none">{status}</span>
-        ) : null}
-      </button>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="absolute top-1 right-1 opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100 data-open:opacity-100"
-            />
-          }
-          onClick={(event) => event.stopPropagation()}
-        >
-          <MoreHorizontalIcon />
-          <span className="sr-only">Thread actions</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
-          <DropdownMenuGroup>
-            <DropdownMenuItem variant="destructive" onClick={onDelete}>
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </li>
   );
 }
 

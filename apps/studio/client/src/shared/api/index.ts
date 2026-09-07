@@ -94,6 +94,7 @@ export {
   respondToRun,
   retryRun,
   sendThreadRun,
+  setThreadPinned,
   uploadThreadAttachment,
 } from './threads';
 export {

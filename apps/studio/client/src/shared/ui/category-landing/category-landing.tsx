@@ -58,8 +58,18 @@ export function CategoryLandingTitle({ children }: { children: ReactNode }) {
   );
 }
 
-export function CategoryLandingDescription({ children }: { children: ReactNode }) {
-  return <p className="mt-3 max-w-md text-muted-foreground text-sm leading-relaxed">{children}</p>;
+export function CategoryLandingDescription({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <p className={cn('mt-3 max-w-md text-muted-foreground text-sm leading-relaxed', className)}>
+      {children}
+    </p>
+  );
 }
 
 export function CategoryLandingActions({ children }: { children: ReactNode }) {

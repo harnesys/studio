@@ -49,6 +49,23 @@ export class SqliteThreadRepo implements ThreadRepository {
     return toThread(row);
   }
 
+  setPinned(id: string, pinned: boolean): Thread {
+    const current = this.findById(id);
+    if (!current) {
+      throw new NotFoundError('thread not found');
+    }
+    const meta = (
+      typeof current.metadata === 'object' && current.metadata !== null ? current.metadata : {}
+    ) as Record<string, unknown>;
+    const row = this.db
+      .update(threadsTable)
+      .set({ metadata: JSON.stringify({ ...meta, pinned }) })
+      .where(eq(threadsTable.id, id))
+      .returning()
+      .get();
+    return toThread(row);
+  }
+
   markRead(id: string): Thread {
     const current = this.findById(id);
     if (!current) {

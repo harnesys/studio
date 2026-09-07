@@ -24,6 +24,14 @@ export function readFields(thread: Pick<Thread, 'updatedAt' | 'lastReadAt'>): {
   };
 }
 
+export function pinnedFields(thread: Pick<Thread, 'metadata'>): { pinned: boolean } {
+  const meta = thread.metadata;
+  return {
+    pinned:
+      typeof meta === 'object' && meta !== null && (meta as { pinned?: unknown }).pinned === true,
+  };
+}
+
 export function toSummary(thread: ThreadRecord): ThreadSummary {
   return {
     id: thread.id,
@@ -36,5 +44,6 @@ export function toSummary(thread: ThreadRecord): ThreadSummary {
     updatedAt: thread.updatedAt,
     lastReadAt: thread.lastReadAt,
     unread: thread.unread,
+    pinned: thread.pinned,
   };
 }

@@ -15,6 +15,7 @@ type ThreadStore = {
   replaceWorkspace: (workspaceId: string, threads: Thread[]) => void;
   markRead: (threadId: string) => void;
   markUnread: (threadId: string) => void;
+  setPinned: (threadId: string, pinned: boolean) => void;
   setViewingAtEnd: (threadId: string, atEnd: boolean) => void;
   isViewingAtEnd: (threadId: string) => boolean;
   touch: (threadId: string) => void;
@@ -84,6 +85,12 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
     }
     set((state) => ({
       items: state.items.map((item) => (item.id === threadId ? { ...item, unread: true } : item)),
+    }));
+  },
+
+  setPinned: (threadId, pinned) => {
+    set((state) => ({
+      items: state.items.map((item) => (item.id === threadId ? { ...item, pinned } : item)),
     }));
   },
 

@@ -56,6 +56,7 @@ export class CreateThreadUseCase implements CreateThreadInput {
       kind: thread.kind,
       createdAt: thread.createdAt,
       updatedAt: thread.updatedAt,
+      pinned: false,
       lastReadAt: thread.lastReadAt,
       unread: false,
       events: [],

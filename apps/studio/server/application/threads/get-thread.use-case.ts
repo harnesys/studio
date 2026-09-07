@@ -4,7 +4,7 @@ import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { activeRunOf } from './active-run-record.ts';
-import { readFields } from './thread.helpers.ts';
+import { pinnedFields, readFields } from './thread.helpers.ts';
 
 export type GetThreadRequest = {
   id: string;
@@ -44,6 +44,7 @@ export class GetThreadUseCase implements GetThreadInput {
       createdAt: thread.createdAt,
       updatedAt: thread.updatedAt,
       ...readFields(thread),
+      ...pinnedFields(thread),
       events,
       activeRun: activeRunOf(active),
     };

@@ -141,6 +141,13 @@ export function markThreadRead(id: string) {
   return apiJson<ThreadRecord>(`/api/threads/${id}/read`, { method: 'POST' });
 }
 
+export function setThreadPinned(id: string, pinned: boolean) {
+  return apiJson<ThreadRecord>(`/api/threads/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ pinned }),
+  });
+}
+
 export function deleteThreadRecord(id: string) {
   return apiJson<void>(`/api/threads/${id}`, { method: 'DELETE' });
 }

@@ -10,6 +10,7 @@ export type UpdateThreadRequest = {
   title?: string;
   agentId?: string;
   workspaceId?: string;
+  pinned?: boolean;
 };
 
 export type UpdateThreadInput = {
@@ -35,6 +36,9 @@ export class UpdateThreadUseCase implements UpdateThreadInput {
     }
     if (request.title) {
       this.threads.updateTitle(request.id, request.title);
+    }
+    if (request.pinned !== undefined) {
+      this.threads.setPinned(request.id, request.pinned);
     }
     return this.getThread.execute({ id: request.id });
   }

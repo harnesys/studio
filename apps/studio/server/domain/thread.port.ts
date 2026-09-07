@@ -24,6 +24,8 @@ export type ThreadRepository = {
   findById(id: string): Thread | undefined;
   insert(rec: ThreadInsert): Thread;
   updateTitle(id: string, title: string): Thread;
+  /** Toggle the pinned flag in thread metadata. Does not bump updatedAt. */
+  setPinned(id: string, pinned: boolean): Thread;
   /** Set lastReadAt to the thread's current updatedAt (unread → false). */
   markRead(id: string): Thread;
   touch(id: string): void;

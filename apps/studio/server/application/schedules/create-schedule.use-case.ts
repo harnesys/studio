@@ -160,6 +160,7 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
         createdAt: thread.createdAt,
         updatedAt: thread.updatedAt,
         ...readFields(thread),
+        pinned: false,
         events: [],
         activeRun: null,
       },

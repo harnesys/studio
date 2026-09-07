@@ -246,6 +246,7 @@ export class ThreadController {
         title: body.title ?? undefined,
         agentId: body.agentId ?? undefined,
         workspaceId: body.workspaceId ?? undefined,
+        pinned: body.pinned,
       });
       return c.json(thread);
     });

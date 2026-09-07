@@ -117,6 +117,18 @@ export function AgentThreadsPanel({
             thread={thread}
             selected={activeThreadId === thread.id}
             onSelect={() => openThread(thread)}
+            onOpenParent={(parentId) => {
+              const parent = useThreadStore.getState().byId(parentId);
+              if (parent) {
+                openThread(parent);
+              }
+            }}
+            onOpenChild={(childId) => {
+              const child = useThreadStore.getState().byId(childId);
+              if (child) {
+                openThread(child);
+              }
+            }}
             onPinToggle={thread.kind === 'chat' ? () => handleTogglePin(thread) : undefined}
             onDelete={thread.kind === 'chat' ? () => handleDelete(thread) : undefined}
           />

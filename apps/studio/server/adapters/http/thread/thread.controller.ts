@@ -62,8 +62,11 @@ export class ThreadController {
       const thread = await this.deps.createThread.execute({
         title: body.title ?? undefined,
         agentId: body.agentId ?? undefined,
+        originAgentId: body.originAgentId ?? undefined,
         workspaceId: body.workspaceId ?? undefined,
         kind: body.kind,
+        parentThreadId: body.parentThreadId ?? undefined,
+        forkAt: body.forkAt ?? undefined,
       });
       return c.json(thread, 201);
     });
@@ -145,7 +148,7 @@ export class ThreadController {
       }
     });
 
-    app.post('/api/threads/:id/compact', async (c) => {
+    app.post('/api/threads/:id/compact', (c) => {
       const threadId = c.req.param('id');
       trace('http', 'POST /compact', { threadId });
       c.header('Cache-Control', 'no-cache, no-transform');

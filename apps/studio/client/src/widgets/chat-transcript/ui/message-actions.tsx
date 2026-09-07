@@ -53,7 +53,8 @@ export function MessageActions({
         size="icon-xs"
         className="text-muted-foreground hover:bg-transparent hover:text-foreground"
         onClick={onBranch}
-        aria-label="Branch"
+        aria-label="Branch from here"
+        title="Branch from here"
       >
         <GitBranchIcon />
       </Button>

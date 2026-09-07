@@ -64,11 +64,12 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
               const runStreaming =
                 (streaming && last && !compacting) || (compacting && last && isCompactRun(run));
               const runKey = run.id ?? `run-${index}`;
+              const forkAt = run.runId ?? run.id ?? '';
               return (
                 <MessageScrollerItem key={runKey} messageId={runKey}>
                   <RunTurn
                     events={run.events}
-                    runId={run.id ?? ''}
+                    runId={forkAt}
                     streaming={runStreaming}
                     error={run.error}
                     onRetry={

@@ -1,6 +1,5 @@
 import type {
   AcceptedRunResponse,
-  CompactThreadResponse,
   RunMode,
   ThreadAttachment,
   ThreadPlanRecord,
@@ -13,8 +12,11 @@ import { ApiError, apiJson } from './client';
 export type CreateThreadInput = {
   title?: string;
   agentId?: string;
+  originAgentId?: string;
   workspaceId?: string;
   kind?: 'chat' | 'schedule';
+  parentThreadId?: string;
+  forkAt?: string;
 };
 export function listThreads() {
   return apiJson<ThreadSummary[]>('/api/threads');
@@ -103,10 +105,7 @@ export function retryRun(runId: string): Promise<RetryRunResponse> {
   return apiJson<RetryRunResponse>(`/api/runs/${runId}/retry`, { method: 'POST' });
 }
 
-export async function compactThreadStream(
-  id: string,
-  signal?: AbortSignal,
-): Promise<Response> {
+export async function compactThreadStream(id: string, signal?: AbortSignal): Promise<Response> {
   const response = await fetch(`/api/threads/${id}/compact`, {
     method: 'POST',
     headers: { Accept: 'text/event-stream' },

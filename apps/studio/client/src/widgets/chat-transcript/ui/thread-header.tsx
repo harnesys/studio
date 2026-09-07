@@ -1,17 +1,34 @@
+import { GitBranchIcon } from 'lucide-react';
+import { useMemo } from 'react';
+
 import { useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
+import { useDeskStore } from '@/features/desk';
+import { useIdeStore } from '@/features/ide';
+import { useStudioLocation } from '@/shared/config/location';
+import { useStudioNavigation } from '@/shared/config/navigation';
 import { cn } from '@/shared/lib/utils';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 
 /** Origin + current speakers; current is ring-highlighted. Updates when thread.agentId changes. */
 export function ThreadHeader({ threadId }: { threadId: string }) {
   const thread = useThreadStore((state) => state.byId(threadId));
+  const parent = useThreadStore((state) =>
+    thread?.parentThreadId ? state.byId(thread.parentThreadId) : undefined,
+  );
+  const items = useThreadStore((state) => state.items);
+  const children = useMemo(
+    () => items.filter((item) => item.parentThreadId === threadId),
+    [items, threadId],
+  );
   const origin = useAgentStore((state) =>
     thread ? state.items.find((item) => item.id === thread.originAgentId) : undefined,
   );
   const current = useAgentStore((state) =>
     thread ? state.items.find((item) => item.id === thread.agentId) : undefined,
   );
+  const { workspaceId } = useStudioLocation();
+  const { openThread } = useStudioNavigation();
 
   if (!thread) {
     return null;
@@ -19,6 +36,15 @@ export function ThreadHeader({ threadId }: { threadId: string }) {
 
   const same = thread.originAgentId === thread.agentId;
   const currentName = current?.name ?? 'Agent';
+
+  const goTo = (targetId: string, agentId: string) => {
+    if (!workspaceId) {
+      return;
+    }
+    useIdeStore.getState().openThread(workspaceId, agentId, targetId);
+    useDeskStore.getState().setFocusedThreadId(targetId);
+    openThread(targetId, { kind: 'agent', id: agentId }, workspaceId);
+  };
 
   return (
     <div
@@ -56,6 +82,38 @@ export function ThreadHeader({ threadId }: { threadId: string }) {
       {!same && origin ? (
         <div className="min-w-0 truncate text-[11px] text-muted-foreground leading-none">
           opened by {origin.name}
+        </div>
+      ) : null}
+      {parent ? (
+        <button
+          type="button"
+          className="inline-flex max-w-[40%] items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          data-testid="thread-parent-link"
+          title={`Parent: ${parent.title}`}
+          onClick={() => goTo(parent.id, parent.agentId)}
+        >
+          <GitBranchIcon className="size-3 shrink-0" />
+          <span className="truncate">{parent.title}</span>
+        </button>
+      ) : null}
+      {children.length > 0 ? (
+        <div
+          className="ml-auto flex min-w-0 max-w-[45%] items-center gap-1 overflow-hidden"
+          data-testid="thread-child-links"
+        >
+          {children.map((child) => (
+            <button
+              key={child.id}
+              type="button"
+              className="inline-flex max-w-[9rem] items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              data-testid={`thread-child-link-${child.id}`}
+              title={child.title}
+              onClick={() => goTo(child.id, child.agentId)}
+            >
+              <GitBranchIcon className="size-3 shrink-0" />
+              <span className="truncate">{child.title}</span>
+            </button>
+          ))}
         </div>
       ) : null}
     </div>

@@ -5,11 +5,18 @@ const optionalText = z.string().trim().nullish();
 export const createThreadBody = z.object({
   title: optionalText,
   agentId: z.string().trim().nullish(),
+  originAgentId: z.string().trim().nullish(),
   workspaceId: optionalText,
   kind: z.enum(['chat', 'schedule']).optional(),
+  parentThreadId: z.string().trim().nullish(),
+  forkAt: z.string().trim().nullish(),
 });
 
-export const updateThreadBody = createThreadBody.extend({
+export const updateThreadBody = z.object({
+  title: optionalText,
+  agentId: z.string().trim().nullish(),
+  workspaceId: optionalText,
+  kind: z.enum(['chat', 'schedule']).optional(),
   pinned: z.boolean().optional(),
 });
 

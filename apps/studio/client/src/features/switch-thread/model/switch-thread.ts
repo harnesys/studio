@@ -1,3 +1,5 @@
+import type { SessionEvent } from '@studio/shared';
+
 import { useAgentStore } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import {
@@ -45,22 +47,48 @@ export async function openNewThread(agentId: string, workspaceId: string): Promi
   return record.id;
 }
 
+/** Create a child thread linked at forkAt. Does not copy parent events. */
 export async function branchThread(
-  _entryId: string,
+  forkAt: string,
   agentId: string,
   currentThreadId: string,
   workspaceId: string,
 ): Promise<string | null> {
-  const events = useSessionStore.getState().eventsOf(currentThreadId);
-  if (events.length === 0) {
+  const parent = useThreadStore.getState().byId(currentThreadId);
+  if (!parent) {
     return null;
   }
-  const record = await createThreadRecord({ workspaceId, agentId, title: branchTitle('') });
+  const agent = useAgentStore.getState().byId(agentId);
+  if (!agent) {
+    return null;
+  }
+  const events = useSessionStore.getState().eventsOf(currentThreadId);
+  const record = await createThreadRecord({
+    workspaceId,
+    agentId: agent.id,
+    originAgentId: agent.id,
+    title: branchTitle(titleSource(events, forkAt)),
+    parentThreadId: currentThreadId,
+    forkAt,
+  });
   const thread = toClientThread(record);
   useThreadStore.getState().upsert(thread);
-  useSessionStore.getState().copyEvents(currentThreadId, thread.id);
-  setActiveThreadId(agentId, thread.id);
+  useSessionStore.getState().replaceEvents(record.id, record.events);
+  setActiveThreadId(agent.id, thread.id);
   return thread.id;
+}
+
+function titleSource(events: SessionEvent[], forkAt: string): string {
+  for (const event of events) {
+    if ('id' in event && event.id === forkAt && 'text' in event && typeof event.text === 'string') {
+      return event.text;
+    }
+  }
+  const fromRun = events
+    .filter((event) => event.runId === forkAt && event.type === 'text-delta')
+    .map((event) => ('text' in event ? event.text : ''))
+    .join('');
+  return fromRun;
 }
 
 function branchTitle(content: string): string {

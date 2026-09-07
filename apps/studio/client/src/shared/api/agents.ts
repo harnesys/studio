@@ -1,6 +1,7 @@
 import type {
   AgentBudget,
   AgentGenerationSettings,
+  AgentGraph,
   AgentMemoryConfig,
   AgentRecord,
   CapabilityConfig,
@@ -24,6 +25,7 @@ export type CreateAgentInput = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  graph?: AgentGraph;
   capabilities?: Record<string, CapabilityConfig | null>;
 };
 
@@ -41,6 +43,7 @@ export type UpdateAgentInput = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  graph?: AgentGraph;
   capabilities?: Record<string, CapabilityConfig | null>;
 };
 

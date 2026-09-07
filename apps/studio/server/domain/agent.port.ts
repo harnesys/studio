@@ -8,9 +8,19 @@ import type {
   ToolOutputSettings,
 } from '../../shared/types.ts';
 
+export type AgentGraphRankdir = 'TB' | 'LR';
+
+export type AgentGraphPosition = { x: number; y: number };
+
+export type AgentGraphLayout = {
+  rankdir: AgentGraphRankdir;
+  positions: Record<string, AgentGraphPosition>;
+};
+
 export type AgentGraph = {
   nodes: Record<string, Node>;
   edges: Edge[];
+  layout?: AgentGraphLayout;
 };
 
 export type Agent = {

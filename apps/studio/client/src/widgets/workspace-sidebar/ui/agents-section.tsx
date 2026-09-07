@@ -60,10 +60,16 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
       if (!result || !workspaceId) {
         return;
       }
-      const created = await createAgent(workspaceId, result.fields);
-      if (created) {
-        await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
-        await openCreated(created);
+      try {
+        const created = await createAgent(workspaceId, result.fields);
+        if (created) {
+          await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
+          await openCreated(created);
+        }
+      } catch (error) {
+        toast.add({
+          title: error instanceof Error ? error.message : 'Could not create agent',
+        });
       }
     });
   };
@@ -193,8 +199,14 @@ export function AgentsSection({
               if (!result) {
                 return;
               }
-              await updateAgent(workspaceId, item.id, result.fields);
-              await updateAgentCapabilities(workspaceId, item.id, result.capabilities);
+              try {
+                await updateAgent(workspaceId, item.id, result.fields);
+                await updateAgentCapabilities(workspaceId, item.id, result.capabilities);
+              } catch (error) {
+                toast.add({
+                  title: error instanceof Error ? error.message : 'Could not save agent',
+                });
+              }
             });
           }}
           onDelete={() => {

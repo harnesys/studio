@@ -19,6 +19,7 @@ export function toClientAgent(record: AgentRecord): Agent {
     skills: record.skills ?? [],
     mcpServers: record.mcpServers ?? [],
     tools: record.tools ?? [],
+    graph: record.graph ?? { nodes: {}, edges: [] },
     capabilities: record.capabilities ?? {},
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,

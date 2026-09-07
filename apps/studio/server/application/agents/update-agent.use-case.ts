@@ -7,7 +7,7 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '../../../shared/types.ts';
-import type { Agent, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
+import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { requireAgent } from './agent.helpers.ts';
@@ -30,6 +30,7 @@ export type UpdateAgentRequest = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, CapabilityConfig | null>;
 };
@@ -118,7 +119,9 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       patch.capabilities = request.capabilities;
     }
 
-    if (
+    if (request.graph !== undefined) {
+      patch.graph = request.graph;
+    } else if (
       (request.tools !== undefined || request.memory !== undefined) &&
       isStockReactGraph(agent.graph)
     ) {

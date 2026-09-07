@@ -5,6 +5,7 @@ import type { DeleteAgentInput } from '../../../application/agents/delete-agent.
 import type { ListAgentPresetsInput } from '../../../application/agents/list-agent-presets.use-case.ts';
 import type { ListAgentsInput } from '../../../application/agents/list-agents.use-case.ts';
 import type { UpdateAgentInput } from '../../../application/agents/update-agent.use-case.ts';
+import type { AgentGraph } from '../../../domain/agent.port.ts';
 import { createAgentBody, createAgentFromPresetBody, updateAgentBody } from './agent.body.ts';
 
 export type AgentControllerDeps = {
@@ -46,6 +47,7 @@ export class AgentController {
         skills: body.skills,
         mcpServers: body.mcpServers,
         tools: body.tools,
+        graph: body.graph as AgentGraph | undefined,
       });
       return c.json(agent, 201);
     });
@@ -78,6 +80,7 @@ export class AgentController {
         skills: body.skills,
         mcpServers: body.mcpServers,
         tools: body.tools,
+        graph: body.graph as AgentGraph | undefined,
       });
       return c.json(agent);
     });

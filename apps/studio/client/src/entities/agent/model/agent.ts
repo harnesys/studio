@@ -1,6 +1,7 @@
 import type {
   AgentBudget,
   AgentGenerationSettings,
+  AgentGraph,
   AgentMemoryConfig,
   CapabilityConfig,
   PortRef,
@@ -27,6 +28,7 @@ export type Agent = {
   skills: string[];
   mcpServers: string[];
   tools: string[];
+  graph: AgentGraph;
   capabilities: Record<string, CapabilityConfig | null>;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +50,7 @@ export type AgentDraft = {
   compaction?: PortRef;
   memory?: AgentMemoryConfig | null;
   capabilities?: Record<string, CapabilityConfig | null>;
+  graph?: AgentGraph;
 };
 
 export type AgentPatch = Partial<
@@ -66,6 +69,7 @@ export type AgentPatch = Partial<
     | 'skills'
     | 'mcpServers'
     | 'tools'
+    | 'graph'
     | 'capabilities'
   >
 >;

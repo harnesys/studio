@@ -59,6 +59,25 @@ const memoryBody = z
 
 const compactionBody = portRefBody.optional();
 
+const agentGraphBody = z
+  .object({
+    nodes: z.record(z.string(), z.object({ type: z.string() }).passthrough()),
+    edges: z.array(
+      z.object({
+        from: z.string(),
+        to: z.string(),
+        when: z.unknown().optional(),
+      }),
+    ),
+    layout: z
+      .object({
+        rankdir: z.enum(['TB', 'LR']),
+        positions: z.record(z.string(), z.object({ x: z.number(), y: z.number() })),
+      })
+      .optional(),
+  })
+  .optional();
+
 export const createAgentBody = z.object({
   name: z.string().trim().min(1),
   modelId: z.string().nullish(),
@@ -74,6 +93,7 @@ export const createAgentBody = z.object({
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
+  graph: agentGraphBody,
 });
 
 export const updateAgentBody = z.object({
@@ -91,6 +111,7 @@ export const updateAgentBody = z.object({
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
+  graph: agentGraphBody,
 });
 
 export const createAgentFromPresetBody = z.object({

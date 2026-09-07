@@ -18,6 +18,7 @@ type OverlayStore = OverlayState & {
     resolver: (value?: unknown) => void,
   ) => void;
   close: () => void;
+  patchOptions: (partial: Partial<OverlayOptions>) => void;
 };
 
 export const useOverlayStore = create<OverlayStore>((set) => ({
@@ -28,4 +29,16 @@ export const useOverlayStore = create<OverlayStore>((set) => ({
   close() {
     set(empty);
   },
+  patchOptions(partial) {
+    set((state) => {
+      if (!state.options) {
+        return state;
+      }
+      return { options: { ...state.options, ...partial } };
+    });
+  },
 }));
+
+export function patchOverlayOptions(partial: Partial<OverlayOptions>): void {
+  useOverlayStore.getState().patchOptions(partial);
+}

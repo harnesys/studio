@@ -7,19 +7,22 @@ import {
   GaugeIcon,
   LayersIcon,
   type LucideIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   PuzzleIcon,
   ScrollTextIcon,
   ServerIcon,
   UserRoundIcon,
+  WorkflowIcon,
   WrenchIcon,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import type { Agent } from '@/entities/agent';
 import { providersQuery } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
-import type { DialogComponentProps } from '@/shared/services/overlay';
+import { type DialogComponentProps, patchOverlayOptions } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 
@@ -33,16 +36,22 @@ import {
   sanitizeForModel,
   toAgentDraft,
 } from '../model/agent-fields';
+import { defaultReactGraph, type StudioGraphDocument } from '../model/agent-graph-document';
 import {
   AgentIdentityPane,
   AgentInstructionsPane,
   AgentLimitsPane,
   AgentModelPane,
 } from './agent-config-panes';
+import { AgentGraphPane } from './agent-graph-pane';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
 import { DraftCapabilityPacks } from './draft-capability-packs';
 import { DraftCompaction } from './draft-compaction';
 import { DraftMemory } from './draft-memory';
+
+const GRAPH_DIALOG_CLASS =
+  'flex h-[min(78vh,48rem)] w-[min(80vw,64rem)] max-w-[min(80vw,64rem)] overflow-hidden';
+const DEFAULT_DIALOG_CLASS = 'sm:max-w-3xl';
 
 function capabilitiesSection(category: AgentConfigCategory): DraftCapabilitiesSection {
   if (category === 'tools') {
@@ -62,6 +71,7 @@ export type AgentConfigCategory =
   | 'compaction'
   | 'memory'
   | 'skills'
+  | 'graph'
   | 'tools'
   | 'mcp'
   | 'limits';
@@ -74,6 +84,7 @@ export const AGENT_CONFIG_CATEGORIES: {
   { id: 'identity', label: 'Identity', icon: UserRoundIcon },
   { id: 'model', label: 'Model', icon: CpuIcon },
   { id: 'instructions', label: 'Instructions', icon: ScrollTextIcon },
+  { id: 'graph', label: 'Graph', icon: WorkflowIcon },
   { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
   { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },
   { id: 'memory', label: 'Memory', icon: BrainIcon },
@@ -101,6 +112,13 @@ export function AgentConfigDialog({
   const agent = data?.agent ?? null;
   const workspaceId = data?.workspaceId ?? '';
   const [category, setCategory] = useState<AgentConfigCategory>('identity');
+  const [navOpen, setNavOpen] = useState(true);
+  const [graphDoc, setGraphDoc] = useState<StudioGraphDocument>(
+    () => agent?.graph ?? defaultReactGraph(),
+  );
+  const graphDocRef = useRef(graphDoc);
+  graphDocRef.current = graphDoc;
+  const graphTouchedRef = useRef(false);
   const providers = useQuery(providersQuery).data ?? [];
   const capabilitiesRef = useRef<AgentCapabilitiesDraft>(initialCapabilities(agent));
   const form = useForm<AgentFieldsInput, unknown, AgentFieldsOutput>({
@@ -108,6 +126,22 @@ export function AgentConfigDialog({
     defaultValues: agent ? agentFieldsFrom(agent) : emptyAgentFields(),
   });
   const nameValue = useWatch({ control: form.control, name: 'name' }) ?? '';
+
+  useEffect(() => {
+    patchOverlayOptions({
+      className: category === 'graph' ? GRAPH_DIALOG_CLASS : DEFAULT_DIALOG_CLASS,
+    });
+    return () => {
+      patchOverlayOptions({ className: DEFAULT_DIALOG_CLASS });
+    };
+  }, [category]);
+
+  function selectCategory(next: AgentConfigCategory) {
+    if (next === 'graph') {
+      graphTouchedRef.current = true;
+    }
+    setCategory(next);
+  }
 
   return (
     <form
@@ -120,32 +154,59 @@ export function AgentConfigDialog({
           draft.generation,
           providers,
         );
+        const graph = graphTouchedRef.current ? graphDocRef.current : undefined;
         onResolve?.({
-          fields: { ...draft, ...sanitized },
+          fields: { ...draft, ...sanitized, ...(graph !== undefined ? { graph } : {}) },
           capabilities: capabilitiesRef.current,
+          ...(graph !== undefined ? { graph } : {}),
         });
       })}
     >
       <div className="flex min-h-0 flex-1 gap-4">
-        <nav className="flex w-40 shrink-0 flex-col gap-0.5">
-          {AGENT_CONFIG_CATEGORIES.map((item) => (
+        {navOpen ? (
+          <nav className="flex w-40 shrink-0 flex-col gap-0.5">
             <button
-              key={item.id}
               type="button"
-              onClick={() => setCategory(item.id)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm',
-                category === item.id
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/50',
-              )}
+              onClick={() => setNavOpen(false)}
+              className="mb-1 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-sidebar-accent/50"
+              title="Hide sections"
             >
-              <item.icon className="size-3.5 shrink-0" />
-              {item.label}
+              <PanelLeftCloseIcon className="size-3.5 shrink-0" />
+              Hide
             </button>
-          ))}
-        </nav>
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            {AGENT_CONFIG_CATEGORIES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => selectCategory(item.id)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm',
+                  category === item.id
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-muted-foreground hover:bg-sidebar-accent/50',
+                )}
+              >
+                <item.icon className="size-3.5 shrink-0" />
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            className="flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent/50"
+            title="Show sections"
+          >
+            <PanelLeftOpenIcon className="size-3.5" />
+          </button>
+        )}
+        <div
+          className={cn(
+            'min-h-0 flex-1',
+            category === 'graph' ? 'overflow-hidden' : 'overflow-y-auto pr-1',
+          )}
+        >
           <div className={cn(category !== 'identity' && 'hidden')}>
             <AgentIdentityPane form={form} />
           </div>
@@ -197,6 +258,18 @@ export function AgentConfigDialog({
           <div className={cn(category !== 'limits' && 'hidden')}>
             <AgentLimitsPane form={form} />
           </div>
+          {category === 'graph' ? (
+            <div className="h-full min-h-0">
+              <AgentGraphPane
+                value={graphDoc}
+                onChange={(next) => {
+                  graphTouchedRef.current = true;
+                  graphDocRef.current = next;
+                  setGraphDoc(next);
+                }}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
       <DialogFooter>

@@ -1,4 +1,4 @@
-import type { CapabilityConfig } from '@studio/shared';
+import type { AgentGraph, CapabilityConfig } from '@studio/shared';
 import type { AgentDraft } from '@/entities/agent';
 
 export type AgentCapabilitiesDraft = {
@@ -13,4 +13,5 @@ export type AgentCapabilitiesDraft = {
 export type AgentConfigResult = {
   fields: AgentDraft;
   capabilities: AgentCapabilitiesDraft;
+  graph?: AgentGraph;
 };

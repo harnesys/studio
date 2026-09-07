@@ -12,6 +12,7 @@ import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { requireAgent } from './agent.helpers.ts';
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
+import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
 
 export type UpdateAgentRequest = {
@@ -117,7 +118,10 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       patch.capabilities = request.capabilities;
     }
 
-    if (request.tools !== undefined || request.memory !== undefined) {
+    if (
+      (request.tools !== undefined || request.memory !== undefined) &&
+      isStockReactGraph(agent.graph)
+    ) {
       const tools = request.tools !== undefined ? request.tools : agent.tools;
       const memory = request.memory !== undefined ? request.memory : agent.memory;
       const graphTools =

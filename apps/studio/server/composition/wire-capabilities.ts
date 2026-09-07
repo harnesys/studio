@@ -1,4 +1,5 @@
 import {
+  agentsCapability,
   type CapabilityRegistration,
   episodicMemoryCapability,
   fetchCapability,
@@ -14,6 +15,7 @@ import {
   threadsCapability,
   webhookCapability,
 } from 'harnesys';
+import { SqliteAgentsCatalogPort } from '../adapters/capabilities/sqlite-agents-catalog.port.ts';
 import { SqlitePlanPort } from '../adapters/capabilities/sqlite-plan.port.ts';
 import { SqliteSchedulerPort } from '../adapters/capabilities/sqlite-scheduler.port.ts';
 import { SqliteThreadsPort } from '../adapters/capabilities/sqlite-threads.port.ts';
@@ -22,6 +24,7 @@ import { type HostToolScope, requireHostToolScope } from '../adapters/host-tool-
 import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
+import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { SavePlanUseCase } from '../application/plans/save-plan.use-case.ts';
 import { UpdatePlanItemUseCase } from '../application/plans/update-plan-item.use-case.ts';
@@ -40,6 +43,7 @@ import type { AgentRepository } from '../domain/agent.port.ts';
 import type { AttachmentRepository } from '../domain/attachment.port.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { DeskEventsPort } from '../domain/desk-events.port.ts';
+import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { ScheduleRepository } from '../domain/schedule.port.ts';
 import type { SemanticSessionCleanup } from '../domain/semantic-session.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
@@ -53,6 +57,8 @@ export type CapabilityRegistrationsDeps = {
   webhooks: WebhookRepository;
   threads: ThreadRepository;
   agents: AgentRepository;
+  models: LlmModelRepository;
+  providers: LlmProviderRepository;
   workspaces: WorkspaceRepository;
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
@@ -80,10 +86,23 @@ export function createCapabilityRegistrations(
   const listThreads = new ListThreadsUseCase(deps.threads, deps.workspaces, deps.agents);
   const listSchedules = new ListSchedulesUseCase(deps.schedules, deps.workspaces);
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
+  const createAgent = new CreateAgentUseCase(deps.agents, deps.models);
   return [
     registerCapability(filesCapability, {}, stubScope),
     registerCapability(shellCapability, {}, stubScope),
     registerCapability(fetchCapability, {}, stubScope),
+    registerCapability(
+      agentsCapability,
+      {
+        agents: new SqliteAgentsCatalogPort({
+          agents: deps.agents,
+          createAgent,
+          models: deps.models,
+          providers: deps.providers,
+        }),
+      },
+      resolveScope,
+    ),
     registerCapability(
       planCapability,
       {

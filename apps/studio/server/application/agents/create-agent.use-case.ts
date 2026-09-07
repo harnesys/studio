@@ -8,7 +8,7 @@ import type {
   ToolOutputSettings,
 } from '../../../shared/types.ts';
 import { defaultAgentCompaction, defaultAgentMemory } from '../../../shared/types.ts';
-import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
+import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
@@ -28,6 +28,8 @@ export type CreateAgentRequest = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  /** When set, stored as-is; otherwise host builds default ReAct. */
+  graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, CapabilityConfig | null>;
 };
@@ -76,9 +78,12 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const skills = request.skills ?? [];
     const mcpServers = request.mcpServers ?? [];
     const tools = request.tools ?? [];
-    const graphTools =
-      tools.length > 0 ? [...new Set([...tools, ...memoryToolNames(memory)])] : tools;
-    const graph = buildReactGraph(graphTools);
+    const graph =
+      request.graph !== undefined
+        ? request.graph
+        : buildReactGraph(
+            tools.length > 0 ? [...new Set([...tools, ...memoryToolNames(memory)])] : tools,
+          );
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();

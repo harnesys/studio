@@ -192,6 +192,8 @@ export function createStudio(options: StudioOptions = {}): Hono {
     webhooks: webhookRepo,
     threads: threadRepo,
     agents: agentRepo,
+    models: llmModelRepo,
+    providers: llmProviderRepo,
     workspaces: workspaceRepo,
     attachments: attachmentRepo,
     attachmentsFs: attachments,

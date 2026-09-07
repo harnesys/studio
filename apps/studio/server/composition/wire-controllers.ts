@@ -1,10 +1,4 @@
-import type {
-  ModelsPort,
-  RunClaimer,
-  RunEventFeed,
-  RunEventStore,
-  RunLifecycleStore,
-} from 'harnesys';
+import type { ModelsPort, RunClaimer, RunEventFeed, RunLifecycleStore } from 'harnesys';
 import type { Hono } from 'hono';
 import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import type { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
@@ -20,6 +14,7 @@ import type { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agen
 import type { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
 import type { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import type { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
+import type { SqliteRunEventStore } from '../adapters/store/sqlite/repos/sqlite-run-events.adapter.ts';
 import type { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import type { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
 import type { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
@@ -118,7 +113,7 @@ type ControllerDeps = {
   threadRegistry: ThreadRuntimeRegistry;
   runtimeStateRepo: SqliteRuntimeStateRepo;
   lifecycle: RunLifecycleStore;
-  events: RunEventStore;
+  events: SqliteRunEventStore;
   claimer: RunClaimer;
   feed: RunEventFeed;
   memory: StudioMemoryPorts;
@@ -262,6 +257,7 @@ export function wireControllers(d: ControllerDeps): void {
       episodic: d.memory.episodic,
       deskEvents: d.deskEvents,
       getThread: d.getThread,
+      runEvents: d.events,
     }),
     streamRunEvents: new StreamRunEventsUseCase({ lifecycle: d.lifecycle, feed: d.feed }),
     cancelRun: new CancelRunUseCase({ lifecycle: d.lifecycle, sessions }),

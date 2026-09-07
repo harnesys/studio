@@ -79,7 +79,7 @@ export {
   attachmentUrl,
   type CreateThreadInput,
   cancelRun,
-  compactThread,
+  compactThreadStream,
   createThreadRecord,
   deleteThreadEntry,
   deleteThreadRecord,

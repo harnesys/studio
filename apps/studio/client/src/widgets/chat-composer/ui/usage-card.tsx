@@ -68,16 +68,19 @@ export function UsageCard({ last, run, thread, window: windowProp = 0 }: UsageCa
 }
 
 function RollupRows({ rollup }: { rollup: UsageRollup }) {
+  const cacheMiss = Math.max(0, rollup.promptTokens - rollup.cacheReadTokens);
   return (
     <>
-      <StatRow label="Prompt" value={`${formatTokenCount(rollup.promptTokens)} tok`} />
-      <StatRow label="Generated" value={`${formatTokenCount(rollup.generatedTokens)} tok`} />
-      <StatRow label="Reasoning" value={`${formatTokenCount(rollup.reasoningTokens)} tok`} />
+      <StatRow label="Input (Cache Miss)" value={`${formatTokenCount(cacheMiss)} tok`} />
       {rollup.cacheReadTokens > 0 ? (
-        <StatRow label="Cache read" value={`${formatTokenCount(rollup.cacheReadTokens)} tok`} />
+        <StatRow label="Cache Hit" value={`${formatTokenCount(rollup.cacheReadTokens)} tok`} />
+      ) : null}
+      <StatRow label="Output" value={`${formatTokenCount(rollup.generatedTokens)} tok`} />
+      {rollup.reasoningTokens > 0 ? (
+        <StatRow label="Reasoning" value={`${formatTokenCount(rollup.reasoningTokens)} tok`} />
       ) : null}
       {rollup.cacheWriteTokens > 0 ? (
-        <StatRow label="Cache write" value={`${formatTokenCount(rollup.cacheWriteTokens)} tok`} />
+        <StatRow label="Cache Write" value={`${formatTokenCount(rollup.cacheWriteTokens)} tok`} />
       ) : null}
       <StatRow label="Steps" value={String(rollup.calls)} />
       <StatRow label="Duration" value={formatDuration(rollup.durationMs)} />

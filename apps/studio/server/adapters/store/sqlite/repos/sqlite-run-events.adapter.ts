@@ -132,6 +132,17 @@ export class SqliteRunEventStore implements RunEventStore {
     });
   }
 
+  /** Журнал вне lease (ручной /compact): дописывает в тред без статуса running. */
+  appendForThread(
+    threadId: string,
+    runId: string,
+    events: PendingSessionEvent[],
+  ): SessionEvent[] {
+    return this.db.transaction((tx): SessionEvent[] =>
+      this.appendWithinTx(tx as StudioDb, runId, threadId, events),
+    );
+  }
+
   async tail(runId: string, fromSeq: number): Promise<SessionEvent[]> {
     const rows = this.db
       .select()

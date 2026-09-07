@@ -1,5 +1,6 @@
 import type { RunLifecycleStore } from 'harnesys';
 import type { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 import type { GetThreadPlanInput } from '../../../application/plans/get-thread-plan.use-case.ts';
 import type { CancelRunInput } from '../../../application/threads/cancel-run.use-case.ts';
 import type { CompactThreadInput } from '../../../application/threads/compact-thread.use-case.ts';
@@ -16,6 +17,7 @@ import type { RetryRunInput } from '../../../application/threads/retry-run.use-c
 import type { SendThreadRunInput } from '../../../application/threads/send-thread-run.use-case.ts';
 import type { StreamRunEventsInput } from '../../../application/threads/stream-run-events.use-case.ts';
 import type { UpdateThreadInput } from '../../../application/threads/update-thread.use-case.ts';
+import { SSE_KEEP_ALIVE_MS } from '../../../config/constants.ts';
 import { RunConflictError } from '../../../domain/studio.error.ts';
 import { preview, trace } from '../../../trace.ts';
 import {
@@ -146,8 +148,42 @@ export class ThreadController {
     app.post('/api/threads/:id/compact', async (c) => {
       const threadId = c.req.param('id');
       trace('http', 'POST /compact', { threadId });
-      const response = await this.deps.compactThread.execute({ threadId });
-      return c.json(response);
+      c.header('Cache-Control', 'no-cache, no-transform');
+      c.header('X-Accel-Buffering', 'no');
+      c.header('Connection', 'keep-alive');
+      return streamSSE(c, async (stream) => {
+        const keepAlive = setInterval(() => {
+          void Promise.resolve(stream.write(':\n\n')).catch(() => {});
+        }, SSE_KEEP_ALIVE_MS);
+        try {
+          for await (const item of this.deps.compactThread.executeStream({
+            threadId,
+            signal: c.req.raw.signal,
+          })) {
+            if (item.kind === 'event') {
+              await stream.writeSSE({
+                id: String(item.event.seq ?? 0),
+                event: item.event.type,
+                data: JSON.stringify(item.event),
+              });
+            } else {
+              await stream.writeSSE({
+                event: 'compact.result',
+                data: JSON.stringify(item.response),
+              });
+            }
+          }
+        } catch (error) {
+          await stream.writeSSE({
+            event: 'error',
+            data: JSON.stringify({
+              message: error instanceof Error ? error.message : 'compact failed',
+            }),
+          });
+        } finally {
+          clearInterval(keepAlive);
+        }
+      });
     });
 
     app.get('/api/runs/:id/events', async (c) => {

@@ -103,10 +103,28 @@ export function retryRun(runId: string): Promise<RetryRunResponse> {
   return apiJson<RetryRunResponse>(`/api/runs/${runId}/retry`, { method: 'POST' });
 }
 
-export function compactThread(id: string): Promise<CompactThreadResponse> {
-  return apiJson<CompactThreadResponse>(`/api/threads/${id}/compact`, {
+export async function compactThreadStream(
+  id: string,
+  signal?: AbortSignal,
+): Promise<Response> {
+  const response = await fetch(`/api/threads/${id}/compact`, {
     method: 'POST',
+    headers: { Accept: 'text/event-stream' },
+    signal,
   });
+  if (!response.ok) {
+    let message = response.statusText || 'Compact failed';
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body.error) {
+        message = body.error;
+      }
+    } catch {
+      // ignore
+    }
+    throw new ApiError(response.status, message);
+  }
+  return response;
 }
 
 export async function getRunEventsStream(

@@ -99,6 +99,9 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     const input = buildSendInput(request, this.attachments, request.threadId);
     const runMode = resolveRunMode(request.mode);
     input.text = this.decorateText(runMode, input.text);
+    // RunTarget permissions resolve from thread metadata; persist per-run mode
+    // so composer/schedule choices actually drive the permission map.
+    this.threads.setRunMode(thread.id, runMode);
 
     const hx = await this.workspaceHarnesys.get(workspace);
     const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);

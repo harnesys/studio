@@ -5,6 +5,8 @@ import type {
   Event,
   ModelBinding,
   ModelsPort,
+  PendingSessionEvent,
+  SessionEvent,
   ToolDefinition,
 } from 'harnesys';
 import { compactForced, THRESHOLD_SUMMARY_NAME } from 'harnesys';
@@ -23,10 +25,23 @@ import { publishDeskThread } from './publish-desk-thread.ts';
 
 export type CompactThreadRequest = {
   threadId: string;
+  signal?: AbortSignal;
 };
 
+export type CompactStreamItem =
+  | { kind: 'event'; event: SessionEvent }
+  | { kind: 'result'; response: CompactThreadResponse };
+
 export type CompactThreadInput = {
-  execute(request: CompactThreadRequest): Promise<CompactThreadResponse>;
+  executeStream(request: CompactThreadRequest): AsyncGenerator<CompactStreamItem>;
+};
+
+export type CompactJournalPort = {
+  appendForThread(
+    threadId: string,
+    runId: string,
+    events: PendingSessionEvent[],
+  ): SessionEvent[] | Promise<SessionEvent[]>;
 };
 
 export type CompactThreadDeps = {
@@ -40,12 +55,54 @@ export type CompactThreadDeps = {
   episodic: EpisodicPort;
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
+  runEvents: CompactJournalPort;
 };
+
+/**
+ * Тот же срез, что run-engine `eventToSessionEvent` для PASSTHROUGH model.*
+ * прохода компакции (авто в graph и ручной /compact).
+ */
+function sessionEventFromCompactionPass(ev: {
+  type: string;
+  data?: unknown;
+}): PendingSessionEvent | null {
+  const data =
+    ev.data && typeof ev.data === 'object' ? (ev.data as Record<string, unknown>) : undefined;
+  if (ev.type === 'model.delta') {
+    const text = data?.text;
+    if (typeof text !== 'string' || !text) {
+      return null;
+    }
+    return {
+      type: 'text-delta',
+      text,
+      id: typeof data?.id === 'string' ? data.id : undefined,
+    };
+  }
+  if (ev.type === 'model.reasoning') {
+    const text = data?.text ?? data?.delta;
+    if (typeof text !== 'string' || !text) {
+      return null;
+    }
+    return {
+      type: 'reasoning-delta',
+      text,
+      id: typeof data?.id === 'string' ? data.id : undefined,
+    };
+  }
+  if (ev.type === 'model.reasoning-start') {
+    return { type: 'reasoning-start', id: String(data?.id ?? '') };
+  }
+  if (ev.type === 'model.reasoning-end') {
+    return { type: 'reasoning-end', id: String(data?.id ?? '') };
+  }
+  return null;
+}
 
 export class CompactThreadUseCase implements CompactThreadInput {
   constructor(private readonly deps: CompactThreadDeps) {}
 
-  async execute(request: CompactThreadRequest): Promise<CompactThreadResponse> {
+  async *executeStream(request: CompactThreadRequest): AsyncGenerator<CompactStreamItem> {
     const thread = this.deps.threads.findById(request.threadId);
     if (!thread) {
       throw new NotFoundError('thread not found');
@@ -72,10 +129,13 @@ export class CompactThreadUseCase implements CompactThreadInput {
     const state = this.deps.runtimeStates.forState(thread.id);
     const snap = await state.load();
     if (!snap) {
-      return { compacted: false };
+      yield { kind: 'result', response: { compacted: false } };
+      return;
     }
     const st: Record<string, unknown> = { ...(snap.state as Record<string, unknown>) };
     const binding = await resolveDefaultBinding(this.deps.models, def);
+    const journalRunId = `compact:${crypto.randomUUID()}`;
+    const signal = request.signal ?? new AbortController().signal;
 
     let message: CompactionMessage | undefined;
     for await (const ev of compactForced({
@@ -86,14 +146,29 @@ export class CompactThreadUseCase implements CompactThreadInput {
       models: this.deps.models,
       toolRegistry: hx.tools.registry() as Map<string, ToolDefinition>,
       paths: { allow: [workspace.path], cwd: workspace.path },
-      signal: new AbortController().signal,
+      signal,
     })) {
       if (ev.type === 'completed') {
         message = ev.message;
+        continue;
+      }
+      if (ev.type === 'failed') {
+        throw new ValidationError(ev.error);
+      }
+      const pending = sessionEventFromCompactionPass(ev);
+      if (!pending) {
+        continue;
+      }
+      const assigned = await this.deps.runEvents.appendForThread(thread.id, journalRunId, [
+        pending,
+      ]);
+      for (const event of assigned) {
+        yield { kind: 'event', event };
       }
     }
     if (!message) {
-      return { compacted: false };
+      yield { kind: 'result', response: { compacted: false } };
+      return;
     }
 
     const sequence = snap.sequence + 1;
@@ -119,6 +194,22 @@ export class CompactThreadUseCase implements CompactThreadInput {
       sequence,
     });
 
+    const compactionAssigned = await this.deps.runEvents.appendForThread(thread.id, journalRunId, [
+      {
+        type: 'compaction',
+        id: message.id,
+        reason: message.reason,
+        coveredFrom: message.coveredFrom,
+        coveredUntil: message.coveredUntil,
+        tokensBefore: message.stats.tokensBefore,
+        tokensAfter: message.stats.tokensAfter,
+        clientEventId: `compaction:${message.id}`,
+      },
+    ]);
+    for (const sessionEvent of compactionAssigned) {
+      yield { kind: 'event', event: sessionEvent };
+    }
+
     try {
       await createEpisodicOnCompacted({
         episodic: this.deps.episodic,
@@ -137,13 +228,16 @@ export class CompactThreadUseCase implements CompactThreadInput {
     }
     publishDeskThread(this.deps.getThread, this.deps.deskEvents, thread.id);
 
-    return {
-      compacted: true,
-      id: message.id,
-      coveredFrom: message.coveredFrom,
-      coveredUntil: message.coveredUntil,
-      tokensBefore: message.stats.tokensBefore,
-      tokensAfter: message.stats.tokensAfter,
+    yield {
+      kind: 'result',
+      response: {
+        compacted: true,
+        id: message.id,
+        coveredFrom: message.coveredFrom,
+        coveredUntil: message.coveredUntil,
+        tokensBefore: message.stats.tokensBefore,
+        tokensAfter: message.stats.tokensAfter,
+      },
     };
   }
 }

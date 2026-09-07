@@ -47,6 +47,9 @@ Merge rules: the conversation that follows is newer and wins conflicts; carry fo
 
 export type SummaryStreamEvent = { type: string; data?: unknown; result?: StreamChunk };
 
+/** User-ход, без которого провайдер часто отвечает пустым stop на хвосте assistant. */
+export const SUMMARY_USER_PROMPT = 'Write the compaction summary now.';
+
 /** Проход саммари: без инструментов, события стрима наружу, финал — summary.completed. */
 export async function* streamSummary(opts: {
   binding: ModelBinding;
@@ -54,7 +57,8 @@ export async function* streamSummary(opts: {
   head: unknown[];
   signal: AbortSignal;
 }): AsyncGenerator<SummaryStreamEvent> {
-  const stream = callModel(opts.binding, opts.system, opts.head, [], new Map(), opts.signal);
+  const messages = [...opts.head, { role: 'user', content: SUMMARY_USER_PROMPT }];
+  const stream = callModel(opts.binding, opts.system, messages, [], new Map(), opts.signal);
   let completed: StreamChunk | undefined;
   for await (const chunk of stream) {
     if (chunk.type === 'completed') {

@@ -87,6 +87,18 @@ export type SessionEvent =
       seq?: number;
       runId?: string;
     }
+  | {
+      type: 'compaction';
+      id: string;
+      reason: 'threshold' | 'manual';
+      coveredFrom: number;
+      coveredUntil: number;
+      tokensBefore: number;
+      tokensAfter: number;
+      seq?: number;
+      runId?: string;
+      clientEventId?: string;
+    }
   | { type: 'run.completed'; text?: string; seq?: number; runId?: string }
   | { type: 'run.cancelled'; reason: string; seq?: number; runId?: string }
   | { type: 'run.failed'; message: string; seq?: number; runId?: string }

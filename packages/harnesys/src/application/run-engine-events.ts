@@ -177,6 +177,23 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       notesErrors: errs.filter((x): x is string => typeof x === 'string'),
     };
   }
+  if (t === 'compaction.completed') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const id = typeof m?.id === 'string' ? m.id : '';
+    if (!id) {
+      return null;
+    }
+    const reason = m?.reason === 'manual' ? 'manual' : 'threshold';
+    return {
+      type: 'compaction',
+      id,
+      reason,
+      coveredFrom: num(m?.coveredFrom) ?? 0,
+      coveredUntil: num(m?.coveredUntil) ?? 0,
+      tokensBefore: num(m?.tokensBefore) ?? 0,
+      tokensAfter: num(m?.tokensAfter) ?? 0,
+    };
+  }
   if (t === 'tool.completed' || t === 'tool.intent') {
     const m = ev.metadata as Record<string, unknown> | undefined;
     return {

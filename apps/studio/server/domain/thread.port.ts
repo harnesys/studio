@@ -19,11 +19,14 @@ export type ThreadPatch = Partial<{
   kind: ThreadKind;
   metadata: unknown;
 }>;
+export type ThreadRunMode = 'ask' | 'auto' | 'dont_ask' | 'bypass' | 'plan';
 export type ThreadRepository = {
   listByWorkspace(workspaceId: string): Thread[];
   findById(id: string): Thread | undefined;
   insert(rec: ThreadInsert): Thread;
   updateTitle(id: string, title: string): Thread;
+  /** Store the run mode in thread metadata. Read back by StudioRunTargets. */
+  setRunMode(id: string, mode: ThreadRunMode): Thread;
   /** Toggle the pinned flag in thread metadata. Does not bump updatedAt. */
   setPinned(id: string, pinned: boolean): Thread;
   /** Set lastReadAt to the thread's current updatedAt (unread → false). */

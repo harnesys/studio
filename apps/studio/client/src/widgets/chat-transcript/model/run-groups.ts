@@ -15,6 +15,15 @@ export const RUN_TERMINAL_EVENT_TYPES = new Set([
   'run.cancelled',
 ]);
 
+/** Журнальный run ручного /compact (`runId` compact:… или событие compaction). */
+export function isCompactRun(run: RunGroup): boolean {
+  return run.events.some(
+    (event) =>
+      event.type === 'compaction' ||
+      (typeof event.runId === 'string' && event.runId.startsWith('compact:')),
+  );
+}
+
 export function splitRuns(events: SessionEvent[]): RunGroup[] {
   const runs: RunGroup[] = [];
   let current: SessionEvent[] = [];

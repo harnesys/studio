@@ -22,6 +22,7 @@ import {
   ChatSkeleton,
   CompactionPendingCard,
   FailedMessageView,
+  isCompactRun,
   splitRuns,
   ThreadEmpty,
   useSyncedThread,
@@ -63,47 +64,54 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
     );
   } else {
     const runs = splitRuns(events);
+    const compactLive = compacting && runs.some(isCompactRun);
     body = (
       <MessageScrollerProvider autoScroll>
         <MessageScroller>
           <MessageScrollerViewport>
             <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
-              {runs.map((run, index) => (
-                <MessageScrollerItem
-                  key={run.id ?? `run-${index}`}
-                  messageId={run.id ?? `run-${index}`}
-                >
-                  <RunDivider
-                    index={index}
-                    task={runTask(run.events)}
-                    failed={run.error !== null}
-                    running={streaming && index === runs.length - 1}
-                  />
-                  <div className="group/turn flex flex-col">
-                    {run.error ? (
-                      <FailedMessageView
-                        text={run.error}
-                        onRetry={
-                          run.runId && index === runs.length - 1 && !streaming
-                            ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
-                            : undefined
-                        }
-                      />
-                    ) : null}
-                    <AssistantMessageView
-                      events={run.events}
-                      runId={run.id ?? ''}
-                      streaming={streaming && index === runs.length - 1}
+              {runs.map((run, index) => {
+                const last = index === runs.length - 1;
+                const runStreaming =
+                  (streaming && last && !compacting) ||
+                  (compacting && last && isCompactRun(run));
+                return (
+                  <MessageScrollerItem
+                    key={run.id ?? `run-${index}`}
+                    messageId={run.id ?? `run-${index}`}
+                  >
+                    <RunDivider
+                      index={index}
+                      task={runTask(run.events)}
+                      failed={run.error !== null}
+                      running={runStreaming}
                     />
-                  </div>
-                </MessageScrollerItem>
-              ))}
+                    <div className="group/turn flex flex-col">
+                      {run.error ? (
+                        <FailedMessageView
+                          text={run.error}
+                          onRetry={
+                            run.runId && last && !streaming && !compacting
+                              ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
+                              : undefined
+                          }
+                        />
+                      ) : null}
+                      <AssistantMessageView
+                        events={run.events}
+                        runId={run.id ?? ''}
+                        streaming={runStreaming}
+                      />
+                    </div>
+                  </MessageScrollerItem>
+                );
+              })}
               {failures.map((failure) => (
                 <MessageScrollerItem key={failure.id} messageId={failure.id}>
                   <FailedMessageView text={failure.text} />
                 </MessageScrollerItem>
               ))}
-              {compacting ? (
+              {compacting && !compactLive ? (
                 <MessageScrollerItem key="compaction-pending" messageId="compaction-pending">
                   <CompactionPendingCard />
                 </MessageScrollerItem>

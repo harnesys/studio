@@ -1,6 +1,6 @@
 import { BrainIcon } from 'lucide-react';
 
-import { formatDuration } from '@/entities/session';
+import { estimateTokens, formatDuration, formatTokenCount } from '@/entities/session';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 
 import { ExpandableScroll } from '@/shared/ui/expandable-scroll';
@@ -16,14 +16,18 @@ export function ThinkingLine({
   durationMs?: number;
 }) {
   const expandThinking = useChatPreferences((state) => state.expandThinking);
+  // Per-thought token count is not in the event stream; estimate from text.
+  const tokensLabel =
+    !live && text.trim() ? `~${formatTokenCount(estimateTokens(text))} tok` : null;
   const durationLabel =
     !live && durationMs !== undefined && durationMs > 0 ? formatDuration(durationMs) : null;
+  const hint = [tokensLabel, durationLabel].filter(Boolean).join(' · ') || null;
 
   return (
     <ActivityLine
       icon={BrainIcon}
       label="Thought"
-      hint={durationLabel}
+      hint={hint}
       active={live}
       defaultOpen={live || expandThinking}
       hasContent={Boolean(text)}

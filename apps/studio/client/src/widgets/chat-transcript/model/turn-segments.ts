@@ -1,15 +1,26 @@
 import type { SessionEvent } from '@studio/shared';
 
+export type CompactionSegmentMeta = {
+  id: string;
+  reason: 'threshold' | 'manual';
+  coveredFrom: number;
+  coveredUntil: number;
+  tokensBefore: number;
+  tokensAfter: number;
+};
+
 export type TurnSegment =
   | { type: 'activity'; events: SessionEvent[] }
   | { type: 'user'; event: SessionEvent & { type: 'user' } }
-  | { type: 'text'; text: string; id: string | undefined };
+  | { type: 'text'; text: string; id: string | undefined }
+  | { type: 'compaction'; text: string; meta: CompactionSegmentMeta };
 
 /**
  * Единственная проекция «лог событий → сегменты треда». Все пути (live,
  * reconcile, reload) прогоняют сырой лог отсюда: подряд идущие text-delta
  * с равным id сворачиваются в один текстовый блок, смена id или любая
  * активность между дельтами открывает новый блок.
+ * `compaction` забирает предшествующий текстовый хвост в карточку саммари.
  */
 export function groupSegments(events: SessionEvent[]): TurnSegment[] {
   const segments: TurnSegment[] = [];
@@ -39,6 +50,31 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
       }
       continue;
     }
+    if (ev.type === 'compaction') {
+      flushActivity();
+      const texts: string[] = [];
+      while (segments.length > 0) {
+        const last = segments[segments.length - 1];
+        if (last?.type !== 'text') {
+          break;
+        }
+        texts.unshift(last.text);
+        segments.pop();
+      }
+      segments.push({
+        type: 'compaction',
+        text: texts.join(''),
+        meta: {
+          id: ev.id,
+          reason: ev.reason,
+          coveredFrom: ev.coveredFrom,
+          coveredUntil: ev.coveredUntil,
+          tokensBefore: ev.tokensBefore,
+          tokensAfter: ev.tokensAfter,
+        },
+      });
+      continue;
+    }
     if (
       ev.type === 'tool' ||
       ev.type === 'ask' ||
@@ -64,6 +100,9 @@ export function segmentKey(segment: TurnSegment, index: number): string {
     // уникальность даёт позиция в списке сегментов.
     return `text-${index}-${segment.id ?? 'x'}`;
   }
+  if (segment.type === 'compaction') {
+    return `compaction-${segment.meta.id}`;
+  }
   const first = segment.events[0];
   if (!first) {
     return `activity-${index}`;
@@ -84,7 +123,7 @@ export function segmentSpacing(segments: TurnSegment[], index: number): string |
   if (prev?.type === 'user' || curr?.type === 'user') {
     return 'mt-5';
   }
-  if (prev?.type === 'activity' && curr?.type === 'text') {
+  if (prev?.type === 'activity' && (curr?.type === 'text' || curr?.type === 'compaction')) {
     return 'mt-4';
   }
   return 'mt-3';

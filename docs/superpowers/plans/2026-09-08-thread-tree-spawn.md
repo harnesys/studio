@@ -417,3 +417,47 @@
 
 1. `GET /threads/:id/spawns` не вводится: список спавнов, статусы и активность полностью выводятся из журнала (`agent.spawned/completed/failed` + события `runId = spawnId`), отдельный endpoint избыточен.
 2. Порт `RunEventStore` harnesys расширяется методом `hasRun(runId)` (SSE для спавнов) — санкция спеки покрывает.
+3. `agent.spawned` несёт `taskInput` (полный input вызова, без усечений) — задача видна из журнала, снапшоты не читаются.
+
+---
+
+### Task 13: taskInput спавна в журнале + чтение в клиенте
+
+**Files:**
+- Modify: `packages/harnesys/src/application/graph-spawn.ts` (prepareSpawn: таскать `call` дальше — уже есть в targets), `packages/harnesys/src/application/graph.ts` (spawned-коммит), `packages/harnesys/src/ports/session.ts` (вариант agent.spawned), `packages/harnesys/src/application/run-engine-events.ts` (маппинг)
+- Modify: `apps/studio/client/src/widgets/chat-transcript/model/spawn-groups.ts` (SpawnInfo.taskText), `apps/studio/client/src/widgets/chat-transcript/ui/spawn-view.tsx` (шапка с полным текстом задачи)
+
+**Interfaces:**
+- Produces: `SessionEvent` вариант `agent.spawned` расширяется полем `taskInput?: unknown`. `SpawnInfo` расширяется `taskText?: string`. Правило вывода текста (клиент, display-only): string → как есть; объект с `messages` (массив, у первого `content` строка) → этот content; иначе компактный JSON (для UI допустим truncate 300 символов — ДАННЫЕ при этом целы в журнале, режется только отображение со ссылкой «показать полностью» в спавн-вью).
+
+**Жёсткие правила:**
+- НИКАКИХ усечений при записи в журнал: `call.input` целиком в metadata эмиссии. Metadata сериализуется в JSON журнала как есть.
+- `call.input` приходит из tool-args (уже JSON) — дополнительная валидация не нужна; `undefined` → поле отсутствует.
+
+- [ ] **Step 1: harnesys.** В graph.ts spawned-коммит: `metadata: { agentId, spawnId, taskInput: t.call.input }` (`undefined` JSON-строка дропает ключ — ок). Порт session.ts: `taskInput?: unknown` в вариант agent.spawned. Маппер run-engine-events.ts: пробросить `taskInput: m?.taskInput` (без преобразований).
+- [ ] **Step 2: клиент extractSpawns.** `SpawnInfo.taskText?: string`; при обработке `agent.spawned` вывести текст по правилу выше. Пустой результат → поле отсутствует (карточка прячет строку).
+- [ ] **Step 3: SpawnView шапка.** Найти в логе треда `agent.spawned` с этим spawnId → показать полный текст задачи (без truncate, collapsible при длине > 500 символов). Fallback: шапка без задачи.
+- [ ] **Step 4: Верификация.** `bunx tsc -p apps/studio/tsconfig.json --noEmit` clean; client tsconfig — только pre-existing git-file-decorations; biome на затронутых.
+- [ ] **Step 5: Commit** `feat(harnesys,studio): carry spawn taskInput in agent.spawned journal event`.
+
+---
+
+### Task 14: SpawnCard v2 + live-время
+
+**Files:**
+- Modify: `apps/studio/client/src/widgets/chat-transcript/model/spawn-groups.ts` (toolStats), `apps/studio/client/src/widgets/chat-transcript/ui/spawn-card.tsx` (переписать), `apps/studio/client/src/entities/session/model/session.store.ts` (arrival-метки)
+- Create: `apps/studio/client/src/widgets/chat-transcript/model/use-now.ts` (тикающий хук, если нет общего)
+
+**Interfaces:**
+- Consumes: SpawnInfo (+taskText, toolStats) из Task 13/7; arrival map `seenAt: Record<eventKey, number>` из session store (заполняется в appendEvent/replaceEvents: `Date.now()`; reconcile — только для новых ключей).
+- Produces: карточка: шапка (пульс, имя, elapsed, шаги), строка задачи (truncate 2 строки), живые tool-чипы (последние 4: имя + фаза), reasoning/text-превью, токены из model.usage, stalled-хинт (running + тишина > 90с → «нет активности Ns»).
+
+**Жёсткие правила:**
+- Arrival-метки — только live (история их не имеет и не нуждается).
+- ToolStats: считать по событиям бакета: `{ [name]: { requested, completed, failed } }`, последние 4 tool-события с фазой, общий счётчик шагов = tool requested + assistant text-блоков.
+
+- [ ] **Step 1: session store.** `seenAt` + заполнение в appendEvent (и replaceEvents/reconcileEvents для новых ключей). Проверить eventKey (session.store.ts:49-61) — переиспользовать.
+- [ ] **Step 2: spawn-groups.** toolStats + steps + tokens (сумма model.usage) в SpawnInfo.
+- [ ] **Step 3: spawn-card.tsx.** Переписать по дизайну выше. Клик → onOpenSpawn (как сейчас). testids сохранить (`spawn-card`, `spawn-row-${spawnId}`).
+- [ ] **Step 4: Верификация** (tsc/biome как обычно).
+- [ ] **Step 5: Commit** `feat(studio): rich spawn card with task, tools and live timing`.

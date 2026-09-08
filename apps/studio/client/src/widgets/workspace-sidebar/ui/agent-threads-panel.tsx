@@ -86,15 +86,16 @@ export function AgentThreadsPanel({
         <Button
           type="button"
           variant="ghost"
-          size="icon-xs"
+          size="xs"
+          className="min-w-0 flex-1 justify-start px-1 text-muted-foreground"
           data-testid="agent-threads-back"
           title="Back to agents"
           onClick={() => back()}
         >
-          <ChevronLeftIcon />
+          <ChevronLeftIcon className="shrink-0" />
+          <span className="min-w-0 truncate">Back to agents</span>
           <span className="sr-only">Back to agents</span>
         </Button>
-        <span className="min-w-0 flex-1 truncate text-muted-foreground text-xs">{agent.name}</span>
         <Button
           type="button"
           variant="ghost"

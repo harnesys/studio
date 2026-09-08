@@ -5,6 +5,7 @@ import { StatusDot } from '@/shared/ui/status-dot';
 
 import type { SpawnInfo, SpawnStatus, SpawnToolPhase } from '../model/spawn-groups';
 import { useNow } from '../model/use-now';
+import { useSpawnStream } from '../model/use-spawn-stream';
 
 /** Точка-статус: running — пульс на var(--live), done — muted, failed — destructive. */
 const DOT_TONE: Record<SpawnStatus, 'live' | 'idle' | 'danger'> = {
@@ -55,16 +56,18 @@ function plural(value: number, one: string, few: string, many: string): string {
 }
 
 export function SpawnCard({
+  threadId,
   spawnId,
   spawn,
   onOpen,
 }: {
-  /** Тред-владелец спавна; нужен спавн-вью (Task 8), самой карточке не требуется. */
+  /** Тред-владелец спавна: ключ подписки на стрим дочернего запуска. */
   threadId: string;
   spawnId: string;
   spawn: SpawnInfo;
   onOpen?: (spawnId: string) => void;
 }) {
+  useSpawnStream(threadId, spawnId, spawn.status === 'running');
   const agent = useAgentStore((state) => state.byId(spawn.agentId));
   const name = agent?.name ?? spawn.agentId.slice(0, 8);
   const now = useNow(spawn.status === 'running' ? LIVE_TICK_MS : 0);

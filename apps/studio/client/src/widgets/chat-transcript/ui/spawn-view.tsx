@@ -5,12 +5,12 @@ import { useSessionStore } from '@/entities/session';
 import { refreshThread, useDeskStore, useThreadEvents } from '@/features/desk';
 import type { IdeTab } from '@/features/ide';
 import { useOpenSpawnTab } from '@/features/ide';
-import { connectRunStream } from '@/features/send-message';
 import { StatusDot } from '@/shared/ui/status-dot';
 
 import { splitRuns } from '../model/run-groups';
 import type { SpawnStatus } from '../model/spawn-groups';
 import { extractSpawns, spawnTaskText } from '../model/spawn-groups';
+import { useSpawnStream } from '../model/use-spawn-stream';
 import { RunTurn } from './run-turn';
 
 const DOT_TONE: Record<SpawnStatus, 'live' | 'idle' | 'danger'> = {
@@ -76,13 +76,7 @@ export function SpawnView({
   }, [hasEvents, hydratedWorkspaceId, tab.workspaceId, threadId]);
 
   const running = spawn?.status === 'running';
-  useEffect(() => {
-    if (!running) {
-      return;
-    }
-    connectRunStream(threadId, spawnId);
-    // Terminal status flips via extractSpawns; the per-run client clears itself.
-  }, [running, threadId, spawnId]);
+  useSpawnStream(threadId, spawnId, running);
 
   if (!spawn) {
     return (

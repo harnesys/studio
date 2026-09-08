@@ -145,6 +145,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     toolMessages: 'ordered',
     agents: {
       resolve: (id) => agentsRef.current?.resolveAgentDefinition(id),
+      list: () => agentsRef.current?.listAgentRoster() ?? [],
     },
   });
   const scheduleQueue = new ScheduleFireQueue();

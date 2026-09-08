@@ -50,7 +50,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
     tool('agents_list', {
       group: 'agents',
       description:
-        'List agents in this workspace (id, name, role, instructions, tools, model). Optional role/name filters; role is not unique. Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
+        'List agents in this workspace (id, name, role, instructions, tools, model). Optional role/name filters; role is not unique. tools lists declared names; the effective set at run time may be smaller (host/MCP filtering). Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
       input: {
         type: 'object',
         properties: {

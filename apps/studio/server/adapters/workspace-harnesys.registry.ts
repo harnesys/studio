@@ -2,6 +2,7 @@ import type {
   AgentDefinition,
   AgentGenerationSettings,
   AgentModelRef,
+  AgentRosterEntry,
   CapabilityRegistration,
   CursorMcpJson,
   ModelsPort,
@@ -121,7 +122,14 @@ export class WorkspaceHarnesysRegistry {
       // ask_user has no pack. Per-agent gating happens in the run targets.
       tools: [askUser(), ...this.capabilityTools()],
       capabilities: [...this.capabilityRegistrations],
-      agents: { resolve: (id: string) => this.resolveAgent(id) },
+      agents: {
+        resolve: (id: string) => this.resolveAgent(id),
+        list: () =>
+          (this.repos.agents?.listByWorkspace(workspace.id) ?? []).map((a) => ({
+            id: a.id,
+            name: a.name,
+          })),
+      },
       mcp: mcpJson,
       paths: { allow: [workspace.path], cwd: workspace.path },
       skills,
@@ -131,6 +139,10 @@ export class WorkspaceHarnesysRegistry {
 
   resolveAgentDefinition(id: string): AgentDefinition | undefined {
     return this.resolveAgent(id);
+  }
+
+  listAgentRoster(): AgentRosterEntry[] {
+    return (this.repos.agents?.listAll() ?? []).map((a) => ({ id: a.id, name: a.name }));
   }
 
   private resolveAgent(id: string): AgentDefinition | undefined {

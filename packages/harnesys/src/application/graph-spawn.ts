@@ -214,6 +214,7 @@ async function runOneChild(
       code: status,
       message: `spawn child ended with status ${status}`,
     },
+    ...blockedProp(),
   };
 }
 

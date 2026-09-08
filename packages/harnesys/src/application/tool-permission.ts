@@ -67,10 +67,6 @@ export function sandboxDenyText(tool: string, what: SandboxDenyKind): string {
   return `${SANDBOX_DENY_PREFIX}${tool} requires ${what}, no interactive user here; parent must provide, pre-approve, or do it itself`;
 }
 
-export function isSandboxDenyText(value: unknown): value is string {
-  return typeof value === 'string' && value.startsWith(SANDBOX_DENY_PREFIX);
-}
-
 export function throwPermissionAsk(
   call: PermissionGateCall,
   ctx: PermissionGateContext,

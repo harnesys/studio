@@ -14,7 +14,6 @@ import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 import {
   applyPermissionGate,
   isForeignPermissionResume,
-  isSandboxDenyText,
   sandboxDenyText,
   skippedGateResult,
 } from './tool-permission.ts';
@@ -130,12 +129,14 @@ export async function runSingleToolCall(
       sandbox: ctx.sandbox,
     };
     const value = await def.execute(call.args, toolCtx);
-    // Песочница: ask_user вернул deny-текст вместо throw — фиксируем отказ.
-    if (ctx.sandbox && isSandboxDenyText(value)) {
-      recordDenied(ctx.state, call.id, { tool: call.name, reason: value });
+    // Песочница: ask_user отвечает deny-текстом вместо throw — детект по
+    // идентичности тула, не по префиксу текста.
+    if (ctx.sandbox && call.name === 'ask_user') {
+      const reason = typeof value === 'string' ? value : serializeToolOutput(value);
+      recordDenied(ctx.state, call.id, { tool: call.name, reason });
       return {
-        result: { id: call.id, name: call.name, result: value, isError: true },
-        message: message(value),
+        result: { id: call.id, name: call.name, result: reason, isError: true },
+        message: message(reason),
       };
     }
     if (def.revealsTools) {

@@ -88,3 +88,9 @@
 ## Порядок (набросок, детальный план отдельно)
 
 harnesys: emit детских событий + agent.spawned в стрим → Studio server: seed, GetThread, /spawns → клиент: дерево сайдбара, карточка спавна, спавн-вью, разделитель ветки, значки ветвления, удаление хедера.
+
+## Отклонения при реализации
+
+1. `GET /threads/:id/spawns` не введён: список, статусы и активность спавнов выводятся из журнала (`agent.spawned/completed/failed`, детские события с `runId = spawnId`); отдельный endpoint избыточен. Раздел «Данные / GET /threads/:id/spawns» выше не действует.
+2. Порт `RunEventStore` (harnesys) расширен методом `hasRun(runId)` (`sqlite-run-events.adapter.ts:165`): `StreamRunEventsUseCase` отдаёт 404 только если нет записи lifecycle и нет событий.
+3. Спавн-SSE закрывается на первом терминальном кадре журнала для runId без lifecycle-записи; подписка до первого child-append попадает в окно 404, клиент переподключается.

@@ -287,17 +287,32 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       clientEventId: typeof m?.clientEventId === 'string' ? m.clientEventId : undefined,
     };
   }
-  if (t === 'agent.handoff' || t === 'agent.spawned') {
+  if (t === 'agent.handoff') {
     const m = ev.metadata as Record<string, unknown> | undefined;
-    if (t === 'agent.spawned' && m?.handoff !== true) {
-      return null;
-    }
     const fromMeta = typeof m?.agentId === 'string' ? m.agentId : '';
     const agentId = fromMeta || ev.agentId;
     if (!agentId) {
       return null;
     }
     return { type: 'agent.handoff', agentId };
+  }
+  if (t === 'agent.spawned' || t === 'agent.completed' || t === 'agent.failed') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const agentId = typeof m?.agentId === 'string' ? m.agentId : ev.agentId;
+    const spawnId = typeof m?.spawnId === 'string' ? m.spawnId : '';
+    if (!spawnId) {
+      return null;
+    }
+    if (t === 'agent.failed') {
+      return {
+        type: 'agent.failed',
+        agentId,
+        spawnId,
+        code: typeof m?.code === 'string' ? m.code : undefined,
+        message: typeof m?.message === 'string' ? m.message : undefined,
+      };
+    }
+    return { type: t, agentId, spawnId };
   }
   return null;
 }

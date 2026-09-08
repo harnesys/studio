@@ -104,7 +104,18 @@ export type SessionEvent =
   | { type: 'run.failed'; message: string; seq?: number; runId?: string }
   | { type: 'done'; text?: string; seq?: number; runId?: string }
   | { type: 'error'; code: string; message: string; seq?: number; runId?: string }
-  | { type: 'agent.handoff'; agentId: string; seq?: number; runId?: string };
+  | { type: 'agent.handoff'; agentId: string; seq?: number; runId?: string }
+  | { type: 'agent.spawned'; agentId: string; spawnId: string; seq?: number; runId?: string }
+  | { type: 'agent.completed'; agentId: string; spawnId: string; seq?: number; runId?: string }
+  | {
+      type: 'agent.failed';
+      agentId: string;
+      spawnId: string;
+      code?: string;
+      message?: string;
+      seq?: number;
+      runId?: string;
+    };
 
 export type SendOpts = {
   signal?: AbortSignal;

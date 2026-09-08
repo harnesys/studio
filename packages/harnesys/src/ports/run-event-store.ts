@@ -1,6 +1,8 @@
 import type { SessionEvent } from './session.ts';
 
-export type PendingSessionEvent = Omit<SessionEvent, 'seq' | 'runId'>;
+type Distribution<T> = T extends unknown ? Omit<T, 'seq' | 'runId'> : never;
+
+export type PendingSessionEvent = Distribution<SessionEvent>;
 
 /** Единственная точка выдачи seq рана: синхронно, монотонно, без записи в БД.
  *  Диск может отставать от аллокатора на размер несброшенного батча журнала.
@@ -20,4 +22,11 @@ export interface RunEventStore extends RunSeqAllocator {
   latestSeq(runId: string): Promise<number>;
   /** Вся лента треда в порядке записи (для getThread). */
   listByThread(threadId: string): Promise<SessionEvent[]>;
+  /** Дописывает события в тред вне lease-проверки (child runs, ручная компакция).
+   *  Возвращённые события уже с seq и runId. */
+  appendForThread(
+    threadId: string,
+    runId: string,
+    events: PendingSessionEvent[],
+  ): SessionEvent[] | Promise<SessionEvent[]>;
 }

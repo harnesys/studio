@@ -97,6 +97,5 @@ export type ControlEventMeta = {
 export type AgentEventMeta = {
   agentId: string;
   spawnId?: string;
-  /** When true on `agent.spawned`, maps to SessionEvent `agent.handoff`. */
   handoff?: boolean;
 };

@@ -37,7 +37,7 @@ import {
   stateKeyOf,
 } from './graph-helpers.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
-import { runSpawnNode, type SpawnNodeSpec } from './graph-spawn.ts';
+import { executeSpawn, prepareSpawn, type SpawnNodeSpec } from './graph-spawn.ts';
 import { type LlmResult, runLlmGenerate } from './llm.ts';
 import {
   type BudgetLeft,
@@ -154,6 +154,9 @@ export type GraphOpts = {
   inputRecorded?: boolean;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
   agents: AgentsResolve;
+  /** Вызывается из drain-цикла дочернего графа для каждого события ребёнка;
+   *  engine пишет в журнал треда под runId = spawnId. */
+  childJournal?: (spawnId: string, ev: Event) => void;
 };
 
 async function resolveFallbackBindings(
@@ -967,12 +970,23 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       yield ev;
       break;
     } else if (node.type === 'control:spawn') {
-      let spawnOutcome: Awaited<ReturnType<typeof runSpawnNode>>;
+      let spawnOutcome: Awaited<ReturnType<typeof executeSpawn>>;
       try {
-        spawnOutcome = await runSpawnNode(
+        const prepared = prepareSpawn(
           node as SpawnNodeSpec,
           { ...opts, agent, plan, input, toolRegistry },
           slots,
+        );
+        for (const t of prepared.targets) {
+          const e = await commit('running', 'agent.spawned', 'recorded', {
+            agentId: t.call.agentId,
+            spawnId: t.spawnId,
+          });
+          yield e;
+        }
+        spawnOutcome = await executeSpawn(
+          prepared,
+          { ...opts, agent, plan, input, toolRegistry },
           startGraph,
         );
       } catch (err) {

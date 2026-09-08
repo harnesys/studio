@@ -1,8 +1,10 @@
 import type { Attachment } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
+import type { Event } from '../domain/snapshot.ts';
+import type { SessionEvent } from '../ports/session.ts';
 import { compileOrThrow } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
-import { runFailedEvent, runStartedEvent } from './run-engine-events.ts';
+import { eventToSessionEvent, runFailedEvent, runStartedEvent } from './run-engine-events.ts';
 import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
 import { admit, flushJournal, guardedTransition, runSegment } from './run-engine-segment.ts';
 import type { RunEngine, RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
@@ -113,6 +115,21 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       if (!(await flushJournal(env, ctx))) {
         return;
       }
+      // Журнал дочерних спавнов: события ребёнка пишутся в тред под runId = spawnId.
+      // Проглатывание ошибки — сознательно: журнал ребёнка не должен ронять
+      // родительский ран; потеря стрима не влияет на snapshot.
+      const childJournal = (spawnId: string, ev: Event): void => {
+        const mapped = eventToSessionEvent(ev);
+        if (mapped === null) {
+          return;
+        }
+        const withRun = { ...mapped, runId: spawnId } as SessionEvent;
+        const seq = deps.events.next(spawnId);
+        const full = { ...withRun, seq } as SessionEvent;
+        void Promise.resolve(deps.events.appendForThread(record.threadId, spawnId, [full]))
+          .then((stored) => deps.feed.publish(spawnId, stored))
+          .catch(() => {});
+      };
       let graphOpts: GraphOpts;
       try {
         const answer = await findLastAnswer(runId);
@@ -149,6 +166,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           rejected: answer?.rejected === true,
           resumePayload: answer?.payload,
           resumeInterruptId: answer?.interruptId,
+          childJournal,
         };
       } catch (err) {
         if (env.isLeaseLost() || (err as { code?: string }).code === 'lease_stale') {

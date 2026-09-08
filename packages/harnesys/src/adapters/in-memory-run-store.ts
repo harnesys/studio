@@ -40,6 +40,14 @@ export class InMemoryRunEventStore implements RunEventStore {
     }
     return this.appendLocked(runId, events);
   }
+  async appendForThread(
+    threadId: string,
+    runId: string,
+    events: PendingSessionEvent[],
+  ): Promise<SessionEvent[]> {
+    void threadId;
+    return this.appendLocked(runId, events);
+  }
   next(runId: string): number {
     const seq = (this.nextSeq.get(runId) ?? 0) + 1;
     this.nextSeq.set(runId, seq);

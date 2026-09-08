@@ -24,7 +24,7 @@ export type SpawnResultItem = {
 };
 
 export type SpawnEmission = {
-  type: 'agent.spawned' | 'agent.completed' | 'agent.failed';
+  type: 'agent.completed' | 'agent.failed';
   metadata: {
     agentId: string;
     spawnId: string;
@@ -50,6 +50,17 @@ export type SpawnSlots = {
 export type SpawnNodeOutcome = {
   results: SpawnResultItem[];
   emissions: SpawnEmission[];
+};
+
+export type SpawnTarget = {
+  call: SpawnCall;
+  def: AgentDefinition;
+  spawnId: string;
+};
+
+export type PreparedSpawn = {
+  targets: SpawnTarget[];
+  concurrency: 'parallel' | 'sequential';
 };
 
 type ChildRunner = (opts: GraphOpts) => AsyncIterable<Event>;
@@ -87,11 +98,8 @@ function parseCalls(raw: unknown): SpawnCall[] {
   });
 }
 
-function resolveTargets(
-  calls: SpawnCall[],
-  agents: AgentsResolve,
-): { call: SpawnCall; def: AgentDefinition; spawnId: string }[] {
-  const out: { call: SpawnCall; def: AgentDefinition; spawnId: string }[] = [];
+function resolveTargets(calls: SpawnCall[], agents: AgentsResolve): SpawnTarget[] {
+  const out: SpawnTarget[] = [];
   for (const call of calls) {
     const def = agents.resolve(call.agentId);
     if (!def) {
@@ -112,7 +120,7 @@ function childOutputFromState(state: Record<string, unknown>): unknown {
 
 async function runOneChild(
   parent: GraphOpts,
-  target: { call: SpawnCall; def: AgentDefinition; spawnId: string },
+  target: SpawnTarget,
   runChild: ChildRunner,
 ): Promise<SpawnResultItem> {
   const childState: RuntimeState = parent.state.child(target.spawnId);
@@ -136,10 +144,11 @@ async function runOneChild(
     capabilityRegistrations: parent.capabilityRegistrations,
     agents: parent.agents,
     stream: parent.stream,
+    childJournal: parent.childJournal,
   };
   try {
-    for await (const _ev of runChild(childOpts)) {
-      // Child journal stays on child RuntimeState; parent emits agent.* only.
+    for await (const ev of runChild(childOpts)) {
+      parent.childJournal?.(target.spawnId, ev);
     }
   } catch (err) {
     const code =
@@ -175,12 +184,11 @@ async function runOneChild(
   };
 }
 
-export async function runSpawnNode(
+export function prepareSpawn(
   node: SpawnNodeSpec,
   parent: GraphOpts,
   slots: SpawnSlots,
-  runChild: ChildRunner,
-): Promise<SpawnNodeOutcome> {
+): PreparedSpawn {
   if (node.barrier !== undefined && node.barrier.policy !== 'all') {
     throw codedRunError('barrier_policy', 'barrier.policy must be "all"');
   }
@@ -188,15 +196,16 @@ export async function runSpawnNode(
   const calls = parseCalls(rawCalls);
   const concurrency = resolveConcurrency(node.concurrency, slots);
   const targets = resolveTargets(calls, parent.agents);
+  return { targets, concurrency };
+}
 
+export async function executeSpawn(
+  prepared: PreparedSpawn,
+  parent: GraphOpts,
+  runChild: ChildRunner,
+): Promise<SpawnNodeOutcome> {
+  const { targets, concurrency } = prepared;
   const emissions: SpawnEmission[] = [];
-  for (const t of targets) {
-    emissions.push({
-      type: 'agent.spawned',
-      metadata: { agentId: t.call.agentId, spawnId: t.spawnId },
-    });
-  }
-
   const results: SpawnResultItem[] = new Array(targets.length);
   if (concurrency === 'sequential') {
     for (let i = 0; i < targets.length; i += 1) {

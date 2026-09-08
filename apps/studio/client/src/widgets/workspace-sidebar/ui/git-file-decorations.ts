@@ -41,7 +41,7 @@ export function gitFileStatusLabel(status: GitFileStatus): string {
     case 'ignored':
       return 'I';
     default:
-      return status.slice(0, 1).toUpperCase();
+      return (status as string).slice(0, 1).toUpperCase();
   }
 }
 

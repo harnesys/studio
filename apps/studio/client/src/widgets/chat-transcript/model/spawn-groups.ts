@@ -129,6 +129,39 @@ function truncateActivity(text: string): string {
 }
 
 /**
+ * Поддерево спавна: сам `spawnId` плюс все его потомки по журналу треда.
+ * Родство выводится из `agent.spawned`: событие журналируется под runId
+ * порождающего рана (корневой ран для верхнеуровневых спавнов, спавн для
+ * вложенных), поэтому `ev.runId → ev.spawnId` даёт дерево.
+ */
+export function spawnSubtreeIds(events: SessionEvent[], spawnId: string): Set<string> {
+  const childrenOf = new Map<string, string[]>();
+  for (const ev of events) {
+    if (ev.type !== 'agent.spawned' || ev.runId === undefined) {
+      continue;
+    }
+    const children = childrenOf.get(ev.runId);
+    if (children) {
+      children.push(ev.spawnId);
+    } else {
+      childrenOf.set(ev.runId, [ev.spawnId]);
+    }
+  }
+  const subtree = new Set<string>();
+  const walk = (id: string): void => {
+    for (const child of childrenOf.get(id) ?? []) {
+      if (subtree.has(child)) {
+        continue;
+      }
+      subtree.add(child);
+      walk(child);
+    }
+  };
+  walk(spawnId);
+  return subtree;
+}
+
+/**
  * Разделяет журнал треда на ленту родителя и карточки спавнов.
  * `agent.spawned` остаётся в ленте — по нему `groupSegments` строит
  * spawn-сегмент. События с `runId ∈ spawnIds` (внуков включительно —

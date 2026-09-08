@@ -9,7 +9,7 @@ import { StatusDot } from '@/shared/ui/status-dot';
 
 import { splitRuns } from '../model/run-groups';
 import type { SpawnStatus } from '../model/spawn-groups';
-import { extractSpawns, spawnTaskText } from '../model/spawn-groups';
+import { extractSpawns, spawnSubtreeIds, spawnTaskText } from '../model/spawn-groups';
 import { useSpawnStream } from '../model/use-spawn-stream';
 import { RunTurn } from './run-turn';
 
@@ -54,7 +54,7 @@ export function SpawnView({
   const agent = useAgentStore((state) =>
     spawn ? (state.byId(spawn.agentId) ?? undefined) : undefined,
   );
-  const spawnIds = useMemo(() => new Set(spawns.map((item) => item.spawnId)), [spawns]);
+  const subtreeIds = useMemo(() => spawnSubtreeIds(events, spawnId), [events, spawnId]);
   const spawnedTask = useMemo(() => {
     const found = events.find(
       (ev): ev is SessionEvent & { type: 'agent.spawned' } =>
@@ -95,7 +95,7 @@ export function SpawnView({
   };
 
   const childEvents = events.filter(
-    (ev) => ev.runId !== undefined && (ev.runId === spawnId || spawnIds.has(ev.runId)),
+    (ev) => ev.runId !== undefined && (ev.runId === spawnId || subtreeIds.has(ev.runId)),
   );
   const runs = splitRuns(childEvents);
 

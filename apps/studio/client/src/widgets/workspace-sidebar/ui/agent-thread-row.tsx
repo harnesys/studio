@@ -90,7 +90,7 @@ export function AgentThreadRow({
               {thread.pinned ? (
                 <PinIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden />
               ) : null}
-              <span className="block truncate text-sm leading-4">{thread.title}</span>
+              <span className="block truncate pr-4 text-sm leading-4">{thread.title}</span>
             </span>
             <span className="mt-0.5 flex items-baseline justify-between gap-2">
               <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground leading-4">

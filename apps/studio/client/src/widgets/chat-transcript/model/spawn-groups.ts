@@ -8,6 +8,8 @@ export type SpawnInfo = {
   status: SpawnStatus;
   /** Хвост последнего текст-блока ребёнка или имя последнего tool. */
   lastActivity: string;
+  /** Текст задачи из `agent.spawned.taskInput`; отсутствует при пустом вводе. */
+  taskText?: string;
 };
 
 export type SpawnGroups = {
@@ -22,6 +24,39 @@ type SpawnDraft = {
 };
 
 const LAST_ACTIVITY_MAX = 60;
+
+/**
+ * Выводит текст задачи спавна из `agent.spawned.taskInput`: строка — как
+ * есть; объект с `messages` — content первого сообщения; иначе компактный
+ * JSON. Пустой результат — `undefined`, поле в `SpawnInfo` отсутствует.
+ * Без усечений: режет только отображение в UI, данные целы в журнале.
+ */
+export function spawnTaskText(input: unknown): string | undefined {
+  if (input === undefined || input === null) {
+    return undefined;
+  }
+  if (typeof input === 'string') {
+    return input ? input : undefined;
+  }
+  if (typeof input === 'object') {
+    const msgs = (input as Record<string, unknown>).messages;
+    if (Array.isArray(msgs) && msgs.length > 0) {
+      const first = msgs[0];
+      if (first && typeof first === 'object') {
+        const content = (first as { content?: unknown }).content;
+        if (typeof content === 'string') {
+          return content ? content : undefined;
+        }
+      }
+    }
+  }
+  try {
+    const json = JSON.stringify(input);
+    return json ? json : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function truncateActivity(text: string): string {
   if (text.length <= LAST_ACTIVITY_MAX) {
@@ -72,8 +107,15 @@ export function extractSpawns(events: SessionEvent[]): SpawnGroups {
       continue;
     }
     if (ev.type === 'agent.spawned') {
+      const taskText = spawnTaskText(ev.taskInput);
       drafts.set(ev.spawnId, {
-        info: { spawnId: ev.spawnId, agentId: ev.agentId, status: 'running', lastActivity: '' },
+        info: {
+          spawnId: ev.spawnId,
+          agentId: ev.agentId,
+          status: 'running',
+          lastActivity: '',
+          ...(taskText !== undefined ? { taskText } : {}),
+        },
         deltaId: undefined,
         deltaText: '',
       });

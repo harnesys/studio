@@ -105,7 +105,14 @@ export type SessionEvent =
   | { type: 'done'; text?: string; seq?: number; runId?: string }
   | { type: 'error'; code: string; message: string; seq?: number; runId?: string }
   | { type: 'agent.handoff'; agentId: string; seq?: number; runId?: string }
-  | { type: 'agent.spawned'; agentId: string; spawnId: string; seq?: number; runId?: string }
+  | {
+      type: 'agent.spawned';
+      agentId: string;
+      spawnId: string;
+      taskInput?: unknown;
+      seq?: number;
+      runId?: string;
+    }
   | { type: 'agent.completed'; agentId: string; spawnId: string; seq?: number; runId?: string }
   | {
       type: 'agent.failed';

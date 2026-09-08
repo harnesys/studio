@@ -312,6 +312,14 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
         message: typeof m?.message === 'string' ? m.message : undefined,
       };
     }
+    if (t === 'agent.spawned') {
+      return {
+        type: 'agent.spawned',
+        agentId,
+        spawnId,
+        ...(m?.taskInput !== undefined ? { taskInput: m.taskInput } : {}),
+      };
+    }
     return { type: t, agentId, spawnId };
   }
   return null;

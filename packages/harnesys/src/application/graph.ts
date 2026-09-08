@@ -981,6 +981,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           const e = await commit('running', 'agent.spawned', 'recorded', {
             agentId: t.call.agentId,
             spawnId: t.spawnId,
+            taskInput: t.call.input,
           });
           yield e;
         }

@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import type { SessionEvent } from '@studio/shared';
+import { useEffect, useMemo, useState } from 'react';
 import { useAgentStore } from '@/entities/agent';
 import { refreshThread, useDeskStore, useThreadEvents } from '@/features/desk';
 import type { IdeTab } from '@/features/ide';
@@ -8,7 +9,7 @@ import { StatusDot } from '@/shared/ui/status-dot';
 
 import { splitRuns } from '../model/run-groups';
 import type { SpawnStatus } from '../model/spawn-groups';
-import { extractSpawns } from '../model/spawn-groups';
+import { extractSpawns, spawnTaskText } from '../model/spawn-groups';
 import { RunTurn } from './run-turn';
 
 const DOT_TONE: Record<SpawnStatus, 'live' | 'idle' | 'danger'> = {
@@ -22,6 +23,8 @@ const STATUS_LABEL: Record<SpawnStatus, string> = {
   done: 'done',
   failed: 'failed',
 };
+
+const TASK_COLLAPSE_AT = 500;
 
 /**
  * Read-only IDE tab for one spawn of a thread. Events come from the parent
@@ -50,6 +53,16 @@ export function SpawnView({
     spawn ? (state.byId(spawn.agentId) ?? undefined) : undefined,
   );
   const spawnIds = useMemo(() => new Set(spawns.map((item) => item.spawnId)), [spawns]);
+  const spawnedTask = useMemo(() => {
+    const found = events.find(
+      (ev): ev is SessionEvent & { type: 'agent.spawned' } =>
+        ev.type === 'agent.spawned' && ev.spawnId === spawnId,
+    );
+    return found ? spawnTaskText(found.taskInput) : undefined;
+  }, [events, spawnId]);
+  const [taskExpanded, setTaskExpanded] = useState(false);
+  const taskCollapsed =
+    spawnedTask !== undefined && Array.from(spawnedTask).length > TASK_COLLAPSE_AT && !taskExpanded;
 
   // A restored spawn tab has no URL and the parent thread's journal loads
   // only when that thread's panel mounts — fetch it here once if missing.
@@ -104,6 +117,27 @@ export function SpawnView({
           {STATUS_LABEL[spawn.status]}
         </span>
       </div>
+      {spawnedTask ? (
+        <div className="shrink-0 border-border/60 border-b px-3 py-2" data-testid="ide-spawn-task">
+          <div className="mx-auto w-full max-w-3xl">
+            <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Task</div>
+            <div className="whitespace-pre-wrap text-[12px] text-foreground leading-5">
+              {taskCollapsed
+                ? Array.from(spawnedTask).slice(0, TASK_COLLAPSE_AT).join('')
+                : spawnedTask}
+            </div>
+            {Array.from(spawnedTask).length > TASK_COLLAPSE_AT ? (
+              <button
+                type="button"
+                onClick={() => setTaskExpanded((open) => !open)}
+                className="mt-1 cursor-pointer text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                {taskExpanded ? 'Show less' : 'Show full task'}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
           {runs.map((run, index) => (

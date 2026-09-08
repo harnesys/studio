@@ -24,15 +24,21 @@ type SpawnDraft = {
 const LAST_ACTIVITY_MAX = 60;
 
 function truncateActivity(text: string): string {
-  return text.length > LAST_ACTIVITY_MAX ? text.slice(0, LAST_ACTIVITY_MAX) : text;
+  if (text.length <= LAST_ACTIVITY_MAX) {
+    return text;
+  }
+  return Array.from(text).slice(0, LAST_ACTIVITY_MAX).join('');
 }
 
 /**
  * Разделяет журнал треда на ленту родителя и карточки спавнов.
  * `agent.spawned` остаётся в ленте — по нему `groupSegments` строит
- * spawn-сегмент; события детей (`runId = spawnId`) в ленту не попадают,
- * их последний текст-блок или tool идёт в `lastActivity`. Статус —
- * running, пока не пришёл `agent.completed`/`agent.failed`.
+ * spawn-сегмент. События с `runId ∈ spawnIds` (внуков включительно —
+ * их `agent.spawned` проходит через журнал родителя) в ленту не
+ * попадают независимо от наличия карточки: карточка есть только у
+ * прямых детей, активность внуков отрисовывает спавн-вью ребёнка.
+ * У прямых детей последний текст-блок или tool идёт в `lastActivity`.
+ * Статус — running, пока не пришёл `agent.completed`/`agent.failed`.
  */
 export function extractSpawns(events: SessionEvent[]): SpawnGroups {
   const spawnIds = new Set<string>();
@@ -49,17 +55,19 @@ export function extractSpawns(events: SessionEvent[]): SpawnGroups {
   const feedEvents: SessionEvent[] = [];
 
   for (const ev of events) {
-    const owner = ev.runId !== undefined ? drafts.get(ev.runId) : undefined;
-    if (owner) {
-      if (ev.type === 'text-delta') {
-        owner.deltaText =
-          ev.id !== undefined && ev.id === owner.deltaId ? owner.deltaText + ev.text : ev.text;
-        owner.deltaId = ev.id;
-        owner.info.lastActivity = truncateActivity(owner.deltaText);
-      } else if (ev.type === 'tool') {
-        owner.deltaId = undefined;
-        owner.deltaText = '';
-        owner.info.lastActivity = ev.name;
+    if (ev.runId !== undefined && spawnIds.has(ev.runId)) {
+      const owner = drafts.get(ev.runId);
+      if (owner) {
+        if (ev.type === 'text-delta') {
+          owner.deltaText =
+            ev.id !== undefined && ev.id === owner.deltaId ? owner.deltaText + ev.text : ev.text;
+          owner.deltaId = ev.id;
+          owner.info.lastActivity = truncateActivity(owner.deltaText);
+        } else if (ev.type === 'tool') {
+          owner.deltaId = undefined;
+          owner.deltaText = '';
+          owner.info.lastActivity = ev.name;
+        }
       }
       continue;
     }

@@ -92,6 +92,7 @@ export function AssistantMessageView({
   threadId,
   spawns,
   onOpenSpawn,
+  readOnly = false,
 }: {
   events: SessionEvent[];
   runId: string;
@@ -99,6 +100,7 @@ export function AssistantMessageView({
   threadId?: string;
   spawns?: SpawnInfo[];
   onOpenSpawn?: (spawnId: string) => void;
+  readOnly?: boolean;
 }) {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
@@ -146,7 +148,7 @@ export function AssistantMessageView({
       </div>
 
       <div className="flex flex-col gap-1">
-        {answerText ? (
+        {answerText && !readOnly ? (
           <MessageActions
             entryId={runId}
             onCopy={() => {

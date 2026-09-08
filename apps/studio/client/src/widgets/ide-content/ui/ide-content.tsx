@@ -5,7 +5,7 @@ import type { IdeTab } from '@/features/ide';
 import { openFileKind } from '@/features/open-file';
 import { HitlPrompt } from '@/features/send-message';
 import { ChatComposer } from '@/widgets/chat-composer';
-import { ThreadHeader, ThreadPanel } from '@/widgets/chat-transcript';
+import { SpawnView, ThreadHeader, ThreadPanel } from '@/widgets/chat-transcript';
 import { MediaPreview, TextEditor } from '@/widgets/file-pane';
 import { ThreadJournal } from '@/widgets/thread-journal';
 
@@ -51,6 +51,9 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
         <HitlPrompt />
       </div>
     );
+  }
+  if (tab.kind === 'spawn' && tab.threadId && tab.spawnId) {
+    return <SpawnView tab={tab} threadId={tab.threadId} spawnId={tab.spawnId} />;
   }
   if (tab.kind === 'file' && tab.path) {
     const kind = openFileKind(tab.path);

@@ -1,4 +1,10 @@
-import { CalendarClockIcon, EarthIcon, FileIcon, MessageSquareIcon } from 'lucide-react';
+import {
+  CalendarClockIcon,
+  EarthIcon,
+  FileIcon,
+  MessageSquareIcon,
+  WorkflowIcon,
+} from 'lucide-react';
 import { useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import type { IdeTab } from '@/features/ide';
@@ -11,6 +17,9 @@ export function TabIcon({ tab }: { tab: IdeTab }) {
   }
   if (tab.kind === 'thread' && tab.threadId) {
     return <ThreadTabIcon threadId={tab.threadId} />;
+  }
+  if (tab.kind === 'spawn') {
+    return <WorkflowIcon className="size-3.5 shrink-0 opacity-70" />;
   }
   return <FileIcon className="size-3.5 shrink-0 opacity-70" />;
 }
@@ -47,12 +56,18 @@ export function useTabLabel(tab: IdeTab): string {
       ? (state.items.find((item) => item.id === tab.threadId)?.title ?? null)
       : null,
   );
+  const agent = useAgentStore((state) =>
+    tab.kind === 'spawn' && tab.agentId ? (state.byId(tab.agentId) ?? undefined) : undefined,
+  );
   if (tab.kind === 'file' && tab.path) {
     const parts = tab.path.split('/');
     return parts[parts.length - 1] || tab.path;
   }
   if (tab.kind === 'thread') {
     return title || 'Thread';
+  }
+  if (tab.kind === 'spawn') {
+    return agent?.name ?? 'Spawn';
   }
   return tab.kind;
 }

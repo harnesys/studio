@@ -18,13 +18,14 @@ import {
 
 export { firstGroupOfLayout, type IdeSplitNode, lastGroupOfLayout } from './ide-tree';
 
-export type IdeTabKind = 'thread' | 'file';
+export type IdeTabKind = 'thread' | 'file' | 'spawn';
 export type IdeTab = {
   id: string;
   kind: IdeTabKind;
   workspaceId: string;
   agentId?: string;
   threadId?: string;
+  spawnId?: string;
   path?: string;
   dirty?: boolean;
 };
@@ -33,6 +34,7 @@ export type { IdeGroup, IdeSplitSide, IdeWorkspaceState } from './ide-layout';
 type IdeState = { byWorkspace: Record<string, IdeWorkspaceState> };
 type IdeStore = IdeState & {
   openThread: (workspaceId: string, agentId: string, threadId: string) => void;
+  openSpawn: (workspaceId: string, agentId: string, threadId: string, spawnId: string) => void;
   openFile: (workspaceId: string, path: string) => void;
   closeTab: (workspaceId: string, tabId: string) => void;
   closeAll: (workspaceId: string) => void;
@@ -78,7 +80,9 @@ function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | null {
     activeId: ws.activeId ? remapId(ws.activeId) : null,
   };
   const alive = new Set(
-    tabs.filter((t) => t.kind === 'thread' || t.kind === 'file').map((t) => t.id),
+    tabs
+      .filter((t) => t.kind === 'thread' || t.kind === 'file' || t.kind === 'spawn')
+      .map((t) => t.id),
   );
   if (alive.size === tabs.length && groups.every((g) => g.tabIds.every((id) => alive.has(id)))) {
     return normalized;
@@ -207,6 +211,12 @@ export const useIdeStore = create<IdeStore>((set) => {
       set((state) => {
         const id = tabIdFor('thread', threadId);
         const tab: IdeTab = { id, kind: 'thread', workspaceId, agentId, threadId };
+        return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
+      }),
+    openSpawn: (workspaceId, agentId, threadId, spawnId) =>
+      set((state) => {
+        const id = tabIdFor('spawn', `${threadId}:${spawnId}`);
+        const tab: IdeTab = { id, kind: 'spawn', workspaceId, agentId, threadId, spawnId };
         return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
       }),
     openFile: (workspaceId, path) =>

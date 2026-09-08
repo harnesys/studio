@@ -1,0 +1,126 @@
+import { useEffect, useMemo } from 'react';
+import { useAgentStore } from '@/entities/agent';
+import { refreshThread, useDeskStore, useThreadEvents } from '@/features/desk';
+import type { IdeTab } from '@/features/ide';
+import { useOpenSpawnTab } from '@/features/ide';
+import { connectThreadRun } from '@/features/send-message';
+import { StatusDot } from '@/shared/ui/status-dot';
+
+import { splitRuns } from '../model/run-groups';
+import type { SpawnStatus } from '../model/spawn-groups';
+import { extractSpawns } from '../model/spawn-groups';
+import { RunTurn } from './run-turn';
+
+const DOT_TONE: Record<SpawnStatus, 'live' | 'idle' | 'danger'> = {
+  running: 'live',
+  done: 'idle',
+  failed: 'danger',
+};
+
+const STATUS_LABEL: Record<SpawnStatus, string> = {
+  running: 'running',
+  done: 'done',
+  failed: 'failed',
+};
+
+/**
+ * Read-only IDE tab for one spawn of a thread. Events come from the parent
+ * thread's journal: extractSpawns separates them from the parent feed, and
+ * any runId in the spawn-id set (the spawn itself and nested spawns) is
+ * rendered here — nested spawns show as SpawnCards and open their own
+ * spawn tabs. No composer, no HitlPrompt, no MessageActions, no retry.
+ */
+export function SpawnView({
+  tab,
+  threadId,
+  spawnId,
+}: {
+  tab: IdeTab;
+  threadId: string;
+  spawnId: string;
+}) {
+  const events = useThreadEvents(threadId);
+  const hasEvents = events.length > 0;
+  const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
+  const openSpawnTab = useOpenSpawnTab();
+
+  const { spawns } = useMemo(() => extractSpawns(events), [events]);
+  const spawn = spawns.find((item) => item.spawnId === spawnId);
+  const agent = useAgentStore((state) =>
+    spawn ? (state.byId(spawn.agentId) ?? undefined) : undefined,
+  );
+  const spawnIds = useMemo(() => new Set(spawns.map((item) => item.spawnId)), [spawns]);
+
+  // A restored spawn tab has no URL and the parent thread's journal loads
+  // only when that thread's panel mounts — fetch it here once if missing.
+  useEffect(() => {
+    if (hasEvents || hydratedWorkspaceId !== tab.workspaceId) {
+      return;
+    }
+    void refreshThread(threadId).catch(() => {});
+  }, [hasEvents, hydratedWorkspaceId, tab.workspaceId, threadId]);
+
+  const running = spawn?.status === 'running';
+  useEffect(() => {
+    if (!running) {
+      return;
+    }
+    connectThreadRun(threadId, spawnId);
+    // Terminal status flips via extractSpawns; registry clears the run flag itself.
+  }, [running, threadId, spawnId]);
+
+  if (!spawn) {
+    return (
+      <div
+        className="flex flex-1 items-center justify-center text-muted-foreground text-sm"
+        data-testid="ide-spawn-loading"
+      >
+        {hasEvents ? 'Spawn not found' : 'Loading…'}
+      </div>
+    );
+  }
+
+  const onOpenSpawn = (sid: string) => {
+    const target = spawns.find((item) => item.spawnId === sid);
+    openSpawnTab(tab.workspaceId, target?.agentId ?? '', threadId, sid);
+  };
+
+  const childEvents = events.filter(
+    (ev) => ev.runId !== undefined && (ev.runId === spawnId || spawnIds.has(ev.runId)),
+  );
+  const runs = splitRuns(childEvents);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-spawn">
+      <div className="flex h-9 shrink-0 items-center gap-2 border-border/60 border-b px-3">
+        <StatusDot tone={DOT_TONE[spawn.status]} />
+        <span
+          className="truncate font-medium text-[12px] text-foreground leading-none"
+          title={spawn.agentId}
+        >
+          {agent?.name ?? spawn.agentId.slice(0, 8)}
+        </span>
+        <span className="text-[11px] text-muted-foreground leading-none">
+          {STATUS_LABEL[spawn.status]}
+        </span>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
+          {runs.map((run, index) => (
+            <RunTurn
+              key={run.runId ?? `run-${index}`}
+              events={run.events}
+              runId={run.runId ?? spawnId}
+              streaming={running && index === runs.length - 1}
+              error={run.error}
+              threadId={threadId}
+              spawns={spawns}
+              onOpenSpawn={onOpenSpawn}
+              readOnly
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

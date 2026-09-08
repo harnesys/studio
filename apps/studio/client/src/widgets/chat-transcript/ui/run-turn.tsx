@@ -49,6 +49,7 @@ export const RunTurn = memo(
     threadId,
     spawns,
     onOpenSpawn,
+    readOnly,
   }: {
     events: SessionEvent[];
     runId: string;
@@ -58,6 +59,7 @@ export const RunTurn = memo(
     threadId?: string;
     spawns?: SpawnInfo[];
     onOpenSpawn?: (spawnId: string) => void;
+    readOnly?: boolean;
   }) {
     return (
       <div className="group/turn flex flex-col gap-3">
@@ -68,6 +70,7 @@ export const RunTurn = memo(
           threadId={threadId}
           spawns={spawns}
           onOpenSpawn={onOpenSpawn}
+          readOnly={readOnly}
         />
         {error ? <FailedMessageView text={error} onRetry={onRetry} /> : null}
       </div>
@@ -82,6 +85,7 @@ export const RunTurn = memo(
         prev.onRetry === next.onRetry &&
         prev.threadId === next.threadId &&
         prev.onOpenSpawn === next.onOpenSpawn &&
+        prev.readOnly === next.readOnly &&
         sameSpawns(prev.spawns, next.spawns) &&
         sameEventList(prev.events, next.events)
       );
@@ -92,6 +96,7 @@ export const RunTurn = memo(
       prev.onRetry === next.onRetry &&
       prev.threadId === next.threadId &&
       prev.onOpenSpawn === next.onOpenSpawn &&
+      prev.readOnly === next.readOnly &&
       sameSpawns(prev.spawns, next.spawns) &&
       sameEventList(prev.events, next.events)
     );

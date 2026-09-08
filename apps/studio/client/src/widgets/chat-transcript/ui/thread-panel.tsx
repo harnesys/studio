@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
 import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
+import { useOpenSpawnTab } from '@/features/ide';
 import { retryRun } from '@/features/send-message';
 import {
   MessageScroller,
@@ -27,16 +28,13 @@ import { ThreadEmpty } from './thread-empty';
 
 const EMPTY_FAILURES: RunFailure[] = [];
 
-export function ThreadPanel({
-  threadId,
-  agent,
-  onOpenSpawn,
-}: {
-  threadId: string;
-  agent: Agent;
-  onOpenSpawn?: (spawnId: string) => void;
-}) {
+export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agent }) {
   const events = useThreadEvents(threadId);
+  const openSpawnTab = useOpenSpawnTab();
+  const onOpenSpawn = useCallback(
+    (spawnId: string) => openSpawnTab(agent.workspaceId, agent.id, threadId, spawnId),
+    [openSpawnTab, agent.workspaceId, agent.id, threadId],
+  );
   const { feedEvents, spawns } = useMemo(() => extractSpawns(events), [events]);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));

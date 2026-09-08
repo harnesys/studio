@@ -23,6 +23,7 @@ import { useSyncedThread } from '../model/thread-sync';
 import { FailedMessageView } from './agent-turn';
 import { ChatSkeleton } from './chat-skeleton';
 import { CompactionPendingCard } from './compaction-card';
+import { ForkSeparator } from './fork-separator';
 import { RunTurn } from './run-turn';
 import { ThreadEmpty } from './thread-empty';
 
@@ -30,12 +31,28 @@ const EMPTY_FAILURES: RunFailure[] = [];
 
 export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agent }) {
   const events = useThreadEvents(threadId);
+  const thread = useThreadStore((state) => state.byId(threadId));
+  const parent = useThreadStore((state) =>
+    thread?.parentThreadId ? state.byId(thread.parentThreadId) : undefined,
+  );
   const openSpawnTab = useOpenSpawnTab();
   const onOpenSpawn = useCallback(
     (spawnId: string) => openSpawnTab(agent.workspaceId, agent.id, threadId, spawnId),
     [openSpawnTab, agent.workspaceId, agent.id, threadId],
   );
-  const { feedEvents, spawns } = useMemo(() => extractSpawns(events), [events]);
+  const inheritedCount = thread?.inheritedEventCount ?? 0;
+  const { inheritedRuns, inheritedSpawns, ownRuns, ownSpawns } = useMemo(() => {
+    const inheritedEvents = inheritedCount > 0 ? events.slice(0, inheritedCount) : [];
+    const ownEvents = inheritedCount > 0 ? events.slice(inheritedCount) : events;
+    const inherited = extractSpawns(inheritedEvents);
+    const own = extractSpawns(ownEvents);
+    return {
+      inheritedRuns: splitRuns(inherited.feedEvents),
+      inheritedSpawns: inherited.spawns,
+      ownRuns: splitRuns(own.feedEvents),
+      ownSpawns: own.spawns,
+    };
+  }, [events, inheritedCount]);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useSyncedThread(threadId, agent.workspaceId);
@@ -59,16 +76,41 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     );
   }
 
-  const runs = splitRuns(feedEvents);
-  const compactLive = compacting && runs.some(isCompactRun);
+  const compactLive = compacting && ownRuns.some(isCompactRun);
+  const showFork = Boolean(thread?.parentThreadId) && inheritedRuns.length > 0;
 
   return (
     <MessageScrollerProvider autoScroll>
       <MessageScroller>
         <MessageScrollerViewport>
           <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
-            {runs.map((run, index) => {
-              const last = index === runs.length - 1;
+            {inheritedRuns.map((run, index) => {
+              const runKey = `inherited-${run.id ?? `run-${index}`}`;
+              const forkAt = run.runId ?? run.id ?? '';
+              return (
+                <MessageScrollerItem key={runKey} messageId={runKey}>
+                  <div className="pointer-events-none select-none opacity-60" aria-hidden>
+                    <RunTurn
+                      events={run.events}
+                      runId={forkAt}
+                      threadId={threadId}
+                      spawns={inheritedSpawns}
+                      onOpenSpawn={onOpenSpawn}
+                      streaming={false}
+                      error={run.error}
+                      inherited
+                    />
+                  </div>
+                </MessageScrollerItem>
+              );
+            })}
+            {showFork && parent ? (
+              <MessageScrollerItem messageId="fork-separator">
+                <ForkSeparator parentThreadId={parent.id} parentAgentId={parent.agentId} />
+              </MessageScrollerItem>
+            ) : null}
+            {ownRuns.map((run, index) => {
+              const last = index === ownRuns.length - 1;
               const runStreaming =
                 (streaming && last && !compacting) || (compacting && last && isCompactRun(run));
               const runKey = run.id ?? `run-${index}`;
@@ -79,7 +121,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
                     events={run.events}
                     runId={forkAt}
                     threadId={threadId}
-                    spawns={spawns}
+                    spawns={ownSpawns}
                     onOpenSpawn={onOpenSpawn}
                     streaming={runStreaming}
                     error={run.error}

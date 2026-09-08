@@ -5,6 +5,8 @@ import { Button } from '@/shared/ui/button';
 type MessageActionsProps = {
   entryId: string;
   align?: 'start' | 'end';
+  /** Inherited (parent-history) zone: hover actions are unavailable. */
+  inherited?: boolean;
   onCopy: () => void;
   onEdit?: () => void;
   onBranch: () => void;
@@ -14,11 +16,15 @@ type MessageActionsProps = {
 export function MessageActions({
   entryId,
   align = 'start',
+  inherited = false,
   onCopy,
   onEdit,
   onBranch,
   onDelete,
 }: MessageActionsProps) {
+  if (inherited) {
+    return null;
+  }
   return (
     <div
       data-slot="message-actions"

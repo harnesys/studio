@@ -93,6 +93,7 @@ export function AssistantMessageView({
   spawns,
   onOpenSpawn,
   readOnly = false,
+  inherited = false,
 }: {
   events: SessionEvent[];
   runId: string;
@@ -101,6 +102,7 @@ export function AssistantMessageView({
   spawns?: SpawnInfo[];
   onOpenSpawn?: (spawnId: string) => void;
   readOnly?: boolean;
+  inherited?: boolean;
 }) {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
@@ -151,6 +153,7 @@ export function AssistantMessageView({
         {answerText && !readOnly ? (
           <MessageActions
             entryId={runId}
+            inherited={inherited}
             onCopy={() => {
               void navigator.clipboard.writeText(answerText);
               toast.add({ title: 'Copied.' });

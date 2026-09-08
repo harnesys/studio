@@ -107,7 +107,7 @@ export {
   InMemoryRunLifecycleStore,
   createRunEventBus,
 } from './src/adapters/in-memory-run-store.ts';
-export type { AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
+export type { AgentRosterEntry, AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
 export { DRIVERS, normalizeProvider, resolveModel } from './src/ports/models.ts';
 export type {
   DiscoverInput,

@@ -2,8 +2,9 @@ import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Expr } from '../domain/expr.ts';
 import type { Event } from '../domain/snapshot.ts';
-import type { AgentsResolve } from '../ports/create-runtime.ts';
+import type { AgentRosterEntry, AgentsResolve } from '../ports/create-runtime.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
+import { formatAgentTargets, resolveAgentTarget } from './agent-target-resolve.ts';
 import { compileOrThrow } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import type { GraphOpts } from './graph.ts';
@@ -102,10 +103,22 @@ function parseCalls(raw: unknown): SpawnCall[] {
 
 function resolveTargets(calls: SpawnCall[], agents: AgentsResolve): SpawnTarget[] {
   const out: SpawnTarget[] = [];
+  const roster: AgentRosterEntry[] = agents.list?.() ?? [];
   for (const call of calls) {
-    const def = agents.resolve(call.agentId);
+    let def = agents.resolve(call.agentId);
+    if (!def && roster.length > 0) {
+      const hit = resolveAgentTarget(call.agentId, roster);
+      if ('error' in hit) {
+        throw codedRunError('spawn_target_missing', hit.error);
+      }
+      def = agents.resolve(hit.id);
+    }
     if (!def) {
-      throw codedRunError('spawn_target_missing', `spawn target "${call.agentId}" not found`);
+      const suffix = roster.length > 0 ? `. Available agents: ${formatAgentTargets(roster)}` : '';
+      throw codedRunError(
+        'spawn_target_missing',
+        `spawn target "${call.agentId}" not found${suffix}`,
+      );
     }
     out.push({ call, def, spawnId: crypto.randomUUID() });
   }

@@ -1,5 +1,7 @@
+import { resolveAgentTarget } from '../../application/agent-target-resolve.ts';
 import type { CapabilityScope } from '../../domain/capability.ts';
 import type { AgentCatalogCreateInput, AgentsCatalogPort } from '../../ports/agents-catalog.ts';
+import type { AgentRosterEntry } from '../../ports/create-runtime.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
 
 export type CreateAgentsToolsParams = {
@@ -20,12 +22,35 @@ type AgentsListInput = {
   name?: string;
 };
 
+function spawnCallsShapeError(calls: unknown[]): string | null {
+  for (let idx = 0; idx < calls.length; idx += 1) {
+    const item = calls[idx];
+    const agentId =
+      item && typeof item === 'object' ? (item as { agentId?: unknown }).agentId : undefined;
+    if (typeof agentId !== 'string' || !agentId) {
+      return `calls[${idx}].agentId must be a non-empty string`;
+    }
+  }
+  return null;
+}
+
+function spawnCallsTargetError(calls: unknown[], roster: AgentRosterEntry[]): string | null {
+  for (const item of calls) {
+    const agentId = (item as { agentId: string }).agentId;
+    const hit = resolveAgentTarget(agentId, roster);
+    if ('error' in hit) {
+      return hit.error;
+    }
+  }
+  return null;
+}
+
 export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition[] {
   return [
     tool('agents_list', {
       group: 'agents',
       description:
-        'List agents in this workspace (id, name, role, instructions). Optional role/name filters; role is not unique. Prefer reuse via agents_list before agents_create.',
+        'List agents in this workspace (id, name, role, instructions, tools, model). Optional role/name filters; role is not unique. Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
       input: {
         type: 'object',
         properties: {
@@ -42,12 +67,19 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
               ? { role: input.role, name: input.name }
               : undefined;
           const rows = await deps.agents.list(scope, filter);
-          return rows.map((row) => ({
-            id: row.id,
-            name: row.name,
-            role: row.role,
-            instructions: row.instructions,
-          }));
+          return await Promise.all(
+            rows.map(async (row) => {
+              const def = await deps.agents.get(scope, row.id);
+              return {
+                id: row.id,
+                name: row.name,
+                role: row.role,
+                instructions: row.instructions,
+                tools: def?.tools ?? [],
+                ...(def?.model ? { model: `${def.model.provider}/${def.model.model}` } : {}),
+              };
+            }),
+          );
         }),
     }),
     tool('agents_create', {
@@ -108,7 +140,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       group: 'agents',
       sideEffect: 'write',
       description:
-        'Queue a subcontract: the graph then runs control:spawn. calls is [{ agentId, input }]. input is usually { messages: [{ role: "user", content: "<task>" }] }. Prefer agents_list (reuse) before agents_create. This is not the tool name control:spawn.',
+        'Queue one-shot subcontracts: the graph then runs control:spawn. calls is [{ agentId, input }]. input is usually { messages: [{ role: "user", content: "<task>" }] }. Children cannot ask questions back (permission/approval/input tools are denied in child context); provide everything upfront. agentId accepts an exact id, a unique id prefix (8+ chars), or a name — unknown/ambiguous targets fail here with the agent list. Prefer agents_list (reuse) before agents_create. This is not the tool name control:spawn.',
       input: {
         type: 'object',
         properties: {
@@ -133,13 +165,27 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
         },
         required: ['calls'],
       },
-      execute: (raw) => {
-        const rec = (raw ?? {}) as { calls?: unknown };
-        if (!Array.isArray(rec.calls)) {
-          return { error: 'calls must be an array' };
-        }
-        return { calls: rec.calls };
-      },
+      execute: async (raw) =>
+        runGuard(async () => {
+          const rec = (raw ?? {}) as { calls?: unknown };
+          if (!Array.isArray(rec.calls)) {
+            return { error: 'calls must be an array' };
+          }
+          const shapeError = spawnCallsShapeError(rec.calls);
+          if (shapeError) {
+            return { error: shapeError };
+          }
+          const scope = deps.resolveScope();
+          const rows = await deps.agents.list(scope);
+          const targetError = spawnCallsTargetError(
+            rec.calls,
+            rows.map((row) => ({ id: row.id, name: row.name })),
+          );
+          if (targetError) {
+            return { error: targetError };
+          }
+          return { calls: rec.calls };
+        }),
     }),
     tool('agents_handoff', {
       group: 'agents',

@@ -23,8 +23,16 @@ import type { SessionHandle } from './session.ts';
 import type { SkillRegistry } from './skills.ts';
 import type { CustomNodeImpl, ToolCatalogEntry, ToolDefinition } from './tools.ts';
 
+export type AgentRosterEntry = {
+  id: string;
+  name: string;
+};
+
 export type AgentsResolve = {
   resolve: (id: string) => AgentDefinition | undefined;
+  /** Optional roster for fuzzy spawn-target resolution (prefix/name).
+   *  Absent → exact-id resolution only. */
+  list?: () => AgentRosterEntry[];
 };
 
 export type CreateRuntimeOptions = {

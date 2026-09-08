@@ -22,6 +22,8 @@ export interface RunEventStore extends RunSeqAllocator {
   latestSeq(runId: string): Promise<number>;
   /** Вся лента треда в порядке записи (для getThread). */
   listByThread(threadId: string): Promise<SessionEvent[]>;
+  /** Есть ли в журнале события рана (спавны живут без run-записи в lifecycle). */
+  hasRun(runId: string): Promise<boolean>;
   /** Дописывает события в тред вне lease-проверки (child runs, ручная компакция).
    *  Возвращённые события уже с seq и runId. */
   appendForThread(

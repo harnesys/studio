@@ -1,4 +1,4 @@
-import type { RunEventFeed, RunLifecycleStore, SessionEvent } from 'harnesys';
+import type { RunEventFeed, RunEventStore, RunLifecycleStore, SessionEvent } from 'harnesys';
 import { NotFoundError } from '../../domain/studio.error.ts';
 
 export type StreamRunEventsRequest = {
@@ -7,6 +7,7 @@ export type StreamRunEventsRequest = {
 
 export type StreamRunEventsDeps = {
   lifecycle: RunLifecycleStore;
+  runEvents: RunEventStore;
   feed: RunEventFeed;
 };
 
@@ -23,7 +24,7 @@ export class StreamRunEventsUseCase implements StreamRunEventsInput {
     request: StreamRunEventsRequest & { fromSeq?: number },
   ): Promise<AsyncIterable<SessionEvent>> {
     const rec = await this.deps.lifecycle.get(request.runId);
-    if (!rec) {
+    if (!rec && !(await this.deps.runEvents.hasRun(request.runId))) {
       throw new NotFoundError('run not found');
     }
     return this.deps.feed.subscribe(request.runId, request.fromSeq ?? 0);

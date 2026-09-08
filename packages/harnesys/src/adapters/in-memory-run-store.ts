@@ -87,6 +87,10 @@ export class InMemoryRunEventStore implements RunEventStore {
   async listByThread(threadId: string): Promise<SessionEvent[]> {
     return this.insertion.filter((e) => e.threadId === threadId).map((e) => e.event);
   }
+  async hasRun(runId: string): Promise<boolean> {
+    const stored = this.events.get(runId);
+    return stored !== undefined && stored.length > 0;
+  }
 }
 function assertTransitionAllowed(
   record: RunRecord,

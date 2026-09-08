@@ -264,7 +264,11 @@ export function wireControllers(d: ControllerDeps): void {
       getThread: d.getThread,
       runEvents: d.events,
     }),
-    streamRunEvents: new StreamRunEventsUseCase({ lifecycle: d.lifecycle, feed: d.feed }),
+    streamRunEvents: new StreamRunEventsUseCase({
+      lifecycle: d.lifecycle,
+      runEvents: d.events,
+      feed: d.feed,
+    }),
     cancelRun: new CancelRunUseCase({ lifecycle: d.lifecycle, sessions }),
     lifecycle: d.lifecycle,
     respondRun: new RespondRunUseCase({

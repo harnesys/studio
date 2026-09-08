@@ -5,7 +5,7 @@ import { useSessionStore } from '@/entities/session';
 import { refreshThread, useDeskStore, useThreadEvents } from '@/features/desk';
 import type { IdeTab } from '@/features/ide';
 import { useOpenSpawnTab } from '@/features/ide';
-import { connectThreadRun } from '@/features/send-message';
+import { connectRunStream } from '@/features/send-message';
 import { StatusDot } from '@/shared/ui/status-dot';
 
 import { splitRuns } from '../model/run-groups';
@@ -80,8 +80,8 @@ export function SpawnView({
     if (!running) {
       return;
     }
-    connectThreadRun(threadId, spawnId);
-    // Terminal status flips via extractSpawns; registry clears the run flag itself.
+    connectRunStream(threadId, spawnId);
+    // Terminal status flips via extractSpawns; the per-run client clears itself.
   }, [running, threadId, spawnId]);
 
   if (!spawn) {

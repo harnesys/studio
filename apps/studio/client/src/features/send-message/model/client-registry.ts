@@ -12,25 +12,42 @@ import {
   type RunStreamState,
 } from './run-stream-client';
 
-const clientsByThread = new Map<string, RunStreamClient>();
+export type { RunStreamClient };
 
-/** Per-thread RunStreamClient registry. One client per thread for the whole session. */
-export function getClient(threadId: string): RunStreamClient {
-  const existing = clientsByThread.get(threadId);
+/** Per-(threadId, runId) registry: root run and every running spawn get their own client. */
+const clientsByRun = new Map<string, RunStreamClient>();
+
+function registryKey(threadId: string, runId: string): string {
+  return `${threadId}:${runId}`;
+}
+
+export function getClientForRun(
+  threadId: string,
+  runId: string,
+  rootRun: boolean,
+): RunStreamClient {
+  const key = registryKey(threadId, runId);
+  const existing = clientsByRun.get(key);
   if (existing) {
     return existing;
   }
   const client = createRunStreamClient({
     threadId,
+    runId,
+    rootRun,
     store: useSessionStore.getState(),
     onEvent: (event) => onStreamEvent(threadId, event),
-    onTerminal: (runId) => void onRunTerminal(threadId, runId),
+    onTerminal: () => {
+      clientsByRun.delete(key);
+      void onRunTerminal(threadId, runId, rootRun);
+    },
+    onStop: () => clientsByRun.delete(key),
   } satisfies RunStreamClientDeps);
-  clientsByThread.set(threadId, client);
+  clientsByRun.set(key, client);
   return client;
 }
 
-/** Restores the streaming flag if needed, then connects the client (idempotent per runId). */
+/** Root-run semantics: flips thread-level run bookkeeping, then connects. */
 export function connectThreadRun(threadId: string, runId: string): void {
   const store = useSessionStore.getState();
   if (store.activeRuns[threadId]) {
@@ -38,20 +55,45 @@ export function connectThreadRun(threadId: string, runId: string): void {
   } else {
     store.startRun(threadId, new AbortController(), runId);
   }
-  getClient(threadId).connect(runId);
+  getClientForRun(threadId, runId, true).connect();
+}
+
+/** Spawn-safe: connects a run stream without touching thread-level run bookkeeping. */
+export function connectRunStream(threadId: string, runId: string): void {
+  getClientForRun(threadId, runId, false).connect();
 }
 
 export function useRunStreamState(threadId: string | null): RunStreamState | null {
+  const runId = useSessionStore((state) =>
+    threadId ? state.activeRuns[threadId]?.runId || null : null,
+  );
   const [state, setState] = useState<RunStreamState | null>(null);
   useEffect(() => {
-    if (!threadId) {
+    if (!threadId || !runId) {
       setState(null);
       return;
     }
-    const client = getClient(threadId);
+    const client = getClientForRun(threadId, runId, true);
     setState(client.getState());
     return client.onTransition(setState);
-  }, [threadId]);
+  }, [threadId, runId]);
+  return state;
+}
+
+export function useRunStreamStateFor(
+  runId: string | null,
+  threadId: string | null,
+): RunStreamState | null {
+  const [state, setState] = useState<RunStreamState | null>(null);
+  useEffect(() => {
+    if (!runId || !threadId) {
+      setState(null);
+      return;
+    }
+    const client = getClientForRun(threadId, runId, false);
+    setState(client.getState());
+    return client.onTransition(setState);
+  }, [threadId, runId]);
   return state;
 }
 
@@ -87,9 +129,9 @@ function patchThreadCurrentAgent(threadId: string, agentId: string): void {
   useThreadStore.getState().upsert({ ...thread, agentId });
 }
 
-async function onRunTerminal(threadId: string, runId: string): Promise<void> {
+async function onRunTerminal(threadId: string, runId: string, rootRun: boolean): Promise<void> {
   const store = useSessionStore.getState();
-  if (runId) {
+  if (rootRun && runId) {
     store.finishRun(threadId, runId);
   }
   try {

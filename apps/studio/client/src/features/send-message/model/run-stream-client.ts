@@ -23,15 +23,20 @@ export type SessionStoreApi = ReturnType<typeof useSessionStore.getState>;
 
 export type RunStreamClientDeps = {
   threadId: string;
+  runId: string;
+  /** Root clients own thread-level run bookkeeping; spawn clients must not touch it. */
+  rootRun: boolean;
   store: SessionStoreApi;
   onEvent: (event: SessionEvent) => void;
   /** Fires once when the connected run reaches a terminal state. */
   onTerminal: (runId: string) => void;
+  /** Registry hook: drop the client from the map when stop() is called. */
+  onStop: () => void;
 };
 
 export type RunStreamClient = {
-  /** Idempotent: second connect to the same runId is ignored. */
-  connect(runId: string, fromSeq?: number): void;
+  /** Idempotent: reconnecting a live client is ignored; terminal/offline restarts. */
+  connect(): void;
   respond(askId: string, payload: unknown, opts?: { clientEventId?: string }): Promise<void>;
   reject(askId: string, note?: string, opts?: { clientEventId?: string }): Promise<void>;
   cancel(): Promise<void>;
@@ -58,28 +63,34 @@ function parseJson<T>(data: string): T | undefined {
 
 class StreamClient implements RunStreamClient {
   private readonly threadId: string;
+  private readonly runId: string;
+  private readonly rootRun: boolean;
   private readonly onEvent: (event: SessionEvent) => void;
   private readonly onTerminal: (runId: string) => void;
+  private readonly onStop: () => void;
   private state: RunStreamState = 'connecting';
-  private currentRunId: string | undefined;
   private controller: AbortController | undefined;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private listeners = new Set<(state: RunStreamState) => void>();
   private failures = 0;
   private terminated = false;
   private opening = 0;
+  private started = false;
 
   constructor(deps: RunStreamClientDeps) {
     this.threadId = deps.threadId;
+    this.runId = deps.runId;
+    this.rootRun = deps.rootRun;
     this.onEvent = deps.onEvent;
     this.onTerminal = deps.onTerminal;
+    this.onStop = deps.onStop;
   }
 
-  connect(runId: string, fromSeq?: number): void {
-    if (this.currentRunId === runId && this.state !== 'terminal' && this.state !== 'offline') {
+  connect(): void {
+    if (this.started && this.state !== 'terminal' && this.state !== 'offline') {
       return;
     }
-    this.start(runId, fromSeq ?? lastSeqByRun.get(runId) ?? 0);
+    this.start(lastSeqByRun.get(this.runId) ?? 0);
   }
 
   respond(askId: string, payload: unknown, opts?: { clientEventId?: string }): Promise<void> {
@@ -96,14 +107,15 @@ class StreamClient implements RunStreamClient {
 
   reconnect(): void {
     this.failures = 0;
-    if (this.currentRunId && this.state !== 'terminal') {
-      this.start(this.currentRunId, lastSeqByRun.get(this.currentRunId) ?? 0);
+    if (this.state !== 'terminal') {
+      this.start(lastSeqByRun.get(this.runId) ?? 0);
     }
   }
 
   stop(): void {
     this.reset();
-    this.currentRunId = undefined;
+    this.started = false;
+    this.onStop();
   }
 
   getState(): RunStreamState {
@@ -119,18 +131,14 @@ class StreamClient implements RunStreamClient {
 
   /** POST then reconnect the tail; 409 also reconnects, never retries. Other errors throw. */
   private async mutate(call: (runId: string) => Promise<void>): Promise<void> {
-    const runId = this.currentRunId;
-    if (!runId) {
-      return;
-    }
     try {
-      await call(runId);
+      await call(this.runId);
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 409) {
         throw error;
       }
     }
-    this.start(runId, lastSeqByRun.get(runId) ?? 0);
+    this.start(lastSeqByRun.get(this.runId) ?? 0);
   }
 
   private setState(next: RunStreamState): void {
@@ -153,12 +161,12 @@ class StreamClient implements RunStreamClient {
     }
   }
 
-  private start(runId: string, fromSeq: number): void {
+  private start(fromSeq: number): void {
     this.reset();
-    this.currentRunId = runId;
+    this.started = true;
     this.terminated = false;
     this.setState('connecting');
-    void this.open(runId, fromSeq, this.opening);
+    void this.open(this.runId, fromSeq, this.opening);
   }
 
   private async open(runId: string, fromSeq: number, token: number): Promise<void> {
@@ -208,6 +216,14 @@ class StreamClient implements RunStreamClient {
           this.failures = 0;
           this.setState('live');
         }
+        if (
+          event.type === 'run.completed' ||
+          event.type === 'run.cancelled' ||
+          event.type === 'run.failed'
+        ) {
+          this.finishTerminal();
+          return;
+        }
       }
     } catch {
       if (token !== this.opening || controller.signal.aborted) {
@@ -232,6 +248,12 @@ class StreamClient implements RunStreamClient {
   }
 
   private async onSilentDrop(runId: string, token: number): Promise<void> {
+    // Spawns have no lifecycle row: thread activeRun status says nothing about
+    // them, so a dropped spawn stream just reconnects until events or offline.
+    if (!this.rootRun) {
+      this.scheduleReconnect(runId, token);
+      return;
+    }
     let status: string | null = null;
     try {
       const record = await getThread(this.threadId);
@@ -243,7 +265,7 @@ class StreamClient implements RunStreamClient {
       if (token !== this.opening) {
         return;
       }
-      this.scheduleReconnect(runId);
+      this.scheduleReconnect(runId, token);
       return;
     }
     if (status === null) {
@@ -254,17 +276,16 @@ class StreamClient implements RunStreamClient {
       this.setState('paused');
       return;
     }
-    this.scheduleReconnect(runId);
+    this.scheduleReconnect(runId, token);
   }
 
-  private scheduleReconnect(runId: string): void {
+  private scheduleReconnect(runId: string, token: number): void {
     this.failures += 1;
     if (this.failures >= MAX_FAILURES) {
       this.setState('offline');
       return;
     }
     this.setState('reconnecting');
-    const token = this.opening;
     this.timer = setTimeout(
       () => {
         if (token !== this.opening) {
@@ -281,7 +302,7 @@ class StreamClient implements RunStreamClient {
     this.setState('terminal');
     if (!this.terminated) {
       this.terminated = true;
-      this.onTerminal(this.currentRunId ?? '');
+      this.onTerminal(this.runId);
     }
   }
 }

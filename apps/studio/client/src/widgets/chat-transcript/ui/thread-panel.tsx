@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
@@ -17,6 +17,7 @@ import {
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
 import { isCompactRun, splitRuns } from '../model/run-groups';
+import { extractSpawns } from '../model/spawn-groups';
 import { useSyncedThread } from '../model/thread-sync';
 import { FailedMessageView } from './agent-turn';
 import { ChatSkeleton } from './chat-skeleton';
@@ -26,8 +27,17 @@ import { ThreadEmpty } from './thread-empty';
 
 const EMPTY_FAILURES: RunFailure[] = [];
 
-export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agent }) {
+export function ThreadPanel({
+  threadId,
+  agent,
+  onOpenSpawn,
+}: {
+  threadId: string;
+  agent: Agent;
+  onOpenSpawn?: (spawnId: string) => void;
+}) {
   const events = useThreadEvents(threadId);
+  const { feedEvents, spawns } = useMemo(() => extractSpawns(events), [events]);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useSyncedThread(threadId, agent.workspaceId);
@@ -51,7 +61,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     );
   }
 
-  const runs = splitRuns(events);
+  const runs = splitRuns(feedEvents);
   const compactLive = compacting && runs.some(isCompactRun);
 
   return (
@@ -70,6 +80,9 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
                   <RunTurn
                     events={run.events}
                     runId={forkAt}
+                    threadId={threadId}
+                    spawns={spawns}
+                    onOpenSpawn={onOpenSpawn}
                     streaming={runStreaming}
                     error={run.error}
                     onRetry={

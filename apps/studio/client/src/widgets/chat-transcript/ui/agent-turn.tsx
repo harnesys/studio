@@ -10,7 +10,7 @@ import { useStudioNavigation } from '@/shared/config/navigation';
 import { FileChip } from '@/shared/ui/file-chip';
 import { Markdown } from '@/shared/ui/markdown';
 import { toast } from '@/shared/ui/toast';
-
+import type { SpawnInfo } from '../model/spawn-groups';
 import {
   groupSegments,
   segmentKey,
@@ -23,6 +23,7 @@ import { CompactionMessageCard } from './compaction-card';
 import { FeedNotice } from './feed-notice';
 import { HandoffCard } from './handoff-card';
 import { MessageActions } from './message-actions';
+import { SpawnCard } from './spawn-card';
 import { ThinkingLine } from './thinking-line';
 
 export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
@@ -88,10 +89,16 @@ export function AssistantMessageView({
   events,
   runId,
   streaming = false,
+  threadId,
+  spawns,
+  onOpenSpawn,
 }: {
   events: SessionEvent[];
   runId: string;
   streaming?: boolean;
+  threadId?: string;
+  spawns?: SpawnInfo[];
+  onOpenSpawn?: (spawnId: string) => void;
 }) {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
@@ -123,6 +130,9 @@ export function AssistantMessageView({
               segment={segment}
               live={streaming && index === segments.length - 1 && !pendingReply}
               runId={runId}
+              threadId={threadId}
+              spawns={spawns}
+              onOpenSpawn={onOpenSpawn}
             />
           </div>
         ))}
@@ -165,10 +175,16 @@ function TurnSegmentView({
   segment,
   live,
   runId,
+  threadId,
+  spawns,
+  onOpenSpawn,
 }: {
   segment: TurnSegment;
   live: boolean;
   runId: string;
+  threadId?: string;
+  spawns?: SpawnInfo[];
+  onOpenSpawn?: (spawnId: string) => void;
 }) {
   if (segment.type === 'user') {
     const thread = useSelectedThread();
@@ -206,6 +222,20 @@ function TurnSegmentView({
   }
   if (segment.type === 'handoff') {
     return <HandoffCard agentId={segment.agentId} />;
+  }
+  if (segment.type === 'spawn') {
+    const spawn = spawns?.find((item) => item.spawnId === segment.spawnId);
+    if (!spawn) {
+      return null;
+    }
+    return (
+      <SpawnCard
+        threadId={threadId ?? ''}
+        spawnId={segment.spawnId}
+        spawn={spawn}
+        onOpen={onOpenSpawn}
+      />
+    );
   }
 
   return <Markdown text={segment.text} />;

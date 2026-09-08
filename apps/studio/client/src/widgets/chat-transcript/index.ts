@@ -1,5 +1,6 @@
 export type { RunGroup } from './model/run-groups';
 export { isCompactRun, splitRuns } from './model/run-groups';
+export { extractSpawns, type SpawnInfo } from './model/spawn-groups';
 export { useSyncedThread } from './model/thread-sync';
 export { AssistantMessageView, FailedMessageView, SystemMessageView } from './ui/agent-turn';
 export { ChatSkeleton } from './ui/chat-skeleton';

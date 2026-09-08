@@ -1,5 +1,5 @@
 import type { SessionEvent } from '@studio/shared';
-import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
@@ -20,6 +20,7 @@ import {
 import {
   ChatSkeleton,
   CompactionPendingCard,
+  extractSpawns,
   FailedMessageView,
   isCompactRun,
   RunTurn,
@@ -42,6 +43,7 @@ export type ThreadJournalProps = {
 
 export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
   const events = useThreadEvents(threadId);
+  const { feedEvents, spawns } = useMemo(() => extractSpawns(events), [events]);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useSyncedThread(threadId, agent.workspaceId);
@@ -63,7 +65,7 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
       </>
     );
   } else {
-    const runs = splitRuns(events);
+    const runs = splitRuns(feedEvents);
     const compactLive = compacting && runs.some(isCompactRun);
     body = (
       <MessageScrollerProvider autoScroll>
@@ -88,6 +90,8 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
                     <RunTurn
                       events={run.events}
                       runId={run.id ?? ''}
+                      threadId={threadId}
+                      spawns={spawns}
                       streaming={runStreaming}
                       error={run.error}
                       onRetry={

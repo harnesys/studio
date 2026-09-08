@@ -37,3 +37,4 @@ ref/
 # git worktrees / SDD scratch
 .worktrees/
 .superpowers/
+.harnesys/

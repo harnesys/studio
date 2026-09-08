@@ -10,11 +10,8 @@ export function matchOutgoing(edges: Edge[], slots: Slots): string | undefined {
       if (evalWhen(ed.when, slots)) {
         return ed.to;
       }
-    } catch (err) {
-      const code = (err as { code?: string }).code;
-      if (code === 'unknown_path') {
-        throw err;
-      }
+    } catch {
+      // unknown_path / syntax: this edge does not match
     }
   }
   return undefined;

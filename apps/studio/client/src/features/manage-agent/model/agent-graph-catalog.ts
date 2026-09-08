@@ -89,12 +89,12 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     label: 'Spawn',
     summary: 'Subcontract agents.',
     description:
-      'Starts child runs. calls is an expr that must eval to [{ agentId, input }]. Parent waits (barrier all). Results land in $output; the parent thread current agent does not change.',
+      'Starts child runs. calls evals to [{ agentId, input }]. From Tool call after agents_spawn: exists($state.spawns) && length($state.spawns) > 0, calls $state.spawns. Parent waits (barrier all). Results land in $output and a Spawn results message.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({
       type: 'control:spawn',
-      calls: '$output.spawns',
+      calls: '$state.spawns',
       concurrency: 'parallel',
     }),
   },
@@ -104,12 +104,12 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     label: 'Handoff',
     summary: 'Switch current agent.',
     description:
-      'Rebinds this thread to another agent (agentId string or expr). Emits agent.handoff. Origin stays. The interpreter continues on the target graph from its start node.',
+      'Rebinds this thread to another agent. From Tool call after agents_handoff: exists($state.handoffAgentId) && $state.handoffAgentId, agentId $state.handoffAgentId. Emits agent.handoff. Origin stays. Interpreter continues on the target graph from its start.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({
       type: 'control:handoff',
-      agentId: '$output.handoffAgentId',
+      agentId: '$state.handoffAgentId',
       input: '$state.messages',
     }),
   },

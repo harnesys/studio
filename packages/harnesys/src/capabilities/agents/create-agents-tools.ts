@@ -104,5 +104,62 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           return await deps.agents.create(scope, input);
         }),
     }),
+    tool('agents_spawn', {
+      group: 'agents',
+      sideEffect: 'write',
+      description:
+        'Queue a subcontract: the graph then runs control:spawn. calls is [{ agentId, input }]. input is usually { messages: [{ role: "user", content: "<task>" }] }. Prefer agents_list (reuse) before agents_create. This is not the tool name control:spawn.',
+      input: {
+        type: 'object',
+        properties: {
+          calls: {
+            type: 'array',
+            description: 'Child runs to start. Parent waits for all.',
+            items: {
+              type: 'object',
+              properties: {
+                agentId: {
+                  type: 'string',
+                  description: 'Target agent id from agents_list or agents_create',
+                },
+                input: {
+                  description:
+                    'Child run input. Typical: { "messages": [{ "role": "user", "content": "<task>" }] }',
+                },
+              },
+              required: ['agentId'],
+            },
+          },
+        },
+        required: ['calls'],
+      },
+      execute: (raw) => {
+        const rec = (raw ?? {}) as { calls?: unknown };
+        if (!Array.isArray(rec.calls)) {
+          return { error: 'calls must be an array' };
+        }
+        return { calls: rec.calls };
+      },
+    }),
+    tool('agents_handoff', {
+      group: 'agents',
+      sideEffect: 'write',
+      description:
+        'Pass this thread to another agent (current speaker changes, origin stays). The graph then runs control:handoff. agentId from agents_list or agents_create. This is not the tool name control:handoff.',
+      input: {
+        type: 'object',
+        properties: {
+          agentId: { type: 'string', description: 'Target agent id' },
+        },
+        required: ['agentId'],
+      },
+      execute: (raw) => {
+        const rec = (raw ?? {}) as { agentId?: unknown };
+        if (typeof rec.agentId !== 'string' || !rec.agentId) {
+          return { error: 'agentId must be a non-empty string' };
+        }
+        return { agentId: rec.agentId };
+      },
+    }),
   ];
 }

@@ -20,6 +20,12 @@ import { resolveCapabilities } from './capabilities/registry.ts';
 import { runSummaryPassIfDue } from './compaction/run.ts';
 import type { Plan } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
+import {
+  appendSpawnResultsMessage,
+  applyAgentControlToolResults,
+  clearQueuedHandoff,
+  clearQueuedSpawns,
+} from './graph-agent-controls.ts';
 import { isSkippedEntry, matchOutgoing } from './graph-edges.ts';
 import { type HandoffNodeSpec, prepareHandoff } from './graph-handoff.ts';
 import {
@@ -846,6 +852,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         }
         throw e;
       }
+      applyAgentControlToolResults(res.results, st);
       output = { results: res.results };
       for (const r of res.results) {
         const outputStr = serializeToolResult(r.result);
@@ -983,6 +990,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         yield e;
       }
       output = spawnOutcome.results;
+      appendSpawnResultsMessage(st, lastMsg, spawnOutcome.results);
+      clearQueuedSpawns(st);
       const e = await commit('running', 'node.completed');
       yield e;
     } else if (node.type === 'control:handoff') {
@@ -1009,6 +1018,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       agentJson = JSON.stringify(agent);
       orderJson = JSON.stringify(plan.order);
       output = { agentId: prepared.agent.id };
+      clearQueuedHandoff(st);
       yield await commit('running', 'node.completed');
       cur = prepared.startNodeId;
       nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);

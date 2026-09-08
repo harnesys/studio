@@ -1,5 +1,10 @@
 export { coalesceStreamDeltas } from './model/coalesce-events.ts';
-export { type ActiveRun, type RunFailure, useSessionStore } from './model/session.store.ts';
+export {
+  type ActiveRun,
+  eventKey,
+  type RunFailure,
+  useSessionStore,
+} from './model/session.store.ts';
 export {
   contextUsedRatio,
   contextWindowForModel,

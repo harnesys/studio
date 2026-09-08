@@ -43,7 +43,8 @@ export type ThreadJournalProps = {
 
 export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
   const events = useThreadEvents(threadId);
-  const { feedEvents, spawns } = useMemo(() => extractSpawns(events), [events]);
+  const seenAt = useSessionStore((state) => state.seenAt[threadId]);
+  const { feedEvents, spawns } = useMemo(() => extractSpawns(events, seenAt), [events, seenAt]);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useSyncedThread(threadId, agent.workspaceId);

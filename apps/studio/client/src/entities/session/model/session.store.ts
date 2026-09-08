@@ -16,6 +16,8 @@ export type RunFailure = {
 
 type SessionStoreState = {
   events: Record<string, SessionEvent[]>;
+  /** Первый замеченный arrival-метка по ключу события в треде. История её не имеет. */
+  seenAt: Record<string, Record<string, number>>;
   activeRuns: Record<string, ActiveRun>;
   failures: RunFailure[];
   contentEpoch: Record<string, number>;
@@ -46,7 +48,8 @@ let timestampCounter = 0;
 const EPOCH_DELTA_MS = 400;
 const lastEpochBump: Record<string, number> = {};
 
-function eventKey(ev: SessionEvent): string {
+/** Стабильный ключ события для arrival-меток и слияния; переиспользуется в spawn-groups. */
+export function eventKey(ev: SessionEvent): string {
   if ('clientEventId' in ev && ev.clientEventId) {
     return `ce:${ev.clientEventId}`;
   }
@@ -58,6 +61,26 @@ function eventKey(ev: SessionEvent): string {
     return `${ev.runId}:${ev.seq}`;
   }
   return `t:${timestampCounter++}`;
+}
+
+/** Добивает arrival-метки для ключей, которых ещё нет; first-seen не перетирается. */
+function fillSeenAt(
+  prev: Record<string, Record<string, number>>,
+  threadId: string,
+  keys: string[],
+  now: number,
+): Record<string, Record<string, number>> {
+  const threadSeen = prev[threadId];
+  let next: Record<string, number> | undefined;
+  for (const key of keys) {
+    if (threadSeen?.[key] === undefined && next?.[key] === undefined) {
+      next = { ...threadSeen, ...next, [key]: now };
+    }
+  }
+  if (next === undefined) {
+    return prev;
+  }
+  return { ...prev, [threadId]: next };
 }
 
 function isStreamDeltaType(type: SessionEvent['type']): boolean {
@@ -82,6 +105,7 @@ function nextEpoch(
 
 export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => ({
   events: {},
+  seenAt: {},
   activeRuns: {},
   failures: [],
   contentEpoch: {},
@@ -91,13 +115,22 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   },
 
   replaceEvents(threadId, events) {
+    const coalesced = coalesceStreamDeltas(events);
+    const now = Date.now();
     set((state) => ({
-      events: { ...state.events, [threadId]: coalesceStreamDeltas(events) },
-      contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+      events: { ...state.events, [threadId]: coalesced },
+      seenAt: fillSeenAt(
+        state.seenAt,
+        threadId,
+        coalesced.map((ev) => eventKey(ev)),
+        now,
+      ),
+      contentEpoch: { ...state.contentEpoch, [threadId]: now },
     }));
   },
 
   reconcileEvents(threadId, serverEvents) {
+    const now = Date.now();
     set((state) => {
       const existing = state.events[threadId] ?? EMPTY_EVENTS;
       // Слияние по ключу сохраняет порядок вставки: позицию держит первое
@@ -112,14 +145,22 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       for (const ev of coalesceStreamDeltas(serverEvents)) {
         byKey.set(eventKey(ev), ev);
       }
+      const merged = [...byKey.values()];
       return {
-        events: { ...state.events, [threadId]: [...byKey.values()] },
-        contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+        events: { ...state.events, [threadId]: merged },
+        seenAt: fillSeenAt(
+          state.seenAt,
+          threadId,
+          merged.map((ev) => eventKey(ev)),
+          now,
+        ),
+        contentEpoch: { ...state.contentEpoch, [threadId]: now },
       };
     });
   },
 
   appendEvent(threadId, event) {
+    const now = Date.now();
     set((state) => {
       const current = state.events[threadId] ?? [];
       const key = eventKey(event);
@@ -130,9 +171,11 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         tail && eventKey(tail) === key
           ? lastIndex
           : current.findIndex((ev) => eventKey(ev) === key);
+      const seenAt = fillSeenAt(state.seenAt, threadId, [key], now);
       if (index === -1) {
         return {
           events: { ...state.events, [threadId]: [...current, event] },
+          seenAt,
           contentEpoch: nextEpoch(state, threadId, event.type),
         };
       }
@@ -140,6 +183,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       next[index] = mergeIncomingEvent(current[index], event);
       return {
         events: { ...state.events, [threadId]: next },
+        seenAt,
         contentEpoch: nextEpoch(state, threadId, event.type),
       };
     });
@@ -156,8 +200,17 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       if (next.length === current.length) {
         return state;
       }
+      const threadSeen = state.seenAt[threadId];
+      if (threadSeen?.[key] === undefined) {
+        return {
+          events: { ...state.events, [threadId]: next },
+          contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
+        };
+      }
+      const { [key]: _removed, ...restSeen } = threadSeen;
       return {
         events: { ...state.events, [threadId]: next },
+        seenAt: { ...state.seenAt, [threadId]: restSeen },
         contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
       };
     });
@@ -229,23 +282,29 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   removeForThreads(threadIds) {
     set((state) => {
       const events = { ...state.events };
+      const seenAt = { ...state.seenAt };
       const activeRuns = { ...state.activeRuns };
       const contentEpoch = { ...state.contentEpoch };
       for (const id of threadIds) {
         delete events[id];
+        delete seenAt[id];
         delete activeRuns[id];
         delete contentEpoch[id];
         delete lastEpochBump[id];
       }
-      return { events, activeRuns, contentEpoch };
+      return { events, seenAt, activeRuns, contentEpoch };
     });
   },
 
   copyEvents(fromThreadId, toThreadId) {
     const source = get().events[fromThreadId];
     if (source) {
+      const sourceSeen = get().seenAt[fromThreadId];
       set((state) => ({
         events: { ...state.events, [toThreadId]: [...source] },
+        ...(sourceSeen === undefined
+          ? {}
+          : { seenAt: { ...state.seenAt, [toThreadId]: { ...sourceSeen } } }),
       }));
     }
   },

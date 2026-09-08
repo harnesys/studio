@@ -1,6 +1,7 @@
 import type { SessionEvent } from '@studio/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { useAgentStore } from '@/entities/agent';
+import { useSessionStore } from '@/entities/session';
 import { refreshThread, useDeskStore, useThreadEvents } from '@/features/desk';
 import type { IdeTab } from '@/features/ide';
 import { useOpenSpawnTab } from '@/features/ide';
@@ -43,11 +44,12 @@ export function SpawnView({
   spawnId: string;
 }) {
   const events = useThreadEvents(threadId);
+  const seenAt = useSessionStore((state) => state.seenAt[threadId]);
   const hasEvents = events.length > 0;
   const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
   const openSpawnTab = useOpenSpawnTab();
 
-  const { spawns } = useMemo(() => extractSpawns(events), [events]);
+  const { spawns } = useMemo(() => extractSpawns(events, seenAt), [events, seenAt]);
   const spawn = spawns.find((item) => item.spawnId === spawnId);
   const agent = useAgentStore((state) =>
     spawn ? (state.byId(spawn.agentId) ?? undefined) : undefined,

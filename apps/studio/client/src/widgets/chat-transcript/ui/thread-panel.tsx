@@ -43,18 +43,19 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     [openSpawnTab, agent.workspaceId, agent.id, threadId],
   );
   const inheritedCount = thread?.inheritedEventCount ?? 0;
+  const seenAt = useSessionStore((state) => state.seenAt[threadId]);
   const { inheritedRuns, inheritedSpawns, ownRuns, ownSpawns } = useMemo(() => {
     const inheritedEvents = inheritedCount > 0 ? events.slice(0, inheritedCount) : [];
     const ownEvents = inheritedCount > 0 ? events.slice(inheritedCount) : events;
-    const inherited = extractSpawns(inheritedEvents);
-    const own = extractSpawns(ownEvents);
+    const inherited = extractSpawns(inheritedEvents, seenAt);
+    const own = extractSpawns(ownEvents, seenAt);
     return {
       inheritedRuns: splitRuns(inherited.feedEvents),
       inheritedSpawns: inherited.spawns,
       ownRuns: splitRuns(own.feedEvents),
       ownSpawns: own.spawns,
     };
-  }, [events, inheritedCount]);
+  }, [events, inheritedCount, seenAt]);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const branchChildrenByRun = useThreadStore(
     useShallow((state) => {

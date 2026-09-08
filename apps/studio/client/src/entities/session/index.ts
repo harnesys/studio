@@ -3,6 +3,7 @@ export {
   type ActiveRun,
   eventKey,
   type RunFailure,
+  stableEventKey,
   useSessionStore,
 } from './model/session.store.ts';
 export {

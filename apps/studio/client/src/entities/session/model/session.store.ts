@@ -49,7 +49,7 @@ const EPOCH_DELTA_MS = 400;
 const lastEpochBump: Record<string, number> = {};
 
 /** Стабильный ключ события для arrival-меток и слияния; переиспользуется в spawn-groups. */
-export function eventKey(ev: SessionEvent): string {
+export function stableEventKey(ev: SessionEvent): string | undefined {
   if ('clientEventId' in ev && ev.clientEventId) {
     return `ce:${ev.clientEventId}`;
   }
@@ -60,7 +60,28 @@ export function eventKey(ev: SessionEvent): string {
   if (ev.runId !== undefined && ev.seq !== undefined) {
     return `${ev.runId}:${ev.seq}`;
   }
-  return `t:${timestampCounter++}`;
+  return undefined;
+}
+
+/**
+ * Ключ события со счётчиковым фолбэком для событий без стабильного
+ * идентификатора. Фолбэк нестабилен (новый ключ при каждом вызове),
+ * поэтому для arrival-меток использовать только `stableEventKey`.
+ */
+export function eventKey(ev: SessionEvent): string {
+  return stableEventKey(ev) ?? `t:${timestampCounter++}`;
+}
+
+/** Стабильные ключи пачки событий; события без ключа в arrival-метки не попадают. */
+function stableKeys(events: SessionEvent[]): string[] {
+  const keys: string[] = [];
+  for (const ev of events) {
+    const key = stableEventKey(ev);
+    if (key !== undefined) {
+      keys.push(key);
+    }
+  }
+  return keys;
 }
 
 /** Добивает arrival-метки для ключей, которых ещё нет; first-seen не перетирается. */
@@ -119,12 +140,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     const now = Date.now();
     set((state) => ({
       events: { ...state.events, [threadId]: coalesced },
-      seenAt: fillSeenAt(
-        state.seenAt,
-        threadId,
-        coalesced.map((ev) => eventKey(ev)),
-        now,
-      ),
+      seenAt: fillSeenAt(state.seenAt, threadId, stableKeys(coalesced), now),
       contentEpoch: { ...state.contentEpoch, [threadId]: now },
     }));
   },
@@ -148,12 +164,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       const merged = [...byKey.values()];
       return {
         events: { ...state.events, [threadId]: merged },
-        seenAt: fillSeenAt(
-          state.seenAt,
-          threadId,
-          merged.map((ev) => eventKey(ev)),
-          now,
-        ),
+        seenAt: fillSeenAt(state.seenAt, threadId, stableKeys(merged), now),
         contentEpoch: { ...state.contentEpoch, [threadId]: now },
       };
     });
@@ -171,7 +182,13 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         tail && eventKey(tail) === key
           ? lastIndex
           : current.findIndex((ev) => eventKey(ev) === key);
-      const seenAt = fillSeenAt(state.seenAt, threadId, [key], now);
+      const seenKey = stableEventKey(event);
+      const seenAt = fillSeenAt(
+        state.seenAt,
+        threadId,
+        seenKey === undefined ? [] : [seenKey],
+        now,
+      );
       if (index === -1) {
         return {
           events: { ...state.events, [threadId]: [...current, event] },

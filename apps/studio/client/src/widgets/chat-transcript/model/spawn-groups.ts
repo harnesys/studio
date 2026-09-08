@@ -1,5 +1,5 @@
 import type { SessionEvent } from '@studio/shared';
-import { eventKey } from '@/entities/session';
+import { stableEventKey } from '@/entities/session';
 
 export type SpawnStatus = 'running' | 'done' | 'failed';
 
@@ -81,7 +81,11 @@ function seenOr(
   if (seenAt === undefined) {
     return prev;
   }
-  return seenAt[eventKey(ev)] ?? prev;
+  const key = stableEventKey(ev);
+  if (key === undefined) {
+    return prev;
+  }
+  return seenAt[key] ?? prev;
 }
 
 /**
@@ -201,7 +205,8 @@ export function extractSpawns(events: SessionEvent[], seenAt?: SpawnSeenAt): Spa
     }
     if (ev.type === 'agent.spawned') {
       const taskText = spawnTaskText(ev.taskInput);
-      const seen = seenAt?.[eventKey(ev)];
+      const key = stableEventKey(ev);
+      const seen = key === undefined ? undefined : seenAt?.[key];
       drafts.set(ev.spawnId, {
         info: {
           spawnId: ev.spawnId,

@@ -1,6 +1,5 @@
 import {
-  BotIcon,
-  ChevronsUpDownIcon,
+  ChevronsUpDownIcon, CpuIcon,
   FolderIcon,
   GitBranchIcon,
   PlusIcon,
@@ -234,7 +233,7 @@ export function WorkspaceSidebar() {
         <div ref={containerRef} className="flex min-h-0 flex-auto flex-col gap-1 px-2 pb-2">
           <AccordionSection
             id="agents"
-            icon={<BotIcon />}
+            icon={<CpuIcon />}
             title={slideAgent ? `Threads · ${slideAgent.name}` : 'Agents'}
             count={slideAgent ? slideThreads.length : agents.length}
             size={shares.agents ?? 1}

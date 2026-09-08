@@ -44,6 +44,7 @@ export class GetThreadUseCase implements GetThreadInput {
       kind: thread.kind,
       parentThreadId: thread.parentThreadId ?? null,
       forkAt: thread.forkAt ?? null,
+      inheritedEventCount: 0,
       createdAt: thread.createdAt,
       updatedAt: thread.updatedAt,
       ...readFields(thread),

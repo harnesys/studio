@@ -41,6 +41,7 @@ export class ListThreadsUseCase implements ListThreadsInput {
           kind: t.kind,
           parentThreadId: t.parentThreadId ?? null,
           forkAt: t.forkAt ?? null,
+          inheritedEventCount: 0,
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,
           ...readFields(t),

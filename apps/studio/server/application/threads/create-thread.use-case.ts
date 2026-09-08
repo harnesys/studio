@@ -80,6 +80,7 @@ export class CreateThreadUseCase implements CreateThreadInput {
       kind: thread.kind,
       parentThreadId: thread.parentThreadId ?? null,
       forkAt: thread.forkAt ?? null,
+      inheritedEventCount: 0,
       createdAt: thread.createdAt,
       updatedAt: thread.updatedAt,
       pinned: false,

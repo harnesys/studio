@@ -43,6 +43,7 @@ export function toSummary(thread: ThreadRecord): ThreadSummary {
     kind: thread.kind,
     parentThreadId: thread.parentThreadId,
     forkAt: thread.forkAt,
+    inheritedEventCount: thread.inheritedEventCount,
     createdAt: thread.createdAt,
     updatedAt: thread.updatedAt,
     lastReadAt: thread.lastReadAt,

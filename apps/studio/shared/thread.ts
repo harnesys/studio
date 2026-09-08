@@ -21,6 +21,8 @@ export type ThreadRecord = {
   kind: ThreadKind;
   parentThreadId: string | null;
   forkAt: string | null;
+  /** Branch only: parent events inherited into this record's events. 0 for non-branches. */
+  inheritedEventCount: number;
   createdAt: string;
   updatedAt: string;
   lastReadAt: string;
@@ -46,6 +48,7 @@ export type ThreadSummary = Pick<
   | 'kind'
   | 'parentThreadId'
   | 'forkAt'
+  | 'inheritedEventCount'
   | 'createdAt'
   | 'updatedAt'
   | 'lastReadAt'

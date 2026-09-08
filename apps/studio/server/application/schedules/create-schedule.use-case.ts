@@ -161,6 +161,7 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
         kind: thread.kind,
         parentThreadId: thread.parentThreadId ?? null,
         forkAt: thread.forkAt ?? null,
+        inheritedEventCount: 0,
         createdAt: thread.createdAt,
         updatedAt: thread.updatedAt,
         ...readFields(thread),

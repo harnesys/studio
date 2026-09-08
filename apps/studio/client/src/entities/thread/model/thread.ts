@@ -9,6 +9,8 @@ export type Thread = {
   kind: ThreadKind;
   parentThreadId?: string | null;
   forkAt?: string | null;
+  /** Branch only: number of inherited parent events. */
+  inheritedEventCount?: number;
   updatedAt: string;
   unread: boolean;
   pinned?: boolean;

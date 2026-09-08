@@ -19,6 +19,7 @@ import {
 } from '../model/turn-segments';
 import { ActivityItems } from './activity-items';
 import { ActivityRail } from './activity-rail';
+import { type BranchChild, BranchPointBadge } from './branch-point-badge';
 import { CompactionMessageCard } from './compaction-card';
 import { FeedNotice } from './feed-notice';
 import { HandoffCard } from './handoff-card';
@@ -94,6 +95,7 @@ export function AssistantMessageView({
   onOpenSpawn,
   readOnly = false,
   inherited = false,
+  branchChildren,
 }: {
   events: SessionEvent[];
   runId: string;
@@ -103,6 +105,7 @@ export function AssistantMessageView({
   onOpenSpawn?: (spawnId: string) => void;
   readOnly?: boolean;
   inherited?: boolean;
+  branchChildren?: BranchChild[];
 }) {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
@@ -149,7 +152,10 @@ export function AssistantMessageView({
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1">
+        {branchChildren && branchChildren.length > 0 ? (
+          <BranchPointBadge runId={runId} branches={branchChildren} />
+        ) : null}
         {answerText && !readOnly ? (
           <MessageActions
             entryId={runId}

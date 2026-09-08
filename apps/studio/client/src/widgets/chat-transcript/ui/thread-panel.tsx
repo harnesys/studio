@@ -21,6 +21,7 @@ import { isCompactRun, splitRuns } from '../model/run-groups';
 import { extractSpawns } from '../model/spawn-groups';
 import { useSyncedThread } from '../model/thread-sync';
 import { FailedMessageView } from './agent-turn';
+import type { BranchChild } from './branch-point-badge';
 import { ChatSkeleton } from './chat-skeleton';
 import { CompactionPendingCard } from './compaction-card';
 import { ForkSeparator } from './fork-separator';
@@ -28,6 +29,7 @@ import { RunTurn } from './run-turn';
 import { ThreadEmpty } from './thread-empty';
 
 const EMPTY_FAILURES: RunFailure[] = [];
+const EMPTY_BRANCH_CHILDREN: Record<string, BranchChild[]> = {};
 
 export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agent }) {
   const events = useThreadEvents(threadId);
@@ -54,6 +56,27 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     };
   }, [events, inheritedCount]);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
+  const branchChildrenByRun = useThreadStore(
+    useShallow((state) => {
+      const children = state.items.filter((item) => item.parentThreadId === threadId);
+      if (children.length === 0) {
+        return EMPTY_BRANCH_CHILDREN;
+      }
+      const grouped: Record<string, BranchChild[]> = {};
+      for (const child of children) {
+        if (!child.forkAt) {
+          continue;
+        }
+        const group = grouped[child.forkAt];
+        if (group) {
+          group.push({ id: child.id, agentId: child.agentId, title: child.title });
+        } else {
+          grouped[child.forkAt] = [{ id: child.id, agentId: child.agentId, title: child.title }];
+        }
+      }
+      return grouped;
+    }),
+  );
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useSyncedThread(threadId, agent.workspaceId);
   const failures = useSessionStore(
@@ -99,6 +122,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
                       streaming={false}
                       error={run.error}
                       inherited
+                      branchChildren={branchChildrenByRun[forkAt]}
                     />
                   </div>
                 </MessageScrollerItem>
@@ -125,6 +149,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
                     onOpenSpawn={onOpenSpawn}
                     streaming={runStreaming}
                     error={run.error}
+                    branchChildren={branchChildrenByRun[forkAt]}
                     onRetry={
                       run.runId && last && !streaming && !compacting
                         ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})

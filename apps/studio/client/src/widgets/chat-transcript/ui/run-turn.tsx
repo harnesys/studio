@@ -3,6 +3,7 @@ import { memo } from 'react';
 
 import type { SpawnInfo } from '../model/spawn-groups';
 import { AssistantMessageView, FailedMessageView } from './agent-turn';
+import type { BranchChild } from './branch-point-badge';
 
 function sameEventList(a: SessionEvent[], b: SessionEvent[]): boolean {
   if (a === b) {
@@ -51,6 +52,7 @@ export const RunTurn = memo(
     onOpenSpawn,
     readOnly,
     inherited,
+    branchChildren,
   }: {
     events: SessionEvent[];
     runId: string;
@@ -62,6 +64,7 @@ export const RunTurn = memo(
     onOpenSpawn?: (spawnId: string) => void;
     readOnly?: boolean;
     inherited?: boolean;
+    branchChildren?: BranchChild[];
   }) {
     return (
       <div className="group/turn flex flex-col gap-3">
@@ -74,6 +77,7 @@ export const RunTurn = memo(
           onOpenSpawn={onOpenSpawn}
           readOnly={readOnly}
           inherited={inherited}
+          branchChildren={branchChildren}
         />
         {error ? <FailedMessageView text={error} onRetry={onRetry} /> : null}
       </div>
@@ -90,6 +94,7 @@ export const RunTurn = memo(
         prev.onOpenSpawn === next.onOpenSpawn &&
         prev.readOnly === next.readOnly &&
         prev.inherited === next.inherited &&
+        prev.branchChildren === next.branchChildren &&
         sameSpawns(prev.spawns, next.spawns) &&
         sameEventList(prev.events, next.events)
       );
@@ -102,6 +107,7 @@ export const RunTurn = memo(
       prev.onOpenSpawn === next.onOpenSpawn &&
       prev.readOnly === next.readOnly &&
       prev.inherited === next.inherited &&
+      prev.branchChildren === next.branchChildren &&
       sameSpawns(prev.spawns, next.spawns) &&
       sameEventList(prev.events, next.events)
     );

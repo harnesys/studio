@@ -1,4 +1,5 @@
 import { askUserSchema } from '../../application/ask-schema.ts';
+import { sandboxDenyText } from '../../application/tool-permission.ts';
 import { AskUserInterrupt } from '../../domain/errors.ts';
 import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
@@ -55,6 +56,10 @@ export function askUser(): ToolDefinition {
       };
       if (ctx.resume !== undefined && ctx.resume !== null) {
         return formatResumeResult(ctx.resume, parsed.options);
+      }
+      // Песочница дочернего рана: интерактива нет — deny вместо вопроса.
+      if (ctx.sandbox) {
+        return sandboxDenyText(ASK_USER_TOOL, 'user input');
       }
       throw new AskUserInterrupt({
         prompt: parsed.prompt,

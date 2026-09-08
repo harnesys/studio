@@ -2,6 +2,14 @@ import type { ToolCallResult } from './tool-call.ts';
 
 export const NODE_CHECKPOINT_KEY = '$nodeCheckpoint_';
 
+/** Отказы песочницы дочерних ранов: toolCallId → { tool, reason }. */
+export const DENIED_TOOLS_KEY = '$deniedTools';
+
+export type DeniedToolEntry = {
+  tool: string;
+  reason: string;
+};
+
 export type NodeCheckpoint = {
   completed: Record<number, ToolCallResult>;
   /**
@@ -81,6 +89,39 @@ export function recordGranted(
   const saved = loadCheckpoint(state, nodeId) ?? { completed: {} };
   saved.granted = { ...saved.granted, [callId]: true };
   state[key(nodeId)] = saved;
+}
+
+/** Фиксирует отказ песочницы по toolCallId в корне состояния. */
+export function recordDenied(
+  state: Record<string, unknown>,
+  toolCallId: string,
+  entry: DeniedToolEntry,
+): void {
+  const cur = state[DENIED_TOOLS_KEY];
+  const rec =
+    cur && typeof cur === 'object' && !Array.isArray(cur)
+      ? (cur as Record<string, DeniedToolEntry>)
+      : {};
+  state[DENIED_TOOLS_KEY] = { ...rec, [toolCallId]: entry };
+}
+
+/** Список отказов песочницы из корня состояния; битые записи пропускаются. */
+export function deniedToolsList(state: Record<string, unknown>): DeniedToolEntry[] {
+  const cur = state[DENIED_TOOLS_KEY];
+  if (!cur || typeof cur !== 'object' || Array.isArray(cur)) {
+    return [];
+  }
+  const out: DeniedToolEntry[] = [];
+  for (const v of Object.values(cur as Record<string, unknown>)) {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) {
+      continue;
+    }
+    const row = v as Record<string, unknown>;
+    if (typeof row.tool === 'string' && typeof row.reason === 'string') {
+      out.push({ tool: row.tool, reason: row.reason });
+    }
+  }
+  return out;
 }
 
 export function saveCheckpoint(

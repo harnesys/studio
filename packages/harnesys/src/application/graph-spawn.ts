@@ -7,6 +7,7 @@ import type { RuntimeState } from '../ports/runtime-state.ts';
 import { compileOrThrow } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import type { GraphOpts } from './graph.ts';
+import { type DeniedToolEntry, deniedToolsList } from './tool-approve-checkpoint.ts';
 import { filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
@@ -21,6 +22,7 @@ export type SpawnResultItem = {
   spawnId: string;
   output: unknown;
   error?: { code: string; message: string };
+  blocked?: DeniedToolEntry[];
 };
 
 export type SpawnEmission = {
@@ -145,7 +147,21 @@ async function runOneChild(
     agents: parent.agents,
     stream: parent.stream,
     childJournal: parent.childJournal,
+    // Песочница включается жёстко: вложенные спавны наследуют deny-режим,
+    // флаг родителя не копируется.
+    sandbox: true,
   };
+  let blocked: DeniedToolEntry[] = [];
+  const readBlocked = async (): Promise<void> => {
+    try {
+      const snap = await childState.load();
+      blocked = deniedToolsList((snap?.state as Record<string, unknown>) ?? {});
+    } catch {
+      blocked = [];
+    }
+  };
+  const blockedProp = (): { blocked?: DeniedToolEntry[] } =>
+    blocked.length > 0 ? { blocked } : {};
   try {
     for await (const ev of runChild(childOpts)) {
       parent.childJournal?.(target.spawnId, ev);
@@ -156,21 +172,38 @@ async function runOneChild(
         ? (err as { code: string }).code
         : 'spawn_child_failed';
     const message = err instanceof Error && err.message ? err.message : 'spawn child failed';
+    await readBlocked();
     return {
       agentId: target.call.agentId,
       spawnId: target.spawnId,
       output: null,
       error: { code, message },
+      ...blockedProp(),
     };
   }
   const snap = await childState.load();
   const status = snap?.status ?? 'failed';
   const rec = (snap?.state as Record<string, unknown>) ?? {};
+  blocked = deniedToolsList(rec);
   if (status === 'completed') {
     return {
       agentId: target.call.agentId,
       spawnId: target.spawnId,
       output: childOutputFromState(rec),
+      ...blockedProp(),
+    };
+  }
+  // needs_input из ребёнка невозможен по построению; защита на случай обхода.
+  if (status === 'needs_input') {
+    return {
+      agentId: target.call.agentId,
+      spawnId: target.spawnId,
+      output: null,
+      error: {
+        code: 'sandbox_blocked',
+        message: `spawn child ended with status ${status}`,
+      },
+      ...blockedProp(),
     };
   }
   return {

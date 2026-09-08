@@ -16,6 +16,8 @@ export type ToolContext = {
   signal?: AbortSignal;
   artifacts?: ArtifactStore;
   resume?: unknown;
+  /** Дочерний ран: интерактива нет, ask_user отвечает deny-текстом вместо throw. */
+  sandbox?: boolean;
 };
 
 export type ToolExecute = (input: unknown, ctx: ToolContext) => Promise<unknown> | unknown;

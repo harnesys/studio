@@ -42,6 +42,8 @@ export type ToolCallContext = {
   hostMaxConcurrency?: number;
   resumePayload?: unknown;
   resumeInterruptId?: string;
+  /** Дочерний ран: гейты отвечают deny вместо AskUserInterrupt. */
+  sandbox?: boolean;
 };
 
 function codeError(code: string, message: string): never {

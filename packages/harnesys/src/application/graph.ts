@@ -47,6 +47,7 @@ import {
   type LlmNoteProvider,
 } from './llm-notes.ts';
 import { executeToolCall, type ToolCallResult } from './tool-call.ts';
+import { sandboxDenyText } from './tool-permission.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
 
@@ -157,6 +158,8 @@ export type GraphOpts = {
   /** Вызывается из drain-цикла дочернего графа для каждого события ребёнка;
    *  engine пишет в журнал треда под runId = spawnId. */
   childJournal?: (spawnId: string, ev: Event) => void;
+  /** Дочерний ран: ни один interrupt-источник не паркует ран, гейты отвечают deny. */
+  sandbox?: boolean;
 };
 
 async function resolveFallbackBindings(
@@ -819,6 +822,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           messagesPath: lastMsg,
           resumePayload: opts.resumePayload,
           resumeInterruptId: opts.resumeInterruptId,
+          sandbox: opts.sandbox,
         });
       } catch (e) {
         if (e instanceof AskUserInterrupt) {
@@ -948,6 +952,16 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         reason: string;
         resumeSchema: JsonSchema;
       };
+      // Песочница: парковаться некому — ошибка ребёнка вместо needs_input.
+      if (opts.sandbox) {
+        const message = sandboxDenyText('interrupt', 'user input');
+        const e = await commit('failed', 'run.failed', 'recorded', {
+          code: 'sandbox_blocked',
+          message,
+        });
+        yield e;
+        throw Object.assign(new Error(message), { code: 'sandbox_blocked' });
+      }
       const interruptId = crypto.randomUUID();
       delete (st as Record<string, unknown>).$resume;
       const snap = mkSnap(ctx(), 'needs_input');

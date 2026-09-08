@@ -106,8 +106,28 @@ export function appendSpawnResultsMessage(
     arr = [];
     state[key] = arr;
   }
+  const parts = [`Spawn results:\n${JSON.stringify(results)}`];
+  const blockedLines: string[] = [];
+  if (Array.isArray(results)) {
+    for (const item of results) {
+      const rec = asRecord(item);
+      const blocked = rec?.blocked;
+      if (!Array.isArray(blocked)) {
+        continue;
+      }
+      for (const b of blocked) {
+        const row = asRecord(b);
+        if (row && typeof row.tool === 'string' && typeof row.reason === 'string') {
+          blockedLines.push(`${row.tool}: ${row.reason}`);
+        }
+      }
+    }
+  }
+  if (blockedLines.length > 0) {
+    parts.push(`Blocked in sandbox:\n${blockedLines.join('\n')}`);
+  }
   (arr as unknown[]).push({
     role: 'assistant',
-    content: `Spawn results:\n${JSON.stringify(results)}`,
+    content: parts.join('\n'),
   });
 }

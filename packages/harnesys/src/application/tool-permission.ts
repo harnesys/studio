@@ -1,6 +1,6 @@
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
-import { loadCheckpoint, recordGranted } from './tool-approve-checkpoint.ts';
+import { loadCheckpoint, recordDenied, recordGranted } from './tool-approve-checkpoint.ts';
 import type { ToolCallResult } from './tool-call.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 
@@ -17,6 +17,8 @@ export type PermissionGateContext = {
   /** Чекпоинт батча (granted/completed) живёт в состоянии и переживает resume. */
   state: Record<string, unknown>;
   nodeId: string;
+  /** Дочерний ран: вопросы запрещены, gate отвечает deny вместо AskUserInterrupt. */
+  sandbox?: boolean;
 };
 
 export type PermissionGateDone = {
@@ -55,6 +57,18 @@ function resumeApproved(ctx: PermissionGateContext): boolean | null {
   }
   const approved = (payload as { approved?: unknown }).approved;
   return typeof approved === 'boolean' ? approved : null;
+}
+
+export const SANDBOX_DENY_PREFIX = 'denied in subagent context: ';
+
+export type SandboxDenyKind = 'permission' | 'approval' | 'user input';
+
+export function sandboxDenyText(tool: string, what: SandboxDenyKind): string {
+  return `${SANDBOX_DENY_PREFIX}${tool} requires ${what}, no interactive user here; parent must provide, pre-approve, or do it itself`;
+}
+
+export function isSandboxDenyText(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith(SANDBOX_DENY_PREFIX);
 }
 
 export function throwPermissionAsk(
@@ -100,6 +114,14 @@ export function applyPermissionGate(input: {
   const { call, ctx, idx, operation } = input;
   if (loadCheckpoint(ctx.state, ctx.nodeId)?.granted?.[call.id]) {
     return null;
+  }
+  if (ctx.sandbox) {
+    const reason = sandboxDenyText(call.name, 'permission');
+    recordDenied(ctx.state, call.id, { tool: call.name, reason });
+    return {
+      result: { id: call.id, name: call.name, result: reason, isError: true },
+      message: buildToolMessage({ toolCallId: call.id, name: call.name, content: reason }),
+    };
   }
   const approved = resumeApproved(ctx);
   const resumeIdx = permissionResumeCallIndex(ctx);

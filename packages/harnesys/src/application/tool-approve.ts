@@ -5,6 +5,7 @@ import {
   clearCheckpoint,
   loadCheckpoint,
   recordCompleted,
+  recordDenied,
   validCheckpointEntries,
 } from './tool-approve-checkpoint.ts';
 import { ensureAskInterruptId, isAskResumeForCall } from './tool-ask.ts';
@@ -13,6 +14,8 @@ import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 import {
   applyPermissionGate,
   isForeignPermissionResume,
+  isSandboxDenyText,
+  sandboxDenyText,
   skippedGateResult,
 } from './tool-permission.ts';
 import { validateToolInput } from './tool-registry.ts';
@@ -124,8 +127,17 @@ export async function runSingleToolCall(
       resume: isAskResumeForCall(ctx.resumeInterruptId, call.id)
         ? (ctx.resume ?? undefined)
         : undefined,
+      sandbox: ctx.sandbox,
     };
     const value = await def.execute(call.args, toolCtx);
+    // Песочница: ask_user вернул deny-текст вместо throw — фиксируем отказ.
+    if (ctx.sandbox && isSandboxDenyText(value)) {
+      recordDenied(ctx.state, call.id, { tool: call.name, reason: value });
+      return {
+        result: { id: call.id, name: call.name, result: value, isError: true },
+        message: message(value),
+      };
+    }
     if (def.revealsTools) {
       const loaded = (value as { loaded?: unknown } | null)?.loaded;
       if (Array.isArray(loaded)) {
@@ -157,6 +169,15 @@ export async function runSingleToolCall(
       };
     }
     if (e instanceof AskUserInterrupt) {
+      // Песочница: чужой тул бросил вопрос — deny вместо needs_input (защита).
+      if (ctx.sandbox) {
+        const reason = sandboxDenyText(call.name, 'user input');
+        recordDenied(ctx.state, call.id, { tool: call.name, reason });
+        return {
+          result: { id: call.id, name: call.name, result: reason, isError: true },
+          message: message(reason),
+        };
+      }
       ensureAskInterruptId(e, call.id);
       throw e;
     }
@@ -255,8 +276,26 @@ export async function executeApproveBatch(
 
   // needsApprove calls walk sequentially; each step either consumes the resume
   // payload or saves the checkpoint and throws AskUserInterrupt.
+  // Песочница: approve-gate отвечает deny, ребёнок продолжает без вопросов.
   for (const callIdx of needsApproveIdx) {
     if (results[callIdx] !== undefined) {
+      continue;
+    }
+    if (ctx.sandbox) {
+      const call = calls[callIdx];
+      if (!call) {
+        continue;
+      }
+      const reason = sandboxDenyText(call.name, 'approval');
+      recordDenied(ctx.state, call.id, { tool: call.name, reason });
+      const denied = { id: call.id, name: call.name, result: reason, isError: true };
+      results[callIdx] = denied;
+      toolMessages[callIdx] = buildToolMessage({
+        toolCallId: call.id,
+        name: call.name,
+        content: reason,
+      });
+      recordCompleted(ctx.state, ctx.nodeId, callIdx, denied);
       continue;
     }
     const call = calls[callIdx];

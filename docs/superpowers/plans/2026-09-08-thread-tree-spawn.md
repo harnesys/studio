@@ -461,3 +461,59 @@
 - [ ] **Step 3: spawn-card.tsx.** Переписать по дизайну выше. Клик → onOpenSpawn (как сейчас). testids сохранить (`spawn-card`, `spawn-row-${spawnId}`).
 - [ ] **Step 4: Верификация** (tsc/biome как обычно).
 - [ ] **Step 5: Commit** `feat(studio): rich spawn card with task, tools and live timing`.
+
+---
+
+### Task 15: harnesys — песочница дочерних ранов (deny вместо вопросов)
+
+**Files:**
+- Modify: `packages/harnesys/src/application/graph.ts` (GraphOpts: `sandbox?: boolean`; control:interrupt-ветка: в sandbox — ошибка ребёнка с кодом вместо needs_input-коммита)
+- Modify: `packages/harnesys/src/application/graph-spawn.ts` (runOneChild: `sandbox: true` в childOpts; чтение `state.$deniedTools` из финального снапшота → `SpawnResultItem.blocked`; needs_input-статус ребёнка → error `sandbox_blocked`)
+- Modify: `packages/harnesys/src/application/tool-permission.ts` (gate ask в sandbox → deny-результат), `packages/harnesys/src/application/tool-approve.ts` (approve-gate в sandbox → deny-результат; `recordDenied` параллельно `recordGranted` в `tool-approve-checkpoint.ts`)
+- Modify: `packages/harnesys/src/adapters/actions/ask-user.ts` (в sandbox — error-результат вместо throw; флаг читать из ToolContext — прокинуть sandbox через контекст вызова тулов, по образцу resume)
+- Modify: `packages/harnesys/src/application/graph-agent-controls.ts` (`appendSpawnResultsMessage`: включить `blocked` в Spawn results)
+
+**Interfaces:**
+- Produces: `GraphOpts.sandbox?: boolean`; `SpawnResultItem.blocked?: { tool: string; reason: string }[]`; state-ключ `$deniedTools: Record<toolCallId, { tool: string; reason: string }>`.
+- Deny-текст (единый шаблон): `denied in subagent context: <tool> requires <permission|approval|user input>, no interactive user here; parent must provide, pre-approve, or do it itself`.
+
+**Жёсткие правила:**
+- Ни одного throw AskUserInterrupt в sandbox по всем четырём точкам; verify грепом `throw new AskUserInterrupt` + условиями sandbox на каждой.
+- needs_input из ребёнка невозможен по построению; если статус всё равно needs_input (защита) — код `sandbox_blocked`.
+- ToolContext для ask_user: смотреть, как ToolContext строится в tool-call.ts, выбрать минимальный путь, зафиксировать в отчёте.
+
+- [ ] **Step 1-4:** по точкам выше; `bunx tsc` (harnesys + studio), biome.
+- [ ] **Step 5: Commit** `feat(harnesys): sandbox child runs deny instead of asking`.
+
+---
+
+### Task 16: harnesys — capability-видимость и fail-fast валидация целей
+
+**Files:**
+- Modify: `packages/harnesys/src/capabilities/agents/create-agents-tools.ts` (agents_list: +tools/+model; описания one-shot контракта; agents_spawn: fail-fast валидация calls)
+- Modify: `packages/harnesys/src/application/graph-spawn.ts` (resolveTargets: exact → уникальный префикс → имя; ошибка со списком `name (id)`)
+
+**Interfaces:**
+- Produces: agents_list rows `{id, name, role, instructions, tools: string[], model?: string}`; agents_spawn description с контрактом; resolveTargets принимает расширенный резолв минимально инвазивно (смотреть, что доступно в GraphOpts.agents — расширить порт только если без него никак).
+
+**Жёсткие правила:**
+- Префикс-матч только при длине ≥ 8 и единственности; неоднозначность → ошибка со списком.
+- Имя-матч: exact, затем case-insensitive; неуникальные имена → ошибка со списком.
+- Текст ошибки валидации содержит доступные `name (id)` — модель самокорректируется.
+
+- [ ] **Step 1-3:** по файлам выше; tsc + biome.
+- [ ] **Step 4: Commit** `feat(harnesys): agent capability listing and fuzzy spawn target resolution`.
+
+---
+
+### Task 17: studio client — pendingHitl игнорирует ask спавнов
+
+**Files:**
+- Modify: `apps/studio/client/src/features/send-message/model/pending-hitl.ts` (пропускать `ask` с runId из множества spawnId; множество строить из `agent.spawned` событий того же лога)
+
+**Жёсткие правила:**
+- Поведение для корневых ask — без изменений; меняется только фильтрация чужих.
+- Старые журналы с висячими ask детей перестают показывать мёртвые карточки.
+
+- [ ] **Step 1:** фильтр + tsc/biome.
+- [ ] **Step 2: Commit** `fix(studio): ignore spawn-run asks in pending HITL`.

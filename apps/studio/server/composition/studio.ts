@@ -44,6 +44,7 @@ import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.us
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
 import { withHandoffCurrentPersist } from '../application/threads/persist-handoff-current.ts';
 import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
+import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { env } from '../config/env.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
@@ -219,6 +220,11 @@ export function createStudio(options: StudioOptions = {}): Hono {
       capabilityRegistrations,
     );
   agentsRef.current = workspaceHarnesys;
+  const branchSeeder = new SeedBranchStateUseCase({
+    threads: threadRepo,
+    runEvents,
+    runtimeStates: runtimeStateRepo,
+  });
   const runTargets = new StudioRunTargets({
     threads: threadRepo,
     agents: agentRepo,
@@ -227,6 +233,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     workspaces: workspaceRepo,
     workspaceHarnesys,
     runtimeStates: runtimeStateRepo,
+    branchSeeder,
   });
   targetRef.current = runTargets;
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);

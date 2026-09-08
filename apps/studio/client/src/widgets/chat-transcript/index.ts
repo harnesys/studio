@@ -11,5 +11,4 @@ export { HandoffCard } from './ui/handoff-card';
 export { RunTurn } from './ui/run-turn';
 export { SpawnView } from './ui/spawn-view';
 export { ThreadEmpty } from './ui/thread-empty';
-export { ThreadHeader } from './ui/thread-header';
 export { ThreadPanel } from './ui/thread-panel';

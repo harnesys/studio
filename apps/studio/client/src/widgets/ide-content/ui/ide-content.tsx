@@ -5,7 +5,7 @@ import type { IdeTab } from '@/features/ide';
 import { openFileKind } from '@/features/open-file';
 import { HitlPrompt } from '@/features/send-message';
 import { ChatComposer } from '@/widgets/chat-composer';
-import { SpawnView, ThreadHeader, ThreadPanel } from '@/widgets/chat-transcript';
+import { SpawnView, ThreadPanel } from '@/widgets/chat-transcript';
 import { MediaPreview, TextEditor } from '@/widgets/file-pane';
 import { ThreadJournal } from '@/widgets/thread-journal';
 
@@ -35,7 +35,6 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
     if (thread.kind === 'chat') {
       return (
         <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-thread">
-          <ThreadHeader threadId={thread.id} />
           <div className="min-h-0 flex-1">
             <ThreadPanel threadId={thread.id} agent={agent} />
           </div>
@@ -46,7 +45,6 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
     }
     return (
       <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-thread">
-        <ThreadHeader threadId={thread.id} />
         <ThreadJournal threadId={thread.id} agent={agent} kind={thread.kind} />
         <HitlPrompt />
       </div>

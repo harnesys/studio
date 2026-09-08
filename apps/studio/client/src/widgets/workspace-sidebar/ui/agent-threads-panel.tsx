@@ -1,4 +1,5 @@
 import { ChevronLeftIcon } from 'lucide-react';
+import { Fragment, type ReactNode, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
@@ -10,6 +11,61 @@ import { deleteThreadRecord, setThreadPinned } from '@/shared/api';
 import { studioPath } from '@/shared/config/routes';
 import { Button } from '@/shared/ui/button';
 import { AgentThreadRow } from './agent-thread-row';
+
+type ThreadTreeNode = { thread: Thread; children: ThreadTreeNode[] };
+
+function buildThreadTree(threads: Thread[]): ThreadTreeNode[] {
+  const byId = new Map<string, ThreadTreeNode>(
+    threads.map((thread) => [thread.id, { thread, children: [] }]),
+  );
+  const roots: ThreadTreeNode[] = [];
+  for (const node of byId.values()) {
+    const parent = node.thread.parentThreadId ? byId.get(node.thread.parentThreadId) : undefined;
+    if (parent) {
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  for (const node of byId.values()) {
+    node.children.sort((a, b) =>
+      (a.thread.createdAt ?? a.thread.updatedAt).localeCompare(
+        b.thread.createdAt ?? b.thread.updatedAt,
+      ),
+    );
+  }
+  roots.sort((a, b) => {
+    const pinDelta = Number(b.thread.pinned === true) - Number(a.thread.pinned === true);
+    if (pinDelta !== 0) {
+      return pinDelta;
+    }
+    return b.thread.updatedAt.localeCompare(a.thread.updatedAt);
+  });
+  return roots;
+}
+
+function ThreadTreeNodes({
+  nodes,
+  renderRow,
+}: {
+  nodes: ThreadTreeNode[];
+  renderRow: (thread: Thread) => ReactNode;
+}) {
+  return (
+    <>
+      {nodes.map((node) => (
+        <Fragment key={node.thread.id}>
+          {renderRow(node.thread)}
+          {node.children.length > 0 ? (
+            <div className="ml-5 border-border/60 border-l pl-3">
+              <ThreadTreeNodes nodes={node.children} renderRow={renderRow} />
+            </div>
+          ) : null}
+        </Fragment>
+      ))}
+    </>
+  );
+}
 
 export function AgentThreadsPanel({
   agent,
@@ -25,13 +81,7 @@ export function AgentThreadsPanel({
   const navigate = useNavigate();
   const back = useAgentsSlideStore((state) => state.back);
   const threads = useAgentThreads(agent.id);
-  const sorted = [...threads].sort((a, b) => {
-    const pinDelta = Number(b.pinned === true) - Number(a.pinned === true);
-    if (pinDelta !== 0) {
-      return pinDelta;
-    }
-    return b.updatedAt.localeCompare(a.updatedAt);
-  });
+  const sorted = useMemo(() => buildThreadTree(threads), [threads]);
 
   const openThread = (thread: Thread) => {
     useIdeStore.getState().openThread(workspaceId, thread.agentId, thread.id);
@@ -112,28 +162,18 @@ export function AgentThreadsPanel({
           No threads yet.
         </p>
       ) : (
-        sorted.map((thread) => (
-          <AgentThreadRow
-            key={thread.id}
-            thread={thread}
-            selected={activeThreadId === thread.id}
-            onSelect={() => openThread(thread)}
-            onOpenParent={(parentId) => {
-              const parent = useThreadStore.getState().byId(parentId);
-              if (parent) {
-                openThread(parent);
-              }
-            }}
-            onOpenChild={(childId) => {
-              const child = useThreadStore.getState().byId(childId);
-              if (child) {
-                openThread(child);
-              }
-            }}
-            onPinToggle={thread.kind === 'chat' ? () => handleTogglePin(thread) : undefined}
-            onDelete={thread.kind === 'chat' ? () => handleDelete(thread) : undefined}
-          />
-        ))
+        <ThreadTreeNodes
+          nodes={sorted}
+          renderRow={(thread) => (
+            <AgentThreadRow
+              thread={thread}
+              selected={activeThreadId === thread.id}
+              onSelect={() => openThread(thread)}
+              onPinToggle={thread.kind === 'chat' ? () => handleTogglePin(thread) : undefined}
+              onDelete={thread.kind === 'chat' ? () => handleDelete(thread) : undefined}
+            />
+          )}
+        />
       )}
     </div>
   );

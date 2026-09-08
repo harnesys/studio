@@ -13,6 +13,7 @@ export function toClientThread(record: ThreadSummary | ThreadRecord): Thread {
     parentThreadId: record.parentThreadId,
     forkAt: record.forkAt,
     inheritedEventCount: record.inheritedEventCount,
+    createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     unread: record.unread,
     activeRunId: 'activeRun' in record ? (record.activeRun?.runId ?? null) : null,

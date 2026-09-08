@@ -7,9 +7,9 @@ import {
   MoreHorizontalIcon,
   PinIcon,
 } from 'lucide-react';
-import { type ReactNode, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { useSessionStore } from '@/entities/session';
-import { type Thread, useThreadStore } from '@/entities/thread';
+import type { Thread } from '@/entities/thread';
 import { useThreadWaiting } from '@/features/desk';
 import { formatDayTime } from '@/shared/lib/format-clock';
 import { cn } from '@/shared/lib/utils';
@@ -28,16 +28,12 @@ export function AgentThreadRow({
   thread,
   selected,
   onSelect,
-  onOpenParent,
-  onOpenChild,
   onPinToggle,
   onDelete,
 }: {
   thread: Thread;
   selected: boolean;
   onSelect: () => void;
-  onOpenParent?: (parentId: string) => void;
-  onOpenChild?: (childId: string) => void;
   onPinToggle?: () => void;
   onDelete?: () => void;
 }) {
@@ -45,14 +41,6 @@ export function AgentThreadRow({
   const iconMode = state === 'collapsed' && !isMobile;
   const running = useSessionStore((s) => Boolean(s.activeRuns[thread.id]));
   const waiting = useThreadWaiting(thread.id);
-  const parentId = thread.parentThreadId ?? null;
-  const parent = useThreadStore((s) => (parentId ? s.byId(parentId) : undefined));
-  const items = useThreadStore((s) => s.items);
-  const children = useMemo(
-    () => items.filter((item) => item.parentThreadId === thread.id),
-    [items, thread.id],
-  );
-  const childCount = children.length;
   let runState: 'running' | 'waiting' | null = null;
   if (running) {
     runState = 'running';
@@ -68,9 +56,7 @@ export function AgentThreadRow({
   }
   const statusTone = runState === 'waiting' ? 'text-live/70' : 'text-live';
   const isBranch = Boolean(thread.parentThreadId);
-  const hasMenu = Boolean(
-    onPinToggle || onDelete || (isBranch && onOpenParent) || (childCount > 0 && onOpenChild),
-  );
+  const hasMenu = Boolean(onPinToggle || onDelete);
 
   return (
     <div
@@ -94,35 +80,21 @@ export function AgentThreadRow({
           }
         >
           <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center text-muted-foreground group-data-[collapsible=icon]:mt-0">
-            {isBranch ? <GitBranchIcon className="size-3.5" /> : threadIcon(thread.kind)}
+            {threadIcon(thread.kind)}
           </span>
           <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <span className="flex min-w-0 items-center gap-1">
+              {isBranch ? (
+                <GitBranchIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+              ) : null}
               {thread.pinned ? (
                 <PinIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden />
               ) : null}
               <span className="block truncate text-sm leading-4">{thread.title}</span>
-              {isBranch ? (
-                <span
-                  className="shrink-0 rounded bg-muted px-1 py-px font-mono text-[9px] text-muted-foreground uppercase tracking-wide"
-                  data-testid={`thread-branch-badge-${thread.id}`}
-                >
-                  branch
-                </span>
-              ) : null}
-              {childCount > 0 ? (
-                <span
-                  className="shrink-0 rounded bg-muted px-1 py-px font-mono text-[9px] text-muted-foreground"
-                  data-testid={`thread-children-badge-${thread.id}`}
-                >
-                  {childCount}×
-                </span>
-              ) : null}
             </span>
             <span className="mt-0.5 flex items-baseline justify-between gap-2">
               <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground leading-4">
                 {formatDayTime(thread.updatedAt)}
-                {parent ? ` · ← ${parent.title}` : ''}
               </span>
               {parts.length > 0 ? (
                 <span className={cn('shrink-0 font-mono text-[8px]', statusTone)}>
@@ -153,18 +125,6 @@ export function AgentThreadRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
             <DropdownMenuGroup>
-              {isBranch && parentId && onOpenParent ? (
-                <DropdownMenuItem onClick={() => onOpenParent(parentId)}>
-                  Open parent
-                </DropdownMenuItem>
-              ) : null}
-              {onOpenChild
-                ? children.map((child) => (
-                    <DropdownMenuItem key={child.id} onClick={() => onOpenChild(child.id)}>
-                      Open branch: {child.title}
-                    </DropdownMenuItem>
-                  ))
-                : null}
               {onPinToggle ? (
                 <DropdownMenuItem onClick={onPinToggle}>
                   {thread.pinned ? 'Unpin' : 'Pin'}

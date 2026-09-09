@@ -3,16 +3,10 @@ import type { PermissionMode, RunMode } from '../../shared/types.ts';
 
 export type { PermissionMode, RunMode };
 
-const FILE_TOOLS = ['write_file', 'edit_file'] as const;
-const HOST_MUTATE_TOOLS = [
-  'schedule_set',
-  'schedule_pause',
-  'schedule_delete',
-  'webhook_set',
-  'webhook_delete',
-] as const;
-const EXTERNAL_TOOLS = ['shell', 'http'] as const;
-
+// PermissionMap keys are tool operations (ToolDefinition.operations), not tool
+// names: resolveToolPermission/checkPermission look up by operation and fall
+// back to 'ask' for unknown ones. fs.read: read_file/glob/grep/list_dir;
+// fs.write: write_file/edit_file; process: shell; network: fetch; mcp: MCP tools.
 export function isPermissionMode(value: string): value is PermissionMode {
   return value === 'ask' || value === 'auto' || value === 'dont_ask' || value === 'bypass';
 }
@@ -22,36 +16,31 @@ export function isRunMode(value: string): value is RunMode {
 }
 
 export function permissionMapFor(mode: RunMode = 'ask'): PermissionMap {
-  const map: PermissionMap = {};
-  const gate = (tools: readonly string[], value: PermissionGate) => {
-    for (const t of tools) {
-      map[t] = value;
+  const map: PermissionMap = { 'fs.read': 'allow' };
+  const set = (ops: readonly string[], value: PermissionGate) => {
+    for (const op of ops) {
+      map[op] = value;
     }
   };
+  const MUTATE_OPS = ['fs.write'] as const;
+  const EXTERNAL_OPS = ['process', 'network', 'mcp'] as const;
 
   if (mode === 'plan') {
-    gate(FILE_TOOLS, 'deny');
-    gate(HOST_MUTATE_TOOLS, 'deny');
-    gate(EXTERNAL_TOOLS, 'deny');
+    set(MUTATE_OPS, 'deny');
+    set(EXTERNAL_OPS, 'deny');
     return map;
   }
-
   if (mode === 'bypass') {
-    gate(FILE_TOOLS, 'allow');
-    gate(HOST_MUTATE_TOOLS, 'allow');
-    gate(EXTERNAL_TOOLS, 'allow');
+    set(MUTATE_OPS, 'allow');
+    set(EXTERNAL_OPS, 'allow');
     return map;
   }
-
   const mutateGate: PermissionGate = mode === 'ask' ? 'ask' : 'allow';
-  gate(FILE_TOOLS, mutateGate);
-  gate(HOST_MUTATE_TOOLS, mutateGate);
-
+  set(MUTATE_OPS, mutateGate);
   if (mode === 'dont_ask') {
-    gate(EXTERNAL_TOOLS, 'deny');
+    set(EXTERNAL_OPS, 'deny');
   } else {
-    gate(EXTERNAL_TOOLS, 'ask');
+    set(EXTERNAL_OPS, 'ask');
   }
-
   return map;
 }

@@ -1,6 +1,7 @@
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
-import type { CapabilityRegistration } from '../domain/capability.ts';
+
+import type { CapabilityRegistration } from '../domain/pack.ts';
 import type { PathsConfig } from './paths.ts';
 import type { PermissionMap } from './permissions.ts';
 import type { RuntimeState } from './runtime-state.ts';

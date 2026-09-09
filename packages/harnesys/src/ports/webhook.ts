@@ -1,4 +1,4 @@
-import type { CapabilityScope } from '../domain/capability.ts';
+import type { CapabilityScope } from '../domain/pack.ts';
 import type { RunLifecycleStatus } from './run-lifecycle-store.ts';
 import type { SessionEvent } from './session.ts';
 

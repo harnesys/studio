@@ -1,4 +1,4 @@
-import type { CapabilityScope } from '../domain/capability.ts';
+import type { CapabilityScope } from '../domain/pack.ts';
 import type { PlanItemStatus, PlanStatus, SubagentRole } from '../domain/plan.ts';
 
 export type PlanItem = {

@@ -1,9 +1,9 @@
 import Ajv from 'ajv';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Attachment, AttachmentKind } from '../domain/attachment.ts';
-import type { CapabilityRegistration } from '../domain/capability.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Middleware } from '../domain/middleware.ts';
+import type { CapabilityRegistration } from '../domain/pack.ts';
 import type { ArtifactStore, SendFile } from '../ports/artifacts.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';

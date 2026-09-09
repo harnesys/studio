@@ -22,31 +22,23 @@ export type {
   ToolOutputSettings,
 } from './src/domain/agent-definition.ts';
 export type {
-  CapabilityConfig,
-  CapabilityPack,
-  CapabilityPackContext,
-  CapabilityRegistration,
-  CapabilityScope,
-} from './src/domain/capability.ts';
-export { defineCapability, registerCapability } from './src/domain/capability.ts';
-export type {
   CapabilityDiagnostic,
   ResolvedCapability,
-} from './src/application/capabilities/registry.ts';
-export { resolveCapabilities } from './src/application/capabilities/registry.ts';
-export { fetchCapability, filesCapability, shellCapability } from './src/capabilities/base.ts';
-export type { SkillsCapabilityPorts } from './src/capabilities/skills.ts';
-export { skillsCapability } from './src/capabilities/skills.ts';
+} from './src/application/packs/registry.ts';
+export { resolveCapabilities } from './src/application/packs/registry.ts';
+export { fetchCapability, filesCapability, shellCapability } from './src/packs/base.ts';
+export type { SkillsCapabilityPorts } from './src/packs/skills.ts';
+export { skillsCapability } from './src/packs/skills.ts';
 export {
   composeSystemPrompt,
-} from './src/application/capabilities/prompt.ts';
-export type { CapabilityCatalogEntry } from './src/application/capabilities/tool-names.ts';
+} from './src/application/packs/prompt.ts';
+export type { CapabilityCatalogEntry } from './src/application/packs/tool-names.ts';
 export {
   allCapabilityToolNames,
   capabilityCatalog,
   capabilityToolNames,
   capabilityTools,
-} from './src/application/capabilities/tool-names.ts';
+} from './src/application/packs/tool-names.ts';
 export {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,
@@ -107,7 +99,9 @@ export {
   InMemoryRunLifecycleStore,
   createRunEventBus,
 } from './src/adapters/in-memory-run-store.ts';
-export type { AgentRosterEntry, AgentsResolve, CreateRuntimeOptions, RuntimeHandle } from './src/ports/create-runtime.ts';
+export type {
+  AgentRosterEntry, AgentsResolve, CreateRuntimeOptions, RuntimeHandle,
+} from './src/ports/create-runtime.ts';
 export { DRIVERS, normalizeProvider, resolveModel } from './src/ports/models.ts';
 export type {
   DiscoverInput,
@@ -194,19 +188,19 @@ export type {
 export {
   createEpisodicTools,
   type CreateEpisodicToolsParams,
-} from './src/application/memory/create-episodic-tools.ts';
+} from './src/packs/memory/create-episodic-tools.ts';
 export {
   createKnowledgeTools,
   type CreateKnowledgeToolsParams,
-} from './src/application/memory/create-knowledge-tools.ts';
+} from './src/packs/memory/create-knowledge-tools.ts';
 export {
   createPinTools,
   type CreatePinToolsParams,
-} from './src/application/memory/create-pin-tools.ts';
+} from './src/packs/memory/create-pin-tools.ts';
 export {
   createSemanticTools,
   type CreateSemanticToolsParams,
-} from './src/application/memory/create-semantic-tools.ts';
+} from './src/packs/memory/create-semantic-tools.ts';
 export {
   ALL_MEMORY_TOOL_NAMES,
   memoryToolNames,
@@ -221,20 +215,20 @@ export {
 export type { PlanItem, PlanPort, PlanSaveItemInput, PlanSnapshot } from './src/ports/plan.ts';
 export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from './src/domain/plan.ts';
 export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan.ts';
-export type { PlanCapabilityPorts } from './src/capabilities/plan/index.ts';
-export { planCapability } from './src/capabilities/plan/index.ts';
-export { planFollowPrompt } from './src/capabilities/plan/prompt.ts';
+export type { PlanCapabilityPorts } from './src/packs/plan/index.ts';
+export { planCapability } from './src/packs/plan/index.ts';
+export { planFollowPrompt } from './src/packs/plan/prompt.ts';
 export type { ThreadSummary, ThreadsPort } from './src/ports/threads.ts';
-export type { ThreadsCapabilityPorts } from './src/capabilities/threads/index.ts';
-export { threadsCapability } from './src/capabilities/threads/index.ts';
+export type { ThreadsCapabilityPorts } from './src/packs/threads/index.ts';
+export { threadsCapability } from './src/packs/threads/index.ts';
 export type {
   AgentCatalogCreateInput,
   AgentCatalogSummary,
   AgentsCatalogPort,
 } from './src/ports/agents-catalog.ts';
-export type { AgentsCapabilityPorts } from './src/capabilities/agents/index.ts';
-export { agentsCapability } from './src/capabilities/agents/index.ts';
-export { AGENTS_PROMPT_FRAGMENT } from './src/capabilities/agents/prompt.ts';
+export type { AgentsCapabilityPorts } from './src/packs/agents/index.ts';
+export { agentsCapability } from './src/packs/agents/index.ts';
+export { AGENTS_PROMPT_FRAGMENT } from './src/packs/agents/prompt.ts';
 export { PERMISSION_MODES, SCHEDULE_HISTORIES } from './src/domain/schedule.ts';
 export type { PermissionMode, ScheduleHistory } from './src/domain/schedule.ts';
 export type {
@@ -248,9 +242,9 @@ export type {
   ScheduleStatus,
   ScheduleUpdateInput,
 } from './src/ports/scheduler.ts';
-export type { SchedulerCapabilityPorts } from './src/capabilities/scheduler/index.ts';
-export { schedulerCapability } from './src/capabilities/scheduler/index.ts';
-export { formatScheduleWake, SCHEDULER_PROMPT_FRAGMENT } from './src/capabilities/scheduler/prompt.ts';
+export type { SchedulerCapabilityPorts } from './src/packs/scheduler/index.ts';
+export { schedulerCapability } from './src/packs/scheduler/index.ts';
+export { formatScheduleWake, SCHEDULER_PROMPT_FRAGMENT } from './src/packs/scheduler/prompt.ts';
 export type {
   WebhookCreateInput,
   WebhookCreatedRecord,
@@ -261,19 +255,26 @@ export type {
   WebhookThreadActiveRun,
   WebhookUpdateInput,
 } from './src/ports/webhook.ts';
-export type { WebhookCapabilityPorts } from './src/capabilities/webhook/index.ts';
-export { webhookCapability } from './src/capabilities/webhook/index.ts';
-export type { EpisodicMemoryPorts } from './src/capabilities/memory/episodic.ts';
-export { episodicMemoryCapability } from './src/capabilities/memory/episodic.ts';
-export type { KnowledgeMemoryPorts } from './src/capabilities/memory/knowledge.ts';
-export { knowledgeMemoryCapability } from './src/capabilities/memory/knowledge.ts';
-export { memoryCapabilityList, memoryCapabilities } from './src/capabilities/memory/index.ts';
-export { memoryScopeOf } from './src/capabilities/memory/memory-scope.ts';
-export type { PinMemoryPorts } from './src/capabilities/memory/pin.ts';
-export { pinMemoryCapability } from './src/capabilities/memory/pin.ts';
-export type { SemanticMemoryPorts } from './src/capabilities/memory/semantic.ts';
-export { semanticMemoryCapability } from './src/capabilities/memory/semantic.ts';
+export type { WebhookCapabilityPorts } from './src/packs/webhook/index.ts';
+export { webhookCapability } from './src/packs/webhook/index.ts';
+export type { EpisodicMemoryPorts } from './src/packs/memory/episodic.ts';
+export { episodicMemoryCapability } from './src/packs/memory/episodic.ts';
+export type { KnowledgeMemoryPorts } from './src/packs/memory/knowledge.ts';
+export { knowledgeMemoryCapability } from './src/packs/memory/knowledge.ts';
+export { memoryCapabilityList, memoryCapabilities } from './src/packs/memory/index.ts';
+export { memoryScopeOf } from './src/packs/memory/memory-scope.ts';
+export type { PinMemoryPorts } from './src/packs/memory/pin.ts';
+export { pinMemoryCapability } from './src/packs/memory/pin.ts';
+export type { SemanticMemoryPorts } from './src/packs/memory/semantic.ts';
+export { semanticMemoryCapability } from './src/packs/memory/semantic.ts';
 
 export { compactForced } from './src/application/compaction/run.ts';
 export { estimateTokens } from './src/application/compaction/estimate.ts';
 export { projectCompacted } from './src/application/llm.ts';
+export { registerCapability } from './src/domain/pack.ts';
+export { defineCapability } from './src/domain/pack.ts';
+export type { CapabilityRegistration } from './src/domain/pack.ts';
+export type { CapabilityPack } from './src/domain/pack.ts';
+export type { CapabilityPackContext } from './src/domain/pack.ts';
+export type { CapabilityConfig } from './src/domain/pack.ts';
+export type { CapabilityScope } from './src/domain/pack.ts';

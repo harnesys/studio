@@ -1,5 +1,6 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
-import type { CapabilityRegistration } from '../domain/capability.ts';
+
+import type { CapabilityRegistration } from '../domain/pack.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { AgentsResolve } from '../ports/create-runtime.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';

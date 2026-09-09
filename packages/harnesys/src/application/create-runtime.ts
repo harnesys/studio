@@ -5,15 +5,15 @@ import {
   InMemoryRunEventStore,
   InMemoryRunLifecycleStore,
 } from '../adapters/in-memory-run-store.ts';
-import { fetchCapability, filesCapability, shellCapability } from '../capabilities/base.ts';
-import { skillsCapability } from '../capabilities/skills.ts';
+import { registerCapability } from '../domain/pack.ts';
+import { fetchCapability, filesCapability, shellCapability } from '../packs/base.ts';
+import { skillsCapability } from '../packs/skills.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
-import { registerCapability } from '../domain/capability.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { RunResult } from '../domain/run-result.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
-import { capabilityCatalog } from './capabilities/tool-names.ts';
+import { capabilityCatalog } from './packs/tool-names.ts';
 import { check } from './check.ts';
 import { compile, compileOrThrow } from './compile.ts';
 import { startGraph } from './graph.ts';

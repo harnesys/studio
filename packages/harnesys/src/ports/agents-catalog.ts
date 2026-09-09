@@ -4,7 +4,7 @@ import type {
   AgentGraph,
   AgentModelRef,
 } from '../domain/agent-definition.ts';
-import type { CapabilityConfig, CapabilityScope } from '../domain/capability.ts';
+import type { CapabilityConfig, CapabilityScope } from '../domain/pack.ts';
 
 export type AgentCatalogSummary = {
   id: string;

@@ -1,4 +1,4 @@
-import type { CapabilityScope } from '../domain/capability.ts';
+import type { CapabilityScope } from '../domain/pack.ts';
 import type { PermissionMode, ScheduleHistory } from '../domain/schedule.ts';
 
 export type ScheduleStatus = 'active' | 'paused' | 'failed';

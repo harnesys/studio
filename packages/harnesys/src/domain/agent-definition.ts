@@ -1,8 +1,8 @@
 import { validateStructural } from '../application/validate.ts';
-import type { CapabilityConfig } from './capability.ts';
 import { ValidationError } from './errors.ts';
 import type { Expr } from './expr.ts';
 import type { JsonSchema } from './json-schema.ts';
+import type { CapabilityConfig } from './pack.ts';
 
 export type InterruptReason =
   | 'human_review'

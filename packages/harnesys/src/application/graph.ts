@@ -5,9 +5,9 @@ import type {
   ToolCallFixed,
 } from '../domain/agent-definition.ts';
 import type { Attachment, AttachmentKind } from '../domain/attachment.ts';
-import type { CapabilityRegistration } from '../domain/capability.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
+import type { CapabilityRegistration } from '../domain/pack.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { AgentsResolve } from '../ports/create-runtime.ts';
@@ -16,7 +16,7 @@ import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import { resolveCapabilities } from './capabilities/registry.ts';
+import { resolveCapabilities } from './packs/registry.ts';
 import { runSummaryPassIfDue } from './compaction/run.ts';
 import type { Plan } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';

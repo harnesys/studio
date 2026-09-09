@@ -1,11 +1,11 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import type { ToolDefinition } from '../../ports/tools.ts';
-import { tool } from '../../ports/tools.ts';
-import { DEFAULT_PATH_BLOCKLIST } from './constants.ts';
-import type { FilesOptions } from './files-options.ts';
-import { firstBlockingPattern } from './path-blocklist.ts';
-import { resolveWorkdirPath } from './path-resolve.ts';
+import type { ToolDefinition } from '../../../ports/tools.ts';
+import { tool } from '../../../ports/tools.ts';
+import { DEFAULT_PATH_BLOCKLIST } from '../constants.ts';
+import type { FilesOptions } from '../files-options.ts';
+import { firstBlockingPattern } from '../path-blocklist.ts';
+import { resolveWorkdirPath } from '../path-resolve.ts';
 
 export function writeFileTool(options: FilesOptions = {}): ToolDefinition {
   const blocklist = options.blocklist ?? DEFAULT_PATH_BLOCKLIST;

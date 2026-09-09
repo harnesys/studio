@@ -1,6 +1,6 @@
-import type { ToolDefinition } from '../../ports/tools.ts';
-import { tool } from '../../ports/tools.ts';
-import { DEFAULT_HTTP_TIMEOUT_MS, MAX_HTTP_TIMEOUT_MS } from './constants.ts';
+import type { ToolDefinition } from '../../../ports/tools.ts';
+import { tool } from '../../../ports/tools.ts';
+import { DEFAULT_HTTP_TIMEOUT_MS, MAX_HTTP_TIMEOUT_MS } from '../constants.ts';
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as const;
 

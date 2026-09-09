@@ -1,8 +1,8 @@
-import { askUserSchema } from '../../application/ask-schema.ts';
-import { sandboxDenyText } from '../../application/tool-permission.ts';
-import { AskUserInterrupt } from '../../domain/errors.ts';
-import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
-import { tool } from '../../ports/tools.ts';
+import { askUserSchema } from '../../../application/ask-schema.ts';
+import { sandboxDenyText } from '../../../application/tool-permission.ts';
+import { AskUserInterrupt } from '../../../domain/errors.ts';
+import type { ToolContext, ToolDefinition } from '../../../ports/tools.ts';
+import { tool } from '../../../ports/tools.ts';
 
 export const ASK_USER_TOOL = 'ask_user';
 

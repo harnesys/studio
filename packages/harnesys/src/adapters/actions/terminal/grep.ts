@@ -1,10 +1,10 @@
 import path from 'node:path';
-import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
-import { tool } from '../../ports/tools.ts';
-import { DEFAULT_GREP_MAX_RESULTS, DEFAULT_PATH_BLOCKLIST } from './constants.ts';
-import type { FilesOptions } from './files-options.ts';
-import { createSearchFilter, type PathFilter } from './path-blocklist.ts';
-import { resolveWorkdirPath } from './path-resolve.ts';
+import type { ToolContext, ToolDefinition } from '../../../ports/tools.ts';
+import { tool } from '../../../ports/tools.ts';
+import { DEFAULT_GREP_MAX_RESULTS, DEFAULT_PATH_BLOCKLIST } from '../constants.ts';
+import type { FilesOptions } from '../files-options.ts';
+import { createSearchFilter, type PathFilter } from '../path-blocklist.ts';
+import { resolveWorkdirPath } from '../path-resolve.ts';
 
 export type GrepHit = { file: string; line: number; text: string };
 

@@ -1,11 +1,11 @@
 import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-import type { ToolDefinition } from '../../ports/tools.ts';
-import { tool } from '../../ports/tools.ts';
-import { DEFAULT_LIST_DIR_LIMIT, DEFAULT_PATH_BLOCKLIST } from './constants.ts';
-import type { FilesOptions } from './files-options.ts';
-import { createSearchFilter, type PathFilter } from './path-blocklist.ts';
-import { resolveWorkdirPath } from './path-resolve.ts';
+import type { ToolDefinition } from '../../../ports/tools.ts';
+import { tool } from '../../../ports/tools.ts';
+import { DEFAULT_LIST_DIR_LIMIT, DEFAULT_PATH_BLOCKLIST } from '../constants.ts';
+import type { FilesOptions } from '../files-options.ts';
+import { createSearchFilter, type PathFilter } from '../path-blocklist.ts';
+import { resolveWorkdirPath } from '../path-resolve.ts';
 
 export type ListDirEntry = { name: string; type: 'file' | 'dir'; size: number };
 

@@ -1,15 +1,15 @@
-import type { ToolDefinition } from '../../ports/tools.ts';
-import { tool } from '../../ports/tools.ts';
+import type { ToolDefinition } from '../../../ports/tools.ts';
+import { tool } from '../../../ports/tools.ts';
 import {
   BINARY_PROBE_BYTES,
   DEFAULT_MAX_READ_CHARS,
   DEFAULT_PATH_BLOCKLIST,
   DEFAULT_READ_LIMIT,
   MAX_READ_LINES,
-} from './constants.ts';
-import type { FilesOptions } from './files-options.ts';
-import { firstBlockingPattern } from './path-blocklist.ts';
-import { resolveWorkdirPath } from './path-resolve.ts';
+} from '../constants.ts';
+import type { FilesOptions } from '../files-options.ts';
+import { firstBlockingPattern } from '../path-blocklist.ts';
+import { resolveWorkdirPath } from '../path-resolve.ts';
 
 export type ReadFileOutput = {
   content: string;

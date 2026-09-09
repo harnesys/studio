@@ -1,11 +1,11 @@
 import type { ToolDefinition } from '../../ports/tools.ts';
-import { editFileTool } from './edit-file.ts';
+import { editFileTool } from './fs/edit-file.ts';
 import type { FilesOptions } from './files-options.ts';
-import { globTool } from './glob.ts';
-import { grepTool } from './grep.ts';
-import { listDirTool } from './list-dir.ts';
-import { readFileTool } from './read-file.ts';
-import { writeFileTool } from './write-file.ts';
+import { globTool } from './terminal/glob.ts';
+import { grepTool } from './terminal/grep.ts';
+import { listDirTool } from './fs/list-dir.ts';
+import { readFileTool } from './fs/read-file.ts';
+import { writeFileTool } from './fs/write-file.ts';
 
 export function files(options: FilesOptions = {}): ToolDefinition[] {
   return [

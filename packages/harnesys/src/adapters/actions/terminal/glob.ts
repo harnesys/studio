@@ -1,10 +1,10 @@
 import path from 'node:path';
-import type { ToolDefinition } from '../../ports/tools.ts';
-import { tool } from '../../ports/tools.ts';
-import { DEFAULT_PATH_BLOCKLIST } from './constants.ts';
-import type { FilesOptions } from './files-options.ts';
-import { createSearchFilter } from './path-blocklist.ts';
-import { resolveWorkdirPath } from './path-resolve.ts';
+import type { ToolDefinition } from '../../../ports/tools.ts';
+import { tool } from '../../../ports/tools.ts';
+import { DEFAULT_PATH_BLOCKLIST } from '../constants.ts';
+import type { FilesOptions } from '../files-options.ts';
+import { createSearchFilter } from '../path-blocklist.ts';
+import { resolveWorkdirPath } from '../path-resolve.ts';
 
 export function globTool(options: FilesOptions = {}): ToolDefinition {
   const blocklist = options.blocklist ?? DEFAULT_PATH_BLOCKLIST;

@@ -28,6 +28,31 @@ export type ModelUsage = {
   durationMs?: number;
 };
 
+export type SessionEventType =
+  | 'user'
+  | 'text-delta'
+  | 'reasoning-delta'
+  | 'reasoning-start'
+  | 'reasoning-end'
+  | 'tool'
+  | 'source'
+  | 'file'
+  | 'ask'
+  | 'hitl.answer'
+  | 'run.started'
+  | 'model.usage'
+  | 'model.stats'
+  | 'compaction'
+  | 'run.completed'
+  | 'run.cancelled'
+  | 'run.failed'
+  | 'done'
+  | 'error'
+  | 'agent.handoff'
+  | 'agent.spawned'
+  | 'agent.completed'
+  | 'agent.failed';
+
 export type SessionEvent =
   | {
       type: 'user';

@@ -1,4 +1,8 @@
 import type { AgentDefinition, PortRef } from '../../domain/agent-definition.ts';
+import { createEpisodicTools } from '../../packs/memory/create-episodic-tools.ts';
+import { createKnowledgeTools } from '../../packs/memory/create-knowledge-tools.ts';
+import { createPinTools } from '../../packs/memory/create-pin-tools.ts';
+import { createSemanticTools } from '../../packs/memory/create-semantic-tools.ts';
 import type {
   EpisodicPort,
   KnowledgePort,
@@ -8,10 +12,6 @@ import type {
   SemanticSessionTtl,
 } from '../../ports/memory.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
-import { createEpisodicTools } from '../../packs/memory/create-episodic-tools.ts';
-import { createKnowledgeTools } from '../../packs/memory/create-knowledge-tools.ts';
-import { createPinTools } from '../../packs/memory/create-pin-tools.ts';
-import { createSemanticTools } from '../../packs/memory/create-semantic-tools.ts';
 
 export type ResolveMemoryScope = () => MemoryScopeId;
 

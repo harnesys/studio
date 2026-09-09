@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent, SessionEventType } from '@studio/shared';
 import { create } from 'zustand';
 
 import { coalesceStreamDeltas, mergeIncomingEvent, streamDeltaKey } from './coalesce-events';
@@ -104,14 +104,14 @@ function fillSeenAt(
   return { ...prev, [threadId]: next };
 }
 
-function isStreamDeltaType(type: SessionEvent['type']): boolean {
+function isStreamDeltaType(type: SessionEventType): boolean {
   return type === 'text-delta' || type === 'reasoning-delta';
 }
 
 function nextEpoch(
   state: SessionStoreState,
   threadId: string,
-  eventType: SessionEvent['type'],
+  eventType: SessionEventType,
 ): Record<string, number> {
   const now = Date.now();
   if (isStreamDeltaType(eventType)) {

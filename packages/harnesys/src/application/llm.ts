@@ -2,11 +2,11 @@ import { callModel, type StreamChunk } from '../adapters/ai-llm-adapter.ts';
 import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import { composeSystemPrompt } from './packs/prompt.ts';
-import type { ResolvedCapability } from './packs/registry.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 import { assembleNotes, type LlmNote } from './llm-notes.ts';
+import { composeSystemPrompt } from './packs/prompt.ts';
+import type { ResolvedCapability } from './packs/registry.ts';
 import { formatDeferredCatalog, loadedToolsOf, resolveProgressiveTools } from './tools/exposure.ts';
 
 export type LlmNode = {

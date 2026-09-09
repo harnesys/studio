@@ -16,7 +16,6 @@ import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import { resolveCapabilities } from './packs/registry.ts';
 import { runSummaryPassIfDue } from './compaction/run.ts';
 import type { Plan } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
@@ -46,6 +45,7 @@ import {
   type LlmNoteContext,
   type LlmNoteProvider,
 } from './llm-notes.ts';
+import { resolveCapabilities } from './packs/registry.ts';
 import { executeToolCall, type ToolCallResult } from './tool-call.ts';
 import { sandboxDenyText } from './tool-permission.ts';
 

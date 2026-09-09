@@ -31,7 +31,7 @@
   display: none;
 }
 
-.agent-graph-inspector [data-slot='field-label'] {
+.agent-graph-inspector [data-slot="field-label"] {
   font-size: 11px;
 }
 

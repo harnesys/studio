@@ -1,7 +1,7 @@
 // biome-ignore-all lint/suspicious/noConfusingVoidType: RuntimeHandle reload/close use void|Promise<void> per docs/05
 
-import type { CapabilityCatalogEntry } from '../application/packs/tool-names.ts';
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
+import type { CapabilityCatalogEntry } from '../application/packs/tool-names.ts';
 import type { RunClaimer } from '../application/run-claimer.ts';
 import type { RunEventFeed } from '../application/run-event-feed.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';

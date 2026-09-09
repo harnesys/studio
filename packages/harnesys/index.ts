@@ -125,7 +125,7 @@ export type { PathsConfig } from './src/ports/paths.ts';
 export type { SkillRegistry } from './src/ports/skills.ts';
 export type { CursorMcpJson, McpServerInfo, McpServerToolInfo, StdioEntry, UrlEntry } from './src/ports/mcp.ts';
 export type { ArtifactStore, SendFile } from './src/ports/artifacts.ts';
-export type { ModelUsage, SendInput, SendOpts, SessionEvent, SessionHandle } from './src/ports/session.ts';
+export type { ModelUsage, SendInput, SendOpts, SessionEvent, SessionEventType, SessionHandle } from './src/ports/session.ts';
 export { createRuntime } from './src/application/create-runtime.ts';
 export { startGraph } from './src/application/graph.ts';
 export type { GraphOpts } from './src/application/graph.ts';

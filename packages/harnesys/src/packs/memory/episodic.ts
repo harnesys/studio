@@ -1,6 +1,6 @@
 import { defineCapability } from '../../domain/pack.ts';
-import { createEpisodicTools } from './create-episodic-tools.ts';
 import type { EpisodicPort } from '../../ports/memory.ts';
+import { createEpisodicTools } from './create-episodic-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
 
 export type EpisodicMemoryPorts = { episodic: EpisodicPort };

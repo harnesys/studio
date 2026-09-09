@@ -44,7 +44,6 @@ export type {
   CapabilityCatalogEntry,
   CapabilityConfig,
   KnowledgeHit,
-  McpResourceInfo as WorkspaceMcpResource,
   MemoryRecord,
   MemoryRecordSource,
   PinRecord,
@@ -114,6 +113,7 @@ export type {
   CompactThreadResponse,
   Event,
   SessionEvent,
+  SessionEventType,
   Snapshot,
   ThreadActiveRun,
   ThreadAgentRef,
@@ -141,13 +141,6 @@ export type HumanEntry = {
   createdAt: string;
   attachments?: ThreadAttachment[];
   origin?: string;
-};
-
-export type TokenUsage = {
-  input: number;
-  output: number;
-  cacheRead?: number;
-  cacheWrite?: number;
 };
 
 export const SCHEDULE_STATUSES = ['active', 'paused', 'failed'] as const;

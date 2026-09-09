@@ -1,7 +1,10 @@
 import path from 'node:path';
+import {
+  DEFAULT_SHELL_TIMEOUT_MS,
+  MAX_SHELL_TIMEOUT_MS,
+} from '../../adapters/actions/constants.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-import { DEFAULT_SHELL_TIMEOUT_MS, MAX_SHELL_TIMEOUT_MS } from '../../adapters/actions/constants.ts';
 
 export type ShellOptions = { timeout?: number };
 

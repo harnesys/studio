@@ -1,6 +1,6 @@
 import { defineCapability } from '../../domain/pack.ts';
-import { createSemanticTools } from './create-semantic-tools.ts';
 import type { SemanticMemoryPort, SemanticSessionTtl } from '../../ports/memory.ts';
+import { createSemanticTools } from './create-semantic-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
 
 export type SemanticMemoryPorts = { semantic: SemanticMemoryPort };

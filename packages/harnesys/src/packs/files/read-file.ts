@@ -1,5 +1,3 @@
-import type { ToolDefinition } from '../../ports/tools.ts';
-import { tool } from '../../ports/tools.ts';
 import {
   BINARY_PROBE_BYTES,
   DEFAULT_MAX_READ_CHARS,
@@ -10,6 +8,8 @@ import {
 import type { FilesOptions } from '../../adapters/actions/files-options.ts';
 import { firstBlockingPattern } from '../../adapters/actions/path-blocklist.ts';
 import { resolveWorkdirPath } from '../../adapters/actions/path-resolve.ts';
+import type { ToolDefinition } from '../../ports/tools.ts';
+import { tool } from '../../ports/tools.ts';
 
 export type ReadFileOutput = {
   content: string;

@@ -1,5 +1,6 @@
 import {
-  ChevronsUpDownIcon, CpuIcon,
+  ChevronsUpDownIcon,
+  CpuIcon,
   FolderIcon,
   GitBranchIcon,
   PlusIcon,

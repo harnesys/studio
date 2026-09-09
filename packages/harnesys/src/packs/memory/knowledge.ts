@@ -1,6 +1,6 @@
 import { defineCapability } from '../../domain/pack.ts';
-import { createKnowledgeTools } from './create-knowledge-tools.ts';
 import type { KnowledgePort } from '../../ports/memory.ts';
+import { createKnowledgeTools } from './create-knowledge-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
 
 export type KnowledgeMemoryPorts = { knowledge: KnowledgePort };

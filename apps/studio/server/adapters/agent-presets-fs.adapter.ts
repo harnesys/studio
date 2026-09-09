@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 import type { AgentBudget, PackConfig } from '../../shared/types.ts';
 import { NotFoundError, ValidationError } from '../domain/studio.error.ts';
-import { systemSkillsPath } from './store/studio-layout.ts';
+import { bundledSkillsPath, systemSkillsPath } from './store/studio-layout.ts';
 
 const PRESETS_DIR = 'author-agents/presets';
 const PRESET_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
@@ -58,25 +58,41 @@ export type AgentPreset = {
   graph?: AgentPresetGraph;
 };
 
-export function agentPresetsDir(homeSkills: string = systemSkillsPath()): string {
-  return join(homeSkills, PRESETS_DIR);
+/** Presets dir under a given skills root. */
+export function agentPresetsDir(skillsRoot: string): string {
+  return join(skillsRoot, PRESETS_DIR);
 }
 
-/** List `~/.harnesys/skills/author-agents/presets/*.json` (id = filename stem). */
-export function listAgentPresets(): AgentPreset[] {
-  const dir = agentPresetsDir();
+/** Skills roots that may carry presets, ascending precedence (home overrides bundle). */
+function presetRoots(): string[] {
+  return [bundledSkillsPath(), systemSkillsPath()];
+}
+
+function presetIdsIn(dir: string): string[] {
   if (!existsSync(dir)) {
     return [];
   }
-  const names = readdirSync(dir)
+  return readdirSync(dir)
     .filter((name) => name.endsWith('.json'))
     .map((name) => name.slice(0, -'.json'.length))
-    .filter((id) => PRESET_ID_RE.test(id))
-    .sort((a, b) => a.localeCompare(b));
-  const out: AgentPreset[] = [];
-  for (const id of names) {
-    out.push(readAgentPreset(id));
+    .filter((id) => PRESET_ID_RE.test(id));
+}
+
+/**
+ * List presets from bundled app assets and `~/.harnesys/skills/author-agents/presets`
+ * (id = filename stem). A same-id preset in home shadows the bundled one.
+ */
+export function listAgentPresets(): AgentPreset[] {
+  const byId = new Map<string, { id: string; dir: string }>();
+  for (const root of presetRoots()) {
+    const dir = agentPresetsDir(root);
+    for (const id of presetIdsIn(dir)) {
+      byId.set(id, { id, dir });
+    }
   }
+  const out = [...byId.values()]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((entry) => parsePreset(entry.id, join(entry.dir, `${entry.id}.json`)));
   return out;
 }
 
@@ -84,10 +100,17 @@ export function readAgentPreset(id: string): AgentPreset {
   if (!PRESET_ID_RE.test(id)) {
     throw new ValidationError(`invalid preset id: ${id}`);
   }
-  const path = join(agentPresetsDir(), `${id}.json`);
-  if (!existsSync(path)) {
-    throw new NotFoundError(`preset not found: ${id}`);
+  const roots = presetRoots();
+  for (let i = roots.length - 1; i >= 0; i -= 1) {
+    const path = join(agentPresetsDir(roots[i]), `${id}.json`);
+    if (existsSync(path)) {
+      return parsePreset(id, path);
+    }
   }
+  throw new NotFoundError(`preset not found: ${id}`);
+}
+
+function parsePreset(id: string, path: string): AgentPreset {
   let raw: unknown;
   try {
     raw = JSON.parse(readFileSync(path, 'utf8'));

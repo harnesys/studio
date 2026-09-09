@@ -31,6 +31,16 @@ export function systemSkillsPath(home: string = defaultHomePath()): string {
 }
 
 /**
+ * Skills and agent presets shipped with the app (repo: `apps/studio/assets/skills`).
+ * Lowest-precedence root: home overrides it, workspace overrides home.
+ * `HARNESYS_BUNDLED_SKILLS` points elsewhere for packaged builds;
+ * a missing directory simply contributes nothing.
+ */
+export function bundledSkillsPath(): string {
+  return env.bundledSkills ?? join(import.meta.dir, '..', '..', '..', 'assets', SKILLS_DIR);
+}
+
+/**
  * Workspace meta root (`<workspace>/.harnesys`).
  * One-shot rename from legacy `.studio` when the new path is missing.
  */
@@ -59,13 +69,14 @@ export function workspaceSkillsPath(workspacePath: string): string {
 }
 
 /**
- * Skill registry roots: system first, workspace second.
- * Same skill name in the workspace overrides the system copy (`Map.set` last wins).
+ * Skill registry roots, ascending precedence: bundled app assets, host home,
+ * workspace. Same name in a later root overrides earlier ones (`Map.set` last
+ * wins), so workspace overrides home and home overrides the bundle.
  */
 export function skillRegistryRoots(workspacePath: string): string[] {
   const systemRoot = systemSkillsPath();
   mkdirSync(systemRoot, { recursive: true });
-  return [systemRoot, workspaceSkillsPath(workspacePath)];
+  return [bundledSkillsPath(), systemRoot, workspaceSkillsPath(workspacePath)];
 }
 
 export function defaultWorkspacePath(home: string, name: string): string {

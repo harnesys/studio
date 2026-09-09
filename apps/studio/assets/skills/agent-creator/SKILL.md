@@ -14,7 +14,7 @@ Reference for authoring `AgentDefinition`s and Studio presets. The engine execut
 - Any later `llm:generate` in the same run converts those messages and throws `AI_MissingToolResultsError`; the run fails. One unhandled tool call is enough.
 - Therefore: every `llm:generate` that can see tools must either route `when: '$output.finishReason = "tool-calls"'` to a batch `tool:call` over `calls: "$output.toolCalls"`, or loop back to itself after that node, or declare `"tools": []`.
 - Pure decision/report nodes get `"tools": []` and instruct the model to answer in text.
-- Canonical loop (copy this shape, see `apps/studio/server/application/agents/react-preset.ts` and `~/.harnesys/skills/author-agents/presets/`):
+- Canonical loop (copy this shape; see `apps/studio/server/application/agents/react-preset.ts` and the shipped presets in `apps/studio/assets/skills/author-agents/presets/`):
 
 ```json
 "start": { "type": "core:start" },
@@ -80,11 +80,11 @@ System tools are always registered: `load_tools`, `load_skill`, `ask_user` (`pro
 
 ## Skills
 
-`~/.harnesys/skills/<name>/SKILL.md` (system) and `<workspace>/.harnesys/skills/<name>/SKILL.md` (workspace; overrides system). Frontmatter `name`, `description`, `when_to_use` plus body. The agent `skills` array lists names; content loads only via `load_skill(name)`. Reference only skills that exist.
+Three roots, ascending precedence: shipped bundle (`apps/studio/assets/skills/<name>/SKILL.md`), host home (`~/.harnesys/skills/<name>/SKILL.md`), workspace (`<workspace>/.harnesys/skills/<name>/SKILL.md`). A later root overrides an earlier one by `name`. Flat `.md` files are ignored; the file must be `<dir>/SKILL.md`. Frontmatter `name`, `description`, `when_to_use` plus body. The agent `skills` array lists names; content loads only via `load_skill(name)`. The registry scans once at server start. Reference only skills that exist.
 
 ## Presets
 
-`~/.harnesys/skills/author-agents/presets/<id>.json`, id pattern `^[a-z0-9][a-z0-9-]*$` from the filename. Recognized keys: `name`, `role`, `instructions` (required), `tools`, `skills`, `mcpServers`, `budget`, `capabilities`, `graph`. Unknown keys (including `model`, `compaction`, `packs`) are silently stripped; model and compaction come from Studio defaults. Without `graph` the host builds the default ReAct loop. One unparseable file breaks the entire preset listing.
+`<skills-root>/author-agents/presets/<id>.json`, id pattern `^[a-z0-9][a-z0-9-]*$` from the filename. Shipped presets live in the bundle; a same-id file in home or workspace shadows it. Recognized keys: `name`, `role`, `instructions` (required), `tools`, `skills`, `mcpServers`, `budget`, `capabilities`, `graph`. Unknown keys (including `model`, `compaction`, `packs`) are silently stripped; model and compaction come from Studio defaults. Without `graph` the host builds the default ReAct loop. The loader zod-checks shape but not the tool-calls invariant; validate the graph yourself. One unparseable file breaks the entire preset listing.
 
 ## Before saving (checklist)
 

@@ -1,13 +1,11 @@
-import { memoryToolNames } from 'harnesys';
 import type {
   AgentBudget,
   AgentGenerationSettings,
-  AgentMemoryConfig,
-  CapabilityConfig,
+  PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '../../../shared/types.ts';
-import { defaultAgentCompaction, defaultAgentMemory } from '../../../shared/types.ts';
+import { defaultAgentCompaction } from '../../../shared/types.ts';
 import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
@@ -24,14 +22,13 @@ export type CreateAgentRequest = {
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig | null;
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
   /** When set, stored as-is; otherwise host builds default ReAct. */
   graph?: AgentGraph;
   budget?: AgentBudget | null;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
 };
 
 export type CreateAgentInput = {
@@ -74,16 +71,10 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const capabilities = request.capabilities ?? {};
     const compaction =
       request.compaction !== undefined ? request.compaction : defaultAgentCompaction();
-    const memory = request.memory ?? defaultAgentMemory();
     const skills = request.skills ?? [];
     const mcpServers = request.mcpServers ?? [];
     const tools = request.tools ?? [];
-    const graph =
-      request.graph !== undefined
-        ? request.graph
-        : buildReactGraph(
-            tools.length > 0 ? [...new Set([...tools, ...memoryToolNames(memory)])] : tools,
-          );
+    const graph = request.graph !== undefined ? request.graph : buildReactGraph(tools);
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
@@ -101,7 +92,6 @@ export class CreateAgentUseCase implements CreateAgentInput {
       generation,
       toolOutput,
       compaction,
-      memory,
       skills,
       mcpServers,
       tools,

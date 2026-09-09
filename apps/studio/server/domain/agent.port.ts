@@ -2,8 +2,7 @@ import type { Edge, Node } from 'harnesys';
 import type {
   AgentBudget,
   AgentGenerationSettings,
-  AgentMemoryConfig,
-  CapabilityConfig,
+  PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '../../shared/types.ts';
@@ -34,7 +33,6 @@ export type Agent = {
   generation: AgentGenerationSettings | null;
   toolOutput: ToolOutputSettings | null;
   compaction: PortRef;
-  memory: AgentMemoryConfig;
   /** Empty = all workspace skills (omit allowlist). */
   skills: string[];
   /** Empty = all configured MCP servers (omit allowlist). */
@@ -43,7 +41,7 @@ export type Agent = {
   tools: string[];
   graph: AgentGraph;
   budget: AgentBudget | null;
-  capabilities: Record<string, CapabilityConfig | null>;
+  capabilities: Record<string, PackConfig | null>;
   createdAt: string;
   updatedAt: string;
 };
@@ -59,13 +57,12 @@ export type AgentPatch = {
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig | null;
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
   updatedAt?: string;
 };
 

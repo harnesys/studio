@@ -2,18 +2,19 @@ import type {
   AgentDefinition,
   AgentGenerationSettings,
   AgentModelRef,
+  AgentPacks,
   AgentRosterEntry,
-  CapabilityRegistration,
   CursorMcpJson,
   ModelsPort,
+  PackAssignment,
+  PackRegistration,
   RunClaimer,
   RunEventFeed,
   RunEventStore,
   RunLifecycleStore,
   RuntimeHandle,
 } from 'harnesys';
-import { createRuntime, registerCapability, skillsCapability } from 'harnesys';
-import { askUser } from 'harnesys/actions';
+import { askUser, createRuntime, normalizePackAssignment } from 'harnesys';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
@@ -43,7 +44,7 @@ export class WorkspaceHarnesysRegistry {
     private readonly models: ModelsPort,
     private readonly repos: WorkspaceHarnesysRepos = {},
     private readonly runtime?: WorkspaceRuntimeWiring,
-    private readonly capabilityRegistrations: CapabilityRegistration[] = [],
+    private readonly packRegistrations: PackRegistration[] = [],
   ) {}
 
   get(workspace: Workspace): Promise<RuntimeHandle> {
@@ -80,30 +81,13 @@ export class WorkspaceHarnesysRegistry {
     }
   }
 
-  /** Pack tools enter the runtime registry in full; per-run targets prune disabled packs. */
-  private capabilityTools() {
-    return this.capabilityRegistrations.flatMap((reg) =>
-      reg.pack.tools({ ports: reg.ports, resolveScope: reg.resolveScope, config: {} }),
-    );
-  }
-
   /**
-   * Host registrations plus the skills pack bound to this workspace's skill
-   * registry. Run targets must resolve against the same list, or agent
-   * capabilities referencing "skills" warn unknown and load_skill disappears.
+   * Host registrations for this workspace. Pack skills reach `load_skill`
+   * through the runtime ctx skills registry, not through a registration,
+   * so run targets resolve against this same list.
    */
-  effectiveRegistrations(workspace: Workspace): CapabilityRegistration[] {
-    const skills = new FsSkillRegistry({
-      roots: skillRegistryRoots(workspace.path),
-    });
-    return [
-      ...this.capabilityRegistrations,
-      registerCapability(skillsCapability, { skills }, () => ({
-        workspaceId: '_',
-        agentId: '_',
-        threadId: '_',
-      })),
-    ];
+  effectiveRegistrations(_workspace: Workspace): PackRegistration[] {
+    return [...this.packRegistrations];
   }
 
   private create(workspace: Workspace): Promise<RuntimeHandle> {
@@ -118,10 +102,10 @@ export class WorkspaceHarnesysRegistry {
     });
     return createRuntime({
       models: this.models,
-      // files/shell/fetch come from the base packs in capabilityRegistrations;
+      // files/shell/fetch come from the base packs in packRegistrations;
       // ask_user has no pack. Per-agent gating happens in the run targets.
-      tools: [askUser(), ...this.capabilityTools()],
-      capabilities: [...this.capabilityRegistrations],
+      tools: [askUser()],
+      packs: [...this.packRegistrations],
       agents: {
         resolve: (id: string) => this.resolveAgent(id),
         list: () =>
@@ -158,12 +142,10 @@ export class WorkspaceHarnesysRegistry {
       prompts: { main: { instructions: agent.instructions } },
       model: this.resolveModelRef(agent),
       skills: agent.skills.length ? agent.skills : undefined,
-      tools: agent.tools.length ? agent.tools : undefined,
       mcpServers: agent.mcpServers,
       toolOutput: agent.toolOutput ?? undefined,
       compaction: agent.compaction,
-      memory: agent.memory,
-      capabilities: agent.capabilities,
+      packs: normalizeAgentPacks(agent.capabilities),
       graph: agent.graph,
       budget: agent.budget ?? undefined,
     };
@@ -201,4 +183,20 @@ export class WorkspaceHarnesysRegistry {
       generation,
     };
   }
+}
+
+/**
+ * Stored pack assignments use the `capabilities_json` column. `true`
+ * normalizes to `{}`; objects pass through; `false`, `null`, and
+ * `undefined` drop the key.
+ */
+function normalizeAgentPacks(value: Record<string, unknown>): AgentPacks {
+  const packs: AgentPacks = {};
+  for (const [name, assignment] of Object.entries(value)) {
+    if (assignment === undefined || assignment === null || assignment === false) {
+      continue;
+    }
+    packs[name] = normalizePackAssignment(assignment as PackAssignment);
+  }
+  return packs;
 }

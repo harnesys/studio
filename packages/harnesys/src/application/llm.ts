@@ -5,8 +5,7 @@ import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 import { assembleNotes, type LlmNote } from './llm-notes.ts';
-import { composeSystemPrompt } from './packs/prompt.ts';
-import type { ResolvedCapability } from './packs/registry.ts';
+import type { PackRunOutput } from './packs/pack-run.ts';
 import { formatDeferredCatalog, loadedToolsOf, resolveProgressiveTools } from './tools/exposure.ts';
 
 export type LlmNode = {
@@ -28,7 +27,7 @@ export type LlmContext = {
   signal: AbortSignal;
   notes?: LlmNote[];
   notesErrors?: string[];
-  capabilities?: ResolvedCapability[];
+  packOutputs?: PackRunOutput[];
 };
 
 export type LlmResult = {
@@ -103,15 +102,13 @@ export async function* runLlmGenerate(
     output: ctx.output ?? null,
     resume: null,
   };
-  const prompt = substitutePrompt(composeSystemPrompt(agentText, ctx.capabilities ?? []), slots);
+  const prompt = substitutePrompt(agentText, slots);
   const messages = projectCompacted(resolveMessages(node, ctx));
   const resolved = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
-  // Прогрессивный набор применяется только к «всем тулам реестра»; явный
-  // node.tools кастомного графа — контракт автора, без инъекций.
-  const progressive =
-    node.tools === undefined
-      ? resolveProgressiveTools(resolved, ctx.toolRegistry, loadedToolsOf(ctx.state))
-      : { toolNames: resolved, deferredPending: [] as string[] };
+  // Прогрессивный набор применяется к разрешённому списку всегда: явный
+  // node.tools ограничивает видимость, но deferred-инструменты внутри него
+  // по-прежнему подменяются каталогом через load_tools.
+  const progressive = resolveProgressiveTools(resolved, ctx.toolRegistry, loadedToolsOf(ctx.state));
   const toolNames = progressive.toolNames;
 
   const allNotes = ctx.notes ? [...ctx.notes] : [];

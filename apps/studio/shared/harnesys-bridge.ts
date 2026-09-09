@@ -1,6 +1,5 @@
 import type {
   AgentGenerationSettings,
-  AgentMemoryConfig,
   AgentPaths,
   PermissionGate,
   PortRef,
@@ -16,14 +15,7 @@ import {
   withChatGenerationParameters,
 } from 'harnesys/domain';
 
-export type {
-  AgentGenerationSettings,
-  AgentMemoryConfig,
-  AgentPaths,
-  PortRef,
-  SessionEvent,
-  ToolOutputSettings,
-};
+export type { AgentGenerationSettings, AgentPaths, PortRef, SessionEvent, ToolOutputSettings };
 export {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,
@@ -50,7 +42,6 @@ export type AgentSpec = {
   tools?: string[];
   toolOutput?: ToolOutputSettings;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig;
 };
 
 export type ToolPermission = PermissionGate;

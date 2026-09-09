@@ -1,17 +1,28 @@
-import { defineCapability } from '../../domain/pack.ts';
+import { definePack } from '../../domain/pack.ts';
 import type { WebhookPort } from '../../ports/webhook.ts';
 import { createWebhookTools } from './create-webhook-tools.ts';
 
 export type WebhookCapabilityPorts = { webhook: WebhookPort };
 
-export const webhookCapability = defineCapability<WebhookCapabilityPorts>({
+export const webhookCapability = definePack<WebhookCapabilityPorts, Record<string, unknown>>({
   name: 'webhook',
   version: '1.0.0',
   description: 'Inbound webhooks: webhook_list / webhook_set / webhook_delete',
-  requires: ['webhook'],
-  tools: (ctx) =>
-    createWebhookTools({ webhook: ctx.ports.webhook, resolveScope: ctx.resolveScope }),
-  prompt: () => `## Webhooks
-- webhook_list / webhook_set / webhook_delete — inbound HTTP that wakes an agent with detail.
-- Webhooks deliver their own detail text as the wake message.`,
+  icon: 'webhook',
+  meta: {
+    tools: [
+      { name: 'webhook_list', description: 'List inbound webhooks in this workspace.' },
+      {
+        name: 'webhook_set',
+        description:
+          'Create a webhook, or update it when id is set. Defaults to this agent as target.',
+      },
+      { name: 'webhook_delete', description: 'Delete a webhook by id.' },
+    ],
+    skills: [],
+    hasSettings: false,
+  },
+  create: (ctx) => ({
+    tools: createWebhookTools({ webhook: ctx.ports.webhook, resolveScope: () => ctx.scope }),
+  }),
 });

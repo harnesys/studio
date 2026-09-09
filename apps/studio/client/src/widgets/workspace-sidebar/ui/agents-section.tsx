@@ -95,7 +95,7 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
   const presets = presetsQuery.data ?? [];
 
   return (
-    <SectionMenu label="Agent actions">
+    <SectionMenu label="Agent actions" contentClassName="w-full">
       <DropdownMenuGroup>
         <DropdownMenuItem onClick={createAgentFlow}>
           <BotIcon />

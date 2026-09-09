@@ -156,7 +156,7 @@ async function runOneChild(
     mergeState: parent.mergeState,
     signal: parent.signal,
     notes: parent.notes,
-    capabilityRegistrations: parent.capabilityRegistrations,
+    packOutputs: parent.packOutputs,
     agents: parent.agents,
     stream: parent.stream,
     childJournal: parent.childJournal,

@@ -1,4 +1,4 @@
-import { defineCapability } from '../../domain/pack.ts';
+import { definePack } from '../../domain/pack.ts';
 import type { KnowledgePort } from '../../ports/memory.ts';
 import { createKnowledgeTools } from './create-knowledge-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
@@ -12,18 +12,31 @@ function topKOf(spec: Record<string, unknown> | undefined): number | undefined {
     : undefined;
 }
 
-export const knowledgeMemoryCapability = defineCapability<KnowledgeMemoryPorts>({
+export const knowledgeMemoryCapability = definePack<KnowledgeMemoryPorts, Record<string, unknown>>({
   name: 'knowledge-memory',
   version: '1.0.0',
   description: 'Indexed corpus: knowledge_search / knowledge_read',
-  requires: ['knowledge'],
-  configFrom: (def) => def.memory?.knowledge,
-  tools: (ctx) =>
-    createKnowledgeTools({
+  icon: 'memory-knowledge',
+  specSchema: {
+    type: 'object',
+    properties: {
+      store: { type: 'string', enum: ['knowledge'], default: 'knowledge' },
+      topK: { type: 'number', default: 5 },
+    },
+  },
+  meta: {
+    tools: [
+      { name: 'knowledge_search', description: 'Search the knowledge corpus (docs / wiki)' },
+      { name: 'knowledge_read', description: 'Read a knowledge document by id from search hits' },
+    ],
+    skills: [],
+    hasSettings: true,
+  },
+  create: (ctx) => ({
+    tools: createKnowledgeTools({
       port: ctx.ports.knowledge,
-      resolveScope: memoryScopeOf(ctx.resolveScope),
-      topK: topKOf(ctx.config.spec),
+      resolveScope: memoryScopeOf(() => ctx.scope),
+      topK: topKOf(ctx.spec),
     }),
-  prompt: () => `## Knowledge
-- Indexed corpus: knowledge_search, then knowledge_read by hit id.`,
+  }),
 });

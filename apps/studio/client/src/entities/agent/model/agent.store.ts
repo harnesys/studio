@@ -1,4 +1,4 @@
-import { defaultAgentCompaction, defaultAgentMemory } from '@studio/shared';
+import { defaultAgentCompaction } from '@studio/shared';
 import { create } from 'zustand';
 
 import { type Agent, type AgentDraft, type AgentPatch, initialsFromName } from './agent';
@@ -39,7 +39,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       toolOutput: draft.toolOutput ?? null,
       budget: draft.budget ?? null,
       compaction: draft.compaction === undefined ? defaultAgentCompaction() : draft.compaction,
-      memory: draft.memory ?? defaultAgentMemory(),
       skills: [],
       mcpServers: [],
       tools: [],
@@ -90,7 +89,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 patch.instructions !== undefined ? patch.instructions.trim() : agent.instructions,
               modelId: patch.modelId !== undefined ? patch.modelId : agent.modelId,
               compaction: patch.compaction !== undefined ? patch.compaction : agent.compaction,
-              memory: patch.memory !== undefined ? patch.memory : agent.memory,
               skills: patch.skills !== undefined ? patch.skills : agent.skills,
               mcpServers: patch.mcpServers !== undefined ? patch.mcpServers : agent.mcpServers,
               tools: patch.tools !== undefined ? patch.tools : agent.tools,

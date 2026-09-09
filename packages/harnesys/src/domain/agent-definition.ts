@@ -2,7 +2,7 @@ import { validateStructural } from '../application/validate.ts';
 import { ValidationError } from './errors.ts';
 import type { Expr } from './expr.ts';
 import type { JsonSchema } from './json-schema.ts';
-import type { CapabilityConfig } from './pack.ts';
+import type { AgentPacks, PackConfig } from './pack.ts';
 
 export type InterruptReason =
   | 'human_review'
@@ -39,14 +39,6 @@ export type ToolOutputSettings = {
   tailChars?: number;
 };
 
-export type AgentMemoryConfig = {
-  pin?: PortRef;
-  semantic?: PortRef;
-  episodic?: PortRef;
-  knowledge?: PortRef;
-  project?: PortRef | { paths: string[] } | null;
-};
-
 export type AgentNodes = Record<string, Node>;
 export type AgentEdges = Edge[];
 export type AgentGraph = { nodes: AgentNodes; edges: AgentEdges };
@@ -72,7 +64,6 @@ export type AgentDefinition = {
   mcpServers?: string[];
   toolOutput?: ToolOutputSettings;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig;
   paths?: AgentPaths;
   state?: {
     initial: Record<string, Expr | unknown>;
@@ -80,7 +71,8 @@ export type AgentDefinition = {
   };
   graph: AgentGraph;
   budget?: AgentBudget;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  packs?: AgentPacks;
+  capabilities?: Record<string, PackConfig | null>;
 };
 
 export type Edge = { from: string; to: string; when?: Expr };

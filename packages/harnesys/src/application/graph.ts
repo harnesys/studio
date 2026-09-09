@@ -7,7 +7,6 @@ import type {
 import type { Attachment, AttachmentKind } from '../domain/attachment.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
-import type { CapabilityRegistration } from '../domain/pack.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { AgentsResolve } from '../ports/create-runtime.ts';
@@ -45,7 +44,8 @@ import {
   type LlmNoteContext,
   type LlmNoteProvider,
 } from './llm-notes.ts';
-import { resolveCapabilities } from './packs/registry.ts';
+import type { PackRunMap } from './packs/pack-run.ts';
+import { printPackDiagnostics, selectPackOutputs } from './packs/pack-run.ts';
 import { executeToolCall, type ToolCallResult } from './tool-call.ts';
 import { sandboxDenyText } from './tool-permission.ts';
 
@@ -149,7 +149,7 @@ export type GraphOpts = {
   startNodeId?: string;
   outputHint?: unknown;
   notes?: LlmNoteProvider[];
-  capabilityRegistrations?: CapabilityRegistration[];
+  packOutputs?: PackRunMap;
   rejected?: boolean;
   /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
   inputRecorded?: boolean;
@@ -210,11 +210,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   let input = opts.input;
   let toolRegistry = opts.toolRegistry;
   let inputRecorded = opts.inputRecorded === true;
-  let caps = resolveCapabilities(agent, opts.capabilityRegistrations ?? []);
-  for (const d of caps.diagnostics) {
-    // biome-ignore lint/suspicious/noConsole: no logger in graph.ts; diagnostics must reach run logs
-    console.warn(`[capabilities] ${d.code}: ${d.message}`);
-  }
+  let caps = selectPackOutputs(agent, opts.packOutputs ?? new Map());
+  printPackDiagnostics(caps.diagnostics);
   const loaded = await opts.state.load();
   const runId = loaded?.runId ?? crypto.randomUUID();
   let seq = loaded?.sequence ?? 0;
@@ -647,17 +644,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               }
             }
             for (const c of caps.enabled) {
-              try {
-                const provider = c.reg.pack.notes?.({
-                  ports: c.reg.ports,
-                  resolveScope: c.reg.resolveScope,
-                  config: c.config,
-                });
-                if (provider) {
+              for (const provider of c.notes) {
+                try {
                   notes.push(...(await provider(noteCtx)));
+                } catch (e) {
+                  notesErrors.push(`${cur}: ${e instanceof Error ? e.message : String(e)}`);
                 }
-              } catch (e) {
-                notesErrors.push(`${cur}: ${e instanceof Error ? e.message : String(e)}`);
               }
             }
           }
@@ -680,7 +672,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               signal: opts.signal ?? new AbortController().signal,
               notes,
               notesErrors,
-              capabilities: caps.enabled,
+              packOutputs: caps.enabled,
             },
           );
           for await (const event of stream) {
@@ -1043,7 +1035,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       input = prepared.input;
       toolRegistry = prepared.toolRegistry;
       inputRecorded = false;
-      caps = resolveCapabilities(agent, opts.capabilityRegistrations ?? []);
+      caps = selectPackOutputs(agent, opts.packOutputs ?? new Map());
+      printPackDiagnostics(caps.diagnostics);
       agentJson = JSON.stringify(agent);
       orderJson = JSON.stringify(plan.order);
       output = { agentId: prepared.agent.id };

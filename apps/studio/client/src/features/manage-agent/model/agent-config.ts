@@ -1,4 +1,4 @@
-import type { AgentGraph, CapabilityConfig } from '@studio/shared';
+import type { AgentGraph, PackConfig } from '@studio/shared';
 import type { AgentDraft } from '@/entities/agent';
 
 export type AgentCapabilitiesDraft = {
@@ -6,8 +6,7 @@ export type AgentCapabilitiesDraft = {
   tools?: string[];
   mcpServers?: string[];
   compaction?: unknown;
-  memory?: unknown;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
 };
 
 export type AgentConfigResult = {

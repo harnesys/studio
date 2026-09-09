@@ -1,11 +1,6 @@
-import type { CapabilityConfig, Edge, Node } from 'harnesys';
+import type { Edge, Node, PackConfig } from 'harnesys';
 
-import type {
-  AgentGenerationSettings,
-  AgentMemoryConfig,
-  PortRef,
-  ToolOutputSettings,
-} from './harnesys-bridge.ts';
+import type { AgentGenerationSettings, PortRef, ToolOutputSettings } from './harnesys-bridge.ts';
 
 export type BudgetPolicy = 'ask' | 'error';
 
@@ -43,16 +38,15 @@ export type AgentRecord = {
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig | null;
   /** Empty = all workspace skills (omit allowlist). */
   skills?: string[];
   /** Empty = all configured MCP servers (omit allowlist). */
   mcpServers?: string[];
-  /** Tool name allowlist; empty = all workspace tools. Memory tools are gated by `memory`. */
+  /** Tool name allowlist; empty = all workspace tools. */
   tools?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
   createdAt: string;
   updatedAt: string;
 };

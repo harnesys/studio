@@ -1,21 +1,42 @@
-import { defineCapability } from '../../domain/pack.ts';
+import { definePack } from '../../domain/pack.ts';
 import type { EpisodicPort } from '../../ports/memory.ts';
 import { createEpisodicTools } from './create-episodic-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
 
 export type EpisodicMemoryPorts = { episodic: EpisodicPort };
 
-export const episodicMemoryCapability = defineCapability<EpisodicMemoryPorts>({
+function topKOf(spec: Record<string, unknown> | undefined): number | undefined {
+  const value = spec?.topK;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : undefined;
+}
+
+export const episodicMemoryCapability = definePack<EpisodicMemoryPorts, Record<string, unknown>>({
   name: 'episodic-memory',
   version: '1.0.0',
   description: 'Past-thread recall: recall_search',
-  requires: ['episodic'],
-  configFrom: (def) => def.memory?.episodic,
-  tools: (ctx) =>
-    createEpisodicTools({
+  icon: 'memory-episodic',
+  specSchema: {
+    type: 'object',
+    properties: {
+      store: { type: 'string', enum: ['fts', 'vector'], default: 'fts' },
+      topK: { type: 'number', default: 8 },
+      indexOnCompact: { type: 'boolean', default: true },
+    },
+  },
+  meta: {
+    tools: [
+      { name: 'recall_search', description: 'Search past thread experience (episodic recall)' },
+    ],
+    skills: [],
+    hasSettings: true,
+  },
+  create: (ctx) => ({
+    tools: createEpisodicTools({
       port: ctx.ports.episodic,
-      resolveScope: memoryScopeOf(ctx.resolveScope),
+      resolveScope: memoryScopeOf(() => ctx.scope),
+      topK: topKOf(ctx.spec),
     }),
-  prompt: () => `## Recall
-- Past compacted threads: recall_search (query in words: a decision, a failure, a module name).`,
+  }),
 });

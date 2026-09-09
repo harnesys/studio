@@ -1,12 +1,12 @@
 // biome-ignore-all lint/suspicious/noConfusingVoidType: RuntimeHandle reload/close use void|Promise<void> per docs/05
 
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
-import type { CapabilityCatalogEntry } from '../application/packs/tool-names.ts';
+import type { PackCatalogEntry } from '../application/packs/tool-names.ts';
 import type { RunClaimer } from '../application/run-claimer.ts';
 import type { RunEventFeed } from '../application/run-event-feed.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Middleware } from '../domain/middleware.ts';
-import type { CapabilityRegistration } from '../domain/pack.ts';
+import type { PackRegistration } from '../domain/pack.ts';
 import type { Command, RunResult } from '../domain/run-result.ts';
 import type { SkillSummary } from '../domain/skill.ts';
 import type { Event } from '../domain/snapshot.ts';
@@ -44,7 +44,7 @@ export type CreateRuntimeOptions = {
   permissions?: PermissionMap;
   paths?: PathsConfig;
   notes?: LlmNoteProvider[];
-  capabilities?: CapabilityRegistration[];
+  packs?: PackRegistration[];
   artifacts?: ArtifactStore;
   nodes?: Record<string, CustomNodeImpl>;
   middleware?: Middleware[];
@@ -99,8 +99,8 @@ export type RuntimeHandle = {
   skills: {
     list(): SkillSummary[] | Promise<SkillSummary[]>;
   };
-  capabilities: {
-    list(): CapabilityCatalogEntry[];
+  packs: {
+    list(): PackCatalogEntry[];
   };
   tools: {
     list(): ToolCatalogEntry[];

@@ -37,7 +37,6 @@ export async function updateAgent(workspaceId: string, agentId: string, draft: A
     toolOutput,
     budget,
     ...(draft.compaction !== undefined ? { compaction: draft.compaction } : {}),
-    ...(draft.memory !== undefined ? { memory: draft.memory } : {}),
     ...(draft.capabilities !== undefined ? { capabilities: draft.capabilities } : {}),
     ...(draft.graph !== undefined ? { graph: draft.graph } : {}),
   });

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, lt, or, type SQL } from 'drizzle-orm';
+import { and, desc, eq, or, type SQL } from 'drizzle-orm';
 import type {
   MemoryRecord,
   MemoryRecordSource,
@@ -7,7 +7,6 @@ import type {
   SemanticMemoryPort,
   SemanticProjectInput,
   SemanticScope,
-  SemanticSessionTtl,
   SemanticUpsertInput,
 } from 'harnesys';
 import { ValidationError } from '../../domain/studio.error.ts';
@@ -16,29 +15,13 @@ import { mapSqliteError } from '../store/sqlite/errors.ts';
 import { type SemanticMemoryRow, semanticMemoriesTable } from '../store/sqlite/schema/index.ts';
 import { fitLinesToBudget } from './fit-budget.ts';
 
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
-
-export type SessionTtl = SemanticSessionTtl;
-
-export type SqliteSemanticPortOptions = {
-  /** Fallback when callers omit per-call sessionTtl. */
-  sessionTtl?: SessionTtl;
-};
-
 export type DeleteSessionByThreadInput = {
   workspaceId: string;
   threadId: string;
 };
 
 export class SqliteSemanticPort implements SemanticMemoryPort {
-  private readonly defaultSessionTtl: SessionTtl;
-
-  constructor(
-    private readonly db: StudioDb,
-    options: SqliteSemanticPortOptions = {},
-  ) {
-    this.defaultSessionTtl = options.sessionTtl ?? 'thread';
-  }
+  constructor(private readonly db: StudioDb) {}
 
   /** Wipe session rows for a closed/deleted thread. */
   deleteSessionByThread(input: DeleteSessionByThreadInput): void {
@@ -55,7 +38,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
   }
 
   upsert(scopeId: MemoryScopeId, input: SemanticUpsertInput): Promise<MemoryRecord> {
-    this.cleanupExpired(scopeId, input.sessionTtl);
     const now = new Date().toISOString();
     const threadId = resolveStoredThreadId(scopeId, input);
     try {
@@ -91,7 +73,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
   }
 
   list(scopeId: MemoryScopeId, query: SemanticListQuery): Promise<MemoryRecord[]> {
-    this.cleanupExpired(scopeId, query.sessionTtl);
     const filters: SQL[] = [
       eq(semanticMemoriesTable.workspaceId, scopeId.workspaceId),
       eq(semanticMemoriesTable.agentName, scopeId.agentName),
@@ -131,11 +112,7 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       return '';
     }
     const wanted = new Set(input.scopes);
-    const records = (
-      await this.list(scopeId, {
-        ...(input.sessionTtl ? { sessionTtl: input.sessionTtl } : {}),
-      })
-    ).filter((row) => wanted.has(row.scope));
+    const records = (await this.list(scopeId, {})).filter((row) => wanted.has(row.scope));
     const lines = records
       .slice(0, input.limit)
       .map((row) => (row.key ? `${row.key}: ${row.text}` : row.text));
@@ -188,40 +165,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       .returning()
       .get();
     return toMemoryRecord(row);
-  }
-
-  private cleanupExpired(scopeId: MemoryScopeId, sessionTtl?: SessionTtl): void {
-    this.dropOrphanSessionRows(scopeId);
-    if ((sessionTtl ?? this.defaultSessionTtl) !== '24h') {
-      return;
-    }
-    const cutoff = new Date(Date.now() - SESSION_TTL_MS).toISOString();
-    this.db
-      .delete(semanticMemoriesTable)
-      .where(
-        and(
-          eq(semanticMemoriesTable.workspaceId, scopeId.workspaceId),
-          eq(semanticMemoriesTable.agentName, scopeId.agentName),
-          eq(semanticMemoriesTable.scope, 'session'),
-          lt(semanticMemoriesTable.updatedAt, cutoff),
-        ),
-      )
-      .run();
-  }
-
-  /** Legacy null-thread session rows must not bleed across threads. */
-  private dropOrphanSessionRows(scopeId: MemoryScopeId): void {
-    this.db
-      .delete(semanticMemoriesTable)
-      .where(
-        and(
-          eq(semanticMemoriesTable.workspaceId, scopeId.workspaceId),
-          eq(semanticMemoriesTable.agentName, scopeId.agentName),
-          eq(semanticMemoriesTable.scope, 'session'),
-          isNull(semanticMemoriesTable.threadId),
-        ),
-      )
-      .run();
   }
 }
 

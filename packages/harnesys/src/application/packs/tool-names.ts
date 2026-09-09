@@ -1,59 +1,47 @@
 import type { AgentDefinition } from '../../domain/agent-definition.ts';
-
-import type { CapabilityRegistration } from '../../domain/pack.ts';
+import type { PackRegistration } from '../../domain/pack.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
-import { compareStrings, resolveCapabilities } from './registry.ts';
+import { resolvePacks } from './registry.ts';
 
-export type CapabilityCatalogEntry = {
+export type PackCatalogEntry = {
   name: string;
   version: string;
   description: string;
-  toolNames: string[];
-  requires: string[];
+  icon?: string;
+  hasSettings: boolean;
+  tools: Array<{ name: string; description: string }>;
+  skills: string[];
 };
 
-export function capabilityToolNames(
+export function packTools(
   def: AgentDefinition,
-  registrations: CapabilityRegistration[],
-): string[] {
-  return capabilityTools(def, registrations).map((t) => t.name);
-}
-
-/**
- * Per-definition tool instances: config comes from resolveCapabilities, so
- * pack specs (e.g. memory.knowledge.spec.topK) reach the tool at execute time.
- */
-export function capabilityTools(
-  def: AgentDefinition,
-  registrations: CapabilityRegistration[],
+  registrations: PackRegistration[],
 ): ToolDefinition[] {
-  const { enabled } = resolveCapabilities(def, registrations);
-  return enabled.flatMap((c) =>
-    c.reg.pack.tools({ ports: c.reg.ports, resolveScope: c.reg.resolveScope, config: c.config }),
-  );
+  const { enabled } = resolvePacks(def, registrations);
+  return enabled.flatMap((p) => {
+    const out = p.reg.pack.create({
+      ports: (p.reg.ports ?? {}) as Record<string, unknown>,
+      spec: (p.config.spec ?? {}) as Record<string, unknown>,
+      scope: p.reg.resolveScope?.() ?? {
+        workspaceId: '_',
+        agentId: '_',
+        threadId: '_',
+      },
+    });
+    return out.tools ?? [];
+  });
 }
 
-export function allCapabilityToolNames(registrations: CapabilityRegistration[]): string[] {
-  // фикстура-скоуп нужен только для вызова tools(); имена от него не зависят
-  const stub = { workspaceId: '_', agentId: '_', threadId: '_' };
-  return registrations.flatMap((r) =>
-    r.pack.tools({ ports: r.ports, resolveScope: () => stub, config: {} }).map((t) => t.name),
-  );
-}
-
-export function capabilityCatalog(
-  registrations: CapabilityRegistration[],
-): CapabilityCatalogEntry[] {
-  const stub = { workspaceId: '_', agentId: '_', threadId: '_' };
+export function packCatalog(registrations: PackRegistration[]): PackCatalogEntry[] {
   return [...registrations]
-    .sort((a, b) => compareStrings(a.pack.name, b.pack.name))
+    .sort((a, b) => (a.pack.name < b.pack.name ? -1 : 1))
     .map((r) => ({
       name: r.pack.name,
       version: r.pack.version,
       description: r.pack.description,
-      requires: r.pack.requires ?? [],
-      toolNames: r.pack
-        .tools({ ports: r.ports, resolveScope: () => stub, config: {} })
-        .map((t) => t.name),
+      icon: r.pack.icon,
+      hasSettings: r.pack.specSchema !== undefined,
+      tools: r.pack.meta.tools,
+      skills: r.pack.meta.skills,
     }));
 }

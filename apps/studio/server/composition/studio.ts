@@ -1,13 +1,16 @@
 import { join } from 'node:path';
 import {
+  askUser,
   createRunClaimer,
   createRunEngine,
   createRunEventBus,
   createRunEventFeed,
   createToolRegistry,
+  fetch,
+  files,
   type RunTargets,
+  shell,
 } from 'harnesys';
-import { askUser, fetch, files, shell } from 'harnesys/actions';
 import { Hono } from 'hono';
 import { startAskTicker } from '../adapters/ask-ticker.adapter.ts';
 import { FsAttachmentsAdapter } from '../adapters/attachments/fs-attachments.adapter.ts';
@@ -50,9 +53,9 @@ import { env } from '../config/env.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
-import { createCapabilityRegistrations } from './wire-capabilities.ts';
 import { wireControllers } from './wire-controllers.ts';
 import { createStudioMemory, registerMemoryHttp } from './wire-memory.ts';
+import { createPackRegistrations } from './wire-packs.ts';
 import { wireSchedules } from './wire-schedules.ts';
 import { wireWebhooks } from './wire-webhooks.ts';
 
@@ -106,7 +109,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
         episodic: memory.episodic,
         workspaceId: thread.workspaceId,
         threadId,
-        episodicRef: agentRow.memory?.episodic ?? undefined,
+        episodicRef: undefined,
       })({
         fromSeq: typeof meta.coveredFrom === 'number' ? meta.coveredFrom : 0,
         toSeq: typeof meta.coveredUntil === 'number' ? meta.coveredUntil : 0,
@@ -188,7 +191,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
   });
   const planUow = new SqliteUnitOfWork(db);
   const getThreadPlan = new GetThreadPlanUseCase(planUow);
-  const capabilityRegistrations = createCapabilityRegistrations({
+  const packRegistrations = createPackRegistrations({
     db,
     schedules: scheduleRepo,
     webhooks: webhookRepo,
@@ -218,7 +221,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
         claimer: runClaimer,
         instanceId,
       },
-      capabilityRegistrations,
+      packRegistrations,
     );
   agentsRef.current = workspaceHarnesys;
   const branchSeeder = new SeedBranchStateUseCase({

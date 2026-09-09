@@ -44,19 +44,6 @@ const portRefObject = z.object({
 
 const portRefBody = portRefObject.nullable();
 
-const projectBody = z.union([portRefBody, z.object({ paths: z.array(z.string()) })]);
-
-const memoryBody = z
-  .object({
-    pin: portRefBody.optional(),
-    semantic: portRefBody.optional(),
-    episodic: portRefBody.optional(),
-    knowledge: portRefBody.optional(),
-    project: projectBody.optional(),
-  })
-  .nullable()
-  .optional();
-
 const compactionBody = portRefBody.optional();
 
 const agentGraphBody = z
@@ -89,7 +76,6 @@ export const createAgentBody = z.object({
   budget: budgetBody,
   capabilities: capabilitiesBody,
   compaction: compactionBody,
-  memory: memoryBody,
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
@@ -107,7 +93,6 @@ export const updateAgentBody = z.object({
   budget: budgetBody,
   capabilities: capabilitiesBody,
   compaction: compactionBody,
-  memory: memoryBody,
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),

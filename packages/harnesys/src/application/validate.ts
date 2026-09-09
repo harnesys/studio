@@ -255,14 +255,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
           }
         }
       }
-      if (Array.isArray(n.tools) && n.tools.length === 0) {
-        // 'tools: []' exposes nothing (regression f48b03b); omit the key for all registry tools.
-        add(
-          'tools_empty',
-          'error',
-          'llm node tools:[] exposes no tools; omit the key for all registry tools',
-        );
-      }
     }
     if ((n as { type: string }).type === 'tool:call') {
       const tc = n as {
@@ -445,6 +437,42 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
     for (const [name, value] of positive) {
       if (value !== undefined && (!Number.isFinite(value) || value <= 0)) {
         add('budget_value', 'error', `budget.${name} must be a positive number`, `budget.${name}`);
+      }
+    }
+  }
+
+  if (def.packs !== undefined) {
+    if (typeof def.packs !== 'object' || def.packs === null || Array.isArray(def.packs)) {
+      add('packs_type', 'error', 'packs must be an object', 'packs');
+    } else {
+      for (const [key, val] of Object.entries(def.packs)) {
+        if (typeof val === 'boolean') {
+          continue;
+        }
+        if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+          const obj = val as Record<string, unknown>;
+          const valid = Object.keys(obj).every((k) => k === 'spec');
+          if (!valid) {
+            add(
+              'packs_value',
+              'error',
+              `packs.${key} may only have a "spec" property`,
+              `packs.${key}`,
+            );
+          } else if (
+            obj.spec !== undefined &&
+            (typeof obj.spec !== 'object' || obj.spec === null || Array.isArray(obj.spec))
+          ) {
+            add('packs_spec', 'error', `packs.${key}.spec must be an object`, `packs.${key}.spec`);
+          }
+        } else {
+          add(
+            'packs_value',
+            'error',
+            `packs.${key} must be true, false, or { spec?: Record }`,
+            `packs.${key}`,
+          );
+        }
       }
     }
   }

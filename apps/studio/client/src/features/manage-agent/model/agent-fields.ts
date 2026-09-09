@@ -1,8 +1,8 @@
 import type {
   AgentBudget,
   AgentGenerationSettings,
-  CapabilityConfig,
   Effort,
+  PackConfig,
   ProviderModelPublic,
   ProviderPublic,
   ToolOutputSettings,
@@ -131,7 +131,7 @@ export function agentFieldsFrom(agent: {
 
 export function toAgentDraft(
   values: AgentFieldsOutput,
-  capabilities?: Record<string, CapabilityConfig | null>,
+  capabilities?: Record<string, PackConfig | null>,
 ): {
   name: string;
   role: string;
@@ -141,7 +141,7 @@ export function toAgentDraft(
   generation: AgentGenerationSettings | null;
   toolOutput: ToolOutputSettings | null;
   budget: AgentBudget | null;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
 } {
   const generation = compactGeneration({
     temperature: values.temperature,

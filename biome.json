@@ -94,6 +94,10 @@
                   "@/widgets/*/ui/**"
                 ],
                 "message": "Import the slice through its index.ts public API."
+              },
+              {
+                "group": ["@/packs/*"],
+                "message": "Import packs through '@/packs' (src/packs/index.ts). Domain, ports, and application layers must not import concrete packs."
               }
             ]
           }

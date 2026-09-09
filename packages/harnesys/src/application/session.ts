@@ -3,7 +3,7 @@ import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Attachment, AttachmentKind } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Middleware } from '../domain/middleware.ts';
-import type { CapabilityRegistration } from '../domain/pack.ts';
+import type { PackRegistration } from '../domain/pack.ts';
 import type { ArtifactStore, SendFile } from '../ports/artifacts.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
@@ -13,6 +13,7 @@ import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';
 import type { RunTarget, RunTargets } from '../ports/run-targets.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { SendInput, SessionHandle } from '../ports/session.ts';
+import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import type { LlmNoteProvider } from './llm-notes.ts';
 import { resolvePaths } from './paths.ts';
@@ -28,7 +29,8 @@ export type RuntimeContext = {
   permissions?: PermissionMap;
   paths?: PathsConfig;
   notes?: LlmNoteProvider[];
-  capabilityRegistrations: CapabilityRegistration[];
+  packRegistrations: PackRegistration[];
+  skills?: SkillRegistry;
   toolMessages: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
   agents: { resolve: (id: string) => AgentDefinition | undefined };
@@ -131,7 +133,8 @@ export function createSession(
         ),
         paths: resolvePaths(def.paths, ctx.paths, opts.paths),
         notes: ctx.notes,
-        capabilities: ctx.capabilityRegistrations,
+        packs: ctx.packRegistrations,
+        skills: ctx.skills,
       });
     },
   };

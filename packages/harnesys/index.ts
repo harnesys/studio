@@ -10,7 +10,6 @@ export type {
   AgentDefinition,
   AgentGenerationSettings,
   AgentGraph,
-  AgentMemoryConfig,
   AgentModelRef,
   AgentPaths,
   Edge,
@@ -21,24 +20,24 @@ export type {
   ToolCallFixed,
   ToolOutputSettings,
 } from './src/domain/agent-definition.ts';
-export type {
-  CapabilityDiagnostic,
-  ResolvedCapability,
-} from './src/application/packs/registry.ts';
-export { resolveCapabilities } from './src/application/packs/registry.ts';
 export { fetchCapability, filesCapability, shellCapability } from './src/packs/base.ts';
-export type { SkillsCapabilityPorts } from './src/packs/skills.ts';
-export { skillsCapability } from './src/packs/skills.ts';
-export {
-  composeSystemPrompt,
-} from './src/application/packs/prompt.ts';
-export type { CapabilityCatalogEntry } from './src/application/packs/tool-names.ts';
-export {
-  allCapabilityToolNames,
-  capabilityCatalog,
-  capabilityToolNames,
-  capabilityTools,
-} from './src/application/packs/tool-names.ts';
+export { askUser, fetch, files, shell } from './src/adapters/actions/index.ts';
+export { definePack, normalizePackAssignment, registerPack } from './src/domain/pack.ts';
+export type {
+  AgentPacks,
+  CapabilityScope,
+  Pack,
+  PackAssignment,
+  PackConfig,
+  PackCtx,
+  PackMeta,
+  PackRegistration,
+  PackSkill,
+} from './src/domain/pack.ts';
+export { resolvePacks } from './src/application/packs/registry.ts';
+export type { ResolvedPack } from './src/application/packs/registry.ts';
+export { packCatalog, packTools } from './src/application/packs/tool-names.ts';
+export type { PackCatalogEntry } from './src/application/packs/tool-names.ts';
 export {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,
@@ -181,7 +180,6 @@ export type {
   SemanticMemoryPort,
   SemanticProjectInput,
   SemanticScope,
-  SemanticSessionTtl,
   SemanticUpsertInput,
 } from './src/ports/memory.ts';
 
@@ -201,23 +199,11 @@ export {
   createSemanticTools,
   type CreateSemanticToolsParams,
 } from './src/packs/memory/create-semantic-tools.ts';
-export {
-  ALL_MEMORY_TOOL_NAMES,
-  memoryToolNames,
-} from './src/application/memory/memory-tool-names.ts';
-export {
-  memoryScopeResolver,
-  type MemoryToolPorts,
-  resolveMemoryTools,
-  type ResolveMemoryToolsInput,
-  type ResolveMemoryScope,
-} from './src/application/memory/resolve-memory-tools.ts';
 export type { PlanItem, PlanPort, PlanSaveItemInput, PlanSnapshot } from './src/ports/plan.ts';
 export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from './src/domain/plan.ts';
 export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan.ts';
 export type { PlanCapabilityPorts } from './src/packs/plan/index.ts';
 export { planCapability } from './src/packs/plan/index.ts';
-export { planFollowPrompt } from './src/packs/plan/prompt.ts';
 export type { ThreadSummary, ThreadsPort } from './src/ports/threads.ts';
 export type { ThreadsCapabilityPorts } from './src/packs/threads/index.ts';
 export { threadsCapability } from './src/packs/threads/index.ts';
@@ -228,7 +214,6 @@ export type {
 } from './src/ports/agents-catalog.ts';
 export type { AgentsCapabilityPorts } from './src/packs/agents/index.ts';
 export { agentsCapability } from './src/packs/agents/index.ts';
-export { AGENTS_PROMPT_FRAGMENT } from './src/packs/agents/prompt.ts';
 export { PERMISSION_MODES, SCHEDULE_HISTORIES } from './src/domain/schedule.ts';
 export type { PermissionMode, ScheduleHistory } from './src/domain/schedule.ts';
 export type {
@@ -244,7 +229,6 @@ export type {
 } from './src/ports/scheduler.ts';
 export type { SchedulerCapabilityPorts } from './src/packs/scheduler/index.ts';
 export { schedulerCapability } from './src/packs/scheduler/index.ts';
-export { formatScheduleWake, SCHEDULER_PROMPT_FRAGMENT } from './src/packs/scheduler/prompt.ts';
 export type {
   WebhookCreateInput,
   WebhookCreatedRecord,
@@ -271,10 +255,3 @@ export { semanticMemoryCapability } from './src/packs/memory/semantic.ts';
 export { compactForced } from './src/application/compaction/run.ts';
 export { estimateTokens } from './src/application/compaction/estimate.ts';
 export { projectCompacted } from './src/application/llm.ts';
-export { registerCapability } from './src/domain/pack.ts';
-export { defineCapability } from './src/domain/pack.ts';
-export type { CapabilityRegistration } from './src/domain/pack.ts';
-export type { CapabilityPack } from './src/domain/pack.ts';
-export type { CapabilityPackContext } from './src/domain/pack.ts';
-export type { CapabilityConfig } from './src/domain/pack.ts';
-export type { CapabilityScope } from './src/domain/pack.ts';

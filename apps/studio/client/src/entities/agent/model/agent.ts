@@ -2,8 +2,7 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentGraph,
-  AgentMemoryConfig,
-  CapabilityConfig,
+  PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '@studio/shared';
@@ -24,12 +23,11 @@ export type Agent = {
   toolOutput: ToolOutputSettings | null;
   budget: AgentBudget | null;
   compaction: PortRef;
-  memory: AgentMemoryConfig;
   skills: string[];
   mcpServers: string[];
   tools: string[];
   graph: AgentGraph;
-  capabilities: Record<string, CapabilityConfig | null>;
+  capabilities: Record<string, PackConfig | null>;
   createdAt: string;
   updatedAt: string;
   status: AgentStatus;
@@ -48,8 +46,7 @@ export type AgentDraft = {
   toolOutput?: ToolOutputSettings | null;
   budget?: AgentBudget | null;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig | null;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
   graph?: AgentGraph;
 };
 
@@ -65,7 +62,6 @@ export type AgentPatch = Partial<
     | 'toolOutput'
     | 'budget'
     | 'compaction'
-    | 'memory'
     | 'skills'
     | 'mcpServers'
     | 'tools'

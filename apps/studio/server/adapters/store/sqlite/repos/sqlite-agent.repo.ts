@@ -1,10 +1,9 @@
 import { and, eq } from 'drizzle-orm';
-import type { Edge, Node } from 'harnesys';
+import type { PackAssignment } from 'harnesys';
+import { type Edge, type Node, normalizePackAssignment } from 'harnesys';
 import {
-  type AgentMemoryConfig,
-  type CapabilityConfig,
   defaultAgentCompaction,
-  defaultAgentMemory,
+  type PackConfig,
   type PortRef,
 } from '../../../../../shared/types.ts';
 import type {
@@ -57,27 +56,26 @@ export class SqliteAgentRepo implements AgentRepository {
       const {
         skills,
         mcpServers,
-        tools,
+        tools: _tools,
         generation,
         toolOutput,
         compaction,
-        memory,
         graph,
         budget,
         capabilities,
         ...rest
       } = rec;
+      // `tools` stays on the record type for Task 8 consumers but
+      // is no longer persisted; the columns keep their stored data on disk.
       const row = this.db
         .insert(agentsTable)
         .values({
           ...rest,
           skills: JSON.stringify(skills),
           mcpServers: JSON.stringify(mcpServers),
-          tools: JSON.stringify(tools),
           generation: serializeJson(generation),
           toolOutput: serializeJson(toolOutput),
           compactionJson: serializeJsonColumn(compaction),
-          memoryJson: serializeJsonColumn(memory),
           graphJson: JSON.stringify(graph),
           budgetJson: serializeJsonColumn(budget),
           capabilitiesJson: JSON.stringify(capabilities),
@@ -95,11 +93,10 @@ export class SqliteAgentRepo implements AgentRepository {
       const {
         skills,
         mcpServers,
-        tools,
+        tools: _tools,
         generation,
         toolOutput,
         compaction,
-        memory,
         graph,
         budget,
         capabilities,
@@ -111,11 +108,9 @@ export class SqliteAgentRepo implements AgentRepository {
           ...rest,
           ...(skills !== undefined ? { skills: JSON.stringify(skills) } : {}),
           ...(mcpServers !== undefined ? { mcpServers: JSON.stringify(mcpServers) } : {}),
-          ...(tools !== undefined ? { tools: JSON.stringify(tools) } : {}),
           ...(generation !== undefined ? { generation: serializeJson(generation) } : {}),
           ...(toolOutput !== undefined ? { toolOutput: serializeJson(toolOutput) } : {}),
           ...(compaction !== undefined ? { compactionJson: serializeJsonColumn(compaction) } : {}),
-          ...(memory !== undefined ? { memoryJson: serializeJsonColumn(memory) } : {}),
           ...(graph !== undefined ? { graphJson: JSON.stringify(graph) } : {}),
           ...(budget !== undefined ? { budgetJson: serializeJsonColumn(budget) } : {}),
           ...(capabilities !== undefined ? { capabilitiesJson: JSON.stringify(capabilities) } : {}),
@@ -153,14 +148,13 @@ function toAgent(row: AgentRow): Agent {
     generation: parseJsonObject(row.generation),
     toolOutput: parseJsonObject(row.toolOutput),
     compaction: coalesceCompaction(parseJsonColumn<PortRef>(row.compactionJson)),
-    memory: coalesceMemory(parseJsonColumn<AgentMemoryConfig>(row.memoryJson)),
+    // `tools` no longer read from column (Task 8 removes the consumers); empty tools means all workspace tools.
     skills: parseStringList(row.skills),
     mcpServers: parseStringList(row.mcpServers),
-    tools: parseStringList(row.tools),
+    tools: [],
     graph: parseGraph(row.graphJson),
     budget: parseJsonObject(row.budgetJson),
-    capabilities:
-      parseJsonObject<Record<string, CapabilityConfig | null>>(row.capabilitiesJson) ?? {},
+    capabilities: parsePacks(row.capabilitiesJson),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -173,11 +167,21 @@ function coalesceCompaction(value: PortRef | undefined): PortRef {
   return value;
 }
 
-function coalesceMemory(value: AgentMemoryConfig | null | undefined): AgentMemoryConfig {
-  if (value == null) {
-    return defaultAgentMemory();
+/**
+ * Stored pack assignments use the `capabilities_json` column. `true`
+ * normalizes to `{}`; objects pass through; `false`, `null`, and
+ * `undefined` drop the key.
+ */
+function parsePacks(raw: string | null): Record<string, PackConfig | null> {
+  const parsed = parseJsonObject<Record<string, PackConfig | boolean | null>>(raw) ?? {};
+  const out: Record<string, PackConfig | null> = {};
+  for (const [name, value] of Object.entries(parsed)) {
+    if (value === undefined || value === null || value === false) {
+      continue;
+    }
+    out[name] = normalizePackAssignment(value as PackAssignment);
   }
-  return value;
+  return out;
 }
 
 function serializeJson(value: object | null | undefined): string | null {

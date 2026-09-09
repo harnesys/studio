@@ -1,6 +1,6 @@
 import { resolveAgentTarget } from '../../application/agent-target-resolve.ts';
 
-import type { CapabilityScope } from '../../domain/pack.ts';
+import type { CapabilityScope, PackConfig } from '../../domain/pack.ts';
 import type { AgentCatalogCreateInput, AgentsCatalogPort } from '../../ports/agents-catalog.ts';
 import type { AgentRosterEntry } from '../../ports/create-runtime.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
@@ -112,9 +112,13 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
             type: 'object',
             description: 'Optional run budget (maxSteps, maxTokens, deadlineMs, policy)',
           },
+          packs: {
+            type: 'object',
+            description: 'Optional pack map (name → config or null)',
+          },
           capabilities: {
             type: 'object',
-            description: 'Optional capability map (name → config or null)',
+            description: 'Deprecated alias of packs; packs wins when both are present',
           },
           graph: {
             type: 'object',
@@ -130,11 +134,19 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       execute: async (raw) =>
         runGuard(async () => {
           const scope = deps.resolveScope();
-          const input = raw as AgentCatalogCreateInput;
+          const input = raw as AgentCatalogCreateInput & {
+            capabilities?: Record<string, PackConfig | null>;
+          };
           if (!input.name || !input.role || !input.instructions) {
             return { error: 'name, role, and instructions are required' };
           }
-          return await deps.agents.create(scope, input);
+          const packs = input.packs ?? input.capabilities;
+          const next: AgentCatalogCreateInput & { capabilities?: unknown } = { ...input };
+          delete next.capabilities;
+          if (packs !== undefined) {
+            next.packs = packs;
+          }
+          return await deps.agents.create(scope, next);
         }),
     }),
     tool('agents_spawn', {

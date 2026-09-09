@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
-import type { AgentBudget, CapabilityConfig } from '../../shared/types.ts';
+import type { AgentBudget, PackConfig } from '../../shared/types.ts';
 import { NotFoundError, ValidationError } from '../domain/studio.error.ts';
 import { systemSkillsPath } from './store/studio-layout.ts';
 
@@ -54,7 +54,7 @@ export type AgentPreset = {
   skills?: string[];
   mcpServers?: string[];
   budget?: AgentBudget;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
   graph?: AgentPresetGraph;
 };
 

@@ -1,4 +1,4 @@
-import { type AgentRecord, defaultAgentCompaction, defaultAgentMemory } from '@studio/shared';
+import { type AgentRecord, defaultAgentCompaction } from '@studio/shared';
 
 import { type Agent, initialsFromName } from './agent';
 
@@ -15,7 +15,6 @@ export function toClientAgent(record: AgentRecord): Agent {
     toolOutput: record.toolOutput ?? null,
     budget: record.budget ?? null,
     compaction: record.compaction === undefined ? defaultAgentCompaction() : record.compaction,
-    memory: record.memory ?? defaultAgentMemory(),
     skills: record.skills ?? [],
     mcpServers: record.mcpServers ?? [],
     tools: record.tools ?? [],

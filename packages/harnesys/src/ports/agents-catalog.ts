@@ -4,7 +4,7 @@ import type {
   AgentGraph,
   AgentModelRef,
 } from '../domain/agent-definition.ts';
-import type { CapabilityConfig, CapabilityScope } from '../domain/pack.ts';
+import type { CapabilityScope, PackConfig } from '../domain/pack.ts';
 
 export type AgentCatalogSummary = {
   id: string;
@@ -21,7 +21,7 @@ export type AgentCatalogCreateInput = {
   skills?: string[];
   mcpServers?: string[];
   budget?: AgentBudget;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  packs?: Record<string, PackConfig | null>;
   graph?: AgentGraph;
   model?: AgentModelRef;
 };

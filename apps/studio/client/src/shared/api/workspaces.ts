@@ -1,7 +1,7 @@
 import type {
   CreateWorkspaceSkillRequest,
   UpsertWorkspaceMcpServerRequest,
-  CapabilityCatalogEntry as WorkspaceCapability,
+  PackCatalogEntry as WorkspaceCapability,
   WorkspaceMcpConfigServer,
   WorkspaceMcpServer,
   WorkspaceRecord,

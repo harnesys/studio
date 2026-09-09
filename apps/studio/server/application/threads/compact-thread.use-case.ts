@@ -215,7 +215,7 @@ export class CompactThreadUseCase implements CompactThreadInput {
         episodic: this.deps.episodic,
         workspaceId: thread.workspaceId,
         threadId: thread.id,
-        episodicRef: agentRow.memory?.episodic ?? undefined,
+        episodicRef: undefined,
       })({
         fromSeq: message.coveredFrom,
         toSeq: message.coveredUntil,

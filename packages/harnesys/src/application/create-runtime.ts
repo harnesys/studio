@@ -7,17 +7,17 @@ import {
 } from '../adapters/in-memory-run-store.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
-import { registerCapability } from '../domain/pack.ts';
+import { registerPack } from '../domain/pack.ts';
 import type { RunResult } from '../domain/run-result.ts';
 import { fetchCapability, filesCapability, shellCapability } from '../packs/base.ts';
-import { skillsCapability } from '../packs/skills.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
 import { check } from './check.ts';
 import { compile, compileOrThrow } from './compile.ts';
 import { startGraph } from './graph.ts';
 import { runGraph } from './graph-run.ts';
-import { capabilityCatalog } from './packs/tool-names.ts';
+import { attachPackRun, fallbackScope } from './packs/pack-run.ts';
+import { packCatalog } from './packs/tool-names.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createToolRegistry, filterToolsForAgent } from './tool-registry.ts';
@@ -37,35 +37,21 @@ function isMcpRegistry(value: unknown): boolean {
 export async function createRuntime(options: CreateRuntimeOptions): Promise<RuntimeHandle> {
   const baseTools = [...(options.tools ?? [])];
 
-  // Base packs are always registered (R20: availability unconditional, prompt
-  // fragments always composable); a host-supplied registration with the same
-  // pack name wins — dedupe by name, first occurrence kept.
-  const supplied = options.capabilities ?? [];
+  // Base packs are always registered (R20: availability unconditional); a
+  // host-supplied registration with the same pack name wins. Portless base
+  // packs register with no ports key; per-run create calls get `{}` ports.
+  const stubScope = fallbackScope;
+  const supplied = options.packs ?? [];
   const suppliedNames = new Set(supplied.map((reg) => reg.pack.name));
-  const stubScope = () => ({ workspaceId: '_', agentId: '_', threadId: '_' });
+  for (const name of suppliedNames) {
+    if (supplied.filter((reg) => reg.pack.name === name).length > 1) {
+      throw new Error(`pack "${name}" registered twice by host`);
+    }
+  }
   const baseRegistrations = [filesCapability, shellCapability, fetchCapability]
     .filter((pack) => !suppliedNames.has(pack.name))
-    .map((pack) => registerCapability(pack, {}, stubScope));
-  // Auto skills registration must also land its tools in the registry: a
-  // registration alone never reaches baseTools, and load_skill would vanish.
-  const autoSkills =
-    options.skills && !suppliedNames.has(skillsCapability.name)
-      ? registerCapability(skillsCapability, { skills: options.skills }, stubScope)
-      : undefined;
-  if (autoSkills) {
-    baseTools.push(
-      ...autoSkills.pack.tools({
-        ports: autoSkills.ports,
-        resolveScope: autoSkills.resolveScope,
-        config: {},
-      }),
-    );
-  }
-  const capabilityRegistrations = [
-    ...supplied,
-    ...baseRegistrations,
-    ...(autoSkills ? [autoSkills] : []),
-  ];
+    .map((pack) => registerPack(pack, { resolveScope: stubScope }));
+  const packRegistrations = [...supplied, ...baseRegistrations];
 
   let mcpRegistry: McpRegistry | undefined;
   if (options.mcp) {
@@ -117,7 +103,8 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     permissions: options.permissions,
     paths: options.paths,
     notes: options.notes,
-    capabilityRegistrations,
+    packRegistrations,
+    skills: options.skills,
     toolMessages: options.toolMessages ?? 'ordered',
     mergeState: options.mergeState,
     agents: options.agents,
@@ -135,6 +122,13 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       const plan = compileOrThrow(def);
       const runRegistry = new Map(filterToolsForAgent(toolRegistry, def));
       runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
+      const packOutputs = attachPackRun({
+        def,
+        registrations: packRegistrations,
+        runRegistry,
+        fsSkills: options.skills,
+        scopeFallback: stubScope,
+      });
       return runGraph({
         agent: def,
         input: opts.input,
@@ -142,7 +136,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
         notes: options.notes,
-        capabilityRegistrations,
+        packOutputs,
         artifacts: options.artifacts,
         models: options.models,
         toolRegistry: runRegistry,
@@ -158,6 +152,13 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       const plan = compileOrThrow(def);
       const runRegistry = new Map(filterToolsForAgent(toolRegistry, def));
       runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
+      const packOutputs = attachPackRun({
+        def,
+        registrations: packRegistrations,
+        runRegistry,
+        fsSkills: options.skills,
+        scopeFallback: stubScope,
+      });
       return startGraph({
         agent: def,
         input: opts.input,
@@ -165,7 +166,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
         notes: options.notes,
-        capabilityRegistrations,
+        packOutputs,
         artifacts: options.artifacts,
         models: options.models,
         toolRegistry: runRegistry,
@@ -192,8 +193,8 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     skills: {
       list: () => options.skills?.list() ?? [],
     },
-    capabilities: {
-      list: () => capabilityCatalog(capabilityRegistrations),
+    packs: {
+      list: () => packCatalog(packRegistrations),
     },
     tools: {
       list: () =>

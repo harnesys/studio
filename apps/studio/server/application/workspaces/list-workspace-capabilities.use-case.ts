@@ -1,4 +1,4 @@
-import type { CapabilityCatalogEntry } from 'harnesys';
+import type { PackCatalogEntry } from 'harnesys';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
@@ -8,7 +8,7 @@ export type ListWorkspaceCapabilitiesRequest = {
 };
 
 export type ListWorkspaceCapabilitiesResponse = {
-  capabilities: CapabilityCatalogEntry[];
+  capabilities: PackCatalogEntry[];
 };
 
 export type ListWorkspaceCapabilitiesInput = {
@@ -29,6 +29,6 @@ export class ListWorkspaceCapabilitiesUseCase implements ListWorkspaceCapabiliti
       throw new NotFoundError('workspace not found');
     }
     const hx = await this.workspaceHarnesys.get(workspace);
-    return { capabilities: hx.capabilities.list() };
+    return { capabilities: hx.packs.list() };
   }
 }

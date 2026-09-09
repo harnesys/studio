@@ -1,23 +1,93 @@
+import Ajv from 'ajv';
 import type { AgentDefinition } from '../../domain/agent-definition.ts';
-import type { CapabilityConfig, CapabilityRegistration } from '../../domain/pack.ts';
+import type { AgentPacks, PackConfig, PackRegistration } from '../../domain/pack.ts';
 
-export type ResolvedCapability = {
-  reg: CapabilityRegistration;
-  config: CapabilityConfig;
+export type ResolvedPack = {
+  reg: PackRegistration;
+  config: PackConfig;
 };
 
-export type CapabilityDiagnostic = {
-  severity: 'error' | 'warning';
-  code: 'unknown_capability' | 'capability_port_missing' | 'capability_dep_missing';
+export type PackDiagnosticCode =
+  | 'pack_unknown'
+  | 'pack_port_missing'
+  | 'pack_tools_empty'
+  | 'pack_tool_collision'
+  | 'skill_name_collision'
+  | 'spec_invalid';
+
+export type PackDiagnostic = {
+  severity: 'warning';
+  code: PackDiagnosticCode;
   message: string;
 };
 
-function enabledConfig(reg: CapabilityRegistration, def: AgentDefinition): CapabilityConfig | null {
-  const source = reg.pack.configFrom ? reg.pack.configFrom(def) : def.capabilities?.[reg.pack.name];
-  if (source == null) {
+const ajv = new Ajv({ strict: false, allErrors: true });
+
+type RegLike = {
+  pack: { name: string; specSchema?: unknown };
+  ports?: unknown;
+  resolveScope?: unknown;
+};
+
+function enabledConfig(reg: RegLike, packs: AgentPacks | undefined): PackConfig | null {
+  const raw = packs?.[reg.pack.name];
+  if (raw === undefined || raw === null || raw === false) {
     return null;
   }
-  return 'spec' in source ? (source as CapabilityConfig) : {};
+  return raw === true ? {} : raw;
+}
+
+function resolveRegs<R extends RegLike>(
+  packs: AgentPacks | undefined,
+  registrations: R[],
+): { enabled: Array<{ reg: R; config: PackConfig }>; diagnostics: PackDiagnostic[] } {
+  const diagnostics: PackDiagnostic[] = [];
+  const byName = new Map(registrations.map((r) => [r.pack.name, r]));
+  const enabled: Array<{ reg: R; config: PackConfig }> = [];
+  const sorted = [...registrations].sort((a, b) => (a.pack.name < b.pack.name ? -1 : 1));
+  for (const reg of sorted) {
+    const config = enabledConfig(reg, packs);
+    if (config === null) {
+      continue;
+    }
+    if (reg.resolveScope === undefined && reg.ports !== undefined) {
+      diagnostics.push({
+        severity: 'warning',
+        code: 'pack_port_missing',
+        message: `${reg.pack.name}: ports provided without resolveScope`,
+      });
+      continue;
+    }
+    if (reg.pack.specSchema !== undefined) {
+      const valid = ajv.validate(reg.pack.specSchema as Record<string, unknown>, config.spec ?? {});
+      if (!valid) {
+        diagnostics.push({
+          severity: 'warning',
+          code: 'spec_invalid',
+          message: `${reg.pack.name}: spec does not match specSchema (${ajv.errorsText()})`,
+        });
+        continue;
+      }
+    }
+    enabled.push({ reg, config });
+  }
+  for (const name of Object.keys(packs ?? {})) {
+    if (!byName.has(name) && packs?.[name] !== undefined && packs?.[name] !== false) {
+      diagnostics.push({
+        severity: 'warning',
+        code: 'pack_unknown',
+        message: `pack "${name}" is not registered by the host`,
+      });
+    }
+  }
+  return { enabled, diagnostics };
+}
+
+export function resolvePacks(
+  def: AgentDefinition,
+  registrations: PackRegistration[],
+): { enabled: ResolvedPack[]; diagnostics: PackDiagnostic[] } {
+  return resolveRegs(def.packs, registrations);
 }
 
 export function compareStrings(a: string, b: string): number {
@@ -28,78 +98,4 @@ export function compareStrings(a: string, b: string): number {
     return 1;
   }
   return 0;
-}
-
-export function resolveCapabilities(
-  def: AgentDefinition,
-  registrations: CapabilityRegistration[],
-): { enabled: ResolvedCapability[]; diagnostics: CapabilityDiagnostic[] } {
-  const diagnostics: CapabilityDiagnostic[] = [];
-  const byName = new Map(registrations.map((r) => [r.pack.name, r]));
-  const resolved = new Map<string, ResolvedCapability | null>();
-  const resolving = new Set<string>();
-
-  function resolveReg(reg: CapabilityRegistration): ResolvedCapability | null {
-    const name = reg.pack.name;
-    if (resolved.has(name)) {
-      return resolved.get(name) ?? null;
-    }
-    const fail = () => {
-      resolved.set(name, null);
-      return null;
-    };
-    const config = enabledConfig(reg, def);
-    if (config === null) {
-      return fail();
-    }
-    const missingPort = (reg.pack.requires ?? []).find((p) => !(p in reg.ports));
-    if (missingPort) {
-      diagnostics.push({
-        severity: 'error',
-        code: 'capability_port_missing',
-        message: `${name}: port "${missingPort}" not provided by host`,
-      });
-      return fail();
-    }
-    resolving.add(name);
-    let missingDep: string | undefined;
-    for (const d of reg.pack.dependsOn ?? []) {
-      const depReg = byName.get(d);
-      if (!depReg || resolving.has(d) || resolveReg(depReg) === null) {
-        missingDep = d;
-        break;
-      }
-    }
-    resolving.delete(name);
-    if (missingDep) {
-      diagnostics.push({
-        severity: 'error',
-        code: 'capability_dep_missing',
-        message: `${name}: depends on "${missingDep}"`,
-      });
-      return fail();
-    }
-    const cap = { reg, config };
-    resolved.set(name, cap);
-    return cap;
-  }
-
-  const enabled: ResolvedCapability[] = [];
-  const sorted = [...registrations].sort((a, b) => compareStrings(a.pack.name, b.pack.name));
-  for (const reg of sorted) {
-    const cap = resolveReg(reg);
-    if (cap) {
-      enabled.push(cap);
-    }
-  }
-  for (const name of Object.keys(def.capabilities ?? {})) {
-    if (!byName.has(name) && def.capabilities?.[name] != null) {
-      diagnostics.push({
-        severity: 'warning',
-        code: 'unknown_capability',
-        message: `capability "${name}" is not registered by the host`,
-      });
-    }
-  }
-  return { enabled, diagnostics };
 }

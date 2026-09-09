@@ -2,9 +2,8 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentGraph,
-  AgentMemoryConfig,
   AgentRecord,
-  CapabilityConfig,
+  PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '@studio/shared';
@@ -21,12 +20,11 @@ export type CreateAgentInput = {
   toolOutput?: ToolOutputSettings | null;
   budget?: AgentBudget | null;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig | null;
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
   graph?: AgentGraph;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
 };
 
 export type UpdateAgentInput = {
@@ -39,12 +37,11 @@ export type UpdateAgentInput = {
   toolOutput?: ToolOutputSettings | null;
   budget?: AgentBudget | null;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig | null;
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
   graph?: AgentGraph;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
 };
 
 export type AgentPresetRecord = {
@@ -56,7 +53,7 @@ export type AgentPresetRecord = {
   skills?: string[];
   mcpServers?: string[];
   budget?: AgentBudget | null;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
 };
 
 export function listAgents() {

@@ -1,14 +1,14 @@
 import {
   agentsCapability,
-  type CapabilityRegistration,
   episodicMemoryCapability,
   fetchCapability,
   filesCapability,
   knowledgeMemoryCapability,
+  type PackRegistration,
   pinMemoryCapability,
   planCapability,
   type RunLifecycleStore,
-  registerCapability,
+  registerPack,
   schedulerCapability,
   semanticMemoryCapability,
   shellCapability,
@@ -51,7 +51,7 @@ import type { WebhookRepository } from '../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
 
-export type CapabilityRegistrationsDeps = {
+export type PackRegistrationsDeps = {
   db: StudioDb;
   schedules: ScheduleRepository;
   webhooks: WebhookRepository;
@@ -70,9 +70,7 @@ export type CapabilityRegistrationsDeps = {
   memory: Pick<StudioMemoryPorts, 'pin' | 'semantic' | 'episodic' | 'knowledge'>;
 };
 
-export function createCapabilityRegistrations(
-  deps: CapabilityRegistrationsDeps,
-): CapabilityRegistration[] {
+export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegistration[] {
   const uow = new SqliteUnitOfWork(deps.db);
   // Memory packs scope pins/semantic records by agent NAME; the run scope carries
   // only ids, so the display name is resolved at scope-read time (ruling R15).
@@ -88,12 +86,11 @@ export function createCapabilityRegistrations(
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
   const createAgent = new CreateAgentUseCase(deps.agents, deps.models);
   return [
-    registerCapability(filesCapability, {}, stubScope),
-    registerCapability(shellCapability, {}, stubScope),
-    registerCapability(fetchCapability, {}, stubScope),
-    registerCapability(
-      agentsCapability,
-      {
+    registerPack(filesCapability, { resolveScope: stubScope }),
+    registerPack(shellCapability, { resolveScope: stubScope }),
+    registerPack(fetchCapability, { resolveScope: stubScope }),
+    registerPack(agentsCapability, {
+      ports: {
         agents: new SqliteAgentsCatalogPort({
           agents: deps.agents,
           createAgent,
@@ -102,10 +99,9 @@ export function createCapabilityRegistrations(
         }),
       },
       resolveScope,
-    ),
-    registerCapability(
-      planCapability,
-      {
+    }),
+    registerPack(planCapability, {
+      ports: {
         plan: new SqlitePlanPort({
           savePlan: new SavePlanUseCase(uow, deps.deskEvents),
           updatePlanItem: new UpdatePlanItemUseCase(uow, deps.deskEvents),
@@ -113,15 +109,13 @@ export function createCapabilityRegistrations(
         }),
       },
       resolveScope,
-    ),
-    registerCapability(
-      threadsCapability,
-      { threads: new SqliteThreadsPort({ listThreads, listSchedules }) },
+    }),
+    registerPack(threadsCapability, {
+      ports: { threads: new SqliteThreadsPort({ listThreads, listSchedules }) },
       resolveScope,
-    ),
-    registerCapability(
-      schedulerCapability,
-      {
+    }),
+    registerPack(schedulerCapability, {
+      ports: {
         scheduler: new SqliteSchedulerPort({
           listSchedules,
           peekSchedule: new PeekScheduleUseCase({
@@ -159,10 +153,9 @@ export function createCapabilityRegistrations(
         }),
       },
       resolveScope,
-    ),
-    registerCapability(
-      webhookCapability,
-      {
+    }),
+    registerPack(webhookCapability, {
+      ports: {
         webhook: new SqliteWebhookPort({
           listWebhooks,
           createWebhook: new CreateWebhookUseCase({
@@ -192,14 +185,23 @@ export function createCapabilityRegistrations(
         }),
       },
       resolveScope,
-    ),
-    registerCapability(pinMemoryCapability, { pin: deps.memory.pin }, resolveScope),
-    registerCapability(semanticMemoryCapability, { semantic: deps.memory.semantic }, resolveScope),
-    registerCapability(episodicMemoryCapability, { episodic: deps.memory.episodic }, resolveScope),
-    registerCapability(
-      knowledgeMemoryCapability,
-      { knowledge: deps.memory.knowledge },
+    }),
+    registerPack(pinMemoryCapability, { ports: { pin: deps.memory.pin }, resolveScope }),
+    registerPack(semanticMemoryCapability, {
+      ports: { semantic: deps.memory.semantic },
       resolveScope,
-    ),
-  ];
+    }),
+    registerPack(episodicMemoryCapability, {
+      ports: { episodic: deps.memory.episodic },
+      resolveScope,
+    }),
+    registerPack(knowledgeMemoryCapability, {
+      ports: { knowledge: deps.memory.knowledge },
+      resolveScope,
+    }),
+    // Each pack carries its own Ports type, so the heterogeneous host list
+    // cannot satisfy the uniform `PackRegistration` element type directly;
+    // asserted once at this boundary. Runtime use only reads `ports` back
+    // into the same pack `create`, so the pairing stays intact.
+  ] as PackRegistration[];
 }

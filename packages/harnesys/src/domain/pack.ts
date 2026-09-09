@@ -1,6 +1,6 @@
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import type { AgentDefinition, PortRef } from './agent-definition.ts';
+import type { JsonSchema } from './json-schema.ts';
 
 export type CapabilityScope = {
   workspaceId: string;
@@ -9,47 +9,73 @@ export type CapabilityScope = {
   agentName?: string;
   threadId: string;
 };
-export type CapabilityConfig = { spec?: Record<string, unknown> };
-export type CapabilityPackContext<Ports> = {
-  ports: Ports;
-  resolveScope: () => CapabilityScope;
-  config: CapabilityConfig;
+
+export type PackSkill = {
+  name: string;
+  description: string;
+  whenToUse?: string;
+  body: string;
 };
-export type CapabilityPack<Ports = Record<string, unknown>> = {
+
+export type PackToolMeta = { name: string; description: string };
+
+export type PackMeta = {
+  tools: PackToolMeta[];
+  skills: string[];
+  hasSettings: boolean;
+};
+
+export type PackConfig = { spec?: Record<string, unknown> };
+export type PackAssignment = boolean | PackConfig;
+export type PackName = string;
+export type AgentPacks = Record<PackName, PackAssignment>;
+
+export type PackCtx<Ports, Spec> = {
+  ports: Ports;
+  spec: Spec;
+  scope: CapabilityScope;
+};
+
+export type Pack<Ports = Record<string, never>, Spec = Record<string, unknown>> = {
   name: string;
   version: string;
   description: string;
-  requires?: string[];
-  dependsOn?: string[];
-  /** Источник включения/конфига; по умолчанию def.capabilities[name]. Память мостится от def.memory. */
-  configFrom?: (def: AgentDefinition) => CapabilityConfig | PortRef | null | undefined;
-  tools: (ctx: CapabilityPackContext<Ports>) => ToolDefinition[];
-  prompt?: (ctx: CapabilityPackContext<Ports>) => string;
-  notes?: (ctx: CapabilityPackContext<Ports>) => LlmNoteProvider;
-};
-export type CapabilityRegistration = {
-  pack: CapabilityPack<Record<string, unknown>>;
-  ports: Record<string, unknown>;
-  resolveScope: () => CapabilityScope;
+  icon?: string;
+  specSchema?: JsonSchema;
+  meta: PackMeta;
+  create: (ctx: PackCtx<Ports, Spec>) => {
+    tools?: ToolDefinition[];
+    skills?: PackSkill[];
+    notes?: LlmNoteProvider | LlmNoteProvider[];
+  };
 };
 
-export function defineCapability<Ports extends Record<string, unknown>>(
-  pack: CapabilityPack<Ports>,
-): CapabilityPack<Ports> {
+export type PackRegistration<Ports = Record<string, unknown>> = {
+  pack: Pack<Ports, Record<string, unknown>>;
+  ports?: Ports;
+  resolveScope?: () => CapabilityScope;
+};
+
+export function definePack<Ports, Spec>(pack: Pack<Ports, Spec>): Pack<Ports, Spec> {
   if (!pack.name || !pack.version || !pack.description) {
-    throw new Error('capability pack requires name, version, description');
+    throw new Error('pack requires name, version, description');
+  }
+  if (!pack.meta) {
+    throw new Error(`pack "${pack.name}" requires meta for the catalog endpoint`);
   }
   return pack;
 }
 
-export function registerCapability<Ports extends Record<string, unknown>>(
-  pack: CapabilityPack<Ports>,
-  ports: Ports,
-  resolveScope: () => CapabilityScope,
-): CapabilityRegistration {
-  return {
-    pack: pack as CapabilityPack<Record<string, unknown>>,
-    ports,
-    resolveScope,
-  };
+export function registerPack<Ports>(
+  pack: Pack<Ports, Record<string, unknown>>,
+  opts?: { ports?: Ports; resolveScope?: () => CapabilityScope },
+): PackRegistration<Ports> {
+  return { pack, ports: opts?.ports, resolveScope: opts?.resolveScope };
+}
+
+export function normalizePackAssignment(value: PackAssignment): PackConfig {
+  if (typeof value === 'boolean') {
+    return {};
+  }
+  return value;
 }

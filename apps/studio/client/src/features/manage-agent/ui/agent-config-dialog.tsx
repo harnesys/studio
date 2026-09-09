@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import {
-  BrainIcon,
   CpuIcon,
   FoldVerticalIcon,
   GaugeIcon,
@@ -47,7 +46,6 @@ import { AgentGraphPane } from './agent-graph-pane';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
 import { DraftCapabilityPacks } from './draft-capability-packs';
 import { DraftCompaction } from './draft-compaction';
-import { DraftMemory } from './draft-memory';
 
 const GRAPH_DIALOG_CLASS =
   'flex min-h-0 h-[min(78vh,48rem)] w-[min(80vw,64rem)] max-w-[min(80vw,64rem)] sm:max-w-[min(80vw,64rem)] overflow-hidden';
@@ -69,7 +67,6 @@ export type AgentConfigCategory =
   | 'instructions'
   | 'capabilities'
   | 'compaction'
-  | 'memory'
   | 'skills'
   | 'graph'
   | 'tools'
@@ -87,7 +84,6 @@ export const AGENT_CONFIG_CATEGORIES: {
   { id: 'graph', label: 'Graph', icon: WorkflowIcon },
   { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
   { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },
-  { id: 'memory', label: 'Memory', icon: BrainIcon },
   { id: 'skills', label: 'Skills', icon: PuzzleIcon },
   { id: 'tools', label: 'Tools', icon: WrenchIcon },
   { id: 'mcp', label: 'MCP', icon: ServerIcon },
@@ -100,7 +96,6 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
     tools: agent?.tools ?? [],
     mcpServers: agent?.mcpServers ?? [],
     compaction: agent?.compaction,
-    memory: agent?.memory,
     capabilities: agent?.capabilities ?? {},
   };
 }
@@ -230,14 +225,6 @@ export function AgentConfigDialog({
               agent={agent}
               onChange={(compaction) => {
                 capabilitiesRef.current = { ...capabilitiesRef.current, compaction };
-              }}
-            />
-          </div>
-          <div className={cn(category !== 'memory' && 'hidden')}>
-            <DraftMemory
-              agent={agent}
-              onChange={(memory) => {
-                capabilitiesRef.current = { ...capabilitiesRef.current, memory };
               }}
             />
           </div>

@@ -1,9 +1,12 @@
 import type { Attachment } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Event } from '../domain/snapshot.ts';
+import { RUN_NON_TERMINAL } from '../ports/run-lifecycle-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
 import { compileOrThrow } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
+import type { PackRunMap } from './packs/pack-run.ts';
+import { attachPackRun, reusePackRun } from './packs/pack-run.ts';
 import { eventToSessionEvent, runFailedEvent, runStartedEvent } from './run-engine-events.ts';
 import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
 import { admit, flushJournal, guardedTransition, runSegment } from './run-engine-segment.ts';
@@ -36,6 +39,9 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
   const leaseTtl = deps.leaseTtlMs ?? 15_000;
   const renewMs = deps.renewMs ?? 5_000;
   const active: Set<RunRuntime> = new Set();
+  /** Built pack outputs per runId. First segment builds via `create`; later
+   *  segments (`respond`) reuse the map so stateful `create` runs once per run. */
+  const packCache = new Map<string, PackRunMap>();
 
   function envWith(leaseLost: () => boolean): SegmentEnv {
     return {
@@ -60,6 +66,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
     for (const run of [...active]) {
       haltRun(run);
     }
+    packCache.clear();
   }
 
   async function findLastAnswer(runId: string): Promise<HitlAnswer | null> {
@@ -141,6 +148,29 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, opts.agent),
         );
         runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
+        let packOutputs = opts.packOutputs;
+        if (packOutputs !== undefined) {
+          // Prebuilt map (oneshot path): tools are attached upstream.
+          packCache.set(runId, packOutputs);
+        } else {
+          const cached = packCache.get(runId);
+          if (cached !== undefined) {
+            packOutputs = reusePackRun({
+              def: opts.agent,
+              cached,
+              runRegistry,
+              fsSkills: opts.skills ?? deps.skills,
+            });
+          } else {
+            packOutputs = attachPackRun({
+              def: opts.agent,
+              registrations: opts.packs ?? deps.packRegistrations ?? [],
+              runRegistry,
+              fsSkills: opts.skills ?? deps.skills,
+            });
+            packCache.set(runId, packOutputs);
+          }
+        }
         graphOpts = {
           agent: opts.agent,
           input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
@@ -159,7 +189,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           signal,
           startNodeId,
           notes: opts.notes,
-          capabilityRegistrations: opts.capabilities ?? deps.capabilityRegistrations,
+          packOutputs,
           agents: deps.agents,
           outputHint:
             startNodeId === undefined ? undefined : (snap?.cursor.interrupt?.output ?? null),
@@ -182,6 +212,13 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         return;
       }
       await runSegment(env, runId, epoch, graphOpts);
+      const terminal = await deps.lifecycle
+        .get(runId)
+        .then((rec) => rec !== null && !RUN_NON_TERMINAL.includes(rec.status))
+        .catch(() => false);
+      if (terminal) {
+        packCache.delete(runId);
+      }
     } finally {
       haltRun(run);
     }

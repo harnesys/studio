@@ -27,7 +27,6 @@ export type PinPort = {
 };
 
 export type SemanticScope = 'session' | 'long';
-export type SemanticSessionTtl = 'thread' | '24h';
 export type MemoryRecordSource = 'agent' | 'human' | 'compaction';
 
 export type MemoryRecord = {
@@ -44,14 +43,12 @@ export type MemoryRecord = {
 export type SemanticListQuery = {
   scope?: SemanticScope;
   limit?: number;
-  sessionTtl?: SemanticSessionTtl;
 };
 
 export type SemanticProjectInput = {
   scopes: SemanticScope[];
   limit: number;
   budgetTokens: number;
-  sessionTtl?: SemanticSessionTtl;
 };
 
 export type SemanticUpsertInput = {
@@ -60,7 +57,6 @@ export type SemanticUpsertInput = {
   key?: string;
   threadId?: string;
   source: MemoryRecordSource;
-  sessionTtl?: SemanticSessionTtl;
 };
 
 export type SemanticMemoryPort = {

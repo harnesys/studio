@@ -1,18 +1,33 @@
-import { defineCapability } from '../../domain/pack.ts';
+import { definePack } from '../../domain/pack.ts';
 import type { PinPort } from '../../ports/memory.ts';
 import { createPinTools } from './create-pin-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
 
 export type PinMemoryPorts = { pin: PinPort };
 
-export const pinMemoryCapability = defineCapability<PinMemoryPorts>({
+export const pinMemoryCapability = definePack<PinMemoryPorts, Record<string, unknown>>({
   name: 'pin-memory',
   version: '1.0.0',
   description: 'Pinned rules visible to the agent: pin_set / pin_list / pin_remove',
-  requires: ['pin'],
-  configFrom: (def) => def.memory?.pin,
-  tools: (ctx) =>
-    createPinTools({ port: ctx.ports.pin, resolveScope: memoryScopeOf(ctx.resolveScope) }),
-  prompt: () => `## Durable state
-- pin_set: short rules that must stay in this agent's window. pin_list / pin_remove to maintain.`,
+  icon: 'memory-pin',
+  specSchema: {
+    type: 'object',
+    properties: {
+      store: { type: 'string', enum: ['kv-pin'], default: 'kv-pin' },
+      budgetTokens: { type: 'number', default: 1500 },
+      maxItems: { type: 'number', default: 32 },
+    },
+  },
+  meta: {
+    tools: [
+      { name: 'pin_set', description: 'Upsert a pin that stays visible in the agent window' },
+      { name: 'pin_remove', description: 'Remove a pin by key' },
+      { name: 'pin_list', description: 'List all pins for this agent scope' },
+    ],
+    skills: [],
+    hasSettings: true,
+  },
+  create: (ctx) => ({
+    tools: createPinTools({ port: ctx.ports.pin, resolveScope: memoryScopeOf(() => ctx.scope) }),
+  }),
 });

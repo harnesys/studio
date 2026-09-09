@@ -41,11 +41,11 @@ import type { ThreadPlanRecord } from './plan-types.ts';
 import type { ThreadRecord as ThreadRecordType } from './thread.ts';
 
 export type {
-  CapabilityCatalogEntry,
-  CapabilityConfig,
   KnowledgeHit,
   MemoryRecord,
   MemoryRecordSource,
+  PackCatalogEntry,
+  PackConfig,
   PinRecord,
   PinSource,
   SemanticScope,
@@ -60,10 +60,9 @@ export type {
   AgentRecord,
   BudgetPolicy,
 } from './agent.ts';
-export { defaultAgentCompaction, defaultAgentMemory } from './agent-runtime-defaults.ts';
+export { defaultAgentCompaction } from './agent-runtime-defaults.ts';
 export type {
   AgentGenerationSettings,
-  AgentMemoryConfig,
   AgentProjectPaths,
   PortRef,
   ToolOutputSettings,

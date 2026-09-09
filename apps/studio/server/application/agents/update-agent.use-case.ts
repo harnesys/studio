@@ -1,9 +1,7 @@
-import { memoryToolNames } from 'harnesys';
 import type {
   AgentBudget,
   AgentGenerationSettings,
-  AgentMemoryConfig,
-  CapabilityConfig,
+  PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '../../../shared/types.ts';
@@ -26,13 +24,12 @@ export type UpdateAgentRequest = {
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
   compaction?: PortRef;
-  memory?: AgentMemoryConfig | null;
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
-  capabilities?: Record<string, CapabilityConfig | null>;
+  capabilities?: Record<string, PackConfig | null>;
 };
 
 export type UpdateAgentInput = {
@@ -95,10 +92,6 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       patch.compaction = request.compaction;
     }
 
-    if (request.memory !== undefined) {
-      patch.memory = request.memory;
-    }
-
     if (request.skills !== undefined) {
       patch.skills = request.skills;
     }
@@ -121,15 +114,8 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.graph !== undefined) {
       patch.graph = request.graph;
-    } else if (
-      (request.tools !== undefined || request.memory !== undefined) &&
-      isStockReactGraph(agent.graph)
-    ) {
-      const tools = request.tools !== undefined ? request.tools : agent.tools;
-      const memory = request.memory !== undefined ? request.memory : agent.memory;
-      const graphTools =
-        tools.length > 0 ? [...new Set([...tools, ...memoryToolNames(memory)])] : tools;
-      patch.graph = buildReactGraph(graphTools);
+    } else if (request.tools !== undefined && isStockReactGraph(agent.graph)) {
+      patch.graph = buildReactGraph(request.tools);
     }
 
     assertAgentGraphValid({

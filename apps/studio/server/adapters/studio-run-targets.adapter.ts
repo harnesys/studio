@@ -1,11 +1,12 @@
-import type { CapabilityRegistration, RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
-import { allCapabilityToolNames, capabilityToolNames, capabilityTools } from 'harnesys';
+import type { PackRegistration, RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
+import { packTools } from 'harnesys';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { BranchStateSeeder } from '../domain/branch-state-seeder.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
 import type { Thread, ThreadRepository } from '../domain/thread.port.ts';
 import type { Workspace, WorkspaceRepository } from '../domain/workspace.port.ts';
+import { runInHostToolScope } from './host-tool-scope.ts';
 import { isRunMode, permissionMapFor, type RunMode } from './tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from './workspace-harnesys.registry.ts';
 
@@ -57,19 +58,26 @@ export class StudioRunTargets implements RunTargets {
       return null;
     }
     const state = this.deps.runtimeStates.forState(threadId);
-    // Same list the runtime was built with (host packs + this workspace's
-    // skills pack), or agent capability gating and pruning diverge.
+    // Same list the runtime was built with (host packs for this workspace),
+    // or agent pack gating and pruning diverge. Pack `create` reads the scope
+    // eagerly, so the run scope is entered before resolving the agent tools.
     const registrations = this.effectiveRegistrations(workspace);
-    const enabled = new Set(capabilityToolNames(agent, registrations));
+    const agentTools = runInHostToolScope(
+      { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
+      () => packTools(agent, registrations),
+    );
+    const enabled = new Set(agentTools.map((t) => t.name));
     const registry = new Map(hx.tools.registry());
-    for (const name of allCapabilityToolNames(registrations)) {
-      if (!enabled.has(name)) {
-        registry.delete(name);
+    for (const reg of registrations) {
+      for (const { name } of reg.pack.meta.tools) {
+        if (!enabled.has(name)) {
+          registry.delete(name);
+        }
       }
     }
     // Per-agent instances win over the workspace-wide config:{} copies, so pack
     // specs (e.g. memory.knowledge.spec.topK) reach the tool at execute time.
-    for (const t of capabilityTools(agent, registrations)) {
+    for (const t of agentTools) {
       registry.set(t.name, t);
     }
     return {
@@ -77,13 +85,13 @@ export class StudioRunTargets implements RunTargets {
       agent,
       permissions: permissionMapFor(resolveThreadRunMode(thread)),
       paths: { allow: [workspace.path], cwd: workspace.path },
-      capabilities: registrations,
+      packs: registrations,
       toolRegistry: registry,
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
     };
   }
 
-  private effectiveRegistrations(workspace: Workspace): CapabilityRegistration[] {
+  private effectiveRegistrations(workspace: Workspace): PackRegistration[] {
     return this.deps.workspaceHarnesys.effectiveRegistrations(workspace);
   }
 }

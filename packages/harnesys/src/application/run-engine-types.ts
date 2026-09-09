@@ -1,6 +1,6 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 
-import type { CapabilityRegistration } from '../domain/pack.ts';
+import type { PackRegistration } from '../domain/pack.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { AgentsResolve } from '../ports/create-runtime.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
@@ -9,8 +9,10 @@ import type { PermissionMap } from '../ports/permissions.ts';
 import type { RunEventStore } from '../ports/run-event-store.ts';
 import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
+import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import type { LlmNoteProvider } from './llm-notes.ts';
+import type { PackRunMap } from './packs/pack-run.ts';
 import type { RunEventFeed } from './run-event-feed.ts';
 
 export type RunEngineDeps = {
@@ -26,8 +28,10 @@ export type RunEngineDeps = {
   toolMessages: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
   artifacts?: ArtifactStore;
-  /** Runtime-wide registrations (RuntimeContext); RunTargetOpts.capabilities wins when set. */
-  capabilityRegistrations?: CapabilityRegistration[];
+  /** Runtime-wide registrations (RuntimeContext); RunTargetOpts.packs wins when set. */
+  packRegistrations?: PackRegistration[];
+  /** FS skill registry; RunTargetOpts.skills wins when set. */
+  skills?: SkillRegistry;
   agents: AgentsResolve;
 };
 
@@ -37,8 +41,12 @@ export type RunTargetOpts = {
   permissions?: PermissionMap;
   paths?: PathsConfig;
   notes?: LlmNoteProvider[];
-  /** Per-run capability registrations; overrides RunEngineDeps.capabilityRegistrations. */
-  capabilities?: CapabilityRegistration[];
+  /** Per-run pack registrations; overrides RunEngineDeps.packRegistrations. */
+  packs?: PackRegistration[];
+  /** Memoized per-run pack outputs; when present the engine skips create. */
+  packOutputs?: PackRunMap;
+  /** FS skill registry for the combined load_skill catalog. */
+  skills?: SkillRegistry;
   /** Per-run registry; overrides RunEngineDeps.toolRegistry when present. */
   toolRegistry?: Map<string, ToolDefinition>;
 };

@@ -4,6 +4,7 @@ import { type ToolDefinition, tool } from '../../ports/tools.ts';
 export type CreateEpisodicToolsParams = {
   port: EpisodicPort;
   resolveScope: () => MemoryScopeId;
+  topK?: number | (() => number | undefined);
 };
 
 type RecallSearchInput = {
@@ -14,6 +15,13 @@ type RecallSearchInput = {
 
 export function createEpisodicTools(params: CreateEpisodicToolsParams): ToolDefinition[] {
   const { port, resolveScope } = params;
+  const configuredTopK = params.topK;
+  let topKOf: (() => number | undefined) | undefined;
+  if (typeof configuredTopK === 'function') {
+    topKOf = configuredTopK;
+  } else if (configuredTopK !== undefined) {
+    topKOf = () => configuredTopK;
+  }
   return [
     tool('recall_search', {
       group: 'memory',
@@ -36,7 +44,7 @@ export function createEpisodicTools(params: CreateEpisodicToolsParams): ToolDefi
           workspaceId: scope.workspaceId,
           query: parsed.query,
           threadId: parsed.threadId,
-          limit: parsed.limit,
+          limit: parsed.limit ?? topKOf?.(),
         });
       },
     }),

@@ -1,6 +1,6 @@
 # Pack system — редизайн инструментов библиотеки
 
-Дата: 2026-09-09. Статус: черновик на ревью.
+Дата: 2026-09-09. Статус: обновлена после обсуждения ревью (решения зафиксированы в чате).
 
 ## Цель
 
@@ -11,7 +11,7 @@
 1. **Инстанс** (воркспейс) — какие паки зарегистрированы и доступны.
 2. **Агент** — какие паки включены (`def.capabilities`) и какие тулы внутри пака явно разрешены.
 
-Регистрация ≠ включение: системные паки регистрируются в инстансе автоматически, но у агента по умолчанию не включён ни один пак и ни один тул.
+Регистрация ≠ включение: системные паки регистрируются в инстансе автоматически, но у агента по умолчанию не включён ни один пак и ни один тул. Индивидуальных настроек памяти у агента нет: конфиг памяти живёт в воркспейсе, агенты наследуют его.
 
 ## Тип Pack
 
@@ -34,30 +34,36 @@ export type Pack<Ports = Record<string, never>> = {
   version: string;
   description: string;
   specSchema?: JsonSchema;    // поля конфига для формы на фронте
-  tools: (ports: Ports, config: PackConfig) => ToolDefinition[];
+  tools: (ports: Ports, spec?: Record<string, unknown>) => ToolDefinition[];
   skills?: PackSkill[];       // скиллы пака, попадают в каталог при включении пака
-  notes?: (ports: Ports, config: PackConfig) => LlmNoteProvider;
+  notes?: (ports: Ports, spec?: Record<string, unknown>) => LlmNoteProvider;
 };
 
 export type PackRegistration = {
   pack: Pack<Record<string, unknown>>;
   ports?: Record<string, unknown>;      // отсутствуют у беспортовых паков
-  resolveScope?: () => CapabilityScope; // дефолт — заглушка; хост задаёт per-run чтение контекста
+  resolveScope?: () => CapabilityScope; // дефолт — заглушка; хост задаёт per-run
 };
 ```
 
-Поля `prompt` в типе нет. Фрагменты системного промпта исчезают: каждое `ToolDefinition.description` несёт полную инструкцию по своему тулу; «как работать с группой» — скилл пака, а не текст в системном промпте.
+Поля `prompt` нет: каждое `ToolDefinition.description` несёт полную инструкцию по своему тулу, «как работать с группой» — скилл пака. `requires`/`dependsOn` убраны: присутствие порта проверяется отдельным guard'ом. `configFrom` убран: конфиг всегда приходит из `def.capabilities[name]`. Фабрика получает `spec` без обёртки `PackConfig`: список тулов — забота уровня резолва, паку он не нужен. Spec на каждый тул отдельно не вводится; ручка конкретного тула, если появится, — неймспейс внутри pack `spec`.
 
 ## Скиллы паков
 
-Проблема: пак умеет работать, но инструкции «как работать с группой тулов» некуда положить без возврата к prompt-фрагментам.
-
-Решение (предложение на ревью): пак несёт скиллы inline-контентом (`PackSkill.body` — строка markdown в коде пака, рядом с тулами: `packs/plan/skill.ts`). Рантайм собирает каталог скиллов агента из двух источников:
+Пак несёт скиллы inline-контентом (`PackSkill.body` — строка markdown в коде пака, рядом с тулами: `packs/plan/skill.ts`). Рантайм собирает каталог скиллов агента из двух источников:
 
 - FS-реестр пользователя (`options.skills`), отфильтрованный по `def.skills` — как сейчас;
 - скиллы включённых у агента паков — из `Pack.skills`.
 
 Объединённый каталог идёт в skills-notes и резолвится системным тулом `load_skill`. Выключил пак — скиллы пака пропали из каталога. Приоритет имён: FS-скилл с тем же именем выигрывает у паковского; коллизия между паками — warning диагностики.
+
+## Системные тулы
+
+Всегда в реестре любого агента, не тоглятся, на фронте в паках не отображаются:
+
+- `load_tools` — раскрывает deferred-тулы (MCP);
+- `load_skill` — резолвит скилл из объединённого каталога;
+- `ask_user` — HITL, переносится в `application/tools/ask-user.ts`.
 
 ## Регистрация в инстансе
 
@@ -69,61 +75,104 @@ createRuntime({
 ```
 
 - Плоский массив фабрик. Системность в типах не выражается; список системных имён — экспорт `SYSTEM_PACK_NAMES: string[]`.
-- Библиотека автоматически добавляет все системные паки в массив до хостовых: беспортовые (`files`, `shell`, `fetch`) — как есть; порт-бэковые (`plan`, `threads`, `scheduler`, `webhook`, `agents`, `pin-memory`, `semantic-memory`, `episodic-memory`, `knowledge-memory`) — с InMemory-адаптерами портов, чтобы harness поднимался «из коробки» на время жизни процесса.
-- Дедуп по `pack.name`: хостовая регистрация вытесняет системную (first wins по итоговому массиву — хостовые идут первыми). Дубль имени внутри хостового массива — ошибка.
+- Библиотека автоматически добавляет системные паки: беспортовые (`files`, `shell`, `fetch`) — как есть; порт-бэковые (`plan`, `threads`, `scheduler`, `webhook`, `agents`, `pin-memory`, `semantic-memory`, `episodic-memory`, `knowledge-memory`) — с InMemory-адаптерами портов, чтобы harness поднимался «из коробки» на время жизни процесса.
+- Итоговый массив: сначала хостовые паки, затем системные, чьи имена не заняты (first wins). Хостовая регистрация с тем же именем вытесняет системную. Дубль имени внутри хостового массива — ошибка.
 - Интегратор подменяет InMemory своей реализацией порта, добавив в массив пак с тем же именем и своими адаптерами.
 
-Новые InMemory-адаптеры портов в `src/adapters/`: plan, threads, scheduler, webhook, agents-catalog, pin, semantic, episodic, knowledge. Тонкие map-based реализации без персистентности.
+Новые InMemory-адаптеры портов в `src/adapters/`: plan, threads, scheduler, webhook, agents-catalog, pin, semantic, episodic, knowledge. Тонкие map-based реализации без персистентности. Для volatile-портов scheduler/webhook — warning диагностики о неперсистентности при первом обращении.
 
 ## Определение агента
 
 ```ts
 // AgentDefinition: умирают поля tools, memory. Остаются:
 capabilities?: Record<string, PackConfig | null>;  // null или нет ключа — пак выключен
-skills?: string[];
-mcpServers?: string[];
+skills?: string[];                                 // allowlist FS-скиллов
+mcpServers?: string[];                             // серверы
+mcpTools?: Record<string, string[]>;               // per-tool: нет ключа — все тулы сервера, [] — ни одного
 ```
 
-`PackConfig.tools` — обязательный явный список. Не задавать список нельзя; тулы никогда не включаются неявно. Пустой массив легален (пак включён, тулов нет) — warning `capability_tools_empty`.
+`PackConfig.tools` — обязательный явный список. Тулы никогда не включаются неявно. Пустой массив легален (пак включён, тулов нет) — warning `capability_tools_empty`.
 
-Диагностика резолва (все — warning, ран не падает): неизвестное имя пака; имя тула из `tools`, которого нет в паке; пустой `tools`; коллизия имён скиллов паков.
+Диагностика резолва (все — warning, ран не падает):
+
+- `pack_unknown` — имя из `def.capabilities` не зарегистрировано хостом;
+- `pack_port_missing` — порт-пак без порта резолвится как выключенный;
+- `tool_unknown` — имя тула из `tools` отсутствует в паке;
+- `capability_tools_empty` — пустой `tools`;
+- `skill_name_collision` — коллизия имён скиллов паков.
+
+Порядок проверки: guard портов раньше валидации имён тулов (валидация требует stub-инстанцирования фабрики, как сегодня `allCapabilityToolNames`).
 
 ## Резолв тулов рана
 
 В ядре (`src/application/`), студийный прунинг из `studio-run-targets.adapter.ts` уходит:
 
-1. runRegistry = системные тулы (`load_tools`, `ask_user`, `load_skill` при наличии `options.skills`)
-2. + MCP-тулы воркспейса, отфильтрованные по `def.mcpServers` (семантика `filterToolsForAgent` без изменений)
-3. + экземпляры тулов включённых паков, созданные с `config = def.capabilities[pack]` — `spec` доезжает до `execute()`
-4. `node.tools === undefined` → весь runRegistry; явный `node.tools` → пересечение с runRegistry
+1. База: системные тулы `load_tools`, `load_skill`, `ask_user`.
+2. Плюс экземпляры тулов включённых паков, созданные с `spec = def.capabilities[pack].spec`; набор задаёт `PackConfig.tools`.
+3. Плюс MCP-тулы воркспейса, отфильтрованные по агенту: `def.mcpServers` (уровень серверов) и `def.mcpTools` (per-tool). `filterToolsForAgent` получает второй фильтр.
+4. `node.tools` — явный список паковых тулов ноды (пересечение с реестром). Ключа нет или `[]` = 0 паковых тулов. Системное трио и MCP-тулы этим полем не фильтруются: трио всегда в схемах, MCP — по `mcpServers`/`mcpTools` через deferred.
 
-Системные тулы не тоглятся и на фронте не отображаются. `load_tools`/exposure работают как сейчас поверх runRegistry.
+Видимость: схемы тулов паков и системные выдаются модели сразу. MCP-тулы — deferred (`exposure: 'deferred'`): скрыты до `load_tools`, который принудительно присутствует в наборе, пока есть скрытые. Deferred-фильтр применяется к MCP-подмножеству независимо от `node.tools` (сегодня он работает только при отсутствии ключа — `llm.ts:111-114` правится). Правило `node.tools === undefined → ctx.toolRegistry.keys()` из `llm.ts` и ошибка `tools: []` из `validate.ts` убираются.
 
-## Независимость компакции
+Стоковый think несёт явный список: трио + включённые тулы паков. Список ведёт диалог агента (тоглы capabilities дописывают имена в черновик графа); сервер `graph_json` не переписывает.
 
-Ядро компакции не знает ни про один пак: хук «при компакции писать эпизод» и чтение `agent.memory` из `compact-thread.use-case.ts` и `episodic-on-compacted.ts` убираются. Если episodic-паку нужны события компакции, он подписывается на них сам через event store (события компакции уже пишутся в ленту) — зависимость направлена от пака к ядру, не наоборот. `sessionTtl` читается из `capabilities['semantic-memory'].spec` внутри тулов semantic-пака, `topK` — аналогично.
+## Политика видимости тулов
+
+Деление deferred/immediate по источнику размера набора, не per-tool по настроению:
+
+- immediate — курированные наборы: тулы паков (каждый включён тоглом в UI, счёт ограничен) и системная тройка. Схемы в каждом запросе.
+- deferred — неконтролируемые источники: MCP-серверы. В запросе — каталог имён и описаний, схема приезжает после `load_tools`.
+
+Зоны запроса (правило для адаптера, `ai-llm-adapter.ts`):
+
+```
+[tools]     системная тройка + схемы паков + загруженные load_tools MCP-тулы
+[system]    инструкции агента
+[messages]  история, append-only
+[хвост]     runtime-note отдельным сообщением: budget, каталог deferred, каталог скиллов
+```
+
+Хвост уходит последним сообщением, в head-параметр `system` не вливается никогда (сейчас адаптер вливает все `role: 'system'` из массива в `system` — правится). Каталог deferred-тулов и `budgetNote` меняются каждый ход: в хвосте они не ломают префиксный кеш. Схемы паков стабильны внутри рана; кеш перевалидируется трижды за жизнь треда: первый запрос, ход после `load_tools`, ход после компакции.
+
+Гигиена набора: имя тула `<домен>_<глагол>`; `ToolDefinition.description` несёт полную инструкцию (уже правило спеки); схема плоская, обязательные поля помечены; UI предупреждает выше 50 always-тулов, выше 100 блокирует сохранение; каталог deferred ограничен 60 записями / 4000 символами (константы `exposure.ts`); `load_tools` возвращает загруженные имена и ошибки по неизвестным.
+
+## Компакция
+
+Ядро компакции не знает ни про один пак: `runSummaryPassIfDue` читает только `agent.compaction` (`threshold-summary`) — в библиотеке менять нечего, зависимостей от паков там уже нет. Эпизодическая индексация по факту компакции остаётся поведением хоста: `composition/studio.ts` и `compact-thread.use-case.ts` вызывают `episodic.index(...)` после завершённой компакции, конфиг берут из настроек памяти воркспейса. Хуков и подписок на компакцию в ядре нет.
+
+## Память — конфиг на воркспейсе
+
+- `AgentDefinition.memory` и `AgentMemoryConfig` умирают. `defaultAgentMemory()`, `coalesceMemory` умирают. Дефолтов памяти нет: паки выключены, пока пользователь их не включил.
+- Настройки Pin / Semantic / Episodic / Knowledge (поля из модалки агента) переезжают в настройки воркспейса. Все агенты наследуют. Переопределение на агента — кандидат на будущее, сейчас не делается.
+- Хранение: колонка `workspaces.memory_json` (SQLite, по образцу `capabilities_json`).
+- Доставка: хост при сборке определения агента вливает workspace-spec в capabilities memory-паков: `capabilities['pin-memory'] = { spec: workspaceSpec, tools: agentTools }`. `spec` приходит из воркспейса, список `tools` — от агента. Библиотека не меняется.
+- `sessionTtl` убирается целиком: из `create-semantic-tools.ts`, `semantic-session-ttl.ts`, HTTP-эндпоинтов semantic, поля `SemanticSection` на фронте.
+- Секция project paths в настройках памяти не переносится: `AgentMemoryConfig.project` — мёртвый код, читателей нет.
+- Скоуп памяти остаётся per-agent по имени агента (R15).
 
 ## MCP
 
-Без изменений: `def.mcpServers`, `CursorMcpJson`, инструменты серверов в общем реестре, гейтинг по агенту. Поле `mcp` у Pack появится позже, вместе с плагинами.
+`def.mcpServers` — без изменений. Добавляется `def.mcpTools` для per-tool тоглов в MCP-вкладке модалки агента. Тулы серверов лежат в общем реестре, видимы через deferred + `load_tools`. Поле `mcp` у Pack появится позже, вместе с плагинами.
 
 ## БД (studio)
 
-Без деструктивных миграций:
+Без миграций: реальных данных нет, агенты пересоздаются.
 
-- JSON-колонка `capabilities` переиспользуется: записи приобретают вид `{ spec?, tools: [] }`. Legacy-записи без ключа `tools` (старый формат `{ spec? }` или `{}`) резолвятся как «пак выключен» — правило рантайма, тип `PackConfig` с обязательным `tools` применяется только к записям, которые пишет новый фронт. Пользователь включает тулы вручную в UI.
-- Колонки `tools`, `memory` перестают читаться и писаться. Данные в них остаются лежать.
+- JSON-колонка `capabilities` переиспользуется: новые записи `{ spec?, tools: [] }`. Запись без ключа `tools` читается как «пак выключен» — единое правило, без legacy-веток.
+- Колонки `tools`, `memory_json` перестают читаться и писаться. Данные остаются лежать.
+- `workspaces` получает `memory_json` в `bootstrap.ts`.
 
 ## Studio
 
 - `wire-capabilities.ts` → `wire-packs.ts`: фабрики паков с sqlite-портами.
 - `studio-run-targets.adapter.ts`: прунинг тулов уходит в ядро; остаются scope, permissions, paths.
-- `create-agent` / `update-agent`: уходит склейка `memoryToolNames`; react-preset строит `think`-ноду без `tools`.
-- `resolveAgentDefinition` отдаёт `capabilities` как есть, `tools`/`memory` не маппит.
+- Адаптер LLM (`ai-llm-adapter.ts`): notes уходят хвостовым сообщением, не в head-`system` (см. «Политика видимости тулов»).
+- `create-agent` / `update-agent`: уходит склейка `memoryToolNames`; уходит генерация и пересборка графа кодом (`react-preset.ts`, `is-stock-react-graph.ts`, блок rebuild в update-agent). Дефолтный граф — статическая JSON-константа стокового ReAct; список `think.tools` ведёт диалог агента при тогле паков.
+- `resolveAgentDefinition` отдаёт `capabilities` как есть, `tools`/`memory` не маппит; для memory-паков вливает workspace-spec.
 
 ## Фронт
 
-Вкладка Capabilities:
+Вкладка Capabilities (модалка агента):
 
 - блок на пак из `runtime.capabilities.list()` (расширенный: name, version, description, specSchema, тулы с description, наличие скиллов);
 - тогл пака; при включении фронт пишет явный `tools` (по умолчанию — все тулы пака отмечены, снимаются individually);
@@ -131,7 +180,7 @@ mcpServers?: string[];
 - форма конфига из `specSchema` → `capabilities[pack].spec`; минимальный рендер: string / number / boolean / enum;
 - по умолчанию всё выключено.
 
-Вкладка Memory уходит. Вкладка Skills остаётся (FS-скиллы), скиллы паков отображаются в блоке пака read-only.
+Настройки воркспейса: секция Memory (поля Pin / Semantic / Episodic / Knowledge переносятся из модалки агента). У агента вкладка Memory умирает. Вкладка Skills остаётся (FS-скиллы), скиллы паков отображаются в блоке пака read-only. MCP-вкладка: per-tool тоглы внутри выбранных серверов.
 
 ## Перенос файлов
 
@@ -155,13 +204,14 @@ mcpServers?: string[];
 | `application/memory/create-knowledge-tools.ts` | `packs/memory/knowledge-tools.ts` + `packs/memory/knowledge.ts` |
 | `application/memory/resolve-memory-tools.ts` | умирает |
 | `application/memory/memory-tool-names.ts` | умирает |
+| `application/capabilities/prompt.ts` | умирает (`composeSystemPrompt` вместе с ним) |
 | `capabilities/plan/*` | `packs/plan/*` (create-plan-tools.ts → plan-tools.ts, notes.ts отдельно) |
 | `capabilities/threads/*` | `packs/threads/*` |
 | `capabilities/scheduler/*` | `packs/scheduler/*` |
 | `capabilities/webhook/*` | `packs/webhook/*` |
 | `capabilities/agents/*` | `packs/agents/*` |
 | `capabilities/memory/*` | `packs/memory/*` |
-| `capabilities/skills.ts` | умирает; `load_skill` + каталог-notes → `application/skills/` как нативная обвязка `options.skills` |
+| `capabilities/skills.ts` | умирает; `load_skill` → `application/tools/`, каталог-notes → `application/skills/` как нативная обвязка `options.skills` + скиллов паков |
 | `domain/capability.ts` | `domain/pack.ts` (новый тип) |
 | `application/capabilities/*` | `application/packs/*` (резолв, каталог) |
 | `adapters/actions/index.ts`, субпуть `harnesys/actions` | умирает; новый субпуть `harnesys/packs` → `src/packs/index.ts` |
@@ -172,4 +222,4 @@ mcpServers?: string[];
 
 ## Вне скоупа
 
-Физический распил пакетов npm; формат Plugin (скиллы + MCP); marketplace; динамическая загрузка паков из FS; миграция данных старых агентов.
+Физический распил пакетов npm; формат Plugin (скиллы + MCP); marketplace; динамическая загрузка паков из FS; переопределение workspace-памяти на уровне агента; миграция данных старых агентов.

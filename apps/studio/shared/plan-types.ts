@@ -37,6 +37,8 @@ export type SavePlanRequest = {
   threadId: string;
   overview: string;
   items: SavePlanItemInput[];
+  /** Defaults to draft. Propose-approve uses approved. */
+  status?: PlanStatus;
 };
 
 export type UpdatePlanItemRequest = {

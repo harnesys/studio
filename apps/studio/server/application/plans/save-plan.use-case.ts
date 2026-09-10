@@ -41,7 +41,7 @@ export class SavePlanUseCase implements SavePlanInput {
           id: crypto.randomUUID(),
           threadId: request.threadId,
           overview: request.overview?.trim() || '',
-          status: 'draft',
+          status: request.status === 'approved' ? 'approved' : 'draft',
           items: request.items,
         }),
         workspaceId: thread.workspaceId,

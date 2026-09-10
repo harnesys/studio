@@ -2,7 +2,11 @@ import { definePack } from '../../domain/pack.ts';
 import type { PlanPort, PlanSnapshot } from '../../ports/plan.ts';
 import { createPlanTools } from './create-plan-tools.ts';
 
-export type PlanCapabilityPorts = { plan: PlanPort };
+export type PlanCapabilityPorts = {
+  plan: PlanPort;
+  /** Host: true while thread run mode is `plan` (blocks direct plan_save). */
+  isPlanRunMode?: () => boolean;
+};
 
 function escapeXml(value: string): string {
   return value
@@ -36,14 +40,17 @@ For each task: call plan_item_update with the exact id to mark in_progress, impl
 export const planCapability = definePack<PlanCapabilityPorts, Record<string, unknown>>({
   name: 'plan',
   version: '1.0.0',
-  description: 'Thread execution plans: plan_save / plan_item_update / plan_get',
+  description: 'Thread execution plans: plan_propose / plan_save / plan_item_update / plan_get',
   icon: 'plan',
   meta: {
     tools: [
       {
+        name: 'plan_propose',
+        description: 'Propose a plan for Approve / Request changes in Plan mode. Saves on approve.',
+      },
+      {
         name: 'plan_save',
-        description:
-          'Save or overwrite the execution plan for this thread. Use in Plan mode or when replanning. Creates structured checklist with detailed steps for each todo item.',
+        description: 'Save or overwrite the execution plan. Prefer plan_propose in Plan mode.',
       },
       {
         name: 'plan_item_update',
@@ -59,7 +66,11 @@ export const planCapability = definePack<PlanCapabilityPorts, Record<string, unk
     hasSettings: false,
   },
   create: (ctx) => ({
-    tools: createPlanTools({ plan: ctx.ports.plan, resolveScope: () => ctx.scope }),
+    tools: createPlanTools({
+      plan: ctx.ports.plan,
+      resolveScope: () => ctx.scope,
+      blockDirectSave: () => ctx.ports.isPlanRunMode?.() === true,
+    }),
     notes: async () => {
       let plan: PlanSnapshot | null = null;
       try {

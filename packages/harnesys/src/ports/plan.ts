@@ -27,7 +27,7 @@ export type PlanSaveItemInput = {
 export type PlanPort = {
   save(
     scope: CapabilityScope,
-    input: { overview: string; items: PlanSaveItemInput[] },
+    input: { overview: string; items: PlanSaveItemInput[]; status?: PlanStatus },
   ): Promise<PlanSnapshot>;
   updateItem(
     scope: CapabilityScope,

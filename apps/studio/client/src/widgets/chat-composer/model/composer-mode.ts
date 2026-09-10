@@ -37,7 +37,7 @@ export const COMPOSER_MODES: readonly ComposerModeItem[] = [
   {
     value: 'plan',
     label: 'Plan mode',
-    detail: 'Research, propose plan for approval, then save. No writes or shell.',
+    detail: 'Research → propose → Approve/Revise → Apply. No writes or shell.',
     icon: ClipboardListIcon,
   },
   {

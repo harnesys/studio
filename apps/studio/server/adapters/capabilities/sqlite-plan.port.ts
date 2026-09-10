@@ -4,6 +4,7 @@ import type {
   PlanPort,
   PlanSaveItemInput,
   PlanSnapshot,
+  PlanStatus,
 } from 'harnesys';
 import type { ThreadPlanRecord } from '../../../shared/types.ts';
 import type { GetThreadPlanInput } from '../../application/plans/get-thread-plan.use-case.ts';
@@ -40,12 +41,13 @@ export class SqlitePlanPort implements PlanPort {
 
   async save(
     scope: CapabilityScope,
-    input: { overview: string; items: PlanSaveItemInput[] },
+    input: { overview: string; items: PlanSaveItemInput[]; status?: PlanStatus },
   ): Promise<PlanSnapshot> {
     const plan = await this.deps.savePlan.execute({
       threadId: scope.threadId,
       overview: input.overview,
       items: input.items,
+      status: input.status,
     });
     return toSnapshot(plan);
   }

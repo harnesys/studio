@@ -1,69 +1,182 @@
+import { PLAN_PROPOSE_TOOL } from '../../constants.ts';
+import { AskUserInterrupt } from '../../domain/errors.ts';
+import type { JsonSchema } from '../../domain/json-schema.ts';
 import type { CapabilityScope } from '../../domain/pack.ts';
 import type { PlanItemStatus, SubagentRole } from '../../domain/plan.ts';
-import type { PlanPort } from '../../ports/plan.ts';
-import { type ToolDefinition, tool } from '../../ports/tools.ts';
+import type { PlanPort, PlanSaveItemInput } from '../../ports/plan.ts';
+import { type ToolContext, type ToolDefinition, tool } from '../../ports/tools.ts';
+
+const PLAN_PROPOSE_RESUME_SCHEMA: JsonSchema = {
+  type: 'object',
+  properties: {
+    action: { type: 'string', enum: ['approve', 'revise'] },
+    text: { type: 'string' },
+  },
+  required: ['action'],
+};
 
 export type CreatePlanToolsParams = {
   plan: PlanPort;
   resolveScope: () => CapabilityScope;
+  /** When true, `plan_save` errors (Plan mode should use `plan_propose`). */
+  blockDirectSave?: () => boolean;
 };
+
+type PlanBodyItem = {
+  title: string;
+  description: string;
+  subagentRole?: SubagentRole;
+};
+
+type PlanBodyInput = {
+  overview: string;
+  items: PlanBodyItem[];
+};
+
+const PLAN_BODY_INPUT = {
+  type: 'object',
+  properties: {
+    overview: {
+      type: 'string',
+      description: 'Architecture overview and main goal of this plan',
+    },
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Concise actionable title of the task' },
+          description: {
+            type: 'string',
+            description:
+              'Detailed technical requirements, files to touch, and verification criteria',
+          },
+          subagentRole: {
+            type: 'string',
+            enum: ['explore', 'coder', 'verifier', 'general'],
+            description: 'Optional recommended subagent role for this task',
+          },
+        },
+        required: ['title', 'description'],
+      },
+      minItems: 1,
+      description: 'List of ordered tasks to accomplish the objective',
+    },
+  },
+  required: ['overview', 'items'],
+} as JsonSchema;
 
 async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
   try {
     return await fn();
   } catch (err) {
+    if (err instanceof AskUserInterrupt) {
+      throw err;
+    }
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
 
+function asPlanBody(raw: unknown): PlanBodyInput {
+  return raw as PlanBodyInput;
+}
+
+function toSaveItems(items: PlanBodyItem[]): PlanSaveItemInput[] {
+  return items.map((item) => ({
+    title: item.title,
+    description: item.description,
+    subagentRole: item.subagentRole,
+  }));
+}
+
+async function resumePlanPropose(
+  deps: CreatePlanToolsParams,
+  input: PlanBodyInput,
+  resume: { action?: string; text?: string },
+) {
+  if (resume.action === 'revise') {
+    return {
+      ok: true as const,
+      action: 'revise' as const,
+      text: typeof resume.text === 'string' ? resume.text.trim() : '',
+      message: 'User requested changes. Update the proposal message and call plan_propose again.',
+    };
+  }
+  if (resume.action === 'approve') {
+    const plan = await deps.plan.save(deps.resolveScope(), {
+      overview: input.overview,
+      items: toSaveItems(input.items),
+      status: 'approved',
+    });
+    return {
+      ok: true as const,
+      action: 'approved' as const,
+      planId: plan.id,
+      totalItems: plan.items.length,
+      status: plan.status,
+      message: `Plan saved (${plan.items.length} tasks). Acknowledge briefly; user will Apply from the UI to start execution.`,
+    };
+  }
+  return { error: `unknown plan_propose action: ${String(resume.action)}` };
+}
+
+function throwPlanPropose(input: PlanBodyInput): never {
+  throw new AskUserInterrupt({
+    prompt: 'Review the plan proposal and approve, request changes, or cancel.',
+    source: 'plan_proposal',
+    tool: {
+      name: PLAN_PROPOSE_TOOL,
+      input,
+      toolCallId: '',
+    },
+    resumeSchema: PLAN_PROPOSE_RESUME_SCHEMA,
+  });
+}
+
 export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
   return [
+    tool(PLAN_PROPOSE_TOOL, {
+      group: 'plan',
+      description:
+        'Propose a plan for user approval in Plan mode. Call after writing the full SMART proposal in your message. Parks for Approve / Request changes. On approve the plan is saved; do not call plan_save in Plan mode.',
+      input: PLAN_BODY_INPUT,
+      execute: async (raw, ctx: ToolContext) => {
+        try {
+          const input = asPlanBody(raw);
+          if (ctx.resume !== undefined && ctx.resume !== null) {
+            return await resumePlanPropose(
+              deps,
+              input,
+              ctx.resume as { action?: string; text?: string },
+            );
+          }
+          throwPlanPropose(input);
+        } catch (err) {
+          if (err instanceof AskUserInterrupt) {
+            throw err;
+          }
+          return { error: err instanceof Error ? err.message : String(err) };
+        }
+      },
+    }),
     tool('plan_save', {
       group: 'plan',
       description:
-        'Save or overwrite the execution plan for this thread. In Plan mode: only after the user approved the written proposal via ask_user (never save before that approve). Creates the Inspector checklist from overview + items.',
-      input: {
-        type: 'object',
-        properties: {
-          overview: {
-            type: 'string',
-            description: 'Architecture overview and main goal of this plan',
-          },
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                title: { type: 'string', description: 'Concise actionable title of the task' },
-                description: {
-                  type: 'string',
-                  description:
-                    'Detailed technical requirements, files to touch, and verification criteria',
-                },
-                subagentRole: {
-                  type: 'string',
-                  enum: ['explore', 'coder', 'verifier', 'general'],
-                  description: 'Optional recommended subagent role for this task',
-                },
-              },
-              required: ['title', 'description'],
-            },
-            minItems: 1,
-            description: 'List of ordered tasks to accomplish the objective',
-          },
-        },
-        required: ['overview', 'items'],
-      },
+        'Save or overwrite the execution plan for this thread. In Plan mode use plan_propose instead (save happens on Approve). Use plan_save in execution modes or when replacing an already approved plan without the proposal flow.',
+      input: PLAN_BODY_INPUT,
       execute: async (raw) =>
         runGuard(async () => {
+          if (deps.blockDirectSave?.()) {
+            return {
+              error:
+                'plan_save is blocked in Plan mode. Write the SMART proposal in your message, then call plan_propose and wait for Approve.',
+            };
+          }
           const scope = deps.resolveScope();
-          const input = raw as {
-            overview: string;
-            items: Array<{ title: string; description: string; subagentRole?: SubagentRole }>;
-          };
+          const input = asPlanBody(raw);
           const plan = await deps.plan.save(scope, {
             overview: input.overview,
-            items: input.items,
+            items: toSaveItems(input.items),
           });
           return {
             ok: true,

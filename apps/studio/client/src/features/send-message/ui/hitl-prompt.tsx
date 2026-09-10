@@ -1,10 +1,10 @@
 import type { AskPayload } from '@studio/shared';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { useSessionStore } from '@/entities/session';
 import { useSelectedThread, useThreadEvents } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import { InputGroup, InputGroupAddon, InputGroupTextarea } from '@/shared/ui/input-group';
+import { InputGroupAddon, InputGroupTextarea } from '@/shared/ui/input-group';
 import { Label } from '@/shared/ui/label';
 import { Markdown } from '@/shared/ui/markdown';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
@@ -14,6 +14,8 @@ import { rejectAsk, respondToAsk } from '../model/hitl-actions';
 import { type PendingHitl, pendingHitl } from '../model/pending-hitl';
 import { summarizeToolInput } from '../model/tool-input-summary';
 import { HitlPreview } from './hitl-preview';
+import { HitlShell } from './hitl-shell';
+import { PlanProposalCard } from './plan-proposal-card';
 
 export function HitlPrompt() {
   const thread = useSelectedThread();
@@ -31,6 +33,14 @@ export function HitlPrompt() {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
         <BudgetCard pending={pending} threadId={thread?.id ?? ''} />
+      </div>
+    );
+  }
+
+  if (pending.source === 'plan_proposal') {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
+        <PlanProposalCard pending={pending} threadId={thread?.id ?? ''} />
       </div>
     );
   }
@@ -335,8 +345,4 @@ function AskCard({ pending, threadId }: { pending: PendingHitl; threadId: string
       </InputGroupAddon>
     </HitlShell>
   );
-}
-
-function HitlShell({ children }: { children: ReactNode }) {
-  return <InputGroup className="h-auto rounded-2xl">{children}</InputGroup>;
 }

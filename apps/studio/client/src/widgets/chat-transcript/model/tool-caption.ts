@@ -106,6 +106,13 @@ export function toolCaption(
       hint: fields.id ?? firstLine(inputStr, outputStr),
     };
   }
+  if (name === 'plan_propose') {
+    return {
+      kind: 'pencil',
+      title: 'Plan Propose',
+      hint: fields.overview ?? firstLine(inputStr, outputStr),
+    };
+  }
   if (name === 'plan_save') {
     return {
       kind: 'pencil',

@@ -24,6 +24,7 @@ import { type HostToolScope, requireHostToolScope } from '../adapters/host-tool-
 import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
+import { isRunMode } from '../adapters/tool-confirm-policy.ts';
 import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { SavePlanUseCase } from '../application/plans/save-plan.use-case.ts';
@@ -107,6 +108,12 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
           updatePlanItem: new UpdatePlanItemUseCase(uow, deps.deskEvents),
           getThreadPlan: new GetThreadPlanUseCase(uow),
         }),
+        isPlanRunMode: () => {
+          const thread = deps.threads.findById(resolveScope().threadId);
+          const meta = thread?.metadata as { runMode?: unknown } | null | undefined;
+          const mode = meta && typeof meta === 'object' ? meta.runMode : undefined;
+          return typeof mode === 'string' && isRunMode(mode) && mode === 'plan';
+        },
       },
       resolveScope,
     }),

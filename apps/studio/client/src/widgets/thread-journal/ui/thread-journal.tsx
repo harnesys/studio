@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';

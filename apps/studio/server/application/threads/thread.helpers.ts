@@ -1,4 +1,4 @@
-import type { ThreadRecord, ThreadSummary } from '../../../shared/types.ts';
+import type { ThreadRecord, ThreadSummary } from '@harnesys/studio-shared';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { Thread, ThreadRunMode } from '../../domain/thread.port.ts';
 

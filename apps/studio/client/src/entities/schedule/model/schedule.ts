@@ -3,9 +3,9 @@ import type {
   ScheduleHistory,
   ScheduleRecord,
   ScheduleStatus,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 
-export { PERMISSION_MODES, SCHEDULE_HISTORIES, SCHEDULE_STATUSES } from '@studio/shared';
+export { PERMISSION_MODES, SCHEDULE_HISTORIES, SCHEDULE_STATUSES } from '@harnesys/studio-shared';
 export type { PermissionMode, ScheduleHistory, ScheduleStatus };
 
 export function scheduleStatusTone(

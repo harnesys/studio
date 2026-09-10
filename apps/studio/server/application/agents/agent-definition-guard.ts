@@ -1,5 +1,5 @@
 import { type AgentGraph as HarnesysAgentGraph, validateStructural } from 'harnesys';
-import type { AgentBudget } from '../../../shared/types.ts';
+import type { AgentBudget } from '@harnesys/studio-shared';
 import type { AgentGraph } from '../../domain/agent.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 

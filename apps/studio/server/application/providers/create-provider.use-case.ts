@@ -1,4 +1,4 @@
-import type { ProviderPublic } from '../../../shared/types.ts';
+import type { ProviderPublic } from '@harnesys/studio-shared';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 import { toProviderPublic } from './provider.helpers.ts';

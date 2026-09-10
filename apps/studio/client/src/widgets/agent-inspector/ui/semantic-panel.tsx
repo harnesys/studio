@@ -1,4 +1,4 @@
-import type { MemoryRecord, SemanticScope } from '@studio/shared';
+import type { MemoryRecord, SemanticScope } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';

@@ -1,4 +1,4 @@
-import type { ThreadRecord } from '@studio/shared';
+import type { ThreadRecord } from '@harnesys/studio-shared';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread } from '@/shared/api';

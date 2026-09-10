@@ -7,7 +7,7 @@ import type {
   KnowledgeSettings,
   KnowledgeStats,
   UpsertKnowledgeSettingsRequest,
-} from '../../shared/knowledge.ts';
+} from '@harnesys/studio-shared';
 
 export type {
   KnowledgeFileRecord,

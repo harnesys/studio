@@ -4,7 +4,7 @@ import type {
   ScheduleHistory,
   ScheduleRecord,
   ScheduleStatus,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 
 import { apiJson } from './client';
 

@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
 } from 'harnesys';
 import { compactForced, THRESHOLD_SUMMARY_NAME } from 'harnesys';
-import type { CompactThreadResponse } from '../../../shared/thread.ts';
+import type { CompactThreadResponse } from '@harnesys/studio-shared';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { logger, toRuntimeLogger } from '../../config/logger.ts';

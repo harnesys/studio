@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { SCHEDULE_STATUSES } from '../../../../shared/types.ts';
+import { SCHEDULE_STATUSES } from '@harnesys/studio-shared';
 
 export const createWebhookBody = z.object({
   name: z.string().trim().min(1),

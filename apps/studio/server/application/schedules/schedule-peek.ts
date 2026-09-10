@@ -1,5 +1,5 @@
 import type { SessionEvent } from 'harnesys';
-import { isScheduledHumanText } from '../../../shared/schedule-prompt.ts';
+import { isScheduledHumanText } from '@harnesys/studio-shared';
 
 import { SCHEDULE_PEEK_OUTPUT_LIMIT } from '../../config/constants.ts';
 

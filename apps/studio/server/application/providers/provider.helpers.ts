@@ -3,7 +3,7 @@ import type {
   ModelRecord,
   ProviderModelPublic,
   ProviderPublic,
-} from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import type { LlmModel, LlmProvider } from '../../domain/llm-provider.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 

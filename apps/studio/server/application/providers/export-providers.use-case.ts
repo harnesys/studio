@@ -1,4 +1,4 @@
-import type { Driver, ProviderExportBundle, ProviderExportEntry } from '../../../shared/types.ts';
+import type { Driver, ProviderExportBundle, ProviderExportEntry } from '@harnesys/studio-shared';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 
 export type ExportProvidersInput = {

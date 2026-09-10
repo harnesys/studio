@@ -1,4 +1,4 @@
-import type { WorkspaceFileEntry } from '../../shared/types.ts';
+import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 
 export type WorkspaceFilesPort = {
   listDir(absPath: string): Promise<WorkspaceFileEntry[]>;

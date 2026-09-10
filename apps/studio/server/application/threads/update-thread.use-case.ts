@@ -1,5 +1,5 @@
 import type { RunEventStore, RunLifecycleStore } from 'harnesys';
-import type { ThreadRecord } from '../../../shared/types.ts';
+import type { ThreadRecord } from '@harnesys/studio-shared';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';

@@ -1,4 +1,4 @@
-import { isTextAttachment, type Modality, type ProviderPublic } from '@studio/shared';
+import { isTextAttachment, type Modality, type ProviderPublic } from '@harnesys/studio-shared';
 
 export type AttachKind = 'image' | 'audio' | 'video' | 'file';
 

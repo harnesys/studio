@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { CreateWorkspaceSkillRequest } from '../../shared/types.ts';
+import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { SKILL_NAME_RE } from '../config/constants.ts';
 import { ConflictError, ValidationError } from '../domain/studio.error.ts';
 import { workspaceSkillsPath } from './store/studio-layout.ts';

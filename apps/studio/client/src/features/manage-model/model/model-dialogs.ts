@@ -1,4 +1,4 @@
-import type { DiscoveredModel, ModelRecord, ProviderModelPublic } from '@studio/shared';
+import type { DiscoveredModel, ModelRecord, ProviderModelPublic } from '@harnesys/studio-shared';
 
 import { alert, dialog } from '@/shared/services/overlay';
 

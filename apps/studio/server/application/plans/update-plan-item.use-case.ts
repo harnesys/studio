@@ -3,7 +3,7 @@ import {
   type PlanItemRecord,
   type ThreadPlanRecord,
   type UpdatePlanItemRequest,
-} from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { UnitOfWork } from '../../domain/unit-of-work.port.ts';

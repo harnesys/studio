@@ -112,6 +112,7 @@ export {
   scheduledTaskText,
   visibleScheduledText,
 } from './schedule-prompt.ts';
+export { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from './webhook-prompt.ts';
 export type {
   AcceptedRunResponse,
   CompactThreadResponse,

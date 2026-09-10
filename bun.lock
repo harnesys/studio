@@ -14,31 +14,30 @@
     },
     "apps/studio": {
       "name": "@harnesys/studio",
+    },
+    "apps/studio/client": {
+      "name": "@harnesys/studio-client",
+      "version": "0.0.1",
       "dependencies": {
         "@base-ui/react": "^1.7.0",
         "@fontsource-variable/ibm-plex-sans": "^5.3.0",
         "@fontsource/ibm-plex-mono": "^5.3.0",
+        "@harnesys/studio-shared": "workspace:*",
         "@hookform/resolvers": "^5.9.1",
         "@iconify/react": "^6.0.2",
         "@monaco-editor/react": "^4.7.0",
         "@shadcn/react": "^0.3.0",
         "@tanstack/react-query": "^5.90.2",
         "@xyflow/react": "^12.11.6",
-        "better-sqlite3": "^13.0.3",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
-        "croner": "^10.0.1",
         "dagre": "^0.8.5",
-        "drizzle-orm": "^0.45.2",
         "harnesys": "workspace:*",
         "highlight.js": "^11.12.0",
-        "hono": "^4.13.2",
-        "ignore": "^7.0.6",
         "katex": "^0.18.4",
         "lucide-react": "^1.31.0",
         "mermaid": "^11.17.0",
         "monaco-editor": "0.52.2",
-        "pino": "^10.3.1",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
         "react-hook-form": "^7.85.0",
@@ -65,9 +64,33 @@
         "@types/react-dom": "^19.2.4",
         "@vitejs/plugin-react": "^6.0.5",
         "babel-plugin-react-compiler": "^1.0.0",
-        "drizzle-kit": "^0.31.10",
         "tailwindcss": "^4.3.3",
         "vite": "^8.2.1",
+      },
+    },
+    "apps/studio/server": {
+      "name": "@harnesys/studio-server",
+      "version": "0.0.1",
+      "dependencies": {
+        "@harnesys/studio-shared": "workspace:*",
+        "croner": "^10.0.1",
+        "drizzle-orm": "^0.45.2",
+        "harnesys": "workspace:*",
+        "hono": "^4.13.2",
+        "ignore": "^7.0.6",
+        "pino": "^10.3.1",
+        "zod": "^4.4.3",
+      },
+      "devDependencies": {
+        "@types/node": "^26.4.0",
+        "drizzle-kit": "^0.31.10",
+      },
+    },
+    "apps/studio/shared": {
+      "name": "@harnesys/studio-shared",
+      "version": "0.0.1",
+      "dependencies": {
+        "harnesys": "workspace:*",
       },
     },
     "packages/harnesys": {
@@ -291,6 +314,12 @@
     "@fontsource/ibm-plex-mono": ["@fontsource/ibm-plex-mono@5.3.0", "", {}, "sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q=="],
 
     "@harnesys/studio": ["@harnesys/studio@workspace:apps/studio"],
+
+    "@harnesys/studio-client": ["@harnesys/studio-client@workspace:apps/studio/client"],
+
+    "@harnesys/studio-server": ["@harnesys/studio-server@workspace:apps/studio/server"],
+
+    "@harnesys/studio-shared": ["@harnesys/studio-shared@workspace:apps/studio/shared"],
 
     "@hono/node-server": ["@hono/node-server@2.1.1", "", { "peerDependencies": { "hono": "^4" } }, "sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg=="],
 

@@ -1,4 +1,4 @@
-import type { WorkspaceStatus } from '../../shared/types.ts';
+import type { WorkspaceStatus } from '@harnesys/studio-shared';
 
 export type WorkspacePort = {
   inspect(path: string): Promise<WorkspaceStatus>;

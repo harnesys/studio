@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import { useSyncExternalStore } from 'react';
 
 export type LiveTailKind = 'reasoning' | 'text' | null;

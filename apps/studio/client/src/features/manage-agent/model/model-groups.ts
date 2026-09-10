@@ -1,4 +1,4 @@
-import type { ProviderPublic } from '@studio/shared';
+import type { ProviderPublic } from '@harnesys/studio-shared';
 
 export type ModelOption = {
   value: string;

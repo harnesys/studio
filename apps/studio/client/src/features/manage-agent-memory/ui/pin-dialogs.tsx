@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { PinRecord } from '@studio/shared';
+import type { PinRecord } from '@harnesys/studio-shared';
 import { useForm } from 'react-hook-form';
 
 import type { DialogComponentProps } from '@/shared/services/overlay';

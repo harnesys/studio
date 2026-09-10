@@ -1,4 +1,4 @@
-import type { PinRecord } from '@studio/shared';
+import type { PinRecord } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 export const pinFieldsSchema = z.object({

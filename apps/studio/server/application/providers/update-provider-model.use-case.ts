@@ -1,4 +1,4 @@
-import type { ProviderModelPublic } from '../../../shared/types.ts';
+import type { ProviderModelPublic } from '@harnesys/studio-shared';
 import type {
   LlmModelPatch,
   LlmModelRepository,

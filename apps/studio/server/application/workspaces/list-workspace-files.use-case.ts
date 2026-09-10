@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { WorkspaceFileEntry } from '../../../shared/types.ts';
+import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../../domain/workspace-files.port.ts';

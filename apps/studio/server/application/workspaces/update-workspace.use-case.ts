@@ -1,4 +1,4 @@
-import type { WorkspaceRecord } from '../../../shared/types.ts';
+import type { WorkspaceRecord } from '@harnesys/studio-shared';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';

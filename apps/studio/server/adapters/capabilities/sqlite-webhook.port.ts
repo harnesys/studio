@@ -6,7 +6,7 @@ import type {
   WebhookRecord,
   WebhookUpdateInput,
 } from 'harnesys';
-import type { WebhookRecord as StudioWebhookRecord } from '../../../shared/types.ts';
+import type { WebhookRecord as StudioWebhookRecord } from '@harnesys/studio-shared';
 import type { CreateWebhookInput } from '../../application/webhooks/create-webhook.use-case.ts';
 import type { DeleteWebhookInput } from '../../application/webhooks/delete-webhook.use-case.ts';
 import type { ListWebhooksInput } from '../../application/webhooks/list-webhooks.use-case.ts';

@@ -1,4 +1,4 @@
-import type { KnowledgeSettings, MemorySearchBackend } from '@studio/shared';
+import type { KnowledgeSettings, MemorySearchBackend } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 

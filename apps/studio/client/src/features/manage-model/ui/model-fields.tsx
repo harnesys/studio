@@ -1,4 +1,4 @@
-import type { Modality } from '@studio/shared';
+import type { Modality } from '@harnesys/studio-shared';
 import {
   AudioLinesIcon,
   BracesIcon,

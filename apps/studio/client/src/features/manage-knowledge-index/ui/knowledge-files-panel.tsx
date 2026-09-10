@@ -2,7 +2,7 @@ import type {
   KnowledgeFileRecord,
   KnowledgeFileStatus,
   KnowledgeFilesByStatus,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 
 import { Badge } from '@/shared/ui/badge';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';

@@ -5,7 +5,7 @@ import {
   SCHEDULE_STATUSES,
   type ScheduleHistory,
   type ScheduleRecord,
-} from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import { isPermissionMode } from '../../adapters/tool-confirm-policy.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';

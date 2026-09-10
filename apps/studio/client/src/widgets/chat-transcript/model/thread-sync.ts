@@ -1,4 +1,4 @@
-import type { ThreadRecord } from '@studio/shared';
+import type { ThreadRecord } from '@harnesys/studio-shared';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';

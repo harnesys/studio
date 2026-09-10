@@ -1,4 +1,4 @@
-import type { HumanEntry, ThreadAttachment } from '@studio/shared';
+import type { HumanEntry, ThreadAttachment } from '@harnesys/studio-shared';
 import { attachmentUrl } from '@/shared/api';
 import { FileChip } from '@/shared/ui/file-chip';
 

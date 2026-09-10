@@ -1,5 +1,5 @@
-import type { Driver } from '@studio/shared';
-import { isDriver } from '@studio/shared';
+import type { Driver } from '@harnesys/studio-shared';
+import { isDriver } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 

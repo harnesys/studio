@@ -1,5 +1,5 @@
 import { resolveModel } from 'harnesys';
-import type { Modality, ThreadAttachment } from '../../../shared/types.ts';
+import type { Modality, ThreadAttachment } from '@harnesys/studio-shared';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
 import type { AttachmentsPort } from '../../domain/attachments.port.ts';

@@ -1,5 +1,5 @@
 import type { PermissionGate, PermissionMap } from 'harnesys';
-import type { PermissionMode, RunMode } from '../../shared/types.ts';
+import type { PermissionMode, RunMode } from '@harnesys/studio-shared';
 import { EXTERNAL_OPS, MUTATE_OPS, PROCESS_OPS, RESEARCH_OPS } from '../config/constants.ts';
 
 export type { PermissionMode, RunMode };

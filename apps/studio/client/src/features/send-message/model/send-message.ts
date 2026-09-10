@@ -1,4 +1,4 @@
-import type { RunMode, ThreadAttachment } from '@studio/shared';
+import type { RunMode, ThreadAttachment } from '@harnesys/studio-shared';
 import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { ApiError, cancelRun, sendThreadRun } from '@/shared/api';

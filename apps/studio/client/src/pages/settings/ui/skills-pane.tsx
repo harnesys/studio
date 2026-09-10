@@ -1,4 +1,4 @@
-import type { CreateWorkspaceSkillRequest } from '@studio/shared';
+import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon } from 'lucide-react';
 

@@ -1,4 +1,4 @@
-import type { WorkspaceMcpConfigServer } from '../../../shared/types.ts';
+import type { WorkspaceMcpConfigServer } from '@harnesys/studio-shared';
 import { mcpEntryToFields, readWorkspaceMcpJson } from '../../adapters/mcp-json.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';

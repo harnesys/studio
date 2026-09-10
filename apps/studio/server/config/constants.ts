@@ -1,6 +1,6 @@
 import type { RunLifecycleStatus } from 'harnesys';
-import type { AgentBudget } from '../../shared/agent.ts';
-import type { WebhookStatus } from '../../shared/types.ts';
+import type { AgentBudget } from '@harnesys/studio-shared';
+import type { WebhookStatus } from '@harnesys/studio-shared';
 
 /** HTTP */
 export const DEFAULT_PORT = 3000;

@@ -1,11 +1,11 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import {
   extractPlanModePrompt,
   isScheduledHumanText,
   scheduledTaskName,
   visiblePlanModeText,
   visibleScheduledText,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { AlertCircleIcon, CalendarClockIcon, RotateCcwIcon, TerminalIcon } from 'lucide-react';
 
 import { useLiveTail } from '@/entities/session';

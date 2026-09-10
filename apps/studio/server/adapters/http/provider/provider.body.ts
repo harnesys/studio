@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DRIVERS } from '../../../../shared/types.ts';
+import { DRIVERS } from '@harnesys/studio-shared';
 
 const driver = z.enum(DRIVERS);
 const optionalText = z.string().trim().nullish();

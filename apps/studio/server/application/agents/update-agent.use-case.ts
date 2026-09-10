@@ -4,7 +4,7 @@ import type {
   PackConfig,
   PortRef,
   ToolOutputSettings,
-} from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';

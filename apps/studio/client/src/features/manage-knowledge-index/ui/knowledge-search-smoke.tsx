@@ -1,4 +1,4 @@
-import type { KnowledgeHit } from '@studio/shared';
+import type { KnowledgeHit } from '@harnesys/studio-shared';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 

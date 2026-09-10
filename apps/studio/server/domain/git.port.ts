@@ -3,7 +3,7 @@ import type {
   GitDiffResponse,
   GitFileStatusMap,
   GitStatusResponse,
-} from '../../shared/types.ts';
+} from '@harnesys/studio-shared';
 
 export type GitPort = {
   getStatus(cwd: string): Promise<GitStatusResponse>;

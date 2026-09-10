@@ -2,7 +2,7 @@ import type {
   UpsertWorkspaceMcpServerRequest,
   WorkspaceMcpConfigServer,
   WorkspaceMcpTransport,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 const TRANSPORTS = ['stdio', 'http', 'sse'] as const satisfies readonly WorkspaceMcpTransport[];

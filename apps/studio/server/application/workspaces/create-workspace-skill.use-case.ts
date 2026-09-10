@@ -1,4 +1,4 @@
-import type { CreateWorkspaceSkillRequest, WorkspaceSkill } from '../../../shared/types.ts';
+import type { CreateWorkspaceSkillRequest, WorkspaceSkill } from '@harnesys/studio-shared';
 import { createWorkspaceSkillFile } from '../../adapters/skills-fs.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';

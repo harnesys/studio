@@ -1,7 +1,7 @@
 import { type Dirent, watch } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { WorkspaceFileEntry, WorkspaceFileEvent } from '../../../shared/types.ts';
+import type { WorkspaceFileEntry, WorkspaceFileEvent } from '@harnesys/studio-shared';
 import { FILES_WATCHER_DEBOUNCE_MS, SAFETY_NAMES } from '../../config/constants.ts';
 import type { FilesWatcherInput } from '../../domain/files-watcher.port.ts';
 import { trace } from '../../trace.ts';

@@ -1,4 +1,4 @@
-import type { GitStatusResponse } from '@studio/shared';
+import type { GitStatusResponse } from '@harnesys/studio-shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DownloadIcon,

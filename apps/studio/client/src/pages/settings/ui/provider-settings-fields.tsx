@@ -1,5 +1,5 @@
-import type { Driver, ProviderPublic, StudioCatalog } from '@studio/shared';
-import { isDriver } from '@studio/shared';
+import type { Driver, ProviderPublic, StudioCatalog } from '@harnesys/studio-shared';
+import { isDriver } from '@harnesys/studio-shared';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
 
 import { Button } from '@/shared/ui/button';

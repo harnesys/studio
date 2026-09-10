@@ -219,7 +219,7 @@
     {
       "includes": [
         "apps/studio/client/vite.config.ts",
-        "apps/studio/drizzle.config.ts",
+        "apps/studio/server/drizzle.config.ts",
         "apps/studio/server/index.ts",
         "apps/studio/client/src/app/routes/index.tsx"
       ],

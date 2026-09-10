@@ -1,4 +1,4 @@
-import type { GitDiffResponse, GitFileStatusMap, GitStatusResponse } from '@studio/shared';
+import type { GitDiffResponse, GitFileStatusMap, GitStatusResponse } from '@harnesys/studio-shared';
 
 import { apiJson } from './client';
 

@@ -4,6 +4,16 @@
 
 **Studio переписывается нативно** на типы и API из docs (`RuntimeState`, Snapshot, `SessionEvent`, `AgentRun`, `Command`).
 
+Три sibling-пакета под `apps/studio/`:
+
+| пакет | npm name |
+|---|---|
+| `server/` | `@harnesys/studio-server` |
+| `client/` | `@harnesys/studio-client` |
+| `shared/` | `@harnesys/studio-shared` |
+
+Корень `apps/studio` — оркестрация (`dev.ts`, `assets/`, скрипты). Контракт API: `@harnesys/studio-shared` (баррель `shared/types.ts`).
+
 ## Сервер
 
 Clean Architecture:
@@ -17,7 +27,7 @@ server/
   index.ts        # Main: listen, static
 ```
 
-Записи для сервера и клиента — `shared/types.ts`. Доменные порты и ошибки — в `server/domain`.
+Доменные порты и ошибки — в `server/domain`.
 
 | суффикс | роль |
 |---|---|

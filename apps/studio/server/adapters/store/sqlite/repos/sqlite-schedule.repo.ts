@@ -1,5 +1,5 @@
 import { and, eq, isNotNull, lte } from 'drizzle-orm';
-import type { PermissionMode, ScheduleHistory } from '../../../../../shared/types.ts';
+import type { PermissionMode, ScheduleHistory } from '@harnesys/studio-shared';
 import type {
   Schedule,
   ScheduleInsert,

@@ -7,7 +7,7 @@ import type {
   SchedulerPort,
   ScheduleUpdateInput,
 } from 'harnesys';
-import type { ScheduleRecord as StudioScheduleRecord } from '../../../shared/types.ts';
+import type { ScheduleRecord as StudioScheduleRecord } from '@harnesys/studio-shared';
 import type { CreateScheduleInput } from '../../application/schedules/create-schedule.use-case.ts';
 import type { DeleteScheduleInput } from '../../application/schedules/delete-schedule.use-case.ts';
 import type { ListSchedulesInput } from '../../application/schedules/list-schedules.use-case.ts';

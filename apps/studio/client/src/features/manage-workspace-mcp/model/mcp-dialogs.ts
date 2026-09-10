@@ -1,4 +1,4 @@
-import type { WorkspaceMcpConfigServer } from '@studio/shared';
+import type { WorkspaceMcpConfigServer } from '@harnesys/studio-shared';
 
 import { alert, dialog } from '@/shared/services/overlay';
 

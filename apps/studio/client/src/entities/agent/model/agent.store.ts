@@ -1,4 +1,4 @@
-import { defaultAgentCompaction } from '@studio/shared';
+import { defaultAgentCompaction } from '@harnesys/studio-shared';
 import { create } from 'zustand';
 
 import { type Agent, type AgentDraft, type AgentPatch, initialsFromName } from './agent';

@@ -1,5 +1,5 @@
 import type { RunLifecycleStore } from 'harnesys';
-import { SCHEDULE_HUMAN_ORIGIN, scheduledTaskText } from '../../../shared/schedule-prompt.ts';
+import { SCHEDULE_HUMAN_ORIGIN, scheduledTaskText } from '@harnesys/studio-shared';
 import type { ScheduleFireQueue } from '../../adapters/schedule-fire-queue.adapter.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { Schedule, ScheduleRepository } from '../../domain/schedule.port.ts';

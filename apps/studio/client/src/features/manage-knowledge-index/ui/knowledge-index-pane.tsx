@@ -1,4 +1,4 @@
-import type { KnowledgeFileStatus, KnowledgeStats } from '@studio/shared';
+import type { KnowledgeFileStatus, KnowledgeStats } from '@harnesys/studio-shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import {

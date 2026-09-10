@@ -1,4 +1,4 @@
-import type { GitFileStatus } from '@studio/shared';
+import type { GitFileStatus } from '@harnesys/studio-shared';
 import { FileIcon, FilePlusIcon, FileXIcon, PencilIcon } from 'lucide-react';
 
 import { cn } from '@/shared/lib/utils';

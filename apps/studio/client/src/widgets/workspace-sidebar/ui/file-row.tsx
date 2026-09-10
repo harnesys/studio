@@ -1,4 +1,4 @@
-import type { GitFileStatus, GitFileStatusMap, WorkspaceFileEntry } from '@studio/shared';
+import type { GitFileStatus, GitFileStatusMap, WorkspaceFileEntry } from '@harnesys/studio-shared';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FileIcon,

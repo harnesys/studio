@@ -1,6 +1,6 @@
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { GitBranch, GitFileStatusMap, GitStatusResponse } from '../../../shared/types.ts';
+import type { GitBranch, GitFileStatusMap, GitStatusResponse } from '@harnesys/studio-shared';
 import { GIT_SLOW_THRESHOLD_MS } from '../../config/constants.ts';
 import { trace } from '../../trace.ts';
 import { execGit, execGitTrim } from './git-exec.ts';

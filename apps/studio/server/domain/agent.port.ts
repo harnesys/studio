@@ -5,7 +5,7 @@ import type {
   PackConfig,
   PortRef,
   ToolOutputSettings,
-} from '../../shared/types.ts';
+} from '@harnesys/studio-shared';
 
 export type AgentGraphRankdir = 'TB' | 'LR';
 

@@ -5,7 +5,7 @@ import {
   defaultAgentCompaction,
   type PackConfig,
   type PortRef,
-} from '../../../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import type {
   Agent,
   AgentGraph,

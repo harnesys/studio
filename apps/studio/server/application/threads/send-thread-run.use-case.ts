@@ -1,5 +1,5 @@
 import type { Attachment, SendFile, SendInput } from 'harnesys';
-import type { AcceptedRunResponse } from '../../../shared/types.ts';
+import type { AcceptedRunResponse } from '@harnesys/studio-shared';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import { isRunMode, type RunMode } from '../../adapters/tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';

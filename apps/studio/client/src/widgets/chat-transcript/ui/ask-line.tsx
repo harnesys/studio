@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import { LoaderCircleIcon, MessageCircleQuestionIcon } from 'lucide-react';
 
 import { cn } from '@/shared/lib/utils';

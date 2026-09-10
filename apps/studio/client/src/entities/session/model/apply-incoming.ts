@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 
 import { isToolInputStream, mergeDeltaContinuation, mergeIncomingEvent } from './coalesce-events';
 import { eventKey, stableEventKey } from './event-keys';

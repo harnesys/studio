@@ -1,4 +1,4 @@
-import type { SavePlanRequest, ThreadPlanRecord } from '../../../shared/types.ts';
+import type { SavePlanRequest, ThreadPlanRecord } from '@harnesys/studio-shared';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { UnitOfWork } from '../../domain/unit-of-work.port.ts';

@@ -2,7 +2,7 @@ import type {
   ImportProvidersRequest,
   ImportProvidersSummary,
   ProviderExportEntry,
-} from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import type {
   LlmModelRepository,
   LlmProvider,

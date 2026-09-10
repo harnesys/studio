@@ -3,15 +3,14 @@ import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
-import { DEFAULT_PORT } from '../server/config/constants.ts';
-import { DEFAULT_DEV_SERVER_PORT } from './src/shared/config/constants.ts';
+import { DEFAULT_API_PORT, DEFAULT_DEV_SERVER_PORT } from './src/shared/config/constants.ts';
 
 const root = import.meta.dirname;
 const studioRoot = path.resolve(root, '..');
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, studioRoot, '');
-  const apiPort = readPort(env.PORT, DEFAULT_PORT);
+  const apiPort = readPort(env.PORT, DEFAULT_API_PORT);
   const uiPort = readPort(env.VITE_DEV_SERVER_PORT, DEFAULT_DEV_SERVER_PORT);
 
   return {
@@ -22,7 +21,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(root, './src'),
-        '@studio/shared': path.resolve(root, '../shared/types.ts'),
+        '@harnesys/studio-shared': path.resolve(root, '../shared/types.ts'),
         'harnesys/domain': path.resolve(studioRoot, '../../packages/harnesys/domain.ts'),
         harnesys: path.resolve(studioRoot, '../../packages/harnesys/index.ts'),
       },

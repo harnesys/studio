@@ -1,4 +1,4 @@
-import type { ThreadKind, ThreadRecord } from '../../../shared/types.ts';
+import type { ThreadKind, ThreadRecord } from '@harnesys/studio-shared';
 import { DEFAULT_THREAD_TITLE } from '../../config/constants.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';

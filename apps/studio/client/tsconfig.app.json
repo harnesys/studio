@@ -23,7 +23,7 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@studio/shared": ["../shared/types.ts"],
+      "@harnesys/studio-shared": ["../shared/types.ts"]
     }
   },
   "include": ["src"]

@@ -1,6 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { GitDiffResponse, GitFileStatus } from '../../../shared/types.ts';
+import type { GitDiffResponse, GitFileStatus } from '@harnesys/studio-shared';
 import { execGit, execGitTrim } from './git-exec.ts';
 import { parsePorcelain } from './git-helpers.ts';
 

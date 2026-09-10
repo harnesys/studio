@@ -3,7 +3,7 @@ import type { ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { ZodError } from 'zod';
-import type { StudioErrorBody } from '../../../shared/types.ts';
+import type { StudioErrorBody } from '@harnesys/studio-shared';
 import {
   GitBranchExistsError,
   GitBranchInvalidError,

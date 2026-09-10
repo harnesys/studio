@@ -1,4 +1,4 @@
-import type { DeskEvent } from '../../shared/types.ts';
+import type { DeskEvent } from '@harnesys/studio-shared';
 import type { DeskEventsInput } from '../domain/desk-events.port.ts';
 
 type DeskListener = (event: DeskEvent) => void;

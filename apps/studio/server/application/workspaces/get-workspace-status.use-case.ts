@@ -1,4 +1,4 @@
-import type { WorkspaceStatus } from '../../../shared/types.ts';
+import type { WorkspaceStatus } from '@harnesys/studio-shared';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspacePort, WorkspaceRepository } from '../../domain/workspace.port.ts';
 

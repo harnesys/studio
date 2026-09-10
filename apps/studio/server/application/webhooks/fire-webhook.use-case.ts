@@ -1,5 +1,5 @@
 import type { RunLifecycleStore } from 'harnesys';
-import { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from '../../../shared/webhook-prompt.ts';
+import { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from '@harnesys/studio-shared';
 import type { ScheduleFireQueue } from '../../adapters/schedule-fire-queue.adapter.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';

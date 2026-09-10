@@ -1,4 +1,4 @@
-import type { SessionEvent, SessionEventType } from '@studio/shared';
+import type { SessionEvent, SessionEventType } from '@harnesys/studio-shared';
 import { create } from 'zustand';
 
 import { applyIncomingEvents } from './apply-incoming';

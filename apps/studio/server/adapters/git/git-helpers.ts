@@ -1,4 +1,4 @@
-import type { GitFileStatus, GitFileStatusMap } from '../../../shared/types.ts';
+import type { GitFileStatus, GitFileStatusMap } from '@harnesys/studio-shared';
 
 export function parsePorcelain(raw: string): GitFileStatusMap {
   const map: GitFileStatusMap = {};

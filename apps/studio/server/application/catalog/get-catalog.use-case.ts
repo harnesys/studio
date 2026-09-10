@@ -1,5 +1,5 @@
 import { DRIVERS } from 'harnesys';
-import type { StudioCatalog } from '../../../shared/types.ts';
+import type { StudioCatalog } from '@harnesys/studio-shared';
 
 export type GetCatalogInput = {
   execute(): StudioCatalog;

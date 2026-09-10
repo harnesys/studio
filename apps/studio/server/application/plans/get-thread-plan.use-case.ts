@@ -1,4 +1,4 @@
-import type { ThreadPlanRecord } from '../../../shared/types.ts';
+import type { ThreadPlanRecord } from '@harnesys/studio-shared';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { UnitOfWork } from '../../domain/unit-of-work.port.ts';
 

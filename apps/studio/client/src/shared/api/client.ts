@@ -1,4 +1,4 @@
-import type { StudioErrorBody } from '@studio/shared';
+import type { StudioErrorBody } from '@harnesys/studio-shared';
 
 export class ApiError extends Error {
   status: number;

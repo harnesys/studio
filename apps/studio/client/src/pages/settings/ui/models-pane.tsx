@@ -1,4 +1,4 @@
-import type { DiscoveredModelView, ProviderExportBundle } from '@studio/shared';
+import type { DiscoveredModelView, ProviderExportBundle } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { DownloadIcon, PlusIcon, Trash2Icon, UploadIcon } from 'lucide-react';
 import type { ChangeEvent } from 'react';

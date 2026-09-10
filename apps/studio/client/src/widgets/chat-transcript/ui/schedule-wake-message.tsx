@@ -4,7 +4,7 @@ import {
   SCHEDULE_HUMAN_ORIGIN,
   scheduledTaskName,
   visibleScheduledText,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { CalendarClockIcon } from 'lucide-react';
 
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';

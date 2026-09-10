@@ -1,4 +1,4 @@
-import type { CompactThreadResponse, SessionEvent } from '@studio/shared';
+import type { CompactThreadResponse, SessionEvent } from '@harnesys/studio-shared';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { compactThreadStream, getThread, readSse } from '@/shared/api';

@@ -1,4 +1,4 @@
-import type { GitStatusCounts } from '@studio/shared';
+import type { GitStatusCounts } from '@harnesys/studio-shared';
 
 export function formatCountsShort(counts: GitStatusCounts): string {
   const parts: string[] = [];

@@ -6,7 +6,7 @@ import type {
   PlanSnapshot,
   PlanStatus,
 } from 'harnesys';
-import type { ThreadPlanRecord } from '../../../shared/types.ts';
+import type { ThreadPlanRecord } from '@harnesys/studio-shared';
 import type { GetThreadPlanInput } from '../../application/plans/get-thread-plan.use-case.ts';
 import type { SavePlanInput } from '../../application/plans/save-plan.use-case.ts';
 import type { UpdatePlanItemInput } from '../../application/plans/update-plan-item.use-case.ts';

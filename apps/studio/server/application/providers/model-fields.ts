@@ -7,8 +7,8 @@ import type {
   ModelPricing,
   ModelRecord,
   ModelTopProvider,
-} from '../../../shared/types.ts';
-import { MODALITIES } from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
+import { MODALITIES } from '@harnesys/studio-shared';
 import { ValidationError } from '../../domain/studio.error.ts';
 
 export function readModel(body: unknown): ModelRecord {

@@ -1,4 +1,4 @@
-import type { MemoryRecord, SemanticScope } from '@studio/shared';
+import type { MemoryRecord, SemanticScope } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 const SCOPES = ['session', 'long'] as const satisfies readonly SemanticScope[];

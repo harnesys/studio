@@ -1,6 +1,6 @@
 import type { RunLifecycleStore, RuntimeState, SessionEvent, Snapshot } from 'harnesys';
 import { SUBAGENT_ROLES, type SubagentRole } from 'harnesys/domain';
-import type { SavePlanItemInput } from '../../../shared/types.ts';
+import type { SavePlanItemInput } from '@harnesys/studio-shared';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { SavePlanInput } from '../plans/save-plan.use-case.ts';
 

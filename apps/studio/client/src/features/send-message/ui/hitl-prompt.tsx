@@ -1,4 +1,4 @@
-import type { AskPayload } from '@studio/shared';
+import type { AskPayload } from '@harnesys/studio-shared';
 import { useState } from 'react';
 import { useSelectedThread, useThreadEvents } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';

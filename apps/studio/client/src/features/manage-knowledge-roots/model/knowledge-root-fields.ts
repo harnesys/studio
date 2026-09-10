@@ -1,4 +1,4 @@
-import type { UpsertKnowledgeRootRequest } from '@studio/shared';
+import type { UpsertKnowledgeRootRequest } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 export const knowledgeRootFieldsSchema = z.object({

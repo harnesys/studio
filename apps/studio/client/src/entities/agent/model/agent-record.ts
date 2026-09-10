@@ -1,4 +1,4 @@
-import { type AgentRecord, defaultAgentCompaction } from '@studio/shared';
+import { type AgentRecord, defaultAgentCompaction } from '@harnesys/studio-shared';
 
 import { type Agent, initialsFromName } from './agent';
 

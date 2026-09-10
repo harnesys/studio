@@ -1,5 +1,5 @@
 import type { RunRecord } from 'harnesys';
-import type { ThreadActiveRun } from '../../../shared/types.ts';
+import type { ThreadActiveRun } from '@harnesys/studio-shared';
 
 export function activeRunOf(active: RunRecord | null): ThreadActiveRun | null {
   if (!active) {

@@ -7,7 +7,7 @@ import type {
   KnowledgeSettings,
   MemorySearchBackend,
   UpsertKnowledgeSettingsRequest,
-} from '../../../shared/knowledge.ts';
+} from '@harnesys/studio-shared';
 
 export type {
   KnowledgeFileRecord,

@@ -1,4 +1,4 @@
-import type { KnowledgeRootRecord } from '@studio/shared';
+import type { KnowledgeRootRecord } from '@harnesys/studio-shared';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 
 import {

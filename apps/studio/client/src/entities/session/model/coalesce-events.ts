@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 
 type StreamDelta = SessionEvent & {
   type: 'text-delta' | 'reasoning-delta';

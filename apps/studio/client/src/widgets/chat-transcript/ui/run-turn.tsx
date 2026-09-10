@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import { memo } from 'react';
 
 import type { SpawnInfo, SpawnToolChip, SpawnToolStat } from '../model/spawn-groups';

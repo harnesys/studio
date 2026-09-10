@@ -1,4 +1,4 @@
-import type { WorkspaceFileEntry } from '@studio/shared';
+import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EyeIcon, FileIcon, FolderIcon, LoaderCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';

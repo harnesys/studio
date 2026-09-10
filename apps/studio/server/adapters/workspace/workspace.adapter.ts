@@ -1,5 +1,5 @@
 import { mkdir, stat } from 'node:fs/promises';
-import type { WorkspaceStatus } from '../../../shared/types.ts';
+import type { WorkspaceStatus } from '@harnesys/studio-shared';
 import type { WorkspacePort } from '../../domain/workspace.port.ts';
 
 export class WorkspaceAdapter implements WorkspacePort {

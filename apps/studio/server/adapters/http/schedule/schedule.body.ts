@@ -4,7 +4,7 @@ import {
   PERMISSION_MODES,
   SCHEDULE_HISTORIES,
   SCHEDULE_STATUSES,
-} from '../../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 
 export const createScheduleBody = z.object({
   name: z.string().trim().min(1),

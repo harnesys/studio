@@ -2,7 +2,7 @@ import {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,
   DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { type Control, Controller } from 'react-hook-form';
 
 import {

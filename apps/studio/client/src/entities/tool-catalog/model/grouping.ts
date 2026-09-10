@@ -1,4 +1,4 @@
-import type { WorkspaceTool } from '@studio/shared';
+import type { WorkspaceTool } from '@harnesys/studio-shared';
 
 export type ToolGroup = {
   id: string;

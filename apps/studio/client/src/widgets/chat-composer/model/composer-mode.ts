@@ -1,4 +1,4 @@
-import type { RunMode } from '@studio/shared';
+import type { RunMode } from '@harnesys/studio-shared';
 import {
   BanIcon,
   ClipboardListIcon,

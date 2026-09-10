@@ -5,7 +5,7 @@ import type {
   ProviderExportBundle,
   ProviderModelPublic,
   ProviderPublic,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { queryOptions } from '@tanstack/react-query';
 
 import { apiJson } from './client';

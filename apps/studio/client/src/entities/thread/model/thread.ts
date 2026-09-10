@@ -1,4 +1,4 @@
-import type { ThreadKind } from '@studio/shared';
+import type { ThreadKind } from '@harnesys/studio-shared';
 
 export type Thread = {
   id: string;

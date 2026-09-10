@@ -4,7 +4,7 @@ import type {
   PlanStatus,
   SavePlanItemInput,
   ThreadPlanRecord,
-} from '../../shared/types.ts';
+} from '@harnesys/studio-shared';
 
 export type PlanRepository = {
   getByThreadId(threadId: string): ThreadPlanRecord | null;

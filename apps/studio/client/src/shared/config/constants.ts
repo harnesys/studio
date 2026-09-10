@@ -1,4 +1,5 @@
 /** Dev */
+export const DEFAULT_API_PORT = 3000;
 export const DEFAULT_DEV_SERVER_PORT = 5173;
 
 /** Storage */

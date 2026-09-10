@@ -3,7 +3,7 @@ import {
   type HumanEntry,
   visiblePlanModeText,
   visibleScheduledText,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { useState } from 'react';
 
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';

@@ -1,7 +1,7 @@
 import { watch } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { WorkspaceFileEvent } from '../../../shared/types.ts';
+import type { WorkspaceFileEvent } from '@harnesys/studio-shared';
 import { FILES_WATCHER_DEBOUNCE_MS } from '../../config/constants.ts';
 import { trace } from '../../trace.ts';
 

@@ -1,4 +1,4 @@
-import type { PlanItemStatus, PlanStatus, ThreadPlanRecord } from '@studio/shared';
+import type { PlanItemStatus, PlanStatus, ThreadPlanRecord } from '@harnesys/studio-shared';
 import { create } from 'zustand';
 
 export type { PlanItemStatus, PlanStatus, ThreadPlanRecord };

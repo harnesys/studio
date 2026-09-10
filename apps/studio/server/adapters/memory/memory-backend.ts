@@ -1,1 +1,1 @@
-export type { MemorySearchBackend } from '../../../shared/knowledge.ts';
+export type { MemorySearchBackend } from '@harnesys/studio-shared';

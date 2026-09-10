@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import { toolCaption } from './tool-caption';
 import type { ToolDetail } from './tool-detail-types';
 import { asObject, has, parseJson } from './tool-json';

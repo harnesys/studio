@@ -1,4 +1,4 @@
-import type { WorkspaceFileEntry, WorkspaceFileEvent } from '../../shared/types.ts';
+import type { WorkspaceFileEntry, WorkspaceFileEvent } from '@harnesys/studio-shared';
 
 export type FilesWatcherInput = {
   watch(

@@ -1,4 +1,4 @@
-import type { ThreadAttachment } from '../../../shared/types.ts';
+import type { ThreadAttachment } from '@harnesys/studio-shared';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
 import { toThreadAttachment } from './attachment-kind.ts';
 

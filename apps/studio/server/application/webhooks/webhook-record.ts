@@ -1,4 +1,4 @@
-import type { WebhookRecord } from '../../../shared/types.ts';
+import type { WebhookRecord } from '@harnesys/studio-shared';
 import type { Webhook } from '../../domain/webhook.port.ts';
 
 export type { WebhookRecord };

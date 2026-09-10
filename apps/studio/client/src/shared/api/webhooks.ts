@@ -1,4 +1,4 @@
-import type { CreateWebhookResponse, WebhookRecord, WebhookStatus } from '@studio/shared';
+import type { CreateWebhookResponse, WebhookRecord, WebhookStatus } from '@harnesys/studio-shared';
 
 import { apiJson } from './client';
 

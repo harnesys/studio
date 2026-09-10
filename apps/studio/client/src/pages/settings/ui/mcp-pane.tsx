@@ -1,4 +1,4 @@
-import type { UpsertWorkspaceMcpServerRequest, WorkspaceMcpConfigServer } from '@studio/shared';
+import type { UpsertWorkspaceMcpServerRequest, WorkspaceMcpConfigServer } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChevronDownIcon,

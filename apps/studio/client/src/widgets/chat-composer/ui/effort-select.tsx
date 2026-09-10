@@ -1,4 +1,4 @@
-import type { Effort } from '@studio/shared';
+import type { Effort } from '@harnesys/studio-shared';
 import { BrainIcon, ChevronDownIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import {

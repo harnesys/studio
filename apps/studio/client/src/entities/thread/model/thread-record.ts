@@ -1,4 +1,4 @@
-import type { ThreadRecord, ThreadSummary } from '@studio/shared';
+import type { ThreadRecord, ThreadSummary } from '@harnesys/studio-shared';
 
 import type { Thread } from './thread';
 

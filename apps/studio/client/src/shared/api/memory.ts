@@ -11,7 +11,7 @@ import type {
   SemanticScope,
   UpsertKnowledgeRootRequest,
   UpsertKnowledgeSettingsRequest,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { queryOptions } from '@tanstack/react-query';
 
 import { apiJson } from './client';

@@ -1,4 +1,4 @@
-import type { WorkspaceFileEntry } from '@studio/shared';
+import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 
 import { ApiError, apiJson } from './client';
 

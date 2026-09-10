@@ -2,7 +2,7 @@ import type {
   KnowledgeIndexStatus as IndexRunStatus,
   KnowledgeIndexState,
   KnowledgeStats,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { RefreshCwIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 

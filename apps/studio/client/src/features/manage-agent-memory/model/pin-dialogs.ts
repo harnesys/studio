@@ -1,4 +1,4 @@
-import type { PinRecord } from '@studio/shared';
+import type { PinRecord } from '@harnesys/studio-shared';
 
 import { alert, dialog } from '@/shared/services/overlay';
 

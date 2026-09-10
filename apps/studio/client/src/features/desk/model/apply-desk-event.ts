@@ -1,4 +1,4 @@
-import type { DeskEvent } from '@studio/shared';
+import type { DeskEvent } from '@harnesys/studio-shared';
 import { usePlanStore } from '@/entities/plan';
 import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
 import { useSessionStore } from '@/entities/session';

@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import { FileTextIcon, Link2Icon } from 'lucide-react';
 
 import { chunkEvents, groupActivityChunks } from '../model/tool-run-summary';

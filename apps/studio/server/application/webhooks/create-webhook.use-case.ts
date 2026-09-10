@@ -1,4 +1,4 @@
-import type { CreateWebhookResponse } from '../../../shared/types.ts';
+import type { CreateWebhookResponse } from '@harnesys/studio-shared';
 import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import { WEBHOOK_STATUSES } from '../../config/constants.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';

@@ -1,4 +1,4 @@
-import type { WorkspaceFileEvent } from '../../../shared/types.ts';
+import type { WorkspaceFileEvent } from '@harnesys/studio-shared';
 import { KNOWLEDGE_WATCH_ENSURE_INTERVAL_MS, SAFETY_NAMES } from '../../config/constants.ts';
 import type { FilesWatcherInput } from '../../domain/files-watcher.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';

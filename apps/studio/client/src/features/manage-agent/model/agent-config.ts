@@ -1,4 +1,4 @@
-import type { AgentGraph, PackConfig } from '@studio/shared';
+import type { AgentGraph, PackConfig } from '@harnesys/studio-shared';
 import type { AgentDraft } from '@/entities/agent';
 
 export type AgentCapabilitiesDraft = {

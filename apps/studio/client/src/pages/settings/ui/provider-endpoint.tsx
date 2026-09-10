@@ -1,4 +1,4 @@
-import type { DriverEndpoint } from '@studio/shared';
+import type { DriverEndpoint } from '@harnesys/studio-shared';
 import { useEffect, useState } from 'react';
 
 import { Field, FieldDescription, FieldLabel } from '@/shared/ui/field';

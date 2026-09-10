@@ -6,7 +6,7 @@ import type {
   SavePlanItemInput,
   SubagentRole,
   ThreadPlanRecord,
-} from '../../../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import type { PlanRepository } from '../../../../domain/plan.port.ts';
 import { NotFoundError } from '../../../../domain/studio.error.ts';
 import type { StudioDb } from '../connection.ts';

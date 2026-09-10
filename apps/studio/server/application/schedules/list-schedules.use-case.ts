@@ -1,4 +1,4 @@
-import type { ScheduleRecord } from '../../../shared/types.ts';
+import type { ScheduleRecord } from '@harnesys/studio-shared';
 import type { ScheduleRepository } from '../../domain/schedule.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';

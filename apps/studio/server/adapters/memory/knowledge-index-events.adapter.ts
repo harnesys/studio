@@ -1,4 +1,4 @@
-import type { KnowledgeIndexState } from '../../../shared/knowledge.ts';
+import type { KnowledgeIndexState } from '@harnesys/studio-shared';
 import type { KnowledgeIndexEventsPort } from '../../domain/knowledge-index-events.port.ts';
 
 type Listener = (state: KnowledgeIndexState) => void;

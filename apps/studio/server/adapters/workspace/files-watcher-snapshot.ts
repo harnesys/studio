@@ -1,6 +1,6 @@
 import type { Dirent } from 'node:fs';
 import { readdir, stat } from 'node:fs/promises';
-import type { WorkspaceFileEvent, WorkspaceFileEventKind } from '../../../shared/types.ts';
+import type { WorkspaceFileEvent, WorkspaceFileEventKind } from '@harnesys/studio-shared';
 
 type SnapshotEntry = { kind: 'file' | 'dir'; mtimeMs: number | null };
 export type DirSnapshot = Map<string, SnapshotEntry>;

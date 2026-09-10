@@ -1,4 +1,4 @@
-import type { CreateWorkspaceSkillRequest } from '@studio/shared';
+import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 export const skillFieldsSchema = z.object({

@@ -5,7 +5,7 @@ import type {
   ThreadPlanRecord,
   ThreadRecord,
   ThreadSummary,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 
 import { ApiError, apiJson } from './client';
 

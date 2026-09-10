@@ -3,7 +3,7 @@ import {
   isTextAttachment,
   type Modality,
   type ThreadAttachment,
-} from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import { MAX_ATTACHMENT_BYTES } from '../../config/constants.ts';
 import type { Attachment } from '../../domain/attachment.port.ts';
 

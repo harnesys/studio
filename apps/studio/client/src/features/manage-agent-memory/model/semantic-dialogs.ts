@@ -1,4 +1,4 @@
-import type { MemoryRecord, SemanticScope } from '@studio/shared';
+import type { MemoryRecord, SemanticScope } from '@harnesys/studio-shared';
 
 import { alert, dialog } from '@/shared/services/overlay';
 

@@ -1,4 +1,4 @@
-import type { WorkspaceRecord } from '../../../shared/types.ts';
+import type { WorkspaceRecord } from '@harnesys/studio-shared';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
 export type ListWorkspacesInput = {

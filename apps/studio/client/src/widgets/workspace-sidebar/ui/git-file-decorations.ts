@@ -1,4 +1,4 @@
-import type { GitFileStatus, GitFileStatusMap } from '@studio/shared';
+import type { GitFileStatus, GitFileStatusMap } from '@harnesys/studio-shared';
 
 export function gitStatusColor(status: GitFileStatus): string {
   switch (status) {

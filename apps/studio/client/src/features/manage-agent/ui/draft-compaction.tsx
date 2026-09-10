@@ -1,4 +1,4 @@
-import type { PortRef } from '@studio/shared';
+import type { PortRef } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { Agent } from '@/entities/agent';

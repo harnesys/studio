@@ -1,4 +1,4 @@
-import type { ProviderPublic } from '@studio/shared';
+import type { ProviderPublic } from '@harnesys/studio-shared';
 import type { Agent } from '@/entities/agent';
 import { confirmSwitchModel, updateAgent } from '@/features/manage-agent';
 import { ApiError } from '@/shared/api';

@@ -1,4 +1,4 @@
-import type { ThreadAttachment } from '@studio/shared';
+import type { ThreadAttachment } from '@harnesys/studio-shared';
 import { sendMessage } from '@/features/send-message';
 import { uploadThreadAttachment } from '@/shared/api';
 

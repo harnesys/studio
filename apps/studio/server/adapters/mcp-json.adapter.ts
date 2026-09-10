@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { McpServerConfig, McpTransport, StdioEntry, UrlEntry } from 'harnesys';
 import { z } from 'zod';
-import type { UpsertWorkspaceMcpServerRequest, WorkspaceMcpTransport } from '../../shared/types.ts';
+import type { UpsertWorkspaceMcpServerRequest, WorkspaceMcpTransport } from '@harnesys/studio-shared';
 import { ValidationError } from '../domain/studio.error.ts';
 import { studioDir } from './store/studio-layout.ts';
 

@@ -1,4 +1,4 @@
-import type { PinRecord } from '@studio/shared';
+import type { PinRecord } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef } from 'react';

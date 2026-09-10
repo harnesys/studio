@@ -4,8 +4,8 @@ import type {
   PackConfig,
   PortRef,
   ToolOutputSettings,
-} from '../../../shared/types.ts';
-import { defaultAgentCompaction } from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
+import { defaultAgentCompaction } from '@harnesys/studio-shared';
 import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';

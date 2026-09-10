@@ -6,7 +6,7 @@ import type {
   PackConfig,
   PortRef,
   ToolOutputSettings,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 
 import { apiJson } from './client';
 

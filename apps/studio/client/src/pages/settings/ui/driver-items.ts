@@ -1,5 +1,5 @@
-import type { Driver } from '@studio/shared';
-import { DRIVERS } from '@studio/shared';
+import type { Driver } from '@harnesys/studio-shared';
+import { DRIVERS } from '@harnesys/studio-shared';
 
 export const DRIVER_LABELS: Record<Driver, string> = {
   openai: 'OpenAI',

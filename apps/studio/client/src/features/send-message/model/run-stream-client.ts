@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@studio/shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import type { useSessionStore } from '@/entities/session';
 import {
   ApiError,

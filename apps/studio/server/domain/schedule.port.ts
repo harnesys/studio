@@ -1,4 +1,4 @@
-import type { PermissionMode, ScheduleHistory } from '../../shared/types.ts';
+import type { PermissionMode, ScheduleHistory } from '@harnesys/studio-shared';
 
 export type ScheduleStatus = 'active' | 'paused' | 'failed';
 

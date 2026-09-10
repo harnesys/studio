@@ -1,4 +1,4 @@
-import type { GitDiffResponse } from '../../../shared/types.ts';
+import type { GitDiffResponse } from '@harnesys/studio-shared';
 import type { GitPort } from '../../domain/git.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';

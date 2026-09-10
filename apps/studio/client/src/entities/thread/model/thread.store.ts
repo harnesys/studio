@@ -1,4 +1,4 @@
-import { threadsForAgent } from '@studio/shared';
+import { threadsForAgent } from '@harnesys/studio-shared';
 import { create } from 'zustand';
 
 import { latestThread, type Thread } from './thread';

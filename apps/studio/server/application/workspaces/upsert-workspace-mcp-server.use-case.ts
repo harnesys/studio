@@ -1,7 +1,7 @@
 import type {
   UpsertWorkspaceMcpServerRequest,
   WorkspaceMcpConfigServer,
-} from '../../../shared/types.ts';
+} from '@harnesys/studio-shared';
 import {
   fieldsToMcpEntry,
   mcpEntryToFields,

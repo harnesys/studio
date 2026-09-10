@@ -5,7 +5,7 @@ import type {
   PackConfig,
   PortRef,
   ToolOutputSettings,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 
 export const AGENT_STATUSES = ['idle', 'running', 'waiting', 'error', 'offline'] as const;
 

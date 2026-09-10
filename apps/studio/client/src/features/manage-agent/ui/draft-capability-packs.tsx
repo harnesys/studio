@@ -1,4 +1,4 @@
-import type { PackCatalogEntry, PackConfig } from '@studio/shared';
+import type { PackCatalogEntry, PackConfig } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import {
   BoxIcon,

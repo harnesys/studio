@@ -1,4 +1,4 @@
-import type { ThreadSummary } from '../../../shared/types.ts';
+import type { ThreadSummary } from '@harnesys/studio-shared';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';

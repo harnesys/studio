@@ -5,8 +5,8 @@ import type {
   ModelArchitecture,
   ModelPricing,
   ModelTopProvider,
-} from '@studio/shared';
-import { withChatGenerationParameters } from '@studio/shared';
+} from '@harnesys/studio-shared';
+import { withChatGenerationParameters } from '@harnesys/studio-shared';
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models?output_modalities=all';
 

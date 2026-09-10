@@ -1,4 +1,4 @@
-import type { WebhookRecord } from '@studio/shared';
+import type { WebhookRecord } from '@harnesys/studio-shared';
 
 export const WEBHOOK_STATUSES = ['active', 'paused', 'failed'] as const;
 export type WebhookStatus = (typeof WEBHOOK_STATUSES)[number];

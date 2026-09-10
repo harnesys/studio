@@ -1,4 +1,4 @@
-import type { DeskEvent } from '@studio/shared';
+import type { DeskEvent } from '@harnesys/studio-shared';
 
 export function watchDesk(workspaceId: string, onEvent: (event: DeskEvent) => void): () => void {
   const source = new EventSource(`/api/workspaces/${workspaceId}/desk/watch`);

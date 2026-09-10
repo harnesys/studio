@@ -1,4 +1,4 @@
-import type { DiscoveredModelView, ProviderPublic } from '@studio/shared';
+import type { DiscoveredModelView, ProviderPublic } from '@harnesys/studio-shared';
 import { PlusIcon, RefreshCwIcon, SearchIcon, XIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 

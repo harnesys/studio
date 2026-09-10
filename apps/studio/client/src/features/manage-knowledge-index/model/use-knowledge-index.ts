@@ -3,7 +3,7 @@ import type {
   KnowledgeIndexState,
   UpsertKnowledgeRootRequest,
   UpsertKnowledgeSettingsRequest,
-} from '@studio/shared';
+} from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {

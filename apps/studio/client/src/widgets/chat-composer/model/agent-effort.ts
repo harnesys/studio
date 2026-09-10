@@ -1,4 +1,4 @@
-import type { Effort, ProviderPublic } from '@studio/shared';
+import type { Effort, ProviderPublic } from '@harnesys/studio-shared';
 
 import { findModel } from './model-input';
 

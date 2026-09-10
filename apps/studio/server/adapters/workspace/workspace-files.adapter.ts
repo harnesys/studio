@@ -8,7 +8,7 @@ import {
   writeFile as writeFileFs,
 } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
-import type { WorkspaceFileEntry } from '../../../shared/types.ts';
+import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 import type { WorkspaceFilesPort } from '../../domain/workspace-files.port.ts';
 
 export class WorkspaceFilesAdapter implements WorkspaceFilesPort {

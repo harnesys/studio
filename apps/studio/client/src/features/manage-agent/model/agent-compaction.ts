@@ -1,5 +1,5 @@
-import type { PortRef } from '@studio/shared';
-import { THRESHOLD_SUMMARY_NAME } from '@studio/shared';
+import type { PortRef } from '@harnesys/studio-shared';
+import { THRESHOLD_SUMMARY_NAME } from '@harnesys/studio-shared';
 
 export type CompactionDraft = {
   enabled: boolean;

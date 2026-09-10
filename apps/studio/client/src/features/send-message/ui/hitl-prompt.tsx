@@ -1,6 +1,5 @@
 import type { AskPayload } from '@studio/shared';
 import { useState } from 'react';
-import { useSessionStore } from '@/entities/session';
 import { useSelectedThread, useThreadEvents } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -20,12 +19,9 @@ import { PlanProposalCard } from './plan-proposal-card';
 export function HitlPrompt() {
   const thread = useSelectedThread();
   const events = useThreadEvents(thread?.id ?? null);
-  const streaming = useSessionStore((state) =>
-    thread ? Boolean(state.activeRuns[thread.id]) : false,
-  );
   const pending = pendingHitl(events);
 
-  if (!pending || !streaming) {
+  if (!pending) {
     return null;
   }
 

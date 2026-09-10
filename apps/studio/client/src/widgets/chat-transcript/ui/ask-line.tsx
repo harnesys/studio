@@ -15,7 +15,12 @@ export function AskLine({
 }) {
   const prompt = event.prompt ?? '';
   const waiting = Boolean(live);
-  const label = event.source === 'budget' ? 'Budget limit reached' : 'Question';
+  let label = 'Question';
+  if (event.source === 'budget') {
+    label = 'Budget limit reached';
+  } else if (event.source === 'plan_proposal') {
+    label = 'Plan proposal';
+  }
 
   return (
     <ActivityLine

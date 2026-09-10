@@ -72,6 +72,9 @@ export const planCapability = definePack<PlanCapabilityPorts, Record<string, unk
       blockDirectSave: () => ctx.ports.isPlanRunMode?.() === true,
     }),
     notes: async () => {
+      if (ctx.ports.isPlanRunMode?.() === true) {
+        return [];
+      }
       let plan: PlanSnapshot | null = null;
       try {
         plan = await ctx.ports.plan.get(ctx.scope);

@@ -1,6 +1,6 @@
 import type { ThreadRecord, ThreadSummary } from '../../../shared/types.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
-import type { Thread } from '../../domain/thread.port.ts';
+import type { Thread, ThreadRunMode } from '../../domain/thread.port.ts';
 
 export function requireThread(threads: ThreadRecord[], id: string): ThreadRecord {
   const found = threads.find((item) => item.id === id);
@@ -32,6 +32,26 @@ export function pinnedFields(thread: Pick<Thread, 'metadata'>): { pinned: boolea
   };
 }
 
+function isThreadRunMode(value: string): value is ThreadRunMode {
+  return (
+    value === 'ask' ||
+    value === 'auto' ||
+    value === 'dont_ask' ||
+    value === 'bypass' ||
+    value === 'plan'
+  );
+}
+
+export function runModeFields(thread: Pick<Thread, 'metadata'>): { runMode?: ThreadRunMode } {
+  const meta = thread.metadata;
+  const mode =
+    typeof meta === 'object' && meta !== null ? (meta as { runMode?: unknown }).runMode : undefined;
+  if (typeof mode === 'string' && isThreadRunMode(mode)) {
+    return { runMode: mode };
+  }
+  return {};
+}
+
 export function toSummary(thread: ThreadRecord): ThreadSummary {
   return {
     id: thread.id,
@@ -49,5 +69,6 @@ export function toSummary(thread: ThreadRecord): ThreadSummary {
     lastReadAt: thread.lastReadAt,
     unread: thread.unread,
     pinned: thread.pinned,
+    runMode: thread.runMode,
   };
 }

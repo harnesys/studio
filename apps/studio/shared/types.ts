@@ -90,6 +90,11 @@ export type {
   UpsertKnowledgeRootRequest,
   UpsertKnowledgeSettingsRequest,
 } from './knowledge.ts';
+export {
+  extractPlanModePrompt,
+  hasPlanModePrompt,
+  visiblePlanModeText,
+} from './plan-mode-prompt.ts';
 export type {
   ImportProvidersRequest,
   ImportProvidersSummary,

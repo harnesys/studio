@@ -2,7 +2,7 @@ import type { ThreadSummary } from '../../../shared/types.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-import { pinnedFields, readFields } from './thread.helpers.ts';
+import { pinnedFields, readFields, runModeFields } from './thread.helpers.ts';
 
 export type ListThreadsRequest = {
   workspaceId?: string;
@@ -46,6 +46,7 @@ export class ListThreadsUseCase implements ListThreadsInput {
           updatedAt: t.updatedAt,
           ...readFields(t),
           ...pinnedFields(t),
+          ...runModeFields(t),
         };
       }),
     );

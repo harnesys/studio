@@ -22,7 +22,7 @@ export function parseTerminalDetail(
 }
 
 export function isHttpOutput(obj: JsonObject | undefined): boolean {
-  return obj !== undefined && has(obj, 'status') && has(obj, 'ok');
+  return obj !== undefined && typeof obj.status === 'number' && has(obj, 'ok');
 }
 
 export function parseHttpDetail(

@@ -47,7 +47,8 @@ export function PlanApplyBar() {
         <div className="flex flex-col gap-0.5 px-3 pt-2.5">
           <p className="font-medium text-sm">Plan saved</p>
           <p className="text-[11px] text-muted-foreground">
-            Apply switches to Ask mode and starts execution. Cancel keeps the plan in the Inspector.
+            Apply switches to Edit automatically and starts the plan. Cancel keeps it in the
+            Inspector.
           </p>
         </div>
         <InputGroupAddon align="block-end" className="justify-end gap-1 px-2 pb-2">

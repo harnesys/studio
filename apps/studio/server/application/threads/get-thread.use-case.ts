@@ -5,7 +5,7 @@ import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { activeRunOf } from './active-run-record.ts';
 import { cutParentEvents } from './fork-logs.ts';
-import { pinnedFields, readFields } from './thread.helpers.ts';
+import { pinnedFields, readFields, runModeFields } from './thread.helpers.ts';
 
 export type GetThreadRequest = {
   id: string;
@@ -56,6 +56,7 @@ export class GetThreadUseCase implements GetThreadInput {
       updatedAt: thread.updatedAt,
       ...readFields(thread),
       ...pinnedFields(thread),
+      ...runModeFields(thread),
       events: [...inherited, ...events],
       activeRun: activeRunOf(active),
     };

@@ -1,5 +1,11 @@
 import type { SessionEvent } from '@studio/shared';
-import { isScheduledHumanText, scheduledTaskName, visibleScheduledText } from '@studio/shared';
+import {
+  extractPlanModePrompt,
+  isScheduledHumanText,
+  scheduledTaskName,
+  visiblePlanModeText,
+  visibleScheduledText,
+} from '@studio/shared';
 import { AlertCircleIcon, CalendarClockIcon, RotateCcwIcon, TerminalIcon } from 'lucide-react';
 
 import { useLiveTail } from '@/entities/session';
@@ -25,6 +31,7 @@ import { CompactionMessageCard } from './compaction-card';
 import { FeedNotice } from './feed-notice';
 import { HandoffCard } from './handoff-card';
 import { MessageActions } from './message-actions';
+import { PlanModeBadge } from './plan-mode-badge';
 import { SpawnCard } from './spawn-card';
 import { ThinkingLine } from './thinking-line';
 
@@ -205,10 +212,13 @@ function TurnSegmentView({
     const tid = thread?.id ?? '';
     const atts = segment.event.attachments;
     const wake = isScheduleWakeEvent(segment.event);
+    const rawText = segment.event.text ?? '';
+    const planPrompt = extractPlanModePrompt(rawText);
+    const visibleText = visiblePlanModeText(rawText);
     return (
       <div className="flex flex-col items-end gap-2">
         {wake ? (
-          <ScheduleWakeBanner text={segment.event.text ?? ''} />
+          <ScheduleWakeBanner text={rawText} />
         ) : (
           <>
             {atts?.length ? (
@@ -218,9 +228,10 @@ function TurnSegmentView({
                 ))}
               </div>
             ) : null}
-            {segment.event.text ? (
+            {planPrompt ? <PlanModeBadge prompt={planPrompt} /> : null}
+            {visibleText ? (
               <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3.5 py-1.5 text-secondary-foreground shadow-xs">
-                {segment.event.text}
+                {visibleText}
               </div>
             ) : null}
           </>

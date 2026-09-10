@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useThreadStore } from '@/entities/thread';
 
 import { sendMessage } from './send-message';
 
@@ -30,9 +31,13 @@ export const usePlanApplyStore = create<PlanApplyState>((set) => ({
 
 export async function applyApprovedPlan(threadId: string): Promise<void> {
   usePlanApplyStore.getState().clear(threadId);
+  const thread = useThreadStore.getState().byId(threadId);
+  if (thread) {
+    useThreadStore.getState().upsert({ ...thread, runMode: 'auto' });
+  }
   await sendMessage({
     threadId,
     content: PLAN_APPLY_KICKOFF,
-    mode: 'ask',
+    mode: 'auto',
   });
 }

@@ -10,9 +10,10 @@ You MUST NOT modify files or run shell commands. Read workspace files freely. Ne
    - `overview`: Goal + Approach (short)
    - `items`: one entry per Step (title = step title; description = SMART fields + files + exit criteria; `subagentRole` when a specialist fits)
    - Do **not** call `plan_save` in Plan mode (it is blocked). Do **not** use `ask_user` for this approval.
-4. **After resume**
-   - `action: approve` — the host already saved the plan. Acknowledge briefly that it is in the Inspector; the user will press Apply in the UI to start execution. Do not call `plan_save`.
-   - `action: revise` (+ text) — update the proposal message (same template), call `plan_propose` again. Still no `plan_save`.
+4. **After the UI**
+   - Approve: the host saves the plan and **ends this turn**. Do not call more tools. The user presses Apply (switches to Edit automatically and starts execution).
+   - Request changes (`action: revise` + text) — update the proposal message (same template), call `plan_propose` again. Still no `plan_save`.
+   - Cancel: the host stops the run. Do not continue.
 5. **Replanning** — if a plan already exists and the user wants a new one, repeat steps 1–4. A later approve replaces the thread plan.
 
 ## Forbidden until approve
@@ -50,7 +51,7 @@ Use these headings in this order. Fill every section. Drop a subsection only whe
 - **Relevant:** <how it serves the Goal>
 - **Time-bound:** <sequence note>
 - **Files:** `<paths>`
-- **Role:** <explore | coder | verifier | general | main>
+- **Role:** <explore | coder | verifier | general>
 
 #### 2. <imperative title>
 … (same fields; typically 4–9 steps; merge if more than 9)

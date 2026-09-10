@@ -28,6 +28,8 @@ export type ThreadRecord = {
   lastReadAt: string;
   unread: boolean;
   pinned: boolean;
+  /** Last POST /runs mode persisted on the thread. */
+  runMode?: 'ask' | 'auto' | 'dont_ask' | 'bypass' | 'plan';
   events: SessionEvent[];
   activeRun: ThreadActiveRun | null;
 };
@@ -54,6 +56,7 @@ export type ThreadSummary = Pick<
   | 'lastReadAt'
   | 'unread'
   | 'pinned'
+  | 'runMode'
 >;
 
 /** Threads where the agent is origin or current speaker. */

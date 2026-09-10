@@ -25,7 +25,7 @@ export type CreatePlanToolsParams = {
 type PlanBodyItem = {
   title: string;
   description: string;
-  subagentRole?: SubagentRole;
+  subagentRole?: SubagentRole | 'main';
 };
 
 type PlanBodyInput = {
@@ -53,8 +53,9 @@ const PLAN_BODY_INPUT = {
           },
           subagentRole: {
             type: 'string',
-            enum: ['explore', 'coder', 'verifier', 'general'],
-            description: 'Optional recommended subagent role for this task',
+            enum: ['explore', 'coder', 'verifier', 'general', 'main'],
+            description:
+              'Optional recommended subagent role. `main` is stored as general (the parent agent).',
           },
         },
         required: ['title', 'description'],
@@ -85,7 +86,7 @@ function toSaveItems(items: PlanBodyItem[]): PlanSaveItemInput[] {
   return items.map((item) => ({
     title: item.title,
     description: item.description,
-    subagentRole: item.subagentRole,
+    subagentRole: item.subagentRole === 'main' ? 'general' : item.subagentRole,
   }));
 }
 

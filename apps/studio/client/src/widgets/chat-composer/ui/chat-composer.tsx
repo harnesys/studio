@@ -13,7 +13,7 @@ import { Button } from '@/shared/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from '@/shared/ui/input-group';
 import { addComposerFiles } from '../model/add-composer-files';
 import { agentEfforts, agentModelVerified, selectedEffort } from '../model/agent-effort';
-import { type ComposerMode, runnableMode } from '../model/composer-mode';
+import { type ComposerMode, isComposerMode, runnableMode } from '../model/composer-mode';
 import { filesFromClipboard } from '../model/composer-send';
 import { executeComposerSlash, submitComposer } from '../model/composer-submit';
 import {
@@ -85,8 +85,13 @@ export function ChatComposer() {
   const canSend = value.trim().length > 0 || pending.length > 0;
   let placeholder = 'Select an agent to start a thread';
   if (hitl) {
-    placeholder =
-      hitl.source === 'ask_user' ? 'Answer the prompt above…' : 'Allow or deny the tool above…';
+    if (hitl.source === 'plan_proposal') {
+      placeholder = 'Approve or request changes above…';
+    } else if (hitl.source === 'ask_user') {
+      placeholder = 'Answer the prompt above…';
+    } else {
+      placeholder = 'Allow or deny the tool above…';
+    }
   } else if (streaming) {
     placeholder = 'Agent is thinking…';
   } else if (agent) {
@@ -103,8 +108,12 @@ export function ChatComposer() {
   useEffect(() => {
     if (scheduleMode) {
       setMode(scheduleMode);
+      return;
     }
-  }, [thread?.id, scheduleMode]);
+    if (thread?.runMode && isComposerMode(thread.runMode)) {
+      setMode(thread.runMode);
+    }
+  }, [thread?.id, thread?.runMode, scheduleMode]);
 
   useEffect(() => {
     setSlashIndex(0);

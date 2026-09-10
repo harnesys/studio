@@ -16,6 +16,7 @@ export function toClientThread(record: ThreadSummary | ThreadRecord): Thread {
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     unread: record.unread,
+    runMode: record.runMode,
     activeRunId: 'activeRun' in record ? (record.activeRun?.runId ?? null) : null,
   };
 }

@@ -14,7 +14,7 @@ import type {
   RunLifecycleStore,
   RuntimeHandle,
 } from 'harnesys';
-import { askUser, createRuntime, normalizePackAssignment } from 'harnesys';
+import { askUser, createRuntime, type Logger, normalizePackAssignment } from 'harnesys';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
@@ -35,6 +35,7 @@ export type WorkspaceRuntimeWiring = {
   feed: RunEventFeed;
   claimer: RunClaimer;
   instanceId: string;
+  logger?: Logger;
 };
 
 export class WorkspaceHarnesysRegistry {

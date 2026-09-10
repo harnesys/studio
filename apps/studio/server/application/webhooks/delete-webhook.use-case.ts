@@ -1,3 +1,4 @@
+import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
 import type { AttachmentsPort } from '../../domain/attachments.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
@@ -22,6 +23,7 @@ export type DeleteWebhookDeps = {
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
   deskEvents: DeskEventsPort;
+  db?: StudioDb;
 };
 
 export class DeleteWebhookUseCase implements DeleteWebhookInput {
@@ -31,6 +33,7 @@ export class DeleteWebhookUseCase implements DeleteWebhookInput {
   private readonly attachments: AttachmentRepository;
   private readonly attachmentsFs: AttachmentsPort;
   private readonly deskEvents: DeskEventsPort;
+  private readonly db?: StudioDb;
 
   constructor(deps: DeleteWebhookDeps) {
     this.webhooks = deps.webhooks;
@@ -39,6 +42,7 @@ export class DeleteWebhookUseCase implements DeleteWebhookInput {
     this.attachments = deps.attachments;
     this.attachmentsFs = deps.attachmentsFs;
     this.deskEvents = deps.deskEvents;
+    this.db = deps.db;
   }
 
   async execute(request: DeleteWebhookRequest): Promise<void> {
@@ -53,15 +57,28 @@ export class DeleteWebhookUseCase implements DeleteWebhookInput {
     }
 
     const thread = this.threads.findById(webhook.threadId);
-    if (thread?.kind === 'webhook') {
-      const attachmentIds = this.attachments.listByThread(thread.id).map((a) => a.id);
-      this.threads.delete(thread.id);
-      if (attachmentIds.length > 0) {
-        await this.attachmentsFs.remove(workspace.path, thread.id, attachmentIds);
+    const ownedThreadId = thread?.kind === 'webhook' ? thread.id : null;
+    const attachmentIds = ownedThreadId
+      ? this.attachments.listByThread(ownedThreadId).map((row) => row.id)
+      : [];
+
+    const perform = () => {
+      this.webhooks.delete(webhook.id);
+      if (ownedThreadId) {
+        this.threads.delete(ownedThreadId);
       }
+    };
+
+    if (this.db) {
+      this.db.transaction(perform);
+    } else {
+      perform();
     }
 
-    this.webhooks.delete(webhook.id);
     this.deskEvents.emit(request.workspaceId, { type: 'webhook-deleted', id: webhook.id });
+
+    if (ownedThreadId && attachmentIds.length > 0) {
+      await this.attachmentsFs.remove(workspace.path, ownedThreadId, attachmentIds);
+    }
   }
 }

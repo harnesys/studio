@@ -1,19 +1,16 @@
 import type { SessionEvent, SessionEventType } from '@studio/shared';
 import { create } from 'zustand';
 
+import { applyIncomingEvents } from './apply-incoming';
+import { coalesceStreamDeltas } from './coalesce-events';
+import { ceilFromEvents, eventKey, fillSeenAt, stableKeys } from './event-keys';
 import {
-  coalesceStreamDeltas,
-  mergeDeltaContinuation,
-  mergeIncomingEvent,
-} from './coalesce-events';
-import {
-  bumpCeil,
-  ceilFromEvents,
-  eventKey,
-  fillSeenAt,
-  stableEventKey,
-  stableKeys,
-} from './event-keys';
+  dropPendingThreads,
+  enqueuePending,
+  hasPending,
+  schedulePendingFrame,
+  takePending,
+} from './pending-appends';
 
 export type ActiveRun = {
   runId: string;
@@ -56,12 +53,18 @@ type SessionStoreActions = {
 
 const EMPTY_EVENTS: SessionEvent[] = [];
 
-/** Throttle read-sync epoch bumps during token spam. */
+/** UI-подписка на лог: дельты не чаще этого интервала, остальные кадры сразу. */
 const EPOCH_DELTA_MS = 400;
 const lastEpochBump: Record<string, number> = {};
 
 function isStreamDeltaType(type: SessionEventType): boolean {
   return type === 'text-delta' || type === 'reasoning-delta';
+}
+
+function bumpEpoch(state: SessionStoreState, threadId: string): Record<string, number> {
+  const now = Date.now();
+  lastEpochBump[threadId] = now;
+  return { ...state.contentEpoch, [threadId]: now };
 }
 
 function nextEpoch(
@@ -76,245 +79,257 @@ function nextEpoch(
       return state.contentEpoch;
     }
   }
-  lastEpochBump[threadId] = now;
-  return { ...state.contentEpoch, [threadId]: now };
+  return bumpEpoch(state, threadId);
 }
 
-export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => ({
-  events: {},
-  seenAt: {},
-  seqCeil: {},
-  activeRuns: {},
-  failures: [],
-  contentEpoch: {},
-
-  eventsOf(threadId: string) {
-    return get().events[threadId] ?? EMPTY_EVENTS;
-  },
-
-  replaceEvents(threadId, events) {
-    const coalesced = coalesceStreamDeltas(events);
-    const now = Date.now();
-    set((state) => ({
-      events: { ...state.events, [threadId]: coalesced },
-      seenAt: fillSeenAt(state.seenAt, threadId, stableKeys(coalesced), now),
-      seqCeil: { ...state.seqCeil, [threadId]: ceilFromEvents(events) },
-      contentEpoch: { ...state.contentEpoch, [threadId]: now },
-    }));
-  },
-
-  reconcileEvents(threadId, serverEvents) {
-    const now = Date.now();
-    set((state) => {
-      const existing = state.events[threadId] ?? EMPTY_EVENTS;
-      // Слияние по ключу сохраняет порядок вставки: позицию держит первое
-      // вхождение (optimistic или live), серверная строка подменяет значение.
-      // Delta-слот якорится seq первого токена блока, поэтому блоки с
-      // переиспользованным id (txt-0) не схлопываются в один.
-      const byKey = new Map<string, SessionEvent>();
-      for (const ev of existing) {
-        byKey.set(eventKey(ev), ev);
-      }
-      // Полный серверный лог — источник правды: delta-слоты уже склеены,
-      // подмена по ключу, без конкатенации с live-копией (иначе удвоение текста).
-      const serverCoalesced = coalesceStreamDeltas(serverEvents);
-      for (const ev of serverCoalesced) {
-        byKey.set(eventKey(ev), ev);
-      }
-      const merged = [...byKey.values()];
-      const ceil = ceilFromEvents(serverEvents);
-      const prevCeil = state.seqCeil[threadId] ?? {};
-      for (const [runId, seq] of Object.entries(prevCeil)) {
-        ceil[runId] = Math.max(ceil[runId] ?? 0, seq);
-      }
-      return {
-        events: { ...state.events, [threadId]: merged },
-        seenAt: fillSeenAt(state.seenAt, threadId, stableKeys(merged), now),
-        seqCeil: { ...state.seqCeil, [threadId]: ceil },
-        contentEpoch: { ...state.contentEpoch, [threadId]: now },
-      };
-    });
-  },
-
-  appendEvent(threadId, event) {
-    const now = Date.now();
-    set((state) => {
-      const current = state.events[threadId] ?? [];
-      // Контракт фида — at-least-once; устаревший повтор кадра того же рана
-      // не должен ни склеиваться в слот, ни открывать новый.
-      if (
-        event.runId !== undefined &&
-        event.seq !== undefined &&
-        event.seq <= (state.seqCeil[threadId]?.[event.runId] ?? 0)
-      ) {
-        return state;
-      }
-      const seenKey = stableEventKey(event);
-      const seenAt = fillSeenAt(
-        state.seenAt,
-        threadId,
-        seenKey === undefined ? [] : [seenKey],
-        now,
-      );
-      const seqCeil = bumpCeil(state.seqCeil, threadId, event);
-      const tail = current.length > 0 ? current[current.length - 1] : undefined;
-      // Дельта продлевает только хвостовой слот. Новый блок с переиспользованным
-      // id (следующий шаг генерации) открывает свой слот в конце ленты,
-      // а не уезжает в старый — из-за этого текст и «прокидывался наверх».
-      if (tail !== undefined && isStreamDeltaType(event.type)) {
-        const merged = mergeDeltaContinuation(tail, event);
-        const next = merged !== null ? [...current.slice(0, -1), merged] : [...current, event];
-        return {
-          events: { ...state.events, [threadId]: next },
-          seenAt,
-          seqCeil,
-          contentEpoch: nextEpoch(state, threadId, event.type),
-        };
-      }
-      const key = eventKey(event);
-      const index = current.findIndex((ev) => eventKey(ev) === key);
-      if (index === -1) {
-        return {
-          events: { ...state.events, [threadId]: [...current, event] },
-          seenAt,
-          seqCeil,
-          contentEpoch: nextEpoch(state, threadId, event.type),
-        };
-      }
-      const next = [...current];
-      next[index] = mergeIncomingEvent(current[index], event);
-      return {
-        events: { ...state.events, [threadId]: next },
-        seenAt,
-        seqCeil,
-        contentEpoch: nextEpoch(state, threadId, event.type),
-      };
-    });
-  },
-
-  removeEventByClientEventId(threadId, clientEventId) {
-    set((state) => {
-      const current = state.events[threadId];
-      if (current === undefined) {
-        return state;
-      }
-      const key = `ce:${clientEventId}`;
-      const next = current.filter((ev) => eventKey(ev) !== key);
-      if (next.length === current.length) {
-        return state;
-      }
-      const threadSeen = state.seenAt[threadId];
-      if (threadSeen?.[key] === undefined) {
-        return {
-          events: { ...state.events, [threadId]: next },
-          contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
-        };
-      }
-      const { [key]: _removed, ...restSeen } = threadSeen;
-      return {
-        events: { ...state.events, [threadId]: next },
-        seenAt: { ...state.seenAt, [threadId]: restSeen },
-        contentEpoch: { ...state.contentEpoch, [threadId]: Date.now() },
-      };
-    });
-  },
-
-  startRun(threadId, controller, runId) {
-    set((state) => ({
-      activeRuns: {
-        ...state.activeRuns,
-        [threadId]: { runId: runId ?? '', controller },
+function applyBatches(
+  state: SessionStoreState,
+  batches: Map<string, SessionEvent[]>,
+): SessionStoreState {
+  if (batches.size === 0) {
+    return state;
+  }
+  const now = Date.now();
+  let next = state;
+  for (const [threadId, incoming] of batches) {
+    const result = applyIncomingEvents(
+      {
+        events: next.events[threadId] ?? EMPTY_EVENTS,
+        seenAt: next.seenAt[threadId] ?? {},
+        seqCeil: next.seqCeil[threadId] ?? {},
       },
-    }));
-  },
-
-  finishRun(threadId, runId) {
-    set((state) => {
-      const active = state.activeRuns[threadId];
-      if (!active) {
-        return state;
-      }
-      if (runId && active.runId && active.runId !== runId) {
-        return state;
-      }
-      const { [threadId]: _, ...rest } = state.activeRuns;
-      return { activeRuns: rest };
-    });
-  },
-
-  abortRun(threadId) {
-    const active = get().activeRuns[threadId];
-    if (active) {
-      active.controller.abort();
+      incoming,
+      now,
+    );
+    if (result.accepted === 0) {
+      continue;
     }
-    set((state) => {
-      const { [threadId]: _, ...rest } = state.activeRuns;
-      return { activeRuns: rest };
-    });
-  },
+    const contentEpoch = result.immediateEpoch
+      ? bumpEpoch(next, threadId)
+      : nextEpoch(next, threadId, 'text-delta');
+    next = {
+      ...next,
+      events: { ...next.events, [threadId]: result.events },
+      seenAt: { ...next.seenAt, [threadId]: result.seenAt },
+      seqCeil: { ...next.seqCeil, [threadId]: result.seqCeil },
+      contentEpoch,
+    };
+  }
+  return next;
+}
 
-  setRunId(threadId, runId) {
-    set((state) => {
-      const active = state.activeRuns[threadId];
-      if (!active) {
-        return state;
+export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => {
+  const flushPending = () => {
+    if (!hasPending()) {
+      return;
+    }
+    set((state) => applyBatches(state, takePending()));
+  };
+
+  return {
+    events: {},
+    seenAt: {},
+    seqCeil: {},
+    activeRuns: {},
+    failures: [],
+    contentEpoch: {},
+
+    eventsOf(threadId: string) {
+      return get().events[threadId] ?? EMPTY_EVENTS;
+    },
+
+    replaceEvents(threadId, events) {
+      const coalesced = coalesceStreamDeltas(events);
+      const now = Date.now();
+      set((state) => {
+        const base = applyBatches(state, takePending());
+        return {
+          events: { ...base.events, [threadId]: coalesced },
+          seenAt: fillSeenAt(base.seenAt, threadId, stableKeys(coalesced), now),
+          seqCeil: { ...base.seqCeil, [threadId]: ceilFromEvents(events) },
+          contentEpoch: { ...base.contentEpoch, [threadId]: now },
+        };
+      });
+    },
+
+    reconcileEvents(threadId, serverEvents) {
+      const now = Date.now();
+      set((state) => {
+        const base = applyBatches(state, takePending());
+        const existing = base.events[threadId] ?? EMPTY_EVENTS;
+        // Слияние по ключу сохраняет порядок вставки: позицию держит первое
+        // вхождение (optimistic или live), серверная строка подменяет значение.
+        // Delta-слот якорится seq первого токена блока, поэтому блоки с
+        // переиспользованным id (txt-0) не схлопываются в один.
+        const byKey = new Map<string, SessionEvent>();
+        for (const ev of existing) {
+          byKey.set(eventKey(ev), ev);
+        }
+        // Полный серверный лог — источник правды: delta-слоты уже склеены,
+        // подмена по ключу, без конкатенации с live-копией (иначе удвоение текста).
+        const serverCoalesced = coalesceStreamDeltas(serverEvents);
+        for (const ev of serverCoalesced) {
+          byKey.set(eventKey(ev), ev);
+        }
+        const merged = [...byKey.values()];
+        const ceil = ceilFromEvents(serverEvents);
+        const prevCeil = base.seqCeil[threadId] ?? {};
+        for (const [runId, seq] of Object.entries(prevCeil)) {
+          ceil[runId] = Math.max(ceil[runId] ?? 0, seq);
+        }
+        return {
+          events: { ...base.events, [threadId]: merged },
+          seenAt: fillSeenAt(base.seenAt, threadId, stableKeys(merged), now),
+          seqCeil: { ...base.seqCeil, [threadId]: ceil },
+          contentEpoch: { ...base.contentEpoch, [threadId]: now },
+        };
+      });
+    },
+
+    appendEvent(threadId, event) {
+      enqueuePending(threadId, event);
+      if (isStreamDeltaType(event.type)) {
+        schedulePendingFrame(flushPending);
+        return;
       }
-      return {
+      flushPending();
+    },
+
+    removeEventByClientEventId(threadId, clientEventId) {
+      set((state) => {
+        const base = applyBatches(state, takePending());
+        const current = base.events[threadId];
+        if (current === undefined) {
+          return base;
+        }
+        const key = `ce:${clientEventId}`;
+        const next = current.filter((ev) => eventKey(ev) !== key);
+        if (next.length === current.length) {
+          return base;
+        }
+        const threadSeen = base.seenAt[threadId];
+        if (threadSeen?.[key] === undefined) {
+          return {
+            ...base,
+            events: { ...base.events, [threadId]: next },
+            contentEpoch: { ...base.contentEpoch, [threadId]: Date.now() },
+          };
+        }
+        const { [key]: _removed, ...restSeen } = threadSeen;
+        return {
+          ...base,
+          events: { ...base.events, [threadId]: next },
+          seenAt: { ...base.seenAt, [threadId]: restSeen },
+          contentEpoch: { ...base.contentEpoch, [threadId]: Date.now() },
+        };
+      });
+    },
+
+    startRun(threadId, controller, runId) {
+      set((state) => ({
         activeRuns: {
           ...state.activeRuns,
-          [threadId]: { ...active, runId },
+          [threadId]: { runId: runId ?? '', controller },
         },
-      };
-    });
-  },
-
-  runIdOf(threadId) {
-    return get().activeRuns[threadId]?.runId;
-  },
-
-  isStreaming(threadId) {
-    return Boolean(get().activeRuns[threadId]);
-  },
-
-  setFailure(failure) {
-    set((state) => ({
-      failures: [...state.failures.filter((item) => item.id !== failure.id), failure],
-    }));
-  },
-
-  removeForThreads(threadIds) {
-    set((state) => {
-      const events = { ...state.events };
-      const seenAt = { ...state.seenAt };
-      const seqCeil = { ...state.seqCeil };
-      const activeRuns = { ...state.activeRuns };
-      const contentEpoch = { ...state.contentEpoch };
-      for (const id of threadIds) {
-        delete events[id];
-        delete seenAt[id];
-        delete seqCeil[id];
-        delete activeRuns[id];
-        delete contentEpoch[id];
-        delete lastEpochBump[id];
-      }
-      return { events, seenAt, seqCeil, activeRuns, contentEpoch };
-    });
-  },
-
-  copyEvents(fromThreadId, toThreadId) {
-    const source = get().events[fromThreadId];
-    if (source) {
-      const sourceSeen = get().seenAt[fromThreadId];
-      const sourceCeil = get().seqCeil[fromThreadId];
-      set((state) => ({
-        events: { ...state.events, [toThreadId]: [...source] },
-        ...(sourceSeen === undefined
-          ? {}
-          : { seenAt: { ...state.seenAt, [toThreadId]: { ...sourceSeen } } }),
-        ...(sourceCeil === undefined
-          ? {}
-          : { seqCeil: { ...state.seqCeil, [toThreadId]: { ...sourceCeil } } }),
       }));
-    }
-  },
-}));
+    },
+
+    finishRun(threadId, runId) {
+      set((state) => {
+        const active = state.activeRuns[threadId];
+        if (!active) {
+          return state;
+        }
+        if (runId && active.runId && active.runId !== runId) {
+          return state;
+        }
+        const { [threadId]: _, ...rest } = state.activeRuns;
+        return { activeRuns: rest };
+      });
+    },
+
+    abortRun(threadId) {
+      const active = get().activeRuns[threadId];
+      if (active) {
+        active.controller.abort();
+      }
+      set((state) => {
+        const { [threadId]: _, ...rest } = state.activeRuns;
+        return { activeRuns: rest };
+      });
+    },
+
+    setRunId(threadId, runId) {
+      set((state) => {
+        const active = state.activeRuns[threadId];
+        if (!active) {
+          return state;
+        }
+        return {
+          activeRuns: {
+            ...state.activeRuns,
+            [threadId]: { ...active, runId },
+          },
+        };
+      });
+    },
+
+    runIdOf(threadId) {
+      return get().activeRuns[threadId]?.runId;
+    },
+
+    isStreaming(threadId) {
+      return Boolean(get().activeRuns[threadId]);
+    },
+
+    setFailure(failure) {
+      set((state) => ({
+        failures: [...state.failures.filter((item) => item.id !== failure.id), failure],
+      }));
+    },
+
+    removeForThreads(threadIds) {
+      dropPendingThreads(threadIds);
+      set((state) => {
+        const base = applyBatches(state, takePending());
+        const events = { ...base.events };
+        const seenAt = { ...base.seenAt };
+        const seqCeil = { ...base.seqCeil };
+        const activeRuns = { ...base.activeRuns };
+        const contentEpoch = { ...base.contentEpoch };
+        for (const id of threadIds) {
+          delete events[id];
+          delete seenAt[id];
+          delete seqCeil[id];
+          delete activeRuns[id];
+          delete contentEpoch[id];
+          delete lastEpochBump[id];
+        }
+        return { ...base, events, seenAt, seqCeil, activeRuns, contentEpoch };
+      });
+    },
+
+    copyEvents(fromThreadId, toThreadId) {
+      set((state) => {
+        const base = applyBatches(state, takePending());
+        const source = base.events[fromThreadId];
+        if (!source) {
+          return base;
+        }
+        const sourceSeen = base.seenAt[fromThreadId];
+        const sourceCeil = base.seqCeil[fromThreadId];
+        return {
+          ...base,
+          events: { ...base.events, [toThreadId]: [...source] },
+          ...(sourceSeen === undefined
+            ? {}
+            : { seenAt: { ...base.seenAt, [toThreadId]: { ...sourceSeen } } }),
+          ...(sourceCeil === undefined
+            ? {}
+            : { seqCeil: { ...base.seqCeil, [toThreadId]: { ...sourceCeil } } }),
+          contentEpoch: { ...base.contentEpoch, [toThreadId]: Date.now() },
+        };
+      });
+    },
+  };
+});

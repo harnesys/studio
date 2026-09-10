@@ -1,4 +1,5 @@
 import hljs from 'highlight.js/lib/common';
+import { memo } from 'react';
 import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
@@ -14,7 +15,7 @@ type MarkdownProps = {
   className?: string;
 };
 
-export function Markdown({ text, className }: MarkdownProps) {
+export const Markdown = memo(function Markdown({ text, className }: MarkdownProps) {
   return (
     <div className={cn('markdown px-1.5 text-foreground leading-[1.45]', className)}>
       <ReactMarkdown
@@ -26,7 +27,7 @@ export function Markdown({ text, className }: MarkdownProps) {
       </ReactMarkdown>
     </div>
   );
-}
+});
 
 const components: Components = {
   code({ className, children }) {

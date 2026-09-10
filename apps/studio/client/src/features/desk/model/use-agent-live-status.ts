@@ -17,7 +17,11 @@ export function useAgentLiveStatus(agentId: string): AgentStatus {
       if (isWaiting(events)) {
         return 'waiting';
       }
-      if (state.activeRuns[threadId] || hasRunningSession(events)) {
+      if (state.activeRuns[threadId]) {
+        running = true;
+        continue;
+      }
+      if (hasRunningSession(events)) {
         running = true;
       }
     }
@@ -49,6 +53,9 @@ const TERMINAL_EVENT_TYPES = new Set([
 function isWaiting(events: SessionEvent[]): boolean {
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i];
+    if (event.type === 'text-delta' || event.type === 'reasoning-delta') {
+      continue;
+    }
     if (TERMINAL_EVENT_TYPES.has(event.type)) {
       return false;
     }

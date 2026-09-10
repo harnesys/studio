@@ -1,5 +1,6 @@
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
+import { presentCallOutput, serializeToolOutput } from './clip-tool-output.ts';
 import { checkPermission } from './permissions.ts';
 import {
   clearCheckpoint,
@@ -48,20 +49,6 @@ function codeError(code: string, message: string): never {
   throw Object.assign(new Error(message), { code });
 }
 
-function serializeToolOutput(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (value == null) {
-    return '';
-  }
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
-}
-
 export async function runSingleToolCall(
   call: PreparedToolCall,
   ctx: ToolCallContext,
@@ -81,7 +68,7 @@ export async function runSingleToolCall(
   if (!validation.ok) {
     return {
       result: { id: call.id, name: call.name, result: validation.errors, isError: true },
-      message: message(serializeToolOutput(validation.errors)),
+      message: message(await presentCallOutput(ctx, call, validation.errors)),
     };
   }
   if (def.operations && ctx.permissions) {
@@ -154,7 +141,7 @@ export async function runSingleToolCall(
     }
     return {
       result: { id: call.id, name: call.name, result: value, isError: false },
-      message: message(serializeToolOutput(value)),
+      message: message(await presentCallOutput(ctx, call, value)),
     };
   } catch (e) {
     if ((e as { name?: string }).name === 'AbortError' || ctx.signal.aborted) {
@@ -231,7 +218,7 @@ export async function executeApproveBatch(
       toolMessages[idx] = buildToolMessage({
         toolCallId: call.id,
         name: call.name,
-        content: serializeToolOutput(result.result),
+        content: await presentCallOutput(ctx, call, result.result),
       });
     }
   }

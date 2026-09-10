@@ -86,7 +86,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
     tool('agents_create', {
       group: 'agents',
       description:
-        'Create an agent in this workspace. Returns { id, name }. Omit graph to let the host build a default ReAct graph. Call agents_list first to reuse an existing agent when possible.',
+        'Create an agent in this workspace. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
       input: {
         type: 'object',
         properties: {
@@ -110,7 +110,14 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           },
           budget: {
             type: 'object',
-            description: 'Optional run budget (maxSteps, maxTokens, deadlineMs, policy)',
+            description:
+              'Run budget. Default ReAct is cyclic: omit graph+budget and the host stores { maxSteps: 50, policy: "ask" }. policy is ask|error.',
+            properties: {
+              maxSteps: { type: 'integer', minimum: 1 },
+              maxTokens: { type: 'integer', minimum: 1 },
+              deadlineMs: { type: 'integer', minimum: 1 },
+              policy: { type: 'string', enum: ['ask', 'error'] },
+            },
           },
           packs: {
             type: 'object',

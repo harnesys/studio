@@ -1,4 +1,5 @@
 import type { SessionEvent } from '@studio/shared';
+import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/entities/agent';
 import { useScheduleStore } from '@/entities/schedule';
@@ -35,9 +36,13 @@ export function useAgentThreads(agentId: string | null) {
 }
 
 export function useThreadEvents(threadId: string | null) {
-  return useSessionStore(
-    useShallow((state) => (threadId ? (state.events[threadId] ?? EMPTY_EVENTS) : EMPTY_EVENTS)),
-  );
+  const epoch = useSessionStore((state) => (threadId ? (state.contentEpoch[threadId] ?? 0) : 0));
+  return useMemo(() => {
+    if (!threadId) {
+      return EMPTY_EVENTS;
+    }
+    return useSessionStore.getState().events[threadId] ?? EMPTY_EVENTS;
+  }, [threadId, epoch]);
 }
 
 export function useWorkspaceSchedules(workspaceId: string | null) {

@@ -1,6 +1,7 @@
 import type { Attachment } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Event } from '../domain/snapshot.ts';
+import { CONSOLE_LOGGER } from '../ports/logger.ts';
 import { RUN_NON_TERMINAL } from '../ports/run-lifecycle-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
 import { compileOrThrow } from './compile.ts';
@@ -39,6 +40,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
   const leaseTtl = deps.leaseTtlMs ?? 15_000;
   const renewMs = deps.renewMs ?? 5_000;
   const active: Set<RunRuntime> = new Set();
+  const runLogger = deps.logger ?? CONSOLE_LOGGER;
   /** Built pack outputs per runId. First segment builds via `create`; later
    *  segments (`respond`) reuse the map so stateful `create` runs once per run. */
   const packCache = new Map<string, PackRunMap>();
@@ -160,6 +162,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
               cached,
               runRegistry,
               fsSkills: opts.skills ?? deps.skills,
+              logger: runLogger,
             });
           } else {
             packOutputs = attachPackRun({
@@ -167,6 +170,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
               registrations: opts.packs ?? deps.packRegistrations ?? [],
               runRegistry,
               fsSkills: opts.skills ?? deps.skills,
+              logger: runLogger,
             });
             packCache.set(runId, packOutputs);
           }
@@ -197,6 +201,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           resumePayload: answer?.payload,
           resumeInterruptId: answer?.interruptId,
           childJournal,
+          logger: runLogger,
         };
       } catch (err) {
         if (env.isLeaseLost() || (err as { code?: string }).code === 'lease_stale') {

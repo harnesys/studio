@@ -1,16 +1,18 @@
-import { env } from './config/env.ts';
+import { logger } from './config/logger.ts';
 
-/** Temporary run diagnostics. Remove after the chat/SSE flow is stable. */
+/** Run diagnostics: always lands in the NDJSON log file, console level decides visibility. */
 export function trace(scope: string, message: string, extra?: unknown): void {
-  if (!env.trace) {
-    return;
-  }
-  const line = `[harnesys:trace] ${new Date().toISOString()} ${scope} ${message}`;
   if (extra === undefined) {
-    console.log(line);
+    logger.trace({ scope }, message);
     return;
   }
-  console.log(line, extra);
+  const bindings: Record<string, unknown> = { scope };
+  if (typeof extra === 'object' && extra !== null) {
+    Object.assign(bindings, extra);
+  } else {
+    bindings.detail = extra;
+  }
+  logger.trace(bindings, message);
 }
 
 export function preview(value: unknown, limit = 240): string {

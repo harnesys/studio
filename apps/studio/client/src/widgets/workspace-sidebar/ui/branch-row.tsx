@@ -22,7 +22,7 @@ export function BranchRow({
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
         <span className="flex items-center gap-1.5">
-          <GitBranchIcon className="size-3.5" />
+          <GitBranchIcon className="size-3" />
           <span className="truncate">{name}</span>
           {current ? <span className="text-muted-foreground text-xs">(current)</span> : null}
         </span>

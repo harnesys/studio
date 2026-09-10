@@ -1,4 +1,5 @@
 import type { RunEventFeed, RunLifecycleStore } from 'harnesys';
+import { logger } from '../../config/logger.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
@@ -37,8 +38,9 @@ function persistHandoffCurrent(
   agentId: string,
 ): void {
   void applyHandoff(deps, runId, agentId).catch((error: unknown) => {
-    console.warn(
-      `[handoff] persist current agent failed: ${error instanceof Error ? error.message : String(error)}`,
+    logger.warn(
+      { scope: 'handoff' },
+      `persist current agent failed: ${error instanceof Error ? error.message : String(error)}`,
     );
   });
 }
@@ -61,7 +63,7 @@ async function applyHandoff(
   }
   const agent = deps.agents.findById(agentId);
   if (!agent || agent.workspaceId !== thread.workspaceId) {
-    console.warn(`[handoff] agent not found: ${agentId}`);
+    logger.warn({ scope: 'handoff' }, `agent not found: ${agentId}`);
     return;
   }
   deps.threads.patch(thread.id, { agentId });

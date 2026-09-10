@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { serveStatic } from 'hono/bun';
 import { createStudio } from './composition/studio.ts';
 import { env } from './config/env.ts';
+import { logger } from './config/logger.ts';
 
 const app = createStudio();
 const dist = join(import.meta.dir, '..', 'client', 'dist');
@@ -17,4 +18,4 @@ export default {
   fetch: app.fetch,
 };
 
-console.log(`studio api http://127.0.0.1:${env.port} (idleTimeout=0)`);
+logger.info({ scope: 'boot' }, `studio api http://127.0.0.1:${env.port} (idleTimeout=0)`);

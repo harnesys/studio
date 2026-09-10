@@ -26,7 +26,7 @@ System skills live at `~/.harnesys/skills/` (folder/`SKILL.md` format). System s
 Before creating new agents:
 
 1. Inspect existing agents: `agents_list`
-2. Check declared capabilities: `capabilities` (`files`, `shell`, `fetch`, `agents`, `threads`, `plan`, `scheduler`, `webhook`, `memory/*`)
+2. Check declared capabilities: `capabilities` (`files`, `shell`, `fetch`, `agents`, `threads`, `plan`, `scheduler`, `webhook`, `episodic-memory`, `semantic-memory`, `knowledge-memory`, `pin-memory`)
 3. Check skills: `skills` array references registry skill names (from `~/.harnesys/skills/` and workspace `.harnesys/skills/`)
 4. Check budget: `maxSteps`, `maxTokens`, `deadlineMs`, `policy` (`ask` or `error`)
 5. Check graph: `graph.nodes` (must have exactly 1 `core:start`, at least 1 `core:end`), `graph.edges` (default edge must be last per `from`)
@@ -36,8 +36,8 @@ When creating new agents (`agents_create`):
 - Assign `capabilities` (enabled packs as `{}` or with `{ spec: {...} }`; disabled as `null`; omit for default)
 - Set `skills` array (skill names from registry)
 - Set `mcpServers` array (allowed server IDs from `.harnesys/mcp.json`)
-- Set `budget` for cyclic graphs (required when `graph` has cycles)
-- Provide custom `graph` if needed; otherwise host builds default ReAct graph
+- Omit `graph` to use the host default ReAct graph; the host then stores `budget: { maxSteps: 50, policy: "ask" }` if `budget` is omitted
+- For a custom cyclic graph, pass `budget.maxSteps` or `budget.deadlineMs`; `budget.policy` is `ask` or `error`
 
 ## Skill Registry Pattern
 Skills are loaded by `FsSkillRegistry` from two roots (system first, workspace second):
@@ -65,27 +65,27 @@ Capabilities are assigned to agents as `capabilities` record. Each pack provides
 - `plan`: `plan_save`, `plan_item_update`, `plan_get`
 - `scheduler`: `schedule_list`, `schedule_set`, `schedule_pause`, `schedule_delete`, `schedule_peek`
 - `webhook`: `webhook_list`, `webhook_set`, `webhook_delete`
-- `memory/episodic`: `recall_search`
-- `memory/knowledge`: `knowledge_search`, `knowledge_upsert`
-- `memory/pin`: `pin_set`, `pin_list`, `pin_remove`
-- `memory/semantic`: `semantic_search`, `semantic_upsert`
+- `episodic-memory`: `recall_search`
+- `knowledge-memory`: `knowledge_search`, `knowledge_read`
+- `pin-memory`: `pin_set`, `pin_list`, `pin_remove`
+- `semantic-memory`: `memory_write`, `memory_list`, `memory_delete`
 
 Values: `{}` = enabled (default spec); `{ spec: {...} }` = enabled with settings; `null` = disabled/omitted.
 
 ## Memory and Knowledge Pattern
 Memory capabilities build persistent workspace context:
 
-- `knowledge_upsert`: Add structured facts/files. Always include `content` and `source`.
-- `pin_set`: Create persistent rules visible to agents. Keep focused (max `maxItems` default 32). Use for conventions, forbidden patterns, budget policies.
-- `semantic_upsert`: Build vector memory index. Combine with `semantic_search` during agent runs.
-- `episodic_memory` (`recall_search`): Search past thread experience. Useful for recurring tasks.
+- `memory_write`: Store a curated semantic fact (`scope: session` or `long`).
+- `pin_set`: Persistent rules visible to agents. Keep focused (max `maxItems` default 32). Use for conventions, forbidden patterns, budget policies.
+- `knowledge_search` / `knowledge_read`: Search the indexed corpus, then read a hit by id. The index is built from knowledge roots, not from a write tool.
+- `recall_search`: Search past thread experience. Read-only.
 
-Always verify memory state after changes (`pin_list`, `knowledge_search`, `semantic_search`, `recall_search`).
+Always verify memory state after changes (`pin_list`, `memory_list`, `knowledge_search`, `recall_search`).
 
 ## Schedule Pattern
 Schedules (`scheduler` capability) manage periodic agent execution:
 
-- `schedule_set`: Create/update cron job. Fields: `targetAgentId`, `threadId` (`"self"` = wake current chat; UUID = specific thread; omit = new dedicated thread), `cron`, `mode` (`ask`/`error`), `history` (`none`/`last`/`all`), `historyLast`.
+- `schedule_set`: Create/update cron job. Fields: `targetAgentId`, `threadId` (`"self"` = this chat, fires after the current run is idle; UUID = specific thread; omit = new dedicated thread), `cron`, `mode` (`ask`/`auto`/`dont_ask`/`bypass`), `history` (`none`/`last`/`all`), `historyLast`. `nextRunAt` is the next cron instant, not create time.
 - `schedule_peek`: Read last fire results (run journal, agent messages, tool results, errors).
 - `schedule_pause`: Pause/resume by `id`.
 - `schedule_delete`: Remove obsolete schedules.
@@ -98,5 +98,5 @@ After any workspace change, inspect:
 1. `agents_list` — verify agents exist with correct `capabilities`, `skills`, `graph`
 2. `schedule_list` — verify schedules configured with correct `cron` and `targetAgentId`
 3. `plan_get` — verify execution plans if `plan` capability used
-4. `pin_list` / `knowledge_search` / `semantic_search` — verify memory state
+4. `pin_list` / `memory_list` / `knowledge_search` / `recall_search` — verify memory state
 5. `shell` or `read_file` — inspect `.harnesys/skills/` and workspace meta for file-level verification

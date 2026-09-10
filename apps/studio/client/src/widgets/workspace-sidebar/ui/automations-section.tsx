@@ -101,11 +101,11 @@ export function AutomationsAddMenu({ workspaceId, agents, onDone }: AutomationsA
     <SectionMenu label="Automations actions">
       <DropdownMenuGroup>
         <DropdownMenuItem onClick={createScheduler}>
-          <CalendarClockIcon />
+          <CalendarClockIcon className="size-3"/>
           New scheduler
         </DropdownMenuItem>
         <DropdownMenuItem onClick={createHook}>
-          <WebhookIcon />
+          <WebhookIcon className="size-3"/>
           New webhook
         </DropdownMenuItem>
       </DropdownMenuGroup>

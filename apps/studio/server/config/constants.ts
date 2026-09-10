@@ -11,6 +11,8 @@ export const ATTACHMENTS_DIR = 'attachments';
 /** Skills folder name under host home and under workspace meta. */
 export const SKILLS_DIR = 'skills';
 export const DB_FILE = 'studio.db';
+/** NDJSON trace logs: `<home>/logs/studio-YYYY-MM-DD.log`. */
+export const LOGS_DIR = 'logs';
 
 /** Limits */
 export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;

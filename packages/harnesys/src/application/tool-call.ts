@@ -1,8 +1,13 @@
-import type { ToolCallBatch, ToolCallFixed } from '../domain/agent-definition.ts';
+import type {
+  ToolCallBatch,
+  ToolCallFixed,
+  ToolOutputSettings,
+} from '../domain/agent-definition.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import { presentCallOutput } from './clip-tool-output.ts';
 import { evalExpr } from './expr-eval.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 import { executeApproveBatch, type PreparedToolCall, runSingleToolCall } from './tool-approve.ts';
@@ -44,6 +49,7 @@ export type ToolCallContext = {
   resumeInterruptId?: string;
   /** Дочерний ран: гейты отвечают deny вместо AskUserInterrupt. */
   sandbox?: boolean;
+  toolOutput?: ToolOutputSettings | null;
 };
 
 function codeError(code: string, message: string): never {
@@ -85,20 +91,6 @@ function getStateMessages(state: Record<string, unknown>, path?: string): unknow
   }
   const v = state[key];
   return Array.isArray(v) ? (v as unknown[]) : null;
-}
-
-function serializeRestoredOutput(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (value == null) {
-    return '';
-  }
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
 }
 
 export async function executeToolCall(
@@ -186,7 +178,7 @@ export async function executeToolCall(
       toolMessages[idx] = buildToolMessage({
         toolCallId: call.id,
         name: call.name,
-        content: serializeRestoredOutput(result.result),
+        content: await presentCallOutput(ctx, call, result.result),
       });
     }
   }

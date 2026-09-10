@@ -10,7 +10,11 @@ import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
+import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
+
+/** Default ReAct graph is cyclic; structural validate needs a step/deadline limit. */
+export const DEFAULT_REACT_BUDGET: AgentBudget = { maxSteps: 50, policy: 'ask' };
 
 export type CreateAgentRequest = {
   workspaceId: string;
@@ -67,7 +71,6 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const effort = request.effort?.trim() || null;
     const generation = request.generation ?? null;
     const toolOutput = request.toolOutput ?? null;
-    const budget = request.budget ?? null;
     const capabilities = request.capabilities ?? {};
     const compaction =
       request.compaction !== undefined ? request.compaction : defaultAgentCompaction();
@@ -75,6 +78,9 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const mcpServers = request.mcpServers ?? [];
     const tools = request.tools ?? [];
     const graph = request.graph !== undefined ? request.graph : buildReactGraph(tools);
+    const budget =
+      request.budget ??
+      (request.graph === undefined || isStockReactGraph(graph) ? DEFAULT_REACT_BUDGET : null);
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();

@@ -32,7 +32,9 @@ export function streamSse(
       try {
         for await (const ev of events) {
           count += 1;
-          trace('http', `sse write #${count} ${ev.type}`);
+          if (ev.type !== 'text-delta' && ev.type !== 'reasoning-delta') {
+            trace('http', `sse write #${count} ${ev.type}`);
+          }
           await stream.writeSSE({
             id: String(ev.seq ?? 0),
             event: ev.type,

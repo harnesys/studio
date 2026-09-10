@@ -11,6 +11,7 @@ import type { Command, RunResult } from '../domain/run-result.ts';
 import type { SkillSummary } from '../domain/skill.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from './artifacts.ts';
+import type { Logger } from './logger.ts';
 import type { CursorMcpJson, McpRegistry, McpServerInfo } from './mcp.ts';
 import type { ModelsPort, ProviderConfig } from './models.ts';
 import type { PathsConfig } from './paths.ts';
@@ -60,6 +61,8 @@ export type CreateRuntimeOptions = {
   claimer?: RunClaimer;
   instanceId?: string;
   targets?: RunTargets;
+  /** Host diagnostics sink; defaults to the library console logger. */
+  logger?: Logger;
 };
 
 export type RuntimeHandle = {

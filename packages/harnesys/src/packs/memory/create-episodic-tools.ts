@@ -25,7 +25,8 @@ export function createEpisodicTools(params: CreateEpisodicToolsParams): ToolDefi
   return [
     tool('recall_search', {
       group: 'memory',
-      description: 'Search past thread experience (episodic recall)',
+      description:
+        'Search past thread experience (episodic recall). Read-only. Store a fact with memory_write.',
       input: {
         type: 'object',
         properties: {

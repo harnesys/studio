@@ -26,7 +26,7 @@ schedule_peek <id>
 pin_list
 recall_search "query"
 knowledge_search "topic"
-semantic_search "concept"
+memory_list
 
 # Inspect workspace files
 list_dir <workspace-path>
@@ -48,17 +48,17 @@ For multi-agent tasks:
 ## Memory and Knowledge Building
 When building persistent workspace knowledge:
 
-- `knowledge_upsert`: Add files or URLs with structured facts. Each entry should include `content` and `source`. Use `plan_save` to structure the ingestion steps.
+- `memory_write`: Store a curated semantic fact (`scope: session` or `long`). Combine with `recall_search` during later runs.
 - `pin_set`: Add persistent rules visible to all agents (`budget` policies, naming conventions, forbidden patterns). Keep pins focused — max 32 items (`maxItems` setting).
-- `semantic_upsert`: Build conceptual index for recall. Combine with `recall_search` during agent execution.
-- `episodic_memory`: Search past thread experience. Useful when the same task recurs.
+- `knowledge_search` / `knowledge_read`: Search the indexed corpus, then read a hit by id. The index is built from knowledge roots.
+- `recall_search`: Search past thread experience. Read-only.
 
-Always verify memory state after changes (`pin_list`, `knowledge_search`, `semantic_search`).
+Always verify memory state after changes (`pin_list`, `memory_list`, `knowledge_search`, `recall_search`).
 
 ## Schedule Management Pattern
 For periodic or event-driven tasks:
 
-1. Create: `schedule_set` with `targetAgentId`, `threadId` (`"self"` to wake current chat, UUID for dedicated thread, omit for new isolated thread), `cron`, `history` (`none`/`last`/`all`), `historyLast`, and `mode` (`run` mode: `ask`/`error`).
+1. Create: `schedule_set` with `targetAgentId`, `threadId` (`"self"` = this chat after the current run is idle, UUID for a specific thread, omit for a new isolated thread), `cron`, `history` (`none`/`last`/`all`), `historyLast`, and `mode` (`ask`/`auto`/`dont_ask`/`bypass`). `nextRunAt` is the next cron instant, not create time.
 2. Monitor: `schedule_peek` to check last fire results (`runId`, `agentId`, events, errors).
 3. Pause/Resume: `schedule_pause` by `id`.
 4. Clean up: `schedule_delete` for obsolete schedules.
@@ -90,7 +90,7 @@ Every agent using a custom `graph` must follow these structural rules (validated
 3. Plan steps (`plan_save`)
 4. Execute: create/update agents with appropriate graphs and capabilities
 5. Configure skills (workspace-level or reference system skills by name in agent `skills` array)
-6. Build memory (`knowledge_upsert`, `pin_set`, `semantic_upsert`)
+6. Build memory (`memory_write`, `pin_set`)
 7. Configure schedules (`schedule_set`) if needed
 8. Verify (`agents_list`, `schedule_peek`, `pin_list`, `plan_get`, `shell` for file inspection)
 9. Report results with exact file paths and command outputs

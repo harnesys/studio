@@ -11,6 +11,7 @@ import { registerPack } from '../domain/pack.ts';
 import type { RunResult } from '../domain/run-result.ts';
 import { fetchCapability, filesCapability, shellCapability } from '../packs/base.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
+import { CONSOLE_LOGGER } from '../ports/logger.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
 import { check } from './check.ts';
 import { compile, compileOrThrow } from './compile.ts';
@@ -36,6 +37,7 @@ function isMcpRegistry(value: unknown): boolean {
 
 export async function createRuntime(options: CreateRuntimeOptions): Promise<RuntimeHandle> {
   const baseTools = [...(options.tools ?? [])];
+  const logger = options.logger ?? CONSOLE_LOGGER;
 
   // Base packs are always registered (R20: availability unconditional); a
   // host-supplied registration with the same pack name wins. Portless base
@@ -128,6 +130,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         runRegistry,
         fsSkills: options.skills,
         scopeFallback: stubScope,
+        logger,
       });
       return runGraph({
         agent: def,
@@ -145,6 +148,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         mergeState: options.mergeState,
         stream: options.stream,
         agents: options.agents,
+        logger,
       });
     },
     start: (agent, opts) => {
@@ -158,6 +162,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         runRegistry,
         fsSkills: options.skills,
         scopeFallback: stubScope,
+        logger,
       });
       return startGraph({
         agent: def,
@@ -175,6 +180,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         mergeState: options.mergeState,
         stream: options.stream,
         agents: options.agents,
+        logger,
       });
     },
     // Resume path removed with the journal-first engine: use SessionHandle.respond.

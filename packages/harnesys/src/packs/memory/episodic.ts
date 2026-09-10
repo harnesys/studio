@@ -27,7 +27,11 @@ export const episodicMemoryCapability = definePack<EpisodicMemoryPorts, Record<s
   },
   meta: {
     tools: [
-      { name: 'recall_search', description: 'Search past thread experience (episodic recall)' },
+      {
+        name: 'recall_search',
+        description:
+          'Search past thread experience (episodic recall). Read-only. Store a fact with memory_write.',
+      },
     ],
     skills: [],
     hasSettings: true,

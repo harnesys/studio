@@ -181,6 +181,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
             attachments: deps.attachments,
             attachmentsFs: deps.attachmentsFs,
             deskEvents: deps.deskEvents,
+            db: deps.db,
           }),
         }),
       },

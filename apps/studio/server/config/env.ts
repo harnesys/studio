@@ -26,5 +26,6 @@ export const env = {
   harnesysHome: process.env.HARNESYS_HOME?.trim() || undefined,
   bundledSkills: process.env.HARNESYS_BUNDLED_SKILLS?.trim() || undefined,
   STUDIO_INSTANCE_ID: process.env.STUDIO_INSTANCE_ID?.trim() || undefined,
-  trace: readBool(process.env.SERVER_TRACE, false),
+  /** Console verbosity switch: dev shows trace-level by default, SERVER_TRACE=0 quiets it. */
+  trace: readBool(process.env.SERVER_TRACE, true),
 } as const;

@@ -160,6 +160,7 @@ async function runOneChild(
     agents: parent.agents,
     stream: parent.stream,
     childJournal: parent.childJournal,
+    logger: parent.logger,
     // Песочница включается жёстко: вложенные спавны наследуют deny-режим,
     // флаг родителя не копируется.
     sandbox: true,

@@ -5,6 +5,7 @@ import type {
   PackRegistration,
   PackSkill,
 } from '../../domain/pack.ts';
+import { CONSOLE_LOGGER, type Logger } from '../../ports/logger.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import type { LlmNoteProvider } from '../llm-notes.ts';
@@ -43,10 +44,12 @@ function normalizeNotes(notes: LlmNoteProvider | LlmNoteProvider[] | undefined):
   return Array.isArray(notes) ? notes : [notes];
 }
 
-export function printPackDiagnostics(diagnostics: PackDiagnostic[]): void {
+export function printPackDiagnostics(
+  diagnostics: PackDiagnostic[],
+  logger: Logger = CONSOLE_LOGGER,
+): void {
   for (const d of diagnostics) {
-    // biome-ignore lint/suspicious/noConsole: no logger; diagnostics must reach run logs
-    console.warn(`[packs] ${d.code}: ${d.message}`);
+    logger.warn(`[packs] ${d.code}: ${d.message}`);
   }
 }
 
@@ -160,17 +163,21 @@ export function selectPackOutputs(
 export function attachPackTools(
   runRegistry: Map<string, ToolDefinition>,
   enabled: PackRunOutput[],
+  logger?: Logger,
 ): void {
   for (const out of enabled) {
     for (const t of out.tools) {
       if (runRegistry.has(t.name)) {
-        printPackDiagnostics([
-          {
-            severity: 'warning',
-            code: 'pack_tool_collision',
-            message: `pack "${out.reg.pack.name}" tool "${t.name}" collides with an existing tool and was dropped`,
-          },
-        ]);
+        printPackDiagnostics(
+          [
+            {
+              severity: 'warning',
+              code: 'pack_tool_collision',
+              message: `pack "${out.reg.pack.name}" tool "${t.name}" collides with an existing tool and was dropped`,
+            },
+          ],
+          logger,
+        );
         continue;
       }
       runRegistry.set(t.name, t);
@@ -184,6 +191,7 @@ export type AttachPackRunInput = {
   runRegistry: Map<string, ToolDefinition>;
   fsSkills?: SkillRegistry;
   scopeFallback?: () => CapabilityScope;
+  logger?: Logger;
 };
 
 /** Build memoized pack outputs for a run, register their tools, and register
@@ -194,8 +202,8 @@ export function attachPackRun(input: AttachPackRunInput): PackRunMap {
     input.registrations,
     input.scopeFallback ?? fallbackScope,
   );
-  printPackDiagnostics(diagnostics);
-  attachPackTools(input.runRegistry, enabled);
+  printPackDiagnostics(diagnostics, input.logger);
+  attachPackTools(input.runRegistry, enabled, input.logger);
   registerPackSkillTool(input.runRegistry, enabled, input.def, input.fsSkills);
   return outputs;
 }
@@ -222,14 +230,15 @@ export type ReusePackRunInput = {
   cached: PackRunMap;
   runRegistry: Map<string, ToolDefinition>;
   fsSkills?: SkillRegistry;
+  logger?: Logger;
 };
 
 /** Attach tools + `load_skill` for a later segment from the cached run map.
  *  Subsets via `selectPackOutputs`; never calls pack `create`. */
 export function reusePackRun(input: ReusePackRunInput): PackRunMap {
   const { enabled, diagnostics } = selectPackOutputs(input.def, input.cached);
-  printPackDiagnostics(diagnostics);
-  attachPackTools(input.runRegistry, enabled);
+  printPackDiagnostics(diagnostics, input.logger);
+  attachPackTools(input.runRegistry, enabled, input.logger);
   registerPackSkillTool(input.runRegistry, enabled, input.def, input.fsSkills);
   return input.cached;
 }

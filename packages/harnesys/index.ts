@@ -121,6 +121,7 @@ export { createToolRegistry, validateToolInput } from './src/application/tool-re
 export { DEFAULT_PERMISSIONS, resolveToolPermission } from './src/ports/permissions.ts';
 export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
 export type { PathsConfig } from './src/ports/paths.ts';
+export { CONSOLE_LOGGER, NOOP_LOGGER, type Logger } from './src/ports/logger.ts';
 export type { SkillRegistry } from './src/ports/skills.ts';
 export type { CursorMcpJson, McpServerInfo, McpServerToolInfo, StdioEntry, UrlEntry } from './src/ports/mcp.ts';
 export type { ArtifactStore, SendFile } from './src/ports/artifacts.ts';

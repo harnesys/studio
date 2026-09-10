@@ -57,18 +57,18 @@ export function ExplorerActions() {
     <SectionMenu label="Explorer actions" contentClassName="min-w-44">
       <DropdownMenuGroup>
         <DropdownMenuItem onClick={() => start('file', '')}>
-          <FileIcon className="h-3.5!" />
+          <FileIcon className="size-3" />
           New file
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => start('dir', '')}>
-          <FolderIcon className="h-3.5!" />
+          <FolderIcon className="size-3" />
           New folder
         </DropdownMenuItem>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <DropdownMenuCheckboxItem checked={showHidden} onCheckedChange={setShowHidden}>
-          <EyeIcon className="h-3.5!" />
+          <EyeIcon className="size-3" />
           Show hidden files
         </DropdownMenuCheckboxItem>
       </DropdownMenuGroup>

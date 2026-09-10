@@ -14,7 +14,7 @@ import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { readFields } from '../threads/thread.helpers.ts';
 import { requireBindableThread } from './bind-schedule-thread.ts';
-import { isValidCron } from './cron-next.ts';
+import { isValidCron, nextCronRunAt } from './cron-next.ts';
 import { toScheduleRecord } from './schedule-record.ts';
 
 export type CreateScheduleRequest = {
@@ -139,7 +139,7 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
         history,
         historyLast,
         threadId: thread.id,
-        nextRunAt: now,
+        nextRunAt: nextCronRunAt(cron, new Date(now)),
         lastFiredAt: null,
         createdAt: now,
         updatedAt: now,

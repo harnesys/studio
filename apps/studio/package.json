@@ -37,6 +37,7 @@
     "lucide-react": "^1.31.0",
     "mermaid": "^11.17.0",
     "monaco-editor": "0.52.2",
+    "pino": "^10.3.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.85.0",

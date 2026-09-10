@@ -50,6 +50,7 @@ import { publishDeskThread } from '../application/threads/publish-desk-thread.ts
 import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { env } from '../config/env.ts';
+import { logger, toRuntimeLogger } from '../config/logger.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
@@ -116,8 +117,9 @@ export function createStudio(options: StudioOptions = {}): Hono {
         compactionEntryId: typeof meta.id === 'string' ? meta.id : undefined,
       });
     })().catch((e: unknown) => {
-      console.warn(
-        `[compaction] episodic index failed: ${e instanceof Error ? e.message : String(e)}`,
+      logger.warn(
+        { scope: 'compaction' },
+        `episodic index failed: ${e instanceof Error ? e.message : String(e)}`,
       );
     });
   });
@@ -150,6 +152,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
       resolve: (id) => agentsRef.current?.resolveAgentDefinition(id),
       list: () => agentsRef.current?.listAgentRoster() ?? [],
     },
+    logger: toRuntimeLogger('runtime'),
   });
   const scheduleQueue = new ScheduleFireQueue();
   const webhookQueue = new ScheduleFireQueue();
@@ -220,6 +223,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
         feed: runFeed,
         claimer: runClaimer,
         instanceId,
+        logger: toRuntimeLogger('runtime'),
       },
       packRegistrations,
     );

@@ -131,20 +131,20 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
           onClick={handleCommit}
           disabled={!status.dirty || commitMutation.isPending}
         >
-          <GitCommitVerticalIcon />
+          <GitCommitVerticalIcon className="size-3"/>
           Commit{commitSuffix}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handlePush} disabled={pushMutation.isPending}>
-          <UploadIcon />
+          <UploadIcon className="size-3"/>
           Push
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handlePull} disabled={pullMutation.isPending}>
-          <DownloadIcon />
+          <DownloadIcon className="size-3"/>
           Update
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger disabled={stageMutation.isPending}>
-            <PlusIcon />
+            <PlusIcon className="size-3"/>
             Add
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
@@ -163,11 +163,11 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <DropdownMenuItem onClick={() => handleNewBranch()}>
-          <PlusIcon />
+          <PlusIcon className="size-3"/>
           New Branch...
         </DropdownMenuItem>
         <DropdownMenuItem onClick={refresh}>
-          <RefreshCwIcon />
+          <RefreshCwIcon className="size-3"/>
           Refresh
         </DropdownMenuItem>
       </DropdownMenuGroup>

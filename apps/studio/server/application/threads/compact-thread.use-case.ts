@@ -13,6 +13,7 @@ import { compactForced, THRESHOLD_SUMMARY_NAME } from 'harnesys';
 import type { CompactThreadResponse } from '../../../shared/thread.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
+import { logger, toRuntimeLogger } from '../../config/logger.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { RuntimeStateRepository } from '../../domain/runtime-state.port.ts';
@@ -147,6 +148,7 @@ export class CompactThreadUseCase implements CompactThreadInput {
       toolRegistry: hx.tools.registry() as Map<string, ToolDefinition>,
       paths: { allow: [workspace.path], cwd: workspace.path },
       signal,
+      logger: toRuntimeLogger('runtime'),
     })) {
       if (ev.type === 'completed') {
         message = ev.message;
@@ -222,8 +224,9 @@ export class CompactThreadUseCase implements CompactThreadInput {
         compactionEntryId: message.id,
       });
     } catch (e) {
-      console.warn(
-        `[compaction] episodic index failed: ${e instanceof Error ? e.message : String(e)}`,
+      logger.warn(
+        { scope: 'compaction' },
+        `episodic index failed: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
     publishDeskThread(this.deps.getThread, this.deps.deskEvents, thread.id);

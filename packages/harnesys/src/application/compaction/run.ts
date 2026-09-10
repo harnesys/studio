@@ -7,6 +7,7 @@ import {
   parseThresholdSpec,
   THRESHOLD_SUMMARY_NAME,
 } from '../../domain/compaction.ts';
+import { CONSOLE_LOGGER, type Logger } from '../../ports/logger.ts';
 import type { ModelBinding, ModelsPort, ProviderConfig } from '../../ports/models.ts';
 import type { PathsConfig } from '../../ports/paths.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
@@ -26,6 +27,7 @@ export type CompactionPassContext = {
   toolRegistry: Map<string, ToolDefinition>;
   paths?: PathsConfig;
   signal: AbortSignal;
+  logger?: Logger;
 };
 
 export type CompactionPassEvent =
@@ -206,8 +208,9 @@ async function* writeCompactionMessage(
       modelLabel: binding.name,
     });
   } catch (e) {
-    // biome-ignore lint/suspicious/noConsole: file log is best-effort; failure must not fail the run
-    console.warn(`[compaction] file log failed: ${e instanceof Error ? e.message : String(e)}`);
+    (ctx.logger ?? CONSOLE_LOGGER).warn(
+      `[compaction] file log failed: ${e instanceof Error ? e.message : String(e)}`,
+    );
   }
   yield { type: 'completed', message };
 }
@@ -221,8 +224,7 @@ export async function* runSummaryPassIfDue(
     return;
   }
   if (ref.name !== THRESHOLD_SUMMARY_NAME) {
-    // biome-ignore lint/suspicious/noConsole: no logger in library; diagnostics must reach run logs
-    console.warn(`[compaction] unknown compaction port: ${ref.name}`);
+    (ctx.logger ?? CONSOLE_LOGGER).warn(`[compaction] unknown compaction port: ${ref.name}`);
     return;
   }
   const spec = parseThresholdSpec(ref.spec);

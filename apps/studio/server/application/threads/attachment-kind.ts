@@ -1,4 +1,9 @@
-import type { AttachmentKind, Modality, ThreadAttachment } from '../../../shared/types.ts';
+import {
+  type AttachmentKind,
+  isTextAttachment,
+  type Modality,
+  type ThreadAttachment,
+} from '../../../shared/types.ts';
 import { MAX_ATTACHMENT_BYTES } from '../../config/constants.ts';
 import type { Attachment } from '../../domain/attachment.port.ts';
 
@@ -31,8 +36,11 @@ export function kindFromMediaType(mediaType: string): AttachmentKind {
 export function modelAccepts(
   input: Modality[] | undefined,
   kind: AttachmentKind,
-  _mediaType: string,
-  _name: string,
+  mediaType: string,
+  name: string,
 ): boolean {
+  if (isTextAttachment(mediaType, name)) {
+    return true;
+  }
   return Boolean(input?.includes(kind));
 }

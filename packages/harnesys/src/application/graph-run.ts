@@ -57,6 +57,7 @@ export async function runGraph(opts: GraphOpts): Promise<RunResult> {
     artifacts: opts.artifacts,
     packRegistrations: [...(opts.packOutputs?.values() ?? [])].map((e) => e.reg),
     agents: opts.agents,
+    logger: opts.logger,
   });
   await engine.execute(runId, {
     state: opts.state,

@@ -10,6 +10,7 @@ import type { JsonSchema } from '../domain/json-schema.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { AgentsResolve } from '../ports/create-runtime.ts';
+import type { Logger } from '../ports/logger.ts';
 import type { ModelBinding, ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
@@ -160,6 +161,7 @@ export type GraphOpts = {
   childJournal?: (spawnId: string, ev: Event) => void;
   /** Дочерний ран: ни один interrupt-источник не паркует ран, гейты отвечают deny. */
   sandbox?: boolean;
+  logger?: Logger;
 };
 
 async function resolveFallbackBindings(
@@ -211,7 +213,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   let toolRegistry = opts.toolRegistry;
   let inputRecorded = opts.inputRecorded === true;
   let caps = selectPackOutputs(agent, opts.packOutputs ?? new Map());
-  printPackDiagnostics(caps.diagnostics);
+  printPackDiagnostics(caps.diagnostics, opts.logger);
   const loaded = await opts.state.load();
   const runId = loaded?.runId ?? crypto.randomUUID();
   let seq = loaded?.sequence ?? 0;
@@ -577,6 +579,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           toolRegistry: toolRegistry,
           paths: opts.paths,
           signal: opts.signal ?? new AbortController().signal,
+          logger: opts.logger,
         })) {
           if (ev.type === 'completed') {
             const m = ev.message;
@@ -815,6 +818,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           resumePayload: opts.resumePayload,
           resumeInterruptId: opts.resumeInterruptId,
           sandbox: opts.sandbox,
+          toolOutput: agent.toolOutput,
         });
       } catch (e) {
         if (e instanceof AskUserInterrupt) {
@@ -1036,7 +1040,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       toolRegistry = prepared.toolRegistry;
       inputRecorded = false;
       caps = selectPackOutputs(agent, opts.packOutputs ?? new Map());
-      printPackDiagnostics(caps.diagnostics);
+      printPackDiagnostics(caps.diagnostics, opts.logger);
       agentJson = JSON.stringify(agent);
       orderJson = JSON.stringify(plan.order);
       output = { agentId: prepared.agent.id };

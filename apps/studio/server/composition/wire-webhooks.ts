@@ -72,6 +72,7 @@ export function wireWebhooks(deps: WireWebhooksDeps): void {
       attachments: deps.attachments,
       attachmentsFs: deps.attachmentsFs,
       deskEvents: deps.deskEvents,
+      db: deps.db,
     }),
     fireWebhook,
   }).register(deps.app);

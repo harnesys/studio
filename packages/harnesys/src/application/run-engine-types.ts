@@ -3,6 +3,7 @@ import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { PackRegistration } from '../domain/pack.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { AgentsResolve } from '../ports/create-runtime.ts';
+import type { Logger } from '../ports/logger.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
@@ -33,6 +34,8 @@ export type RunEngineDeps = {
   /** FS skill registry; RunTargetOpts.skills wins when set. */
   skills?: SkillRegistry;
   agents: AgentsResolve;
+  /** Host diagnostics sink; defaults to the library console logger. */
+  logger?: Logger;
 };
 
 export type RunTargetOpts = {

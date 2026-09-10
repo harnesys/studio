@@ -1,10 +1,6 @@
 // biome-ignore-all lint/suspicious/useAwait: async required by RuntimeHandle port contract
 
-import {
-  createRunEventBus,
-  InMemoryRunEventStore,
-  InMemoryRunLifecycleStore,
-} from '../adapters/in-memory-run-store.ts';
+import { createRunEventBus } from '../adapters/in-memory-run-store.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import { registerPack } from '../domain/pack.ts';
@@ -82,19 +78,8 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     return resolved;
   };
 
-  if ((options.lifecycle === undefined) !== (options.events === undefined)) {
-    throw new Error('createRuntime: lifecycle and events must be provided together');
-  }
-  let lifecycle = options.lifecycle;
-  let events = options.events;
-  if (lifecycle === undefined && events === undefined) {
-    const memEvents = new InMemoryRunEventStore();
-    events = memEvents;
-    lifecycle = new InMemoryRunLifecycleStore(memEvents);
-  }
-  if (lifecycle === undefined || events === undefined) {
-    throw new Error('createRuntime: lifecycle and events must be provided together');
-  }
+  const lifecycle = options.lifecycle;
+  const events = options.events;
   const feed = options.feed ?? createRunEventFeed({ events, lifecycle, bus: createRunEventBus() });
 
   const runtimeCtx: RuntimeContext = {

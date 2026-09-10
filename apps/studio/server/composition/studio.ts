@@ -1,33 +1,16 @@
 import { join } from 'node:path';
-import {
-  askUser,
-  createRunClaimer,
-  createRunEngine,
-  createRunEventBus,
-  createRunEventFeed,
-  createToolRegistry,
-  fetch,
-  files,
-  type RunTargets,
-  shell,
-} from 'harnesys';
 import { Hono } from 'hono';
-import { startAskTicker } from '../adapters/ask-ticker.adapter.ts';
 import { FsAttachmentsAdapter } from '../adapters/attachments/fs-attachments.adapter.ts';
 import { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
 import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
-import { type HostToolScope, runInHostToolScope } from '../adapters/host-tool-scope.ts';
 import { handleHttpError } from '../adapters/http/http.error.ts';
-import { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import { bootstrap } from '../adapters/store/sqlite/bootstrap.ts';
 import { createSqliteConnection, type StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
 import { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
 import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
-import { SqliteRunEventStore } from '../adapters/store/sqlite/repos/sqlite-run-events.adapter.ts';
-import { SqliteRunLifecycleStore } from '../adapters/store/sqlite/repos/sqlite-run-lifecycle.adapter.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
 import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
@@ -43,14 +26,8 @@ import { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.ada
 import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
 import { createEpisodicOnCompacted } from '../application/memory/episodic-on-compacted.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
-import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.use-case.ts';
-import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
-import { withHandoffCurrentPersist } from '../application/threads/persist-handoff-current.ts';
-import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
 import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
-import { CLAIMER_SWEEP_MS } from '../config/constants.ts';
-import { env } from '../config/env.ts';
 import { logger, toRuntimeLogger } from '../config/logger.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
@@ -58,6 +35,7 @@ import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
 import { wireControllers } from './wire-controllers.ts';
 import { createStudioMemory, registerMemoryHttp } from './wire-memory.ts';
 import { createPackRegistrations } from './wire-packs.ts';
+import { wireRuntime } from './wire-runtime.ts';
 import { wireSchedules } from './wire-schedules.ts';
 import { wireWebhooks } from './wire-webhooks.ts';
 
@@ -124,68 +102,26 @@ export function createStudio(options: StudioOptions = {}): Hono {
       );
     });
   });
-  const eventBus = createRunEventBus();
-  const runEvents = new SqliteRunEventStore(db);
-  const runLifecycle = new SqliteRunLifecycleStore(db, runEvents.appendWithinTx.bind(runEvents));
-  const getThread = new GetThreadUseCase(threadRepo, agentRepo, runEvents, runLifecycle);
-  const runFeed = withHandoffCurrentPersist(
-    createRunEventFeed({ events: runEvents, lifecycle: runLifecycle, bus: eventBus }),
-    {
-      lifecycle: runLifecycle,
-      threads: threadRepo,
-      agents: agentRepo,
-      deskEvents,
-      getThread,
-    },
-  );
-  const instanceId = env.STUDIO_INSTANCE_ID ?? 'studio-local';
-  const toolRegistry = createToolRegistry([...files(), shell(), fetch(), askUser()]);
-  const agentsRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
-  const runEngine = createRunEngine({
-    lifecycle: runLifecycle,
-    events: runEvents,
-    feed: runFeed,
+
+  const {
+    runEvents,
+    runLifecycle,
+    runFeed,
+    runClaimer,
+    getThread,
     instanceId,
-    models: modelsPort,
-    toolRegistry,
-    toolMessages: 'ordered',
-    agents: {
-      resolve: (id) => agentsRef.current?.resolveAgentDefinition(id),
-      list: () => agentsRef.current?.listAgentRoster() ?? [],
-    },
-    logger: toRuntimeLogger('runtime'),
+    scheduleQueue,
+    webhookQueue,
+    agentsRef,
+    targetRef,
+  } = wireRuntime({
+    db,
+    threadRepo,
+    agentRepo,
+    deskEvents,
+    modelsPort,
   });
-  const scheduleQueue = new ScheduleFireQueue();
-  const webhookQueue = new ScheduleFireQueue();
-  const scheduleQueueRef: { current: ScheduleFireQueue | null } = { current: scheduleQueue };
-  const webhookQueueRef: { current: ScheduleFireQueue | null } = { current: webhookQueue };
-  const targetRef: { current: RunTargets | null } = { current: null };
-  const runClaimer = createRunClaimer({
-    lifecycle: runLifecycle,
-    targets: {
-      resolve: (threadId) => targetRef.current?.resolve(threadId) ?? Promise.resolve(null),
-    },
-    engine: runEngine,
-    instanceId,
-    sweepMs: CLAIMER_SWEEP_MS,
-    withScope: (target, execute) => runInHostToolScope(target.scope as HostToolScope, execute),
-    onComplete: (record) => {
-      publishDeskThread(getThread, deskEvents, record.threadId);
-      const queue = scheduleQueueRef.current;
-      if (queue !== null) {
-        notifyIdleIfFree(runLifecycle, queue, record.threadId);
-      }
-      const webhookQueue = webhookQueueRef.current;
-      if (webhookQueue !== null) {
-        notifyIdleIfFree(runLifecycle, webhookQueue, record.threadId);
-      }
-    },
-  });
-  startAskTicker({
-    lifecycle: runLifecycle,
-    kick: runClaimer.kick,
-    onCancelled: (threadId) => publishDeskThread(getThread, deskEvents, threadId),
-  });
+
   const memory = createStudioMemory(db, {
     runtimeState: runtimeStateRepo,
     providers: llmProviderRepo,

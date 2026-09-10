@@ -98,6 +98,11 @@ export class WorkspaceHarnesysRegistry {
     } catch (err) {
       return Promise.reject(new ValidationError(err instanceof Error ? err.message : String(err)));
     }
+    if (this.runtime === undefined) {
+      return Promise.reject(
+        new ValidationError('WorkspaceHarnesysRegistry requires runtime wiring (lifecycle+events)'),
+      );
+    }
     const skills = new FsSkillRegistry({
       roots: skillRegistryRoots(workspace.path),
     });

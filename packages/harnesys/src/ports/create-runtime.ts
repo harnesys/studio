@@ -53,10 +53,10 @@ export type CreateRuntimeOptions = {
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };
   onDefinitionMismatch?: 'reject' | 'compile-new-and-map-cursor';
-  /** Journal wiring for SessionHandle (Task 12 host injects real stores; in-memory defaults otherwise).
-   *  lifecycle and events must be provided together. The claimer is host-owned, never created here. */
-  lifecycle?: RunLifecycleStore;
-  events?: RunEventStore;
+  /** Journal wiring for SessionHandle. Host-owned; no in-memory fallback.
+   *  The claimer is host-owned, never created here. */
+  lifecycle: RunLifecycleStore;
+  events: RunEventStore;
   feed?: RunEventFeed;
   claimer?: RunClaimer;
   instanceId?: string;

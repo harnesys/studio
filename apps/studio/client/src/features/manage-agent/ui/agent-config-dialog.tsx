@@ -1,33 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import {
-  BotIcon,
-  CpuIcon,
-  FoldVerticalIcon,
-  GaugeIcon,
-  LayersIcon,
-  type LucideIcon,
-  PanelLeftCloseIcon,
-  PanelLeftOpenIcon,
-  PuzzleIcon,
-  ScrollTextIcon,
-  ServerIcon,
-  UserRoundIcon,
-  WorkflowIcon,
-  WrenchIcon,
-} from 'lucide-react';
+import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import type { Agent } from '@/entities/agent';
+import { useAgentStore } from '@/entities/agent';
 import { providersQuery } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
-import {
-  alert,
-  type DialogComponentProps,
-  dialog,
-  patchOverlayOptions,
-} from '@/shared/services/overlay';
+import { type DialogComponentProps, patchOverlayOptions } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { toast } from '@/shared/ui/toast';
@@ -44,62 +25,19 @@ import {
 } from '../model/agent-fields';
 import { defaultReactGraph, type StudioGraphDocument } from '../model/agent-graph-document';
 import { updateAgent, updateAgentCapabilities } from '../model/update-agent';
+import { AgentConfigCategoryPanes } from './agent-config-category-panes';
 import {
-  AgentIdentityPane,
-  AgentInstructionsPane,
-  AgentLimitsPane,
-  AgentModelPane,
-} from './agent-config-panes';
-import { AgentGraphPane } from './agent-graph-pane';
-import { AgentSubagentsPane } from './agent-subagents-pane';
-import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
-import { DraftCapabilityPacks } from './draft-capability-packs';
-import { DraftCompaction } from './draft-compaction';
+  AGENT_CONFIG_CATEGORIES,
+  type AgentConfigCategory,
+  ConfigNavDivider,
+} from './agent-config-nav';
+
+export type { AgentConfigCategory } from './agent-config-nav';
+export { AGENT_CONFIG_CATEGORIES } from './agent-config-nav';
 
 const GRAPH_DIALOG_CLASS =
   'flex min-h-0 h-[min(78vh,48rem)] w-[min(80vw,64rem)] max-w-[min(80vw,64rem)] sm:max-w-[min(80vw,64rem)] overflow-hidden';
 const DEFAULT_DIALOG_CLASS = 'sm:max-w-3xl';
-
-function capabilitiesSection(category: AgentConfigCategory): DraftCapabilitiesSection {
-  if (category === 'tools') {
-    return 'tools';
-  }
-  if (category === 'mcp') {
-    return 'mcp';
-  }
-  return 'skills';
-}
-
-export type AgentConfigCategory =
-  | 'identity'
-  | 'model'
-  | 'instructions'
-  | 'capabilities'
-  | 'compaction'
-  | 'skills'
-  | 'graph'
-  | 'tools'
-  | 'mcp'
-  | 'limits'
-  | 'subagents';
-
-export const AGENT_CONFIG_CATEGORIES: {
-  id: AgentConfigCategory;
-  label: string;
-  icon: LucideIcon;
-}[] = [
-  { id: 'identity', label: 'Identity', icon: UserRoundIcon },
-  { id: 'model', label: 'Model', icon: CpuIcon },
-  { id: 'instructions', label: 'Instructions', icon: ScrollTextIcon },
-  { id: 'graph', label: 'Graph', icon: WorkflowIcon },
-  { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
-  { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },
-  { id: 'skills', label: 'Skills', icon: PuzzleIcon },
-  { id: 'tools', label: 'Tools', icon: WrenchIcon },
-  { id: 'mcp', label: 'MCP', icon: ServerIcon },
-  { id: 'limits', label: 'Limits', icon: GaugeIcon },
-  { id: 'subagents', label: 'Subagents', icon: BotIcon },
-];
 
 function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
   return {
@@ -115,24 +53,36 @@ export function AgentConfigDialog({
   onResolve,
   data,
 }: DialogComponentProps<AgentConfigResult, { agent: Agent | null; workspaceId: string }>) {
-  const agent = data?.agent ?? null;
+  const rootAgent = data?.agent ?? null;
   const workspaceId = data?.workspaceId ?? '';
+  const [focusAgentId, setFocusAgentId] = useState<string | null>(rootAgent?.id ?? null);
+  const [returnParentId, setReturnParentId] = useState<string | null>(null);
   const [category, setCategory] = useState<AgentConfigCategory>('identity');
   const [navOpen, setNavOpen] = useState(true);
   const [graphDoc, setGraphDoc] = useState<StudioGraphDocument>(
-    () => agent?.graph ?? defaultReactGraph(),
+    () => rootAgent?.graph ?? defaultReactGraph(),
   );
   const graphDocRef = useRef(graphDoc);
   graphDocRef.current = graphDoc;
   const graphTouchedRef = useRef(false);
   const providers = useQuery(providersQuery).data ?? [];
-  const capabilitiesRef = useRef<AgentCapabilitiesDraft>(initialCapabilities(agent));
+  const capabilitiesRef = useRef<AgentCapabilitiesDraft>(initialCapabilities(rootAgent));
   const form = useForm<AgentFieldsInput, unknown, AgentFieldsOutput>({
     resolver: zodResolver(agentFieldsSchema),
-    defaultValues: agent ? agentFieldsFrom(agent) : emptyAgentFields(),
+    defaultValues: rootAgent ? agentFieldsFrom(rootAgent) : emptyAgentFields(),
   });
   const nameValue = useWatch({ control: form.control, name: 'name' }) ?? '';
-  const showSubagents = Boolean(agent && !agent.parentId);
+  const storeFocus = useAgentStore((state) =>
+    focusAgentId ? (state.byId(focusAgentId) ?? null) : null,
+  );
+  const storeReturnParent = useAgentStore((state) =>
+    returnParentId ? (state.byId(returnParentId) ?? null) : null,
+  );
+  const activeAgent =
+    storeFocus ?? (focusAgentId && focusAgentId === rootAgent?.id ? rootAgent : null);
+  const returnParent =
+    storeReturnParent ?? (returnParentId && returnParentId === rootAgent?.id ? rootAgent : null);
+  const showSubagents = Boolean(activeAgent && !activeAgent.parentId);
   const navCategories = showSubagents
     ? AGENT_CONFIG_CATEGORIES
     : AGENT_CONFIG_CATEGORIES.filter((item) => item.id !== 'subagents');
@@ -152,6 +102,12 @@ export function AgentConfigDialog({
     }
   }, [category, showSubagents]);
 
+  useEffect(() => {
+    patchOverlayOptions({
+      title: activeAgent ? `Configure ${activeAgent.name}` : 'New agent',
+    });
+  }, [activeAgent]);
+
   function selectCategory(next: AgentConfigCategory) {
     if (next === 'graph') {
       graphTouchedRef.current = true;
@@ -159,37 +115,127 @@ export function AgentConfigDialog({
     setCategory(next);
   }
 
+  function loadAgentEditors(target: Agent) {
+    form.reset(agentFieldsFrom(target));
+    capabilitiesRef.current = initialCapabilities(target);
+    const nextGraph = target.graph ?? defaultReactGraph();
+    graphTouchedRef.current = false;
+    graphDocRef.current = nextGraph;
+    setGraphDoc(nextGraph);
+  }
+
+  function buildResult(values: AgentFieldsOutput): AgentConfigResult {
+    const draft = toAgentDraft(values);
+    const sanitized = sanitizeForModel(draft.modelId, draft.effort, draft.generation, providers);
+    const graph = graphTouchedRef.current ? graphDocRef.current : undefined;
+    return {
+      fields: { ...draft, ...sanitized, ...(graph !== undefined ? { graph } : {}) },
+      capabilities: capabilitiesRef.current,
+      ...(graph !== undefined ? { graph } : {}),
+    };
+  }
+
+  function persistCurrent(): Promise<boolean> {
+    if (!activeAgent || !workspaceId) {
+      return Promise.resolve(false);
+    }
+    const agentId = activeAgent.id;
+    return new Promise((resolve) => {
+      void form.handleSubmit(
+        async (values) => {
+          const result = buildResult(values);
+          try {
+            await updateAgent(workspaceId, agentId, result.fields);
+            await updateAgentCapabilities(workspaceId, agentId, result.capabilities);
+            resolve(true);
+          } catch (error) {
+            toast.add({
+              title: error instanceof Error ? error.message : 'Could not save agent',
+            });
+            resolve(false);
+          }
+        },
+        () => resolve(false),
+      )();
+    });
+  }
+
+  async function openSubagent(delegate: Agent) {
+    const parentId = activeAgent?.id ?? rootAgent?.id ?? null;
+    if (!parentId) {
+      return;
+    }
+    const saved = await persistCurrent();
+    if (!saved) {
+      return;
+    }
+    setReturnParentId(parentId);
+    setFocusAgentId(delegate.id);
+    loadAgentEditors(delegate);
+    setCategory('identity');
+    setNavOpen(true);
+  }
+
+  async function backFromSubagent() {
+    const parentId = returnParentId;
+    if (!parentId) {
+      return;
+    }
+    const saved = await persistCurrent();
+    if (!saved) {
+      return;
+    }
+    const parent = useAgentStore.getState().byId(parentId);
+    if (!parent) {
+      toast.add({ title: 'Parent agent is gone' });
+      return;
+    }
+    setReturnParentId(null);
+    setFocusAgentId(parentId);
+    loadAgentEditors(parent);
+    setCategory('subagents');
+    setNavOpen(true);
+  }
+
   return (
     <form
       className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"
-      onSubmit={form.handleSubmit((values) => {
-        const draft = toAgentDraft(values);
-        const sanitized = sanitizeForModel(
-          draft.modelId,
-          draft.effort,
-          draft.generation,
-          providers,
-        );
-        const graph = graphTouchedRef.current ? graphDocRef.current : undefined;
-        onResolve?.({
-          fields: { ...draft, ...sanitized, ...(graph !== undefined ? { graph } : {}) },
-          capabilities: capabilitiesRef.current,
-          ...(graph !== undefined ? { graph } : {}),
-        });
+      onSubmit={form.handleSubmit(async (values) => {
+        if (returnParentId) {
+          const result = buildResult(values);
+          if (!activeAgent) {
+            return;
+          }
+          try {
+            await updateAgent(workspaceId, activeAgent.id, result.fields);
+            await updateAgentCapabilities(workspaceId, activeAgent.id, result.capabilities);
+            toast.add({ title: 'Subagent saved' });
+          } catch (error) {
+            toast.add({
+              title: error instanceof Error ? error.message : 'Could not save subagent',
+            });
+          }
+          return;
+        }
+        onResolve?.(buildResult(values));
       })}
     >
-      <div className="flex min-h-0 min-w-0 flex-1 gap-4">
+      <div className="flex min-h-0 min-w-0 flex-1">
         {navOpen ? (
-          <nav className="flex w-40 shrink-0 flex-col gap-0.5">
-            <button
-              type="button"
-              onClick={() => setNavOpen(false)}
-              className="mb-1 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-sidebar-accent/50"
-              title="Hide sections"
-            >
-              <PanelLeftCloseIcon className="size-3.5 shrink-0" />
-              Hide
-            </button>
+          <nav className="flex w-40 shrink-0 flex-col gap-0.5 pr-1">
+            {returnParentId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void backFromSubagent();
+                }}
+                className="mb-1 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-sidebar-accent/50 hover:text-foreground"
+                data-testid="agent-config-back"
+              >
+                <ArrowLeftIcon className="size-3.5 shrink-0" />
+                Back{returnParent?.name ? ` to ${returnParent.name}` : ''}
+              </button>
+            ) : null}
             {navCategories.map((item) => (
               <button
                 key={item.id}
@@ -207,122 +253,25 @@ export function AgentConfigDialog({
               </button>
             ))}
           </nav>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setNavOpen(true)}
-            className="flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent/50"
-            title="Show sections"
-          >
-            <PanelLeftOpenIcon className="size-3.5" />
-          </button>
-        )}
-        <div
-          className={cn(
-            'min-h-0 min-w-0 flex-1',
-            category === 'graph' ? 'overflow-hidden' : 'overflow-y-auto pr-1',
-          )}
-        >
-          <div className={cn(category !== 'identity' && 'hidden')}>
-            <AgentIdentityPane form={form} />
-          </div>
-          <div className={cn(category !== 'model' && 'hidden')}>
-            <AgentModelPane form={form} />
-          </div>
-          <div className={cn(category !== 'instructions' && 'hidden')}>
-            <AgentInstructionsPane form={form} />
-          </div>
-          <div className={cn(category !== 'capabilities' && 'hidden')}>
-            <DraftCapabilityPacks
-              workspaceId={workspaceId}
-              value={agent?.capabilities ?? {}}
-              onChange={(capabilities) => {
-                capabilitiesRef.current = { ...capabilitiesRef.current, capabilities };
-              }}
-            />
-          </div>
-          <div className={cn(category !== 'compaction' && 'hidden')}>
-            <DraftCompaction
-              agent={agent}
-              onChange={(compaction) => {
-                capabilitiesRef.current = { ...capabilitiesRef.current, compaction };
-              }}
-            />
-          </div>
-          <div
-            className={cn(
-              category !== 'skills' && category !== 'tools' && category !== 'mcp' && 'hidden',
-            )}
-          >
-            <DraftCapabilities
-              agent={agent}
-              workspaceId={workspaceId}
-              section={capabilitiesSection(category)}
-              onChange={(snapshot) => {
-                capabilitiesRef.current = { ...capabilitiesRef.current, ...snapshot };
-              }}
-            />
-          </div>
-          <div className={cn(category !== 'limits' && 'hidden')}>
-            <AgentLimitsPane form={form} />
-          </div>
-          <div className={cn(category !== 'subagents' && 'hidden')}>
-            {agent && showSubagents ? (
-              <AgentSubagentsPane
-                workspaceId={workspaceId}
-                parentId={agent.id}
-                onConfigure={(delegate) => {
-                  void dialog
-                    .open(AgentConfigDialog, {
-                      title: `Configure ${delegate.name}`,
-                      className: 'sm:max-w-3xl',
-                      testId: 'agent-config-dialog',
-                      data: { agent: delegate, workspaceId },
-                    })
-                    .then(async (result) => {
-                      if (!result) {
-                        return;
-                      }
-                      try {
-                        await updateAgent(workspaceId, delegate.id, result.fields);
-                        await updateAgentCapabilities(
-                          workspaceId,
-                          delegate.id,
-                          result.capabilities,
-                        );
-                      } catch (error) {
-                        toast.add({
-                          title: error instanceof Error ? error.message : 'Could not save subagent',
-                        });
-                      }
-                    });
-                }}
-                onConfirmDelete={(delegate) =>
-                  alert.confirm({
-                    title: `Delete ${delegate.name}?`,
-                    description:
-                      'This subagent is removed from the parent. Spawn history on threads is kept.',
-                    confirmText: 'Delete subagent',
-                    variant: 'destructive',
-                    testId: 'delete-subagent-dialog',
-                  })
-                }
-              />
-            ) : null}
-          </div>
-          {category === 'graph' ? (
-            <div className="flex h-full min-h-0 min-w-0">
-              <AgentGraphPane
-                value={graphDoc}
-                onChange={(next) => {
-                  graphTouchedRef.current = true;
-                  graphDocRef.current = next;
-                  setGraphDoc(next);
-                }}
-              />
-            </div>
-          ) : null}
-        </div>
+        ) : null}
+
+        <ConfigNavDivider open={navOpen} onToggle={() => setNavOpen((open) => !open)} />
+
+        <AgentConfigCategoryPanes
+          category={category}
+          form={form}
+          workspaceId={workspaceId}
+          activeAgent={activeAgent}
+          showSubagents={showSubagents}
+          graphDoc={graphDoc}
+          graphDocRef={graphDocRef}
+          graphTouchedRef={graphTouchedRef}
+          setGraphDoc={setGraphDoc}
+          capabilitiesRef={capabilitiesRef}
+          onOpenSubagent={(delegate) => {
+            void openSubagent(delegate);
+          }}
+        />
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={() => onResolve?.()}>

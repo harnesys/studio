@@ -4,6 +4,8 @@ import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
 import { listAgentPresets } from '@/shared/api';
+import { cn } from '@/shared/lib/utils';
+import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
@@ -56,44 +58,28 @@ export function AgentSubagentsPane({
     <div className="flex flex-col gap-3">
       <p className="text-muted-foreground text-sm">
         Spawn targets for this agent. They stay out of the top-level Agents list. Model defaults to
-        the parent; open a row to change it.
+        the parent; open a card to change it.
       </p>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2">
         {delegates.length === 0 ? (
-          <p className="rounded-md border border-dashed px-3 py-4 text-center text-muted-foreground text-sm">
+          <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
             No subagents yet.
           </p>
         ) : (
           delegates.map((delegate) => (
-            <div
+            <SubagentCard
               key={delegate.id}
-              className="flex items-center gap-2 rounded-md border px-2 py-1.5"
-            >
-              <button
-                type="button"
-                className="min-w-0 flex-1 truncate text-left text-sm hover:underline"
-                onClick={() => onConfigure(delegate)}
-              >
-                <span className="font-medium">{delegate.name}</span>
-                <span className="ml-2 text-muted-foreground text-xs">{delegate.role}</span>
-              </button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                title="Remove subagent"
-                onClick={() => {
-                  void onConfirmDelete(delegate).then(async (confirmed) => {
-                    if (!confirmed) {
-                      return;
-                    }
-                    await deleteAgent(workspaceId, delegate.id);
-                  });
-                }}
-              >
-                <Trash2Icon className="size-3.5" />
-              </Button>
-            </div>
+              agent={delegate}
+              onOpen={() => onConfigure(delegate)}
+              onRemove={() => {
+                void onConfirmDelete(delegate).then(async (confirmed) => {
+                  if (!confirmed) {
+                    return;
+                  }
+                  await deleteAgent(workspaceId, delegate.id);
+                });
+              }}
+            />
           ))
         )}
       </div>
@@ -119,6 +105,58 @@ export function AgentSubagentsPane({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
+  );
+}
+
+function SubagentCard({
+  agent,
+  onOpen,
+  onRemove,
+}: {
+  agent: Agent;
+  onOpen: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        'group/subagent relative flex items-start gap-3 rounded-lg border bg-card/40 px-3 py-2.5',
+        'transition-colors hover:border-border hover:bg-muted/40',
+      )}
+    >
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+        onClick={onOpen}
+      >
+        <Avatar size="sm" className="mt-0.5 size-8 shrink-0 after:hidden">
+          <AvatarFallback className="bg-[color-mix(in_oklab,var(--live)_12%,transparent)] text-[11px]">
+            {agent.initials}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate font-medium text-sm leading-5">{agent.name}</span>
+            <span className="shrink-0 font-mono text-[10px] text-muted-foreground uppercase tracking-wide">
+              {agent.role}
+            </span>
+          </div>
+          <p className="mt-0.5 line-clamp-2 text-muted-foreground text-xs leading-4">
+            {agent.instructions.trim() || 'No instructions yet.'}
+          </p>
+        </div>
+      </button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="shrink-0 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/subagent:opacity-100"
+        title="Remove subagent"
+        onClick={onRemove}
+      >
+        <Trash2Icon className="size-3.5" />
+      </Button>
     </div>
   );
 }

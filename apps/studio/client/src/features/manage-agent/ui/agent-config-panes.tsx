@@ -60,6 +60,28 @@ export function AgentIdentityPane({ form }: { form: AgentFieldsForm }) {
           )}
         />
       </div>
+      <Controller
+        control={form.control}
+        name="instructions"
+        render={({ field }) => (
+          <Field>
+            <FieldLabel htmlFor="agent-instructions">Instructions</FieldLabel>
+            <Textarea
+              id="agent-instructions"
+              placeholder="System prompt for this agent"
+              className="min-h-36 resize-y text-xs leading-relaxed"
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              ref={field.ref}
+            />
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Injected into every conversation thread as the system prompt.
+            </p>
+          </Field>
+        )}
+      />
     </FieldGroup>
   );
 }
@@ -119,35 +141,6 @@ export function AgentModelPane({ form }: { form: AgentFieldsForm }) {
         <AgentEffortField control={form.control} />
       </div>
       <AgentGenerationFields control={form.control} />
-    </FieldGroup>
-  );
-}
-
-export function AgentInstructionsPane({ form }: { form: AgentFieldsForm }) {
-  return (
-    <FieldGroup className="gap-2">
-      <Controller
-        control={form.control}
-        name="instructions"
-        render={({ field }) => (
-          <Field>
-            <FieldLabel htmlFor="agent-instructions">Instructions</FieldLabel>
-            <Textarea
-              id="agent-instructions"
-              placeholder="System prompt for this agent"
-              className="min-h-36 resize-y text-xs leading-relaxed"
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-            />
-            <p className="text-[11px] text-muted-foreground leading-snug">
-              Injected into every conversation thread as the system prompt.
-            </p>
-          </Field>
-        )}
-      />
     </FieldGroup>
   );
 }

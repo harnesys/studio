@@ -8,12 +8,7 @@ import type { AgentCapabilitiesDraft } from '../model/agent-config';
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 import type { StudioGraphDocument } from '../model/agent-graph-document';
 import type { AgentConfigCategory } from './agent-config-nav';
-import {
-  AgentIdentityPane,
-  AgentInstructionsPane,
-  AgentLimitsPane,
-  AgentModelPane,
-} from './agent-config-panes';
+import { AgentIdentityPane, AgentLimitsPane, AgentModelPane } from './agent-config-panes';
 import { AgentGraphPane } from './agent-graph-pane';
 import { AgentSubagentsPane } from './agent-subagents-pane';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
@@ -21,13 +16,7 @@ import { DraftCapabilityPacks } from './draft-capability-packs';
 import { DraftCompaction } from './draft-compaction';
 
 function capabilitiesSection(category: AgentConfigCategory): DraftCapabilitiesSection {
-  if (category === 'tools') {
-    return 'tools';
-  }
-  if (category === 'mcp') {
-    return 'mcp';
-  }
-  return 'skills';
+  return category === 'mcp' ? 'mcp' : 'skills';
 }
 
 type AgentConfigCategoryPanesProps = {
@@ -70,9 +59,6 @@ export function AgentConfigCategoryPanes({
       <div className={cn(category !== 'model' && 'hidden')}>
         <AgentModelPane form={form} />
       </div>
-      <div className={cn(category !== 'instructions' && 'hidden')}>
-        <AgentInstructionsPane form={form} />
-      </div>
       <div className={cn(category !== 'capabilities' && 'hidden')}>
         <DraftCapabilityPacks
           key={`packs-${activeAgent?.id ?? 'new'}`}
@@ -92,11 +78,7 @@ export function AgentConfigCategoryPanes({
           }}
         />
       </div>
-      <div
-        className={cn(
-          category !== 'skills' && category !== 'tools' && category !== 'mcp' && 'hidden',
-        )}
-      >
+      <div className={cn(category !== 'skills' && category !== 'mcp' && 'hidden')}>
         <DraftCapabilities
           key={`caps-${activeAgent?.id ?? 'new'}`}
           agent={activeAgent}

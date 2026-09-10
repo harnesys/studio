@@ -1,12 +1,10 @@
 import type { PackCatalogEntry, PackConfig } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
-import { SettingsIcon } from 'lucide-react';
 import { useState } from 'react';
 import { workspaceCapabilitiesQuery } from '@/shared/api';
-import { cn } from '@/shared/lib/utils';
-import { Button } from '@/shared/ui/button';
 import { Switch } from '@/shared/ui/switch';
 
+import { ConfigEntityCard, initialsFromLabel } from './config-entity-card';
 import { PackSettingsFields, packHasSettings } from './pack-settings';
 
 export function DraftCapabilityPacks({
@@ -53,23 +51,21 @@ export function DraftCapabilityPacks({
 
   return (
     <section className="flex min-w-0 flex-col gap-2">
-      <h3 className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-        Capability packs
-      </h3>
-
       {!query.isPending && catalog.length === 0 ? (
-        <p className="text-[12px] text-muted-foreground">No capability packs.</p>
+        <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
+          No capability packs.
+        </p>
       ) : null}
 
       {!query.isPending && catalog.length > 0 ? (
-        <div className="flex min-w-0 flex-col gap-2.5">
+        <div className="flex min-w-0 flex-col gap-2">
           {catalog.map((pack) => {
             const enabled = isPackEnabled(packs, pack.name);
             const config = enabledConfig(packs, pack.name);
             const settingsAvailable = packHasSettings(pack.name, pack.hasSettings);
             const settingsOpen = openSettings === pack.name && enabled && settingsAvailable;
             return (
-              <PackRow
+              <PackCard
                 key={pack.name}
                 pack={pack}
                 enabled={enabled}
@@ -90,7 +86,7 @@ export function DraftCapabilityPacks({
   );
 }
 
-function PackRow({
+function PackCard({
   pack,
   enabled,
   config,
@@ -110,46 +106,23 @@ function PackRow({
   onConfigChange: (next: PackConfig) => void;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <div className="flex items-start gap-2">
+    <ConfigEntityCard
+      title={pack.name}
+      badge="pack"
+      description={pack.description}
+      initials={initialsFromLabel(pack.name)}
+      expanded={settingsOpen}
+      onClick={settingsAvailable && enabled ? onToggleSettings : undefined}
+      trailing={
         <Switch
           size="sm"
-          className="mt-0.5"
           checked={enabled}
           onCheckedChange={(next) => onToggle(pack.name, Boolean(next))}
         />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1">
-            <p className="min-w-0 truncate font-medium text-[12px] leading-snug">{pack.name}</p>
-            {settingsAvailable ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                disabled={!enabled}
-                aria-expanded={settingsOpen}
-                aria-label={`Configure ${pack.name}`}
-                onClick={onToggleSettings}
-                className={cn('shrink-0', settingsOpen && 'bg-muted')}
-              >
-                <SettingsIcon className="size-3.5" />
-              </Button>
-            ) : null}
-          </div>
-          {pack.description ? (
-            <p className="truncate text-[11px] text-muted-foreground leading-snug">
-              {pack.description}
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      {settingsOpen ? (
-        <div className="min-w-0 pl-7">
-          <PackSettingsFields packName={pack.name} config={config} onChange={onConfigChange} />
-        </div>
-      ) : null}
-    </div>
+      }
+    >
+      <PackSettingsFields packName={pack.name} config={config} onChange={onConfigChange} />
+    </ConfigEntityCard>
   );
 }
 

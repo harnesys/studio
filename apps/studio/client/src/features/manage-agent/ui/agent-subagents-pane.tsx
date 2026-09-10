@@ -4,8 +4,6 @@ import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
 import { listAgentPresets } from '@/shared/api';
-import { cn } from '@/shared/lib/utils';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
@@ -17,6 +15,7 @@ import { toast } from '@/shared/ui/toast';
 
 import { createAgentFromPreset } from '../model/create-agent-from-preset';
 import { deleteAgent } from '../model/delete-agent';
+import { ConfigEntityCard } from './config-entity-card';
 
 type AgentSubagentsPaneProps = {
   workspaceId: string;
@@ -119,44 +118,26 @@ function SubagentCard({
   onRemove: () => void;
 }) {
   return (
-    <div
-      className={cn(
-        'group/subagent relative flex items-start gap-3 rounded-lg border bg-card/40 px-3 py-2.5',
-        'transition-colors hover:border-border hover:bg-muted/40',
-      )}
-    >
-      <button
-        type="button"
-        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+    <div className="group/subagent">
+      <ConfigEntityCard
+        title={agent.name}
+        badge={agent.role}
+        description={agent.instructions.trim() || 'No instructions yet.'}
+        initials={agent.initials}
         onClick={onOpen}
-      >
-        <Avatar size="sm" className="mt-0.5 size-8 shrink-0 after:hidden">
-          <AvatarFallback className="bg-[color-mix(in_oklab,var(--live)_12%,transparent)] text-[11px]">
-            {agent.initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <span className="truncate font-medium text-sm leading-5">{agent.name}</span>
-            <span className="shrink-0 font-mono text-[10px] text-muted-foreground uppercase tracking-wide">
-              {agent.role}
-            </span>
-          </div>
-          <p className="mt-0.5 line-clamp-2 text-muted-foreground text-xs leading-4">
-            {agent.instructions.trim() || 'No instructions yet.'}
-          </p>
-        </div>
-      </button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        className="shrink-0 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/subagent:opacity-100"
-        title="Remove subagent"
-        onClick={onRemove}
-      >
-        <Trash2Icon className="size-3.5" />
-      </Button>
+        trailing={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover/subagent:opacity-100"
+            title="Remove subagent"
+            onClick={onRemove}
+          >
+            <Trash2Icon className="size-3.5" />
+          </Button>
+        }
+      />
     </div>
   );
 }

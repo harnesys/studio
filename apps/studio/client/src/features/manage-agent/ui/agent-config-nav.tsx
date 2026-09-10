@@ -8,23 +8,19 @@ import {
   LayersIcon,
   type LucideIcon,
   PuzzleIcon,
-  ScrollTextIcon,
   ServerIcon,
   UserRoundIcon,
   WorkflowIcon,
-  WrenchIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 export type AgentConfigCategory =
   | 'identity'
   | 'model'
-  | 'instructions'
   | 'capabilities'
   | 'compaction'
   | 'skills'
   | 'graph'
-  | 'tools'
   | 'mcp'
   | 'limits'
   | 'subagents';
@@ -36,12 +32,10 @@ export const AGENT_CONFIG_CATEGORIES: {
 }[] = [
   { id: 'identity', label: 'Identity', icon: UserRoundIcon },
   { id: 'model', label: 'Model', icon: CpuIcon },
-  { id: 'instructions', label: 'Instructions', icon: ScrollTextIcon },
   { id: 'graph', label: 'Graph', icon: WorkflowIcon },
   { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
   { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },
   { id: 'skills', label: 'Skills', icon: PuzzleIcon },
-  { id: 'tools', label: 'Tools', icon: WrenchIcon },
   { id: 'mcp', label: 'MCP', icon: ServerIcon },
   { id: 'limits', label: 'Limits', icon: GaugeIcon },
   { id: 'subagents', label: 'Subagents', icon: BotIcon },

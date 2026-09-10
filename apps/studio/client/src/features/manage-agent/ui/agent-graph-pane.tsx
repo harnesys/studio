@@ -214,10 +214,10 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
         onSelectionChange={onSelectionChange}
       />
       <div className="pointer-events-none absolute inset-0 z-10">
-        <div className="pointer-events-auto absolute top-2 bottom-2 left-2 flex min-h-0 w-48 flex-col overflow-hidden rounded-lg border border-border/80 bg-popover/95 shadow-md backdrop-blur-sm">
+        <div className="pointer-events-auto absolute top-1/2 left-2 z-10 w-10 -translate-y-1/2">
           <AgentGraphPalette onAdd={(type) => addNode(type)} />
         </div>
-        <div className="pointer-events-auto absolute top-2 right-2 bottom-2 flex min-h-0 w-48 flex-col overflow-hidden rounded-lg border border-border/80 bg-popover/95 shadow-md backdrop-blur-sm">
+        <div className="pointer-events-auto absolute top-2 right-2 flex max-h-[calc(100%-1rem)] w-48 flex-col overflow-hidden rounded-lg border border-border/80 bg-popover/95 shadow-md backdrop-blur-sm">
           <AgentGraphInspector
             selection={selection}
             diagnostics={diagnostics}

@@ -28,13 +28,13 @@ export function AgentGraphInspector({
   onChangeEdge,
 }: AgentGraphInspectorProps) {
   return (
-    <aside className="agent-graph-inspector flex h-full min-h-0 w-full flex-col overflow-hidden">
-      <div className="border-border border-b px-2.5 py-1.5">
+    <aside className="agent-graph-inspector flex max-h-full w-full flex-col overflow-hidden">
+      <div className="shrink-0 border-border border-b px-2.5 py-1.5">
         <p className="font-medium text-[10px] text-muted-foreground uppercase tracking-[0.08em]">
           Inspector
         </p>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
+      <div className="min-h-0 overflow-y-auto px-2.5 py-2">
         <InspectorBody
           selection={selection}
           onChangeNode={onChangeNode}

@@ -133,7 +133,7 @@ export function CategoryLandingActionCard({
       type="button"
       onClick={onClick}
       className={cn(
-        'group flex w-full items-start gap-3 rounded-xl border border-border/70 bg-background/65 px-3.5 py-3 text-left',
+        'group flex w-full items-start gap-3 rounded-xl border border-border/70 bg-background/65 px-3 py-3 text-left',
         'shadow-[inset_0_1px_0_color-mix(in_oklab,white_6%,transparent)] backdrop-blur-[2px]',
         'transition-colors hover:border-live/35 hover:bg-[color-mix(in_oklab,var(--live)_6%,var(--background))]',
         'focus-visible:border-live/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-live/20',

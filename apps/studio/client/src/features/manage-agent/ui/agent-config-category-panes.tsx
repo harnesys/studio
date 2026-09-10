@@ -50,10 +50,16 @@ export function AgentConfigCategoryPanes({
     <div
       className={cn(
         'flex min-h-0 min-w-0 flex-1 flex-col',
-        category === 'graph' ? 'overflow-hidden' : 'overflow-y-auto pr-1',
+        category === 'graph' || category === 'identity'
+          ? 'overflow-hidden'
+          : 'overflow-y-auto pr-1',
       )}
     >
-      <div className={cn(category !== 'identity' && 'hidden')}>
+      <div
+        className={cn(
+          category === 'identity' ? 'flex min-h-0 flex-1 flex-col pr-1' : 'hidden',
+        )}
+      >
         <AgentIdentityPane form={form} />
       </div>
       <div className={cn(category !== 'model' && 'hidden')}>

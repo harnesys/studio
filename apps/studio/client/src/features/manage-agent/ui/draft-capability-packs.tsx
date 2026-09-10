@@ -114,6 +114,7 @@ function PackCard({
       description={pack.description}
       initials={initialsFromLabel(pack.name)}
       expanded={settingsOpen}
+      onClick={settingsAvailable && enabled ? onToggleSettings : undefined}
       trailing={
         <>
           {settingsAvailable ? (

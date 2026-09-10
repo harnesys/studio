@@ -19,8 +19,8 @@ type AgentFieldsForm = UseFormReturn<AgentFieldsInput, unknown, AgentFieldsOutpu
 
 export function AgentIdentityPane({ form }: { form: AgentFieldsForm }) {
   return (
-    <FieldGroup className="gap-3">
-      <div className="grid grid-cols-2 gap-3">
+    <FieldGroup className="min-h-0 flex-1 gap-3">
+      <div className="grid shrink-0 grid-cols-2 gap-3">
         <Controller
           control={form.control}
           name="name"
@@ -64,19 +64,23 @@ export function AgentIdentityPane({ form }: { form: AgentFieldsForm }) {
         control={form.control}
         name="instructions"
         render={({ field }) => (
-          <Field>
-            <FieldLabel htmlFor="agent-instructions">Instructions</FieldLabel>
-            <Textarea
-              id="agent-instructions"
-              placeholder="System prompt for this agent"
-              className="min-h-36 resize-y text-xs leading-relaxed"
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-            />
-            <p className="text-[11px] text-muted-foreground leading-snug">
+          <Field className="min-h-0 flex-1">
+            <FieldLabel htmlFor="agent-instructions" className="shrink-0">
+              Instructions
+            </FieldLabel>
+            <div className="min-h-0 flex-1">
+              <Textarea
+                id="agent-instructions"
+                placeholder="System prompt for this agent"
+                className="field-sizing-fixed h-full min-h-0 resize-none overflow-y-auto text-xs leading-relaxed"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+              />
+            </div>
+            <p className="shrink-0 text-[11px] text-muted-foreground leading-snug">
               Injected into every conversation thread as the system prompt.
             </p>
           </Field>

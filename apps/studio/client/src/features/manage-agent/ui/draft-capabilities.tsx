@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { ChevronDownIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { Agent } from '@/entities/agent';
 import {
@@ -8,6 +9,8 @@ import {
   workspaceSkillsQuery,
   workspaceToolsQuery,
 } from '@/shared/api';
+import { cn } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/button';
 import { Switch } from '@/shared/ui/switch';
 
 import type { AgentCapabilitiesDraft } from '../model/agent-config';
@@ -170,11 +173,26 @@ function McpServerCard({
       expanded={expanded}
       onClick={onToggleExpand}
       trailing={
-        <Switch
-          size="sm"
-          checked={enabled}
-          onCheckedChange={(value) => onToggleServer(Boolean(value))}
-        />
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={expanded ? `Collapse ${server.serverId}` : `Expand ${server.serverId}`}
+            aria-expanded={expanded}
+            onClick={onToggleExpand}
+            className="opacity-70"
+          >
+            <ChevronDownIcon
+              className={cn('size-3.5 transition-transform', expanded && 'rotate-180')}
+            />
+          </Button>
+          <Switch
+            size="sm"
+            checked={enabled}
+            onCheckedChange={(value) => onToggleServer(Boolean(value))}
+          />
+        </>
       }
     >
       <McpToolsList

@@ -1,0 +1,87 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "root": false,
+  "extends": "//",
+  "files": {
+    "includes": [
+      "src/**",
+      "tests/**",
+      "*.ts",
+      "*.json",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/out",
+      "!**/coverage",
+      "!**/temp",
+      "!bun.lock"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["@/packs/*"],
+                "message": "Import packs through '@/packs' (src/packs/index.ts). Domain, ports, and application layers must not import concrete packs."
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/trace.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/application/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noExcessiveLinesPerFile": "off"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/application/expr-eval.ts"],
+      "formatter": {
+        "enabled": false
+      },
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExtraBooleanCast": "off"
+          },
+          "style": {
+            "useBlockStatements": "off",
+            "noExcessiveLinesPerFile": "off",
+            "noNestedTernary": "off",
+            "useConst": "off"
+          },
+          "nursery": {
+            "useExhaustiveSwitchCases": "off"
+          },
+          "suspicious": {
+            "noConsole": "off",
+            "noFallthroughSwitchClause": "off"
+          }
+        }
+      }
+    }
+  ]
+}

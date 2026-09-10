@@ -7,9 +7,14 @@
     ".": "./types.ts"
   },
   "scripts": {
-    "typecheck": "bunx tsc -p tsconfig.json --noEmit"
+    "typecheck": "bunx tsc -p tsconfig.json --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write --unsafe ."
   },
   "dependencies": {
     "harnesys": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.6"
   }
 }

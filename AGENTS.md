@@ -28,12 +28,12 @@ Superpower-скилы — не ритуал на каждый чих. Там, г
 Не вытаскивай поле через индекс: `ModelRecord['cost']`, `Agent['quota']`, `Parameters<typeof fn>[0]`.
 Заведи именованный тип (`ModelCost`, `AgentQuota`) рядом с записью и импортируй его. Алиасы — обёртки, а не копия знания: источник правды остаётся запись.
 
-Biome плагин `plugins/no-indexed-access-type.grit` ловит `T['field']` и `T["field"]`.
+Biome плагин `plugins/no-indexed-access-type.grit` (корень монорепо) ловит `T['field']` и `T["field"]`.
 `Parameters<typeof fn>[0]` и `(typeof CONST)[number]` линтер не видит, но тоже не пиши: заведи тип аргумента или назови союз.
 
 `T[K]` в дженерике по ключу допустимо.
 
-Слайс FSD снаружи только через `index.ts` — ловит `noRestrictedImports` в `biome.json`.
+Слайс FSD снаружи только через `index.ts` — ловит `noRestrictedImports` в `apps/studio/client/biome.json`.
 
 ## Тесты
 
@@ -43,7 +43,7 @@ Biome плагин `plugins/no-indexed-access-type.grit` ловит `T['field']`
 
 - Спросить, если граница или тип неочевидны. Не угадывать слой.
 - Смотреть соседний слайс той же роли и повторять его форму, не изобретать другую раскладку.
-- Линт и формат — biome на весь монорепо.
+- Линт: общий `biome.json` в корне; пакеты наследуют через `"extends": "//"` и держат только свои overrides. `bun run lint` в корне или в пакете.
 
 ### Стратегия: библиотека vs хост
 

@@ -1,0 +1,14 @@
+node_modules
+dist
+out
+coverage
+*.lcov
+logs
+*.log
+.env
+.env.*
+!.env.example
+.cache
+*.tsbuildinfo
+.idea
+.DS_Store

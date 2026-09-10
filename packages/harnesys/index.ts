@@ -1,10 +1,56 @@
-export { defineAgent } from './src/domain/agent-definition.ts';
-export { THRESHOLD_SUMMARY_NAME } from './src/domain/compaction.ts';
+export { askUser, fetch, files, shell } from './src/adapters/actions/index.ts';
+export {
+  createRunEventBus,
+  InMemoryRunEventStore,
+  InMemoryRunLifecycleStore,
+} from './src/adapters/in-memory-run-store.ts';
+export { InMemoryRuntimeState } from './src/adapters/in-memory-runtime-state.ts';
+export { McpRegistry } from './src/adapters/mcp-registry.ts';
+export { MemoryArtifactStore } from './src/adapters/memory-artifact-store.ts';
+export {
+  bindingOf,
+  DiscoverError,
+  isDriver,
+  ModelLookupError,
+  toBinding,
+} from './src/adapters/models/binding.ts';
+export { discoverModels } from './src/adapters/models/discover.ts';
+export type { CheckOptions } from './src/application/check.ts';
+export { check } from './src/application/check.ts';
+export { estimateTokens } from './src/application/compaction/estimate.ts';
+export { compactForced } from './src/application/compaction/run.ts';
+export type { Plan } from './src/application/compile.ts';
+export { compile } from './src/application/compile.ts';
+export { createRuntime } from './src/application/create-runtime.ts';
+export { foldAttachments } from './src/application/fold-attachments.ts';
+export type { GraphOpts } from './src/application/graph.ts';
+export { startGraph } from './src/application/graph.ts';
+export { runGraph } from './src/application/graph-run.ts';
+export {
+  type CompactedProjection,
+  projectCompacted,
+  projectedForEstimate,
+} from './src/application/llm.ts';
+export type { LlmNote, LlmNoteContext, LlmNoteProvider } from './src/application/llm-notes.ts';
+export type { ResolvedPack } from './src/application/packs/registry.ts';
+export { resolvePacks } from './src/application/packs/registry.ts';
+export type { PackCatalogEntry } from './src/application/packs/tool-names.ts';
+export { packCatalog, packTools } from './src/application/packs/tool-names.ts';
+export type { RunClaimer } from './src/application/run-claimer.ts';
+export { createRunClaimer } from './src/application/run-claimer.ts';
+export { createRunEngine } from './src/application/run-engine.ts';
 export type {
-  CompactionMessage,
-  CompactionSpec,
-  ParsedCompactionSpec,
-} from './src/domain/compaction.ts';
+  RunEngine,
+  RunEngineDeps,
+  RunTargetOpts,
+} from './src/application/run-engine-types.ts';
+export type { RunEventFeed } from './src/application/run-event-feed.ts';
+export { createRunEventFeed } from './src/application/run-event-feed.ts';
+export { createLoadSkillTool } from './src/application/skills/create-load-skill-tool.ts';
+export { parseSkillFile } from './src/application/skills/parse-skill-file.ts';
+export { filterSkills, formatSkillsCatalog } from './src/application/skills/skills-catalog.ts';
+export { createToolRegistry, validateToolInput } from './src/application/tool-registry.ts';
+export { validateStructural } from './src/application/validate.ts';
 export type {
   AgentBudget,
   AgentDefinition,
@@ -20,9 +66,51 @@ export type {
   ToolCallFixed,
   ToolOutputSettings,
 } from './src/domain/agent-definition.ts';
-export { fetchCapability, filesCapability, shellCapability } from './src/packs/base.ts';
-export { askUser, fetch, files, shell } from './src/adapters/actions/index.ts';
-export { definePack, normalizePackAssignment, registerPack } from './src/domain/pack.ts';
+export { defineAgent } from './src/domain/agent-definition.ts';
+export type { Attachment, AttachmentKind } from './src/domain/attachment.ts';
+export type {
+  CompactionMessage,
+  CompactionSpec,
+  ParsedCompactionSpec,
+} from './src/domain/compaction.ts';
+export { THRESHOLD_SUMMARY_NAME } from './src/domain/compaction.ts';
+export type { Diagnostic } from './src/domain/errors.ts';
+export {
+  AskUserInterrupt,
+  codedRunError,
+  NotImplementedError,
+  PendingHitlError,
+  ResumeHashError,
+  ThreadBusyError,
+  ValidationError,
+} from './src/domain/errors.ts';
+export type {
+  AgentEventMeta,
+  ControlEventMeta,
+  EventType,
+  ModelEventMeta,
+  NodeEventMeta,
+  RunEventMeta,
+  ToolEventMeta,
+} from './src/domain/events.ts';
+export { EVENT_TYPES } from './src/domain/events.ts';
+export type { Expr } from './src/domain/expr.ts';
+export {
+  CHAT_GENERATION_PARAMETERS,
+  filterGenerationSettings,
+  withChatGenerationParameters,
+} from './src/domain/generation-settings.ts';
+export type { JsonSchema } from './src/domain/json-schema.ts';
+export type {
+  McpHttpTransport,
+  McpResourceInfo,
+  McpServerConfig,
+  McpSseTransport,
+  McpStdioTransport,
+  McpToolInfo,
+  McpTransport,
+} from './src/domain/mcp.ts';
+export type { GuardDecision, Middleware, MiddlewareContext } from './src/domain/middleware.ts';
 export type {
   AgentPacks,
   CapabilityScope,
@@ -34,26 +122,9 @@ export type {
   PackRegistration,
   PackSkill,
 } from './src/domain/pack.ts';
-export { resolvePacks } from './src/application/packs/registry.ts';
-export type { ResolvedPack } from './src/application/packs/registry.ts';
-export { packCatalog, packTools } from './src/application/packs/tool-names.ts';
-export type { PackCatalogEntry } from './src/application/packs/tool-names.ts';
-export {
-  DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
-  DEFAULT_TOOL_OUTPUT_MAX_CHARS,
-  DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
-  resolveToolOutputSettings,
-} from './src/domain/tool-output.ts';
-export type { ResolvedToolOutputSettings } from './src/domain/tool-output.ts';
-export {
-  CHAT_GENERATION_PARAMETERS,
-  filterGenerationSettings,
-  withChatGenerationParameters,
-} from './src/domain/generation-settings.ts';
-export type { Expr } from './src/domain/expr.ts';
-export type { JsonSchema } from './src/domain/json-schema.ts';
-export type { CommitKind, Cursor, CursorPhase, Event, Snapshot } from './src/domain/snapshot.ts';
-export type { GuardDecision, Middleware, MiddlewareContext } from './src/domain/middleware.ts';
+export { definePack, normalizePackAssignment, registerPack } from './src/domain/pack.ts';
+export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan.ts';
+export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from './src/domain/plan.ts';
 export type {
   Command,
   RunCancelled,
@@ -63,102 +134,74 @@ export type {
   RunSuccess,
   Usage,
 } from './src/domain/run-result.ts';
-export { NotImplementedError, ValidationError } from './src/domain/errors.ts';
-export { codedRunError } from './src/domain/errors.ts';
-export { ThreadBusyError, PendingHitlError, ResumeHashError } from './src/domain/errors.ts';
-export type { Diagnostic } from './src/domain/errors.ts';
-export { compile } from './src/application/compile.ts';
-export type { Plan } from './src/application/compile.ts';
-export { check } from './src/application/check.ts';
-export type { CheckOptions } from './src/application/check.ts';
-export { validateStructural } from './src/application/validate.ts';
-export type { LlmNote, LlmNoteContext, LlmNoteProvider } from './src/application/llm-notes.ts';
-export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
-export type {
-  PendingSessionEvent,
-  RunEventStore,
-  RunSeqAllocator,
-} from './src/ports/run-event-store.ts';
-export type {
-  RunCreateInput,
-  RunLifecycleStatus,
-  RunLifecycleStore,
-  RunRecord,
-  RunTransitionPatch,
-} from './src/ports/run-lifecycle-store.ts';
-export type { RunTarget, RunTargets } from './src/ports/run-targets.ts';
-export type { RunEngine, RunEngineDeps, RunTargetOpts } from './src/application/run-engine-types.ts';
-export type { RunClaimer } from './src/application/run-claimer.ts';
-export type { RunEventFeed } from './src/application/run-event-feed.ts';
-export { createRunEventFeed } from './src/application/run-event-feed.ts';
-export { createRunClaimer } from './src/application/run-claimer.ts';
-export { createRunEngine } from './src/application/run-engine.ts';
+export type { PermissionMode, ScheduleHistory } from './src/domain/schedule.ts';
+export { PERMISSION_MODES, SCHEDULE_HISTORIES } from './src/domain/schedule.ts';
+export type { SkillDocument, SkillSummary } from './src/domain/skill.ts';
+export type { CommitKind, Cursor, CursorPhase, Event, Snapshot } from './src/domain/snapshot.ts';
+export type { ResolvedToolOutputSettings } from './src/domain/tool-output.ts';
 export {
-  InMemoryRunEventStore,
-  InMemoryRunLifecycleStore,
-  createRunEventBus,
-} from './src/adapters/in-memory-run-store.ts';
+  DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
+  DEFAULT_TOOL_OUTPUT_MAX_CHARS,
+  DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
+  resolveToolOutputSettings,
+} from './src/domain/tool-output.ts';
+export type { AgentsCapabilityPorts } from './src/packs/agents/index.ts';
+export { agentsCapability } from './src/packs/agents/index.ts';
+export { fetchCapability, filesCapability, shellCapability } from './src/packs/base.ts';
+export {
+  type CreateEpisodicToolsParams,
+  createEpisodicTools,
+} from './src/packs/memory/create-episodic-tools.ts';
+export {
+  type CreateKnowledgeToolsParams,
+  createKnowledgeTools,
+} from './src/packs/memory/create-knowledge-tools.ts';
+export {
+  type CreatePinToolsParams,
+  createPinTools,
+} from './src/packs/memory/create-pin-tools.ts';
+export {
+  type CreateSemanticToolsParams,
+  createSemanticTools,
+} from './src/packs/memory/create-semantic-tools.ts';
+export type { EpisodicMemoryPorts } from './src/packs/memory/episodic.ts';
+export { episodicMemoryCapability } from './src/packs/memory/episodic.ts';
+export { memoryCapabilities, memoryCapabilityList } from './src/packs/memory/index.ts';
+export type { KnowledgeMemoryPorts } from './src/packs/memory/knowledge.ts';
+export { knowledgeMemoryCapability } from './src/packs/memory/knowledge.ts';
+export { memoryScopeOf } from './src/packs/memory/memory-scope.ts';
+export type { PinMemoryPorts } from './src/packs/memory/pin.ts';
+export { pinMemoryCapability } from './src/packs/memory/pin.ts';
+export type { SemanticMemoryPorts } from './src/packs/memory/semantic.ts';
+export { semanticMemoryCapability } from './src/packs/memory/semantic.ts';
+export type { PlanCapabilityPorts } from './src/packs/plan/index.ts';
+export { planCapability } from './src/packs/plan/index.ts';
+export type { SchedulerCapabilityPorts } from './src/packs/scheduler/index.ts';
+export { schedulerCapability } from './src/packs/scheduler/index.ts';
+export type { ThreadsCapabilityPorts } from './src/packs/threads/index.ts';
+export { threadsCapability } from './src/packs/threads/index.ts';
+export type { WebhookCapabilityPorts } from './src/packs/webhook/index.ts';
+export { webhookCapability } from './src/packs/webhook/index.ts';
 export type {
-  AgentRosterEntry, AgentsResolve, CreateRuntimeOptions, RuntimeHandle,
-} from './src/ports/create-runtime.ts';
-export { DRIVERS, normalizeProvider, resolveModel } from './src/ports/models.ts';
-export type {
-  DiscoverInput,
-  DiscoveredModel,
-  Driver,
-  ModelBinding,
-  ModelRecord,
-  ModelsApi,
-  ModelsPort,
-  ProviderConfig,
-  ResolvedModel,
-} from './src/ports/models.ts';
-export { bindingOf, DiscoverError, isDriver, ModelLookupError, toBinding } from './src/adapters/models/binding.ts';
-export { discoverModels } from './src/adapters/models/discover.ts';
-export { tool } from './src/ports/tools.ts';
-export type { CustomNodeImpl, SideEffect, ToolCatalogEntry, ToolContext, ToolDefinition } from './src/ports/tools.ts';
-export { createToolRegistry, validateToolInput } from './src/application/tool-registry.ts';
-export { DEFAULT_PERMISSIONS, resolveToolPermission } from './src/ports/permissions.ts';
-export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
-export type { PathsConfig } from './src/ports/paths.ts';
-export { CONSOLE_LOGGER, NOOP_LOGGER, type Logger } from './src/ports/logger.ts';
-export type { SkillRegistry } from './src/ports/skills.ts';
-export type { CursorMcpJson, McpServerInfo, McpServerToolInfo, StdioEntry, UrlEntry } from './src/ports/mcp.ts';
+  AgentCatalogCreateInput,
+  AgentCatalogSummary,
+  AgentsCatalogPort,
+} from './src/ports/agents-catalog.ts';
 export type { ArtifactStore, SendFile } from './src/ports/artifacts.ts';
-export type { ModelUsage, SendInput, SendOpts, SessionEvent, SessionEventType, SessionHandle } from './src/ports/session.ts';
-export { createRuntime } from './src/application/create-runtime.ts';
-export { startGraph } from './src/application/graph.ts';
-export type { GraphOpts } from './src/application/graph.ts';
-export { runGraph } from './src/application/graph-run.ts';
-export { InMemoryRuntimeState } from './src/adapters/in-memory-runtime-state.ts';
-export { EVENT_TYPES } from './src/domain/events.ts';
 export type {
-  EventType,
-  RunEventMeta,
-  NodeEventMeta,
-  ModelEventMeta,
-  ToolEventMeta,
-  ControlEventMeta,
-  AgentEventMeta,
-} from './src/domain/events.ts';
-export type { Attachment, AttachmentKind } from './src/domain/attachment.ts';
-export { MemoryArtifactStore } from './src/adapters/memory-artifact-store.ts';
-export { foldAttachments } from './src/application/fold-attachments.ts';
-export { AskUserInterrupt } from './src/domain/errors.ts';
-export type { SkillSummary, SkillDocument } from './src/domain/skill.ts';
-export { parseSkillFile } from './src/application/skills/parse-skill-file.ts';
-export { filterSkills, formatSkillsCatalog } from './src/application/skills/skills-catalog.ts';
-export { createLoadSkillTool } from './src/application/skills/create-load-skill-tool.ts';
-export { McpRegistry } from './src/adapters/mcp-registry.ts';
+  AgentRosterEntry,
+  AgentsResolve,
+  CreateRuntimeOptions,
+  RuntimeHandle,
+} from './src/ports/create-runtime.ts';
+export { CONSOLE_LOGGER, type Logger, NOOP_LOGGER } from './src/ports/logger.ts';
 export type {
-  McpServerConfig,
-  McpTransport,
-  McpStdioTransport,
-  McpHttpTransport,
-  McpSseTransport,
-  McpToolInfo,
-  McpResourceInfo,
-} from './src/domain/mcp.ts';
+  CursorMcpJson,
+  McpServerInfo,
+  McpServerToolInfo,
+  StdioEntry,
+  UrlEntry,
+} from './src/ports/mcp.ts';
 export type {
   EpisodicHit,
   EpisodicIndexInput,
@@ -183,80 +226,72 @@ export type {
   SemanticScope,
   SemanticUpsertInput,
 } from './src/ports/memory.ts';
-
-export {
-  createEpisodicTools,
-  type CreateEpisodicToolsParams,
-} from './src/packs/memory/create-episodic-tools.ts';
-export {
-  createKnowledgeTools,
-  type CreateKnowledgeToolsParams,
-} from './src/packs/memory/create-knowledge-tools.ts';
-export {
-  createPinTools,
-  type CreatePinToolsParams,
-} from './src/packs/memory/create-pin-tools.ts';
-export {
-  createSemanticTools,
-  type CreateSemanticToolsParams,
-} from './src/packs/memory/create-semantic-tools.ts';
+export type {
+  DiscoveredModel,
+  DiscoverInput,
+  Driver,
+  ModelBinding,
+  ModelRecord,
+  ModelsApi,
+  ModelsPort,
+  ProviderConfig,
+  ResolvedModel,
+} from './src/ports/models.ts';
+export { DRIVERS, normalizeProvider, resolveModel } from './src/ports/models.ts';
+export type { PathsConfig } from './src/ports/paths.ts';
+export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
+export { DEFAULT_PERMISSIONS, resolveToolPermission } from './src/ports/permissions.ts';
 export type { PlanItem, PlanPort, PlanSaveItemInput, PlanSnapshot } from './src/ports/plan.ts';
-export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from './src/domain/plan.ts';
-export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan.ts';
-export type { PlanCapabilityPorts } from './src/packs/plan/index.ts';
-export { planCapability } from './src/packs/plan/index.ts';
-export type { ThreadSummary, ThreadsPort } from './src/ports/threads.ts';
-export type { ThreadsCapabilityPorts } from './src/packs/threads/index.ts';
-export { threadsCapability } from './src/packs/threads/index.ts';
 export type {
-  AgentCatalogCreateInput,
-  AgentCatalogSummary,
-  AgentsCatalogPort,
-} from './src/ports/agents-catalog.ts';
-export type { AgentsCapabilityPorts } from './src/packs/agents/index.ts';
-export { agentsCapability } from './src/packs/agents/index.ts';
-export { PERMISSION_MODES, SCHEDULE_HISTORIES } from './src/domain/schedule.ts';
-export type { PermissionMode, ScheduleHistory } from './src/domain/schedule.ts';
+  PendingSessionEvent,
+  RunEventStore,
+  RunSeqAllocator,
+} from './src/ports/run-event-store.ts';
 export type {
-  SchedulerPort,
-  ScheduleCreateInput,
+  RunCreateInput,
+  RunLifecycleStatus,
+  RunLifecycleStore,
+  RunRecord,
+  RunTransitionPatch,
+} from './src/ports/run-lifecycle-store.ts';
+export type { RunTarget, RunTargets } from './src/ports/run-targets.ts';
+export type { CommitMeta, RuntimeState } from './src/ports/runtime-state.ts';
+export type {
   ScheduleCreatedRecord,
   ScheduleCreatedThread,
+  ScheduleCreateInput,
   SchedulePeekFire,
   SchedulePeekRecord,
   ScheduleRecord,
+  SchedulerPort,
   ScheduleStatus,
   ScheduleUpdateInput,
 } from './src/ports/scheduler.ts';
-export type { SchedulerCapabilityPorts } from './src/packs/scheduler/index.ts';
-export { schedulerCapability } from './src/packs/scheduler/index.ts';
 export type {
-  WebhookCreateInput,
+  ModelUsage,
+  SendInput,
+  SendOpts,
+  SessionEvent,
+  SessionEventType,
+  SessionHandle,
+} from './src/ports/session.ts';
+export type { SkillRegistry } from './src/ports/skills.ts';
+export type { ThreadSummary, ThreadsPort } from './src/ports/threads.ts';
+export type {
+  CustomNodeImpl,
+  SideEffect,
+  ToolCatalogEntry,
+  ToolContext,
+  ToolDefinition,
+} from './src/ports/tools.ts';
+export { tool } from './src/ports/tools.ts';
+export type {
   WebhookCreatedRecord,
   WebhookCreatedThread,
+  WebhookCreateInput,
   WebhookPort,
   WebhookRecord,
   WebhookStatus,
   WebhookThreadActiveRun,
   WebhookUpdateInput,
 } from './src/ports/webhook.ts';
-export type { WebhookCapabilityPorts } from './src/packs/webhook/index.ts';
-export { webhookCapability } from './src/packs/webhook/index.ts';
-export type { EpisodicMemoryPorts } from './src/packs/memory/episodic.ts';
-export { episodicMemoryCapability } from './src/packs/memory/episodic.ts';
-export type { KnowledgeMemoryPorts } from './src/packs/memory/knowledge.ts';
-export { knowledgeMemoryCapability } from './src/packs/memory/knowledge.ts';
-export { memoryCapabilityList, memoryCapabilities } from './src/packs/memory/index.ts';
-export { memoryScopeOf } from './src/packs/memory/memory-scope.ts';
-export type { PinMemoryPorts } from './src/packs/memory/pin.ts';
-export { pinMemoryCapability } from './src/packs/memory/pin.ts';
-export type { SemanticMemoryPorts } from './src/packs/memory/semantic.ts';
-export { semanticMemoryCapability } from './src/packs/memory/semantic.ts';
-
-export { compactForced } from './src/application/compaction/run.ts';
-export { estimateTokens } from './src/application/compaction/estimate.ts';
-export {
-  projectCompacted,
-  projectedForEstimate,
-  type CompactedProjection,
-} from './src/application/llm.ts';

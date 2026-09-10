@@ -75,7 +75,12 @@ export {
   THRESHOLD_SUMMARY_NAME,
   withChatGenerationParameters,
 } from './src/harnesys-bridge.ts';
-export type { AskPayload, ConfirmPayload, HitlPayload, PermissionPayload } from './src/hitl-payload.ts';
+export type {
+  AskPayload,
+  ConfirmPayload,
+  HitlPayload,
+  PermissionPayload,
+} from './src/hitl-payload.ts';
 export { payloadForSource } from './src/hitl-payload.ts';
 export type {
   KnowledgeFileRecord,
@@ -112,7 +117,6 @@ export {
   scheduledTaskText,
   visibleScheduledText,
 } from './src/schedule-prompt.ts';
-export { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from './src/webhook-prompt.ts';
 export type {
   AcceptedRunResponse,
   CompactThreadResponse,
@@ -129,6 +133,7 @@ export type {
 export { THREAD_KINDS, threadsForAgent } from './src/thread.ts';
 export type { TranscriptItem } from './src/transcript.ts';
 export { toTranscript } from './src/transcript.ts';
+export { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from './src/webhook-prompt.ts';
 
 export type AttachmentKind = 'image' | 'audio' | 'video' | 'file';
 

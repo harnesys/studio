@@ -3,7 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { WorkspaceFileEvent } from '@harnesys/studio-shared';
 import { FILES_WATCHER_DEBOUNCE_MS } from '../../config/constants.ts';
-import { trace } from '../../trace.ts';
+import { trace } from '../../libs/trace.ts';
 
 type GitWatcherState = {
   gitWatcher: ReturnType<typeof watch> | null;

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { WorkspaceFileEntry, WorkspaceFileEvent } from '@harnesys/studio-shared';
 import { FILES_WATCHER_DEBOUNCE_MS, SAFETY_NAMES } from '../../config/constants.ts';
 import type { FilesWatcherInput } from '../../domain/files-watcher.port.ts';
-import { trace } from '../../trace.ts';
+import { trace } from '../../libs/trace.ts';
 import { startGitWatcher } from './files-watcher-git.ts';
 import { type DirSnapshot, diff, snapshot } from './files-watcher-snapshot.ts';
 

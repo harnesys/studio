@@ -1,6 +1,6 @@
 import { access } from 'node:fs/promises';
 import { relative, resolve, sep } from 'node:path';
-import { trace } from '../../trace.ts';
+import { trace } from '../../libs/trace.ts';
 import type { EmbeddingsPort } from './embeddings.ts';
 import { indexKnowledgeFile, upsertWalkEntry } from './knowledge-index-file.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';

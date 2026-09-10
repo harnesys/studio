@@ -3,7 +3,7 @@
 import { KNOWLEDGE_INDEX_SLOW_FILE_MS } from '../../config/constants.ts';
 import type { KnowledgeIndexEventsPort } from '../../domain/knowledge-index-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-import { trace } from '../../trace.ts';
+import { trace } from '../../libs/trace.ts';
 import type { EmbeddingsPort, StudioEmbeddingsDeps } from './embeddings.ts';
 import { embeddingsForSettings, knowledgeIndexModeKey } from './knowledge-embeddings.ts';
 import { indexKnowledgeFile, upsertWalkEntry } from './knowledge-index-file.ts';

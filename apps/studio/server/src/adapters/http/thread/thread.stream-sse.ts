@@ -2,7 +2,7 @@ import type { RunLifecycleStore, SessionEvent } from 'harnesys';
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { SSE_KEEP_ALIVE_MS } from '../../../config/constants.ts';
-import { trace } from '../../../trace.ts';
+import { trace } from '../../../libs/trace.ts';
 
 /** Кадры завершения рана в журнале. У спавнов lifecycle-записи нет — по ним стрим закрывается. */
 function isRunEndFrame(event: SessionEvent): boolean {

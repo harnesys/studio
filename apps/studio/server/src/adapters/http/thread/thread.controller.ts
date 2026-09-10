@@ -19,7 +19,7 @@ import type { StreamRunEventsInput } from '../../../application/threads/stream-r
 import type { UpdateThreadInput } from '../../../application/threads/update-thread.use-case.ts';
 import { SSE_KEEP_ALIVE_MS } from '../../../config/constants.ts';
 import { RunConflictError } from '../../../domain/studio.error.ts';
-import { preview, trace } from '../../../trace.ts';
+import { preview, trace } from '../../../libs/trace.ts';
 import {
   createThreadBody,
   rejectRunBody,

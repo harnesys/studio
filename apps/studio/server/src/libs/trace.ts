@@ -1,5 +1,5 @@
-import { TRACE_PREVIEW_LIMIT } from './config/constants.ts';
-import { logger } from './config/logger.ts';
+import { TRACE_PREVIEW_LIMIT } from '../config/constants.ts';
+import { logger } from '../config/logger.ts';
 
 /** Run diagnostics: always lands in the NDJSON log file, console level decides visibility. */
 export function trace(scope: string, message: string, extra?: unknown): void {

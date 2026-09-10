@@ -2,7 +2,7 @@ import type { WorkspaceFileEvent } from '@harnesys/studio-shared';
 import { KNOWLEDGE_WATCH_ENSURE_INTERVAL_MS, SAFETY_NAMES } from '../../config/constants.ts';
 import type { FilesWatcherInput } from '../../domain/files-watcher.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-import { trace } from '../../trace.ts';
+import { trace } from '../../libs/trace.ts';
 import { FilesWatcherAdapter } from '../workspace/files-watcher.adapter.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
 import type { KnowledgeIndexer } from './knowledge-indexer.ts';

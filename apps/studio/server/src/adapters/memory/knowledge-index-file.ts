@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { KNOWLEDGE_EMBED_BATCH_SIZE, KNOWLEDGE_EMBED_SLOW_MS } from '../../config/constants.ts';
-import { trace } from '../../trace.ts';
+import { trace } from '../../libs/trace.ts';
 import { chunkText } from './chunk-text.ts';
 import { encodeEmbedding } from './embedding-vec.ts';
 import type { EmbeddingsPort } from './embeddings.ts';

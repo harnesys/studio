@@ -219,8 +219,8 @@
     {
       "includes": [
         "apps/studio/client/vite.config.ts",
-        "apps/studio/server/drizzle.config.ts",
-        "apps/studio/server/index.ts",
+        "apps/studio/server/src/drizzle.config.ts",
+        "apps/studio/server/src/index.ts",
         "apps/studio/client/src/app/routes/index.tsx"
       ],
       "linter": {

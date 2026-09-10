@@ -27,7 +27,7 @@ server/
   index.ts        # Main: listen, static
 ```
 
-Доменные порты и ошибки — в `server/domain`.
+Доменные порты и ошибки — в `server/src/domain`.
 
 | суффикс | роль |
 |---|---|

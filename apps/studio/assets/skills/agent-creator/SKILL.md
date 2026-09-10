@@ -14,7 +14,7 @@ Reference for authoring `AgentDefinition`s and Studio presets. The engine execut
 - Any later `llm:generate` in the same run converts those messages and throws `AI_MissingToolResultsError`; the run fails. One unhandled tool call is enough.
 - Therefore: every `llm:generate` that can see tools must either route `when: '$output.finishReason = "tool-calls"'` to a batch `tool:call` over `calls: "$output.toolCalls"`, or loop back to itself after that node, or declare `"tools": []`.
 - Pure decision/report nodes get `"tools": []` and instruct the model to answer in text.
-- Canonical loop (copy this shape; see `apps/studio/server/application/agents/react-preset.ts` and the shipped presets in `apps/studio/assets/skills/author-agents/presets/`):
+- Canonical loop (copy this shape; see `../../../server/src/application` and the shipped presets in `apps/studio/assets/skills/author-agents/presets/`):
 
 ```json
 "start": { "type": "core:start" },
@@ -51,7 +51,7 @@ Operators: `=`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `&&`, `||`, `!`, parentheses, 
 
 ## Permissions and HITL
 
-Gates resolve per operation through `PermissionMap` keyed by OPERATIONS, not tool names; unknown operation defaults to `ask`, mixed gates take the worst. Default map: `fs.read` allow; `fs.write`, `process`, `network`, `mcp` ask. Tool operations: `read_file`/`list_dir`/`glob`/`grep` = `fs.read`; `write_file`/`edit_file` = `fs.write`; `shell` = `process`; `fetch` = `network`; MCP tools = `mcp`. `plan_*`, `agents_*`, `threads`, memory, scheduler and webhook tools declare no operations and are never gated. A `deny` fails the call; an `ask` parks the run per call (one approval per gated call in a batch) with resume `{ approved }`; denial is terminal for that call, never re-send it unchanged. Studio run modes (plan/ask/auto/dont_ask/bypass) map to these operations in `apps/studio/server/adapters/tool-confirm-policy.ts`.
+Gates resolve per operation through `PermissionMap` keyed by OPERATIONS, not tool names; unknown operation defaults to `ask`, mixed gates take the worst. Default map: `fs.read` allow; `fs.write`, `process`, `network`, `mcp` ask. Tool operations: `read_file`/`list_dir`/`glob`/`grep` = `fs.read`; `write_file`/`edit_file` = `fs.write`; `shell` = `process`; `fetch` = `network`; MCP tools = `mcp`. `plan_*`, `agents_*`, `threads`, memory, scheduler and webhook tools declare no operations and are never gated. A `deny` fails the call; an `ask` parks the run per call (one approval per gated call in a batch) with resume `{ approved }`; denial is terminal for that call, never re-send it unchanged. Studio run modes (plan/ask/auto/dont_ask/bypass) map to these operations in `../../../server/src/adapters`.
 
 ## Budget
 

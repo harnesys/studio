@@ -4,12 +4,12 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch index.ts",
-    "start": "NODE_ENV=production bun index.ts",
+    "dev": "bun --watch src/index.ts",
+    "start": "NODE_ENV=production bun src/index.ts",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:generate": "drizzle-kit generate --config src/drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config src/drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config src/drizzle.config.ts"
   },
   "dependencies": {
     "@harnesys/studio-shared": "workspace:*",

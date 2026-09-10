@@ -8,7 +8,7 @@ const ui = Bun.spawn({
 });
 
 const server = Bun.spawn({
-  cmd: ['bun', '--watch', 'server/index.ts'],
+  cmd: ['bun', '--watch', 'server/src/index.ts'],
   cwd,
   stdout: 'inherit',
   stderr: 'inherit',

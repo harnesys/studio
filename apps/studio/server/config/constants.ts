@@ -105,7 +105,11 @@ export const DEFAULT_THREAD_TITLE = 'New thread';
 
 /** Policy */
 export const MUTATE_OPS = ['fs.write'] as const;
-export const EXTERNAL_OPS = ['process', 'network', 'mcp'] as const;
+/** Shell. Plan mode denies this; write stays on MUTATE_OPS. */
+export const PROCESS_OPS = ['process'] as const;
+/** Fetch + MCP. Plan mode allows these for research. */
+export const RESEARCH_OPS = ['network', 'mcp'] as const;
+export const EXTERNAL_OPS = [...PROCESS_OPS, ...RESEARCH_OPS] as const;
 
 /** Naming */
 export const PRESETS_DIR = 'author-agents/presets';
@@ -130,5 +134,3 @@ export const SQLITE_PRAGMAS = [
   'PRAGMA foreign_keys = ON',
   'PRAGMA synchronous = NORMAL',
 ] as const;
-
-// Long prompts (PLAN_MODE_PROMPT) stay colocated in application/threads/plan-mode-prompt.ts.

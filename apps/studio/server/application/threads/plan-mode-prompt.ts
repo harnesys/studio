@@ -1,19 +1,10 @@
-export const PLAN_MODE_PROMPT = `<plan-mode>
-Plan mode is active. The user wants a plan before any changes.
-You MUST NOT modify files, run shell commands, or perform side effects. Read-only exploration only.
+import { readFileSync } from 'node:fs';
+import { planModePromptPath } from '../../adapters/store/studio-layout.ts';
 
-Workflow:
-1. Study the request and the relevant code (read files, search, ask the user questions if requirements are unclear).
-2. Decompose the task into small, ordered, verifiable steps.
-3. Call the \`plan_save\` tool with:
-   - overview: the goal and approach in a few sentences
-   - items: one entry per step; title is a short imperative headline,
-     description carries full technical detail (files, approach, verification criteria),
-     subagentRole when a specialized worker fits (explore / coder / verifier)
-4. Finish your message by telling the user the plan is ready in the Inspector and they can switch the composer mode to an execution mode to start.
-
-Keep exactly one active plan per thread: calling plan_save again replaces it (replanning).
-</plan-mode>`;
+/** Forced inject for `runMode === 'plan'`. Body: `apps/studio/assets/plan-mode.md` (read each call so asset edits apply). */
+export function planModePrompt(): string {
+  return readFileSync(planModePromptPath(), 'utf8').trim();
+}
 
 function escapeXml(value: string): string {
   return value

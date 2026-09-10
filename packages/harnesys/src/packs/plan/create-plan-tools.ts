@@ -21,7 +21,7 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
     tool('plan_save', {
       group: 'plan',
       description:
-        'Save or overwrite the execution plan for this thread. Use in Plan mode or when replanning. Creates structured checklist with detailed steps for each todo item.',
+        'Save or overwrite the execution plan for this thread. In Plan mode: only after the user approved the written proposal via ask_user (never save before that approve). Creates the Inspector checklist from overview + items.',
       input: {
         type: 'object',
         properties: {

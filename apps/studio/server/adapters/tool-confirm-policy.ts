@@ -1,6 +1,6 @@
 import type { PermissionGate, PermissionMap } from 'harnesys';
 import type { PermissionMode, RunMode } from '../../shared/types.ts';
-import { EXTERNAL_OPS, MUTATE_OPS } from '../config/constants.ts';
+import { EXTERNAL_OPS, MUTATE_OPS, PROCESS_OPS, RESEARCH_OPS } from '../config/constants.ts';
 
 export type { PermissionMode, RunMode };
 
@@ -25,8 +25,10 @@ export function permissionMapFor(mode: RunMode = 'ask'): PermissionMap {
   };
 
   if (mode === 'plan') {
+    // Read-only local + research: block write/shell, allow fetch/MCP.
     set(MUTATE_OPS, 'deny');
-    set(EXTERNAL_OPS, 'deny');
+    set(PROCESS_OPS, 'deny');
+    set(RESEARCH_OPS, 'allow');
     return map;
   }
   if (mode === 'bypass') {

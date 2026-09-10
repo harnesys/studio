@@ -14,7 +14,7 @@ import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { kindFromMediaType } from './attachment-kind.ts';
 import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
-import { PLAN_MODE_PROMPT } from './plan-mode-prompt.ts';
+import { planModePrompt } from './plan-mode-prompt.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
 
 export type SendThreadRunRequest = {
@@ -129,7 +129,8 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   /** Injects the plan-mode contract into the outgoing text. Active-plan status rides runtime notes. */
   private decorateText(runMode: RunMode, text: string | undefined): string | undefined {
     if (runMode === 'plan') {
-      return text ? `${PLAN_MODE_PROMPT}\n\n${text}` : PLAN_MODE_PROMPT;
+      const prompt = planModePrompt();
+      return text ? `${prompt}\n\n${text}` : prompt;
     }
     return text;
   }

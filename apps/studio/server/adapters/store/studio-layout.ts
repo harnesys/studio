@@ -40,6 +40,11 @@ export function bundledSkillsPath(): string {
   return env.bundledSkills ?? join(import.meta.dir, '..', '..', '..', 'assets', SKILLS_DIR);
 }
 
+/** Plan-mode contract text prepended when run mode is `plan` (`apps/studio/assets/plan-mode.md`). */
+export function planModePromptPath(): string {
+  return join(import.meta.dir, '..', '..', '..', 'assets', 'plan-mode.md');
+}
+
 /**
  * Workspace meta root (`<workspace>/.harnesys`).
  * One-shot rename from legacy `.studio` when the new path is missing.

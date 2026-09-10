@@ -1,7 +1,9 @@
 import type { PackCatalogEntry, PackConfig } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
+import { CogIcon } from 'lucide-react';
 import { useState } from 'react';
 import { workspaceCapabilitiesQuery } from '@/shared/api';
+import { Button } from '@/shared/ui/button';
 import { Switch } from '@/shared/ui/switch';
 
 import { ConfigEntityCard, initialsFromLabel } from './config-entity-card';
@@ -112,13 +114,28 @@ function PackCard({
       description={pack.description}
       initials={initialsFromLabel(pack.name)}
       expanded={settingsOpen}
-      onClick={settingsAvailable && enabled ? onToggleSettings : undefined}
       trailing={
-        <Switch
-          size="sm"
-          checked={enabled}
-          onCheckedChange={(next) => onToggle(pack.name, Boolean(next))}
-        />
+        <>
+          {settingsAvailable ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              disabled={!enabled}
+              aria-label={`${pack.name} settings`}
+              aria-pressed={settingsOpen}
+              onClick={onToggleSettings}
+              className="opacity-70"
+            >
+              <CogIcon />
+            </Button>
+          ) : null}
+          <Switch
+            size="sm"
+            checked={enabled}
+            onCheckedChange={(next) => onToggle(pack.name, Boolean(next))}
+          />
+        </>
       }
     >
       <PackSettingsFields packName={pack.name} config={config} onChange={onConfigChange} />

@@ -48,8 +48,10 @@ export function toAiTools(
   if (!registry) {
     return undefined;
   }
+  // Stable key order for provider prefix cache across steps.
+  const ordered = [...names].sort((a, b) => a.localeCompare(b));
   const out: Record<string, unknown> = {};
-  for (const n of names) {
+  for (const n of ordered) {
     const def = registry.get(n);
     if (!def) {
       continue;

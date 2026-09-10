@@ -8,6 +8,12 @@ export function loadedToolsOf(state: Record<string, unknown>): string[] {
   return Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : [];
 }
 
+/**
+ * Progressive tool set for one LLM step.
+ * Schema set changes only when `loaded` grows (successful load_tools).
+ * Expect one prefix-cache bust on that step; the next step should hit again
+ * if instructions + history prefix are unchanged.
+ */
 export function resolveProgressiveTools(
   resolved: string[],
   registry: Map<string, ToolDefinition>,

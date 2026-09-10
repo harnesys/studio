@@ -46,6 +46,15 @@ export function UsageCard({ last, run, thread, window: windowProp = 0 }: UsageCa
         </div>
       </div>
 
+      {last && (last.promptTokens > 0 || last.generatedTokens > 0) ? (
+        <div className="border-t pt-2">
+          <p className="mb-1.5 font-mono text-[10px] text-muted-foreground uppercase tracking-[0.12em]">
+            Last step
+          </p>
+          <LastStepRows usage={last} />
+        </div>
+      ) : null}
+
       {run && run.calls > 0 ? (
         <div className="border-t pt-2">
           <p className="mb-1.5 font-mono text-[10px] text-muted-foreground uppercase tracking-[0.12em]">
@@ -64,6 +73,22 @@ export function UsageCard({ last, run, thread, window: windowProp = 0 }: UsageCa
         </div>
       ) : null}
     </div>
+  );
+}
+
+function LastStepRows({ usage }: { usage: MessageUsage }) {
+  const cacheRead = usage.cacheReadTokens ?? 0;
+  const cacheWrite = usage.cacheWriteTokens ?? 0;
+  const cacheMiss = Math.max(0, usage.promptTokens - cacheRead);
+  return (
+    <>
+      <StatRow label="Input (Cache Miss)" value={`${formatTokenCount(cacheMiss)} tok`} />
+      <StatRow label="Cache Hit" value={`${formatTokenCount(cacheRead)} tok`} />
+      {cacheWrite > 0 ? (
+        <StatRow label="Cache Write" value={`${formatTokenCount(cacheWrite)} tok`} />
+      ) : null}
+      <StatRow label="Output" value={`${formatTokenCount(usage.generatedTokens)} tok`} />
+    </>
   );
 }
 

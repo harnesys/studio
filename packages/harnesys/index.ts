@@ -255,4 +255,8 @@ export { semanticMemoryCapability } from './src/packs/memory/semantic.ts';
 
 export { compactForced } from './src/application/compaction/run.ts';
 export { estimateTokens } from './src/application/compaction/estimate.ts';
-export { projectCompacted } from './src/application/llm.ts';
+export {
+  projectCompacted,
+  projectedForEstimate,
+  type CompactedProjection,
+} from './src/application/llm.ts';

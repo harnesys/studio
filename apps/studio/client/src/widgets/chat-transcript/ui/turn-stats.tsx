@@ -38,12 +38,19 @@ function formatUsageParts(usage: MessageUsage): string {
 }
 
 function tokenParts(usage: MessageUsage): string[] {
+  const cacheRead = usage.cacheReadTokens ?? 0;
+  const cacheWrite = usage.cacheWriteTokens ?? 0;
+  const cacheMiss = Math.max(0, usage.promptTokens - cacheRead);
   const parts = [
     `${formatTokenCount(usage.promptTokens)} in`,
     `${formatTokenCount(usage.generatedTokens)} out`,
   ];
-  if (usage.cacheReadTokens && usage.cacheReadTokens > 0) {
-    parts.push(`${formatTokenCount(usage.cacheReadTokens)} cache`);
+  if (cacheRead > 0 || cacheWrite > 0) {
+    parts.push(`${formatTokenCount(cacheRead)} hit`);
+    parts.push(`${formatTokenCount(cacheMiss)} miss`);
+  }
+  if (cacheWrite > 0) {
+    parts.push(`${formatTokenCount(cacheWrite)} write`);
   }
   if (usage.reasoningTokens && usage.reasoningTokens > 0) {
     parts.push(`${formatTokenCount(usage.reasoningTokens)} reason`);

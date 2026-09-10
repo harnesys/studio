@@ -12,7 +12,7 @@ import type { ModelBinding, ModelsPort, ProviderConfig } from '../../ports/model
 import type { PathsConfig } from '../../ports/paths.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { findBind, isPort, resolveModelForPort } from '../graph-helpers.ts';
-import { projectCompacted } from '../llm.ts';
+import { projectCompacted, projectedForEstimate } from '../llm.ts';
 import { estimateTokens } from './estimate.ts';
 import { writeCompactionFile } from './file-log.ts';
 import { planCut } from './plan-cut.ts';
@@ -84,7 +84,7 @@ async function* passIfDue(
     return;
   }
   const toolsJson = toolsJsonOf(ctx.toolRegistry);
-  const before = estimateTokens(projectCompacted(messages), toolsJson);
+  const before = estimateTokens(projectedForEstimate(projectCompacted(messages)), toolsJson);
   const contextLength =
     ctx.binding.model.context_length ?? ctx.binding.model.top_provider?.context_length;
   if (!contextLength) {
@@ -195,7 +195,7 @@ async function* writeCompactionMessage(
     createdAt: new Date().toISOString(),
   };
   message.stats.tokensAfter = estimateTokens(
-    projectCompacted([...messages, message]),
+    projectedForEstimate(projectCompacted([...messages, message])),
     args.toolsJson,
   ).total;
   messages.push(message);

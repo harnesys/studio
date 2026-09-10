@@ -62,28 +62,20 @@ export async function* callModel(
   const model = provider(binding.model.name) as never;
   const aiTools = toAiTools(names, registry);
 
-  const raw = toModelMessages(messages);
-  const chat: unknown[] = [];
-  const noteTexts: string[] = [];
-  for (const message of raw) {
-    const record = message as Record<string, unknown>;
-    if (record && record.role === 'system') {
-      const text = typeof record.content === 'string' ? record.content : '';
-      if (text.trim()) {
-        noteTexts.push(text);
-      }
-      continue;
-    }
-    chat.push(message);
-  }
-  const systemText = [prompt, ...noteTexts].filter((part) => part?.trim()).join('\n\n');
-  const ms = chat as never[];
+  // Stable instructions stay in `system`/`instructions`. AI SDK v7 rejects
+  // role:system inside messages unless allowSystemInMessages. Volatile runtime
+  // notes arrive from llm.ts as a trailing user message after history (prefix cache).
+  const ms = toModelMessages(messages).filter((message) => {
+    const role = (message as Record<string, unknown>).role;
+    return role !== 'system';
+  }) as never[];
+  const instructions = prompt.trim() ? prompt : undefined;
 
   const streamConfig: Record<string, unknown> = {
     model,
-    system: systemText || undefined,
+    instructions,
     messages: ms.length > 0 ? ms : undefined,
-    prompt: ms.length === 0 && systemText ? systemText : undefined,
+    prompt: ms.length === 0 && instructions ? instructions : undefined,
     tools: aiTools as never,
     abortSignal: signal,
   };

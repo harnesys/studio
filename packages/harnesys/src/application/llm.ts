@@ -90,7 +90,8 @@ export async function* runLlmGenerate(
     resume: null,
   };
   const prompt = substitutePrompt(agentText, slots);
-  const messages = projectCompacted(resolveMessages(node, ctx));
+  const projected = projectCompacted(resolveMessages(node, ctx));
+  const instructions = [prompt, projected.prefix].filter((part) => part.trim()).join('\n\n');
   const resolved = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
   // Прогрессивный набор применяется к разрешённому списку всегда: явный
   // node.tools ограничивает видимость, но deferred-инструменты внутри него
@@ -105,16 +106,19 @@ export async function* runLlmGenerate(
       text: formatDeferredCatalog(progressive.deferredPending, ctx.toolRegistry),
     });
   }
-  const requestMessages = allNotes.length
-    ? [...messages, { role: 'system', content: assembleNotes(allNotes) }]
-    : messages;
+  // [tools] [system/instructions] [messages] [tail]: volatile only in the tail;
+  // ephemeral user for this call, not written to state.messages / transcript.
+  const tailText = allNotes.length > 0 ? assembleNotes(allNotes) : '';
+  const requestMessages = tailText
+    ? [...projected.messages, { role: 'user', content: tailText }]
+    : projected.messages;
 
   yield {
     type: 'model.stats',
     data: {
       tools: toolNames.length,
       deferredPending: progressive.deferredPending.length,
-      systemChars: prompt.length,
+      systemChars: instructions.length,
       notesChars: allNotes.reduce((sum, n) => sum + n.text.length, 0),
       notesErrors: ctx.notesErrors ?? [],
     },
@@ -122,7 +126,7 @@ export async function* runLlmGenerate(
 
   const stream = callModel(
     ctx.modelBinding,
-    prompt,
+    instructions,
     requestMessages,
     toolNames,
     ctx.toolRegistry,
@@ -179,12 +183,20 @@ export async function* runLlmGenerate(
   }
 }
 
+/** Projection for the model call: stable prefix + chat without system roles. */
+export type CompactedProjection = {
+  /** Compaction summary merged into instructions (stable until next compaction). */
+  prefix: string;
+  /** History tail: user / assistant / tool only. */
+  messages: unknown[];
+};
+
 /**
- * Последний якорь (kind:'compaction') поднимается как system-ход,
- * ходы до coveredUntil и сам слот якоря выпадают, хвост остаётся.
- * Без якорей массив возвращается как есть.
+ * Последний якорь (kind:'compaction') уходит в `prefix` для instructions.
+ * Ходы до coveredUntil и сам слот якоря выпадают, хвост остаётся в `messages`.
+ * Без якорей: пустой prefix и копия массива.
  */
-export function projectCompacted(messages: readonly unknown[]): unknown[] {
+export function projectCompacted(messages: readonly unknown[]): CompactedProjection {
   let anchorIndex = -1;
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i] as Record<string, unknown> | null | undefined;
@@ -194,16 +206,24 @@ export function projectCompacted(messages: readonly unknown[]): unknown[] {
     }
   }
   if (anchorIndex === -1) {
-    return [...messages];
+    return { prefix: '', messages: [...messages] };
   }
   const anchor = messages[anchorIndex] as Record<string, unknown>;
   const until = typeof anchor.coveredUntil === 'number' ? anchor.coveredUntil : -1;
-  const out: unknown[] = [{ role: 'system', content: String(anchor.content ?? '') }];
+  const out: unknown[] = [];
   for (let i = 0; i < messages.length; i++) {
     if (i === anchorIndex || i <= until) {
       continue;
     }
     out.push(messages[i]);
   }
-  return out;
+  return { prefix: String(anchor.content ?? ''), messages: out };
+}
+
+/** Flatten projection for token estimates (prefix counted as one system-sized block). */
+export function projectedForEstimate(projected: CompactedProjection): unknown[] {
+  if (!projected.prefix.trim()) {
+    return projected.messages;
+  }
+  return [{ role: 'system', content: projected.prefix }, ...projected.messages];
 }

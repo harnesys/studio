@@ -3,6 +3,7 @@ import type { AcceptedRunResponse } from '../../../shared/types.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import { isRunMode, type RunMode } from '../../adapters/tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
+import { AUTO_THREAD_TITLE_MAX_CHARS } from '../../config/constants.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { AttachmentRepository } from '../../domain/attachment.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
@@ -159,10 +160,10 @@ function deriveThreadTitle(text: string): string {
   if (!compact) {
     return '';
   }
-  if (compact.length <= 28) {
+  if (compact.length <= AUTO_THREAD_TITLE_MAX_CHARS) {
     return compact;
   }
-  return `${compact.slice(0, 28).trimEnd()}…`;
+  return `${compact.slice(0, AUTO_THREAD_TITLE_MAX_CHARS).trimEnd()}…`;
 }
 
 type SendInputObject = Exclude<SendInput, string>;

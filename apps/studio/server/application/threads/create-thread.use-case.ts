@@ -1,10 +1,11 @@
 import type { ThreadKind, ThreadRecord } from '../../../shared/types.ts';
+import { DEFAULT_THREAD_TITLE } from '../../config/constants.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
-export const DEFAULT_THREAD_TITLE = 'New thread';
+export { DEFAULT_THREAD_TITLE };
 
 export type CreateThreadRequest = {
   title?: string;

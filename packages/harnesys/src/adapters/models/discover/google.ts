@@ -1,9 +1,10 @@
+import { GOOGLE_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, asStringList, itemsOf } from './parse.ts';
 import { modelsUrl } from './request.ts';
 
-export const GOOGLE_DEFAULT_URL = 'https://generativelanguage.googleapis.com/v1beta';
+export { GOOGLE_DEFAULT_URL };
 
 export async function listGoogleModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   const found: DiscoveredModel[] = [];

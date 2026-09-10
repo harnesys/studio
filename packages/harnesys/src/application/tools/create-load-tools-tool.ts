@@ -1,7 +1,6 @@
+import { MAX_BATCH } from '../../constants.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
-const MAX_BATCH = 16;
 
 export function createLoadToolsTool(registry: Map<string, ToolDefinition>): ToolDefinition {
   return tool('load_tools', {

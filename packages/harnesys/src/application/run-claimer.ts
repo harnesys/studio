@@ -1,3 +1,8 @@
+import {
+  DEFAULT_CLAIMABLE_LIMIT,
+  DEFAULT_CLAIMER_SWEEP_MS,
+  DEFAULT_LEASE_TTL_MS,
+} from '../constants.ts';
 import type { RunLifecycleStore, RunRecord } from '../ports/run-lifecycle-store.ts';
 import type { RunTarget, RunTargets } from '../ports/run-targets.ts';
 import { runFailedEvent } from './run-engine-events.ts';
@@ -22,8 +27,8 @@ export function createRunClaimer(deps: {
   /** Called once per finished execute with the post-execution lifecycle record. */
   onComplete?: (record: RunRecord) => void;
 }): RunClaimer {
-  const leaseTtl = deps.leaseTtlMs ?? 15_000;
-  const sweepMs = deps.sweepMs ?? 5_000;
+  const leaseTtl = deps.leaseTtlMs ?? DEFAULT_LEASE_TTL_MS;
+  const sweepMs = deps.sweepMs ?? DEFAULT_CLAIMER_SWEEP_MS;
   let stopped = false;
   let sweeping = false;
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -97,7 +102,7 @@ export function createRunClaimer(deps: {
     }
     sweeping = true;
     try {
-      const claimable = await deps.lifecycle.listClaimable({ limit: 10 });
+      const claimable = await deps.lifecycle.listClaimable({ limit: DEFAULT_CLAIMABLE_LIMIT });
       for (const rec of claimable) {
         if (stopped) {
           return;

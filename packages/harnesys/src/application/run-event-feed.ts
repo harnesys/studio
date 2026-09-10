@@ -1,4 +1,5 @@
 import type { RunEventBus } from '../adapters/in-memory-run-store.ts';
+import { IDLE_BACKSTOP_MS } from '../constants.ts';
 import type { RunEventStore } from '../ports/run-event-store.ts';
 import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
@@ -27,8 +28,6 @@ export type RunEventFeed = {
   /** Вызывает владелец записи (движок) после успешного append. */
   publish(runId: string, events: SessionEvent[]): void;
 };
-
-const IDLE_BACKSTOP_MS = 5_000;
 
 function seqOf(event: SessionEvent): number {
   return (event as { seq?: number }).seq ?? 0;

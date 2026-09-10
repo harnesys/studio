@@ -1,9 +1,10 @@
+import { OPENROUTER_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const OPENROUTER_DEFAULT_URL = 'https://openrouter.ai/api/v1';
+export { OPENROUTER_DEFAULT_URL };
 
 export function listOpenRouterModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   const url = new URL(modelsUrl(input, OPENROUTER_DEFAULT_URL));

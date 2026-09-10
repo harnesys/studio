@@ -1,9 +1,8 @@
+import { DENIED_TOOLS_KEY, NODE_CHECKPOINT_KEY } from '../constants.ts';
 import type { ToolCallResult } from './tool-call.ts';
 
-export const NODE_CHECKPOINT_KEY = '$nodeCheckpoint_';
-
 /** Отказы песочницы дочерних ранов: toolCallId → { tool, reason }. */
-export const DENIED_TOOLS_KEY = '$deniedTools';
+export { DENIED_TOOLS_KEY, NODE_CHECKPOINT_KEY };
 
 export type DeniedToolEntry = {
   tool: string;

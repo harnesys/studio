@@ -1,12 +1,5 @@
+import { CONFLICT_CODES } from '../../config/constants.ts';
 import { NotFoundError, RunConflictError, ValidationError } from '../../domain/studio.error.ts';
-
-const CONFLICT_CODES = new Set([
-  'unknown_interrupt',
-  'already_resumed',
-  'run_terminal',
-  'lease_stale',
-  'already_queued',
-]);
 
 export function mapCodedError(error: unknown): Error {
   const code = (error as { code?: unknown }).code;

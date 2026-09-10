@@ -1,3 +1,4 @@
+import { TOGETHER_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import {
@@ -11,7 +12,7 @@ import {
 } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const TOGETHER_DEFAULT_URL = 'https://api.together.xyz/v1';
+export { TOGETHER_DEFAULT_URL };
 
 export function listTogetherModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

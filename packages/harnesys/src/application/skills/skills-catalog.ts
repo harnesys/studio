@@ -1,3 +1,4 @@
+import { MAX_CHARS, MAX_ENTRIES } from '../../constants.ts';
 import type { SkillSummary } from '../../domain/skill.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
 
@@ -26,9 +27,6 @@ export function filterSkills(
     },
   };
 }
-
-const MAX_ENTRIES = 40;
-const MAX_CHARS = 4000;
 
 export function formatSkillsCatalog(skills: SkillSummary[]): string {
   if (skills.length === 0) {

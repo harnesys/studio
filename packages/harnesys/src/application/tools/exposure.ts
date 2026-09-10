@@ -1,8 +1,7 @@
+import { LOAD_TOOLS_NAME, MAX_CATALOG_CHARS, MAX_CATALOG_ENTRIES } from '../../constants.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 
-const MAX_CATALOG_ENTRIES = 60;
-const MAX_CATALOG_CHARS = 4000;
-export const LOAD_TOOLS_NAME = 'load_tools';
+export { LOAD_TOOLS_NAME };
 
 export function loadedToolsOf(state: Record<string, unknown>): string[] {
   const v = state.loadedTools;

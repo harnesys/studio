@@ -1,3 +1,4 @@
+import { AUDIO_TYPES, IMAGE_TYPES, VIDEO_TYPES } from '../constants.ts';
 import type { SendFile } from '../ports/artifacts.ts';
 
 type FoldResult = {
@@ -6,10 +7,6 @@ type FoldResult = {
   data?: Uint8Array;
   mediaType?: string;
 };
-
-const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
-const AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
-const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg'];
 
 function classify(mediaType?: string): 'image' | 'audio' | 'video' | 'file' {
   if (!mediaType) {

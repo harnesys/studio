@@ -1,8 +1,11 @@
+import { SANDBOX_DENY_PREFIX } from '../constants.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import { loadCheckpoint, recordDenied, recordGranted } from './tool-approve-checkpoint.ts';
 import type { ToolCallResult } from './tool-call.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
+
+export { SANDBOX_DENY_PREFIX };
 
 export type PermissionGateCall = {
   name: string;
@@ -58,8 +61,6 @@ function resumeApproved(ctx: PermissionGateContext): boolean | null {
   const approved = (payload as { approved?: unknown }).approved;
   return typeof approved === 'boolean' ? approved : null;
 }
-
-export const SANDBOX_DENY_PREFIX = 'denied in subagent context: ';
 
 export type SandboxDenyKind = 'permission' | 'approval' | 'user input';
 

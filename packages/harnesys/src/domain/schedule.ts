@@ -1,5 +1,5 @@
-export const PERMISSION_MODES = ['ask', 'auto', 'dont_ask', 'bypass'] as const;
-export type PermissionMode = (typeof PERMISSION_MODES)[number];
+import { PERMISSION_MODES, SCHEDULE_HISTORIES } from '../constants.ts';
 
-export const SCHEDULE_HISTORIES = ['none', 'last', 'all'] as const;
+export { PERMISSION_MODES, SCHEDULE_HISTORIES };
+export type PermissionMode = (typeof PERMISSION_MODES)[number];
 export type ScheduleHistory = (typeof SCHEDULE_HISTORIES)[number];

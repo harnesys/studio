@@ -1,15 +1,7 @@
+import { CHAT_GENERATION_PARAMETERS } from '../constants.ts';
 import type { AgentGenerationSettings } from './agent-definition.ts';
 
-export const CHAT_GENERATION_PARAMETERS = [
-  'temperature',
-  'top_p',
-  'top_k',
-  'frequency_penalty',
-  'presence_penalty',
-  'seed',
-  'max_tokens',
-  'max_completion_tokens',
-] as const;
+export { CHAT_GENERATION_PARAMETERS };
 
 type GenerationField = keyof AgentGenerationSettings;
 

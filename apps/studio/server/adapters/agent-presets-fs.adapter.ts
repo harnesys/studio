@@ -2,11 +2,9 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import type { AgentBudget, PackConfig } from '../../shared/types.ts';
+import { PRESET_ID_RE, PRESETS_DIR } from '../config/constants.ts';
 import { NotFoundError, ValidationError } from '../domain/studio.error.ts';
 import { bundledSkillsPath, systemSkillsPath } from './store/studio-layout.ts';
-
-const PRESETS_DIR = 'author-agents/presets';
-const PRESET_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 const budgetSchema = z
   .object({

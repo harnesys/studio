@@ -1,39 +1,8 @@
 import { callModel, type StreamChunk } from '../../adapters/ai-llm-adapter.ts';
+import { SUMMARY_SYSTEM_PROMPT, SUMMARY_USER_PROMPT } from '../../constants.ts';
 import type { ModelBinding } from '../../ports/models.ts';
 
-export const SUMMARY_SYSTEM_PROMPT = `Output exactly the Markdown structure shown inside <template> and keep the section order unchanged. Do not include the <template> tags in your response.
-<template>
-## Objective
-- [one or two brief sentences describing what the user is trying to accomplish]
-
-## Important Details
-- [constraints/preferences, decisions and why, important facts/assumptions, exact context needed to continue, or "(none)"]
-
-## Work State
-### Completed
-- [finished work, verified facts, or changes made; otherwise "(none)"]
-
-### Active
-- [current work, partial changes, or investigation state; otherwise "(none)"]
-
-### Blocked
-- [blockers, failing commands, or unknowns; otherwise "(none)"]
-
-## Next Move
-1. [immediate concrete action, or "(none)"]
-2. [next action if known, or "(none)"]
-
-## Relevant Files
-- [file or directory path: why it matters, or "(none)"]
-</template>
-
-Rules:
-- Tools are not available in this pass. Respond with the summary text only; never call tools.
-- Keep every section, even when empty.
-- Use terse bullets, not prose paragraphs.
-- Preserve exact file paths, symbols, commands, error strings, URLs, and identifiers when known.
-- Do not mention the summary process or that context was compacted.
-- Use only facts from the source.`;
+export { SUMMARY_SYSTEM_PROMPT, SUMMARY_USER_PROMPT };
 
 export function priorSummaryBlock(text: string): string {
   return `
@@ -46,9 +15,6 @@ Merge rules: the conversation that follows is newer and wins conflicts; carry fo
 }
 
 export type SummaryStreamEvent = { type: string; data?: unknown; result?: StreamChunk };
-
-/** User-ход, без которого провайдер часто отвечает пустым stop на хвосте assistant. */
-export const SUMMARY_USER_PROMPT = 'Write the compaction summary now.';
 
 /** Проход саммари: без инструментов, события стрима наружу, финал — summary.completed. */
 export async function* streamSummary(opts: {

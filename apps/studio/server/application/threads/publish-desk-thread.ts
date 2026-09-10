@@ -1,14 +1,11 @@
+import { DESK_PUBLISH_DEBOUNCE_MS, TERMINAL_RUN_STATUSES } from '../../config/constants.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
-
-const DEBOUNCE_MS = 150;
 
 const pending = new Map<string, ReturnType<typeof setTimeout>>();
 
 /** Last published state per thread; skips redundant full publishes. */
 const published = new Map<string, { lastSeq: number; status: string }>();
-
-const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
 function statusOf(record: { activeRun: { status: string } | null }): string {
   return record.activeRun?.status ?? 'terminal';
@@ -47,8 +44,8 @@ export function publishDeskThread(
           if (
             prev !== undefined &&
             prev.lastSeq === lastSeq &&
-            TERMINAL_STATUSES.has(prev.status) &&
-            TERMINAL_STATUSES.has(status)
+            TERMINAL_RUN_STATUSES.has(prev.status) &&
+            TERMINAL_RUN_STATUSES.has(status)
           ) {
             return;
           }
@@ -58,6 +55,6 @@ export function publishDeskThread(
         .catch(() => {
           // thread may already be gone
         });
-    }, DEBOUNCE_MS),
+    }, DESK_PUBLISH_DEBOUNCE_MS),
   );
 }

@@ -1,6 +1,6 @@
 import type { JsonSchema } from '../domain/json-schema.ts';
 
-export const ASK_SCHEMA_KEYS = ['options', 'multi', 'allowText'] as const;
+export { ASK_SCHEMA_KEYS } from '../constants.ts';
 
 export type AskUserSchemaInput = {
   options?: Array<{ id: string; label: string }>;

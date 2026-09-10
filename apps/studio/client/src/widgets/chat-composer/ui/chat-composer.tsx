@@ -204,7 +204,7 @@ export function ChatComposer() {
               run={runUsage}
               thread={threadUsage}
               window={contextWindow}
-              disabled={disabled}
+              disabled={!agent || !thread}
             />
             <ModelSelect
               value={agent?.modelId ?? null}

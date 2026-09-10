@@ -1,3 +1,4 @@
+import { JOURNAL_BATCH } from '../constants.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { Snapshot } from '../domain/snapshot.ts';
 import type { PendingSessionEvent, RunEventStore } from '../ports/run-event-store.ts';
@@ -22,7 +23,6 @@ export type SegmentEnv = {
 };
 
 /** Событий в батче журнала: запись группируется, публикация в feed — нет. */
-const JOURNAL_BATCH = 16;
 
 export type SegmentCtx = {
   runId: string;

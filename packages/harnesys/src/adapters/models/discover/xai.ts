@@ -1,9 +1,10 @@
+import { XAI_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const XAI_DEFAULT_URL = 'https://api.x.ai/v1';
+export { XAI_DEFAULT_URL };
 
 export function listXaiModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

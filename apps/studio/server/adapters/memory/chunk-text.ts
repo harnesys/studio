@@ -1,5 +1,4 @@
-const DEFAULT_CHUNK_CHARS = 1200;
-const DEFAULT_OVERLAP = 150;
+import { DEFAULT_CHUNK_CHARS, DEFAULT_OVERLAP } from '../../config/constants.ts';
 
 export type ChunkTextOptions = {
   chunkChars?: number;

@@ -1,26 +1,6 @@
-export const DRIVERS = [
-  'openai',
-  'openai-compatible',
-  'anthropic',
-  'openrouter',
-  'google',
-  'groq',
-  'mistral',
-  'xai',
-  'together',
-  'kimi',
-  'zai',
-  'ollama',
-  'ollama-cloud',
-  'nvidia',
-  'cerebras',
-  'minimax',
-  'xiaomi',
-  'qwen',
-  'alibaba',
-  'moonshotai',
-] as const;
+import { DRIVERS } from '../constants.ts';
 
+export { DRIVERS };
 export type Driver = (typeof DRIVERS)[number];
 
 export type ModelOrigin = 'local' | 'remote';

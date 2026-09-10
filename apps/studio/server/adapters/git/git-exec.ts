@@ -1,6 +1,5 @@
+import { GIT_TIMEOUT_MS } from '../../config/constants.ts';
 import { GitNotFoundError, GitTimeoutError } from '../../domain/git.error.ts';
-
-const GIT_TIMEOUT_MS = 5000;
 
 export async function execGit(
   cwd: string,

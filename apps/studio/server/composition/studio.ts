@@ -49,6 +49,7 @@ import { withHandoffCurrentPersist } from '../application/threads/persist-handof
 import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
 import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
+import { CLAIMER_SWEEP_MS } from '../config/constants.ts';
 import { env } from '../config/env.ts';
 import { logger, toRuntimeLogger } from '../config/logger.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
@@ -166,7 +167,7 @@ export function createStudio(options: StudioOptions = {}): Hono {
     },
     engine: runEngine,
     instanceId,
-    sweepMs: 5_000,
+    sweepMs: CLAIMER_SWEEP_MS,
     withScope: (target, execute) => runInHostToolScope(target.scope as HostToolScope, execute),
     onComplete: (record) => {
       publishDeskThread(getThread, deskEvents, record.threadId);

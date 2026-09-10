@@ -6,6 +6,7 @@ import type {
   ToolOutputSettings,
 } from '../../../shared/types.ts';
 import { defaultAgentCompaction } from '../../../shared/types.ts';
+import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
@@ -13,8 +14,7 @@ import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
 
-/** Default ReAct graph is cyclic; structural validate needs a step/deadline limit. */
-export const DEFAULT_REACT_BUDGET: AgentBudget = { maxSteps: 50, policy: 'ask' };
+export { DEFAULT_REACT_BUDGET };
 
 export type CreateAgentRequest = {
   workspaceId: string;

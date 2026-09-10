@@ -1,5 +1,6 @@
 // biome-ignore-all lint/style/noExcessiveLinesPerFile: indexer owns queue + abort lifecycle, split would fragment cancel semantics
 
+import { KNOWLEDGE_INDEX_SLOW_FILE_MS } from '../../config/constants.ts';
 import type { KnowledgeIndexEventsPort } from '../../domain/knowledge-index-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { trace } from '../../trace.ts';
@@ -358,7 +359,10 @@ export class KnowledgeIndexer {
           uri: entry.uri,
           result,
           elapsedMs: elapsed,
-          slow: elapsed > 5000 ? 'SLOW (>5s) - check Ollama keep_alive / model load' : false,
+          slow:
+            elapsed > KNOWLEDGE_INDEX_SLOW_FILE_MS
+              ? 'SLOW (>5s) - check Ollama keep_alive / model load'
+              : false,
         });
         job.currentUri = null;
         this.bumpProcessed(workspaceId);

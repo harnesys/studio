@@ -1,10 +1,9 @@
 import type { FireDueSchedulesInput } from '../application/schedules/fire-due-schedules.use-case.ts';
-
-const DEFAULT_INTERVAL_MS = 15_000;
+import { DEFAULT_SCHEDULE_TICK_INTERVAL_MS } from '../config/constants.ts';
 
 export function startScheduleTicker(
   fireDue: FireDueSchedulesInput,
-  intervalMs = DEFAULT_INTERVAL_MS,
+  intervalMs = DEFAULT_SCHEDULE_TICK_INTERVAL_MS,
 ): () => void {
   const tick = () => {
     void fireDue.execute().catch(() => {});

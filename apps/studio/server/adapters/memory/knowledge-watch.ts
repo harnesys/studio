@@ -1,11 +1,12 @@
 import type { WorkspaceFileEvent } from '../../../shared/types.ts';
+import { KNOWLEDGE_WATCH_ENSURE_INTERVAL_MS, SAFETY_NAMES } from '../../config/constants.ts';
 import type { FilesWatcherInput } from '../../domain/files-watcher.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { trace } from '../../trace.ts';
 import { FilesWatcherAdapter } from '../workspace/files-watcher.adapter.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
 import type { KnowledgeIndexer } from './knowledge-indexer.ts';
-import { SAFETY_NAMES, uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
+import { uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
 
 export type KnowledgeWatchBridgeOptions = {
   workspaces: WorkspaceRepository;
@@ -30,7 +31,7 @@ export class KnowledgeWatchBridge {
       this.syncWatch(workspace.id, settings.watchEnabled);
     }
     // Periodic ensure for workspaces created after start (CreateWorkspaceUseCase doesn't call syncWatch)
-    setInterval(() => this.ensureAllWatched(), 30_000).unref?.();
+    setInterval(() => this.ensureAllWatched(), KNOWLEDGE_WATCH_ENSURE_INTERVAL_MS).unref?.();
   }
 
   /** Ensure every workspace with watchEnabled has a watcher; fixes "new workspace not watched" */

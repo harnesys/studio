@@ -1,3 +1,4 @@
+import { PASSTHROUGH_MODEL_EVENTS } from '../constants.ts';
 import type {
   AgentDefinition,
   Node,
@@ -197,20 +198,6 @@ async function resolveFallbackBindings(
   }
   return bindings;
 }
-
-const PASSTHROUGH_MODEL_EVENTS = new Set([
-  'model.delta',
-  'model.reasoning',
-  'model.reasoning-start',
-  'model.reasoning-end',
-  'model.tool-input-start',
-  'model.tool-input-delta',
-  'model.tool-input-end',
-  'model.tool-call',
-  'model.source',
-  'model.file',
-  'model.stats',
-]);
 
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   let agent = opts.agent;

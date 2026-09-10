@@ -1,6 +1,8 @@
 import { jsonSchema, tool } from 'ai';
 import type { ToolDefinition } from '../ports/tools.ts';
 
+export { STREAM_CHUNK_SIZE } from '../constants.ts';
+
 export type CallModelResult = {
   finishReason: string;
   text?: string;
@@ -35,8 +37,6 @@ export type StreamChunk =
       files?: unknown[];
       usage?: unknown;
     };
-
-export const STREAM_CHUNK_SIZE = 6;
 
 export function toAiTools(
   names: string[],

@@ -1,3 +1,4 @@
+import { DEFAULT_KNOWLEDGE_TOP_K } from '../../constants.ts';
 import { definePack } from '../../domain/pack.ts';
 import type { KnowledgePort } from '../../ports/memory.ts';
 import { createKnowledgeTools } from './create-knowledge-tools.ts';
@@ -21,7 +22,7 @@ export const knowledgeMemoryCapability = definePack<KnowledgeMemoryPorts, Record
     type: 'object',
     properties: {
       store: { type: 'string', enum: ['knowledge'], default: 'knowledge' },
-      topK: { type: 'number', default: 5 },
+      topK: { type: 'number', default: DEFAULT_KNOWLEDGE_TOP_K },
     },
   },
   meta: {

@@ -1,6 +1,6 @@
 import type { AgentModelRef } from './agent-definition.ts';
 
-export const THRESHOLD_SUMMARY_NAME = 'threshold-summary';
+export { THRESHOLD_SUMMARY_NAME } from '../constants.ts';
 
 export type CompactionSpec = {
   thresholdRatio?: number;

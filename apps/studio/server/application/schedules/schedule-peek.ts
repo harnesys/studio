@@ -1,7 +1,7 @@
 import type { SessionEvent } from 'harnesys';
 import { isScheduledHumanText } from '../../../shared/schedule-prompt.ts';
 
-const OUTPUT_LIMIT = 2000;
+import { SCHEDULE_PEEK_OUTPUT_LIMIT } from '../../config/constants.ts';
 
 export type SchedulePeekTool = {
   name: string;
@@ -150,8 +150,8 @@ function formatPeekDetail(fire: CompactFire): string {
 }
 
 function clip(text: string): string {
-  if (text.length <= OUTPUT_LIMIT) {
+  if (text.length <= SCHEDULE_PEEK_OUTPUT_LIMIT) {
     return text;
   }
-  return `${text.slice(0, OUTPUT_LIMIT)}…`;
+  return `${text.slice(0, SCHEDULE_PEEK_OUTPUT_LIMIT)}…`;
 }

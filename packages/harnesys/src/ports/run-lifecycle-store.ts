@@ -8,7 +8,7 @@ export type RunLifecycleStatus =
   | 'failed'
   | 'cancelled';
 
-export const RUN_NON_TERMINAL: RunLifecycleStatus[] = ['queued', 'running', 'needs_input'];
+export { RUN_NON_TERMINAL } from '../constants.ts';
 
 export type RunRecord = {
   runId: string;

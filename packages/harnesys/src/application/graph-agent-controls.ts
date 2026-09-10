@@ -1,9 +1,12 @@
+import {
+  AGENTS_HANDOFF_TOOL,
+  AGENTS_SPAWN_TOOL,
+  STATE_HANDOFF_AGENT_ID_KEY,
+  STATE_SPAWNS_KEY,
+} from '../constants.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 
-export const AGENTS_SPAWN_TOOL = 'agents_spawn';
-export const AGENTS_HANDOFF_TOOL = 'agents_handoff';
-export const STATE_SPAWNS_KEY = 'spawns';
-export const STATE_HANDOFF_AGENT_ID_KEY = 'handoffAgentId';
+export { AGENTS_HANDOFF_TOOL, AGENTS_SPAWN_TOOL, STATE_HANDOFF_AGENT_ID_KEY, STATE_SPAWNS_KEY };
 
 export type AgentControlToolResult = {
   name: string;

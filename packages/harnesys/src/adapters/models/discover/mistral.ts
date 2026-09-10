@@ -1,9 +1,10 @@
+import { MISTRAL_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const MISTRAL_DEFAULT_URL = 'https://api.mistral.ai/v1';
+export { MISTRAL_DEFAULT_URL };
 
 export function listMistralModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

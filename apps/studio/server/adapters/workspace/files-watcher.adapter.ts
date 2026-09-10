@@ -2,28 +2,11 @@ import { type Dirent, watch } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { WorkspaceFileEntry, WorkspaceFileEvent } from '../../../shared/types.ts';
-import {
-  FILES_WATCHER_DEBOUNCE_MS,
-  HOME_DIR_NAME,
-  STUDIO_DIR_LEGACY,
-} from '../../config/constants.ts';
+import { FILES_WATCHER_DEBOUNCE_MS, SAFETY_NAMES } from '../../config/constants.ts';
 import type { FilesWatcherInput } from '../../domain/files-watcher.port.ts';
 import { trace } from '../../trace.ts';
 import { startGitWatcher } from './files-watcher-git.ts';
 import { type DirSnapshot, diff, snapshot } from './files-watcher-snapshot.ts';
-
-const SKIP_DIRS = new Set([
-  'node_modules',
-  '.git',
-  '.next',
-  'dist',
-  'build',
-  '.turbo',
-  '.cache',
-  'coverage',
-  HOME_DIR_NAME,
-  STUDIO_DIR_LEGACY,
-]);
 
 type Listener = (event: WorkspaceFileEvent) => void;
 
@@ -74,7 +57,7 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
     };
     this.watchers.set(workspaceId, newState);
 
-    void snapshot(workspacePath, SKIP_DIRS)
+    void snapshot(workspacePath, SAFETY_NAMES)
       .then((snap) => {
         if (!newState.closed) {
           newState.snapshot = snap;
@@ -103,7 +86,7 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
           return;
         }
         try {
-          const nextSnapshot = await snapshot(workspacePath, SKIP_DIRS);
+          const nextSnapshot = await snapshot(workspacePath, SAFETY_NAMES);
           const events = diff(newState.snapshot, nextSnapshot);
           newState.snapshot = nextSnapshot;
           if (events.length > 0) {
@@ -134,7 +117,7 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
           return;
         }
         const parts = filename.split(/[/\\]/);
-        if (parts.some((p) => SKIP_DIRS.has(p))) {
+        if (parts.some((p) => SAFETY_NAMES.has(p))) {
           return;
         }
         handleChange();
@@ -227,7 +210,7 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
 
     for (const d of dirents) {
       const name = String(d.name);
-      if (SKIP_DIRS.has(name)) {
+      if (SAFETY_NAMES.has(name)) {
         continue;
       }
       const relPath = relDir ? `${relDir}/${name}` : name;

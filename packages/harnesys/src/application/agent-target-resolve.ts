@@ -2,11 +2,10 @@
  *  Order: exact id → unique id prefix (length ≥ 8) → exact name →
  *  case-insensitive name. Every miss lists available `name (id)` so the
  *  model can self-correct. Pure: no runtime imports, no cycles in either direction. */
+import { MIN_PREFIX_LEN } from '../constants.ts';
 import type { AgentRosterEntry } from '../ports/create-runtime.ts';
 
 export type AgentTargetOutcome = { id: string } | { error: string };
-
-const MIN_PREFIX_LEN = 8;
 
 export function formatAgentTargets(roster: AgentRosterEntry[]): string {
   return roster.map((e) => `${e.name} (${e.id})`).join(', ');

@@ -1,7 +1,8 @@
 import { streamText } from 'ai';
+import { STREAM_CHUNK_SIZE } from '../constants.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import { STREAM_CHUNK_SIZE, type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
+import { type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
 import { toModelMessages } from './ai-llm-messages.ts';
 import { buildProvider } from './ai-llm-provider.ts';
 

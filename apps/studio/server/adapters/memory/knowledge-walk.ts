@@ -1,6 +1,7 @@
 import { readdir, stat } from 'node:fs/promises';
 import { basename, extname, join, relative, resolve, sep } from 'node:path';
 import type { Ignore } from 'ignore';
+import { KNOWLEDGE_MAX_SIZE_BYTES, KNOWLEDGE_TEXT_EXTS } from '../../config/constants.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 import {
   entrySkipReason,
@@ -14,34 +15,6 @@ import {
 
 export type { SkipReason } from './knowledge-walk-ignore.ts';
 export { toPosix } from './knowledge-walk-ignore.ts';
-
-const MAX_SIZE_BYTES = 2_000_000;
-
-const TEXT_EXTS = new Set([
-  '.txt',
-  '.md',
-  '.markdown',
-  '.json',
-  '.ts',
-  '.tsx',
-  '.js',
-  '.jsx',
-  '.mjs',
-  '.cjs',
-  '.css',
-  '.html',
-  '.htm',
-  '.yaml',
-  '.yml',
-  '.toml',
-  '.xml',
-  '.csv',
-  '.rs',
-  '.go',
-  '.py',
-  '.sh',
-  '.sql',
-]);
 
 export type KnowledgePath =
   | { kind: 'index'; absPath: string; uri: string; sizeBytes: number; mtimeMs: number }
@@ -202,7 +175,7 @@ async function classifyFile(input: {
   }
   const sizeBytes = info.size;
   const mtimeMs = info.mtimeMs;
-  if (!TEXT_EXTS.has(extname(input.absPath).toLowerCase())) {
+  if (!KNOWLEDGE_TEXT_EXTS.has(extname(input.absPath).toLowerCase())) {
     return {
       kind: 'skip',
       absPath: input.absPath,
@@ -212,7 +185,7 @@ async function classifyFile(input: {
       mtimeMs,
     };
   }
-  if (sizeBytes > MAX_SIZE_BYTES) {
+  if (sizeBytes > KNOWLEDGE_MAX_SIZE_BYTES) {
     return {
       kind: 'skip',
       absPath: input.absPath,

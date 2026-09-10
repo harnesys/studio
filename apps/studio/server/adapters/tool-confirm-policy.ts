@@ -1,5 +1,6 @@
 import type { PermissionGate, PermissionMap } from 'harnesys';
 import type { PermissionMode, RunMode } from '../../shared/types.ts';
+import { EXTERNAL_OPS, MUTATE_OPS } from '../config/constants.ts';
 
 export type { PermissionMode, RunMode };
 
@@ -22,8 +23,6 @@ export function permissionMapFor(mode: RunMode = 'ask'): PermissionMap {
       map[op] = value;
     }
   };
-  const MUTATE_OPS = ['fs.write'] as const;
-  const EXTERNAL_OPS = ['process', 'network', 'mcp'] as const;
 
   if (mode === 'plan') {
     set(MUTATE_OPS, 'deny');

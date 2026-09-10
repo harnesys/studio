@@ -1,9 +1,10 @@
+import { KIMI_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const KIMI_DEFAULT_URL = 'https://api.moonshot.ai/v1';
+export { KIMI_DEFAULT_URL };
 
 export function listKimiModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

@@ -1,4 +1,5 @@
 // biome-ignore-all lint/suspicious/useAwait: async required by RunLifecycleStore/RunEventStore port contracts
+import { DEFAULT_ASK_TTL_MS, DEFAULT_LIST_LIMIT, RUN_NON_TERMINAL } from '../constants.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { PendingSessionEvent, RunEventStore } from '../ports/run-event-store.ts';
 import type {
@@ -7,11 +8,8 @@ import type {
   RunRecord,
   RunTransitionPatch,
 } from '../ports/run-lifecycle-store.ts';
-import { RUN_NON_TERMINAL } from '../ports/run-lifecycle-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
 
-const DEFAULT_LIST_LIMIT = 50;
-const DEFAULT_ASK_TTL_MS = 7 * 24 * 3600 * 1000;
 function clientEventIdOf(event: PendingSessionEvent): string | undefined {
   return (event as { clientEventId?: string }).clientEventId;
 }

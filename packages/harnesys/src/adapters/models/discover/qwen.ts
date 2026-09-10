@@ -1,9 +1,10 @@
+import { QWEN_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const QWEN_DEFAULT_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
+export { QWEN_DEFAULT_URL };
 
 export function listQwenModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

@@ -1,9 +1,10 @@
+import { XIAOMI_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const XIAOMI_DEFAULT_URL = 'https://api.xiaomimimo.com/v1';
+export { XIAOMI_DEFAULT_URL };
 
 export function listXiaomiModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

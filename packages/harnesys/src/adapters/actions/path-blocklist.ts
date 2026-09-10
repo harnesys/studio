@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { WORKSPACE_META_DIR } from './constants.ts';
+import { WORKSPACE_META_DIR } from '../../constants.ts';
 import { loadGitignore } from './gitignore.ts';
 
 export type PathFilter = (absolutePath: string) => boolean;

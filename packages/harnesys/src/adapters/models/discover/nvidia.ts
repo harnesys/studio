@@ -1,9 +1,10 @@
+import { NVIDIA_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const NVIDIA_DEFAULT_URL = 'https://integrate.api.nvidia.com/v1';
+export { NVIDIA_DEFAULT_URL };
 
 export function listNvidiaModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

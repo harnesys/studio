@@ -1,9 +1,10 @@
+import { GROQ_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const GROQ_DEFAULT_URL = 'https://api.groq.com/openai/v1';
+export { GROQ_DEFAULT_URL };
 
 export function listGroqModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

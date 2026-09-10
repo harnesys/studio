@@ -1,8 +1,15 @@
+import {
+  DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
+  DEFAULT_TOOL_OUTPUT_MAX_CHARS,
+  DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
+} from '../constants.ts';
 import type { ToolOutputSettings } from './agent-definition.ts';
 
-export const DEFAULT_TOOL_OUTPUT_MAX_CHARS = 30_000;
-export const DEFAULT_TOOL_OUTPUT_HEAD_CHARS = 8_000;
-export const DEFAULT_TOOL_OUTPUT_TAIL_CHARS = 8_000;
+export {
+  DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
+  DEFAULT_TOOL_OUTPUT_MAX_CHARS,
+  DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
+};
 
 export type ResolvedToolOutputSettings = {
   maxChars: number;

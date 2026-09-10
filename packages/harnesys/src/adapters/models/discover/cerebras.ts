@@ -1,3 +1,4 @@
+import { CEREBRAS_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import {
@@ -11,7 +12,7 @@ import {
 } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const CEREBRAS_DEFAULT_URL = 'https://api.cerebras.ai/v1';
+export { CEREBRAS_DEFAULT_URL };
 
 export function listCerebrasModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

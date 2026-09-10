@@ -67,13 +67,14 @@ export function fillUsageWindow(usage: MessageUsage | null, window: number): Mes
 
 export function fillUsageCost(
   usage: MessageUsage | null,
-  modelId: string | null | undefined,
+  fallbackModelId: string | null | undefined,
   providers: ProviderPublic[],
 ): MessageUsage | null {
   if (!usage || (usage.costUsd != null && usage.costUsd > 0)) {
     return usage;
   }
-  const pricing = modelPricing(modelId, providers);
+  // Prefer the model recorded on the usage event (spawn/subagent may differ).
+  const pricing = modelPricing(usage.model || fallbackModelId, providers);
   const usd = usageCostUsd(pricing, {
     input: usage.promptTokens,
     output: usage.generatedTokens,

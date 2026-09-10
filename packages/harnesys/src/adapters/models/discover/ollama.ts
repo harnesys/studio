@@ -1,10 +1,10 @@
+import { OLLAMA_CLOUD_DEFAULT_URL, OLLAMA_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asRecord, asString, asStringList, itemsOf, pricingOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const OLLAMA_DEFAULT_URL = 'http://localhost:11434';
-export const OLLAMA_CLOUD_DEFAULT_URL = 'https://ollama.com';
+export { OLLAMA_CLOUD_DEFAULT_URL, OLLAMA_DEFAULT_URL };
 
 export function listOllamaModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

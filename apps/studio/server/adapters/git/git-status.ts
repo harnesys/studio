@@ -1,11 +1,10 @@
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { GitBranch, GitFileStatusMap, GitStatusResponse } from '../../../shared/types.ts';
+import { GIT_SLOW_THRESHOLD_MS } from '../../config/constants.ts';
 import { trace } from '../../trace.ts';
 import { execGit, execGitTrim } from './git-exec.ts';
 import { parsePorcelain } from './git-helpers.ts';
-
-const SLOW_THRESHOLD_MS = 800;
 
 type StatusCache = {
   map: GitFileStatusMap;
@@ -95,7 +94,7 @@ export async function getStatus(
   }
   const dirtyCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const elapsed = Date.now() - start;
-  if (elapsed > SLOW_THRESHOLD_MS) {
+  if (elapsed > GIT_SLOW_THRESHOLD_MS) {
     trace('git', 'slow getStatus', { cwd: safeCwd, elapsed });
   }
   let branches: { local: GitBranch[]; recent: GitBranch[] } | undefined;
@@ -153,7 +152,7 @@ export async function getFileStatus(
   const elapsed = Date.now() - start;
   let truncated = false;
   const prev = statusCache.get(cacheKey);
-  const slow = elapsed > SLOW_THRESHOLD_MS;
+  const slow = elapsed > GIT_SLOW_THRESHOLD_MS;
   if (slow) {
     const slowCount = (prev?.slowCount ?? 0) + 1;
     if (slowCount >= 2) {

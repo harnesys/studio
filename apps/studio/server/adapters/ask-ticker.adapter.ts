@@ -1,9 +1,9 @@
 import type { PendingSessionEvent, RunLifecycleStore } from 'harnesys';
-import { ASK_TTL_DEFAULT_MS } from './store/sqlite/repos/sqlite-run-lifecycle.adapter.ts';
-
-const DEFAULT_ASK_TICK_INTERVAL_MS = 60_000;
-
-const EXPIRED_ASKS_BATCH = 50;
+import {
+  ASK_TTL_DEFAULT_MS,
+  DEFAULT_ASK_TICK_INTERVAL_MS,
+  EXPIRED_ASKS_BATCH,
+} from '../config/constants.ts';
 
 export type AskTickerDeps = {
   lifecycle: RunLifecycleStore;

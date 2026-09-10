@@ -1,9 +1,10 @@
+import { ZAI_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const ZAI_DEFAULT_URL = 'https://api.z.ai/api/paas/v4';
+export { ZAI_DEFAULT_URL };
 
 export function listZaiModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

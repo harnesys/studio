@@ -1,8 +1,8 @@
+import { DEFAULT_LEASE_RENEW_MS, DEFAULT_LEASE_TTL_MS, RUN_NON_TERMINAL } from '../constants.ts';
 import type { Attachment } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Event } from '../domain/snapshot.ts';
 import { CONSOLE_LOGGER } from '../ports/logger.ts';
-import { RUN_NON_TERMINAL } from '../ports/run-lifecycle-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
 import { compileOrThrow } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
@@ -37,8 +37,8 @@ type RunRuntime = {
 };
 
 export function createRunEngine(deps: RunEngineDeps): RunEngine {
-  const leaseTtl = deps.leaseTtlMs ?? 15_000;
-  const renewMs = deps.renewMs ?? 5_000;
+  const leaseTtl = deps.leaseTtlMs ?? DEFAULT_LEASE_TTL_MS;
+  const renewMs = deps.renewMs ?? DEFAULT_LEASE_RENEW_MS;
   const active: Set<RunRuntime> = new Set();
   const runLogger = deps.logger ?? CONSOLE_LOGGER;
   /** Built pack outputs per runId. First segment builds via `create`; later

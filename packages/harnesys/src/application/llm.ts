@@ -1,4 +1,5 @@
 import { callModel, type StreamChunk } from '../adapters/ai-llm-adapter.ts';
+import { LLM_CHUNK_EVENTS } from '../constants.ts';
 import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
@@ -73,20 +74,6 @@ function resolveMessages(node: LlmNode, ctx: LlmContext): unknown[] {
     return [];
   }
 }
-
-const LLM_CHUNK_EVENTS: Record<string, string> = {
-  delta: 'model.delta',
-  'reasoning-delta': 'model.reasoning',
-  'reasoning-start': 'model.reasoning-start',
-  'reasoning-end': 'model.reasoning-end',
-  'tool-input-start': 'model.tool-input-start',
-  'tool-input-delta': 'model.tool-input-delta',
-  'tool-input-end': 'model.tool-input-end',
-  'tool-call': 'model.tool-call',
-  source: 'model.source',
-  file: 'model.file',
-  chunk: 'model.chunk',
-};
 
 export async function* runLlmGenerate(
   node: LlmNode,

@@ -1,6 +1,8 @@
-/** Tokenizer-free budget: ceil(chars / 4), same as prior estimateWindowTokens. */
+import { CHARS_PER_TOKEN_ESTIMATE } from '../../config/constants.ts';
+
+/** Tokenizer-free budget: ceil(chars / CHARS_PER_TOKEN_ESTIMATE), same as prior estimateWindowTokens. */
 export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
+  return Math.ceil(text.length / CHARS_PER_TOKEN_ESTIMATE);
 }
 
 /** Join lines in order while staying within budgetTokens. */

@@ -11,14 +11,13 @@ import {
   type RunTransitionPatch,
   type SessionEvent,
 } from 'harnesys';
+import {
+  ASK_TTL_DEFAULT_MS,
+  DEFAULT_LIST_LIMIT,
+  RUN_NON_TERMINAL_STATUSES,
+} from '../../../../config/constants.ts';
 import type { StudioDb } from '../connection.ts';
 import { type RunRow, runsTable } from '../schema/runs.ts';
-
-export const ASK_TTL_DEFAULT_MS = 7 * 24 * 3600 * 1000;
-
-const DEFAULT_LIST_LIMIT = 50;
-
-const NON_TERMINAL: RunLifecycleStatus[] = ['queued', 'running', 'needs_input'];
 
 /** Task 5 seam: writes events inside the caller's transaction; seq выдаёт
  *  аллокатор стора (RunSeqAllocator), события с присвоенным seq сохраняются как есть. */
@@ -168,7 +167,7 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
         and(
           eq(runsTable.threadId, threadId),
           isNull(runsTable.parentRunId),
-          inArray(runsTable.status, NON_TERMINAL),
+          inArray(runsTable.status, RUN_NON_TERMINAL_STATUSES),
         ),
       )
       .orderBy(desc(runsTable.createdAt))

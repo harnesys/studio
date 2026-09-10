@@ -1,18 +1,7 @@
+import { RESERVED, SEMVER_RE } from '../constants.ts';
 import type { AgentDefinition, Edge, Node } from '../domain/agent-definition.ts';
 import type { Diagnostic, DiagnosticSeverity } from '../domain/errors.ts';
 import { type Ast, isPathExpr, parseExpr } from './expr-eval.ts';
-
-const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-const RESERVED = new Set([
-  'input',
-  'state',
-  'output',
-  'resume',
-  'messages',
-  'toolCalls',
-  'finishReason',
-  'text',
-]);
 
 function hasCycle(nodes: Record<string, Node>, edges: Edge[]): boolean {
   const adj = new Map<string, string[]>();

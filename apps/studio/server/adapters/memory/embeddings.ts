@@ -1,4 +1,5 @@
 import { isDriver } from 'harnesys';
+import { EMBEDDING_ERROR_PREVIEW_CHARS, OLLAMA_EMBED_KEEP_ALIVE } from '../../config/constants.ts';
 import type {
   LlmModel,
   LlmModelRepository,
@@ -66,13 +67,17 @@ export class StudioEmbeddings implements EmbeddingsPort {
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ model: target.modelName, input: texts, keep_alive: '10m' }),
+      body: JSON.stringify({
+        model: target.modelName,
+        input: texts,
+        keep_alive: OLLAMA_EMBED_KEEP_ALIVE,
+      }),
       signal: options?.signal,
     });
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
       throw new ValidationError(
-        `embeddings request failed (${response.status}): ${detail.slice(0, 240) || response.statusText}`,
+        `embeddings request failed (${response.status}): ${detail.slice(0, EMBEDDING_ERROR_PREVIEW_CHARS) || response.statusText}`,
       );
     }
     const body = (await response.json()) as {

@@ -1,3 +1,4 @@
+import { WEBHOOK_STATUSES } from '../../config/constants.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
@@ -6,8 +7,6 @@ import type { WebhookPatch, WebhookRepository, WebhookStatus } from '../../domai
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { requireBindableWebhookThread } from './bind-webhook-thread.ts';
 import { toWebhookRecord, type WebhookRecord } from './webhook-record.ts';
-
-const WEBHOOK_STATUSES: readonly WebhookStatus[] = ['active', 'paused', 'failed'];
 
 export type UpdateWebhookRequest = {
   workspaceId: string;

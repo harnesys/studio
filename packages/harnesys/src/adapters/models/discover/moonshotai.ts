@@ -1,9 +1,10 @@
+import { MOONSHOTAI_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const MOONSHOTAI_DEFAULT_URL = 'https://api.moonshot.ai/v1';
+export { MOONSHOTAI_DEFAULT_URL };
 
 export function listMoonshotAIModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

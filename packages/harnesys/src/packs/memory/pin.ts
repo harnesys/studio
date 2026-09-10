@@ -1,3 +1,4 @@
+import { DEFAULT_PIN_BUDGET_TOKENS, DEFAULT_PIN_MAX_ITEMS } from '../../constants.ts';
 import { definePack } from '../../domain/pack.ts';
 import type { PinPort } from '../../ports/memory.ts';
 import { createPinTools } from './create-pin-tools.ts';
@@ -14,8 +15,8 @@ export const pinMemoryCapability = definePack<PinMemoryPorts, Record<string, unk
     type: 'object',
     properties: {
       store: { type: 'string', enum: ['kv-pin'], default: 'kv-pin' },
-      budgetTokens: { type: 'number', default: 1500 },
-      maxItems: { type: 'number', default: 32 },
+      budgetTokens: { type: 'number', default: DEFAULT_PIN_BUDGET_TOKENS },
+      maxItems: { type: 'number', default: DEFAULT_PIN_MAX_ITEMS },
     },
   },
   meta: {

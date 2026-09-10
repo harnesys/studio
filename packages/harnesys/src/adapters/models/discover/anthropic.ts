@@ -1,9 +1,10 @@
+import { ANTHROPIC_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asRecord, asString, itemsOf } from './parse.ts';
 import { modelsUrl } from './request.ts';
 
-export const ANTHROPIC_DEFAULT_URL = 'https://api.anthropic.com/v1';
+export { ANTHROPIC_DEFAULT_URL };
 
 export function listAnthropicModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

@@ -1,10 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { CreateWorkspaceSkillRequest } from '../../shared/types.ts';
+import { SKILL_NAME_RE } from '../config/constants.ts';
 import { ConflictError, ValidationError } from '../domain/studio.error.ts';
 import { workspaceSkillsPath } from './store/studio-layout.ts';
-
-const SKILL_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 /** Create `<workspace>/.harnesys/skills/<name>/SKILL.md`. Folder name matches frontmatter name. */
 export function createWorkspaceSkillFile(

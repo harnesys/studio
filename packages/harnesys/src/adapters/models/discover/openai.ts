@@ -1,9 +1,10 @@
+import { OPENAI_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asRecord, asString, itemsOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const OPENAI_DEFAULT_URL = 'https://api.openai.com/v1';
+export { OPENAI_DEFAULT_URL };
 
 export function listOpenAIModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

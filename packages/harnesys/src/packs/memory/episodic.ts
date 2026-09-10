@@ -1,3 +1,4 @@
+import { DEFAULT_EPISODIC_INDEX_ON_COMPACT, DEFAULT_EPISODIC_TOP_K } from '../../constants.ts';
 import { definePack } from '../../domain/pack.ts';
 import type { EpisodicPort } from '../../ports/memory.ts';
 import { createEpisodicTools } from './create-episodic-tools.ts';
@@ -21,8 +22,8 @@ export const episodicMemoryCapability = definePack<EpisodicMemoryPorts, Record<s
     type: 'object',
     properties: {
       store: { type: 'string', enum: ['fts', 'vector'], default: 'fts' },
-      topK: { type: 'number', default: 8 },
-      indexOnCompact: { type: 'boolean', default: true },
+      topK: { type: 'number', default: DEFAULT_EPISODIC_TOP_K },
+      indexOnCompact: { type: 'boolean', default: DEFAULT_EPISODIC_INDEX_ON_COMPACT },
     },
   },
   meta: {

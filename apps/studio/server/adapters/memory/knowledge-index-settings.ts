@@ -1,4 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
+import { DEFAULT_KNOWLEDGE_SETTINGS } from '../../config/constants.ts';
 import type { StudioDb } from '../store/sqlite/connection.ts';
 import {
   type KnowledgeIndexStateRow,
@@ -12,14 +13,6 @@ import type {
   KnowledgeSettingsRecord,
   UpsertKnowledgeSettingsRequest,
 } from './knowledge-index-types.ts';
-
-const DEFAULT_SETTINGS = {
-  entireWorkspace: false,
-  backend: 'fts' as const,
-  embedProvider: null,
-  embedModel: null,
-  watchEnabled: true,
-};
 
 export function getSettingsOrDefault(db: StudioDb, workspaceId: string): KnowledgeSettingsRecord {
   const row = db
@@ -35,11 +28,11 @@ export function getSettingsOrDefault(db: StudioDb, workspaceId: string): Knowled
     .insert(knowledgeSettingsTable)
     .values({
       workspaceId,
-      entireWorkspace: DEFAULT_SETTINGS.entireWorkspace,
-      backend: DEFAULT_SETTINGS.backend,
-      embedProvider: DEFAULT_SETTINGS.embedProvider,
-      embedModel: DEFAULT_SETTINGS.embedModel,
-      watchEnabled: DEFAULT_SETTINGS.watchEnabled,
+      entireWorkspace: DEFAULT_KNOWLEDGE_SETTINGS.entireWorkspace,
+      backend: DEFAULT_KNOWLEDGE_SETTINGS.backend,
+      embedProvider: DEFAULT_KNOWLEDGE_SETTINGS.embedProvider,
+      embedModel: DEFAULT_KNOWLEDGE_SETTINGS.embedModel,
+      watchEnabled: DEFAULT_KNOWLEDGE_SETTINGS.watchEnabled,
       updatedAt: now,
     })
     .returning()

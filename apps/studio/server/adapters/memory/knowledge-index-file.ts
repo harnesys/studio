@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { KNOWLEDGE_EMBED_BATCH_SIZE, KNOWLEDGE_EMBED_SLOW_MS } from '../../config/constants.ts';
 import { trace } from '../../trace.ts';
 import { chunkText } from './chunk-text.ts';
 import { encodeEmbedding } from './embedding-vec.ts';
@@ -111,7 +112,7 @@ export async function indexKnowledgeFile(input: {
         throw new DOMException('Aborted', 'AbortError');
       }
       // Batch to keep payload bounded and allow mid-file cancellation
-      const batchSize = 64;
+      const batchSize = KNOWLEDGE_EMBED_BATCH_SIZE;
       vectors = [];
       for (let i = 0; i < pieces.length; i += batchSize) {
         if (signal?.aborted) {
@@ -130,9 +131,9 @@ export async function indexKnowledgeFile(input: {
           uri: entry.uri,
           batchSize: batch.length,
           elapsedMs: elapsed,
-          slow: elapsed > 8000,
+          slow: elapsed > KNOWLEDGE_EMBED_SLOW_MS,
         });
-        if (elapsed > 8000) {
+        if (elapsed > KNOWLEDGE_EMBED_SLOW_MS) {
           trace(
             'knowledge-indexer',
             'SLOW embeddings - model cold start? Ensure Ollama keep_alive=10m',

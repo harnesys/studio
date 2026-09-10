@@ -1,9 +1,10 @@
+import { ALIBABA_DEFAULT_URL } from '../../../constants.ts';
 import type { DiscoveredModel, DiscoverInput } from '../../../ports/models.ts';
 import { fetchListedModels } from './fetch-list.ts';
 import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
-export const ALIBABA_DEFAULT_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
+export { ALIBABA_DEFAULT_URL };
 
 export function listAlibabaModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({

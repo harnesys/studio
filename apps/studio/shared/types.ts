@@ -19,7 +19,7 @@ export type {
   StudioCatalog,
   StudioModel,
   StudioModelView,
-} from './catalog.ts';
+} from './src/catalog.ts';
 export {
   DRIVERS,
   EFFORTS,
@@ -28,7 +28,7 @@ export {
   isEffort,
   MODALITIES,
   MODEL_FEATURES,
-} from './catalog.ts';
+} from './src/catalog.ts';
 
 import type {
   PermissionMode,
@@ -37,8 +37,8 @@ import type {
   ToolCatalogEntry as WorkspaceTool,
 } from 'harnesys';
 import { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys/domain';
-import type { ThreadPlanRecord } from './plan-types.ts';
-import type { ThreadRecord as ThreadRecordType } from './thread.ts';
+import type { ThreadPlanRecord } from './src/plan-types.ts';
+import type { ThreadRecord as ThreadRecordType } from './src/thread.ts';
 
 export type {
   KnowledgeHit,
@@ -59,14 +59,14 @@ export type {
   AgentGraphRankdir,
   AgentRecord,
   BudgetPolicy,
-} from './agent.ts';
-export { defaultAgentCompaction } from './agent-runtime-defaults.ts';
+} from './src/agent.ts';
+export { defaultAgentCompaction } from './src/agent-runtime-defaults.ts';
 export type {
   AgentGenerationSettings,
   AgentProjectPaths,
   PortRef,
   ToolOutputSettings,
-} from './harnesys-bridge.ts';
+} from './src/harnesys-bridge.ts';
 export {
   DEFAULT_TOOL_OUTPUT_HEAD_CHARS,
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,
@@ -74,9 +74,9 @@ export {
   filterGenerationSettings,
   THRESHOLD_SUMMARY_NAME,
   withChatGenerationParameters,
-} from './harnesys-bridge.ts';
-export type { AskPayload, ConfirmPayload, HitlPayload, PermissionPayload } from './hitl-payload.ts';
-export { payloadForSource } from './hitl-payload.ts';
+} from './src/harnesys-bridge.ts';
+export type { AskPayload, ConfirmPayload, HitlPayload, PermissionPayload } from './src/hitl-payload.ts';
+export { payloadForSource } from './src/hitl-payload.ts';
 export type {
   KnowledgeFileRecord,
   KnowledgeFileStatus,
@@ -89,12 +89,12 @@ export type {
   MemorySearchBackend,
   UpsertKnowledgeRootRequest,
   UpsertKnowledgeSettingsRequest,
-} from './knowledge.ts';
+} from './src/knowledge.ts';
 export {
   extractPlanModePrompt,
   hasPlanModePrompt,
   visiblePlanModeText,
-} from './plan-mode-prompt.ts';
+} from './src/plan-mode-prompt.ts';
 export type {
   ImportProvidersRequest,
   ImportProvidersSummary,
@@ -104,15 +104,15 @@ export type {
   ProviderModelPublic,
   ProviderPublic,
   ProviderRecord,
-} from './provider.ts';
+} from './src/provider.ts';
 export {
   isScheduledHumanText,
   SCHEDULE_HUMAN_ORIGIN,
   scheduledTaskName,
   scheduledTaskText,
   visibleScheduledText,
-} from './schedule-prompt.ts';
-export { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from './webhook-prompt.ts';
+} from './src/schedule-prompt.ts';
+export { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from './src/webhook-prompt.ts';
 export type {
   AcceptedRunResponse,
   CompactThreadResponse,
@@ -125,10 +125,10 @@ export type {
   ThreadKind,
   ThreadRecord,
   ThreadSummary,
-} from './thread.ts';
-export { THREAD_KINDS, threadsForAgent } from './thread.ts';
-export type { TranscriptItem } from './transcript.ts';
-export { toTranscript } from './transcript.ts';
+} from './src/thread.ts';
+export { THREAD_KINDS, threadsForAgent } from './src/thread.ts';
+export type { TranscriptItem } from './src/transcript.ts';
+export { toTranscript } from './src/transcript.ts';
 
 export type AttachmentKind = 'image' | 'audio' | 'video' | 'file';
 
@@ -277,7 +277,7 @@ export type {
   GitStatusBase,
   GitStatusCounts,
   GitStatusResponse,
-} from './git.ts';
+} from './src/git.ts';
 
 export type StudioErrorBody = {
   error: string;
@@ -299,8 +299,8 @@ export type WorkspaceFileEvent = {
   name: string;
 };
 
-export * from './plan-types.ts';
-export { isTextAttachment } from './text-attachment.ts';
+export * from './src/plan-types.ts';
+export { isTextAttachment } from './src/text-attachment.ts';
 
 export type DeskEvent =
   | { type: 'thread'; thread: ThreadRecordType }

@@ -1,4 +1,4 @@
-/* left panel: inset 0.5rem + w-48; right panel: inset 0.5rem + w-64; gap to buttons = 0.5rem */
+/* panels: inset 0.5rem + w-48; gap to buttons = 0.5rem → left/right offset 13rem */
 .agent-graph-flow .react-flow__controls {
   left: 13rem;
   bottom: 0.5rem;

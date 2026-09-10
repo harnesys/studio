@@ -2,6 +2,7 @@ import { createMcpResourceTools } from '../application/mcp/create-mcp-resource-t
 import { createMcpTool } from '../application/mcp/create-mcp-tool.ts';
 import type { McpConnection, McpConnector } from '../application/mcp/mcp-connector.port.ts';
 import type { McpResourceInfo, McpServerConfig } from '../domain/mcp.ts';
+import { CONSOLE_LOGGER, type Logger } from '../ports/logger.ts';
 import type {
   CursorMcpJson,
   McpRegistry as McpRegistryPort,
@@ -20,11 +21,13 @@ type EnabledEntry = {
 
 export class McpRegistry implements McpRegistryPort {
   readonly #connector: McpConnector;
+  readonly #logger: Logger;
   readonly #enabled = new Map<string, EnabledEntry>();
   readonly #configs = new Map<string, McpServerConfig>();
 
-  constructor(connector?: McpConnector) {
+  constructor(connector?: McpConnector, logger: Logger = CONSOLE_LOGGER) {
     this.#connector = connector ?? new AiSdkMcpConnector();
+    this.#logger = logger;
   }
 
   async loadJson(json: CursorMcpJson): Promise<void> {
@@ -34,7 +37,7 @@ export class McpRegistry implements McpRegistryPort {
       }
       const config = toServerConfig(id, entry);
       this.#configs.set(id, config);
-      await this.enable(id);
+      await this.enableOrSkip(id);
     }
   }
 
@@ -83,15 +86,26 @@ export class McpRegistry implements McpRegistryPort {
   async reload(id?: string): Promise<void> {
     if (id) {
       await this.disable(id);
-      await this.enable(id);
+      await this.enableOrSkip(id);
     } else {
       const ids = [...this.#enabled.keys()];
       for (const sid of ids) {
         await this.disable(sid);
       }
       for (const sid of this.#configs.keys()) {
-        await this.enable(sid);
+        await this.enableOrSkip(sid);
       }
+    }
+  }
+
+  private async enableOrSkip(id: string): Promise<void> {
+    try {
+      await this.enable(id);
+    } catch (error) {
+      this.#logger.warn(
+        `MCP server ${id} failed to start`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 

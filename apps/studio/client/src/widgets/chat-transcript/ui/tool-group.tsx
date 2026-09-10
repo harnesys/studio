@@ -22,10 +22,12 @@ export function ToolGroup({
   chunks,
   live,
   runLive = live,
+  threadId,
 }: {
   chunks: GroupActivityChunk[];
   live: boolean;
   runLive?: boolean;
+  threadId?: string;
 }) {
   const expandTools = useChatPreferences((state) => state.expandTools);
   const pairs = groupPairs(chunks);
@@ -35,7 +37,13 @@ export function ToolGroup({
     return (
       <div className="flex flex-col gap-1">
         {chunks.map((chunk, index) =>
-          renderChunk(chunk, index, live && index === chunks.length - 1, runLive),
+          renderChunk({
+            chunk,
+            index,
+            live: live && index === chunks.length - 1,
+            runLive,
+            threadId,
+          }),
         )}
       </div>
     );
@@ -58,21 +66,30 @@ export function ToolGroup({
       indentContent={false}
     >
       <div className="flex flex-col gap-1 pr-1">
-        {chunks.map((chunk, index) => renderChunk(chunk, index, false, runLive))}
+        {chunks.map((chunk, index) =>
+          renderChunk({ chunk, index, live: false, runLive, threadId }),
+        )}
       </div>
     </ActivityLine>
   );
 }
 
-function renderChunk(
-  chunk: GroupActivityChunk,
-  index: number,
-  live: boolean,
-  runLive?: boolean,
-): ReactNode {
+function renderChunk({
+  chunk,
+  index,
+  live,
+  runLive,
+  threadId,
+}: {
+  chunk: GroupActivityChunk;
+  index: number;
+  live: boolean;
+  runLive?: boolean;
+  threadId?: string;
+}): ReactNode {
   if (chunk.type === 'reasoning') {
     const text = chunk.events.map((e) => e.text).join('');
-    return <ThinkingLine key={`reasoning-${index}`} text={text} live={live} />;
+    return <ThinkingLine key={`reasoning-${index}`} text={text} live={live} threadId={threadId} />;
   }
   return chunk.pairs.map((pair, pairIndex) => (
     <ToolLine

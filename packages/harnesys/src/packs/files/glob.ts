@@ -26,6 +26,7 @@ export function globTool(options: FilesOptions = {}): ToolDefinition {
       for await (const match of new Bun.Glob(parsed.pattern).scan({
         cwd: workdir,
         onlyFiles: true,
+        dot: true,
       })) {
         const absolute = path.resolve(workdir, match);
         if (hidden(absolute)) {

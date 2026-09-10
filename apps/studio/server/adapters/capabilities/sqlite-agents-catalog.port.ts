@@ -113,7 +113,7 @@ function toAgentDefinition(agent: Agent, deps: SqliteAgentsCatalogPortDeps): Age
     model: resolveModelRef(agent, deps),
     skills: agent.skills.length ? agent.skills : undefined,
     tools: agent.tools.length ? agent.tools : undefined,
-    mcpServers: agent.mcpServers,
+    mcpServers: agent.mcpServers.length ? agent.mcpServers : undefined,
     toolOutput: agent.toolOutput ?? undefined,
     compaction: agent.compaction,
     capabilities: agent.capabilities,

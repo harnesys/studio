@@ -71,19 +71,27 @@ function normalizeSendInput(input: SendInput): {
     return { text: input };
   }
   const attachments: Attachment[] = [...(input.attachments ?? [])];
+  const seenPaths = new Set(attachments.map((item) => item.path).filter((path) => path.length > 0));
   const pushFiles = (files: SendFile[] | undefined, kind: AttachmentKind): void => {
     if (!files) {
       return;
     }
     for (const file of files) {
-      const rawName = file.name ?? ('path' in file ? file.path : '');
+      const path = 'path' in file ? file.path : '';
+      if (path && seenPaths.has(path)) {
+        continue;
+      }
+      const rawName = file.name ?? path;
       const name = rawName.split(/[\\/]/).at(-1) ?? 'file';
+      if (path) {
+        seenPaths.add(path);
+      }
       attachments.push({
         id: crypto.randomUUID(),
         kind,
         name: name || 'file',
         mediaType: file.mediaType ?? '',
-        path: 'path' in file ? file.path : '',
+        path,
       });
     }
   };

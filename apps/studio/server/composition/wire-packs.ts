@@ -121,6 +121,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
           peekSchedule: new PeekScheduleUseCase({
             schedules: deps.schedules,
             workspaces: deps.workspaces,
+            getThread: deps.getThread,
           }),
           createSchedule: new CreateScheduleUseCase({
             schedules: deps.schedules,

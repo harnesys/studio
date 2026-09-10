@@ -7,6 +7,7 @@ export const createWebhookBody = z.object({
   targetAgentId: z.string().uuid(),
   detail: z.string().trim().optional(),
   threadId: z.string().uuid().optional(),
+  status: z.enum(SCHEDULE_STATUSES).optional(),
 });
 
 export const updateWebhookBody = z.object({

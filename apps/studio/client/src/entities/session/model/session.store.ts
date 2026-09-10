@@ -4,11 +4,13 @@ import { create } from 'zustand';
 import { applyIncomingEvents } from './apply-incoming';
 import { coalesceStreamDeltas } from './coalesce-events';
 import { ceilFromEvents, eventKey, fillSeenAt, stableKeys } from './event-keys';
+import { clearLiveTail, clearLiveTails, ingestLiveDelta, sealLiveTail } from './live-tail';
 import {
+  cancelEpochFlush,
   dropPendingThreads,
   enqueuePending,
   hasPending,
-  schedulePendingFrame,
+  scheduleEpochFlush,
   takePending,
 } from './pending-appends';
 
@@ -53,33 +55,15 @@ type SessionStoreActions = {
 
 const EMPTY_EVENTS: SessionEvent[] = [];
 
-/** UI-подписка на лог: дельты не чаще этого интервала, остальные кадры сразу. */
+/** Backstop: склеить live-дельты в лог, если долго нет tool/start/end. */
 const EPOCH_DELTA_MS = 400;
-const lastEpochBump: Record<string, number> = {};
 
 function isStreamDeltaType(type: SessionEventType): boolean {
   return type === 'text-delta' || type === 'reasoning-delta';
 }
 
 function bumpEpoch(state: SessionStoreState, threadId: string): Record<string, number> {
-  const now = Date.now();
-  lastEpochBump[threadId] = now;
-  return { ...state.contentEpoch, [threadId]: now };
-}
-
-function nextEpoch(
-  state: SessionStoreState,
-  threadId: string,
-  eventType: SessionEventType,
-): Record<string, number> {
-  const now = Date.now();
-  if (isStreamDeltaType(eventType)) {
-    const prev = lastEpochBump[threadId] ?? 0;
-    if (now - prev < EPOCH_DELTA_MS) {
-      return state.contentEpoch;
-    }
-  }
-  return bumpEpoch(state, threadId);
+  return { ...state.contentEpoch, [threadId]: Date.now() };
 }
 
 function applyBatches(
@@ -104,15 +88,12 @@ function applyBatches(
     if (result.accepted === 0) {
       continue;
     }
-    const contentEpoch = result.immediateEpoch
-      ? bumpEpoch(next, threadId)
-      : nextEpoch(next, threadId, 'text-delta');
     next = {
       ...next,
       events: { ...next.events, [threadId]: result.events },
       seenAt: { ...next.seenAt, [threadId]: result.seenAt },
       seqCeil: { ...next.seqCeil, [threadId]: result.seqCeil },
-      contentEpoch,
+      contentEpoch: bumpEpoch(next, threadId),
     };
   }
   return next;
@@ -120,6 +101,7 @@ function applyBatches(
 
 export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => {
   const flushPending = () => {
+    cancelEpochFlush();
     if (!hasPending()) {
       return;
     }
@@ -139,6 +121,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     },
 
     replaceEvents(threadId, events) {
+      clearLiveTail(threadId);
       const coalesced = coalesceStreamDeltas(events);
       const now = Date.now();
       set((state) => {
@@ -153,6 +136,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     },
 
     reconcileEvents(threadId, serverEvents) {
+      clearLiveTail(threadId);
       const now = Date.now();
       set((state) => {
         const base = applyBatches(state, takePending());
@@ -187,11 +171,18 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     },
 
     appendEvent(threadId, event) {
-      enqueuePending(threadId, event);
       if (isStreamDeltaType(event.type)) {
-        schedulePendingFrame(flushPending);
+        const phase = ingestLiveDelta(threadId, event);
+        enqueuePending(threadId, event);
+        if (phase === 'open') {
+          flushPending();
+          return;
+        }
+        scheduleEpochFlush(flushPending, EPOCH_DELTA_MS);
         return;
       }
+      sealLiveTail(threadId);
+      enqueuePending(threadId, event);
       flushPending();
     },
 
@@ -235,6 +226,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     },
 
     finishRun(threadId, runId) {
+      clearLiveTail(threadId);
       set((state) => {
         const active = state.activeRuns[threadId];
         if (!active) {
@@ -290,6 +282,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
 
     removeForThreads(threadIds) {
       dropPendingThreads(threadIds);
+      clearLiveTails(threadIds);
       set((state) => {
         const base = applyBatches(state, takePending());
         const events = { ...base.events };
@@ -303,7 +296,6 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
           delete seqCeil[id];
           delete activeRuns[id];
           delete contentEpoch[id];
-          delete lastEpochBump[id];
         }
         return { ...base, events, seenAt, seqCeil, activeRuns, contentEpoch };
       });

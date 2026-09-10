@@ -3,7 +3,7 @@ import { join, relative, sep } from 'node:path';
 import ignore, { type Ignore } from 'ignore';
 import { HOME_DIR_NAME, STUDIO_DIR_LEGACY } from '../../config/constants.ts';
 
-const SAFETY_NAMES = new Set([
+export const SAFETY_NAMES = new Set([
   'node_modules',
   '.git',
   '.next',

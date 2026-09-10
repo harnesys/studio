@@ -1,7 +1,6 @@
 import type { SessionEvent } from '@studio/shared';
 
 let pendingByThread = new Map<string, SessionEvent[]>();
-let scheduled = false;
 
 export function enqueuePending(threadId: string, event: SessionEvent): void {
   const buf = pendingByThread.get(threadId);
@@ -13,7 +12,6 @@ export function enqueuePending(threadId: string, event: SessionEvent): void {
 }
 
 export function takePending(): Map<string, SessionEvent[]> {
-  scheduled = false;
   if (pendingByThread.size === 0) {
     return pendingByThread;
   }
@@ -32,19 +30,23 @@ export function dropPendingThreads(threadIds: string[]): void {
   }
 }
 
-/** Склеивает дельты до следующего кадра; повторный вызов до flush — no-op. */
-export function schedulePendingFrame(flush: () => void): void {
-  if (scheduled) {
+let epochTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Редкий сброс дельт в Zustand; живой текст идёт через live-tail, не через этот таймер. */
+export function scheduleEpochFlush(flush: () => void, ms: number): void {
+  if (epochTimer !== undefined) {
     return;
   }
-  scheduled = true;
-  const run = () => {
-    scheduled = false;
+  epochTimer = setTimeout(() => {
+    epochTimer = undefined;
     flush();
-  };
-  if (typeof requestAnimationFrame === 'function') {
-    requestAnimationFrame(run);
+  }, ms);
+}
+
+export function cancelEpochFlush(): void {
+  if (epochTimer === undefined) {
     return;
   }
-  setTimeout(run, 16);
+  clearTimeout(epochTimer);
+  epochTimer = undefined;
 }

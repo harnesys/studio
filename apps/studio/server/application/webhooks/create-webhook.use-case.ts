@@ -4,11 +4,13 @@ import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
-import type { WebhookRepository } from '../../domain/webhook.port.ts';
+import type { WebhookRepository, WebhookStatus } from '../../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type { GetThreadInput } from '../threads/get-thread.use-case.ts';
 import { requireBindableWebhookThread } from './bind-webhook-thread.ts';
 import { toWebhookRecord, type WebhookRecord } from './webhook-record.ts';
+
+const WEBHOOK_STATUSES: readonly WebhookStatus[] = ['active', 'paused', 'failed'];
 
 export type CreateWebhookRequest = {
   workspaceId: string;
@@ -16,6 +18,7 @@ export type CreateWebhookRequest = {
   targetAgentId: string;
   detail?: string;
   threadId?: string;
+  status?: WebhookStatus;
 };
 
 export type CreateWebhookInput = {
@@ -64,6 +67,10 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
     if (!agent || agent.workspaceId !== request.workspaceId) {
       throw new ValidationError('agent not found');
     }
+    const status = request.status ?? 'active';
+    if (!WEBHOOK_STATUSES.includes(status)) {
+      throw new ValidationError('invalid webhook status');
+    }
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
@@ -98,7 +105,7 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
         id,
         workspaceId: request.workspaceId,
         name,
-        status: 'active',
+        status,
         targetAgentId: agent.id,
         detail: request.detail?.trim() || '',
         endpoint: `/api/workspaces/${request.workspaceId}/hooks/${id}`,

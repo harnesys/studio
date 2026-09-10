@@ -13,15 +13,14 @@ export function useAgentLiveStatus(agentId: string): AgentStatus {
   return useSessionStore((state) => {
     let running = false;
     for (const threadId of threadIds) {
-      const events = state.events[threadId] ?? [];
-      if (isWaiting(events)) {
-        return 'waiting';
-      }
       if (state.activeRuns[threadId]) {
         running = true;
-        continue;
       }
-      if (hasRunningSession(events)) {
+      const events = state.events[threadId];
+      if (events !== undefined && isWaiting(events)) {
+        return 'waiting';
+      }
+      if (!state.activeRuns[threadId] && events !== undefined && hasRunningSession(events)) {
         running = true;
       }
     }

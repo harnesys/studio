@@ -53,6 +53,7 @@ async function scanGrep(
   for await (const match of new Bun.Glob(parsed.glob ?? '**/*').scan({
     cwd: root,
     onlyFiles: true,
+    dot: true,
   })) {
     if (hits.length >= limit) {
       break;

@@ -49,6 +49,7 @@ export class SqliteWebhookPort implements WebhookPort {
       name: input.name,
       targetAgentId: input.targetAgentId ?? scope.agentId,
       detail: input.detail,
+      status: input.status,
     });
     return {
       webhook: toWebhookRecord(created.webhook),

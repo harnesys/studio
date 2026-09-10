@@ -5,7 +5,7 @@ import { trace } from '../../trace.ts';
 import { FilesWatcherAdapter } from '../workspace/files-watcher.adapter.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
 import type { KnowledgeIndexer } from './knowledge-indexer.ts';
-import { uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
+import { SAFETY_NAMES, uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
 
 export type KnowledgeWatchBridgeOptions = {
   workspaces: WorkspaceRepository;
@@ -25,6 +25,7 @@ export class KnowledgeWatchBridge {
 
   start(): void {
     for (const workspace of this.options.workspaces.list()) {
+      this.options.indexRepo.purgeByFirstSegment(workspace.id, SAFETY_NAMES);
       const settings = this.options.indexRepo.getSettingsOrDefault(workspace.id);
       this.syncWatch(workspace.id, settings.watchEnabled);
     }

@@ -1,6 +1,9 @@
+import type { SchedulePeekFire } from 'harnesys';
 import type { ScheduleRepository } from '../../domain/schedule.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
+import type { GetThreadInput } from '../threads/get-thread.use-case.ts';
+import { peekScheduleFires } from './schedule-peek.ts';
 
 export type PeekScheduleRequest = {
   workspaceId: string;
@@ -13,7 +16,7 @@ export type PeekScheduleResponse = {
   name: string;
   threadId: string;
   lastFiredAt: string | null;
-  fires: [];
+  fires: SchedulePeekFire[];
 };
 
 export type PeekScheduleInput = {
@@ -23,26 +26,28 @@ export type PeekScheduleInput = {
 export type PeekScheduleDeps = {
   schedules: ScheduleRepository;
   workspaces: WorkspaceRepository;
+  getThread: GetThreadInput;
 };
 
 export class PeekScheduleUseCase implements PeekScheduleInput {
   constructor(private readonly deps: PeekScheduleDeps) {}
 
-  execute(request: PeekScheduleRequest): Promise<PeekScheduleResponse> {
+  async execute(request: PeekScheduleRequest): Promise<PeekScheduleResponse> {
     const workspace = this.deps.workspaces.findById(request.workspaceId);
     if (!workspace) {
-      return Promise.reject(new NotFoundError('workspace not found'));
+      throw new NotFoundError('workspace not found');
     }
     const schedule = this.deps.schedules.findById(request.id);
     if (!schedule || schedule.workspaceId !== request.workspaceId) {
-      return Promise.reject(new NotFoundError('schedule not found'));
+      throw new NotFoundError('schedule not found');
     }
-    return Promise.resolve({
+    const thread = await this.deps.getThread.execute({ id: schedule.threadId });
+    return {
       id: schedule.id,
       name: schedule.name,
       threadId: schedule.threadId,
       lastFiredAt: schedule.lastFiredAt,
-      fires: [],
-    });
+      fires: peekScheduleFires(thread.events, request.last ?? 1, schedule.lastFiredAt),
+    };
   }
 }

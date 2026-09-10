@@ -57,7 +57,9 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
       throw new NotFoundError('webhook not found');
     }
 
-    const patch: WebhookPatch = {};
+    const patch: WebhookPatch = {
+      updatedAt: new Date().toISOString(),
+    };
 
     if (request.name !== undefined) {
       const name = request.name.trim();

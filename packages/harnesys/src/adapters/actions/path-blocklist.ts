@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { WORKSPACE_META_DIR } from './constants.ts';
 import { loadGitignore } from './gitignore.ts';
 
 export type PathFilter = (absolutePath: string) => boolean;
@@ -12,7 +13,17 @@ export async function createSearchFilter(
   blocklist: readonly string[],
 ): Promise<PathFilter> {
   const ignore = await loadGitignore(workdir);
-  return (absolutePath) => isPathBlocked(absolutePath, blocklist) || ignore.ignores(absolutePath);
+  return (absolutePath) => {
+    if (isWorkspaceMetaPath(workdir, absolutePath)) {
+      return isPathBlocked(absolutePath, blocklist);
+    }
+    return isPathBlocked(absolutePath, blocklist) || ignore.ignores(absolutePath);
+  };
+}
+
+function isWorkspaceMetaPath(workdir: string, absolutePath: string): boolean {
+  const relative = path.relative(workdir, absolutePath).split(path.sep).join('/');
+  return relative === WORKSPACE_META_DIR || relative.startsWith(`${WORKSPACE_META_DIR}/`);
 }
 
 export function firstBlockingPattern(

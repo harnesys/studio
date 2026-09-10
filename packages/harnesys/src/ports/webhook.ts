@@ -22,6 +22,7 @@ export type WebhookCreateInput = {
   name: string;
   targetAgentId?: string;
   detail?: string;
+  status?: WebhookStatus;
 };
 
 export type WebhookUpdateInput = {

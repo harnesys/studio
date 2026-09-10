@@ -9,11 +9,25 @@ export function MessageAttachments({ entry, threadId }: { entry: HumanEntry; thr
   }
   return (
     <div className="flex flex-wrap justify-end gap-2">
-      {attachments.map((item: ThreadAttachment) => (
+      {uniqueAttachments(attachments).map((item: ThreadAttachment) => (
         <AttachmentPreview key={item.id} threadId={threadId} item={item} />
       ))}
     </div>
   );
+}
+
+function uniqueAttachments(items: ThreadAttachment[]): ThreadAttachment[] {
+  const seen = new Set<string>();
+  const out: ThreadAttachment[] = [];
+  for (const item of items) {
+    const key = item.path || item.id;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
 }
 
 function AttachmentPreview({ threadId, item }: { threadId: string; item: ThreadAttachment }) {

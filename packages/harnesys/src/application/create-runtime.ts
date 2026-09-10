@@ -61,7 +61,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       mcpRegistry = options.mcp as McpRegistry;
     } else {
       const { McpRegistry: McpRegistryClass } = await import('../adapters/mcp-registry.ts');
-      mcpRegistry = new McpRegistryClass();
+      mcpRegistry = new McpRegistryClass(undefined, logger);
       await mcpRegistry.loadJson(options.mcp as CursorMcpJson);
     }
     const mcpTools = await mcpRegistry.tools();

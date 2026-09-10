@@ -1,6 +1,6 @@
 import { BrainIcon } from 'lucide-react';
 
-import { estimateTokens, formatDuration, formatTokenCount } from '@/entities/session';
+import { estimateTokens, formatDuration, formatTokenCount, useLiveTail } from '@/entities/session';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 
 import { ExpandableScroll } from '@/shared/ui/expandable-scroll';
@@ -10,15 +10,19 @@ export function ThinkingLine({
   text,
   live,
   durationMs,
+  threadId,
 }: {
   text: string;
   live: boolean;
   durationMs?: number;
+  threadId?: string;
 }) {
   const expandThinking = useChatPreferences((state) => state.expandThinking);
+  const tail = useLiveTail(live ? threadId : undefined);
+  const display = live && tail.kind === 'reasoning' && tail.text ? tail.text : text;
   // Per-thought token count is not in the event stream; estimate from text.
   const tokensLabel =
-    !live && text.trim() ? `~${formatTokenCount(estimateTokens(text))} tok` : null;
+    !live && display.trim() ? `~${formatTokenCount(estimateTokens(display))} tok` : null;
   const durationLabel =
     !live && durationMs !== undefined && durationMs > 0 ? formatDuration(durationMs) : null;
   const hint = [tokensLabel, durationLabel].filter(Boolean).join(' · ') || null;
@@ -30,11 +34,15 @@ export function ThinkingLine({
       hint={hint}
       active={live}
       defaultOpen={live || expandThinking}
-      hasContent={Boolean(text)}
+      hasContent={Boolean(display)}
     >
-      <ExpandableScroll previewClassName="max-h-28" fullClassName="max-h-[min(70vh,24rem)]">
+      <ExpandableScroll
+        follow={live}
+        previewClassName="max-h-28"
+        fullClassName="max-h-[min(70vh,24rem)]"
+      >
         <div className="whitespace-pre-wrap text-[13px] text-muted-foreground/90 leading-5">
-          {text}
+          {display}
         </div>
       </ExpandableScroll>
     </ActivityLine>

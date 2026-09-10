@@ -64,14 +64,14 @@ export async function indexOneUri(input: {
     () => false,
   );
   if (!exists) {
-    input.repo.deleteFileAndChunks(input.workspaceId, input.uri);
+    input.repo.deleteUriPrefix(input.workspaceId, input.uri);
     return;
   }
 
   const entries = await collectKnowledgePaths(input.workspacePath, input.uri);
   const updatedAt = new Date().toISOString();
   if (entries.length === 0) {
-    input.repo.deleteFileAndChunks(input.workspaceId, input.uri);
+    input.repo.deleteUriPrefix(input.workspaceId, input.uri);
     return;
   }
   for (const entry of entries) {

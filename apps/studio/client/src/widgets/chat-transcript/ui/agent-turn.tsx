@@ -2,6 +2,7 @@ import type { SessionEvent } from '@studio/shared';
 import { isScheduledHumanText, scheduledTaskName, visibleScheduledText } from '@studio/shared';
 import { AlertCircleIcon, CalendarClockIcon, RotateCcwIcon, TerminalIcon } from 'lucide-react';
 
+import { useLiveTail } from '@/entities/session';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
 import { attachmentUrl } from '@/shared/api';
@@ -68,22 +69,24 @@ export function ActivityBlock({
   events,
   last,
   streaming = false,
+  threadId,
 }: {
   events: SessionEvent[];
   last: boolean;
   streaming?: boolean;
+  threadId?: string;
 }) {
   const live = last && streaming;
 
   if (events.length === 0 && live) {
     return (
       <ActivityRail live={true}>
-        <ThinkingLine text="" live={true} />
+        <ThinkingLine text="" live={true} threadId={threadId} />
       </ActivityRail>
     );
   }
 
-  return <ActivityItems events={events} live={live} />;
+  return <ActivityItems events={events} live={live} threadId={threadId} />;
 }
 
 export function AssistantMessageView({
@@ -146,7 +149,7 @@ export function AssistantMessageView({
         {pendingReply ? (
           <div className={segments.length > 0 ? 'mt-3' : undefined}>
             <ActivityRail live={true}>
-              <ThinkingLine text="" live={true} />
+              <ThinkingLine text="" live={true} threadId={threadId} />
             </ActivityRail>
           </div>
         ) : null}
@@ -210,7 +213,7 @@ function TurnSegmentView({
           <>
             {atts?.length ? (
               <div className="flex max-w-[80%] flex-wrap justify-end gap-2">
-                {atts.map((item) => (
+                {uniqueAttachments(atts).map((item) => (
                   <AttachmentPreview key={item.id} threadId={tid} item={item} />
                 ))}
               </div>
@@ -226,7 +229,7 @@ function TurnSegmentView({
     );
   }
   if (segment.type === 'activity') {
-    return <ActivityItems events={segment.events} live={live} runId={runId} />;
+    return <ActivityItems events={segment.events} live={live} runId={runId} threadId={threadId} />;
   }
   if (segment.type === 'compaction') {
     return <CompactionMessageCard text={segment.text} meta={segment.meta} />;
@@ -249,7 +252,26 @@ function TurnSegmentView({
     );
   }
 
-  return <Markdown text={segment.text} />;
+  return <LiveMarkdown text={segment.text} live={live} threadId={threadId} blockId={segment.id} />;
+}
+
+function LiveMarkdown({
+  text,
+  live,
+  threadId,
+  blockId,
+}: {
+  text: string;
+  live: boolean;
+  threadId?: string;
+  blockId?: string;
+}) {
+  const tail = useLiveTail(live ? threadId : undefined);
+  const display =
+    live && tail.kind === 'text' && tail.text && (blockId === undefined || tail.id === blockId)
+      ? tail.text
+      : text;
+  return <Markdown text={display} />;
 }
 
 function isScheduleWakeEvent(event: SessionEvent & { type: 'user' }): boolean {
@@ -272,6 +294,20 @@ function ScheduleWakeBanner({ text }: { text: string }) {
       {body ? <p className="whitespace-pre-wrap text-sm">{body}</p> : null}
     </FeedNotice>
   );
+}
+
+function uniqueAttachments<T extends { id: string; path: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of items) {
+    const key = item.path || item.id;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
 }
 
 function AttachmentPreview({

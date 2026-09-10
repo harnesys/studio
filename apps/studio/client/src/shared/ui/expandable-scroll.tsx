@@ -12,6 +12,7 @@ export function ExpandableScroll({
   fullClassName = FULL,
   fadeClassName = 'from-background',
   defaultExpanded = false,
+  follow = false,
 }: {
   children: ReactNode;
   className?: string;
@@ -19,6 +20,8 @@ export function ExpandableScroll({
   fullClassName?: string;
   fadeClassName?: string | false;
   defaultExpanded?: boolean;
+  /** Живой стрим: окно держит хвост, без More и без внутреннего скроллбара. */
+  follow?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -27,6 +30,10 @@ export function ExpandableScroll({
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) {
+      return;
+    }
+    if (follow) {
+      el.scrollTop = el.scrollHeight;
       return;
     }
 
@@ -42,17 +49,21 @@ export function ExpandableScroll({
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [children, expanded]);
+  }, [children, expanded, follow]);
 
   return (
     <div className={cn('relative', className)}>
       <div
         ref={ref}
-        className={cn('select-text overflow-auto', expanded ? fullClassName : previewClassName)}
+        className={cn(
+          'select-text',
+          follow ? 'overflow-hidden' : 'overflow-auto',
+          expanded && !follow ? fullClassName : previewClassName,
+        )}
       >
         {children}
       </div>
-      {canExpand ? (
+      {canExpand && !follow ? (
         <div className="relative">
           {!expanded && fadeClassName ? (
             <div

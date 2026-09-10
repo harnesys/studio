@@ -12,10 +12,12 @@ export function ActivityItems({
   events,
   live,
   runId,
+  threadId,
 }: {
   events: SessionEvent[];
   live: boolean;
   runId?: string;
+  threadId?: string;
 }) {
   const items = groupActivityChunks(chunkEvents(events));
 
@@ -31,12 +33,20 @@ export function ActivityItems({
               chunks={item.chunks}
               live={itemLive}
               runLive={live}
+              threadId={threadId}
             />
           );
         }
         const { chunk } = item;
         if (chunk.type === 'text') {
-          return <ThinkingLine key={`text-${index}`} text={chunk.event.text} live={itemLive} />;
+          return (
+            <ThinkingLine
+              key={`text-${index}`}
+              text={chunk.event.text}
+              live={itemLive}
+              threadId={threadId}
+            />
+          );
         }
         if (chunk.type === 'ask') {
           return (

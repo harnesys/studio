@@ -75,15 +75,35 @@ function normalizeInputAttachments(input: unknown): {
   const text = typeof rec.text === 'string' ? rec.text : undefined;
   const origin = typeof rec.origin === 'string' ? rec.origin : undefined;
   const atts: Attachment[] = [];
+  const seenPaths = new Set<string>();
+  if (Array.isArray(rec.attachments)) {
+    for (const a of rec.attachments as Record<string, unknown>[]) {
+      const k = a.kind as AttachmentKind;
+      if (k === 'image' || k === 'audio' || k === 'video' || k === 'file') {
+        const path = typeof a.path === 'string' ? a.path : '';
+        if (path) {
+          seenPaths.add(path);
+        }
+        atts.push({
+          id: typeof a.id === 'string' ? a.id : crypto.randomUUID(),
+          kind: k,
+          name: typeof a.name === 'string' ? a.name : 'file',
+          mediaType: typeof a.mediaType === 'string' ? a.mediaType : '',
+          path,
+        });
+      }
+    }
+  }
   const pushFiles = (arr: unknown, kind: AttachmentKind) => {
     if (!Array.isArray(arr)) {
       return;
     }
     for (const f of arr as Record<string, unknown>[]) {
       const p = typeof f.path === 'string' ? f.path : '';
-      if (!p) {
+      if (!p || seenPaths.has(p)) {
         continue;
       }
+      seenPaths.add(p);
       atts.push({
         id: crypto.randomUUID(),
         kind,
@@ -97,20 +117,6 @@ function normalizeInputAttachments(input: unknown): {
   pushFiles(rec.audio, 'audio');
   pushFiles(rec.video, 'video');
   pushFiles(rec.files, 'file');
-  if (Array.isArray(rec.attachments)) {
-    for (const a of rec.attachments as Record<string, unknown>[]) {
-      const k = a.kind as AttachmentKind;
-      if (k === 'image' || k === 'audio' || k === 'video' || k === 'file') {
-        atts.push({
-          id: typeof a.id === 'string' ? a.id : crypto.randomUUID(),
-          kind: k,
-          name: typeof a.name === 'string' ? a.name : 'file',
-          mediaType: typeof a.mediaType === 'string' ? a.mediaType : '',
-          path: typeof a.path === 'string' ? a.path : '',
-        });
-      }
-    }
-  }
   return {
     text: text || undefined,
     attachments: atts.length > 0 ? atts : undefined,

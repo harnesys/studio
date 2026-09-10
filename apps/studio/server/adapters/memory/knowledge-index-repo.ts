@@ -174,6 +174,24 @@ export class SqliteKnowledgeIndexRepo {
     }
   }
 
+  deleteUriPrefix(workspaceId: string, prefix: string): void {
+    for (const uri of this.listFileUris(workspaceId)) {
+      if (uri === prefix || uri.startsWith(`${prefix}/`)) {
+        this.deleteFileAndChunks(workspaceId, uri);
+      }
+    }
+  }
+
+  purgeByFirstSegment(workspaceId: string, names: ReadonlySet<string>): void {
+    for (const uri of this.listFileUris(workspaceId)) {
+      const slash = uri.indexOf('/');
+      const segment = slash === -1 ? uri : uri.slice(0, slash);
+      if (names.has(segment)) {
+        this.deleteFileAndChunks(workspaceId, uri);
+      }
+    }
+  }
+
   deleteMissingFiles(workspaceId: string, seenUris: ReadonlySet<string>): void {
     const existing = this.listFileUris(workspaceId);
     for (const uri of existing) {

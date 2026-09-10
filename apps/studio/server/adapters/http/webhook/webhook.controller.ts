@@ -33,6 +33,7 @@ export class WebhookController {
         targetAgentId: body.targetAgentId,
         detail: body.detail,
         threadId: body.threadId,
+        status: body.status,
       });
       return c.json(created, 201);
     });

@@ -81,6 +81,7 @@ export function createWebhookTools(deps: CreateWebhookToolsParams): ToolDefiniti
             name: input.name,
             targetAgentId: input.targetAgentId ?? scope.agentId,
             detail: input.detail,
+            status: input.status,
           });
         }),
     }),

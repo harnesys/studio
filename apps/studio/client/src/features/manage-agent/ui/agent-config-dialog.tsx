@@ -140,7 +140,7 @@ export function AgentConfigDialog({
 
   return (
     <form
-      className="flex min-h-0 flex-1 flex-col gap-4"
+      className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"
       onSubmit={form.handleSubmit((values) => {
         const draft = toAgentDraft(values);
         const sanitized = sanitizeForModel(
@@ -157,7 +157,7 @@ export function AgentConfigDialog({
         });
       })}
     >
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div className="flex min-h-0 min-w-0 flex-1 gap-4">
         {navOpen ? (
           <nav className="flex w-40 shrink-0 flex-col gap-0.5">
             <button
@@ -198,7 +198,7 @@ export function AgentConfigDialog({
         )}
         <div
           className={cn(
-            'min-h-0 flex-1',
+            'min-h-0 min-w-0 flex-1',
             category === 'graph' ? 'overflow-hidden' : 'overflow-y-auto pr-1',
           )}
         >

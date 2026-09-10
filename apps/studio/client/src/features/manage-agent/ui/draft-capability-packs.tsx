@@ -1,47 +1,40 @@
 import type { PackCatalogEntry, PackConfig } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import {
-  BoxIcon,
-  CodeIcon,
-  CpuIcon,
-  DatabaseIcon,
+  BotIcon,
+  CalendarClockIcon,
+  FileTextIcon,
   GlobeIcon,
   LayersIcon,
   type LucideIcon,
-  NetworkIcon,
-  PackageIcon,
-  ServerIcon,
+  MapIcon,
+  MessageSquareIcon,
   SettingsIcon,
-  ShieldIcon,
   TerminalIcon,
+  WebhookIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { workspaceCapabilitiesQuery } from '@/shared/api';
-import { dialog } from '@/shared/services/overlay';
+import { cn } from '@/shared/lib/utils';
+import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/ui/dialog';
+import { Collapsible, CollapsibleContent } from '@/shared/ui/collapsible';
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { Switch } from '@/shared/ui/switch';
 
+import { PackSettingsFields, packHasSettings } from './pack-settings';
+
 const ICON_MAP: Record<string, LucideIcon> = {
-  box: BoxIcon,
-  code: CodeIcon,
-  cpu: CpuIcon,
-  database: DatabaseIcon,
-  globe: GlobeIcon,
+  files: FileTextIcon,
+  shell: TerminalIcon,
+  fetch: GlobeIcon,
+  webhook: WebhookIcon,
+  threads: MessageSquareIcon,
+  agents: BotIcon,
+  scheduler: CalendarClockIcon,
+  plan: MapIcon,
   layers: LayersIcon,
-  network: NetworkIcon,
-  package: PackageIcon,
-  server: ServerIcon,
-  settings: SettingsIcon,
-  shield: ShieldIcon,
-  terminal: TerminalIcon,
 };
 
 function getIcon(name: string | undefined): LucideIcon {
@@ -61,11 +54,18 @@ export function DraftCapabilityPacks({
   onChange: (next: Record<string, PackConfig | null>) => void;
 }) {
   const [packs, setPacks] = useState(value);
+  const [openSettings, setOpenSettings] = useState<string | null>(null);
   const query = useQuery({
     ...workspaceCapabilitiesQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const catalog = (query.data?.capabilities ?? []).filter((pack) => !pack.name.endsWith('-memory'));
+  const enabledCount = catalog.filter((pack) => isPackEnabled(packs, pack.name)).length;
+
+  function commit(next: Record<string, PackConfig | null>) {
+    setPacks(next);
+    onChange(next);
+  }
 
   function toggle(name: string, enable: boolean) {
     const next = { ...packs };
@@ -73,39 +73,77 @@ export function DraftCapabilityPacks({
       next[name] = packs[name] ?? {};
     } else {
       delete next[name];
+      if (openSettings === name) {
+        setOpenSettings(null);
+      }
     }
-    setPacks(next);
-    onChange(next);
+    commit(next);
   }
 
-  function openSettings(pack: PackCatalogEntry) {
-    void dialog.open(PackSettingsDialog, {
-      title: `${pack.name} Settings`,
-      data: pack,
-    });
+  function patchConfig(name: string, config: PackConfig) {
+    if (!isPackEnabled(packs, name)) {
+      return;
+    }
+    commit({ ...packs, [name]: config });
   }
 
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-        Capability packs
-      </h3>
-      {!query.isPending &&
-        (catalog.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground">No capability packs.</p>
-        ) : (
-          <div className="flex flex-col gap-2.5">
-            {catalog.map((pack) => (
+    <section className="flex min-w-0 flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+          Capability packs
+        </h3>
+        {!query.isPending && catalog.length > 0 ? (
+          <p className="font-mono text-[10px] text-muted-foreground tabular-nums">
+            {enabledCount}/{catalog.length} on
+          </p>
+        ) : null}
+      </div>
+
+      {query.isPending ? (
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ) : null}
+
+      {!query.isPending && catalog.length === 0 ? (
+        <Empty className="border border-dashed p-4">
+          <EmptyHeader>
+            <EmptyTitle className="text-sm">No capability packs</EmptyTitle>
+            <EmptyDescription className="text-[12px]">
+              Workspace runtime has no registered packs.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : null}
+
+      {!query.isPending && catalog.length > 0 ? (
+        <div className="flex min-w-0 flex-col gap-2">
+          {catalog.map((pack) => {
+            const enabled = isPackEnabled(packs, pack.name);
+            const config = enabledConfig(packs, pack.name);
+            const settingsAvailable = packHasSettings(pack.name, pack.hasSettings);
+            const settingsOpen = openSettings === pack.name;
+            return (
               <PackCard
                 key={pack.name}
                 pack={pack}
-                enabled={isPackEnabled(packs, pack.name)}
+                enabled={enabled}
+                config={config}
+                settingsAvailable={settingsAvailable}
+                settingsOpen={settingsOpen}
                 onToggle={toggle}
-                onSettings={() => openSettings(pack)}
+                onToggleSettings={() =>
+                  setOpenSettings((current) => (current === pack.name ? null : pack.name))
+                }
+                onConfigChange={(next) => patchConfig(pack.name, next)}
               />
-            ))}
-          </div>
-        ))}
+            );
+          })}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -113,112 +151,112 @@ export function DraftCapabilityPacks({
 function PackCard({
   pack,
   enabled,
+  config,
+  settingsAvailable,
+  settingsOpen,
   onToggle,
-  onSettings,
+  onToggleSettings,
+  onConfigChange,
 }: {
   pack: PackCatalogEntry;
   enabled: boolean;
+  config: PackConfig;
+  settingsAvailable: boolean;
+  settingsOpen: boolean;
   onToggle: (name: string, enable: boolean) => void;
-  onSettings: () => void;
+  onToggleSettings: () => void;
+  onConfigChange: (next: PackConfig) => void;
 }) {
   const Icon = getIcon(pack.icon);
-  return (
-    <div className="gap-3 rounded-lg border p-3">
-      <div className="flex items-start gap-3">
-        <Icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-medium text-[12px] leading-snug">
-                {pack.name} v{pack.version}
-              </p>
-              <p className="truncate text-[11px] text-muted-foreground leading-snug">
-                {pack.description}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              {pack.hasSettings && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={onSettings}
-                  aria-label={`Configure ${pack.name}`}
-                >
-                  <SettingsIcon className="size-3.5" />
-                </Button>
-              )}
-              <Switch
-                size="sm"
-                className="mt-0.5 shrink-0"
-                checked={enabled}
-                onCheckedChange={(next) => onToggle(pack.name, Boolean(next))}
-              />
-            </div>
-          </div>
-          {pack.tools.length > 0 && (
-            <div className="mt-2 flex flex-col gap-1 pl-7">
-              {pack.tools.map((tool) => (
-                <div key={tool.name} className="flex items-start gap-2">
-                  <TerminalIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-mono text-[11px] leading-snug">{tool.name}</p>
-                    {tool.description && (
-                      <p className="truncate text-[10px] text-muted-foreground leading-snug">
-                        {tool.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {pack.skills.length > 0 && (
-            <p className="mt-2 pl-7 text-[11px] text-muted-foreground">
-              {pack.skills.length} skill{pack.skills.length !== 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+  const configured = hasConfiguredSpec(config);
 
-function PackSettingsDialog({
-  onResolve,
-  data,
-}: {
-  onResolve?: () => void;
-  data?: PackCatalogEntry;
-}) {
-  if (!data) {
-    return null;
-  }
   return (
-    <Dialog onOpenChange={onResolve}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{data.name} Settings</DialogTitle>
-          <DialogDescription>
-            Configure pack settings. Schema: {data.tools.length} tools, {data.skills.length} skills.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="text-muted-foreground text-sm">
-          <p>
-            Settings form for {data.name} v{data.version} would be rendered here based on
-            specSchema.
-          </p>
-          <p className="mt-1">
-            This is a placeholder for the v1 specSchema form (string/number/boolean/enum).
-          </p>
+    <Collapsible
+      open={settingsOpen && enabled && settingsAvailable}
+      className={cn(
+        'min-w-0 rounded-md border border-l-[3px] transition-colors',
+        enabled ? 'border-l-primary bg-card' : 'border-l-transparent bg-muted/20',
+      )}
+    >
+      <div className="flex flex-col gap-2 p-3">
+        <div className="flex items-start gap-2.5">
+          <div
+            className={cn(
+              'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md',
+              enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+            )}
+          >
+            <Icon className="size-3.5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+                <p className="truncate font-medium text-[12px] leading-snug">{pack.name}</p>
+                <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                  v{pack.version}
+                </span>
+                {configured ? (
+                  <Badge variant="outline" className="h-4 shrink-0 px-1.5 text-[9px]">
+                    configured
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {settingsAvailable ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={!enabled}
+                    aria-expanded={settingsOpen}
+                    aria-label={`Configure ${pack.name}`}
+                    onClick={onToggleSettings}
+                    className={cn(settingsOpen && enabled && 'bg-muted')}
+                  >
+                    <SettingsIcon className="size-3.5" />
+                  </Button>
+                ) : null}
+                <Switch
+                  size="sm"
+                  checked={enabled}
+                  onCheckedChange={(next) => onToggle(pack.name, Boolean(next))}
+                />
+              </div>
+            </div>
+            <p className="mt-0.5 text-[11px] text-muted-foreground leading-snug">
+              {pack.description}
+            </p>
+          </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onResolve}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+        {pack.tools.length > 0 ? (
+          <div className="flex flex-wrap gap-1 pl-9">
+            {pack.tools.map((tool) => (
+              <Badge
+                key={tool.name}
+                variant="secondary"
+                className="h-5 max-w-full truncate font-mono font-normal text-[10px]"
+                title={tool.description || tool.name}
+              >
+                {tool.name}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
+
+        {pack.skills.length > 0 ? (
+          <p className="pl-9 text-[10px] text-muted-foreground">
+            {pack.skills.length} skill{pack.skills.length === 1 ? '' : 's'}
+          </p>
+        ) : null}
+
+        <CollapsibleContent>
+          <div className="mt-1 rounded-md border bg-muted/30 p-2.5">
+            <PackSettingsFields packName={pack.name} config={config} onChange={onConfigChange} />
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 }
 
@@ -232,4 +270,17 @@ function isPackEnabled(value: Record<string, PackConfig | null>, name: string): 
     return name === 'skills';
   }
   return config != null;
+}
+
+function enabledConfig(value: Record<string, PackConfig | null>, name: string): PackConfig {
+  const config = value[name];
+  return config ?? {};
+}
+
+function hasConfiguredSpec(config: PackConfig): boolean {
+  const spec = config.spec;
+  if (spec === undefined) {
+    return false;
+  }
+  return Object.keys(spec).length > 0;
 }

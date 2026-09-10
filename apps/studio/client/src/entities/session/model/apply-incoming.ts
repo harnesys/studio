@@ -1,6 +1,6 @@
-import type { SessionEvent, SessionEventType } from '@studio/shared';
+import type { SessionEvent } from '@studio/shared';
 
-import { mergeDeltaContinuation, mergeIncomingEvent } from './coalesce-events';
+import { isToolInputStream, mergeDeltaContinuation, mergeIncomingEvent } from './coalesce-events';
 import { eventKey, stableEventKey } from './event-keys';
 
 export type ThreadLog = {
@@ -15,8 +15,10 @@ export type ApplyIncomingResult = ThreadLog & {
   immediateEpoch: boolean;
 };
 
-function isStreamDeltaType(type: SessionEventType): boolean {
-  return type === 'text-delta' || type === 'reasoning-delta';
+function isCoalescedStream(event: SessionEvent): boolean {
+  return (
+    event.type === 'text-delta' || event.type === 'reasoning-delta' || isToolInputStream(event)
+  );
 }
 
 /**
@@ -62,7 +64,7 @@ export function applyIncomingEvents(
     }
     accepted += 1;
 
-    if (isStreamDeltaType(event.type)) {
+    if (isCoalescedStream(event)) {
       const list = workingEvents();
       const tail = list[list.length - 1];
       if (tail !== undefined) {

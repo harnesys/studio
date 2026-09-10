@@ -2,7 +2,7 @@ import type { SessionEvent, SessionEventType } from '@studio/shared';
 import { create } from 'zustand';
 
 import { applyIncomingEvents } from './apply-incoming';
-import { coalesceStreamDeltas } from './coalesce-events';
+import { coalesceStreamDeltas, isToolInputStream } from './coalesce-events';
 import { ceilFromEvents, eventKey, fillSeenAt, stableKeys } from './event-keys';
 import { clearLiveTail, clearLiveTails, ingestLiveDelta, sealLiveTail } from './live-tail';
 import {
@@ -175,6 +175,15 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         const phase = ingestLiveDelta(threadId, event);
         enqueuePending(threadId, event);
         if (phase === 'open') {
+          flushPending();
+          return;
+        }
+        scheduleEpochFlush(flushPending, EPOCH_DELTA_MS);
+        return;
+      }
+      if (isToolInputStream(event)) {
+        enqueuePending(threadId, event);
+        if (!event.delta) {
           flushPending();
           return;
         }

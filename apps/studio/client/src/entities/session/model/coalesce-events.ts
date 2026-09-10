@@ -5,8 +5,17 @@ type StreamDelta = SessionEvent & {
   text: string;
 };
 
+type ToolInputStream = SessionEvent & {
+  type: 'tool';
+  phase: 'streaming';
+};
+
 function isStreamDelta(event: SessionEvent): event is StreamDelta {
   return event.type === 'text-delta' || event.type === 'reasoning-delta';
+}
+
+export function isToolInputStream(event: SessionEvent): event is ToolInputStream {
+  return event.type === 'tool' && event.phase === 'streaming';
 }
 
 /**
@@ -39,10 +48,23 @@ export function mergeDeltaContinuation(
   existing: SessionEvent,
   incoming: SessionEvent,
 ): SessionEvent | null {
-  if (!isStreamDelta(existing) || !isStreamDelta(incoming) || !continuesDelta(existing, incoming)) {
-    return null;
+  if (isStreamDelta(existing) && isStreamDelta(incoming) && continuesDelta(existing, incoming)) {
+    return mergeDelta(existing, incoming);
   }
-  return mergeDelta(existing, incoming);
+  if (
+    isToolInputStream(existing) &&
+    isToolInputStream(incoming) &&
+    existing.toolCallId === incoming.toolCallId &&
+    existing.runId !== undefined &&
+    existing.runId === incoming.runId
+  ) {
+    return {
+      ...existing,
+      name: incoming.name || existing.name,
+      delta: (existing.delta ?? '') + (incoming.delta ?? ''),
+    };
+  }
+  return null;
 }
 
 /**
@@ -58,9 +80,8 @@ function mergeDelta(existing: StreamDelta, incoming: StreamDelta): StreamDelta {
 }
 
 /**
- * Склеивает подряд идущие text/reasoning-delta с одним id в один слот.
- * Сырой лог с сервера хранит токены по одному событию — в клиентском сторе
- * это превращается в тысячи ререндеров на ран.
+ * Склеивает подряд идущие text/reasoning-delta с одним id и tool-input
+ * streaming с одним toolCallId. Сырой лог хранит токены по кадру.
  */
 export function coalesceStreamDeltas(events: SessionEvent[]): SessionEvent[] {
   if (events.length < 2) {

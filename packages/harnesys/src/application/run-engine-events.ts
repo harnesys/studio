@@ -115,29 +115,9 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       delta: '',
     };
   }
-  if (t === 'model.tool-input-delta') {
-    const m = ev.metadata as Record<string, unknown> | undefined;
-    const delta = typeof m?.delta === 'string' ? m.delta : '';
-    if (!delta) {
-      return null;
-    }
-    return {
-      type: 'tool',
-      phase: 'streaming',
-      toolCallId: String(m?.id ?? m?.toolCallId ?? ''),
-      name: String(m?.toolName ?? m?.name ?? ''),
-      delta,
-    };
-  }
-  if (t === 'model.tool-input-end') {
-    const m = ev.metadata as Record<string, unknown> | undefined;
-    return {
-      type: 'tool',
-      phase: 'streaming',
-      toolCallId: String(m?.id ?? m?.toolCallId ?? ''),
-      name: String(m?.toolName ?? m?.name ?? ''),
-      delta: '',
-    };
+  // Arg chunks stay off the session journal: start + model.tool-call + tool.completed.
+  if (t === 'model.tool-input-delta' || t === 'model.tool-input-end') {
+    return null;
   }
   if (t === 'model.tool-call') {
     const m = ev.metadata as Record<string, unknown> | undefined;

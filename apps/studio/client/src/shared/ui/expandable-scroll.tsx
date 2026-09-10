@@ -32,9 +32,19 @@ export function ExpandableScroll({
     if (!el) {
       return;
     }
+
+    // Watch the content node: the viewport has a fixed max-height, so
+    // observing `el` alone never sees scrollHeight grow during a stream.
+    const content = el.firstElementChild ?? el;
+
     if (follow) {
-      el.scrollTop = el.scrollHeight;
-      return;
+      const stick = () => {
+        el.scrollTop = el.scrollHeight;
+      };
+      stick();
+      const observer = new ResizeObserver(stick);
+      observer.observe(content);
+      return () => observer.disconnect();
     }
 
     const measure = () => {
@@ -47,7 +57,10 @@ export function ExpandableScroll({
 
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(el);
+    observer.observe(content);
+    if (content !== el) {
+      observer.observe(el);
+    }
     return () => observer.disconnect();
   }, [expanded, follow]);
 

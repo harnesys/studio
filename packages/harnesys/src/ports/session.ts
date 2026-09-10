@@ -9,6 +9,8 @@ export type SendInput =
   | string
   | {
       text?: string;
+      /** Per-message reasoning effort; overrides `agent.model.effort` for this run. */
+      effort?: string;
       images?: SendFile[];
       audio?: SendFile[];
       video?: SendFile[];
@@ -59,6 +61,7 @@ export type SessionEvent =
       text: string;
       attachments?: Attachment[];
       origin?: string;
+      effort?: string;
       clientEventId?: string;
       seq?: number;
       runId?: string;

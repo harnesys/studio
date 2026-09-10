@@ -20,6 +20,7 @@ import { publishDeskThread } from './publish-desk-thread.ts';
 export type SendThreadRunRequest = {
   threadId: string;
   text?: string;
+  effort?: string;
   attachmentIds?: string[];
   mode?: RunMode;
   origin?: string;
@@ -209,6 +210,7 @@ function buildSendInput(
 
   return {
     text: request.text,
+    effort: request.effort,
     images: images.length ? images : undefined,
     audio: audio.length ? audio : undefined,
     video: video.length ? video : undefined,

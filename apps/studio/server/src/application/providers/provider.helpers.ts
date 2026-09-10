@@ -1,9 +1,11 @@
-import type {
-  Driver,
-  ModelRecord,
-  ProviderModelPublic,
-  ProviderPublic,
+import {
+  type Driver,
+  isEffort,
+  type ModelRecord,
+  type ProviderModelPublic,
+  type ProviderPublic,
 } from '@harnesys/studio-shared';
+import { resolveModel } from 'harnesys';
 import type { LlmModel, LlmProvider } from '../../domain/llm-provider.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 
@@ -32,7 +34,9 @@ export function requireModel(
 
 export function toModelPublic(model: LlmModel, _driver: string): ProviderModelPublic {
   const record = toModelRecord(model);
+  const resolved = resolveModel(record);
   const chatLike = model.kind === 'chat' || model.kind === '';
+  const efforts = (resolved.effort ?? []).filter(isEffort);
   return {
     ...record,
     id: model.id,
@@ -43,12 +47,12 @@ export function toModelPublic(model: LlmModel, _driver: string): ProviderModelPu
     updatedAt: model.updatedAt,
     missing: [],
     verified: false,
-    efforts: [],
-    contextWindow: record.context_length,
-    pricing: record.pricing,
+    efforts,
+    contextWindow: resolved.context_length,
+    pricing: resolved.pricing,
     supported_parameters: chatLike
-      ? [...(record.supported_parameters ?? [])]
-      : record.supported_parameters,
+      ? [...(resolved.supported_parameters ?? [])]
+      : resolved.supported_parameters,
   };
 }
 

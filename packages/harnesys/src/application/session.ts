@@ -66,6 +66,7 @@ function normalizeSendInput(input: SendInput): {
   text: string;
   attachments?: Attachment[];
   origin?: string;
+  effort?: string;
 } {
   if (typeof input === 'string') {
     return { text: input };
@@ -99,10 +100,12 @@ function normalizeSendInput(input: SendInput): {
   pushFiles(input.audio, 'audio');
   pushFiles(input.video, 'video');
   pushFiles(input.files, 'file');
+  const effort = input.effort?.trim();
   return {
     text: input.text ?? '',
     attachments: attachments.length > 0 ? attachments : undefined,
     origin: input.origin,
+    effort: effort || undefined,
   };
 }
 
@@ -167,6 +170,7 @@ export function createSession(
         text: normalized.text,
         attachments: normalized.attachments,
         origin: normalized.origin,
+        effort: normalized.effort,
         clientEventId: sendOpts?.clientEventId,
       } as PendingSessionEvent;
       await ctx.lifecycle.create({ runId, threadId }, [userEvent]);

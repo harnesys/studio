@@ -4,7 +4,7 @@ import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
-import { stateKeyOf } from './graph-helpers.ts';
+import { resolveAgentModelRef, stateKeyOf } from './graph-helpers.ts';
 import { assembleNotes, type LlmNote } from './llm-notes.ts';
 import type { PackRunOutput } from './packs/pack-run.ts';
 import { formatDeferredCatalog, loadedToolsOf, resolveProgressiveTools } from './tools/exposure.ts';
@@ -124,6 +124,7 @@ export async function* runLlmGenerate(
     },
   };
 
+  const modelRef = resolveAgentModelRef(node.model, ctx.agent);
   const stream = callModel(
     ctx.modelBinding,
     instructions,
@@ -132,6 +133,10 @@ export async function* runLlmGenerate(
     ctx.toolRegistry,
     ctx.signal,
     node.output as Record<string, unknown> | undefined,
+    {
+      effort: modelRef?.effort,
+      generation: modelRef?.generation,
+    },
   );
 
   let lastChunk: StreamChunk | undefined;

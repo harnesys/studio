@@ -23,6 +23,7 @@ function inputToUserEvent(input: unknown): PendingSessionEvent {
     text: typeof rec.text === 'string' ? rec.text : '',
     attachments: Array.isArray(rec.attachments) ? (rec.attachments as Attachment[]) : undefined,
     origin: typeof rec.origin === 'string' ? rec.origin : undefined,
+    effort: typeof rec.effort === 'string' ? rec.effort : undefined,
   } as PendingSessionEvent;
 }
 

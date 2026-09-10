@@ -1,5 +1,6 @@
 import { streamText } from 'ai';
 import { STREAM_CHUNK_SIZE } from '../constants.ts';
+import type { AgentGenerationSettings } from '../domain/agent-definition.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
@@ -7,6 +8,61 @@ import { toModelMessages } from './ai-llm-messages.ts';
 import { buildProvider } from './ai-llm-provider.ts';
 
 export type { CallModelResult, StreamChunk } from './ai-llm-chunks.ts';
+
+export type CallModelSettings = {
+  effort?: string;
+  generation?: AgentGenerationSettings;
+};
+
+const REASONING_LEVELS = new Set([
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'provider-default',
+]);
+
+function reasoningOf(effort: string | undefined): string | undefined {
+  if (!effort) {
+    return undefined;
+  }
+  if (effort === 'max') {
+    return 'xhigh';
+  }
+  return REASONING_LEVELS.has(effort) ? effort : undefined;
+}
+
+function applyGeneration(
+  streamConfig: Record<string, unknown>,
+  generation: AgentGenerationSettings | undefined,
+): void {
+  if (!generation) {
+    return;
+  }
+  if (generation.temperature !== undefined) {
+    streamConfig.temperature = generation.temperature;
+  }
+  if (generation.topP !== undefined) {
+    streamConfig.topP = generation.topP;
+  }
+  if (generation.topK !== undefined) {
+    streamConfig.topK = generation.topK;
+  }
+  if (generation.frequencyPenalty !== undefined) {
+    streamConfig.frequencyPenalty = generation.frequencyPenalty;
+  }
+  if (generation.presencePenalty !== undefined) {
+    streamConfig.presencePenalty = generation.presencePenalty;
+  }
+  if (generation.seed !== undefined) {
+    streamConfig.seed = generation.seed;
+  }
+  if (generation.maxTokens !== undefined) {
+    streamConfig.maxOutputTokens = generation.maxTokens;
+  }
+}
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: adapter orchestration
 // biome-ignore lint/complexity/useMaxParams: flexible overload needs 6 params for test vs prod
@@ -18,6 +74,7 @@ export async function* callModel(
   signalOrRegistry: AbortSignal | Map<string, ToolDefinition> | undefined,
   maybeSignal?: AbortSignal,
   outputSchema?: Record<string, unknown>,
+  settings?: CallModelSettings,
 ): AsyncGenerator<StreamChunk> {
   let names: string[] = [];
   let registry: Map<string, ToolDefinition> | undefined;
@@ -79,6 +136,12 @@ export async function* callModel(
     tools: aiTools as never,
     abortSignal: signal,
   };
+
+  const reasoning = reasoningOf(settings?.effort);
+  if (reasoning) {
+    streamConfig.reasoning = reasoning;
+  }
+  applyGeneration(streamConfig, settings?.generation);
 
   if (outputSchema) {
     streamConfig.response_format = {

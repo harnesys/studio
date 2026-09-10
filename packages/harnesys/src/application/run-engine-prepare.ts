@@ -1,3 +1,4 @@
+import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Attachment } from '../domain/attachment.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { Logger } from '../ports/logger.ts';
@@ -21,6 +22,7 @@ type UserInput = {
   text: string;
   attachments?: Attachment[];
   origin?: string;
+  effort?: string;
 };
 
 async function findLastAnswer(deps: RunEngineDeps, runId: string): Promise<HitlAnswer | null> {
@@ -38,10 +40,25 @@ async function findFirstUser(deps: RunEngineDeps, runId: string): Promise<UserIn
   const history = await deps.events.tail(runId, 0);
   for (const event of history) {
     if (event.type === 'user') {
-      return { text: event.text, attachments: event.attachments, origin: event.origin };
+      return {
+        text: event.text,
+        attachments: event.attachments,
+        origin: event.origin,
+        effort: event.effort,
+      };
     }
   }
   return null;
+}
+
+function withMessageEffort(agent: AgentDefinition, effort: string | undefined): AgentDefinition {
+  if (!effort || !agent.model) {
+    return agent;
+  }
+  return {
+    ...agent,
+    model: { ...agent.model, effort },
+  };
 }
 
 export type PrepareExecuteGraphOptsArgs = {
@@ -64,12 +81,12 @@ export async function prepareExecuteGraphOpts(
     await abandonForeignSnapshot(opts.state, runId);
   }
   const snap = await opts.state.load();
-  const user = answer === null ? await findFirstUser(deps, runId) : null;
-  const plan = compileOrThrow(opts.agent);
+  const firstUser = await findFirstUser(deps, runId);
+  const user = answer === null ? firstUser : null;
+  const agent = withMessageEffort(opts.agent, firstUser?.effort);
+  const plan = compileOrThrow(agent);
   const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
-  const runRegistry = new Map(
-    filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, opts.agent),
-  );
+  const runRegistry = new Map(filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, agent));
   runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
   let packOutputs = opts.packOutputs;
   if (packOutputs !== undefined) {
@@ -79,7 +96,7 @@ export async function prepareExecuteGraphOpts(
     const cached = packCache.get(runId);
     if (cached !== undefined) {
       packOutputs = reusePackRun({
-        def: opts.agent,
+        def: agent,
         cached,
         runRegistry,
         fsSkills: opts.skills ?? deps.skills,
@@ -87,7 +104,7 @@ export async function prepareExecuteGraphOpts(
       });
     } else {
       packOutputs = attachPackRun({
-        def: opts.agent,
+        def: agent,
         registrations: opts.packs ?? deps.packRegistrations ?? [],
         runRegistry,
         fsSkills: opts.skills ?? deps.skills,
@@ -97,7 +114,7 @@ export async function prepareExecuteGraphOpts(
     }
   }
   return {
-    agent: opts.agent,
+    agent,
     input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
     // Ввод уже записан в лог жизненным циклом (SessionHandle.send):
     // граф не должен коммитить user.message второй раз.

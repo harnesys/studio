@@ -66,7 +66,7 @@ export function ChatComposer() {
     return state.items.find((item) => item.threadId === thread.id)?.mode ?? null;
   });
   const [effort, setEffort] = useState<string | undefined>(undefined);
-  const currentEffort = selectedEffort(levels, effort);
+  const currentEffort = selectedEffort(levels, effort ?? agent?.effort ?? undefined);
   const verified = agentModelVerified(modelId, providers);
   const disabled = !agent || !thread || sending || streaming || Boolean(hitl);
   const slashOpen = slashMatches.length > 0 && pending.length === 0 && !disabled;
@@ -99,11 +99,11 @@ export function ChatComposer() {
   }
 
   useEffect(() => {
-    const next = selectedEffort(levels, effort);
+    const next = selectedEffort(levels, effort ?? agent?.effort ?? undefined);
     if (next !== effort) {
       setEffort(next);
     }
-  }, [levels, effort]);
+  }, [levels, effort, agent?.effort]);
 
   useEffect(() => {
     if (scheduleMode) {

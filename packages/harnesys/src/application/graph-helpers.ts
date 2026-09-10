@@ -1,5 +1,5 @@
 import { bindingOf } from '../adapters/models/binding.ts';
-import type { AgentDefinition } from '../domain/agent-definition.ts';
+import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
 
 export type MergeStateFn = (key: string, a: unknown, b: unknown) => unknown;
@@ -62,6 +62,25 @@ export function resolveModelForPort(
   agent: AgentDefinition,
 ): { provider: string; model: string } | null {
   return resolveModelCoords(ref, agent);
+}
+
+/** Full model ref for call settings (effort / generation), including named aliases. */
+export function resolveAgentModelRef(
+  ref: string | AgentModelRef | undefined,
+  agent: AgentDefinition,
+): AgentModelRef | undefined {
+  if (typeof ref === 'string') {
+    return agent.models?.[ref] ?? agent.model;
+  }
+  if (ref && typeof ref === 'object' && ref.provider && ref.model) {
+    return {
+      provider: ref.provider,
+      model: ref.model,
+      effort: ref.effort ?? agent.model?.effort,
+      generation: ref.generation ?? agent.model?.generation,
+    };
+  }
+  return agent.model;
 }
 
 export function deepMerge(a: unknown, b: unknown): unknown {

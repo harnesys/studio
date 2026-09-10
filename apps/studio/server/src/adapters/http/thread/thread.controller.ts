@@ -139,6 +139,7 @@ export class ThreadController {
         const response = await this.deps.sendThreadRun.execute({
           threadId,
           text: body.text || undefined,
+          effort: body.effort,
           attachmentIds: body.attachmentIds,
           mode: body.mode,
           clientEventId: body.clientEventId,

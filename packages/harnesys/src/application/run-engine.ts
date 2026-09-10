@@ -6,6 +6,7 @@ import { CONSOLE_LOGGER } from '../ports/logger.ts';
 import type { SessionEvent } from '../ports/session.ts';
 import { compileOrThrow } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
+import { abandonForeignSnapshot } from './graph-snap.ts';
 import type { PackRunMap } from './packs/pack-run.ts';
 import { attachPackRun, reusePackRun } from './packs/pack-run.ts';
 import { eventToSessionEvent, runFailedEvent, runStartedEvent } from './run-engine-events.ts';
@@ -142,6 +143,9 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       let graphOpts: GraphOpts;
       try {
         const answer = await findLastAnswer(runId);
+        if (answer === null) {
+          await abandonForeignSnapshot(opts.state, runId);
+        }
         const snap = await opts.state.load();
         const user = answer === null ? await findFirstUser(runId) : null;
         const plan = compileOrThrow(opts.agent);

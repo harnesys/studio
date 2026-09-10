@@ -1,4 +1,4 @@
-import type { RunLifecycleStore, SessionEvent } from 'harnesys';
+import type { RunLifecycleStore, RuntimeState, SessionEvent, Snapshot } from 'harnesys';
 import { SUBAGENT_ROLES, type SubagentRole } from 'harnesys/domain';
 import type { SavePlanItemInput } from '../../../shared/types.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
@@ -76,7 +76,7 @@ function itemsOf(input: unknown): SavePlanItemInput[] {
   return items;
 }
 
-function lastProposeCallId(events: SessionEvent[]): string {
+export function lastProposeCallId(events: SessionEvent[]): string {
   for (let i = events.length - 1; i >= 0; i -= 1) {
     const event = events[i];
     if (event?.type === 'tool' && event.name === 'plan_propose' && event.toolCallId) {
@@ -86,9 +86,49 @@ function lastProposeCallId(events: SessionEvent[]): string {
   return '';
 }
 
+function withToolMessage(
+  state: Record<string, unknown>,
+  toolCallId: string,
+  content: string,
+): Record<string, unknown> {
+  const prev = state.messages;
+  const messages = Array.isArray(prev) ? [...prev] : [];
+  if (toolCallId) {
+    messages.push({ role: 'tool', toolCallId, name: 'plan_propose', content });
+  }
+  return { ...state, messages };
+}
+
+/** Host-complete leaves the thread snapshot on `act`/`needs_input`. Next send then evals `$output.toolCalls` and fails. */
+async function closeProposalSnapshot(
+  runtime: RuntimeState,
+  patch: { toolCallId?: string; content?: string },
+): Promise<void> {
+  const snap = await runtime.load();
+  if (!snap) {
+    return;
+  }
+  const sequence = snap.sequence + 1;
+  const cursor = { ...snap.cursor };
+  delete cursor.interrupt;
+  const state =
+    patch.toolCallId && patch.content
+      ? withToolMessage(snap.state, patch.toolCallId, patch.content)
+      : snap.state;
+  const next: Snapshot = {
+    ...snap,
+    status: 'completed',
+    sequence,
+    state,
+    cursor,
+  };
+  await runtime.commit(next, [], { kind: 'recorded', sequence });
+}
+
 export async function settlePlanProposalApprove(deps: {
   lifecycle: RunLifecycleStore;
   savePlan: SavePlanInput;
+  runtime: RuntimeState;
   runId: string;
   threadId: string;
   askId: string;
@@ -119,6 +159,7 @@ export async function settlePlanProposalApprove(deps: {
     planStatus: plan.status,
     message: `Plan saved (${plan.items.length} tasks). Apply from the UI to start execution.`,
   });
+  await closeProposalSnapshot(deps.runtime, { toolCallId, content: output });
   await deps.lifecycle.transition(deps.runId, rec.leaseEpoch, {
     from: 'needs_input',
     to: 'completed',
@@ -139,8 +180,10 @@ export async function settlePlanProposalApprove(deps: {
 
 export async function settlePlanProposalCancel(deps: {
   lifecycle: RunLifecycleStore;
+  runtime: RuntimeState;
   runId: string;
   askId: string;
+  toolCallId?: string;
   note?: string;
 }): Promise<void> {
   const rec = await deps.lifecycle.get(deps.runId);
@@ -148,6 +191,10 @@ export async function settlePlanProposalCancel(deps: {
     throw new NotFoundError('run not found');
   }
   const message = deps.note?.trim() || 'Plan proposal cancelled';
+  await closeProposalSnapshot(deps.runtime, {
+    toolCallId: deps.toolCallId,
+    content: JSON.stringify({ ok: false, action: 'cancelled', message }),
+  });
   await deps.lifecycle.transition(deps.runId, rec.leaseEpoch, {
     from: 'needs_input',
     to: 'cancelled',

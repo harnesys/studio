@@ -280,6 +280,7 @@ export function wireControllers(d: ControllerDeps): void {
       getThread: d.getThread,
       deskEvents: d.deskEvents,
       savePlan: new SavePlanUseCase(new SqliteUnitOfWork(d.db), d.deskEvents),
+      runtimeStates: d.runtimeStateRepo,
     }),
     retryRun: new RetryRunUseCase({ lifecycle: d.lifecycle, sessions, claimer: d.claimer }),
     createThreadAttachment: new CreateThreadAttachmentUseCase({

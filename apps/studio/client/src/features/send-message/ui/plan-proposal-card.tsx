@@ -101,7 +101,7 @@ export function PlanProposalCard({
         <div className="flex flex-col gap-0.5">
           <p className="font-medium text-sm">Plan ready for review</p>
           <p className="text-[11px] text-muted-foreground">
-            Full proposal is in the message above. Approve saves it to the Inspector.
+            Approve saves this plan to the Inspector. Apply afterwards starts execution.
           </p>
         </div>
         {overview ? (

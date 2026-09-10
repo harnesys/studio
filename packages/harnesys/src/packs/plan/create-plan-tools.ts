@@ -139,7 +139,7 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
     tool(PLAN_PROPOSE_TOOL, {
       group: 'plan',
       description:
-        'Propose a plan for user approval in Plan mode. Call after writing the full SMART proposal in your message. Parks for Approve / Request changes. On approve the plan is saved; do not call plan_save in Plan mode.',
+        'Propose a plan for user approval in Plan mode. Required last action of a Plan-mode research turn: this call opens Approve / Request changes / Cancel. Put SMART fields in each item description. Do not substitute a long chat message for this call. Parks until the user answers. On approve the host saves the plan; do not call plan_save in Plan mode.',
       input: PLAN_BODY_INPUT,
       execute: async (raw, ctx: ToolContext) => {
         try {
@@ -169,8 +169,7 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
         runGuard(async () => {
           if (deps.blockDirectSave?.()) {
             return {
-              error:
-                'plan_save is blocked in Plan mode. Write the SMART proposal in your message, then call plan_propose and wait for Approve.',
+              error: 'plan_save is blocked in Plan mode. Call plan_propose and wait for Approve.',
             };
           }
           const scope = deps.resolveScope();

@@ -8,9 +8,15 @@ export async function deleteAgent(workspaceId: string, agentId: string) {
   if (!agent) {
     return;
   }
+  const delegateIds = useAgentStore
+    .getState()
+    .items.filter((item) => item.parentId === agentId)
+    .map((item) => item.id);
   await deleteAgentRecord(workspaceId, agentId);
-  const threadIds = useThreadStore.getState().removeForAgent(agentId);
-  useSessionStore.getState().removeForThreads(threadIds);
-  useAgentStore.getState().remove(agentId);
-  clearActiveThreadId(agentId);
+  for (const id of [...delegateIds, agentId]) {
+    const threadIds = useThreadStore.getState().removeForAgent(id);
+    useSessionStore.getState().removeForThreads(threadIds);
+    useAgentStore.getState().remove(id);
+    clearActiveThreadId(id);
+  }
 }

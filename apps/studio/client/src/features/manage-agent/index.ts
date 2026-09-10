@@ -24,7 +24,11 @@ export {
   harnesysGraphOf,
   toFlow,
 } from './model/agent-graph-document';
-export { type CreateAgentResult, createAgent } from './model/create-agent';
+export {
+  type CreateAgentResult,
+  createAgent,
+  refreshWorkspaceAgents,
+} from './model/create-agent';
 export {
   type CreateAgentFromPresetResult,
   createAgentFromPreset,

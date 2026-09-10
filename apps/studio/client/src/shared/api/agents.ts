@@ -12,6 +12,7 @@ import { apiJson } from './client';
 
 export type CreateAgentInput = {
   name: string;
+  parentId?: string | null;
   modelId?: string | null;
   role?: string;
   instructions?: string;
@@ -71,10 +72,17 @@ export function createAgentRecord(workspaceId: string, body: CreateAgentInput) {
   });
 }
 
-export function createAgentFromPresetRecord(workspaceId: string, presetId: string) {
+export function createAgentFromPresetRecord(
+  workspaceId: string,
+  presetId: string,
+  options?: { parentId?: string | null },
+) {
   return apiJson<AgentRecord>(`/api/workspaces/${workspaceId}/agents/from-preset`, {
     method: 'POST',
-    body: JSON.stringify({ presetId }),
+    body: JSON.stringify({
+      presetId,
+      ...(options?.parentId ? { parentId: options.parentId } : {}),
+    }),
   });
 }
 

@@ -1,0 +1,124 @@
+import { useQuery } from '@tanstack/react-query';
+import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+import type { Agent } from '@/entities/agent';
+import { useAgentStore } from '@/entities/agent';
+import { listAgentPresets } from '@/shared/api';
+import { Button } from '@/shared/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/shared/ui/dropdown-menu';
+import { toast } from '@/shared/ui/toast';
+
+import { createAgentFromPreset } from '../model/create-agent-from-preset';
+import { deleteAgent } from '../model/delete-agent';
+
+type AgentSubagentsPaneProps = {
+  workspaceId: string;
+  parentId: string;
+  onConfigure: (agent: Agent) => void;
+  onConfirmDelete: (agent: Agent) => Promise<boolean>;
+};
+
+export function AgentSubagentsPane({
+  workspaceId,
+  parentId,
+  onConfigure,
+  onConfirmDelete,
+}: AgentSubagentsPaneProps) {
+  const delegates = useAgentStore(
+    useShallow((state) => state.items.filter((item) => item.parentId === parentId)),
+  );
+  const presetsQuery = useQuery({
+    queryKey: ['agent-presets'],
+    queryFn: listAgentPresets,
+    staleTime: 60_000,
+  });
+  const presets = presetsQuery.data ?? [];
+
+  const addFromPreset = (presetId: string) => {
+    void createAgentFromPreset(workspaceId, presetId, { parentId })
+      .then(() => {
+        toast.add({ title: 'Subagent added' });
+      })
+      .catch((err: unknown) => {
+        toast.add({
+          title: 'Could not add subagent',
+          description: err instanceof Error ? err.message : String(err),
+        });
+      });
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-muted-foreground text-sm">
+        Spawn targets for this agent. They stay out of the top-level Agents list. Model defaults to
+        the parent; open a row to change it.
+      </p>
+      <div className="flex flex-col gap-1">
+        {delegates.length === 0 ? (
+          <p className="rounded-md border border-dashed px-3 py-4 text-center text-muted-foreground text-sm">
+            No subagents yet.
+          </p>
+        ) : (
+          delegates.map((delegate) => (
+            <div
+              key={delegate.id}
+              className="flex items-center gap-2 rounded-md border px-2 py-1.5"
+            >
+              <button
+                type="button"
+                className="min-w-0 flex-1 truncate text-left text-sm hover:underline"
+                onClick={() => onConfigure(delegate)}
+              >
+                <span className="font-medium">{delegate.name}</span>
+                <span className="ml-2 text-muted-foreground text-xs">{delegate.role}</span>
+              </button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                title="Remove subagent"
+                onClick={() => {
+                  void onConfirmDelete(delegate).then(async (confirmed) => {
+                    if (!confirmed) {
+                      return;
+                    }
+                    await deleteAgent(workspaceId, delegate.id);
+                  });
+                }}
+              >
+                <Trash2Icon className="size-3.5" />
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={<Button type="button" variant="outline" size="sm" className="w-fit gap-1.5" />}
+        >
+          <PlusIcon className="size-3.5" />
+          Add from preset
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-44">
+          {presets.length === 0 ? (
+            <DropdownMenuItem disabled>
+              {presetsQuery.isLoading ? 'Loading…' : 'No presets found'}
+            </DropdownMenuItem>
+          ) : (
+            presets.map((preset) => (
+              <DropdownMenuItem key={preset.id} onClick={() => addFromPreset(preset.id)}>
+                <SparklesIcon className="size-3" />
+                {preset.name}
+              </DropdownMenuItem>
+            ))
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}

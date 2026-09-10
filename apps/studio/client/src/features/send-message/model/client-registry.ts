@@ -1,5 +1,6 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { useEffect, useState } from 'react';
+import { useAgentStore } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread } from '@/shared/api';
@@ -124,6 +125,10 @@ function onStreamEvent(threadId: string, event: SessionEvent): void {
 function patchThreadCurrentAgent(threadId: string, agentId: string): void {
   const thread = useThreadStore.getState().byId(threadId);
   if (!thread || thread.agentId === agentId) {
+    return;
+  }
+  const agent = useAgentStore.getState().byId(agentId);
+  if (agent?.parentId) {
     return;
   }
   useThreadStore.getState().upsert({ ...thread, agentId });

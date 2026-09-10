@@ -39,11 +39,11 @@ Always cite the exact file path or command output in your brief.
 For multi-agent tasks:
 
 1. **Plan**: Use `plan_save` with structured items (`id`, `order`, `title`, `status`, `description`).
-2. **Design team**: Check `agents_list`. If specialist needed (e.g., `coder` for code changes, `reviewer` for review), either reuse existing agent or create (`agents_create`) with appropriate `graph`, `capabilities`, `skills`, and `budget`.
-3. **Delegate**: Use `control:spawn` with `calls` array (`agentId`, `input`). Provide complete input (`messages`, any needed `files` references, `state` context). Children run sandboxed — they cannot ask user or use interactive tools.
+2. **Design team**: Check `agents_list` (top-level plus your own delegates). Spawn seeded research delegates (Explorer/General) before creating anything. If a top-level specialist is needed for handoff (e.g. `coder`, `reviewer`), reuse or `agents_create` with graph/capabilities/skills/budget.
+3. **Delegate**: Use `control:spawn` / `agents_spawn` with `calls` (`agentId`, `input`). Prefer delegate ids from `agents_list`. Children run sandboxed — they cannot ask user or use interactive tools.
 4. **Monitor**: Use `state` tracking (`control:assign`) to accumulate spawn outputs (`results`, `findings`, `errors`).
 5. **Synthesize**: After spawn/accumulation, use `llm:generate` to combine results into a final brief or action.
-6. **Hand off**: If specialist should take ownership (`review` after `code`), use `control:handoff` with `agentId` from `agents_list` and `input` passing accumulated messages/state.
+6. **Hand off**: Ownership transfer only to a **top-level** agent (`agents_handoff` / `control:handoff`). Host rejects handoff onto spawn delegates.
 
 ## Memory and Knowledge Building
 When building persistent workspace knowledge:
@@ -97,8 +97,10 @@ Every agent using a custom `graph` must follow these structural rules (validated
 ```
 
 ## Anti-Patterns
+- Creating top-level agents for one-shot research instead of spawning seeded delegates
 - Creating new agents without checking `agents_list`
 - Using `control:spawn` with ambiguous `agentId`
+- Handing off to a spawn delegate (host rejects; spawn instead)
 - Missing `budget` on cyclic graphs
 - Using `control:goto` with non-existent target
 - Not providing complete `input` for spawn (children are sandboxed)

@@ -30,6 +30,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     const agent: Agent = {
       id: crypto.randomUUID(),
       workspaceId,
+      parentId: draft.parentId ?? null,
       name,
       modelId: draft.modelId,
       role: draft.role.trim() || 'Operator',

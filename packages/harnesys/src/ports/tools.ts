@@ -22,6 +22,12 @@ export type ToolContext = {
 
 export type ToolExecute = (input: unknown, ctx: ToolContext) => Promise<unknown> | unknown;
 
+/** Per-call override before operation permissions. `undefined` keeps the default path. */
+export type ToolCallGate =
+  | { decision: 'allow' }
+  | { decision: 'ask' }
+  | { decision: 'deny'; reason: string };
+
 export type ToolDefinition = {
   name: string;
   description: string;
@@ -32,6 +38,7 @@ export type ToolDefinition = {
   sideEffect?: SideEffect;
   exposure?: 'always' | 'deferred';
   revealsTools?: boolean;
+  gate?: (input: unknown) => ToolCallGate | undefined;
 };
 
 export type ToolCatalogEntry = {
@@ -55,6 +62,7 @@ export function tool(
     sideEffect?: SideEffect;
     exposure?: 'always' | 'deferred';
     revealsTools?: boolean;
+    gate?: (input: unknown) => ToolCallGate | undefined;
   },
 ): ToolDefinition {
   if (!name || typeof name !== 'string') {
@@ -73,5 +81,6 @@ export function tool(
     sideEffect: spec.sideEffect,
     exposure: spec.exposure,
     revealsTools: spec.revealsTools,
+    gate: spec.gate,
   };
 }

@@ -9,6 +9,8 @@ export const agentsTable = sqliteTable(
     workspaceId: text('workspace_id')
       .notNull()
       .references(() => workspacesTable.id, { onDelete: 'cascade' }),
+    /** Null = top-level sidebar agent; set = spawn delegate owned by that agent. */
+    parentId: text('parent_id'),
     name: text('name').notNull(),
     modelId: text('model_id').references(() => llmModelsTable.id),
     role: text('role').notNull().default('Operator'),

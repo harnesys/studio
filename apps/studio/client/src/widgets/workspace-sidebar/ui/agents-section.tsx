@@ -27,6 +27,7 @@ import { toast } from '@/shared/ui/toast';
 import { AgentCard } from '@/widgets/agent-card';
 import { useAccordionStore } from '../model/accordion.store';
 import { AgentThreadsPanel } from './agent-threads-panel';
+import { DelegateRow } from './delegate-row';
 import { SectionMenu } from './section-menu';
 
 export function AgentsSectionActions({ workspaceId }: { workspaceId: string | null }) {
@@ -41,8 +42,8 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
     return null;
   }
 
-  const openCreated = async (created: { agent: Agent; thread: { id: string } }) => {
-    if (!workspaceId) {
+  const openCreated = async (created: { agent: Agent; thread: { id: string } | null }) => {
+    if (!workspaceId || !created.thread) {
       return;
     }
     useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
@@ -142,17 +143,18 @@ export function AgentsSection({
   const slideAgentId = useAgentsSlideStore((state) => state.agentId);
   const openSlide = useAgentsSlideStore((state) => state.open);
   const resetSlide = useAgentsSlideStore((state) => state.reset);
-  const slideAgent = agents.find((item) => item.id === slideAgentId) ?? null;
+  const roots = agents.filter((item) => !item.parentId);
+  const slideAgent = agents.find((item) => item.id === slideAgentId && !item.parentId) ?? null;
 
   useEffect(() => {
     resetSlide();
   }, [resetSlide]);
 
   useEffect(() => {
-    if (slideAgentId && !agents.some((item) => item.id === slideAgentId)) {
+    if (slideAgentId && !roots.some((item) => item.id === slideAgentId)) {
       resetSlide();
     }
-  }, [agents, slideAgentId, resetSlide]);
+  }, [roots, slideAgentId, resetSlide]);
 
   useEffect(() => {
     if (slideAgentId && useAccordionStore.getState().collapsed.agents) {
@@ -171,7 +173,7 @@ export function AgentsSection({
     );
   }
 
-  if (agents.length === 0) {
+  if (roots.length === 0) {
     return (
       <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
         No agents in this workspace yet.
@@ -179,50 +181,67 @@ export function AgentsSection({
     );
   }
 
+  const openSettings = (item: Agent) => {
+    if (!workspaceId) {
+      return;
+    }
+    void openAgentConfigDialog(item, workspaceId).then(async (result) => {
+      if (!result) {
+        return;
+      }
+      try {
+        await updateAgent(workspaceId, item.id, result.fields);
+        await updateAgentCapabilities(workspaceId, item.id, result.capabilities);
+      } catch (error) {
+        toast.add({
+          title: error instanceof Error ? error.message : 'Could not save agent',
+        });
+      }
+    });
+  };
+
   return (
     <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
-      {agents.map((item) => (
-        <AgentCard
-          key={item.id}
-          agent={item}
-          selected={activeAgentId === item.id || slideAgentId === item.id}
-          onSelect={() => {
-            openSlide(item.id);
-            if (useAccordionStore.getState().collapsed.agents) {
-              useAccordionStore.getState().toggle('agents');
-            }
-          }}
-          onSettings={() => {
-            if (!workspaceId) {
-              return;
-            }
-            void openAgentConfigDialog(item, workspaceId).then(async (result) => {
-              if (!result) {
-                return;
-              }
-              try {
-                await updateAgent(workspaceId, item.id, result.fields);
-                await updateAgentCapabilities(workspaceId, item.id, result.capabilities);
-              } catch (error) {
-                toast.add({
-                  title: error instanceof Error ? error.message : 'Could not save agent',
+      {roots.map((item) => {
+        const delegates = agents.filter((child) => child.parentId === item.id);
+        return (
+          <div key={item.id} className="flex flex-col gap-0">
+            <AgentCard
+              agent={item}
+              selected={activeAgentId === item.id || slideAgentId === item.id}
+              onSelect={() => {
+                openSlide(item.id);
+                if (useAccordionStore.getState().collapsed.agents) {
+                  useAccordionStore.getState().toggle('agents');
+                }
+              }}
+              onSettings={() => openSettings(item)}
+              onDelete={() => {
+                void confirmDeleteAgent(item).then(async (confirmed) => {
+                  if (!confirmed || !workspaceId) {
+                    return;
+                  }
+                  await deleteAgent(workspaceId, item.id);
+                  if (useAgentsSlideStore.getState().agentId === item.id) {
+                    resetSlide();
+                  }
                 });
-              }
-            });
-          }}
-          onDelete={() => {
-            void confirmDeleteAgent(item).then(async (confirmed) => {
-              if (!confirmed || !workspaceId) {
-                return;
-              }
-              await deleteAgent(workspaceId, item.id);
-              if (useAgentsSlideStore.getState().agentId === item.id) {
-                resetSlide();
-              }
-            });
-          }}
-        />
-      ))}
+              }}
+            />
+            {delegates.length > 0 ? (
+              <div className="ml-4 flex flex-col border-sidebar-border border-l pl-1.5 group-data-[collapsible=icon]:hidden">
+                {delegates.map((delegate) => (
+                  <DelegateRow
+                    key={delegate.id}
+                    agent={delegate}
+                    onSettings={() => openSettings(delegate)}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }

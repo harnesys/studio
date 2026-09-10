@@ -38,6 +38,7 @@ export class AgentController {
       const agent = await this.deps.createAgent.execute({
         workspaceId: c.req.param('id'),
         name: body.name,
+        parentId: body.parentId ?? undefined,
         modelId: body.modelId ?? undefined,
         role: body.role ?? undefined,
         instructions: body.instructions ?? undefined,
@@ -60,6 +61,7 @@ export class AgentController {
       const agent = await this.deps.createAgentFromPreset.execute({
         workspaceId: c.req.param('id'),
         presetId: body.presetId,
+        parentId: body.parentId ?? undefined,
       });
       return c.json(agent, 201);
     });

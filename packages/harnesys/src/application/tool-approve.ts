@@ -71,7 +71,17 @@ export async function runSingleToolCall(
       message: message(await presentCallOutput(ctx, call, validation.errors)),
     };
   }
-  if (def.operations && ctx.permissions) {
+  const callGate = def.gate?.(call.args);
+  if (callGate?.decision === 'deny') {
+    const content = callGate.reason;
+    recordDenied(ctx.state, call.id, { tool: call.name, reason: content });
+    return {
+      result: { id: call.id, name: call.name, result: content, isError: true },
+      message: message(content),
+    };
+  }
+  const skipOperationPermissions = callGate?.decision === 'allow';
+  if (!skipOperationPermissions && def.operations && ctx.permissions) {
     const permCheck = checkPermission(ctx.permissions, def.operations);
     if (!permCheck.allowed) {
       if (permCheck.gate === 'deny') {
@@ -87,6 +97,17 @@ export async function runSingleToolCall(
           return parked;
         }
       }
+    }
+  }
+  if (callGate?.decision === 'ask') {
+    const parked = applyPermissionGate({
+      call,
+      ctx,
+      idx,
+      operation: def.operations?.[0],
+    });
+    if (parked) {
+      return parked;
     }
   }
   if (ctx.signal.aborted) {

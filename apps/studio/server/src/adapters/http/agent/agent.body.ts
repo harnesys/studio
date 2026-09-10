@@ -67,6 +67,7 @@ const agentGraphBody = z
 
 export const createAgentBody = z.object({
   name: z.string().trim().min(1),
+  parentId: z.string().trim().min(1).nullish(),
   modelId: z.string().nullish(),
   role: z.string().nullish(),
   instructions: z.string().nullish(),
@@ -101,4 +102,6 @@ export const updateAgentBody = z.object({
 
 export const createAgentFromPresetBody = z.object({
   presetId: z.string().trim().min(1),
+  /** Create as spawn delegate under this top-level agent. */
+  parentId: z.string().trim().min(1).nullish(),
 });

@@ -14,6 +14,8 @@ export type AgentStatus = (typeof AGENT_STATUSES)[number];
 export type Agent = {
   id: string;
   workspaceId: string;
+  /** Null = top-level; set = spawn delegate under that agent. */
+  parentId: string | null;
   name: string;
   modelId: string | null;
   role: string;
@@ -41,6 +43,7 @@ export type AgentDraft = {
   role: string;
   instructions: string;
   modelId: string | null;
+  parentId?: string | null;
   effort?: string | null;
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;

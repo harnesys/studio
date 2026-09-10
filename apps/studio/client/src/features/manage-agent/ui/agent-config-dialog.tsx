@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import {
+  BotIcon,
   CpuIcon,
   FoldVerticalIcon,
   GaugeIcon,
@@ -21,9 +22,15 @@ import { useForm, useWatch } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { providersQuery } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
-import { type DialogComponentProps, patchOverlayOptions } from '@/shared/services/overlay';
+import {
+  alert,
+  type DialogComponentProps,
+  dialog,
+  patchOverlayOptions,
+} from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
+import { toast } from '@/shared/ui/toast';
 
 import type { AgentCapabilitiesDraft, AgentConfigResult } from '../model/agent-config';
 import {
@@ -36,6 +43,7 @@ import {
   toAgentDraft,
 } from '../model/agent-fields';
 import { defaultReactGraph, type StudioGraphDocument } from '../model/agent-graph-document';
+import { updateAgent, updateAgentCapabilities } from '../model/update-agent';
 import {
   AgentIdentityPane,
   AgentInstructionsPane,
@@ -43,6 +51,7 @@ import {
   AgentModelPane,
 } from './agent-config-panes';
 import { AgentGraphPane } from './agent-graph-pane';
+import { AgentSubagentsPane } from './agent-subagents-pane';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
 import { DraftCapabilityPacks } from './draft-capability-packs';
 import { DraftCompaction } from './draft-compaction';
@@ -71,7 +80,8 @@ export type AgentConfigCategory =
   | 'graph'
   | 'tools'
   | 'mcp'
-  | 'limits';
+  | 'limits'
+  | 'subagents';
 
 export const AGENT_CONFIG_CATEGORIES: {
   id: AgentConfigCategory;
@@ -88,6 +98,7 @@ export const AGENT_CONFIG_CATEGORIES: {
   { id: 'tools', label: 'Tools', icon: WrenchIcon },
   { id: 'mcp', label: 'MCP', icon: ServerIcon },
   { id: 'limits', label: 'Limits', icon: GaugeIcon },
+  { id: 'subagents', label: 'Subagents', icon: BotIcon },
 ];
 
 function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
@@ -121,6 +132,10 @@ export function AgentConfigDialog({
     defaultValues: agent ? agentFieldsFrom(agent) : emptyAgentFields(),
   });
   const nameValue = useWatch({ control: form.control, name: 'name' }) ?? '';
+  const showSubagents = Boolean(agent && !agent.parentId);
+  const navCategories = showSubagents
+    ? AGENT_CONFIG_CATEGORIES
+    : AGENT_CONFIG_CATEGORIES.filter((item) => item.id !== 'subagents');
 
   useEffect(() => {
     patchOverlayOptions({
@@ -130,6 +145,12 @@ export function AgentConfigDialog({
       patchOverlayOptions({ className: DEFAULT_DIALOG_CLASS });
     };
   }, [category]);
+
+  useEffect(() => {
+    if (category === 'subagents' && !showSubagents) {
+      setCategory('identity');
+    }
+  }, [category, showSubagents]);
 
   function selectCategory(next: AgentConfigCategory) {
     if (next === 'graph') {
@@ -169,7 +190,7 @@ export function AgentConfigDialog({
               <PanelLeftCloseIcon className="size-3.5 shrink-0" />
               Hide
             </button>
-            {AGENT_CONFIG_CATEGORIES.map((item) => (
+            {navCategories.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -244,6 +265,50 @@ export function AgentConfigDialog({
           </div>
           <div className={cn(category !== 'limits' && 'hidden')}>
             <AgentLimitsPane form={form} />
+          </div>
+          <div className={cn(category !== 'subagents' && 'hidden')}>
+            {agent && showSubagents ? (
+              <AgentSubagentsPane
+                workspaceId={workspaceId}
+                parentId={agent.id}
+                onConfigure={(delegate) => {
+                  void dialog
+                    .open(AgentConfigDialog, {
+                      title: `Configure ${delegate.name}`,
+                      className: 'sm:max-w-3xl',
+                      testId: 'agent-config-dialog',
+                      data: { agent: delegate, workspaceId },
+                    })
+                    .then(async (result) => {
+                      if (!result) {
+                        return;
+                      }
+                      try {
+                        await updateAgent(workspaceId, delegate.id, result.fields);
+                        await updateAgentCapabilities(
+                          workspaceId,
+                          delegate.id,
+                          result.capabilities,
+                        );
+                      } catch (error) {
+                        toast.add({
+                          title: error instanceof Error ? error.message : 'Could not save subagent',
+                        });
+                      }
+                    });
+                }}
+                onConfirmDelete={(delegate) =>
+                  alert.confirm({
+                    title: `Delete ${delegate.name}?`,
+                    description:
+                      'This subagent is removed from the parent. Spawn history on threads is kept.',
+                    confirmText: 'Delete subagent',
+                    variant: 'destructive',
+                    testId: 'delete-subagent-dialog',
+                  })
+                }
+              />
+            ) : null}
           </div>
           {category === 'graph' ? (
             <div className="flex h-full min-h-0 min-w-0">

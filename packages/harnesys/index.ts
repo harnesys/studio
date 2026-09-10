@@ -280,6 +280,7 @@ export type { ThreadSummary, ThreadsPort } from './src/ports/threads.ts';
 export type {
   CustomNodeImpl,
   SideEffect,
+  ToolCallGate,
   ToolCatalogEntry,
   ToolContext,
   ToolDefinition,

@@ -31,6 +31,8 @@ export type AgentRecord = {
   id: string;
   name: string;
   workspaceId: string;
+  /** Null/absent = top-level; set = spawn delegate under that agent. */
+  parentId?: string | null;
   modelId?: string | null;
   role: string;
   instructions: string;

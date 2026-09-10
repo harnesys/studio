@@ -25,6 +25,8 @@ export type AgentGraph = {
 export type Agent = {
   id: string;
   workspaceId: string;
+  /** Null = top-level; set = spawn delegate under that agent. */
+  parentId: string | null;
   name: string;
   modelId: string | null;
   role: string;

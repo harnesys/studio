@@ -8,6 +8,7 @@ import { useThreadStore } from '@/entities/thread';
 import { listProviders, updateAgentRecord } from '@/shared/api';
 
 import { sanitizeForModel } from './agent-fields';
+import { refreshWorkspaceAgents } from './create-agent';
 
 export async function updateAgent(workspaceId: string, agentId: string, draft: AgentDraft) {
   const current = useAgentStore.getState().byId(agentId);
@@ -42,6 +43,9 @@ export async function updateAgent(workspaceId: string, agentId: string, draft: A
   });
   const next = toClientAgent(record);
   useAgentStore.getState().upsert(next);
+  if (draft.modelId !== current.modelId && !current.parentId) {
+    await refreshWorkspaceAgents(workspaceId);
+  }
   if (next.name === current.name) {
     return;
   }

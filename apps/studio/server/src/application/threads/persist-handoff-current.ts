@@ -66,6 +66,13 @@ async function applyHandoff(
     logger.warn({ scope: 'handoff' }, `agent not found: ${agentId}`);
     return;
   }
+  if (agent.parentId !== null) {
+    logger.warn(
+      { scope: 'handoff', agentId },
+      'handoff to delegate rejected; spawn delegates instead',
+    );
+    return;
+  }
   deps.threads.patch(thread.id, { agentId });
   publishDeskThread(deps.getThread, deps.deskEvents, thread.id);
 }

@@ -126,6 +126,26 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     patch.updatedAt = new Date().toISOString();
 
-    return await Promise.resolve(this.agents.update(request.id, patch));
+    const previousModelId = agent.modelId;
+    const updated = this.agents.update(request.id, patch);
+
+    if (
+      request.modelId !== undefined &&
+      agent.parentId === null &&
+      request.modelId !== previousModelId
+    ) {
+      const now = patch.updatedAt;
+      for (const child of this.agents.listByWorkspace(request.workspaceId)) {
+        if (child.parentId !== request.id) {
+          continue;
+        }
+        if (child.modelId !== null && child.modelId !== previousModelId) {
+          continue;
+        }
+        this.agents.update(child.id, { modelId: request.modelId, updatedAt: now });
+      }
+    }
+
+    return await Promise.resolve(updated);
   }
 }

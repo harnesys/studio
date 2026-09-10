@@ -19,6 +19,8 @@ export { DEFAULT_REACT_BUDGET };
 export type CreateAgentRequest = {
   workspaceId: string;
   name: string;
+  /** When set, creates a spawn delegate under that top-level agent. */
+  parentId?: string | null;
   modelId?: string | null;
   role?: string;
   instructions?: string;
@@ -55,6 +57,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
       throw new ConflictError('agent name taken in workspace');
     }
 
+    const parentId = resolveParentId(this.agents, request.workspaceId, request.parentId);
+
     let modelId: string | null = null;
     if (request.modelId) {
       if (this.models) {
@@ -90,6 +94,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const created = this.agents.insert({
       id,
       workspaceId: request.workspaceId,
+      parentId,
       name,
       modelId,
       role,
@@ -110,4 +115,22 @@ export class CreateAgentUseCase implements CreateAgentInput {
 
     return await Promise.resolve(created);
   }
+}
+
+function resolveParentId(
+  agents: AgentRepository,
+  workspaceId: string,
+  parentId: string | null | undefined,
+): string | null {
+  if (parentId === undefined || parentId === null || parentId === '') {
+    return null;
+  }
+  const parent = agents.findById(parentId);
+  if (!parent || parent.workspaceId !== workspaceId) {
+    throw new NotFoundError('parent agent not found');
+  }
+  if (parent.parentId !== null) {
+    throw new ValidationError('delegates cannot own delegates');
+  }
+  return parent.id;
 }

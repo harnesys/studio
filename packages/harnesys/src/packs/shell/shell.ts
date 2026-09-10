@@ -3,13 +3,22 @@ import {
   DEFAULT_SHELL_TIMEOUT_MS,
   MAX_SHELL_TIMEOUT_MS,
 } from '../../adapters/actions/constants.ts';
-import type { ToolDefinition } from '../../ports/tools.ts';
+import type { ToolCallGate, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
+import { firstMatchingCommandPattern } from './command-glob.ts';
 
-export type ShellOptions = { timeout?: number };
+export type ShellOptions = {
+  timeout?: number;
+  /** Globs matched against the full command string; matches skip permission ask. */
+  allowlist?: readonly string[];
+  /** Globs matched against the full command string; matches hard-deny before permission ask. */
+  blocklist?: readonly string[];
+};
 
 export function shell(options: ShellOptions = {}): ToolDefinition {
   const defaultTimeout = options.timeout ?? DEFAULT_SHELL_TIMEOUT_MS;
+  const allowlist = options.allowlist ?? [];
+  const blocklist = options.blocklist ?? [];
   return tool('shell', {
     group: 'core',
     description: 'Run a shell command with cwd fixed to the thread workdir.',
@@ -23,6 +32,7 @@ export function shell(options: ShellOptions = {}): ToolDefinition {
       },
       required: ['command'],
     },
+    gate: (input) => gateShellCommand(input, allowlist, blocklist),
     execute(input, ctx) {
       const parsed = input as { command: string; timeout_ms?: number };
       const timeoutMs = Math.min(
@@ -32,6 +42,34 @@ export function shell(options: ShellOptions = {}): ToolDefinition {
       return runOnHost(parsed.command, timeoutMs, ctx.cwd, ctx.signal);
     },
   });
+}
+
+function gateShellCommand(
+  input: unknown,
+  allowlist: readonly string[],
+  blocklist: readonly string[],
+): ToolCallGate | undefined {
+  const command =
+    typeof (input as { command?: unknown })?.command === 'string'
+      ? (input as { command: string }).command
+      : '';
+  if (command.length === 0) {
+    return undefined;
+  }
+  const blocked = firstMatchingCommandPattern(command, blocklist);
+  if (blocked !== undefined) {
+    return {
+      decision: 'deny',
+      reason: `command blocked by shell blocklist (${blocked}): ${command}`,
+    };
+  }
+  if (allowlist.length > 0) {
+    const allowed = firstMatchingCommandPattern(command, allowlist);
+    if (allowed !== undefined) {
+      return { decision: 'allow' };
+    }
+  }
+  return undefined;
 }
 
 async function runOnHost(command: string, timeoutMs: number, cwd: string, signal?: AbortSignal) {

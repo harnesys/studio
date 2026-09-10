@@ -136,6 +136,7 @@ function toAgent(row: AgentRow): Agent {
   return {
     id: row.id,
     workspaceId: row.workspaceId,
+    parentId: row.parentId ?? null,
     name: row.name,
     modelId: row.modelId,
     role: row.role,

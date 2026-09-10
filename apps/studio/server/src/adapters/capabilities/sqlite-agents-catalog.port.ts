@@ -30,6 +30,10 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     return Promise.resolve(
       rows
         .filter((row) => {
+          // Top-level agents plus this run's own delegates (spawn targets).
+          if (row.parentId !== null && row.parentId !== scope.agentId) {
+            return false;
+          }
           if (filter?.role !== undefined && row.role !== filter.role) {
             return false;
           }

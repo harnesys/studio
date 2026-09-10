@@ -236,7 +236,9 @@ export function WorkspaceSidebar() {
             id="agents"
             icon={<CpuIcon />}
             title={slideAgent ? `Threads · ${slideAgent.name}` : 'Agents'}
-            count={slideAgent ? slideThreads.length : agents.length}
+            count={
+              slideAgent ? slideThreads.length : agents.filter((agent) => !agent.parentId).length
+            }
             size={shares.agents ?? 1}
             actions={<AgentsSectionActions workspaceId={workspaceId} />}
           >

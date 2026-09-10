@@ -56,7 +56,7 @@ export function IdeHome() {
                   return;
                 }
                 const created = await createAgent(workspaceId, result.fields);
-                if (!created) {
+                if (!created?.thread) {
                   return;
                 }
                 await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);

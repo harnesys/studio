@@ -6,6 +6,7 @@ export function toClientAgent(record: AgentRecord): Agent {
   return {
     id: record.id,
     workspaceId: record.workspaceId,
+    parentId: record.parentId ?? null,
     name: record.name,
     modelId: record.modelId ?? null,
     role: record.role,

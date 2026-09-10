@@ -45,6 +45,8 @@ const components: Components = {
       <pre className="overflow-x-auto rounded-md border border-border bg-muted/50 px-2.5 py-2">
         <code
           className="hljs font-mono text-[12px] leading-[1.45]"
+          // hljs output is escaped HTML for syntax coloring only.
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js escaped tokens
           dangerouslySetInnerHTML={{ __html: highlightCode(text, lang) }}
         />
       </pre>

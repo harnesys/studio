@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
@@ -54,13 +54,11 @@ export function GitCommitDialog({
 
   const hasRemote = Boolean(gitStatusQuery.data?.isGit && gitStatusQuery.data.remote);
 
-  const files = useMemo(() => {
-    const map = statusQuery.data?.map ?? {};
-    return Object.entries(map)
-      .filter(([, s]) => s !== 'ignored')
-      .map(([path, status]) => ({ path, status }))
-      .sort((a, b) => a.path.localeCompare(b.path));
-  }, [statusQuery.data]);
+  const statusMap = statusQuery.data?.map ?? {};
+  const files = Object.entries(statusMap)
+    .filter(([, s]) => s !== 'ignored')
+    .map(([path, status]) => ({ path, status }))
+    .sort((a, b) => a.path.localeCompare(b.path));
 
   const [selected, setSelected] = useState<string | null>(data?.focusPath ?? null);
 

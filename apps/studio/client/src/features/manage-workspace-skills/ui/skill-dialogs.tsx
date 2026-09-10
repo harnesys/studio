@@ -1,5 +1,5 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
 import type { DialogComponentProps } from '@/shared/services/overlay';

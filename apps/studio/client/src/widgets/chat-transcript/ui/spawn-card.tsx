@@ -115,9 +115,9 @@ export function SpawnCard({
       ) : null}
       {spawn.recentTools.length > 0 ? (
         <span className="flex flex-wrap gap-1">
-          {spawn.recentTools.map((tool, index) => (
+          {spawn.recentTools.map((tool) => (
             <span
-              key={`${tool.name}-${tool.phase}-${index}`}
+              key={`${tool.name}:${tool.phase}`}
               title={`${tool.name} · ${tool.phase}`}
               className="inline-flex max-w-40 items-center gap-1 rounded border border-border/70 px-1 py-px text-[11px] text-muted-foreground"
             >

@@ -24,7 +24,7 @@ export function useSyncedThread(threadId: string, workspaceId: string): boolean 
 
   useEffect(() => {
     setFetched(false);
-  }, [threadId]);
+  }, []);
 
   useEffect(() => {
     if (hasEvents) {
@@ -55,7 +55,7 @@ export function useSyncedThread(threadId: string, workspaceId: string): boolean 
     return () => {
       cancelled = true;
     };
-  }, [threadId, workspaceId, hasEvents, hydrated, liveRunId, streaming]);
+  }, [threadId, hasEvents, hydrated, liveRunId, streaming]);
 
   return hasEvents || fetched;
 }

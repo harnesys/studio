@@ -30,7 +30,7 @@ export function FileTabs() {
     if (tabBox.left < viewBox.left || tabBox.right > viewBox.right) {
       tab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
     }
-  }, [activePath]);
+  }, []);
 
   if (!workspaceId || tabs.length === 0) {
     return null;

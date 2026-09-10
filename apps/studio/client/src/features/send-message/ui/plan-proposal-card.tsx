@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { InputGroupAddon, InputGroupTextarea } from '@/shared/ui/input-group';
 import { toast } from '@/shared/ui/toast';
@@ -38,8 +38,8 @@ export function PlanProposalCard({
   const [busy, setBusy] = useState(false);
   const [revising, setRevising] = useState(false);
   const [text, setText] = useState('');
-  const items = useMemo(() => proposeItems(pending), [pending]);
-  const overview = useMemo(() => proposeOverview(pending), [pending]);
+  const items = proposeItems(pending);
+  const overview = proposeOverview(pending);
   const arm = usePlanApplyStore((state) => state.arm);
 
   const approve = async () => {
@@ -110,7 +110,10 @@ export function PlanProposalCard({
         {items.length > 0 ? (
           <ol className="list-decimal space-y-0.5 pl-4 text-[12px] leading-snug">
             {items.map((item, index) => (
-              <li key={`${item.title ?? 'step'}-${index}`} className="text-foreground">
+              <li
+                key={`${item.title?.trim() || 'untitled'}:${item.description?.trim() || ''}`}
+                className="text-foreground"
+              >
                 {item.title?.trim() || `Step ${index + 1}`}
               </li>
             ))}

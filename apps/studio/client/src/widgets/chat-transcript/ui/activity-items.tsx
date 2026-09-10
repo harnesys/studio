@@ -39,9 +39,13 @@ export function ActivityItems({
         }
         const { chunk } = item;
         if (chunk.type === 'text') {
+          const textKey =
+            typeof chunk.event.id === 'string'
+              ? chunk.event.id
+              : `text:${chunk.event.text.slice(0, 48)}`;
           return (
             <ThinkingLine
-              key={`text-${index}`}
+              key={textKey}
               text={chunk.event.text}
               live={itemLive}
               threadId={threadId}
@@ -63,7 +67,7 @@ export function ActivityItems({
           const url = typeof src?.url === 'string' ? src.url : String(src ?? '');
           return (
             <ActivityLine
-              key={`source-${index}`}
+              key={`source:${url}`}
               icon={Link2Icon}
               label="Source"
               hint={url}
@@ -80,13 +84,9 @@ export function ActivityItems({
             </ActivityLine>
           );
         }
+        const fileHint = String((chunk.event as { file?: unknown }).file ?? '');
         return (
-          <ActivityLine
-            key={`file-${index}`}
-            icon={FileTextIcon}
-            label="File"
-            hint={String((chunk.event as { file?: unknown }).file ?? '')}
-          />
+          <ActivityLine key={`file:${fileHint}`} icon={FileTextIcon} label="File" hint={fileHint} />
         );
       })}
     </ActivityRail>

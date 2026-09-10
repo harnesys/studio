@@ -36,7 +36,7 @@ export function ProviderEndpointFields({
 
   useEffect(() => {
     setCustom(false);
-  }, [endpoints, apiUrl]);
+  }, []);
 
   const hasPresets = presets.length > 1;
   const selectedId = custom || (apiUrl.trim() && !matched) ? CUSTOM_ID : (matched?.id ?? CUSTOM_ID);

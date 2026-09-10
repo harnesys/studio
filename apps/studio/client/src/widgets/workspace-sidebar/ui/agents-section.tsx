@@ -98,12 +98,12 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
     <SectionMenu label="Agent actions" contentClassName="w-full">
       <DropdownMenuGroup>
         <DropdownMenuItem onClick={createAgentFlow}>
-          <BotIcon className="size-3"/>
+          <BotIcon className="size-3" />
           Create Agent
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <SparklesIcon className="size-3"/>
+            <SparklesIcon className="size-3" />
             From Preset
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-44">
@@ -114,7 +114,7 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
             ) : (
               presets.map((preset) => (
                 <DropdownMenuItem key={preset.id} onClick={() => createFromPreset(preset.id)}>
-                  <SparklesIcon className="size-3"/>
+                  <SparklesIcon className="size-3" />
                   {preset.name}
                 </DropdownMenuItem>
               ))
@@ -146,7 +146,7 @@ export function AgentsSection({
 
   useEffect(() => {
     resetSlide();
-  }, [workspaceId, resetSlide]);
+  }, [resetSlide]);
 
   useEffect(() => {
     if (slideAgentId && !agents.some((item) => item.id === slideAgentId)) {

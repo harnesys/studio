@@ -1,5 +1,5 @@
 import { ChevronLeftIcon } from 'lucide-react';
-import { Fragment, type ReactNode, useMemo } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
@@ -81,7 +81,7 @@ export function AgentThreadsPanel({
   const navigate = useNavigate();
   const back = useAgentsSlideStore((state) => state.back);
   const threads = useAgentThreads(agent.id);
-  const sorted = useMemo(() => buildThreadTree(threads), [threads]);
+  const sorted = buildThreadTree(threads);
 
   const openThread = (thread: Thread) => {
     useIdeStore.getState().openThread(workspaceId, thread.agentId, thread.id);

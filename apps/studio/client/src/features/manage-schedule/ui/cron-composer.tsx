@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import { cn } from '@/shared/lib/utils';
 import { Field, FieldDescription, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
@@ -37,7 +35,7 @@ const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export function CronComposer({ value, onChange, hint }: CronComposerProps) {
-  const parsed = useMemo(() => parseCron(value), [value]);
+  const parsed = parseCron(value);
   const preset = parsed ? detectPreset(parsed) : 'custom';
   const options = parsed ? optionsFromParts(parsed) : defaultCronOptions();
   const summary = humanizeCron(value);

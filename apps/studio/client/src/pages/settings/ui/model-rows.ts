@@ -1,4 +1,8 @@
-import type { DiscoveredModelView, IncompleteField, ProviderModelPublic } from '@harnesys/studio-shared';
+import type {
+  DiscoveredModelView,
+  IncompleteField,
+  ProviderModelPublic,
+} from '@harnesys/studio-shared';
 
 import type { ModelFieldsDraft } from '@/features/manage-model';
 

@@ -1,7 +1,7 @@
 import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EyeIcon, FileIcon, FolderIcon, LoaderCircleIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
 import { openWorkspaceFile } from '@/features/open-file';
 import {
@@ -146,10 +146,10 @@ export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
   });
 
   const showHidden = useExplorerHiddenStore((state) => state.showHidden);
-  const entries = useMemo(() => {
-    const all = filesQuery.data ?? [];
-    return showHidden ? all : all.filter((entry) => !entry.name.startsWith('.'));
-  }, [filesQuery.data, showHidden]);
+  const allEntries = filesQuery.data ?? [];
+  const entries = showHidden
+    ? allEntries
+    : allEntries.filter((entry) => !entry.name.startsWith('.'));
 
   const computeVisible = useCallback((): string[] => {
     const out: string[] = [];
@@ -173,7 +173,7 @@ export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
     return out;
   }, [entries, expandedDirs, qc, workspaceId]);
 
-  const visibleForStore = useMemo(() => computeVisible(), [computeVisible]);
+  const visibleForStore = computeVisible();
   const setVisiblePaths = useFileSelectionStore((s) => s.setVisiblePaths);
   useEffect(() => {
     setVisiblePaths(visibleForStore);

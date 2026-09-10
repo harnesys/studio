@@ -1,7 +1,14 @@
-import type { ModelPricing, ProviderPublic, SessionEvent, TokenUsage } from '@harnesys/studio-shared';
+import type { ModelPricing, ProviderPublic, SessionEvent } from '@harnesys/studio-shared';
 import type { MessageUsage } from '@/entities/session';
 
 import { findModel } from './model-input';
+
+type TokenUsage = {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+};
 
 /** One MessageUsage per LLM generation, read from persisted model.usage events. */
 export function generationUsages(events: SessionEvent[]): MessageUsage[] {

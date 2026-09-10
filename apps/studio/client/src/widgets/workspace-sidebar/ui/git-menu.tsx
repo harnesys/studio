@@ -7,7 +7,7 @@ import {
   RefreshCwIcon,
   UploadIcon,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { getGitStatus, gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
 import {
   DropdownMenuGroup,
@@ -89,22 +89,15 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
     handleNewBranch,
   } = useGitActions(workspaceId);
 
-  const filteredLocal = useMemo(() => {
-    const local = status?.branches?.local ?? [];
-    if (!filter.trim()) {
-      return local;
-    }
-    const q = filter.toLowerCase();
-    return local.filter((b) => b.name.toLowerCase().includes(q));
-  }, [status?.branches?.local, filter]);
-  const filteredRecent = useMemo(() => {
-    const recent = status?.branches?.recent ?? [];
-    if (!filter.trim()) {
-      return recent;
-    }
-    const q = filter.toLowerCase();
-    return recent.filter((b) => b.name.toLowerCase().includes(q));
-  }, [status?.branches?.recent, filter]);
+  const localBranches = status?.branches?.local ?? [];
+  const recentBranches = status?.branches?.recent ?? [];
+  const filterQuery = filter.trim().toLowerCase();
+  const filteredLocal = filterQuery
+    ? localBranches.filter((b) => b.name.toLowerCase().includes(filterQuery))
+    : localBranches;
+  const filteredRecent = filterQuery
+    ? recentBranches.filter((b) => b.name.toLowerCase().includes(filterQuery))
+    : recentBranches;
 
   if (!status) {
     return null;
@@ -131,20 +124,20 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
           onClick={handleCommit}
           disabled={!status.dirty || commitMutation.isPending}
         >
-          <GitCommitVerticalIcon className="size-3"/>
+          <GitCommitVerticalIcon className="size-3" />
           Commit{commitSuffix}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handlePush} disabled={pushMutation.isPending}>
-          <UploadIcon className="size-3"/>
+          <UploadIcon className="size-3" />
           Push
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handlePull} disabled={pullMutation.isPending}>
-          <DownloadIcon className="size-3"/>
+          <DownloadIcon className="size-3" />
           Update
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger disabled={stageMutation.isPending}>
-            <PlusIcon className="size-3"/>
+            <PlusIcon className="size-3" />
             Add
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
@@ -163,11 +156,11 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <DropdownMenuItem onClick={() => handleNewBranch()}>
-          <PlusIcon className="size-3"/>
+          <PlusIcon className="size-3" />
           New Branch...
         </DropdownMenuItem>
         <DropdownMenuItem onClick={refresh}>
-          <RefreshCwIcon className="size-3"/>
+          <RefreshCwIcon className="size-3" />
           Refresh
         </DropdownMenuItem>
       </DropdownMenuGroup>

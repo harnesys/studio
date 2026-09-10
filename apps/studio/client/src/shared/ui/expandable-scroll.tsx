@@ -49,7 +49,7 @@ export function ExpandableScroll({
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [children, expanded, follow]);
+  }, [expanded, follow]);
 
   return (
     <div className={cn('relative', className)}>

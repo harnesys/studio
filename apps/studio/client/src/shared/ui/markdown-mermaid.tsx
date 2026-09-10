@@ -181,7 +181,9 @@ export function MarkdownMermaid({ chart }: MarkdownMermaidProps) {
         if (!source) {
           throw new Error('empty mermaid source');
         }
-        const dark = document.documentElement.classList.contains('dark');
+        const dark =
+          theme === 'dark' ||
+          (theme === 'system' && document.documentElement.classList.contains('dark'));
         const mermaid = await ensureInit(dark);
         if (cancelled) {
           return;

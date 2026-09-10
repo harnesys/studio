@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpIcon, LoaderCircleIcon, SquareIcon, TriangleAlertIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useScheduleStore } from '@/entities/schedule';
 import { rollupUsage, useSessionStore } from '@/entities/session';
 import { useSelectedAgent, useSelectedThread, useThreadEvents } from '@/features/desk';
@@ -58,7 +58,7 @@ export function ChatComposer() {
   const [sending, setSending] = useState(false);
   const [slashIndex, setSlashIndex] = useState(0);
   const [mode, setMode] = useState<ComposerMode>('ask');
-  const slashMatches = useMemo(() => matchSlashCommands(value), [value]);
+  const slashMatches = matchSlashCommands(value);
   const scheduleMode = useScheduleStore((state) => {
     if (thread?.kind !== 'schedule') {
       return null;
@@ -113,11 +113,11 @@ export function ChatComposer() {
     if (thread?.runMode && isComposerMode(thread.runMode)) {
       setMode(thread.runMode);
     }
-  }, [thread?.id, thread?.runMode, scheduleMode]);
+  }, [thread?.runMode, scheduleMode]);
 
   useEffect(() => {
     setSlashIndex(0);
-  }, [value]);
+  }, []);
 
   return (
     <div className="relative mx-auto w-full max-w-3xl px-4 pb-4" data-testid="chat-composer">

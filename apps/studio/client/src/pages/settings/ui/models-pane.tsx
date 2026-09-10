@@ -2,7 +2,7 @@ import type { DiscoveredModelView, ProviderExportBundle } from '@harnesys/studio
 import { useQuery } from '@tanstack/react-query';
 import { DownloadIcon, PlusIcon, Trash2Icon, UploadIcon } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { catalogQuery } from '@/shared/api';
@@ -52,13 +52,16 @@ export function ModelsPane() {
   const selected = providers.find((item) => item.id === settingsProviderId) ?? null;
   const found = selected ? (foundByProvider[selected.id] ?? null) : null;
 
-  function openProvider(id: string, replace = false) {
-    if (!workspaceId) {
-      return;
-    }
-    setShowKey(false);
-    void navigate(studioPath.settings(workspaceId, 'providers', id), { replace });
-  }
+  const openProvider = useCallback(
+    (id: string, replace = false) => {
+      if (!workspaceId) {
+        return;
+      }
+      setShowKey(false);
+      void navigate(studioPath.settings(workspaceId, 'providers', id), { replace });
+    },
+    [workspaceId, navigate],
+  );
 
   useEffect(() => {
     if (!workspaceId || providers.length === 0) {
@@ -68,7 +71,7 @@ export function ModelsPane() {
       return;
     }
     openProvider(providers[0].id, true);
-  }, [workspaceId, settingsProviderId, providers]);
+  }, [workspaceId, settingsProviderId, providers, openProvider]);
 
   async function handleExport() {
     try {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
@@ -44,18 +44,14 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
   );
   const inheritedCount = thread?.inheritedEventCount ?? 0;
   const seenAt = useSessionStore((state) => state.seenAt[threadId]);
-  const { inheritedRuns, inheritedSpawns, ownRuns, ownSpawns } = useMemo(() => {
-    const inheritedEvents = inheritedCount > 0 ? events.slice(0, inheritedCount) : [];
-    const ownEvents = inheritedCount > 0 ? events.slice(inheritedCount) : events;
-    const inherited = extractSpawns(inheritedEvents, seenAt);
-    const own = extractSpawns(ownEvents, seenAt);
-    return {
-      inheritedRuns: splitRuns(inherited.feedEvents),
-      inheritedSpawns: inherited.spawns,
-      ownRuns: splitRuns(own.feedEvents),
-      ownSpawns: own.spawns,
-    };
-  }, [events, inheritedCount, seenAt]);
+  const inheritedEvents = inheritedCount > 0 ? events.slice(0, inheritedCount) : [];
+  const ownEvents = inheritedCount > 0 ? events.slice(inheritedCount) : events;
+  const inherited = extractSpawns(inheritedEvents, seenAt);
+  const own = extractSpawns(ownEvents, seenAt);
+  const inheritedRuns = splitRuns(inherited.feedEvents);
+  const inheritedSpawns = inherited.spawns;
+  const ownRuns = splitRuns(own.feedEvents);
+  const ownSpawns = own.spawns;
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const branchChildrenByRun = useThreadStore(
     useShallow((state) => {
@@ -198,7 +194,8 @@ function ThreadReadSync({ threadId }: { threadId: string }) {
 
   useEffect(() => {
     useThreadStore.getState().setViewingAtEnd(threadId, end);
-    if (end) {
+    // contentEpoch: re-mark when new events arrive while pinned to bottom.
+    if (end && contentEpoch >= 0) {
       scheduleMarkThreadRead(threadId);
     }
   }, [threadId, end, contentEpoch]);

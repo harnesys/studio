@@ -14,7 +14,7 @@ export function ToolEntriesView({ detail }: { detail: EntriesDetail }) {
               No entries found
             </div>
           ) : (
-            detail.items.map((item, idx) => <EntryRow key={`${item.name}-${idx}`} item={item} />)
+            detail.items.map((item) => <EntryRow key={`${item.type}:${item.name}`} item={item} />)
           )}
         </div>
       </ExpandableScroll>
@@ -66,9 +66,9 @@ export function ToolGrepView({ detail }: { detail: GrepDetail }) {
                   <span className="truncate">{file}</span>
                 </div>
                 <div className="space-y-0.5">
-                  {items.map((item, idx) => (
+                  {items.map((item) => (
                     <div
-                      key={`${item.line}-${idx}`}
+                      key={`${item.line}:${item.text}`}
                       className="flex items-start gap-2 px-3 py-0.5 transition-colors hover:bg-muted/60"
                     >
                       <span className="w-8 shrink-0 select-none text-right font-mono text-[11px] text-muted-foreground/60">

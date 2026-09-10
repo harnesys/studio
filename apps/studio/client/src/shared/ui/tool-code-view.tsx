@@ -82,6 +82,7 @@ export function ToolCodeView({
                 <td className="overflow-x-auto whitespace-pre py-0.5 pr-4 pl-3.5 align-top font-mono text-foreground/90">
                   <span
                     className="hljs inline-block min-w-full"
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js escaped tokens
                     dangerouslySetInnerHTML={{ __html: row.html || ' ' }}
                   />
                 </td>

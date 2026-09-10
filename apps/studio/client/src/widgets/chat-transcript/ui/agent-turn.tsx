@@ -207,8 +207,8 @@ function TurnSegmentView({
   spawns?: SpawnInfo[];
   onOpenSpawn?: (spawnId: string) => void;
 }) {
+  const thread = useSelectedThread();
   if (segment.type === 'user') {
-    const thread = useSelectedThread();
     const tid = thread?.id ?? '';
     const atts = segment.event.attachments;
     const wake = isScheduleWakeEvent(segment.event);

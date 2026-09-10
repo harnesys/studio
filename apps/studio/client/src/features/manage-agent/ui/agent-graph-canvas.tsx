@@ -11,7 +11,7 @@ import {
   ReactFlow,
   useReactFlow,
 } from '@xyflow/react';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { Button } from '@/shared/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
@@ -26,6 +26,7 @@ import { AgentGraphNode } from './agent-graph-node';
 import { AGENT_GRAPH_DND_TYPE } from './agent-graph-palette';
 
 const NODE_TYPES = { 'agent-graph-node': AgentGraphNode };
+const DEFAULT_EDGE_OPTIONS = { type: 'default' as const };
 
 export type AgentGraphCanvasProps = {
   nodes: AgentGraphFlowNode[];
@@ -135,8 +136,6 @@ export function AgentGraphCanvas({
     [nodes, onNodesChange, onRankdirChange],
   );
 
-  const defaultEdgeOptions = useMemo(() => ({ type: 'default' as const }), []);
-
   return (
     <div className="agent-graph-flow relative min-h-0 min-w-0 flex-1">
       <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 rounded-md border border-border bg-popover p-1 shadow-sm">
@@ -168,7 +167,7 @@ export function AgentGraphCanvas({
         nodes={nodes}
         edges={edges}
         nodeTypes={NODE_TYPES}
-        defaultEdgeOptions={defaultEdgeOptions}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}

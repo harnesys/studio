@@ -49,8 +49,8 @@ export function ToolDiffView({
           {detail.hunks.length === 0 ? (
             <div className="p-3 text-center text-muted-foreground">No visual diff chunks found</div>
           ) : (
-            detail.hunks.map((hunk, hunkIdx) => (
-              <DiffHunkBlock key={`${hunk.header}-${hunkIdx}`} hunk={hunk} language={lang} />
+            detail.hunks.map((hunk) => (
+              <DiffHunkBlock key={hunk.header} hunk={hunk} language={lang} />
             ))
           )}
         </div>
@@ -77,7 +77,7 @@ function DiffHunkBlock({ hunk, language }: { hunk: DiffHunk; language?: string }
       </div>
       <table className="w-full border-collapse">
         <tbody>
-          {codeLines.map((line, idx) => {
+          {codeLines.map((line) => {
             const isAdd = line.type === 'add';
             const isDel = line.type === 'del';
             let lineNum = line.newLineNumber ?? line.oldLineNumber;
@@ -95,7 +95,7 @@ function DiffHunkBlock({ hunk, language }: { hunk: DiffHunk; language?: string }
 
             return (
               <tr
-                key={idx}
+                key={`${line.type}:${lineNum ?? ''}:${line.text}`}
                 className={cn(
                   'transition-colors',
                   isAdd && 'bg-[#6aab73]/10 text-foreground',
@@ -117,6 +117,7 @@ function DiffHunkBlock({ hunk, language }: { hunk: DiffHunk; language?: string }
                 <td className="overflow-x-auto whitespace-pre py-0.5 pr-3 pl-3 align-top font-mono text-[12px] leading-5">
                   <span
                     className="hljs inline-block min-w-full"
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js escaped tokens
                     dangerouslySetInnerHTML={{ __html: line.html || ' ' }}
                   />
                 </td>

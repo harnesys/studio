@@ -1,5 +1,5 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAgentStore } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import { refreshThread, useDeskStore, useThreadEvents } from '@/features/desk';
@@ -49,19 +49,17 @@ export function SpawnView({
   const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
   const openSpawnTab = useOpenSpawnTab();
 
-  const { spawns } = useMemo(() => extractSpawns(events, seenAt), [events, seenAt]);
+  const { spawns } = extractSpawns(events, seenAt);
   const spawn = spawns.find((item) => item.spawnId === spawnId);
   const agent = useAgentStore((state) =>
     spawn ? (state.byId(spawn.agentId) ?? undefined) : undefined,
   );
-  const subtreeIds = useMemo(() => spawnSubtreeIds(events, spawnId), [events, spawnId]);
-  const spawnedTask = useMemo(() => {
-    const found = events.find(
-      (ev): ev is SessionEvent & { type: 'agent.spawned' } =>
-        ev.type === 'agent.spawned' && ev.spawnId === spawnId,
-    );
-    return found ? spawnTaskText(found.taskInput) : undefined;
-  }, [events, spawnId]);
+  const subtreeIds = spawnSubtreeIds(events, spawnId);
+  const spawnedEvent = events.find(
+    (ev): ev is SessionEvent & { type: 'agent.spawned' } =>
+      ev.type === 'agent.spawned' && ev.spawnId === spawnId,
+  );
+  const spawnedTask = spawnedEvent ? spawnTaskText(spawnedEvent.taskInput) : undefined;
   const [taskExpanded, setTaskExpanded] = useState(false);
   const taskCollapsed =
     spawnedTask !== undefined && Array.from(spawnedTask).length > TASK_COLLAPSE_AT && !taskExpanded;

@@ -71,15 +71,10 @@ function notify(threadId: string): void {
  * `open` — новый блок (первый токен или слот после seal).
  */
 export function ingestLiveDelta(threadId: string, event: SessionEvent): 'open' | 'continue' {
-  let kind: LiveTailKind = null;
-  if (event.type === 'reasoning-delta') {
-    kind = 'reasoning';
-  } else if (event.type === 'text-delta') {
-    kind = 'text';
-  }
-  if (kind === null || !('text' in event) || typeof event.text !== 'string') {
+  if (event.type !== 'reasoning-delta' && event.type !== 'text-delta') {
     return 'continue';
   }
+  const kind: LiveTailKind = event.type === 'reasoning-delta' ? 'reasoning' : 'text';
   const id = event.id;
   const prev = tails.get(threadId);
   const sameSlot = prev !== undefined && prev.kind === kind && prev.id === id;

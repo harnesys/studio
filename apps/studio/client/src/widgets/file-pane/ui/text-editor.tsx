@@ -2,7 +2,7 @@ import Editor, { type OnMount } from '@monaco-editor/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2Icon } from 'lucide-react';
 import type { editor } from 'monaco-editor';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
 import { markWorkspaceFileDirty } from '@/features/open-file';
 import { readWorkspaceFileText, writeWorkspaceFileContent } from '@/shared/api/files';
@@ -73,7 +73,7 @@ export function TextEditor({
       : (qc.getQueryData<FileContent>(['workspace-file-content', workspaceId, activePath ?? '']) ??
         '');
 
-  const save = () => {
+  const save = useCallback(() => {
     if (!activePath || activePath !== path) {
       return;
     }
@@ -82,7 +82,7 @@ export function TextEditor({
       return;
     }
     saveMutation.mutate(draft);
-  };
+  }, [activePath, path, drafts, dirty, saveMutation]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

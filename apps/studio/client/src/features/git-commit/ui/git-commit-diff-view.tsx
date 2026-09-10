@@ -1,7 +1,7 @@
 import { loader } from '@monaco-editor/react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2Icon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getGitDiff, gitDiffQueryKey } from '@/shared/api/git';
 import { detectLanguage } from '@/shared/lib/tool-code';
@@ -122,6 +122,55 @@ function MonacoDiffEditor({
 
   const resolved = resolveTheme(theme);
 
+  const disposeModels = useCallback(() => {
+    const models = modelsRef.current as { original: TextModel; modified: TextModel } | null;
+    if (!models) {
+      return;
+    }
+    try {
+      models.original.dispose();
+    } catch {}
+    try {
+      models.modified.dispose();
+    } catch {}
+    modelsRef.current = null;
+  }, []);
+
+  const updateModels = useCallback(
+    ({ monaco, editor, lang, orig, mod, filePath }: UpdateModelsParams) => {
+      const prevModels = editor.getModel();
+      if (prevModels) {
+        try {
+          editor.setModel(null);
+        } catch {}
+      }
+      disposeModels();
+
+      const originalModel = monaco.editor.createModel(
+        orig,
+        lang,
+        monaco.Uri.parse(`inmemory://original/${filePath}`),
+      );
+      const modifiedModel = monaco.editor.createModel(
+        mod,
+        lang,
+        monaco.Uri.parse(`inmemory://modified/${filePath}`),
+      );
+      modelsRef.current = { original: originalModel, modified: modifiedModel };
+      try {
+        editor.setModel({ original: originalModel, modified: modifiedModel });
+      } catch {
+        try {
+          originalModel.dispose();
+        } catch {}
+        try {
+          modifiedModel.dispose();
+        } catch {}
+      }
+    },
+    [disposeModels],
+  );
+
   // init monaco once
   useEffect(() => {
     if (!monacoPromise) {
@@ -191,8 +240,7 @@ function MonacoDiffEditor({
       }
       disposeModels();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [ready, path, resolved, language, updateModels, modified, original, disposeModels]);
 
   // theme sync
   useEffect(() => {
@@ -229,53 +277,7 @@ function MonacoDiffEditor({
         });
       })
       .catch(() => {});
-  }, [language, original, modified, path, ready]);
-
-  function disposeModels() {
-    const models = modelsRef.current as { original: TextModel; modified: TextModel } | null;
-    if (!models) {
-      return;
-    }
-    try {
-      models.original.dispose();
-    } catch {}
-    try {
-      models.modified.dispose();
-    } catch {}
-    modelsRef.current = null;
-  }
-
-  function updateModels({ monaco, editor, lang, orig, mod, filePath }: UpdateModelsParams) {
-    const prevModels = editor.getModel();
-    if (prevModels) {
-      try {
-        editor.setModel(null);
-      } catch {}
-    }
-    disposeModels();
-
-    const originalModel = monaco.editor.createModel(
-      orig,
-      lang,
-      monaco.Uri.parse(`inmemory://original/${filePath}`),
-    );
-    const modifiedModel = monaco.editor.createModel(
-      mod,
-      lang,
-      monaco.Uri.parse(`inmemory://modified/${filePath}`),
-    );
-    modelsRef.current = { original: originalModel, modified: modifiedModel };
-    try {
-      editor.setModel({ original: originalModel, modified: modifiedModel });
-    } catch {
-      try {
-        originalModel.dispose();
-      } catch {}
-      try {
-        modifiedModel.dispose();
-      } catch {}
-    }
-  }
+  }, [language, original, modified, path, ready, updateModels]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }

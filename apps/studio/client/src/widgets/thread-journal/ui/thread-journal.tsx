@@ -1,5 +1,5 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
@@ -44,7 +44,7 @@ export type ThreadJournalProps = {
 export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
   const events = useThreadEvents(threadId);
   const seenAt = useSessionStore((state) => state.seenAt[threadId]);
-  const { feedEvents, spawns } = useMemo(() => extractSpawns(events, seenAt), [events, seenAt]);
+  const { feedEvents, spawns } = extractSpawns(events, seenAt);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useSyncedThread(threadId, agent.workspaceId);
@@ -154,7 +154,8 @@ function ThreadReadSync({ threadId }: { threadId: string }) {
 
   useEffect(() => {
     useThreadStore.getState().setViewingAtEnd(threadId, end);
-    if (end) {
+    // contentEpoch: re-mark when new events arrive while pinned to bottom.
+    if (end && contentEpoch >= 0) {
       scheduleMarkThreadRead(threadId);
     }
   }, [threadId, end, contentEpoch]);

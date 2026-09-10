@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { openCommitDialog } from '@/features/git-commit';
 import { watchWorkspaceFiles } from '@/shared/api/files';
 import { getGitFileStatus, gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
@@ -32,13 +32,11 @@ export function GitSection({ workspaceId }: { workspaceId: string }) {
     return unwatch;
   }, [workspaceId, qc]);
 
-  const files = useMemo(() => {
-    const map = fileStatusQuery.data?.map ?? {};
-    return Object.entries(map)
-      .filter(([, s]) => s !== 'ignored')
-      .map(([path, status]) => ({ path, status }))
-      .sort((a, b) => a.path.localeCompare(b.path));
-  }, [fileStatusQuery.data]);
+  const map = fileStatusQuery.data?.map ?? {};
+  const files = Object.entries(map)
+    .filter(([, s]) => s !== 'ignored')
+    .map(([path, status]) => ({ path, status }))
+    .sort((a, b) => a.path.localeCompare(b.path));
 
   if (!gitStatus) {
     return (

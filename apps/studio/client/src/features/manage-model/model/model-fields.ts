@@ -9,7 +9,12 @@ import type {
   ModelTopProvider,
   ProviderModelPublic,
 } from '@harnesys/studio-shared';
-import { EFFORTS, MODALITIES, MODEL_FEATURES, withChatGenerationParameters } from '@harnesys/studio-shared';
+import {
+  EFFORTS,
+  MODALITIES,
+  MODEL_FEATURES,
+  withChatGenerationParameters,
+} from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 const optionalAmount = z

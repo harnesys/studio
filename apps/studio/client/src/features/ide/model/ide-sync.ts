@@ -30,22 +30,21 @@ export function useIdeSync() {
     if (filePath) {
       useIdeStore.getState().openFile(workspaceId, filePath);
     }
-    if (!threadId || hydratedWorkspaceId !== workspaceId) {
+    if (!threadId || !threadAgentId || hydratedWorkspaceId !== workspaceId) {
       return;
     }
-    const thread = useThreadStore.getState().byId(threadId);
-    if (!thread) {
+    if (!useThreadStore.getState().byId(threadId)) {
       return;
     }
-    useIdeStore.getState().openThread(workspaceId, thread.agentId, threadId);
+    useIdeStore.getState().openThread(workspaceId, threadAgentId, threadId);
     if (useDeskStore.getState().focusedThreadId !== threadId) {
       useDeskStore.getState().setFocusedThreadId(threadId);
     }
-    setActiveThreadId(thread.agentId, threadId);
+    setActiveThreadId(threadAgentId, threadId);
     // Handoff keeps the thread route; only `?agent=` (or missing origin) tracks current.
-    if ((threadOrigin === 'agent' || threadOrigin === null) && originEntityId !== thread.agentId) {
+    if ((threadOrigin === 'agent' || threadOrigin === null) && originEntityId !== threadAgentId) {
       void navigate(
-        studioPath.thread(workspaceId, threadId, { kind: 'agent', id: thread.agentId }),
+        studioPath.thread(workspaceId, threadId, { kind: 'agent', id: threadAgentId }),
         { replace: true },
       );
     }

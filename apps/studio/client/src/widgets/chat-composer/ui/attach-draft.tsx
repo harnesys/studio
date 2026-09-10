@@ -16,7 +16,7 @@ export function AttachDraft({
     <div className="flex flex-wrap gap-2 px-3 pt-3">
       {files.map((file, index) => (
         <DraftChip
-          key={`${file.name}-${file.size}-${index}`}
+          key={`${file.name}:${file.size}:${file.lastModified}`}
           file={file}
           onRemove={() => onRemove(index)}
         />

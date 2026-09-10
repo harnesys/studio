@@ -124,18 +124,21 @@ export function ThemeProvider({
     setAccentState(nextAccent);
   };
 
-  const applyTheme = (nextTheme: Theme) => {
-    const root = document.documentElement;
-    const resolvedTheme = nextTheme === 'system' ? getSystemTheme() : nextTheme;
-    const restoreTransitions = disableTransitionOnChange ? disableTransitionsTemporarily() : null;
+  const applyTheme = React.useCallback(
+    (nextTheme: Theme) => {
+      const root = document.documentElement;
+      const resolvedTheme = nextTheme === 'system' ? getSystemTheme() : nextTheme;
+      const restoreTransitions = disableTransitionOnChange ? disableTransitionsTemporarily() : null;
 
-    root.classList.remove('light', 'dark');
-    root.classList.add(resolvedTheme);
+      root.classList.remove('light', 'dark');
+      root.classList.add(resolvedTheme);
 
-    if (restoreTransitions) {
-      restoreTransitions();
-    }
-  };
+      if (restoreTransitions) {
+        restoreTransitions();
+      }
+    },
+    [disableTransitionOnChange],
+  );
 
   React.useEffect(() => {
     const root = document.documentElement;

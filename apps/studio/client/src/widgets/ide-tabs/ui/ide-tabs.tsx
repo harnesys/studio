@@ -57,7 +57,7 @@ export function IdeGroupTabs({
     if (box.left < view.left || box.right > view.right) {
       el.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
     }
-  }, [group?.activeId]);
+  }, []);
 
   if (!group) {
     return null;

@@ -28,7 +28,7 @@ Superpower-скилы — не ритуал на каждый чих. Там, г
 Не вытаскивай поле через индекс: `ModelRecord['cost']`, `Agent['quota']`, `Parameters<typeof fn>[0]`.
 Заведи именованный тип (`ModelCost`, `AgentQuota`) рядом с записью и импортируй его. Алиасы — обёртки, а не копия знания: источник правды остаётся запись.
 
-Biome плагин `plugins/no-indexed-access-type.grit` (корень монорепо) ловит `T['field']` и `T["field"]`.
+Biome плагин `lint/plugins` (корень монорепо) ловит `T['field']` и `T["field"]`.
 `Parameters<typeof fn>[0]` и `(typeof CONST)[number]` линтер не видит, но тоже не пиши: заведи тип аргумента или назови союз.
 
 `T[K]` в дженерике по ключу допустимо.

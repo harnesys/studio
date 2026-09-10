@@ -11,7 +11,8 @@
   "scripts": {
     "docs:merge": "bun run scripts/docs-merge.ts",
     "lint": "biome check .",
-    "lint:fix": "biome check --write --unsafe ."
+    "lint:fix": "biome check --write --unsafe .",
+    "typecheck": "bun run --cwd packages/harnesys typecheck && bun run --cwd apps/studio typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.6",

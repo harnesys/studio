@@ -1,5 +1,4 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/entities/agent';
 import { useScheduleStore } from '@/entities/schedule';
@@ -36,13 +35,12 @@ export function useAgentThreads(agentId: string | null) {
 }
 
 export function useThreadEvents(threadId: string | null) {
-  const epoch = useSessionStore((state) => (threadId ? (state.contentEpoch[threadId] ?? 0) : 0));
-  return useMemo(() => {
+  return useSessionStore((state) => {
     if (!threadId) {
       return EMPTY_EVENTS;
     }
-    return useSessionStore.getState().events[threadId] ?? EMPTY_EVENTS;
-  }, [threadId, epoch]);
+    return state.events[threadId] ?? EMPTY_EVENTS;
+  });
 }
 
 export function useWorkspaceSchedules(workspaceId: string | null) {

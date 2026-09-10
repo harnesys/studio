@@ -1,5 +1,5 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { MemoryRecord, SemanticScope } from '@harnesys/studio-shared';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
 import type { DialogComponentProps } from '@/shared/services/overlay';

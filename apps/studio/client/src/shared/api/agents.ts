@@ -56,8 +56,8 @@ export type AgentPresetRecord = {
   capabilities?: Record<string, PackConfig | null>;
 };
 
-export function listAgents() {
-  return apiJson<AgentRecord[]>('/api/agents');
+export function listAgents(workspaceId: string) {
+  return apiJson<AgentRecord[]>(`/api/workspaces/${workspaceId}/agents`);
 }
 
 export function listAgentPresets() {

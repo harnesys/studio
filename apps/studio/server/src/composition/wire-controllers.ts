@@ -237,7 +237,7 @@ export function wireControllers(d: ControllerDeps): void {
   });
 
   new ThreadController({
-    listThreads: new ListThreadsUseCase(d.threadRepo, d.workspaceRepo, d.agentRepo),
+    listThreads: new ListThreadsUseCase(d.threadRepo, d.workspaceRepo, d.agentRepo, d.lifecycle),
     getThread: d.getThread,
     getThreadPlan: d.getThreadPlan,
     createThread: new CreateThreadUseCase(d.threadRepo, d.agentRepo, d.workspaceRepo),

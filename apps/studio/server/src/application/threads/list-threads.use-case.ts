@@ -1,7 +1,9 @@
 import type { ThreadSummary } from '@harnesys/studio-shared';
+import type { RunLifecycleStore } from 'harnesys';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
+import { activeRunOf } from './active-run-record.ts';
 import { pinnedFields, readFields, runModeFields } from './thread.helpers.ts';
 
 export type ListThreadsRequest = {
@@ -17,20 +19,23 @@ export class ListThreadsUseCase implements ListThreadsInput {
     private readonly threads: ThreadRepository,
     private readonly workspaces: WorkspaceRepository,
     private readonly agents: AgentRepository,
+    private readonly lifecycle?: RunLifecycleStore,
   ) {}
 
-  execute(request?: ListThreadsRequest): Promise<ThreadSummary[]> {
+  async execute(request?: ListThreadsRequest): Promise<ThreadSummary[]> {
     const workspaceId = request?.workspaceId ?? this.workspaces.list()[0]?.id;
     if (!workspaceId) {
-      return Promise.resolve([]);
+      return [];
     }
     const ws = this.workspaces.findById(workspaceId);
     if (!ws) {
-      return Promise.resolve([]);
+      return [];
     }
-    return Promise.resolve(
-      this.threads.listByWorkspace(workspaceId).map((t) => {
+    const rows = this.threads.listByWorkspace(workspaceId);
+    return await Promise.all(
+      rows.map(async (t) => {
         const agent = this.agents.findById(t.agentId);
+        const active = this.lifecycle ? await this.lifecycle.activeByThread(t.id) : null;
         return {
           id: t.id,
           title: t.title,
@@ -47,6 +52,7 @@ export class ListThreadsUseCase implements ListThreadsInput {
           ...readFields(t),
           ...pinnedFields(t),
           ...runModeFields(t),
+          activeRun: activeRunOf(active),
         };
       }),
     );

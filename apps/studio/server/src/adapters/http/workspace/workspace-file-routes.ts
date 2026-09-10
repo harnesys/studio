@@ -161,6 +161,36 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
   });
 
+  app.get('/api/desk/watch', (c) => {
+    c.header('Cache-Control', 'no-cache, no-transform');
+    c.header('X-Accel-Buffering', 'no');
+    c.header('Connection', 'keep-alive');
+
+    return streamSSE(c, async (stream) => {
+      const keepAlive = setInterval(() => {
+        void stream.write(':\n\n').catch(() => {});
+      }, SSE_KEEP_ALIVE_MS);
+
+      const unsubscribe = deps.deskEvents.subscribeAll((event) => {
+        void stream
+          .writeSSE({
+            event: 'desk',
+            data: JSON.stringify(event),
+          })
+          .catch(() => {});
+      });
+
+      stream.onAbort(() => {
+        clearInterval(keepAlive);
+        unsubscribe();
+      });
+
+      await new Promise<void>((resolve) => {
+        stream.onAbort(resolve);
+      });
+    });
+  });
+
   app.get('/api/workspaces/:id/desk/watch', async (c) => {
     const wsId = c.req.param('id');
     const workspaces = await deps.listWorkspaces.execute();

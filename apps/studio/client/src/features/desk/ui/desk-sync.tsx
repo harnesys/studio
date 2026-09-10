@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import { useAgentStore } from '@/entities/agent';
@@ -18,29 +18,42 @@ export function DeskSync() {
   const navigate = useNavigate();
   const { surface, threadId, threadOrigin, originEntityId, agentId } = useStudioLocation();
   const workspacesQuery = useWorkspaces();
-  const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
+  const workspaceIds = useMemo(
+    () => workspacesQuery.data?.map((item) => item.id) ?? [],
+    [workspacesQuery.data],
+  );
+  const visibleReady = useDeskStore((state) =>
+    workspaceId ? state.hydrated[workspaceId] === 'ready' : false,
+  );
 
   useLayoutEffect(() => {
     if (!workspaceId) {
       return;
     }
-    useDeskStore.getState().setHydratedWorkspaceId(null);
-    void hydrateDesk(workspaceId);
+    void hydrateDesk(workspaceId).catch(() => {});
   }, [workspaceId]);
 
   useEffect(() => {
-    if (!workspaceId) {
+    if (workspacesQuery.status !== 'success') {
       return;
     }
-    return watchDesk(workspaceId, applyDeskEvent);
-  }, [workspaceId]);
+    for (const id of workspaceIds) {
+      void hydrateDesk(id).catch(() => {});
+    }
+    const known = new Set(workspaceIds);
+    for (const id of Object.keys(useDeskStore.getState().hydrated)) {
+      if (!known.has(id)) {
+        useDeskStore.getState().setHydrateStatus(id, null);
+      }
+    }
+  }, [workspaceIds, workspacesQuery.status]);
 
   useEffect(() => {
-    if (
-      !workspaceId ||
-      workspacesQuery.status === 'pending' ||
-      hydratedWorkspaceId !== workspaceId
-    ) {
+    return watchDesk(applyDeskEvent);
+  }, []);
+
+  useEffect(() => {
+    if (!workspaceId || workspacesQuery.status === 'pending' || !visibleReady) {
       return;
     }
     const hasWorkspace = workspacesQuery.data?.some((item) => item.id === workspaceId) ?? false;
@@ -74,7 +87,7 @@ export function DeskSync() {
     agentId,
     threadOrigin,
     originEntityId,
-    hydratedWorkspaceId,
+    visibleReady,
     workspacesQuery.status,
     workspacesQuery.data,
     navigate,

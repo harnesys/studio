@@ -1,35 +1,47 @@
 import { toClientAgent, useAgentStore } from '@/entities/agent';
 import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
-import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { toClientWebhook, useWebhookStore } from '@/entities/webhook';
-import { getThread, listAgents, listSchedules, listThreads, listWebhooks } from '@/shared/api';
+import { listAgents, listSchedules, listThreads, listWebhooks } from '@/shared/api';
 import { useDeskStore } from './desk.store';
 
-export async function hydrateDesk(workspaceId: string) {
+const inflight = new Map<string, Promise<void>>();
+
+export function hydrateDesk(workspaceId: string): Promise<void> {
+  if (useDeskStore.getState().hydrated[workspaceId] === 'ready') {
+    return Promise.resolve();
+  }
+  const running = inflight.get(workspaceId);
+  if (running) {
+    return running;
+  }
+  useDeskStore.getState().setHydrateStatus(workspaceId, 'pending');
+  const task = loadDesk(workspaceId)
+    .then(() => {
+      useDeskStore.getState().setHydrateStatus(workspaceId, 'ready');
+    })
+    .catch((error: unknown) => {
+      useDeskStore.getState().setHydrateStatus(workspaceId, null);
+      throw error;
+    })
+    .finally(() => {
+      if (inflight.get(workspaceId) === task) {
+        inflight.delete(workspaceId);
+      }
+    });
+  inflight.set(workspaceId, task);
+  return task;
+}
+
+async function loadDesk(workspaceId: string): Promise<void> {
   const [agents, summaries, schedules, webhooks] = await Promise.all([
-    listAgents(),
-    listThreads(),
+    listAgents(workspaceId),
+    listThreads(workspaceId),
     listSchedules(workspaceId),
     listWebhooks(workspaceId),
   ]);
-  const workspaceAgents = agents
-    .filter((item) => item.workspaceId === workspaceId)
-    .map(toClientAgent);
-  useAgentStore.getState().replaceWorkspace(workspaceId, workspaceAgents);
-
-  const records = await Promise.all(
-    summaries.filter((item) => item.workspaceId === workspaceId).map((item) => getThread(item.id)),
-  );
-  useThreadStore.getState().replaceWorkspace(workspaceId, records.map(toClientThread));
-  const live = useSessionStore.getState().activeRuns;
-  for (const record of records) {
-    if (live[record.id]) {
-      continue;
-    }
-    useSessionStore.getState().replaceEvents(record.id, record.events);
-  }
+  useAgentStore.getState().replaceWorkspace(workspaceId, agents.map(toClientAgent));
+  useThreadStore.getState().replaceWorkspace(workspaceId, summaries.map(toClientThread));
   useScheduleStore.getState().replaceWorkspace(workspaceId, schedules.map(toClientSchedule));
   useWebhookStore.getState().replaceWorkspace(workspaceId, webhooks.map(toClientWebhook));
-  useDeskStore.getState().setHydratedWorkspaceId(workspaceId);
 }

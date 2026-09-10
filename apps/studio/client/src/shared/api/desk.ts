@@ -1,15 +1,13 @@
 import type { DeskEvent } from '@harnesys/studio-shared';
 
-export function watchDesk(workspaceId: string, onEvent: (event: DeskEvent) => void): () => void {
-  const source = new EventSource(`/api/workspaces/${workspaceId}/desk/watch`);
-  source.addEventListener('desk', (message: MessageEvent<string>) => {
+import { watchEventSource } from './sse';
+
+export function watchDesk(onEvent: (event: DeskEvent) => void): () => void {
+  return watchEventSource('/api/desk/watch', 'desk', (data) => {
     try {
-      onEvent(JSON.parse(message.data) as DeskEvent);
+      onEvent(JSON.parse(data) as DeskEvent);
     } catch {
       // ignore malformed frames
     }
   });
-  return () => {
-    source.close();
-  };
 }

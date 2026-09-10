@@ -1,6 +1,7 @@
 import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 
 import { ApiError, apiJson } from './client';
+import { watchEventSource } from './sse';
 
 export function listWorkspaceFiles(workspaceId: string, subPath = '') {
   const params = subPath ? `?path=${encodeURIComponent(subPath)}` : '';
@@ -56,11 +57,7 @@ export function writeWorkspaceFileContent(
 }
 
 export function watchWorkspaceFiles(workspaceId: string, onEvent: () => void): () => void {
-  const es = new EventSource(`/api/workspaces/${workspaceId}/files/watch`);
-  es.addEventListener('fs-change', () => {
+  return watchEventSource(`/api/workspaces/${workspaceId}/files/watch`, 'fs-change', () => {
     onEvent();
   });
-  return () => {
-    es.close();
-  };
 }

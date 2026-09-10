@@ -2,6 +2,7 @@ export { useAgentsSlideStore } from './model/agents-slide.store';
 export {
   type AgentFileTab,
   type AgentOpenFiles,
+  type DeskHydrateStatus,
   type InspectorTab,
   useDeskStore,
   type WorkspaceFileTab,

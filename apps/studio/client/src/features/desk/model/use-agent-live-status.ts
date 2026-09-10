@@ -5,22 +5,20 @@ import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 
 export function useAgentLiveStatus(agentId: string): AgentStatus {
-  const threadIds = useThreadStore(
-    useShallow((state) =>
-      state.items.filter((item) => item.agentId === agentId).map((item) => item.id),
-    ),
+  const threads = useThreadStore(
+    useShallow((state) => state.items.filter((item) => item.agentId === agentId)),
   );
   return useSessionStore((state) => {
     let running = false;
-    for (const threadId of threadIds) {
-      if (state.activeRuns[threadId]) {
+    for (const thread of threads) {
+      if (state.activeRuns[thread.id] || thread.activeRunId) {
         running = true;
       }
-      const events = state.events[threadId];
+      const events = state.events[thread.id];
       if (events !== undefined && isWaiting(events)) {
         return 'waiting';
       }
-      if (!state.activeRuns[threadId] && events !== undefined && hasRunningSession(events)) {
+      if (!state.activeRuns[thread.id] && events !== undefined && hasRunningSession(events)) {
         running = true;
       }
     }

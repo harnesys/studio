@@ -57,6 +57,10 @@ export class ThreadController {
       return c.json(await this.deps.listThreads.execute());
     });
 
+    app.get('/api/workspaces/:id/threads', async (c) => {
+      return c.json(await this.deps.listThreads.execute({ workspaceId: c.req.param('id') }));
+    });
+
     app.post('/api/threads', async (c) => {
       const body = createThreadBody.parse(await c.req.json());
       const thread = await this.deps.createThread.execute({

@@ -25,6 +25,10 @@ export class AgentController {
       return c.json(await this.deps.listAgents.execute());
     });
 
+    app.get('/api/workspaces/:id/agents', async (c) => {
+      return c.json(await this.deps.listAgents.execute({ workspaceId: c.req.param('id') }));
+    });
+
     app.get('/api/agent-presets', (c) => {
       return c.json(this.deps.listAgentPresets.execute());
     });

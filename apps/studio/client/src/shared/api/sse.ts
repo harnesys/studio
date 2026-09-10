@@ -43,6 +43,67 @@ export async function* readSse(response: Response): AsyncGenerator<SseFrame> {
   }
 }
 
+type EventSourceConnection = {
+  source: EventSource;
+  refs: number;
+  listeners: Map<string, Set<(data: string) => void>>;
+  attached: Set<string>;
+};
+
+const eventSources = new Map<string, EventSourceConnection>();
+
+/** Shared EventSource per URL. Last unsubscribe closes the socket. */
+export function watchEventSource(
+  url: string,
+  event: string,
+  onData: (data: string) => void,
+): () => void {
+  let conn = eventSources.get(url);
+  if (!conn) {
+    conn = {
+      source: new EventSource(url),
+      refs: 0,
+      listeners: new Map(),
+      attached: new Set(),
+    };
+    eventSources.set(url, conn);
+  }
+  conn.refs += 1;
+  let set = conn.listeners.get(event);
+  if (!set) {
+    set = new Set();
+    conn.listeners.set(event, set);
+  }
+  set.add(onData);
+  if (!conn.attached.has(event)) {
+    conn.attached.add(event);
+    const name = event;
+    conn.source.addEventListener(name, (message: Event) => {
+      const current = eventSources.get(url);
+      if (!current) {
+        return;
+      }
+      const payload = (message as MessageEvent<string>).data;
+      for (const handler of current.listeners.get(name) ?? []) {
+        handler(payload);
+      }
+    });
+  }
+  return () => {
+    const current = eventSources.get(url);
+    if (!current) {
+      return;
+    }
+    current.listeners.get(event)?.delete(onData);
+    current.refs -= 1;
+    if (current.refs > 0) {
+      return;
+    }
+    current.source.close();
+    eventSources.delete(url);
+  };
+}
+
 function parseBlock(block: string): SseFrame | undefined {
   let event = 'message';
   const data: string[] = [];

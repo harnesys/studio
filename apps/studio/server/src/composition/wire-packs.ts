@@ -82,7 +82,12 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
   // Base packs need no ports and never read the scope; the stub mirrors the
   // library auto-registration (create-runtime dedupes by pack name, first wins).
   const stubScope = () => ({ workspaceId: '_', agentId: '_', threadId: '_' });
-  const listThreads = new ListThreadsUseCase(deps.threads, deps.workspaces, deps.agents);
+  const listThreads = new ListThreadsUseCase(
+    deps.threads,
+    deps.workspaces,
+    deps.agents,
+    deps.lifecycle,
+  );
   const listSchedules = new ListSchedulesUseCase(deps.schedules, deps.workspaces);
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
   const createAgent = new CreateAgentUseCase(deps.agents, deps.models);

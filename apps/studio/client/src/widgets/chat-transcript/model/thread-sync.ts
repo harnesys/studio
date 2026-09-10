@@ -8,14 +8,13 @@ import { connectThreadRun } from '@/features/send-message';
 const TERMINAL_RUN_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
 /**
- * Cache-first thread readiness. Events already hydrated render immediately
- * (no skeleton flash on tab switches, no refetch on history open).
- * Fetches only when the store has nothing and hydrate settled; reconnects
- * a live server run known from the last full record.
+ * Cache-first thread readiness. Events already in the session store render
+ * immediately. Fetches the full record when the store has nothing and desk
+ * hydrate settled; reconnects a live server run from that record.
  */
 export function useSyncedThread(threadId: string, workspaceId: string): boolean {
   const hasEvents = useSessionStore((state) => threadId in state.events);
-  const hydrated = useDeskStore((state) => state.hydratedWorkspaceId === workspaceId);
+  const hydrated = useDeskStore((state) => state.hydrated[workspaceId] === 'ready');
   const liveRunId = useThreadStore(
     (state) => state.items.find((item) => item.id === threadId)?.activeRunId ?? null,
   );

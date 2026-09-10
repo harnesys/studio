@@ -18,7 +18,9 @@ import { useIdeStore } from './ide.store';
 export function useIdeSync() {
   const navigate = useNavigate();
   const { workspaceId, threadId, filePath, threadOrigin, originEntityId } = useStudioLocation();
-  const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
+  const deskReady = useDeskStore((state) =>
+    workspaceId ? state.hydrated[workspaceId] === 'ready' : false,
+  );
   const threadAgentId = useThreadStore((state) =>
     threadId ? (state.byId(threadId)?.agentId ?? null) : null,
   );
@@ -30,7 +32,7 @@ export function useIdeSync() {
     if (filePath) {
       useIdeStore.getState().openFile(workspaceId, filePath);
     }
-    if (!threadId || !threadAgentId || hydratedWorkspaceId !== workspaceId) {
+    if (!threadId || !threadAgentId || !deskReady) {
       return;
     }
     if (!useThreadStore.getState().byId(threadId)) {
@@ -53,7 +55,7 @@ export function useIdeSync() {
     threadId,
     threadAgentId,
     filePath,
-    hydratedWorkspaceId,
+    deskReady,
     threadOrigin,
     originEntityId,
     navigate,

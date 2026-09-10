@@ -70,5 +70,6 @@ export function toSummary(thread: ThreadRecord): ThreadSummary {
     unread: thread.unread,
     pinned: thread.pinned,
     runMode: thread.runMode,
+    activeRun: thread.activeRun,
   };
 }

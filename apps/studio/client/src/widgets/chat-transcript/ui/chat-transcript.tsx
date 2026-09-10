@@ -16,8 +16,9 @@ import { ThreadPanel } from './thread-panel';
 
 export function ChatTranscript() {
   const { workspaceId } = useStudioLocation();
-  const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
-  const isHydrating = Boolean(workspaceId && hydratedWorkspaceId !== workspaceId);
+  const isHydrating = useDeskStore(
+    (state) => Boolean(workspaceId) && state.hydrated[workspaceId ?? ''] !== 'ready',
+  );
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
   const threads = useAgentThreads(agent?.id ?? null);

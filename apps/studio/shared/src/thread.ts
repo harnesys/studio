@@ -57,6 +57,7 @@ export type ThreadSummary = Pick<
   | 'unread'
   | 'pinned'
   | 'runMode'
+  | 'activeRun'
 >;
 
 /** Threads where the agent is origin or current speaker. */

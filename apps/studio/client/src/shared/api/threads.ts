@@ -18,8 +18,8 @@ export type CreateThreadInput = {
   parentThreadId?: string;
   forkAt?: string;
 };
-export function listThreads() {
-  return apiJson<ThreadSummary[]>('/api/threads');
+export function listThreads(workspaceId: string) {
+  return apiJson<ThreadSummary[]>(`/api/workspaces/${workspaceId}/threads`);
 }
 
 export function getThread(id: string) {

@@ -46,7 +46,7 @@ export function SpawnView({
   const events = useThreadEvents(threadId);
   const seenAt = useSessionStore((state) => state.seenAt[threadId]);
   const hasEvents = events.length > 0;
-  const hydratedWorkspaceId = useDeskStore((state) => state.hydratedWorkspaceId);
+  const deskReady = useDeskStore((state) => state.hydrated[tab.workspaceId] === 'ready');
   const openSpawnTab = useOpenSpawnTab();
 
   const { spawns } = extractSpawns(events, seenAt);
@@ -67,11 +67,11 @@ export function SpawnView({
   // A restored spawn tab has no URL and the parent thread's journal loads
   // only when that thread's panel mounts — fetch it here once if missing.
   useEffect(() => {
-    if (hasEvents || hydratedWorkspaceId !== tab.workspaceId) {
+    if (hasEvents || !deskReady) {
       return;
     }
     void refreshThread(threadId).catch(() => {});
-  }, [hasEvents, hydratedWorkspaceId, tab.workspaceId, threadId]);
+  }, [hasEvents, deskReady, threadId]);
 
   const running = spawn?.status === 'running';
   useSpawnStream(threadId, spawnId, running);

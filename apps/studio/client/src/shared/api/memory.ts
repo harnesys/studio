@@ -15,6 +15,7 @@ import type {
 import { queryOptions } from '@tanstack/react-query';
 
 import { apiJson } from './client';
+import { watchEventSource } from './sse';
 
 export type UpsertPinBody = {
   text: string;
@@ -198,17 +199,17 @@ export function watchKnowledgeIndexState(
   workspaceId: string,
   onState: (state: KnowledgeIndexState) => void,
 ): () => void {
-  const source = new EventSource(`/api/workspaces/${workspaceId}/knowledge/index-state/stream`);
-  source.addEventListener('index-state', (message: MessageEvent<string>) => {
-    try {
-      onState(JSON.parse(message.data) as KnowledgeIndexState);
-    } catch {
-      // ignore malformed frames
-    }
-  });
-  return () => {
-    source.close();
-  };
+  return watchEventSource(
+    `/api/workspaces/${workspaceId}/knowledge/index-state/stream`,
+    'index-state',
+    (data) => {
+      try {
+        onState(JSON.parse(data) as KnowledgeIndexState);
+      } catch {
+        // ignore malformed frames
+      }
+    },
+  );
 }
 
 export function getKnowledgeStats(workspaceId: string) {

@@ -1,13 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
 import { providersQuery } from '@/shared/api';
-import { cn } from '@/shared/lib/utils';
 import { type DialogComponentProps, patchOverlayOptions } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
@@ -29,15 +27,17 @@ import { AgentConfigCategoryPanes } from './agent-config-category-panes';
 import {
   AGENT_CONFIG_CATEGORIES,
   type AgentConfigCategory,
-  ConfigNavDivider,
+  AgentConfigCategoryNav,
+  GraphContentNavToggle,
 } from './agent-config-nav';
 
 export type { AgentConfigCategory } from './agent-config-nav';
 export { AGENT_CONFIG_CATEGORIES } from './agent-config-nav';
 
 const GRAPH_DIALOG_CLASS =
-  'flex min-h-0 h-[min(78vh,48rem)] w-[min(80vw,64rem)] max-w-[min(80vw,64rem)] sm:max-w-[min(80vw,64rem)] overflow-hidden';
-const DEFAULT_DIALOG_CLASS = 'sm:max-w-3xl';
+  'flex min-h-0 h-[min(90vh,768px)] w-[min(90vw,1024px)] max-w-[min(90vw,1024px)] sm:max-w-[min(90vw,1024px)] overflow-hidden';
+const DEFAULT_DIALOG_CLASS =
+  'flex min-h-0 h-[min(78vh,48rem)] w-full max-w-3xl sm:max-w-3xl overflow-hidden';
 
 function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
   return {
@@ -111,6 +111,8 @@ export function AgentConfigDialog({
   function selectCategory(next: AgentConfigCategory) {
     if (next === 'graph') {
       graphTouchedRef.current = true;
+    } else {
+      setNavOpen(true);
     }
     setCategory(next);
   }
@@ -173,7 +175,6 @@ export function AgentConfigDialog({
     setFocusAgentId(delegate.id);
     loadAgentEditors(delegate);
     setCategory('identity');
-    setNavOpen(true);
   }
 
   async function backFromSubagent() {
@@ -194,8 +195,21 @@ export function AgentConfigDialog({
     setFocusAgentId(parentId);
     loadAgentEditors(parent);
     setCategory('subagents');
-    setNavOpen(true);
   }
+
+  const categoryNavProps = {
+    categories: navCategories,
+    category,
+    onSelect: selectCategory,
+    backLabel: returnParentId
+      ? `Back${returnParent?.name ? ` to ${returnParent.name}` : ''}`
+      : null,
+    onBack: returnParentId
+      ? () => {
+          void backFromSubagent();
+        }
+      : undefined,
+  };
 
   return (
     <form
@@ -220,58 +234,31 @@ export function AgentConfigDialog({
         onResolve?.(buildResult(values));
       })}
     >
-      <div className="flex min-h-0 min-w-0 flex-1">
-        {navOpen ? (
-          <nav className="flex w-40 shrink-0 flex-col gap-0.5 pr-1">
-            {returnParentId ? (
-              <button
-                type="button"
-                onClick={() => {
-                  void backFromSubagent();
-                }}
-                className="mb-1 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-sidebar-accent/50 hover:text-foreground"
-                data-testid="agent-config-back"
-              >
-                <ArrowLeftIcon className="size-3.5 shrink-0" />
-                Back{returnParent?.name ? ` to ${returnParent.name}` : ''}
-              </button>
-            ) : null}
-            {navCategories.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => selectCategory(item.id)}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm',
-                  category === item.id
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-muted-foreground hover:bg-sidebar-accent/50',
-                )}
-              >
-                <item.icon className="size-3.5 shrink-0" />
-                {item.label}
-              </button>
-            ))}
-          </nav>
+      <div className="flex min-h-0 min-w-0 flex-1 gap-4">
+        {category !== 'graph' || navOpen ? (
+          <AgentConfigCategoryNav {...categoryNavProps} className="pr-1" />
         ) : null}
 
-        <ConfigNavDivider open={navOpen} onToggle={() => setNavOpen((open) => !open)} />
-
-        <AgentConfigCategoryPanes
-          category={category}
-          form={form}
-          workspaceId={workspaceId}
-          activeAgent={activeAgent}
-          showSubagents={showSubagents}
-          graphDoc={graphDoc}
-          graphDocRef={graphDocRef}
-          graphTouchedRef={graphTouchedRef}
-          setGraphDoc={setGraphDoc}
-          capabilitiesRef={capabilitiesRef}
-          onOpenSubagent={(delegate) => {
-            void openSubagent(delegate);
-          }}
-        />
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+          {category === 'graph' ? (
+            <GraphContentNavToggle open={navOpen} onToggle={() => setNavOpen((open) => !open)} />
+          ) : null}
+          <AgentConfigCategoryPanes
+            category={category}
+            form={form}
+            workspaceId={workspaceId}
+            activeAgent={activeAgent}
+            showSubagents={showSubagents}
+            graphDoc={graphDoc}
+            graphDocRef={graphDocRef}
+            graphTouchedRef={graphTouchedRef}
+            setGraphDoc={setGraphDoc}
+            capabilitiesRef={capabilitiesRef}
+            onOpenSubagent={(delegate) => {
+              void openSubagent(delegate);
+            }}
+          />
+        </div>
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={() => onResolve?.()}>

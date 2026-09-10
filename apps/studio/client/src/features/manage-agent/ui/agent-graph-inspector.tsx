@@ -28,7 +28,7 @@ export function AgentGraphInspector({
   onChangeEdge,
 }: AgentGraphInspectorProps) {
   return (
-    <aside className="agent-graph-inspector flex h-full w-64 shrink-0 flex-col overflow-hidden border-border border-l bg-popover">
+    <aside className="agent-graph-inspector flex h-full min-h-0 w-full flex-col overflow-hidden">
       <div className="border-border border-b px-2.5 py-1.5">
         <p className="font-medium text-[10px] text-muted-foreground uppercase tracking-[0.08em]">
           Inspector

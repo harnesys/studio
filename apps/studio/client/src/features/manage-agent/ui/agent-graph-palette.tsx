@@ -21,7 +21,7 @@ export function AgentGraphPalette({ onAdd }: AgentGraphPaletteProps) {
   const byGroup = groupPalette(paletteSpecs());
 
   return (
-    <aside className="flex h-full w-48 shrink-0 flex-col gap-2 overflow-y-auto border-border border-r bg-popover px-1.5 py-1.5">
+    <aside className="flex h-full min-h-0 w-full flex-col gap-2 overflow-y-auto px-1.5 py-1.5">
       {GRAPH_GROUP_ORDER.map((group) => {
         const items = byGroup.get(group);
         if (!items || items.length === 0) {

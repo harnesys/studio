@@ -137,8 +137,8 @@ export function AgentGraphCanvas({
   );
 
   return (
-    <div className="agent-graph-flow relative min-h-0 min-w-0 flex-1">
-      <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 rounded-md border border-border bg-popover p-1 shadow-sm">
+    <div className="agent-graph-flow absolute inset-0 min-h-0 min-w-0">
+      <div className="pointer-events-auto absolute right-[17rem] bottom-2 z-20 flex items-center gap-1.5">
         <Button type="button" size="xs" variant="outline" className="h-6" onClick={runAutoLayout}>
           Auto
         </Button>

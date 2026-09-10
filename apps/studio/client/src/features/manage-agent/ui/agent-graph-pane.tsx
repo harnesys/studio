@@ -202,8 +202,7 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
   );
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden rounded-md border border-border">
-      <AgentGraphPalette onAdd={(type) => addNode(type)} />
+    <div className="relative min-h-0 w-full min-w-0 flex-1 overflow-hidden rounded-md border border-border">
       <AgentGraphCanvas
         nodes={nodes}
         edges={edges}
@@ -214,13 +213,20 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
         onDropType={(type, position) => addNode(type, position)}
         onSelectionChange={onSelectionChange}
       />
-      <AgentGraphInspector
-        selection={selection}
-        diagnostics={diagnostics}
-        onChangeNode={onChangeNode}
-        onRenameNode={onRenameNode}
-        onChangeEdge={onChangeEdge}
-      />
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <div className="pointer-events-auto absolute top-2 bottom-2 left-2 flex min-h-0 w-48 flex-col overflow-hidden rounded-lg border border-border/80 bg-popover/95 shadow-md backdrop-blur-sm">
+          <AgentGraphPalette onAdd={(type) => addNode(type)} />
+        </div>
+        <div className="pointer-events-auto absolute top-2 right-2 bottom-2 flex min-h-0 w-64 flex-col overflow-hidden rounded-lg border border-border/80 bg-popover/95 shadow-md backdrop-blur-sm">
+          <AgentGraphInspector
+            selection={selection}
+            diagnostics={diagnostics}
+            onChangeNode={onChangeNode}
+            onRenameNode={onRenameNode}
+            onChangeEdge={onChangeEdge}
+          />
+        </div>
+      </div>
     </div>
   );
 }

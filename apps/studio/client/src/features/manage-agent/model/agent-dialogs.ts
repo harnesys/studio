@@ -6,7 +6,7 @@ import { AgentConfigDialog } from '../ui/agent-config-dialog';
 export function openAgentConfigDialog(agent: Agent | null, workspaceId: string) {
   return dialog.open(AgentConfigDialog, {
     title: agent ? `Configure ${agent.name}` : 'New agent',
-    className: 'sm:max-w-3xl',
+    className: 'flex min-h-0 h-[min(78vh,48rem)] w-full max-w-3xl sm:max-w-3xl overflow-hidden',
     testId: 'agent-config-dialog',
     data: { agent, workspaceId },
   });

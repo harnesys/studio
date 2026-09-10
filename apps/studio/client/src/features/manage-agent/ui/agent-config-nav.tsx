@@ -1,4 +1,5 @@
 import {
+  ArrowLeftIcon,
   BotIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -25,11 +26,13 @@ export type AgentConfigCategory =
   | 'limits'
   | 'subagents';
 
-export const AGENT_CONFIG_CATEGORIES: {
+export type AgentConfigNavItem = {
   id: AgentConfigCategory;
   label: string;
   icon: LucideIcon;
-}[] = [
+};
+
+export const AGENT_CONFIG_CATEGORIES: AgentConfigNavItem[] = [
   { id: 'identity', label: 'Identity', icon: UserRoundIcon },
   { id: 'model', label: 'Model', icon: CpuIcon },
   { id: 'graph', label: 'Graph', icon: WorkflowIcon },
@@ -41,28 +44,76 @@ export const AGENT_CONFIG_CATEGORIES: {
   { id: 'subagents', label: 'Subagents', icon: BotIcon },
 ];
 
-export function ConfigNavDivider({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+export type AgentConfigCategoryNavProps = {
+  categories: AgentConfigNavItem[];
+  category: AgentConfigCategory;
+  onSelect: (category: AgentConfigCategory) => void;
+  backLabel?: string | null;
+  onBack?: () => void;
+  className?: string;
+};
+
+export function AgentConfigCategoryNav({
+  categories,
+  category,
+  onSelect,
+  backLabel,
+  onBack,
+  className,
+}: AgentConfigCategoryNavProps) {
   return (
-    <div
-      className="group/divider relative mx-1 flex w-3 shrink-0 items-stretch justify-center"
-      data-testid="agent-config-nav-divider"
+    <nav
+      className={cn('flex w-40 shrink-0 flex-col gap-0.5', className)}
+      data-testid="agent-config-nav"
     >
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/25 transition-colors duration-150 group-hover/divider:bg-border/80" />
-      <button
-        type="button"
-        onClick={onToggle}
-        title={open ? 'Hide sections' : 'Show sections'}
-        className={cn(
-          'relative z-10 my-auto flex size-5 items-center justify-center rounded-full',
-          'border border-border/30 bg-background text-muted-foreground/40 shadow-sm',
-          'opacity-40 transition-[opacity,color,border-color,background-color] duration-150',
-          'hover:border-border hover:bg-muted hover:text-foreground hover:opacity-100',
-          'group-hover/divider:text-muted-foreground group-hover/divider:opacity-100',
-          'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        )}
-      >
-        {open ? <ChevronLeftIcon className="size-3" /> : <ChevronRightIcon className="size-3" />}
-      </button>
-    </div>
+      {backLabel != null && onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-1 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-sidebar-accent/50 hover:text-foreground"
+          data-testid="agent-config-back"
+        >
+          <ArrowLeftIcon className="size-3.5 shrink-0" />
+          {backLabel}
+        </button>
+      ) : null}
+      {categories.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onSelect(item.id)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm',
+            category === item.id
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+              : 'text-muted-foreground hover:bg-sidebar-accent/50',
+          )}
+        >
+          <item.icon className="size-3.5 shrink-0" />
+          {item.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+/** Chevron on the graph content box left edge — toggles the dialog category nav. */
+export function GraphContentNavToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={open ? 'Hide sections' : 'Show sections'}
+      data-testid="agent-config-graph-nav-toggle"
+      className={cn(
+        'absolute top-1/2 left-0 z-20 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full',
+        'border border-border/40 bg-popover/95 text-muted-foreground/50 shadow-md backdrop-blur-sm',
+        'opacity-50 transition-[opacity,color,border-color] duration-150',
+        'hover:border-border hover:text-foreground hover:opacity-100',
+        'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+      )}
+    >
+      {open ? <ChevronLeftIcon className="size-3" /> : <ChevronRightIcon className="size-3" />}
+    </button>
   );
 }

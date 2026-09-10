@@ -1,9 +1,13 @@
+/* left panel: inset 0.5rem + w-48; right panel: inset 0.5rem + w-64; gap to buttons = 0.5rem */
 .agent-graph-flow .react-flow__controls {
+  left: 13rem;
+  bottom: 0.5rem;
+  margin: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: none;
-  background: var(--popover);
+  background: color-mix(in oklab, var(--popover) 95%, transparent);
 }
 
 .agent-graph-flow .react-flow__controls-button {

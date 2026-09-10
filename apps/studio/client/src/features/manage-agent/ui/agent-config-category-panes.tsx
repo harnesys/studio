@@ -49,7 +49,7 @@ export function AgentConfigCategoryPanes({
   return (
     <div
       className={cn(
-        'min-h-0 min-w-0 flex-1',
+        'flex min-h-0 min-w-0 flex-1 flex-col',
         category === 'graph' ? 'overflow-hidden' : 'overflow-y-auto pr-1',
       )}
     >
@@ -112,7 +112,7 @@ export function AgentConfigCategoryPanes({
         ) : null}
       </div>
       {category === 'graph' ? (
-        <div className="flex h-full min-h-0 min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <AgentGraphPane
             value={graphDoc}
             onChange={(next) => {

@@ -1,7 +1,19 @@
 import type { SessionEvent, SessionEventType } from '@studio/shared';
 import { create } from 'zustand';
 
-import { coalesceStreamDeltas, mergeIncomingEvent, streamDeltaKey } from './coalesce-events';
+import {
+  coalesceStreamDeltas,
+  mergeDeltaContinuation,
+  mergeIncomingEvent,
+} from './coalesce-events';
+import {
+  bumpCeil,
+  ceilFromEvents,
+  eventKey,
+  fillSeenAt,
+  stableEventKey,
+  stableKeys,
+} from './event-keys';
 
 export type ActiveRun = {
   runId: string;
@@ -18,6 +30,8 @@ type SessionStoreState = {
   events: Record<string, SessionEvent[]>;
   /** Первый замеченный arrival-метка по ключу события в треде. История её не имеет. */
   seenAt: Record<string, Record<string, number>>;
+  /** Принятый максимум seq по ранам треда: дедуп at-least-once доставки фида. */
+  seqCeil: Record<string, Record<string, number>>;
   activeRuns: Record<string, ActiveRun>;
   failures: RunFailure[];
   contentEpoch: Record<string, number>;
@@ -42,67 +56,9 @@ type SessionStoreActions = {
 
 const EMPTY_EVENTS: SessionEvent[] = [];
 
-let timestampCounter = 0;
-
 /** Throttle read-sync epoch bumps during token spam. */
 const EPOCH_DELTA_MS = 400;
 const lastEpochBump: Record<string, number> = {};
-
-/** Стабильный ключ события для arrival-меток и слияния; переиспользуется в spawn-groups. */
-export function stableEventKey(ev: SessionEvent): string | undefined {
-  if ('clientEventId' in ev && ev.clientEventId) {
-    return `ce:${ev.clientEventId}`;
-  }
-  const deltaKey = streamDeltaKey(ev);
-  if (deltaKey) {
-    return deltaKey;
-  }
-  if (ev.runId !== undefined && ev.seq !== undefined) {
-    return `${ev.runId}:${ev.seq}`;
-  }
-  return undefined;
-}
-
-/**
- * Ключ события со счётчиковым фолбэком для событий без стабильного
- * идентификатора. Фолбэк нестабилен (новый ключ при каждом вызове),
- * поэтому для arrival-меток использовать только `stableEventKey`.
- */
-export function eventKey(ev: SessionEvent): string {
-  return stableEventKey(ev) ?? `t:${timestampCounter++}`;
-}
-
-/** Стабильные ключи пачки событий; события без ключа в arrival-метки не попадают. */
-function stableKeys(events: SessionEvent[]): string[] {
-  const keys: string[] = [];
-  for (const ev of events) {
-    const key = stableEventKey(ev);
-    if (key !== undefined) {
-      keys.push(key);
-    }
-  }
-  return keys;
-}
-
-/** Добивает arrival-метки для ключей, которых ещё нет; first-seen не перетирается. */
-function fillSeenAt(
-  prev: Record<string, Record<string, number>>,
-  threadId: string,
-  keys: string[],
-  now: number,
-): Record<string, Record<string, number>> {
-  const threadSeen = prev[threadId];
-  let next: Record<string, number> | undefined;
-  for (const key of keys) {
-    if (threadSeen?.[key] === undefined && next?.[key] === undefined) {
-      next = { ...threadSeen, ...next, [key]: now };
-    }
-  }
-  if (next === undefined) {
-    return prev;
-  }
-  return { ...prev, [threadId]: next };
-}
 
 function isStreamDeltaType(type: SessionEventType): boolean {
   return type === 'text-delta' || type === 'reasoning-delta';
@@ -127,6 +83,7 @@ function nextEpoch(
 export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => ({
   events: {},
   seenAt: {},
+  seqCeil: {},
   activeRuns: {},
   failures: [],
   contentEpoch: {},
@@ -141,6 +98,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     set((state) => ({
       events: { ...state.events, [threadId]: coalesced },
       seenAt: fillSeenAt(state.seenAt, threadId, stableKeys(coalesced), now),
+      seqCeil: { ...state.seqCeil, [threadId]: ceilFromEvents(events) },
       contentEpoch: { ...state.contentEpoch, [threadId]: now },
     }));
   },
@@ -151,20 +109,28 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       const existing = state.events[threadId] ?? EMPTY_EVENTS;
       // Слияние по ключу сохраняет порядок вставки: позицию держит первое
       // вхождение (optimistic или live), серверная строка подменяет значение.
-      // Delta-слоты склеены: один ключ на (type, runId, id), текст конкатенируется.
+      // Delta-слот якорится seq первого токена блока, поэтому блоки с
+      // переиспользованным id (txt-0) не схлопываются в один.
       const byKey = new Map<string, SessionEvent>();
       for (const ev of existing) {
         byKey.set(eventKey(ev), ev);
       }
       // Полный серверный лог — источник правды: delta-слоты уже склеены,
       // подмена по ключу, без конкатенации с live-копией (иначе удвоение текста).
-      for (const ev of coalesceStreamDeltas(serverEvents)) {
+      const serverCoalesced = coalesceStreamDeltas(serverEvents);
+      for (const ev of serverCoalesced) {
         byKey.set(eventKey(ev), ev);
       }
       const merged = [...byKey.values()];
+      const ceil = ceilFromEvents(serverEvents);
+      const prevCeil = state.seqCeil[threadId] ?? {};
+      for (const [runId, seq] of Object.entries(prevCeil)) {
+        ceil[runId] = Math.max(ceil[runId] ?? 0, seq);
+      }
       return {
         events: { ...state.events, [threadId]: merged },
         seenAt: fillSeenAt(state.seenAt, threadId, stableKeys(merged), now),
+        seqCeil: { ...state.seqCeil, [threadId]: ceil },
         contentEpoch: { ...state.contentEpoch, [threadId]: now },
       };
     });
@@ -174,14 +140,15 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     const now = Date.now();
     set((state) => {
       const current = state.events[threadId] ?? [];
-      const key = eventKey(event);
-      // Live deltas almost always extend the tail slot — check it before O(n) scan.
-      const lastIndex = current.length - 1;
-      const tail = lastIndex >= 0 ? current[lastIndex] : undefined;
-      const index =
-        tail && eventKey(tail) === key
-          ? lastIndex
-          : current.findIndex((ev) => eventKey(ev) === key);
+      // Контракт фида — at-least-once; устаревший повтор кадра того же рана
+      // не должен ни склеиваться в слот, ни открывать новый.
+      if (
+        event.runId !== undefined &&
+        event.seq !== undefined &&
+        event.seq <= (state.seqCeil[threadId]?.[event.runId] ?? 0)
+      ) {
+        return state;
+      }
       const seenKey = stableEventKey(event);
       const seenAt = fillSeenAt(
         state.seenAt,
@@ -189,10 +156,28 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         seenKey === undefined ? [] : [seenKey],
         now,
       );
+      const seqCeil = bumpCeil(state.seqCeil, threadId, event);
+      const tail = current.length > 0 ? current[current.length - 1] : undefined;
+      // Дельта продлевает только хвостовой слот. Новый блок с переиспользованным
+      // id (следующий шаг генерации) открывает свой слот в конце ленты,
+      // а не уезжает в старый — из-за этого текст и «прокидывался наверх».
+      if (tail !== undefined && isStreamDeltaType(event.type)) {
+        const merged = mergeDeltaContinuation(tail, event);
+        const next = merged !== null ? [...current.slice(0, -1), merged] : [...current, event];
+        return {
+          events: { ...state.events, [threadId]: next },
+          seenAt,
+          seqCeil,
+          contentEpoch: nextEpoch(state, threadId, event.type),
+        };
+      }
+      const key = eventKey(event);
+      const index = current.findIndex((ev) => eventKey(ev) === key);
       if (index === -1) {
         return {
           events: { ...state.events, [threadId]: [...current, event] },
           seenAt,
+          seqCeil,
           contentEpoch: nextEpoch(state, threadId, event.type),
         };
       }
@@ -201,6 +186,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       return {
         events: { ...state.events, [threadId]: next },
         seenAt,
+        seqCeil,
         contentEpoch: nextEpoch(state, threadId, event.type),
       };
     });
@@ -300,16 +286,18 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     set((state) => {
       const events = { ...state.events };
       const seenAt = { ...state.seenAt };
+      const seqCeil = { ...state.seqCeil };
       const activeRuns = { ...state.activeRuns };
       const contentEpoch = { ...state.contentEpoch };
       for (const id of threadIds) {
         delete events[id];
         delete seenAt[id];
+        delete seqCeil[id];
         delete activeRuns[id];
         delete contentEpoch[id];
         delete lastEpochBump[id];
       }
-      return { events, seenAt, activeRuns, contentEpoch };
+      return { events, seenAt, seqCeil, activeRuns, contentEpoch };
     });
   },
 
@@ -317,11 +305,15 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     const source = get().events[fromThreadId];
     if (source) {
       const sourceSeen = get().seenAt[fromThreadId];
+      const sourceCeil = get().seqCeil[fromThreadId];
       set((state) => ({
         events: { ...state.events, [toThreadId]: [...source] },
         ...(sourceSeen === undefined
           ? {}
           : { seenAt: { ...state.seenAt, [toThreadId]: { ...sourceSeen } } }),
+        ...(sourceCeil === undefined
+          ? {}
+          : { seqCeil: { ...state.seqCeil, [toThreadId]: { ...sourceCeil } } }),
       }));
     }
   },

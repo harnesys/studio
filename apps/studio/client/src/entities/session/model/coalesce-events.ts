@@ -9,17 +9,50 @@ function isStreamDelta(event: SessionEvent): event is StreamDelta {
   return event.type === 'text-delta' || event.type === 'reasoning-delta';
 }
 
-/** Stable slot for a streaming text/reasoning block (ignores per-token seq). */
-export function streamDeltaKey(event: SessionEvent): string | null {
-  if (!isStreamDelta(event) || !event.runId || !event.id) {
+/**
+ * Стабильный слот стримингового блока. Считается от первого токена блока
+ * (`slotSeq`), поэтому переиспользование моделью одного id на несколько
+ * блоков (`txt-0` шаг за шагом) не склеивает разные блоки в один слот.
+ */
+export function streamDeltaKey(event: SessionEvent, slotSeq: number): string | null {
+  if (!isStreamDelta(event) || !event.runId || event.id === undefined) {
     return null;
   }
-  return `${event.type}:${event.runId}:${event.id}`;
+  return `${event.type}:${event.runId}:${event.id}:${slotSeq}`;
 }
 
+/** true, если incoming продолжает open-блок existing (тот же тип, ран и id блока). */
+export function continuesDelta(existing: SessionEvent, incoming: SessionEvent): boolean {
+  return (
+    isStreamDelta(existing) &&
+    isStreamDelta(incoming) &&
+    existing.type === incoming.type &&
+    existing.id !== undefined &&
+    existing.id === incoming.id &&
+    existing.runId !== undefined &&
+    existing.runId === incoming.runId
+  );
+}
+
+/** Конкатенация токенов блока; `null`, если это не продолжение дельты. */
+export function mergeDeltaContinuation(
+  existing: SessionEvent,
+  incoming: SessionEvent,
+): SessionEvent | null {
+  if (!isStreamDelta(existing) || !isStreamDelta(incoming) || !continuesDelta(existing, incoming)) {
+    return null;
+  }
+  return mergeDelta(existing, incoming);
+}
+
+/**
+ * Склейка токенов блока: поля берёт первый токен (стабильные `seq`/`id`),
+ * текст конкатенируется. Иначе слот «уезжает» по seq и перестаёт
+ * совпадать с серверным блоком при reconcile.
+ */
 function mergeDelta(existing: StreamDelta, incoming: StreamDelta): StreamDelta {
   return {
-    ...incoming,
+    ...existing,
     text: existing.text + incoming.text,
   };
 }
@@ -36,17 +69,9 @@ export function coalesceStreamDeltas(events: SessionEvent[]): SessionEvent[] {
   const out: SessionEvent[] = [];
   for (const event of events) {
     const last = out[out.length - 1];
-    if (
-      last &&
-      isStreamDelta(last) &&
-      isStreamDelta(event) &&
-      last.type === event.type &&
-      last.id !== undefined &&
-      last.id === event.id &&
-      last.runId !== undefined &&
-      last.runId === event.runId
-    ) {
-      out[out.length - 1] = mergeDelta(last, event);
+    const merged = last ? mergeDeltaContinuation(last, event) : null;
+    if (merged) {
+      out[out.length - 1] = merged;
       continue;
     }
     out.push(event);
@@ -59,17 +84,8 @@ export function mergeIncomingEvent(
   existing: SessionEvent | undefined,
   incoming: SessionEvent,
 ): SessionEvent {
-  if (
-    existing &&
-    isStreamDelta(existing) &&
-    isStreamDelta(incoming) &&
-    existing.type === incoming.type &&
-    existing.id !== undefined &&
-    existing.id === incoming.id &&
-    existing.runId !== undefined &&
-    existing.runId === incoming.runId
-  ) {
-    return mergeDelta(existing, incoming);
+  if (!existing) {
+    return incoming;
   }
-  return incoming;
+  return mergeDeltaContinuation(existing, incoming) ?? incoming;
 }

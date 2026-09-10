@@ -43,6 +43,16 @@ function isToolTerminal(event: SessionEvent): boolean {
   );
 }
 
+/**
+ * Кадры-карточки ленты публикуются перед долгим await (спавн детей, handoff)
+ * и не являются tool-терминалами. Без немедленного flush они висят в pending
+ * до сброса батча, и переподключившийся клиент попадает в окно «шина мимо,
+ * journal ещё не дописан» — карточка теряется live до конца рана.
+ */
+function isJournalBoundaryCard(event: SessionEvent): boolean {
+  return event.type === 'agent.spawned' || event.type === 'agent.handoff';
+}
+
 function messageOf(err: unknown): string {
   if (err instanceof Error && err.message) {
     return err.message;
@@ -289,7 +299,11 @@ export async function runSegment(
         continue;
       }
       ctx.pending.push(admit(env, runId, mapped));
-      if (ctx.pending.length >= JOURNAL_BATCH || isToolTerminal(mapped)) {
+      if (
+        ctx.pending.length >= JOURNAL_BATCH ||
+        isToolTerminal(mapped) ||
+        isJournalBoundaryCard(mapped)
+      ) {
         if (!(await flushJournal(env, ctx))) {
           return;
         }

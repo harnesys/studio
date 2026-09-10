@@ -1,0 +1,54 @@
+import { join } from 'node:path';
+import { bootstrap } from '../adapters/store/sqlite/bootstrap.ts';
+import { createSqliteConnection, type StudioDb } from '../adapters/store/sqlite/connection.ts';
+import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
+import { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
+import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
+import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
+import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
+import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
+import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
+import { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
+import { DB_FILE, defaultHomePath } from '../adapters/store/studio-layout.ts';
+
+export type StudioStoreOptions = {
+  db?: StudioDb;
+};
+
+export type StudioStore = {
+  home: string;
+  db: StudioDb;
+  /** true when caller injected db (skip schedule ticker bootstrap side-effects). */
+  externalDb: boolean;
+  workspaceRepo: SqliteWorkspaceRepo;
+  agentRepo: SqliteAgentRepo;
+  llmProviderRepo: SqliteLlmProviderRepo;
+  llmModelRepo: SqliteLlmModelRepo;
+  scheduleRepo: SqliteScheduleRepo;
+  webhookRepo: SqliteWebhookRepo;
+  threadRepo: SqliteThreadRepo;
+  attachmentRepo: SqliteAttachmentRepo;
+};
+
+export function createStudioStore(options: StudioStoreOptions = {}): StudioStore {
+  const home = defaultHomePath();
+  const externalDb = options.db !== undefined;
+  const db = options.db ?? createSqliteConnection(join(home, DB_FILE));
+  if (!externalDb) {
+    bootstrap(db);
+  }
+
+  return {
+    home,
+    db,
+    externalDb,
+    workspaceRepo: new SqliteWorkspaceRepo(db),
+    agentRepo: new SqliteAgentRepo(db),
+    llmProviderRepo: new SqliteLlmProviderRepo(db),
+    llmModelRepo: new SqliteLlmModelRepo(db),
+    scheduleRepo: new SqliteScheduleRepo(db),
+    webhookRepo: new SqliteWebhookRepo(db),
+    threadRepo: new SqliteThreadRepo(db),
+    attachmentRepo: new SqliteAttachmentRepo(db),
+  };
+}

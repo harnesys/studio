@@ -24,8 +24,6 @@ import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.t
 import type { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
 import { ThreadSessionsAdapter } from '../adapters/thread-sessions.adapter.ts';
 import type { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter.ts';
-import type { WorkspaceAdapter } from '../adapters/workspace/workspace.adapter.ts';
-import type { WorkspaceFilesAdapter } from '../adapters/workspace/workspace-files.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
 import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
 import { CreateAgentFromPresetUseCase } from '../application/agents/create-agent-from-preset.use-case.ts';
@@ -94,6 +92,8 @@ import { UpdateWorkspaceUseCase } from '../application/workspaces/update-workspa
 import { UpsertWorkspaceMcpServerUseCase } from '../application/workspaces/upsert-workspace-mcp-server.use-case.ts';
 import { WriteWorkspaceFileContentUseCase } from '../application/workspaces/write-workspace-file-content.use-case.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
+import type { WorkspacePort } from '../domain/workspace.port.ts';
+import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
 
 type ControllerDeps = {
@@ -107,8 +107,8 @@ type ControllerDeps = {
   webhookRepo: SqliteWebhookRepo;
   threadRepo: SqliteThreadRepo;
   attachmentRepo: SqliteAttachmentRepo;
-  workspace: WorkspaceAdapter;
-  workspaceFiles: WorkspaceFilesAdapter;
+  workspace: WorkspacePort;
+  workspaceFiles: WorkspaceFilesPort;
   filesWatcher: FilesWatcherAdapter;
   git: GitCliAdapter;
   deskEvents: DeskEventsAdapter;

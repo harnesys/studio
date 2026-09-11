@@ -95,6 +95,7 @@ export function createStudioHost(args: {
         agents: store.agentRepo,
         modelRepo: store.llmModelRepo,
         providerRepo: store.llmProviderRepo,
+        plugins: store.pluginRepo,
       },
       {
         lifecycle: runtime.runLifecycle,

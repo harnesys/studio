@@ -19,6 +19,7 @@ import { GitPane } from './git-pane';
 import { McpPane } from './mcp-pane';
 import { MemoryPane } from './memory-pane';
 import { ModelsPane } from './models-pane';
+import { PluginsPane } from './plugins-pane';
 import { SkillsPane } from './skills-pane';
 import { ToolsPane } from './tools-pane';
 
@@ -72,6 +73,7 @@ export function SettingsPage() {
               active === 'providers' ||
                 active === 'skills' ||
                 active === 'mcp' ||
+                active === 'plugins' ||
                 active === 'memory' ||
                 active === 'tools'
                 ? 'max-w-3xl'
@@ -129,6 +131,8 @@ function SettingsPane({ category }: { category: SettingsCategory }) {
       return <SkillsPane />;
     case 'mcp':
       return <McpPane />;
+    case 'plugins':
+      return <PluginsPane />;
     case 'tools':
       return <ToolsPane />;
     case 'memory':

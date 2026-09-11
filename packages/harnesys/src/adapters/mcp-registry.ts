@@ -156,7 +156,13 @@ function toServerConfig(id: string, entry: StdioEntry | UrlEntry): McpServerConf
   if ('command' in entry) {
     return {
       serverId: id,
-      transport: { type: 'stdio', command: entry.command, args: entry.args, env: entry.env },
+      transport: {
+        type: 'stdio',
+        command: entry.command,
+        args: entry.args,
+        env: entry.env,
+        cwd: entry.cwd,
+      },
     };
   }
   return {

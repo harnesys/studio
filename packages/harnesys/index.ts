@@ -47,6 +47,20 @@ export type { ResolvedPack } from './src/application/packs/registry.ts';
 export { resolvePacks } from './src/application/packs/registry.ts';
 export type { PackCatalogEntry } from './src/application/packs/tool-names.ts';
 export { packCatalog, packTools } from './src/application/packs/tool-names.ts';
+export { runPluginHookCommand } from './src/application/plugins/hooks-runner.ts';
+export {
+  buildPluginSkillRegistries,
+  mergePluginMcpFragments,
+} from './src/application/plugins/merge-plugin-runtime.ts';
+export { prefixSkillRegistry } from './src/application/plugins/prefixed-skill-registry.ts';
+export type {
+  CreatePluginSessionStartNotesOptions,
+  PluginSessionStartSource,
+} from './src/application/plugins/session-start-notes.ts';
+export {
+  createPluginSessionStartNotes,
+  parseSessionStartContext,
+} from './src/application/plugins/session-start-notes.ts';
 export type { RunClaimer } from './src/application/run-claimer.ts';
 export { createRunClaimer } from './src/application/run-claimer.ts';
 export { createRunEngine } from './src/application/run-engine.ts';
@@ -57,6 +71,7 @@ export type {
 } from './src/application/run-engine-types.ts';
 export type { RunEventFeed } from './src/application/run-event-feed.ts';
 export { createRunEventFeed } from './src/application/run-event-feed.ts';
+export { composeSkillRegistries } from './src/application/skills/compose-skill-registries.ts';
 export { createLoadSkillTool } from './src/application/skills/create-load-skill-tool.ts';
 export { parseSkillFile } from './src/application/skills/parse-skill-file.ts';
 export { filterSkills, formatSkillsCatalog } from './src/application/skills/skills-catalog.ts';
@@ -136,6 +151,22 @@ export type {
 export { definePack, normalizePackAssignment, registerPack } from './src/domain/pack.ts';
 export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan.ts';
 export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from './src/domain/plan.ts';
+export type {
+  Plugin,
+  PluginAgentRef,
+  PluginAuthor,
+  PluginCommandRef,
+  PluginExtensions,
+  PluginHookCommand,
+  PluginHookEvent,
+  PluginLoadDiagnostic,
+  PluginManifest,
+  PluginMcpServer,
+  PluginName,
+  PluginSchemaVersion,
+  PluginSkillRef,
+  PluginSourceFormat,
+} from './src/domain/plugin.ts';
 export type {
   Command,
   RunCancelled,
@@ -253,6 +284,15 @@ export type { PathsConfig } from './src/ports/paths.ts';
 export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
 export { DEFAULT_PERMISSIONS, resolveToolPermission } from './src/ports/permissions.ts';
 export type { PlanItem, PlanPort, PlanSaveItemInput, PlanSnapshot } from './src/ports/plan.ts';
+export type {
+  LoadPluginFromDirectoryOptions,
+  LoadPluginResult,
+  PluginLoader,
+  RunPluginHookCommandFail,
+  RunPluginHookCommandOk,
+  RunPluginHookCommandOptions,
+  RunPluginHookCommandResult,
+} from './src/ports/plugins.ts';
 export type {
   PendingSessionEvent,
   RunEventStore,

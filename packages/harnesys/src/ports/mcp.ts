@@ -6,6 +6,7 @@ export type StdioEntry = {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  cwd?: string;
   enabled?: boolean;
 };
 

@@ -30,6 +30,7 @@ export function registerStudioHttp(args: {
     webhookRepo: store.webhookRepo,
     threadRepo: store.threadRepo,
     attachmentRepo: store.attachmentRepo,
+    pluginRepo: store.pluginRepo,
     workspace: platform.workspace,
     workspaceFiles: platform.workspaceFiles,
     filesWatcher: platform.filesWatcher,

@@ -10,6 +10,7 @@ export * from './knowledge-settings.ts';
 export * from './llm-models.ts';
 export * from './llm-providers.ts';
 export * from './plans.ts';
+export * from './plugins.ts';
 export * from './run-events.ts';
 export * from './runs.ts';
 export * from './schedules.ts';

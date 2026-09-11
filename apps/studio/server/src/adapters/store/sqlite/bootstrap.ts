@@ -176,6 +176,18 @@ export function bootstrap(db: StudioDb): void {
     );`,
     `CREATE INDEX IF NOT EXISTS run_events_client_idx ON run_events(thread_id, client_event_id);`,
     `CREATE INDEX IF NOT EXISTS attachments_thread_idx ON attachments(thread_id);`,
+    `CREATE TABLE IF NOT EXISTS plugins (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      source TEXT NOT NULL,
+      revision TEXT NOT NULL,
+      path TEXT NOT NULL,
+      data_path TEXT NOT NULL,
+      trusted INTEGER NOT NULL DEFAULT 0,
+      enabled_workspace_ids TEXT NOT NULL DEFAULT '[]',
+      installed_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );`,
   ];
 
   for (const statement of statements) {

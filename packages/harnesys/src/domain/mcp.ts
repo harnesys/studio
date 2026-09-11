@@ -3,6 +3,7 @@ export type McpStdioTransport = {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  cwd?: string;
 };
 
 export type McpHttpTransport = {

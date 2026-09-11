@@ -18,6 +18,7 @@ function buildTransport(config: McpServerConfig) {
       command: string;
       args?: string[];
       env?: Record<string, string>;
+      cwd?: string;
       stderr?: 'inherit' | 'ignore' | 'pipe' | number;
     } = { command: transport.command, stderr: 'ignore' };
     if (transport.args !== undefined) {
@@ -25,6 +26,9 @@ function buildTransport(config: McpServerConfig) {
     }
     if (transport.env !== undefined) {
       options.env = { ...transport.env };
+    }
+    if (transport.cwd !== undefined) {
+      options.cwd = transport.cwd;
     }
     return new Experimental_StdioMCPTransport(options);
   }

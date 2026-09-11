@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import {
   ATTACHMENTS_DIR,
   HOME_DIR_NAME,
+  PLUGINS_DATA_DIR,
+  PLUGINS_DIR,
   SKILLS_DIR,
   STUDIO_DIR,
   STUDIO_DIR_LEGACY,
@@ -15,6 +17,8 @@ export {
   ATTACHMENTS_DIR,
   DB_FILE,
   HOME_DIR_NAME,
+  PLUGINS_DATA_DIR,
+  PLUGINS_DIR,
   SKILLS_DIR,
   STUDIO_DIR,
   STUDIO_DIR_LEGACY,
@@ -91,4 +95,17 @@ export function defaultWorkspacePath(home: string, name: string): string {
 
 export function attachmentsDir(workspacePath: string, threadId: string): string {
   return join(studioDir(workspacePath), 'threads', threadId, ATTACHMENTS_DIR);
+}
+
+/** Host-wide plugin checkouts (`~/.harnesys/plugins`). */
+export function pluginsPath(home: string = defaultHomePath()): string {
+  return join(home, PLUGINS_DIR);
+}
+
+export function pluginInstallPath(home: string, name: string): string {
+  return join(home, PLUGINS_DIR, name);
+}
+
+export function pluginDataPath(home: string, name: string): string {
+  return join(home, PLUGINS_DATA_DIR, name);
 }

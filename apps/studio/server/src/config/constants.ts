@@ -13,6 +13,10 @@ export const WORKSPACES_DIR = 'workspaces';
 export const ATTACHMENTS_DIR = 'attachments';
 /** Skills folder name under host home and under workspace meta. */
 export const SKILLS_DIR = 'skills';
+/** Host-wide plugin checkouts (`~/.harnesys/plugins/<name>`). */
+export const PLUGINS_DIR = 'plugins';
+/** Per-plugin PLUGIN_DATA (`~/.harnesys/plugins-data/<name>`). */
+export const PLUGINS_DATA_DIR = 'plugins-data';
 export const DB_FILE = 'studio.db';
 /** NDJSON trace logs: `<home>/logs/studio-YYYY-MM-DD.log`. */
 export const LOGS_DIR = 'logs';
@@ -58,6 +62,7 @@ export const ASK_TTL_DEFAULT_MS = 7 * 24 * 3600 * 1000;
 export const DEFAULT_SCHEDULE_TICK_INTERVAL_MS = 15_000;
 export const KNOWLEDGE_WATCH_ENSURE_INTERVAL_MS = 30_000;
 export const GIT_TIMEOUT_MS = 5000;
+export const PLUGIN_HOOK_TIMEOUT_MS = 10_000;
 export const GIT_SLOW_THRESHOLD_MS = 800;
 export const CLAIMER_SWEEP_MS = 5_000;
 export const KNOWLEDGE_INDEX_SLOW_FILE_MS = 5000;

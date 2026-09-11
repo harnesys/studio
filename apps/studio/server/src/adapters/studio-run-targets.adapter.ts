@@ -1,5 +1,6 @@
 import type { PackRegistration, RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
-import { packTools } from 'harnesys';
+import { createPluginSessionStartNotes, packTools } from 'harnesys';
+import { PLUGIN_HOOK_TIMEOUT_MS } from '../config/constants.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { BranchStateSeeder } from '../domain/branch-state-seeder.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
@@ -80,6 +81,17 @@ export class StudioRunTargets implements RunTargets {
     for (const t of agentTools) {
       registry.set(t.name, t);
     }
+    const enabledPlugins = await this.deps.workspaceHarnesys.loadEnabledPlugins(thread.workspaceId);
+    const notes = [
+      createPluginSessionStartNotes({
+        plugins: enabledPlugins.map(({ plugin, record }) => ({
+          plugin,
+          trusted: record.trusted,
+          pluginData: record.dataPath,
+        })),
+        timeoutMs: PLUGIN_HOOK_TIMEOUT_MS,
+      }),
+    ];
     return {
       state,
       agent,
@@ -88,6 +100,7 @@ export class StudioRunTargets implements RunTargets {
       packs: registrations,
       toolRegistry: registry,
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
+      notes,
     };
   }
 

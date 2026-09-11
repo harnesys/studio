@@ -101,6 +101,19 @@ export {
   visiblePlanModeText,
 } from './src/plan-mode-prompt.ts';
 export type {
+  EnableWorkspacePluginRequest,
+  InstallPluginRequest,
+  PluginListItem,
+  PluginLoadDiagnostic,
+  PluginMutationResponse,
+  PluginName,
+  PluginRecord,
+  PluginSourceFormat,
+  PluginSummary,
+  RemovePluginRequest,
+  TrustPluginRequest,
+} from './src/plugin.ts';
+export type {
   ImportProvidersRequest,
   ImportProvidersSummary,
   ProviderExportBundle,

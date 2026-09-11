@@ -1,0 +1,35 @@
+import type { PluginName } from '@harnesys/studio-shared';
+import { removePluginPath } from '../../adapters/plugin-git.adapter.ts';
+import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
+import type { PluginRepository } from '../../domain/plugin.port.ts';
+import { NotFoundError } from '../../domain/studio.error.ts';
+import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+
+export type RemovePluginRequest = {
+  name: PluginName;
+  deleteData?: boolean;
+};
+
+export type RemovePluginInput = {
+  execute(request: RemovePluginRequest): Promise<void>;
+};
+
+export class RemovePluginUseCase implements RemovePluginInput {
+  constructor(
+    private readonly plugins: PluginRepository,
+    private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
+  ) {}
+
+  async execute(request: RemovePluginRequest): Promise<void> {
+    const current = this.plugins.findByName(request.name);
+    if (!current) {
+      throw new NotFoundError('plugin not found');
+    }
+    this.plugins.delete(request.name);
+    await removePluginPath(current.path);
+    if (request.deleteData === true) {
+      await removePluginPath(current.dataPath);
+    }
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, current.enabledWorkspaceIds);
+  }
+}

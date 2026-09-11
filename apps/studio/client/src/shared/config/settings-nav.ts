@@ -5,6 +5,7 @@ export const SETTINGS_CATEGORIES = [
   'providers',
   'skills',
   'mcp',
+  'plugins',
   'tools',
   'memory',
   'git',
@@ -53,6 +54,11 @@ export const SETTINGS_GROUPS = [
         id: 'mcp' as const,
         label: 'MCP',
         description: 'Model Context Protocol servers in `.harnesys/mcp.json`.',
+      },
+      {
+        id: 'plugins' as const,
+        label: 'Plugins',
+        description: 'Agent Plugins installed under `~/.harnesys/plugins`.',
       },
       {
         id: 'tools' as const,

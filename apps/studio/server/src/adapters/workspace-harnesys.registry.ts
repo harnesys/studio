@@ -8,6 +8,7 @@ import type {
   ModelsPort,
   PackAssignment,
   PackRegistration,
+  Plugin,
   RunClaimer,
   RunEventFeed,
   RunEventStore,
@@ -16,15 +17,19 @@ import type {
 } from 'harnesys';
 import {
   askUser,
+  buildPluginSkillRegistries,
+  composeSkillRegistries,
   createRuntime,
   graphMap,
   type Logger,
+  mergePluginMcpFragments,
   normalizePackAssignment,
   wait,
 } from 'harnesys';
-import { FsSkillRegistry } from 'harnesys/adapters/node';
+import { FsSkillRegistry, loadPluginFromDirectory } from 'harnesys/adapters/node';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
+import type { PluginInstallRecord, PluginRepository } from '../domain/plugin.port.ts';
 import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
@@ -34,6 +39,7 @@ export type WorkspaceHarnesysRepos = {
   agents?: AgentRepository;
   modelRepo?: LlmModelRepository;
   providerRepo?: LlmProviderRepository;
+  plugins?: PluginRepository;
 };
 
 export type WorkspaceRuntimeWiring = {
@@ -43,6 +49,12 @@ export type WorkspaceRuntimeWiring = {
   claimer: RunClaimer;
   instanceId: string;
   logger?: Logger;
+};
+
+export type LoadedWorkspacePlugin = {
+  record: PluginInstallRecord;
+  plugin: Plugin;
+  mcp: CursorMcpJson;
 };
 
 export class WorkspaceHarnesysRegistry {
@@ -98,21 +110,53 @@ export class WorkspaceHarnesysRegistry {
     return [...this.packRegistrations];
   }
 
-  private create(workspace: Workspace): Promise<RuntimeHandle> {
+  async loadEnabledPlugins(workspaceId: string): Promise<LoadedWorkspacePlugin[]> {
+    const repo = this.repos.plugins;
+    if (repo === undefined) {
+      return [];
+    }
+    const enabled = repo
+      .list()
+      .filter((record) => record.enabledWorkspaceIds.includes(workspaceId));
+    const loaded: LoadedWorkspacePlugin[] = [];
+    for (const record of enabled) {
+      try {
+        const result = await loadPluginFromDirectory({
+          root: record.path,
+          pluginData: record.dataPath,
+        });
+        loaded.push({ record, plugin: result.plugin, mcp: result.mcp });
+      } catch {
+        // skip failed loads; diagnostics surface via plugin list API
+      }
+    }
+    return loaded;
+  }
+
+  private async create(workspace: Workspace): Promise<RuntimeHandle> {
     let mcpJson: CursorMcpJson;
     try {
       mcpJson = { mcpServers: readWorkspaceMcpJson(workspace.path) };
     } catch (err) {
-      return Promise.reject(new ValidationError(err instanceof Error ? err.message : String(err)));
+      throw new ValidationError(err instanceof Error ? err.message : String(err));
     }
     if (this.runtime === undefined) {
-      return Promise.reject(
-        new ValidationError('WorkspaceHarnesysRegistry requires runtime wiring (lifecycle+events)'),
+      throw new ValidationError(
+        'WorkspaceHarnesysRegistry requires runtime wiring (lifecycle+events)',
       );
     }
-    const skills = new FsSkillRegistry({
+    const enabledPlugins = await this.loadEnabledPlugins(workspace.id);
+    const fsSkills = new FsSkillRegistry({
       roots: skillRegistryRoots(workspace.path),
     });
+    const skills = composeSkillRegistries([
+      fsSkills,
+      ...buildPluginSkillRegistries(enabledPlugins.map((entry) => entry.plugin)),
+    ]);
+    const mcp = mergePluginMcpFragments(
+      mcpJson,
+      enabledPlugins.map((entry) => entry.mcp),
+    );
     return createRuntime({
       models: this.models,
       // files/shell/fetch come from the base packs in packRegistrations;
@@ -127,7 +171,7 @@ export class WorkspaceHarnesysRegistry {
             name: a.name,
           })),
       },
-      mcp: mcpJson,
+      mcp,
       paths: { allow: [workspace.path], cwd: workspace.path },
       skills,
       ...this.runtime,

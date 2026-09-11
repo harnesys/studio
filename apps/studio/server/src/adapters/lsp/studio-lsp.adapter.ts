@@ -1,4 +1,4 @@
-import { extname } from 'node:path';
+import { extname, join } from 'node:path';
 import type { PluginLspServer } from 'harnesys';
 import type { LspDiagnostic, LspHover, LspLocation, LspPort } from 'harnesys/lsp';
 import { StdioLspSession } from './stdio-lsp-session.ts';
@@ -6,6 +6,11 @@ import { StdioLspSession } from './stdio-lsp-session.ts';
 export type StudioLspAdapterDeps = {
   /** Resolve LSP server configs for a workspace cwd. */
   resolveServers: (cwd: string) => PluginLspServer[] | Promise<PluginLspServer[]>;
+  /**
+   * Called once per workspace when the first session starts. The host uses it to
+   * subscribe the FS watcher so external edits are pushed into open documents.
+   */
+  onSessionOpened?: (cwd: string, firstFilePath: string) => void;
 };
 
 /**
@@ -64,6 +69,41 @@ export class StudioLspAdapter implements LspPort {
     }
   }
 
+  /** True when some enabled server maps this file extension (does not start anything). */
+  async hasServerFor(cwd: string, filePath: string): Promise<boolean> {
+    const servers = await this.deps.resolveServers(cwd);
+    if (servers.length === 0) {
+      return false;
+    }
+    const ext = extname(filePath);
+    return servers.some((server) => ext in server.extensionToLanguage);
+  }
+
+  /** Raw session for the file's language server (editor bridge). Starts it if needed. */
+  openSession(cwd: string, filePath: string): Promise<StdioLspSession> {
+    return this.sessionFor(cwd, filePath);
+  }
+
+  /**
+   * Watcher-driven push: resync every session of the workspace whose open document
+   * matches the changed file. No-op for docs nobody opened.
+   */
+  async syncPathFromDisk(cwd: string, relPath: string): Promise<void> {
+    const prefix = `${cwd}::`;
+    const absPath = join(cwd, relPath);
+    for (const [key, promise] of this.sessions) {
+      if (!key.startsWith(prefix)) {
+        continue;
+      }
+      try {
+        const session = await promise;
+        await session.syncPath(absPath);
+      } catch {
+        // session failed to start or path outside root — skip
+      }
+    }
+  }
+
   private async sessionFor(cwd: string, filePath: string): Promise<StdioLspSession> {
     const servers = await this.deps.resolveServers(cwd);
     if (servers.length === 0) {
@@ -91,6 +131,20 @@ export class StudioLspAdapter implements LspPort {
         );
       });
       this.sessions.set(key, promise);
+      void promise
+        .then((session) => {
+          // Drop dead sessions so the next call starts a fresh server (fresh
+          // document state — no stale caches).
+          void session.exited.then(() => {
+            if (this.sessions.get(key) === promise) {
+              this.sessions.delete(key);
+            }
+          });
+          this.deps.onSessionOpened?.(cwd, filePath);
+        })
+        .catch(() => {
+          // start failure is handled by the sessionFor caller
+        });
     }
     return promise;
   }

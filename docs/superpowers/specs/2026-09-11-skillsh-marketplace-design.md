@@ -88,6 +88,7 @@ type MarketplaceSkillEntry = {
 | Method | Path | Body / notes |
 | --- | --- | --- |
 | `GET` | `/api/skill-market/search?q=&owner=&limit=50` | `{ results: [{ id, slug, name, source, installs, url }] }`; `q` min 2 chars, zod в `search.body.ts` |
+| `GET` | `/api/skill-market/installed?scope=&workspaceId=` | `{ skills: MarketplaceInstalledSkill[] }` — lock-записи scope для бейджей source и «already installed» в UI |
 | `POST` | `/api/skill-market/install` | `{ id: string, scope: "workspace" \| "host", workspaceId?: string }` → `{ skill }`; 409 на collision, 502 с `stage` на отказе обеих веток |
 | `POST` | `/api/skill-market/updates` | `{ scope, workspaceId? }` → `{ updates: [{ slug, id, currentHash, latestHash }] }` (скачивает снапшоты, сравнение hash) |
 | `POST` | `/api/skill-market/update` | `{ slug, scope, workspaceId? }` → `{ skill }` |

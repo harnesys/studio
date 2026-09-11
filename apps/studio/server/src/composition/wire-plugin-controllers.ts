@@ -1,6 +1,8 @@
 import type { Hono } from 'hono';
+import { LspBridgeController } from '../adapters/http/lsp/lsp-bridge.controller.ts';
 import { PluginRegistriesController } from '../adapters/http/plugins/plugin-registries.controller.ts';
 import { PluginsController } from '../adapters/http/plugins/plugins.controller.ts';
+import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import type { SqlitePluginRegistriesAdapter } from '../adapters/store/sqlite/repos/sqlite-plugin-registries.adapter.ts';
 import type { SqlitePluginsAdapter } from '../adapters/store/sqlite/repos/sqlite-plugins.adapter.ts';
 import type { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
@@ -27,6 +29,7 @@ export type WirePluginControllersDeps = {
   pluginRegistryRepo: SqlitePluginRegistriesAdapter;
   workspaceRepo: SqliteWorkspaceRepo;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
+  lsp: StudioLspAdapter;
 };
 
 export function wirePluginControllers(d: WirePluginControllersDeps): void {
@@ -50,7 +53,12 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
       d.workspaceHarnesys,
       d.pluginRegistryRepo,
     ),
-    updatePlugin: new UpdatePluginUseCase(d.pluginRepo, d.workspaceHarnesys),
+    updatePlugin: new UpdatePluginUseCase(
+      d.pluginRepo,
+      d.workspaceHarnesys,
+      d.pluginRegistryRepo,
+      syncPluginRegistry,
+    ),
     trustPlugin: new TrustPluginUseCase(d.pluginRepo, d.workspaceHarnesys),
     enableWorkspacePlugin: new EnableWorkspacePluginUseCase(
       d.pluginRepo,
@@ -70,4 +78,10 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
     removeRegistry: new RemovePluginRegistryUseCase(d.pluginRegistryRepo),
     listCatalog: new ListPluginCatalogUseCase(d.pluginRegistryRepo, ensureDefaultPluginRegistries),
   }).register(d.app);
+
+  new LspBridgeController({
+    app: d.app,
+    workspaceRepo: d.workspaceRepo,
+    lsp: d.lsp,
+  }).register();
 }

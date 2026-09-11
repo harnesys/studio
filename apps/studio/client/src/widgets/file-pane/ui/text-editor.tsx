@@ -4,11 +4,14 @@ import { Loader2Icon } from 'lucide-react';
 import type { editor } from 'monaco-editor';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
+import { attachLspBridge, type LspBridge, type LspBridgeStatus } from '@/features/lsp-bridge';
 import { markWorkspaceFileDirty } from '@/features/open-file';
 import { readWorkspaceFileText, writeWorkspaceFileContent } from '@/shared/api/files';
 import { gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
+import { monaco } from '@/shared/lib/monaco';
 import { detectLanguage } from '@/shared/lib/tool-code';
 import { useTheme } from '@/shared/ui/theme-provider';
+import { LspStatusIndicator } from './lsp-status-indicator';
 import {
   bindMonacoImportLinkOpener,
   ensureMonacoImportLinkProviders,
@@ -97,12 +100,49 @@ export function TextEditor({
 
   const importLinksDisposeRef = useRef<(() => void) | null>(null);
 
+  const [lspStatus, setLspStatus] = useState<LspBridgeStatus>('off');
+  const [lspPulse, setLspPulse] = useState(0);
+
   useLayoutEffect(() => {
     setMonacoImportLinkContext({
       workspaceId,
       filePath: viewPath ?? path,
     });
   }, [workspaceId, viewPath, path]);
+
+  useEffect(() => {
+    if (!activePath) {
+      return;
+    }
+    let bridge: LspBridge | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    const tryAttach = () => {
+      attempts += 1;
+      const modelPath = toModelPath(activePath);
+      if (monaco.editor.getModel(monaco.Uri.parse(modelPath))) {
+        bridge = attachLspBridge({
+          workspaceId,
+          path: activePath,
+          monaco,
+          onStatus: setLspStatus,
+          onActivity: () => setLspPulse((n) => n + 1),
+        });
+        return;
+      }
+      if (attempts < 20) {
+        retryTimer = setTimeout(tryAttach, 100);
+      }
+    };
+    tryAttach();
+    return () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+      bridge?.dispose();
+      setLspStatus('off');
+    };
+  }, [workspaceId, activePath]);
 
   useEffect(() => {
     return () => {
@@ -203,10 +243,11 @@ export function TextEditor({
   }
 
   return (
-    <div className="min-h-0 flex-1 bg-background" data-testid="text-editor">
+    <div className="relative min-h-0 flex-1 bg-background" data-testid="text-editor">
+      <LspStatusIndicator status={lspStatus} pulse={lspPulse} />
       <Editor
         height="100%"
-        path={activePath}
+        path={toModelPath(activePath)}
         language={detectLanguage(activePath) ?? 'plaintext'}
         theme={resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light'}
         value={value}
@@ -237,4 +278,9 @@ function resolveAppTheme(theme: 'dark' | 'light' | 'system'): 'dark' | 'light' {
     return 'dark';
   }
   return 'light';
+}
+
+/** Monaco model URI matching the wire format of /api/lsp: file:///<relative>. */
+function toModelPath(path: string): string {
+  return `file:///${path.replace(/^\/+/, '')}`;
 }

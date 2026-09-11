@@ -1,9 +1,10 @@
 import { Buffer } from 'node:buffer';
 import { realpathSync } from 'node:fs';
-import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { PluginLspServer } from 'harnesys';
 import type { LspDiagnostic, LspHover, LspLocation } from 'harnesys/lsp';
+import { LspDocuments } from './lsp-documents.ts';
 import { isRecord, normalizeHover, normalizeLocations, toDiagnostic } from './lsp-messages.ts';
 import { spawnServer } from './spawn-lsp-server.ts';
 
@@ -12,11 +13,13 @@ type Pending = {
   reject: (error: Error) => void;
 };
 
+type MessageListener = (message: Record<string, unknown>) => void;
+
 export class StdioLspSession {
   private readonly proc: ReturnType<typeof Bun.spawn>;
   private readonly pending = new Map<number, Pending>();
-  private readonly diagnosticsByUri = new Map<string, LspDiagnostic[]>();
-  private readonly opened = new Set<string>();
+  private readonly listeners = new Set<MessageListener>();
+  private readonly documents: LspDocuments;
   private buffer = Buffer.alloc(0);
   private nextId = 1;
   private initialized = false;
@@ -28,8 +31,24 @@ export class StdioLspSession {
     readonly workspaceRoot: string,
   ) {
     this.proc = proc;
+    this.documents = new LspDocuments(config, (message) => this.notifyMessage(message));
+    this.exited = proc.exited.then((code) => {
+      this.dead = true;
+      return code;
+    });
     void this.readStdout();
     void this.readStderr();
+  }
+
+  /** Resolves when the server process exits (crash or dispose). */
+  readonly exited: Promise<number | null>;
+
+  private dead = false;
+
+  private requireAlive(): void {
+    if (this.dead) {
+      throw new Error(`LSP server "${this.config.serverId}" has exited`);
+    }
   }
 
   static async start(config: PluginLspServer, workspaceRoot: string): Promise<StdioLspSession> {
@@ -41,58 +60,80 @@ export class StdioLspSession {
   }
 
   supportsPath(filePath: string): boolean {
-    const ext = extname(filePath);
-    return ext in this.config.extensionToLanguage;
+    return this.documents.supportsPath(filePath);
   }
 
-  async diagnostics(filePath: string): Promise<LspDiagnostic[]> {
-    const abs = this.resolvePath(filePath);
-    await this.ensureOpen(abs);
-    const uri = pathToFileURL(abs).href;
-    // The server publishes diagnostics after analyzing the file; wait for the
-    // first publish for this uri, then serve from the map on every later call.
-    const deadline = Date.now() + 20_000;
-    while (!this.diagnosticsByUri.has(uri) && Date.now() < deadline) {
-      await sleep(100);
+  /**
+   * Subscribe to server messages that are NOT responses to internal requests:
+   * notifications (publishDiagnostics, window/*) and responses to client-originated
+   * (string-id) requests. Returns an unsubscribe function.
+   */
+  onMessage(listener: MessageListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  /** Forward a raw client message (notifications, or requests with string ids). */
+  sendRaw(message: Record<string, unknown>): void {
+    this.requireAlive();
+    this.documents.normalizeOutgoingDidChange(message);
+    this.write(message);
+  }
+
+  diagnostics(filePath: string): Promise<LspDiagnostic[]> {
+    this.requireAlive();
+    return this.documents.diagnostics(this.resolvePath(filePath));
+  }
+
+  /**
+   * Push disk content to the server if this document is open and changed externally
+   * (watcher-driven). Outside-root paths and unknown docs are ignored.
+   */
+  async syncPath(absPath: string): Promise<void> {
+    try {
+      this.requireAlive();
+      await this.documents.syncIfOpened(this.resolvePath(absPath));
+    } catch {
+      // path outside the workspace root, dead server, or not initialized — nothing to sync
     }
-    return this.diagnosticsByUri.get(uri) ?? [];
   }
 
-  async definition(filePath: string, line: number, character: number): Promise<LspLocation[]> {
-    const abs = this.resolvePath(filePath);
-    await this.ensureOpen(abs);
-    const result = await this.request('textDocument/definition', {
-      textDocument: { uri: pathToFileURL(abs).href },
-      position: { line, character },
-    });
-    return normalizeLocations(result, this.workspaceRoot);
+  definition(filePath: string, line: number, character: number): Promise<LspLocation[]> {
+    return this.positional(
+      this.resolvePath(filePath),
+      'textDocument/definition',
+      { position: { line, character } },
+      (result) => normalizeLocations(result, this.workspaceRoot),
+    );
   }
 
-  async references(filePath: string, line: number, character: number): Promise<LspLocation[]> {
-    const abs = this.resolvePath(filePath);
-    await this.ensureOpen(abs);
-    const result = await this.request('textDocument/references', {
-      textDocument: { uri: pathToFileURL(abs).href },
-      position: { line, character },
-      context: { includeDeclaration: true },
-    });
-    return normalizeLocations(result, this.workspaceRoot);
+  references(filePath: string, line: number, character: number): Promise<LspLocation[]> {
+    return this.positional(
+      this.resolvePath(filePath),
+      'textDocument/references',
+      {
+        position: { line, character },
+        context: { includeDeclaration: true },
+      },
+      (result) => normalizeLocations(result, this.workspaceRoot),
+    );
   }
 
-  async hover(filePath: string, line: number, character: number): Promise<LspHover | null> {
-    const abs = this.resolvePath(filePath);
-    await this.ensureOpen(abs);
-    const result = await this.request('textDocument/hover', {
-      textDocument: { uri: pathToFileURL(abs).href },
-      position: { line, character },
-    });
-    return normalizeHover(result);
+  hover(filePath: string, line: number, character: number): Promise<LspHover | null> {
+    return this.positional(
+      this.resolvePath(filePath),
+      'textDocument/hover',
+      { position: { line, character } },
+      (result) => normalizeHover(result),
+    );
   }
 
   async dispose(): Promise<void> {
     try {
       await this.request('shutdown', null);
-      this.notify('exit', undefined);
+      this.notifyMessage({ jsonrpc: '2.0', method: 'exit' });
     } catch {
       // ignore
     }
@@ -101,6 +142,30 @@ export class StdioLspSession {
     } catch {
       // ignore
     }
+  }
+
+  private async ensureOpen(absPath: string): Promise<string> {
+    this.requireAlive();
+    if (!this.initialized) {
+      throw new Error('LSP session not initialized');
+    }
+    await this.documents.ensureOpen(absPath);
+    return absPath;
+  }
+
+  private async positional<T>(
+    absPath: string,
+    method: 'textDocument/definition' | 'textDocument/references' | 'textDocument/hover',
+    params: Record<string, unknown>,
+    normalize: (result: unknown) => T,
+  ): Promise<T> {
+    this.requireAlive();
+    await this.documents.syncIfChangedOnDisk(await this.ensureOpen(absPath));
+    const result = await this.request(method, {
+      textDocument: { uri: pathToFileURL(absPath).href },
+      ...params,
+    });
+    return normalize(result);
   }
 
   private async initialize(): Promise<void> {
@@ -121,7 +186,7 @@ export class StdioLspSession {
       workspaceFolders: [{ uri: rootUri, name: 'workspace' }],
       initializationOptions: {},
     });
-    this.notify('initialized', {});
+    this.notifyMessage({ jsonrpc: '2.0', method: 'initialized', params: {} });
     this.initialized = true;
   }
 
@@ -135,30 +200,6 @@ export class StdioLspSession {
       }
     }
     return abs;
-  }
-
-  private async ensureOpen(absPath: string): Promise<void> {
-    if (!this.initialized) {
-      throw new Error('LSP session not initialized');
-    }
-    if (!this.supportsPath(absPath)) {
-      throw new Error(`no language mapping for ${extname(absPath)}`);
-    }
-    const uri = pathToFileURL(absPath).href;
-    if (this.opened.has(uri)) {
-      return;
-    }
-    const text = await Bun.file(absPath).text();
-    const languageId = this.config.extensionToLanguage[extname(absPath)] ?? 'plaintext';
-    this.notify('textDocument/didOpen', {
-      textDocument: {
-        uri,
-        languageId,
-        version: 1,
-        text,
-      },
-    });
-    this.opened.add(uri);
   }
 
   private request(method: string, params: unknown): Promise<unknown> {
@@ -176,8 +217,8 @@ export class StdioLspSession {
     });
   }
 
-  private notify(method: string, params: unknown): void {
-    this.write({ jsonrpc: '2.0', method, params });
+  private notifyMessage(message: object): void {
+    this.write(message);
   }
 
   private write(message: object): void {
@@ -248,29 +289,42 @@ export class StdioLspSession {
   }
 
   private handleMessage(message: Record<string, unknown>): void {
-    if (typeof message.id === 'number' || typeof message.id === 'string') {
-      const id = typeof message.id === 'number' ? message.id : Number(message.id);
-      const pending = this.pending.get(id);
-      if (!pending) {
+    // Responses to internal (numeric-id) requests are consumed here; everything
+    // else — notifications and responses to string-id client requests — also
+    // goes to listeners.
+    if (typeof message.id === 'number') {
+      const pending = this.pending.get(message.id);
+      if (pending) {
+        this.pending.delete(message.id);
+        if (message.error) {
+          pending.reject(new Error(JSON.stringify(message.error)));
+          return;
+        }
+        pending.resolve(message.result);
         return;
       }
-      this.pending.delete(id);
-      if (message.error) {
-        pending.reject(new Error(JSON.stringify(message.error)));
-        return;
-      }
-      pending.resolve(message.result);
-      return;
     }
-    if (message.method === 'textDocument/publishDiagnostics' && isRecord(message.params)) {
-      const uri = typeof message.params.uri === 'string' ? message.params.uri : '';
+    if (
+      message.method === 'textDocument/publishDiagnostics' &&
+      isRecord(message.params) &&
+      typeof message.params.uri === 'string'
+    ) {
+      const uri = message.params.uri;
       const list = Array.isArray(message.params.diagnostics) ? message.params.diagnostics : [];
-      this.diagnosticsByUri.set(
-        uri,
-        list
-          .map((item) => toDiagnostic(item, uri, this.workspaceRoot))
-          .filter((item): item is LspDiagnostic => item !== undefined),
+      this.documents.publish(uri, list, (raw, docUri) =>
+        toDiagnostic(raw, docUri, this.workspaceRoot),
       );
+    }
+    this.emit(message);
+  }
+
+  private emit(message: Record<string, unknown>): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(message);
+      } catch {
+        // listener errors must not break the session
+      }
     }
   }
 }
@@ -279,8 +333,4 @@ function indexOfHeaderEnd(buffer: Buffer): number {
   const text = buffer.toString('latin1');
   const idx = text.indexOf('\r\n\r\n');
   return idx;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -5,7 +5,6 @@ import {
   filesCapability,
   knowledgeMemoryCapability,
   type PackRegistration,
-  type PluginLspServer,
   pinMemoryCapability,
   planCapability,
   type RunLifecycleStore,
@@ -23,7 +22,7 @@ import { SqliteSchedulerPort } from '../adapters/capabilities/sqlite-scheduler.p
 import { SqliteThreadsPort } from '../adapters/capabilities/sqlite-threads.port.ts';
 import { SqliteWebhookPort } from '../adapters/capabilities/sqlite-webhook.port.ts';
 import { type HostToolScope, requireHostToolScope } from '../adapters/host-tool-scope.ts';
-import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
+import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
@@ -72,8 +71,8 @@ export type PackRegistrationsDeps = {
   getThread: GetThreadInput;
   semanticSessions?: SemanticSessionCleanup;
   memory: Pick<StudioMemoryPorts, 'pin' | 'semantic' | 'episodic' | 'knowledge'>;
-  /** Resolve LSP configs for a workspace cwd (from enabled plugins). */
-  resolveLspServers?: (cwd: string) => PluginLspServer[] | Promise<PluginLspServer[]>;
+  /** Shared LSP adapter (tools pack + editor WS bridge). Created in create-host. */
+  lsp: StudioLspAdapter;
 };
 
 export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegistration[] {
@@ -96,16 +95,13 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
   const listSchedules = new ListSchedulesUseCase(deps.schedules, deps.workspaces);
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
   const createAgent = new CreateAgentUseCase(deps.agents, deps.models);
-  const lsp = new StudioLspAdapter({
-    resolveServers: deps.resolveLspServers ?? (() => []),
-  });
 
   return [
     registerPack(filesCapability, { resolveScope: stubScope }),
     registerPack(shellCapability, { resolveScope: stubScope }),
     registerPack(fetchCapability, { resolveScope: stubScope }),
     registerPack(lspCapability, {
-      ports: { lsp },
+      ports: { lsp: deps.lsp },
       resolveScope: stubScope,
     }),
     registerPack(agentsCapability, {

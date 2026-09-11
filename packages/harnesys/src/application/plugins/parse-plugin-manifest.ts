@@ -14,6 +14,7 @@ const ALLOWED_TOP_LEVEL_KEYS = new Set([
   'license',
   'keywords',
   'extensions',
+  'lspServers',
 ]);
 
 const AUTHOR_KEYS = new Set(['name', 'email', 'url']);

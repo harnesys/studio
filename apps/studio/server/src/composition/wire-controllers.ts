@@ -9,6 +9,7 @@ import { ThreadController } from '../adapters/http/thread/thread.controller.ts';
 import { CapabilitiesController } from '../adapters/http/workspace/capabilities.controller.ts';
 import { ToolsController } from '../adapters/http/workspace/tools.controller.ts';
 import { WorkspaceController } from '../adapters/http/workspace/workspace.controller.ts';
+import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import type { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
 import type { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
@@ -119,6 +120,7 @@ type ControllerDeps = {
   deskEvents: DeskEventsAdapter;
   attachments: AttachmentsPort;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
+  lsp: StudioLspAdapter;
   threadRegistry: ThreadRuntimeRegistry;
   runtimeStateRepo: SqliteRuntimeStateRepo;
   lifecycle: RunLifecycleStore;
@@ -206,6 +208,7 @@ export function wireControllers(d: ControllerDeps): void {
     pluginRegistryRepo: d.pluginRegistryRepo,
     workspaceRepo: d.workspaceRepo,
     workspaceHarnesys: d.workspaceHarnesys,
+    lsp: d.lsp,
   });
 
   new ToolsController({

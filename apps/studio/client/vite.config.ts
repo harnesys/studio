@@ -33,6 +33,7 @@ export default defineConfig(({ mode }) => {
           target: `http://127.0.0.1:${apiPort}`,
           timeout: 0,
           proxyTimeout: 0,
+          ws: true,
           configure(proxy) {
             proxy.on('proxyRes', (proxyRes, _req, res) => {
               const type = header(proxyRes.headers['content-type']);

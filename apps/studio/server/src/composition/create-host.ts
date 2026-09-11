@@ -1,4 +1,5 @@
 import type { PluginLspServer } from 'harnesys';
+import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
@@ -25,6 +26,7 @@ export type StudioHost = {
   threadRegistry: ThreadRuntimeRegistry;
   getThreadPlan: GetThreadPlanUseCase;
   sendThreadRun: SendThreadRunUseCase;
+  lsp: StudioLspAdapter;
 };
 
 export function createStudioHost(args: {
@@ -73,6 +75,33 @@ export function createStudioHost(args: {
     current: (cwd: string) => PluginLspServer[] | Promise<PluginLspServer[]>;
   } = { current: () => [] };
 
+  // FS/git watcher → LSP: when a session for a workspace starts, subscribe the
+  // watcher once so external edits (agent tools, git) are pushed into open
+  // documents. The pull-based resync on every lsp_* call stays as the
+  // correctness guarantee; this only makes editor diagnostics arrive live.
+  const watcherStops = new Map<string, () => void>();
+
+  const lspAdapter = new StudioLspAdapter({
+    resolveServers: (cwd) => lspServersRef.current(cwd),
+    onSessionOpened: (cwd) => {
+      if (watcherStops.has(cwd)) {
+        return;
+      }
+      const workspace = store.workspaceRepo
+        .list()
+        .find((row) => row.path === cwd || row.path.replace(/\/$/, '') === cwd.replace(/\/$/, ''));
+      const key = workspace?.id ?? cwd;
+      const stop = platform.filesWatcher.watch(key, cwd, (event) => {
+        if (event.kind === 'delete') {
+          return;
+        }
+        const relPath = event.dir ? `${event.dir}/${event.name}` : event.name;
+        void lspAdapter.syncPathFromDisk(cwd, relPath);
+      });
+      watcherStops.set(cwd, stop);
+    },
+  });
+
   const packRegistrations = createPackRegistrations({
     db: store.db,
     schedules: store.scheduleRepo,
@@ -90,7 +119,7 @@ export function createStudioHost(args: {
     getThread: runtime.getThread,
     semanticSessions: memory.semantic,
     memory,
-    resolveLspServers: (cwd) => lspServersRef.current(cwd),
+    lsp: lspAdapter,
   });
 
   const workspaceHarnesys =
@@ -164,5 +193,6 @@ export function createStudioHost(args: {
     threadRegistry,
     getThreadPlan,
     sendThreadRun,
+    lsp: lspAdapter,
   };
 }

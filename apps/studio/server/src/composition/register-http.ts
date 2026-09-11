@@ -39,6 +39,7 @@ export function registerStudioHttp(args: {
     deskEvents: platform.deskEvents,
     attachments: platform.attachments,
     workspaceHarnesys: host.workspaceHarnesys,
+    lsp: host.lsp,
     threadRegistry: host.threadRegistry,
     runtimeStateRepo: host.runtimeStateRepo,
     lifecycle: runtime.runLifecycle,

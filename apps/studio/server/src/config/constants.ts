@@ -51,6 +51,8 @@ export const SSE_KEEP_ALIVE_MS = 4000;
 export const FILES_WATCHER_DEBOUNCE_MS = 200;
 export const DESK_PUBLISH_DEBOUNCE_MS = 150;
 export const DEFAULT_ASK_TICK_INTERVAL_MS = 60_000;
+/** Poll due control:wait timers; keep short so delayMs sleeps feel timely. */
+export const DEFAULT_WAIT_TICK_INTERVAL_MS = 1_000;
 export const EXPIRED_ASKS_BATCH = 50;
 export const ASK_TTL_DEFAULT_MS = 7 * 24 * 3600 * 1000;
 export const DEFAULT_SCHEDULE_TICK_INTERVAL_MS = 15_000;

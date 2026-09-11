@@ -14,7 +14,14 @@ import type {
   RunLifecycleStore,
   RuntimeHandle,
 } from 'harnesys';
-import { askUser, createRuntime, type Logger, normalizePackAssignment } from 'harnesys';
+import {
+  askUser,
+  createRuntime,
+  graphMap,
+  graphWait,
+  type Logger,
+  normalizePackAssignment,
+} from 'harnesys';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
@@ -109,8 +116,8 @@ export class WorkspaceHarnesysRegistry {
     return createRuntime({
       models: this.models,
       // files/shell/fetch come from the base packs in packRegistrations;
-      // ask_user has no pack. Per-agent gating happens in the run targets.
-      tools: [askUser()],
+      // ask_user / graph_map / graph_wait have no pack. Per-agent gating in run targets.
+      tools: [askUser(), graphMap(), graphWait()],
       packs: [...this.packRegistrations],
       agents: {
         resolve: (id: string) => this.resolveAgent(id),

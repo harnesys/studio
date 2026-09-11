@@ -244,6 +244,11 @@ class StreamClient implements RunStreamClient {
       this.finishTerminal();
       return;
     }
+    // control:wait parks as waiting; keep reconnecting until the timer wakes the run.
+    if (parsed?.status === 'waiting') {
+      this.scheduleReconnect(this.runId, this.opening);
+      return;
+    }
     this.setState('paused');
   }
 
@@ -276,6 +281,7 @@ class StreamClient implements RunStreamClient {
       this.setState('paused');
       return;
     }
+    // waiting / running / queued: reopen the stream (timer wake or transient drop).
     this.scheduleReconnect(runId, token);
   }
 

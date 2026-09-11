@@ -46,7 +46,9 @@ function isBoundary(event: SessionEvent): boolean {
 }
 
 function isClosedStatus(status: string): boolean {
-  return status !== 'running' && status !== 'queued';
+  // waiting keeps the live subscription open (timer wake continues the same run).
+  // needs_input / terminals close so the client can park on HITL or finish.
+  return status !== 'running' && status !== 'queued' && status !== 'waiting';
 }
 
 export function createRunEventFeed(deps: {

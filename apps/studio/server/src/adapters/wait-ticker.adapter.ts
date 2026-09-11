@@ -1,5 +1,5 @@
 import type { PendingSessionEvent, RunLifecycleStore, RunTargets } from 'harnesys';
-import { DEFAULT_ASK_TICK_INTERVAL_MS, EXPIRED_ASKS_BATCH } from '../config/constants.ts';
+import { DEFAULT_WAIT_TICK_INTERVAL_MS, EXPIRED_ASKS_BATCH } from '../config/constants.ts';
 
 export type WaitTickerDeps = {
   lifecycle: RunLifecycleStore;
@@ -85,8 +85,10 @@ export function startWaitTicker(deps: WaitTickerDeps): { stop(): void } {
       }
     }
   };
+  const intervalMs = deps.intervalMs ?? DEFAULT_WAIT_TICK_INTERVAL_MS;
+  void sweep().catch(() => {});
   const interval = setInterval(() => {
     void sweep().catch(() => {});
-  }, deps.intervalMs ?? DEFAULT_ASK_TICK_INTERVAL_MS);
+  }, intervalMs);
   return { stop: () => clearInterval(interval) };
 }

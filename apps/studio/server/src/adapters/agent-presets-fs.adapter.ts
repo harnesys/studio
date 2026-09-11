@@ -77,7 +77,7 @@ function presetIdsIn(dir: string): string[] {
 }
 
 /**
- * List presets from bundled app assets and `~/.harnesys/skills/author-agents/presets`
+ * List presets from bundled app assets and `~/.harnesys/skills/agent-creator/presets`
  * (id = filename stem). A same-id preset in home shadows the bundled one.
  */
 export function listAgentPresets(): AgentPreset[] {

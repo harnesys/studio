@@ -20,6 +20,7 @@ import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.
 import type { PluginRegistryRepository } from '../../domain/plugin-registry.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+import { prepareCatalogCheckout } from './materialize-catalog-plugin.ts';
 import { toPluginSummary } from './plugin-summary.ts';
 
 export type InstallPluginRequest = {
@@ -124,6 +125,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
         preferredName: args.catalogPluginName,
+        marketplaceRoot: args.marketplaceRoot,
       });
     }
 
@@ -164,6 +166,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
     registryId?: string;
     catalogPluginName?: string;
     preferredName: string;
+    marketplaceRoot?: string;
   }): Promise<InstallPluginResponse> {
     const dest = pluginInstallPath(this.home, args.preferredName);
     if (this.plugins.findByName(args.preferredName) || existsSync(dest)) {
@@ -174,7 +177,11 @@ export class InstallPluginUseCase implements InstallPluginInput {
     let checkout = dest;
     let installedName: PluginName | undefined;
     try {
-      return await this.finalizeInstall({
+      const extraDiagnostics =
+        args.marketplaceRoot && args.catalogPluginName
+          ? await prepareCatalogCheckout(checkout, args.marketplaceRoot, args.catalogPluginName)
+          : [];
+      const result = await this.finalizeInstall({
         checkout,
         displaySource: args.displaySource,
         revision: 'marketplace',
@@ -188,6 +195,10 @@ export class InstallPluginUseCase implements InstallPluginInput {
           installedName = name;
         },
       });
+      return {
+        plugin: result.plugin,
+        diagnostics: [...extraDiagnostics, ...result.diagnostics],
+      };
     } catch (err) {
       if (installedName !== undefined) {
         this.plugins.delete(installedName);

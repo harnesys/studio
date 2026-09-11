@@ -2,11 +2,11 @@ import {
   AGENTS_HANDOFF_TOOL,
   AGENTS_SPAWN_TOOL,
   GRAPH_MAP_TOOL,
-  WAIT_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
   STATE_SPAWNS_KEY,
   STATE_WAIT_UNTIL_MS_KEY,
+  WAIT_TOOL,
 } from '../constants.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 
@@ -14,11 +14,11 @@ export {
   AGENTS_HANDOFF_TOOL,
   AGENTS_SPAWN_TOOL,
   GRAPH_MAP_TOOL,
-  WAIT_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
   STATE_SPAWNS_KEY,
   STATE_WAIT_UNTIL_MS_KEY,
+  WAIT_TOOL,
 };
 
 export type AgentControlToolResult = {

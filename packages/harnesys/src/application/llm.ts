@@ -1,9 +1,14 @@
+import { readFileSync } from 'node:fs';
+import { extname, isAbsolute, join } from 'node:path';
 import { callModel, type StreamChunk } from '../adapters/ai-llm-adapter.ts';
-import { LLM_CHUNK_EVENTS } from '../constants.ts';
+import { LLM_CHUNK_EVENTS, MIME_MAP } from '../constants.ts';
 import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.ts';
+import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { ModelBinding } from '../ports/models.ts';
+import type { PathsConfig } from '../ports/paths.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
+import { type AttachmentReadFn, materializeMessageAttachments } from './fold-attachments.ts';
 import { resolveAgentModelRef, stateKeyOf } from './graph-helpers.ts';
 import { assembleNotes, type LlmNote } from './llm-notes.ts';
 import type { PackRunOutput } from './packs/pack-run.ts';
@@ -29,7 +34,23 @@ export type LlmContext = {
   notes?: LlmNote[];
   notesErrors?: string[];
   packOutputs?: PackRunOutput[];
+  artifacts?: ArtifactStore;
+  paths?: PathsConfig;
 };
+
+function attachmentReader(
+  artifacts: ArtifactStore | undefined,
+  paths: PathsConfig | undefined,
+): AttachmentReadFn {
+  return (uri: string) => {
+    if (artifacts) {
+      return artifacts.read(uri);
+    }
+    const abs = isAbsolute(uri) ? uri : join(paths?.cwd ?? '', uri);
+    const bytes = new Uint8Array(readFileSync(abs));
+    return { bytes, mediaType: MIME_MAP[extname(abs).toLowerCase()] };
+  };
+}
 
 export type LlmResult = {
   finishReason: string;
@@ -109,9 +130,11 @@ export async function* runLlmGenerate(
   // [tools] [system/instructions] [messages] [tail]: volatile only in the tail;
   // ephemeral user for this call, not written to state.messages / transcript.
   const tailText = allNotes.length > 0 ? assembleNotes(allNotes) : '';
-  const requestMessages = tailText
-    ? [...projected.messages, { role: 'user', content: tailText }]
-    : projected.messages;
+  const history = await materializeMessageAttachments(
+    projected.messages,
+    attachmentReader(ctx.artifacts, ctx.paths),
+  );
+  const requestMessages = tailText ? [...history, { role: 'user', content: tailText }] : history;
 
   yield {
     type: 'model.stats',

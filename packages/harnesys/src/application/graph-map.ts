@@ -1,4 +1,10 @@
-import { MAP_ITEM_LIMIT } from '../constants.ts';
+import {
+  MAP_ITEM_LIMIT,
+  STATE_HANDOFF_AGENT_ID_KEY,
+  STATE_MAP_ITEMS_KEY,
+  STATE_SPAWNS_KEY,
+  STATE_WAIT_UNTIL_MS_KEY,
+} from '../constants.ts';
 import type { AgentDefinition, AgentGraph, Node } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Expr } from '../domain/expr.ts';
@@ -9,6 +15,7 @@ import { compileOrThrow } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import type { GraphOpts } from './graph.ts';
 import { mkSnap, type SnapCtx } from './graph-snap.ts';
+import type { LlmNoteProvider } from './llm-notes.ts';
 
 export type MapNodeSpec = {
   type: 'control:map';
@@ -108,6 +115,29 @@ function workerOutputFromState(state: Record<string, unknown>, snap: Snapshot | 
   return null;
 }
 
+/**
+ * A completed worker is only a successful item when it produced a usable
+ * answer: a tool-call finish has no executor inside the map body, and empty
+ * text yields nothing to the parent.
+ */
+function validateWorkerOutput(out: unknown): { code: string; message: string } | null {
+  const rec = out && typeof out === 'object' ? (out as Record<string, unknown>) : null;
+  if (!rec) {
+    return { code: 'map_item_empty', message: 'map worker produced no output' };
+  }
+  const hasToolCalls = Array.isArray(rec.toolCalls) && rec.toolCalls.length > 0;
+  if (rec.finishReason === 'tool-calls' || hasToolCalls) {
+    return {
+      code: 'map_item_tool_call',
+      message: 'map worker ended with a tool call; map body cannot execute tools',
+    };
+  }
+  if (typeof rec.content !== 'string' || !rec.content.trim()) {
+    return { code: 'map_item_empty', message: 'map worker returned empty output' };
+  }
+  return null;
+}
+
 type SeedWorkerArgs = {
   child: RuntimeState;
   parentState: Record<string, unknown>;
@@ -117,24 +147,46 @@ type SeedWorkerArgs = {
   index: number;
 };
 
+/** Parent-run control queues and resume payload must not leak into a worker. */
+const WORKER_STATE_DROP_KEYS = [
+  STATE_SPAWNS_KEY,
+  STATE_HANDOFF_AGENT_ID_KEY,
+  STATE_MAP_ITEMS_KEY,
+  STATE_WAIT_UNTIL_MS_KEY,
+  '$resume',
+];
+
+const mapWorkerNote: LlmNoteProvider = () => [
+  {
+    tag: 'map_worker',
+    text: 'You are a map worker handling one item of a fan-out. Tools are not available in this run: never emit a tool call (graph_map included). Answer with plain text for the current Map item only.',
+  },
+];
+
+/** Worker input is the item task itself; core:start turns it into the only user message. */
+function mapItemInput(index: number, item: unknown): { text: string } {
+  const itemText = typeof item === 'string' ? item : JSON.stringify(item, null, 2);
+  return {
+    text: `Map item [${index}]:\n${itemText}\n\nRespond with the result for this item only.`,
+  };
+}
+
 async function seedWorkerState(args: SeedWorkerArgs): Promise<void> {
   const { child, parentState, parentOpts, runId, item, index } = args;
   const parentSnap = await parentOpts.state.load();
   const state = structuredClone(parentState) as Record<string, unknown>;
-  const msgs = Array.isArray(state.messages) ? [...(state.messages as unknown[])] : [];
-  const itemText = typeof item === 'string' ? item : JSON.stringify(item, null, 2);
-  msgs.push({
-    role: 'user',
-    content: `Map item [${index}]:\n${itemText}\n\nRespond with the result for this item only.`,
-  });
-  state.messages = msgs;
+  for (const key of WORKER_STATE_DROP_KEYS) {
+    delete state[key];
+  }
+  const input = mapItemInput(index, item);
+  state.messages = [];
   const ctx: SnapCtx = {
     sessionId: child.sessionId,
     runId,
     seq: 0,
     agentJson: JSON.stringify(parentOpts.agent),
     orderJson: JSON.stringify(parentOpts.plan.order),
-    input: parentOpts.input,
+    input,
     state,
     cur: MAP_START_ID,
     steps: 0,
@@ -174,7 +226,7 @@ async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
   await seedWorkerState({ child, parentState, parentOpts: parent, runId, item, index });
   const childOpts: GraphOpts = {
     agent: workerDef,
-    input: parent.input,
+    input: mapItemInput(index, item),
     inputRecorded: true,
     state: child,
     permissions: parent.permissions,
@@ -186,7 +238,7 @@ async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
     toolMessages: parent.toolMessages,
     mergeState: parent.mergeState,
     signal,
-    notes: parent.notes,
+    notes: [...(parent.notes ?? []), mapWorkerNote],
     packOutputs: parent.packOutputs,
     agents: parent.agents,
     stream: parent.stream,
@@ -211,7 +263,12 @@ async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
   const rec = (snap?.state as Record<string, unknown>) ?? {};
   const status = snap?.status ?? 'failed';
   if (status === 'completed') {
-    return { index, item, output: workerOutputFromState(rec, snap) };
+    const out = workerOutputFromState(rec, snap);
+    const invalid = validateWorkerOutput(out);
+    if (invalid) {
+      return { index, item, output: null, error: invalid };
+    }
+    return { index, item, output: out };
   }
   if (status === 'cancelled' || signal.aborted) {
     return {

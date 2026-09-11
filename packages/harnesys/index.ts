@@ -29,7 +29,11 @@ export { compactForced } from './src/application/compaction/run.ts';
 export type { Plan } from './src/application/compile.ts';
 export { compile } from './src/application/compile.ts';
 export { createRuntime } from './src/application/create-runtime.ts';
-export { foldAttachments } from './src/application/fold-attachments.ts';
+export type { AttachmentReadFn } from './src/application/fold-attachments.ts';
+export {
+  foldAttachments,
+  materializeMessageAttachments,
+} from './src/application/fold-attachments.ts';
 export type { GraphOpts } from './src/application/graph.ts';
 export { startGraph } from './src/application/graph.ts';
 export { runGraph } from './src/application/graph-run.ts';

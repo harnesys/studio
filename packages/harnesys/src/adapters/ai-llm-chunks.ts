@@ -63,3 +63,14 @@ export function toAiTools(
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }
+
+const FUNCTION_PREFIX = 'function:';
+
+/** Some providers decorate tool names as `function:<name>`; the registry is the source of truth. */
+export function canonicalToolName(name: string, registry?: Map<string, ToolDefinition>): string {
+  if (!registry || !name.startsWith(FUNCTION_PREFIX) || registry.has(name)) {
+    return name;
+  }
+  const stripped = name.slice(FUNCTION_PREFIX.length);
+  return registry.has(stripped) ? stripped : name;
+}

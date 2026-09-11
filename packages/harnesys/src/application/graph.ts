@@ -709,6 +709,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               notes,
               notesErrors,
               packOutputs: caps.enabled,
+              artifacts: opts.artifacts,
+              paths: opts.paths,
             },
           );
           for await (const event of stream) {

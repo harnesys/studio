@@ -1,4 +1,5 @@
 import { AUDIO_TYPES, IMAGE_TYPES, VIDEO_TYPES } from '../constants.ts';
+import type { Attachment } from '../domain/attachment.ts';
 import type { SendFile } from '../ports/artifacts.ts';
 
 type FoldResult = {
@@ -7,6 +8,10 @@ type FoldResult = {
   data?: Uint8Array;
   mediaType?: string;
 };
+
+export type AttachmentReadFn = (
+  uri: string,
+) => Promise<{ bytes: Uint8Array; mediaType?: string }> | { bytes: Uint8Array; mediaType?: string };
 
 function classify(mediaType?: string): 'image' | 'audio' | 'video' | 'file' {
   if (!mediaType) {
@@ -26,11 +31,7 @@ function classify(mediaType?: string): 'image' | 'audio' | 'video' | 'file' {
 
 export async function foldAttachments(
   files: SendFile[],
-  readFn: (
-    uri: string,
-  ) =>
-    | Promise<{ bytes: Uint8Array; mediaType?: string }>
-    | { bytes: Uint8Array; mediaType?: string },
+  readFn: AttachmentReadFn,
 ): Promise<FoldResult[]> {
   const results: FoldResult[] = [];
   for (const file of files) {
@@ -58,4 +59,60 @@ export async function foldAttachments(
     }
   }
   return results;
+}
+
+/** Turn `attachments` on user messages into AI SDK content parts; drop the field. */
+export async function materializeMessageAttachments(
+  messages: unknown[],
+  readFn: AttachmentReadFn,
+): Promise<unknown[]> {
+  const out: unknown[] = [];
+  for (const raw of messages) {
+    if (!raw || typeof raw !== 'object') {
+      out.push(raw);
+      continue;
+    }
+    const msg = raw as Record<string, unknown>;
+    const attachments = msg.attachments;
+    if (msg.role !== 'user' || !Array.isArray(attachments) || attachments.length === 0) {
+      out.push(raw);
+      continue;
+    }
+    const files: SendFile[] = (attachments as Attachment[]).map((a) => ({
+      path: a.path,
+      name: a.name,
+      mediaType: a.mediaType,
+    }));
+    const folded = await foldAttachments(files, readFn);
+    const parts: Record<string, unknown>[] = [];
+    const text = typeof msg.content === 'string' ? msg.content : '';
+    if (text) {
+      parts.push({ type: 'text', text });
+    }
+    for (const part of folded) {
+      if (part.type === 'text') {
+        if (part.text) {
+          parts.push({ type: 'text', text: part.text });
+        }
+        continue;
+      }
+      if (!part.data) {
+        continue;
+      }
+      parts.push({
+        type: 'file',
+        mediaType: part.mediaType || part.type,
+        data: part.data,
+      });
+    }
+    const next: Record<string, unknown> = {
+      role: 'user',
+      content: parts.length > 0 ? parts : '',
+    };
+    if (msg.origin !== undefined) {
+      next.origin = msg.origin;
+    }
+    out.push(next);
+  }
+  return out;
 }

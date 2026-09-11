@@ -1,10 +1,5 @@
 import { sandboxDenyText } from '../../application/tool-permission.ts';
-import {
-  GRAPH_MAP_TOOL,
-  MAP_ITEM_LIMIT,
-  WAIT_DELAY_MS_MAX,
-  WAIT_TOOL,
-} from '../../constants.ts';
+import { GRAPH_MAP_TOOL, MAP_ITEM_LIMIT, WAIT_DELAY_MS_MAX, WAIT_TOOL } from '../../constants.ts';
 import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 

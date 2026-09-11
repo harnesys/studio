@@ -1,3 +1,34 @@
+function userContentParts(content: unknown[]): Record<string, unknown>[] {
+  const parts: Record<string, unknown>[] = [];
+  for (const raw of content) {
+    if (!raw || typeof raw !== 'object') {
+      continue;
+    }
+    const part = raw as Record<string, unknown>;
+    if (part.type === 'text') {
+      parts.push({ type: 'text', text: String(part.text ?? '') });
+      continue;
+    }
+    if (part.type === 'file') {
+      parts.push({
+        type: 'file',
+        mediaType: String(part.mediaType ?? 'application/octet-stream'),
+        data: part.data,
+      });
+      continue;
+    }
+    // Legacy fold shape before materialize mapped to AI SDK file parts.
+    if (part.type === 'image' || part.type === 'audio' || part.type === 'video') {
+      parts.push({
+        type: 'file',
+        mediaType: String(part.mediaType ?? part.type),
+        data: part.data,
+      });
+    }
+  }
+  return parts;
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: branches for message shapes
 export function toModelMessages(raw: unknown[]): unknown[] {
   const out: unknown[] = [];
@@ -7,8 +38,15 @@ export function toModelMessages(raw: unknown[]): unknown[] {
     }
     const role = item.role as string | undefined;
     if (role === 'user') {
-      const text = typeof item.content === 'string' ? (item.content as string) : '';
-      out.push({ role: 'user', content: text });
+      const content = item.content;
+      if (typeof content === 'string') {
+        out.push({ role: 'user', content });
+      } else if (Array.isArray(content)) {
+        const parts = userContentParts(content);
+        out.push({ role: 'user', content: parts.length > 0 ? parts : '' });
+      } else {
+        out.push({ role: 'user', content: '' });
+      }
     } else if (role === 'assistant') {
       const text = typeof item.content === 'string' ? (item.content as string) : '';
       const toolCalls = Array.isArray(item.toolCalls) ? (item.toolCalls as unknown[]) : [];

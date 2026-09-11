@@ -3,7 +3,7 @@ import { STREAM_CHUNK_SIZE } from '../constants.ts';
 import type { AgentGenerationSettings } from '../domain/agent-definition.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import { type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
+import { canonicalToolName, type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
 import { toModelMessages } from './ai-llm-messages.ts';
 import { buildProvider } from './ai-llm-provider.ts';
 
@@ -201,7 +201,7 @@ export async function* callModel(
       yield {
         type: 'tool-input-start',
         id: String(part.id ?? part.toolCallId ?? ''),
-        toolName: String(part.toolName ?? ''),
+        toolName: canonicalToolName(String(part.toolName ?? ''), registry),
       };
       continue;
     }
@@ -230,14 +230,15 @@ export async function* callModel(
         toolCallId?: string;
         id?: string;
       };
+      const name = canonicalToolName(String(tc.toolName ?? ''), registry);
       toolCalls.push({
-        name: String(tc.toolName ?? ''),
+        name,
         args: (tc.input ?? tc.args) as unknown,
         id: String(tc.toolCallId ?? tc.id ?? ''),
       });
       yield {
         type: 'tool-call',
-        name: String(tc.toolName ?? ''),
+        name,
         args: (tc.input ?? tc.args) as unknown,
         id: String(tc.toolCallId ?? tc.id ?? ''),
       };

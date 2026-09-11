@@ -112,6 +112,7 @@ export const EVENT_TYPES = {
   AGENT_COMPLETED: 'agent.completed',
   AGENT_FAILED: 'agent.failed',
   MAP_STARTED: 'map.started',
+  MAP_ITEM_STARTED: 'map.item.started',
   MAP_ITEM_COMPLETED: 'map.item.completed',
   MAP_ITEM_FAILED: 'map.item.failed',
   MAP_COMPLETED: 'map.completed',

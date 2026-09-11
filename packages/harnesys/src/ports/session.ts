@@ -55,6 +55,9 @@ export type SessionEventType =
   | 'agent.completed'
   | 'agent.failed'
   | 'map.started'
+  | 'map.item.started'
+  | 'map.item.completed'
+  | 'map.item.failed'
   | 'map.completed'
   | 'wait.started'
   | 'wait.resumed';
@@ -167,6 +170,32 @@ export type SessionEvent =
       nodeId: string;
       count: number;
       concurrency?: string;
+      seq?: number;
+      runId?: string;
+    }
+  | {
+      type: 'map.item.started';
+      nodeId: string;
+      index: number;
+      workerId: string;
+      seq?: number;
+      runId?: string;
+    }
+  | {
+      type: 'map.item.completed';
+      nodeId: string;
+      index: number;
+      workerId: string;
+      seq?: number;
+      runId?: string;
+    }
+  | {
+      type: 'map.item.failed';
+      nodeId: string;
+      index: number;
+      workerId: string;
+      code?: string;
+      message?: string;
       seq?: number;
       runId?: string;
     }

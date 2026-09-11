@@ -1,6 +1,7 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { FileTextIcon, Link2Icon } from 'lucide-react';
 
+import type { MapInfo } from '../model/map-groups';
 import { chunkEvents, groupActivityChunks } from '../model/tool-run-summary';
 import { ActivityLine } from './activity-line';
 import { ActivityRail } from './activity-rail';
@@ -13,11 +14,13 @@ export function ActivityItems({
   live,
   runId,
   threadId,
+  maps,
 }: {
   events: SessionEvent[];
   live: boolean;
   runId?: string;
   threadId?: string;
+  maps?: MapInfo[];
 }) {
   const items = groupActivityChunks(chunkEvents(events));
 
@@ -34,6 +37,7 @@ export function ActivityItems({
               live={itemLive}
               runLive={live}
               threadId={threadId}
+              maps={maps}
             />
           );
         }

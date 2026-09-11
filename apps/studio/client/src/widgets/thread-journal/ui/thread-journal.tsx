@@ -20,6 +20,7 @@ import {
 import {
   ChatSkeleton,
   CompactionPendingCard,
+  extractMaps,
   extractSpawns,
   FailedMessageView,
   isCompactRun,
@@ -44,7 +45,11 @@ export type ThreadJournalProps = {
 export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
   const events = useThreadEvents(threadId);
   const seenAt = useSessionStore((state) => state.seenAt[threadId]);
-  const { feedEvents, spawns } = extractSpawns(events, seenAt);
+  const spawned = extractSpawns(events, seenAt);
+  const { feedEvents, maps } = extractMaps(spawned.feedEvents, seenAt, {
+    spawnIds: spawned.spawns.map((s) => s.spawnId),
+  });
+  const spawns = spawned.spawns;
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useSyncedThread(threadId, agent.workspaceId);
@@ -93,6 +98,7 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
                       runId={run.id ?? ''}
                       threadId={threadId}
                       spawns={spawns}
+                      maps={maps}
                       streaming={runStreaming}
                       error={run.error}
                       onRetry={

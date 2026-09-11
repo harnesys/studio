@@ -17,6 +17,7 @@ import {
   useMessageScroller,
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
+import { extractMaps } from '../model/map-groups';
 import { isCompactRun, splitRuns } from '../model/run-groups';
 import { extractSpawns } from '../model/spawn-groups';
 import { useSyncedThread } from '../model/thread-sync';
@@ -46,12 +47,20 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
   const seenAt = useSessionStore((state) => state.seenAt[threadId]);
   const inheritedEvents = inheritedCount > 0 ? events.slice(0, inheritedCount) : [];
   const ownEvents = inheritedCount > 0 ? events.slice(inheritedCount) : events;
-  const inherited = extractSpawns(inheritedEvents, seenAt);
-  const own = extractSpawns(ownEvents, seenAt);
+  const inheritedSpawnsOnly = extractSpawns(inheritedEvents, seenAt);
+  const inherited = extractMaps(inheritedSpawnsOnly.feedEvents, seenAt, {
+    spawnIds: inheritedSpawnsOnly.spawns.map((s) => s.spawnId),
+  });
+  const ownSpawnsOnly = extractSpawns(ownEvents, seenAt);
+  const own = extractMaps(ownSpawnsOnly.feedEvents, seenAt, {
+    spawnIds: ownSpawnsOnly.spawns.map((s) => s.spawnId),
+  });
   const inheritedRuns = splitRuns(inherited.feedEvents);
-  const inheritedSpawns = inherited.spawns;
+  const inheritedSpawns = inheritedSpawnsOnly.spawns;
+  const inheritedMaps = inherited.maps;
   const ownRuns = splitRuns(own.feedEvents);
-  const ownSpawns = own.spawns;
+  const ownSpawns = ownSpawnsOnly.spawns;
+  const ownMaps = own.maps;
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const branchChildrenByRun = useThreadStore(
     useShallow((state) => {
@@ -115,6 +124,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
                       runId={forkAt}
                       threadId={threadId}
                       spawns={inheritedSpawns}
+                      maps={inheritedMaps}
                       onOpenSpawn={onOpenSpawn}
                       streaming={false}
                       error={run.error}
@@ -143,6 +153,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
                     runId={forkAt}
                     threadId={threadId}
                     spawns={ownSpawns}
+                    maps={ownMaps}
                     onOpenSpawn={onOpenSpawn}
                     streaming={runStreaming}
                     error={run.error}

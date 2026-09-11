@@ -1101,15 +1101,18 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           count: prepared.items.length,
           concurrency: prepared.concurrency,
         });
-        const mapOutcome = await executeMap(
+        const mapIter = executeMap(
           prepared,
           { ...opts, agent, plan, input, toolRegistry },
           st,
           startGraph,
         );
-        for (const emission of mapOutcome.emissions) {
-          yield await commit('running', emission.type, 'recorded', emission.metadata);
+        let mapStep = await mapIter.next();
+        while (!mapStep.done) {
+          yield await commit('running', mapStep.value.type, 'recorded', mapStep.value.metadata);
+          mapStep = await mapIter.next();
         }
+        const mapOutcome = mapStep.value;
         output = { results: mapOutcome.results };
         appendMapResultsMessage(st, lastMsg, mapOutcome.results);
         clearQueuedMap(st);

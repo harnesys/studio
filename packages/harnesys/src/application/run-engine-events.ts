@@ -264,6 +264,26 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       concurrency: typeof m?.concurrency === 'string' ? m.concurrency : undefined,
     };
   }
+  if (t === 'map.item.started' || t === 'map.item.completed' || t === 'map.item.failed') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    const workerId = typeof m?.workerId === 'string' ? m.workerId : '';
+    if (!workerId) {
+      return null;
+    }
+    const index = typeof m?.index === 'number' ? m.index : 0;
+    const nodeId = String(m?.nodeId ?? '');
+    if (t === 'map.item.failed') {
+      return {
+        type: 'map.item.failed',
+        nodeId,
+        index,
+        workerId,
+        code: typeof m?.code === 'string' ? m.code : undefined,
+        message: typeof m?.message === 'string' ? m.message : undefined,
+      };
+    }
+    return { type: t, nodeId, index, workerId };
+  }
   if (t === 'map.completed') {
     const m = ev.metadata as Record<string, unknown> | undefined;
     return {

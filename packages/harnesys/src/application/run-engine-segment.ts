@@ -54,6 +54,9 @@ function isJournalBoundaryCard(event: SessionEvent): boolean {
     event.type === 'agent.spawned' ||
     event.type === 'agent.handoff' ||
     event.type === 'map.started' ||
+    event.type === 'map.item.started' ||
+    event.type === 'map.item.completed' ||
+    event.type === 'map.item.failed' ||
     event.type === 'map.completed' ||
     event.type === 'wait.started'
   );

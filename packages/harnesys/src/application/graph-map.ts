@@ -29,8 +29,14 @@ export type MapResultItem = {
 };
 
 export type MapEmission = {
-  type: 'map.item.completed' | 'map.item.failed';
-  metadata: { nodeId: string; index: number; code?: string; message?: string };
+  type: 'map.item.started' | 'map.item.completed' | 'map.item.failed';
+  metadata: {
+    nodeId: string;
+    index: number;
+    workerId: string;
+    code?: string;
+    message?: string;
+  };
 };
 
 export type MapNodeOutcome = {
@@ -152,6 +158,7 @@ type RunWorkerArgs = {
   parent: GraphOpts;
   index: number;
   item: unknown;
+  workerId: string;
   workerDef: AgentDefinition;
   workerPlan: Plan;
   parentState: Record<string, unknown>;
@@ -160,8 +167,8 @@ type RunWorkerArgs = {
 };
 
 async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
-  const { parent, index, item, workerDef, workerPlan, parentState, runChild, signal } = args;
-  const workerId = crypto.randomUUID();
+  const { parent, index, item, workerId, workerDef, workerPlan, parentState, runChild, signal } =
+    args;
   const child = parent.state.child(workerId);
   const runId = crypto.randomUUID();
   await seedWorkerState({ child, parentState, parentOpts: parent, runId, item, index });
@@ -271,17 +278,28 @@ export function prepareMap(
   };
 }
 
-export async function executeMap(
+/**
+ * Yields map.item.started for each worker before work, then completed/failed
+ * as each worker settles. Return value is the barrier outcome for the parent node.
+ */
+export async function* executeMap(
   prepared: PreparedMap,
   parent: GraphOpts,
   parentState: Record<string, unknown>,
   runChild: ChildRunner,
-): Promise<MapNodeOutcome> {
+): AsyncGenerator<MapEmission, MapNodeOutcome, void> {
   const { items, concurrency, workerDef, workerPlan, timeoutMs, onTimeout, nodeId } = prepared;
-  const emissions: MapEmission[] = [];
   const results: MapResultItem[] = new Array(items.length);
   if (items.length === 0) {
     return { results: [], emissions: [], timedOut: false };
+  }
+
+  const workerIds = items.map(() => crypto.randomUUID());
+  for (let i = 0; i < items.length; i += 1) {
+    yield {
+      type: 'map.item.started',
+      metadata: { nodeId, index: i, workerId: workerIds[i] as string },
+    };
   }
 
   const ac = new AbortController();
@@ -301,6 +319,7 @@ export async function executeMap(
       parent,
       index,
       item: items[index],
+      workerId: workerIds[index] as string,
       workerDef,
       workerPlan,
       parentState,
@@ -308,6 +327,27 @@ export async function executeMap(
       signal: ac.signal,
     });
 
+  const emissionOf = (item: MapResultItem): MapEmission => {
+    const workerId = workerIds[item.index] as string;
+    if (item.error) {
+      return {
+        type: 'map.item.failed',
+        metadata: {
+          nodeId,
+          index: item.index,
+          workerId,
+          code: item.error.code,
+          message: item.error.message,
+        },
+      };
+    }
+    return {
+      type: 'map.item.completed',
+      metadata: { nodeId, index: item.index, workerId },
+    };
+  };
+
+  const emissions: MapEmission[] = [];
   try {
     if (concurrency === 'sequential') {
       for (let i = 0; i < items.length; i += 1) {
@@ -319,15 +359,37 @@ export async function executeMap(
               output: null,
               error: { code: 'timeout', message: 'map timed out' },
             };
+            const emission = emissionOf(results[j] as MapResultItem);
+            emissions.push(emission);
+            yield emission;
           }
           break;
         }
         results[i] = await runIdx(i);
+        const emission = emissionOf(results[i] as MapResultItem);
+        emissions.push(emission);
+        yield emission;
       }
     } else {
-      const settled = await Promise.all(items.map((_, i) => runIdx(i)));
-      for (let i = 0; i < settled.length; i += 1) {
-        results[i] = settled[i] as MapResultItem;
+      const pending = new Map(
+        items.map((_, i) => [
+          i,
+          runIdx(i).then((result) => {
+            results[i] = result;
+            return result;
+          }),
+        ]),
+      );
+      while (pending.size > 0) {
+        const settled = await Promise.race(
+          [...pending.entries()].map(([index, promise]) =>
+            promise.then((result) => ({ index, result })),
+          ),
+        );
+        pending.delete(settled.index);
+        const emission = emissionOf(settled.result);
+        emissions.push(emission);
+        yield emission;
       }
     }
   } finally {
@@ -335,28 +397,6 @@ export async function executeMap(
       clearTimeout(timer);
     }
     parent.signal?.removeEventListener('abort', onParentAbort);
-  }
-
-  for (const item of results) {
-    if (!item) {
-      continue;
-    }
-    if (item.error) {
-      emissions.push({
-        type: 'map.item.failed',
-        metadata: {
-          nodeId,
-          index: item.index,
-          code: item.error.code,
-          message: item.error.message,
-        },
-      });
-    } else {
-      emissions.push({
-        type: 'map.item.completed',
-        metadata: { nodeId, index: item.index },
-      });
-    }
   }
 
   if (timedOut && onTimeout === 'fail') {

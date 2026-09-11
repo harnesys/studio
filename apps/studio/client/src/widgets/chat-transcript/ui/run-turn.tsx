@@ -1,6 +1,7 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { memo } from 'react';
 
+import type { MapInfo, MapItemInfo } from '../model/map-groups';
 import type { SpawnInfo, SpawnToolChip, SpawnToolStat } from '../model/spawn-groups';
 import { AssistantMessageView, FailedMessageView } from './agent-turn';
 import type { BranchChild } from './branch-point-badge';
@@ -44,6 +45,48 @@ function sameSpawns(a: SpawnInfo[] | undefined, b: SpawnInfo[] | undefined): boo
       item.lastSeenAt === other.lastSeenAt &&
       sameToolChips(item.recentTools, other.recentTools) &&
       sameToolStats(item.toolStats, other.toolStats)
+    );
+  });
+}
+
+function sameMaps(a: MapInfo[] | undefined, b: MapInfo[] | undefined): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a === undefined || b === undefined || a.length !== b.length) {
+    return false;
+  }
+  return a.every((item, index) => {
+    const other = b[index];
+    return (
+      other !== undefined &&
+      item.nodeId === other.nodeId &&
+      item.toolCallId === other.toolCallId &&
+      item.status === other.status &&
+      item.ok === other.ok &&
+      item.failed === other.failed &&
+      item.count === other.count &&
+      sameMapItems(item.items, other.items)
+    );
+  });
+}
+
+function sameMapItems(a: MapItemInfo[], b: MapItemInfo[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every((item, index) => {
+    const other = b[index];
+    return (
+      other !== undefined &&
+      item.workerId === other.workerId &&
+      item.index === other.index &&
+      item.status === other.status &&
+      item.preview === other.preview &&
+      item.message === other.message
     );
   });
 }
@@ -94,6 +137,7 @@ export const RunTurn = memo(
     onRetry,
     threadId,
     spawns,
+    maps,
     onOpenSpawn,
     readOnly,
     inherited,
@@ -106,6 +150,7 @@ export const RunTurn = memo(
     onRetry?: () => void;
     threadId?: string;
     spawns?: SpawnInfo[];
+    maps?: MapInfo[];
     onOpenSpawn?: (spawnId: string) => void;
     readOnly?: boolean;
     inherited?: boolean;
@@ -119,6 +164,7 @@ export const RunTurn = memo(
           streaming={streaming}
           threadId={threadId}
           spawns={spawns}
+          maps={maps}
           onOpenSpawn={onOpenSpawn}
           readOnly={readOnly}
           inherited={inherited}
@@ -141,6 +187,7 @@ export const RunTurn = memo(
         prev.inherited === next.inherited &&
         prev.branchChildren === next.branchChildren &&
         sameSpawns(prev.spawns, next.spawns) &&
+        sameMaps(prev.maps, next.maps) &&
         sameEventList(prev.events, next.events)
       );
     }
@@ -154,6 +201,7 @@ export const RunTurn = memo(
       prev.inherited === next.inherited &&
       prev.branchChildren === next.branchChildren &&
       sameSpawns(prev.spawns, next.spawns) &&
+      sameMaps(prev.maps, next.maps) &&
       sameEventList(prev.events, next.events)
     );
   },

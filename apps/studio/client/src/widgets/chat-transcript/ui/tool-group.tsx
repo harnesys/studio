@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 
+import type { MapInfo } from '../model/map-groups';
 import type { GroupActivityChunk } from '../model/tool-run-summary';
 import { groupPairs, summarizeToolRun } from '../model/tool-run-summary';
 import type { ActivityBadge } from './activity-line';
@@ -23,11 +24,13 @@ export function ToolGroup({
   live,
   runLive = live,
   threadId,
+  maps,
 }: {
   chunks: GroupActivityChunk[];
   live: boolean;
   runLive?: boolean;
   threadId?: string;
+  maps?: MapInfo[];
 }) {
   const expandTools = useChatPreferences((state) => state.expandTools);
   const pairs = groupPairs(chunks);
@@ -43,6 +46,7 @@ export function ToolGroup({
             live: live && index === chunks.length - 1,
             runLive,
             threadId,
+            maps,
           }),
         )}
       </div>
@@ -67,7 +71,7 @@ export function ToolGroup({
     >
       <div className="flex flex-col gap-1 pr-1">
         {chunks.map((chunk, index) =>
-          renderChunk({ chunk, index, live: false, runLive, threadId }),
+          renderChunk({ chunk, index, live: false, runLive, threadId, maps }),
         )}
       </div>
     </ActivityLine>
@@ -80,12 +84,14 @@ function renderChunk({
   live,
   runLive,
   threadId,
+  maps,
 }: {
   chunk: GroupActivityChunk;
   index: number;
   live: boolean;
   runLive?: boolean;
   threadId?: string;
+  maps?: MapInfo[];
 }): ReactNode {
   if (chunk.type === 'reasoning') {
     const text = chunk.events.map((e) => e.text).join('');
@@ -97,6 +103,8 @@ function renderChunk({
       pair={pair}
       live={live && pairIndex === chunk.pairs.length - 1}
       runLive={runLive}
+      threadId={threadId}
+      maps={maps}
     />
   ));
 }

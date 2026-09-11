@@ -1,3 +1,10 @@
+export {
+  extractMaps,
+  type MapInfo,
+  type MapItemInfo,
+  type MapItemStatus,
+  mapForToolCall,
+} from './model/map-groups';
 export type { RunGroup } from './model/run-groups';
 export { isCompactRun, splitRuns } from './model/run-groups';
 export {

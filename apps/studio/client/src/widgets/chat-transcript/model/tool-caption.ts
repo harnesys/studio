@@ -72,6 +72,24 @@ export function toolCaption(
   if (name === 'load_skill') {
     return { kind: 'file', title: 'Skill', hint: fields.name ?? firstLine(inputStr, outputStr) };
   }
+  if (name === 'graph_map') {
+    const count = mapItemCount(inputStr, outputStr);
+    return {
+      kind: 'search',
+      title: 'Graph Map',
+      hint:
+        count !== undefined
+          ? `${count} item${count === 1 ? '' : 's'}`
+          : firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'wait') {
+    return {
+      kind: 'question',
+      title: 'Wait',
+      hint: fields.delayMs ? `${fields.delayMs}ms` : firstLine(inputStr, outputStr),
+    };
+  }
   if (name === 'schedule_list') {
     return { kind: 'search', title: 'Schedules', hint: firstLine(inputStr, outputStr) };
   }
@@ -178,8 +196,8 @@ function fieldsOf(raw: string): Record<string, string> {
     }
     const out: Record<string, string> = {};
     for (const [key, value] of Object.entries(parsed)) {
-      if (typeof value === 'string') {
-        out[key] = value;
+      if (typeof value === 'string' || typeof value === 'number') {
+        out[key] = String(value);
       }
     }
     if (Object.keys(out).length > 0) {
@@ -195,6 +213,28 @@ function fieldsOf(raw: string): Record<string, string> {
     }
   }
   return out;
+}
+
+function mapItemCount(inputStr: string, outputStr: string): number | undefined {
+  for (const raw of [outputStr, inputStr]) {
+    if (!raw) {
+      continue;
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        continue;
+      }
+      const rec = parsed as Record<string, unknown>;
+      if (typeof rec.count === 'number' && Number.isFinite(rec.count)) {
+        return rec.count;
+      }
+      if (Array.isArray(rec.items)) {
+        return rec.items.length;
+      }
+    } catch {}
+  }
+  return undefined;
 }
 
 function firstLine(input: string, output: string): string {

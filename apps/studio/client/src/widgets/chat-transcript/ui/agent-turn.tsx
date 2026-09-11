@@ -17,6 +17,7 @@ import { useStudioNavigation } from '@/shared/config/navigation';
 import { FileChip } from '@/shared/ui/file-chip';
 import { Markdown } from '@/shared/ui/markdown';
 import { toast } from '@/shared/ui/toast';
+import type { MapInfo } from '../model/map-groups';
 import type { SpawnInfo } from '../model/spawn-groups';
 import {
   groupSegments,
@@ -102,6 +103,7 @@ export function AssistantMessageView({
   streaming = false,
   threadId,
   spawns,
+  maps,
   onOpenSpawn,
   readOnly = false,
   inherited = false,
@@ -112,6 +114,7 @@ export function AssistantMessageView({
   streaming?: boolean;
   threadId?: string;
   spawns?: SpawnInfo[];
+  maps?: MapInfo[];
   onOpenSpawn?: (spawnId: string) => void;
   readOnly?: boolean;
   inherited?: boolean;
@@ -149,6 +152,7 @@ export function AssistantMessageView({
               runId={runId}
               threadId={threadId}
               spawns={spawns}
+              maps={maps}
               onOpenSpawn={onOpenSpawn}
             />
           </div>
@@ -198,6 +202,7 @@ function TurnSegmentView({
   runId,
   threadId,
   spawns,
+  maps,
   onOpenSpawn,
 }: {
   segment: TurnSegment;
@@ -205,6 +210,7 @@ function TurnSegmentView({
   runId: string;
   threadId?: string;
   spawns?: SpawnInfo[];
+  maps?: MapInfo[];
   onOpenSpawn?: (spawnId: string) => void;
 }) {
   const thread = useSelectedThread();
@@ -240,7 +246,15 @@ function TurnSegmentView({
     );
   }
   if (segment.type === 'activity') {
-    return <ActivityItems events={segment.events} live={live} runId={runId} threadId={threadId} />;
+    return (
+      <ActivityItems
+        events={segment.events}
+        live={live}
+        runId={runId}
+        threadId={threadId}
+        maps={maps}
+      />
+    );
   }
   if (segment.type === 'compaction') {
     return <CompactionMessageCard text={segment.text} meta={segment.meta} />;

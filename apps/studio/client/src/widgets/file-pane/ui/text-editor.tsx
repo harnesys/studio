@@ -208,6 +208,9 @@ export function TextEditor({
     links: false, // Отключить парсинг ссылок при движении
     scrollbar: {
       alwaysConsumeMouseWheel: true, // Захватывает скролл, не отдавая его родителю
+      verticalScrollbarSize: 8, // Единый размер со скроллбаром приложения (base.css)
+      horizontalScrollbarSize: 8,
+      useShadows: false,
     },
     // stopRenderingLineAfter: -1,
     // scrollbar: {

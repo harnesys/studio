@@ -164,9 +164,9 @@ export function defineAppThemes(monaco: Monaco) {
       'editorHoverWidget.border': '#43454A',
       'editor.findMatchBackground': '#214283',
       'editor.findMatchHighlightBackground': '#EA5C0055',
-      'scrollbarSlider.background': '#5A5D6366',
-      'scrollbarSlider.hoverBackground': '#5A5D6399',
-      'scrollbarSlider.activeBackground': '#5A5D63CC',
+      'scrollbarSlider.background': '#8a909859',
+      'scrollbarSlider.hoverBackground': '#8a90988c',
+      'scrollbarSlider.activeBackground': '#8a9098b3',
     },
   });
 
@@ -196,9 +196,9 @@ export function defineAppThemes(monaco: Monaco) {
       'editorWidget.background': cssVar('--card', '#fbfbfc'),
       'editorWidget.border': cssVar('--border', '#e2e4e7'),
       'editorGutter.background': cssVar('--background', '#f4f5f6'),
-      'scrollbarSlider.background': '#00000014',
-      'scrollbarSlider.hoverBackground': '#00000022',
-      'scrollbarSlider.activeBackground': '#00000030',
+      'scrollbarSlider.background': '#66707859',
+      'scrollbarSlider.hoverBackground': '#6670788c',
+      'scrollbarSlider.activeBackground': '#667078b3',
     },
   });
 }

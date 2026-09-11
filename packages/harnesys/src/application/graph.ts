@@ -283,9 +283,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
   const interruptSource = loaded?.cursor?.interrupt?.source;
   let output: unknown = opts.startNodeId === undefined ? null : (opts.outputHint ?? null);
-  let steps = loaded?.cursor?.budget?.steps ?? 0;
-  let tokens = loaded?.cursor?.budget?.tokens ?? 0;
-  let t0 = loaded?.cursor?.budget?.startedAt ?? Date.now();
+  // Бюджет живёт внутри одного запуска: новый запрос (статус completed/failed)
+  // начинает отсчёт заново, а прерванный (needs_input/running) продолжает —
+  // иначе дедлайн последнего рана срабатывает мгновенно при следующем сообщении.
+  let steps = isResumable ? (loaded?.cursor?.budget?.steps ?? 0) : 0;
+  let tokens = isResumable ? (loaded?.cursor?.budget?.tokens ?? 0) : 0;
+  let t0 = isResumable ? (loaded?.cursor?.budget?.startedAt ?? Date.now()) : Date.now();
   let lastMsg: string | undefined;
   const nodeSteps = new Map<string, number>();
   let agentJson = JSON.stringify(agent);

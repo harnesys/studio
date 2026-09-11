@@ -18,9 +18,9 @@ import {
   askUser,
   createRuntime,
   graphMap,
-  graphWait,
   type Logger,
   normalizePackAssignment,
+  wait,
 } from 'harnesys';
 import { FsSkillRegistry } from 'harnesys/adapters/node';
 import type { AgentRepository } from '../domain/agent.port.ts';
@@ -116,8 +116,8 @@ export class WorkspaceHarnesysRegistry {
     return createRuntime({
       models: this.models,
       // files/shell/fetch come from the base packs in packRegistrations;
-      // ask_user / graph_map / graph_wait have no pack. Per-agent gating in run targets.
-      tools: [askUser(), graphMap(), graphWait()],
+      // ask_user / graph_map / wait have no pack. Per-agent gating in run targets.
+      tools: [askUser(), graphMap(), wait()],
       packs: [...this.packRegistrations],
       agents: {
         resolve: (id: string) => this.resolveAgent(id),

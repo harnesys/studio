@@ -3,8 +3,8 @@ export {
   fetch,
   files,
   graphMap,
-  graphWait,
   shell,
+  wait,
 } from './src/adapters/actions/index.ts';
 export {
   createRunEventBus,

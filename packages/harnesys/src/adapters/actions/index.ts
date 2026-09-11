@@ -3,4 +3,4 @@ export { fetchTool as fetch } from '../../packs/web/fetch.ts';
 export { ASK_USER_TOOL, askUser } from './ask-user.ts';
 export { files } from './files.ts';
 export type { FilesOptions } from './files-options.ts';
-export { GRAPH_MAP_TOOL, GRAPH_WAIT_TOOL, graphMap, graphWait } from './graph-control.ts';
+export { GRAPH_MAP_TOOL, WAIT_TOOL, graphMap, wait } from './graph-control.ts';

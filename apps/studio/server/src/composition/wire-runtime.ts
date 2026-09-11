@@ -8,13 +8,13 @@ import {
   fetch,
   files,
   graphMap,
-  graphWait,
   type ModelsPort,
   type RunClaimer,
   type RunEngine,
   type RunEventFeed,
   type RunTargets,
   shell,
+  wait,
 } from 'harnesys';
 import { startAskTicker } from '../adapters/ask-ticker.adapter.ts';
 import { type HostToolScope, runInHostToolScope } from '../adapters/host-tool-scope.ts';
@@ -80,7 +80,7 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     fetch(),
     askUser(),
     graphMap(),
-    graphWait(),
+    wait(),
   ]);
   const agentsRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
   const runEngine = createRunEngine({

@@ -2,7 +2,7 @@ import {
   AGENTS_HANDOFF_TOOL,
   AGENTS_SPAWN_TOOL,
   GRAPH_MAP_TOOL,
-  GRAPH_WAIT_TOOL,
+  WAIT_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
   STATE_SPAWNS_KEY,
@@ -14,7 +14,7 @@ export {
   AGENTS_HANDOFF_TOOL,
   AGENTS_SPAWN_TOOL,
   GRAPH_MAP_TOOL,
-  GRAPH_WAIT_TOOL,
+  WAIT_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
   STATE_SPAWNS_KEY,
@@ -95,7 +95,7 @@ export function applyAgentControlToolResults(
       if (rec && Array.isArray(rec.items)) {
         mapItems = rec.items;
       }
-    } else if (row.name === GRAPH_WAIT_TOOL) {
+    } else if (row.name === WAIT_TOOL) {
       const rec = asRecord(row.result);
       if (rec && typeof rec.waitUntilMs === 'number' && Number.isFinite(rec.waitUntilMs)) {
         waitUntilMs = rec.waitUntilMs;

@@ -1,14 +1,14 @@
 import { sandboxDenyText } from '../../application/tool-permission.ts';
 import {
   GRAPH_MAP_TOOL,
-  GRAPH_WAIT_TOOL,
   MAP_ITEM_LIMIT,
   WAIT_DELAY_MS_MAX,
+  WAIT_TOOL,
 } from '../../constants.ts';
 import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 
-export { GRAPH_MAP_TOOL, GRAPH_WAIT_TOOL };
+export { GRAPH_MAP_TOOL, WAIT_TOOL };
 
 /** Queue items for control:map (ReAct → $state.mapItems). */
 export function graphMap(): ToolDefinition {
@@ -45,8 +45,8 @@ export function graphMap(): ToolDefinition {
 }
 
 /** Queue a mid-run sleep for control:wait (ReAct → $state.waitUntilMs). */
-export function graphWait(): ToolDefinition {
-  return tool(GRAPH_WAIT_TOOL, {
+export function wait(): ToolDefinition {
+  return tool(WAIT_TOOL, {
     description:
       'Park this run until a wall-clock time (control:wait). delayMs is relative sleep (1..7d). Prefer this for mid-pipeline pauses; use schedule_set for recurring or next-session wakes after the run ends. Does not replace ask_user.',
     group: 'control',
@@ -65,7 +65,7 @@ export function graphWait(): ToolDefinition {
     },
     execute(input, ctx: ToolContext) {
       if (ctx.sandbox) {
-        return sandboxDenyText(GRAPH_WAIT_TOOL, 'user input');
+        return sandboxDenyText(WAIT_TOOL, 'user input');
       }
       const rec = input as { delayMs?: unknown };
       const delayMs = typeof rec.delayMs === 'number' ? rec.delayMs : Number.NaN;

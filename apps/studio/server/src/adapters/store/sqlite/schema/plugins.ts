@@ -11,6 +11,8 @@ export const pluginsTable = sqliteTable(
     dataPath: text('data_path').notNull(),
     trusted: integer('trusted', { mode: 'boolean' }).notNull().default(false),
     enabledWorkspaceIds: text('enabled_workspace_ids').notNull().default('[]'),
+    registryId: text('registry_id'),
+    catalogPluginName: text('catalog_plugin_name'),
     installedAt: text('installed_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },

@@ -101,13 +101,18 @@ export {
   visiblePlanModeText,
 } from './src/plan-mode-prompt.ts';
 export type {
+  AddPluginRegistryRequest,
+  CatalogInstallSource,
   EnableWorkspacePluginRequest,
   InstallPluginRequest,
+  PluginCatalogEntry,
   PluginListItem,
   PluginLoadDiagnostic,
   PluginMutationResponse,
   PluginName,
   PluginRecord,
+  PluginRegistryKind,
+  PluginRegistrySummary,
   PluginSourceFormat,
   PluginSummary,
   RemovePluginRequest,

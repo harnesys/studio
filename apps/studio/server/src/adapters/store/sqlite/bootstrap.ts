@@ -185,8 +185,30 @@ export function bootstrap(db: StudioDb): void {
       data_path TEXT NOT NULL,
       trusted INTEGER NOT NULL DEFAULT 0,
       enabled_workspace_ids TEXT NOT NULL DEFAULT '[]',
+      registry_id TEXT,
+      catalog_plugin_name TEXT,
       installed_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS plugin_registries (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      kind TEXT NOT NULL,
+      source TEXT NOT NULL,
+      path TEXT NOT NULL,
+      revision TEXT,
+      last_sync_at TEXT,
+      last_error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS plugin_catalog_entries (
+      id TEXT PRIMARY KEY,
+      registry_id TEXT NOT NULL,
+      plugin_name TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(registry_id, plugin_name)
     );`,
   ];
 
@@ -225,6 +247,14 @@ export function bootstrap(db: StudioDb): void {
 
   try {
     db.run(sql.raw('ALTER TABLE webhooks ADD COLUMN thread_id text REFERENCES threads(id);'));
+  } catch {}
+
+  try {
+    db.run(sql.raw('ALTER TABLE plugins ADD COLUMN registry_id text;'));
+  } catch {}
+
+  try {
+    db.run(sql.raw('ALTER TABLE plugins ADD COLUMN catalog_plugin_name text;'));
   } catch {}
 
   try {

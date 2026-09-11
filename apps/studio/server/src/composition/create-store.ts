@@ -5,6 +5,7 @@ import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.rep
 import { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
 import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
+import { SqlitePluginRegistriesAdapter } from '../adapters/store/sqlite/repos/sqlite-plugin-registries.adapter.ts';
 import { SqlitePluginsAdapter } from '../adapters/store/sqlite/repos/sqlite-plugins.adapter.ts';
 import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
 import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
@@ -30,6 +31,7 @@ export type StudioStore = {
   threadRepo: SqliteThreadRepo;
   attachmentRepo: SqliteAttachmentRepo;
   pluginRepo: SqlitePluginsAdapter;
+  pluginRegistryRepo: SqlitePluginRegistriesAdapter;
 };
 
 export function createStudioStore(options: StudioStoreOptions = {}): StudioStore {
@@ -53,5 +55,6 @@ export function createStudioStore(options: StudioStoreOptions = {}): StudioStore
     threadRepo: new SqliteThreadRepo(db),
     attachmentRepo: new SqliteAttachmentRepo(db),
     pluginRepo: new SqlitePluginsAdapter(db),
+    pluginRegistryRepo: new SqlitePluginRegistriesAdapter(db),
   };
 }

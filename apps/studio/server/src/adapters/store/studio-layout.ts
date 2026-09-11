@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   ATTACHMENTS_DIR,
   HOME_DIR_NAME,
+  MARKETPLACES_DIR,
   PLUGINS_DATA_DIR,
   PLUGINS_DIR,
   SKILLS_DIR,
@@ -17,6 +18,7 @@ export {
   ATTACHMENTS_DIR,
   DB_FILE,
   HOME_DIR_NAME,
+  MARKETPLACES_DIR,
   PLUGINS_DATA_DIR,
   PLUGINS_DIR,
   SKILLS_DIR,
@@ -108,4 +110,8 @@ export function pluginInstallPath(home: string, name: string): string {
 
 export function pluginDataPath(home: string, name: string): string {
   return join(home, PLUGINS_DATA_DIR, name);
+}
+
+export function marketplaceInstallPath(home: string, registryId: string): string {
+  return join(home, MARKETPLACES_DIR, registryId);
 }

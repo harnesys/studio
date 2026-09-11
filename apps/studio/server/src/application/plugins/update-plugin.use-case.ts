@@ -5,8 +5,8 @@ import { updatePluginCheckout } from '../../adapters/plugin-git.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { PluginRepository } from '../../domain/plugin.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
-import { toPluginSummary } from './install-plugin.use-case.ts';
 import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+import { toPluginSummary } from './plugin-summary.ts';
 
 export type UpdatePluginRequest = {
   name: PluginName;

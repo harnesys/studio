@@ -52,6 +52,20 @@ export {
   watchKnowledgeIndexState,
 } from './memory';
 export {
+  type AddPluginRegistryRequest,
+  addPluginRegistry,
+  listPluginCatalog,
+  listPluginRegistries,
+  type PluginCatalogEntry,
+  type PluginRegistrySummary,
+  pluginCatalogQuery,
+  pluginCatalogQueryKey,
+  pluginRegistriesQuery,
+  pluginRegistriesQueryKey,
+  refreshPluginRegistry,
+  removePluginRegistry,
+} from './plugin-registries';
+export {
   type EnableWorkspacePluginRequest,
   type EnableWorkspacePluginResponse,
   enableWorkspacePlugin,

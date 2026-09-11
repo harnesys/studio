@@ -8,6 +8,8 @@ export type PluginInstallRecord = {
   dataPath: string;
   trusted: boolean;
   enabledWorkspaceIds: string[];
+  registryId?: string;
+  catalogPluginName?: string;
   installedAt: string;
   updatedAt: string;
 };

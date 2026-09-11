@@ -8,6 +8,7 @@
     ".": "./index.ts",
     "./domain": "./domain.ts",
     "./packs": "./src/packs/index.ts",
+    "./plugins-catalog": "./plugins-catalog.ts",
     "./adapters/node": "./src/adapters/node/index.ts"
   },
   "dependencies": {

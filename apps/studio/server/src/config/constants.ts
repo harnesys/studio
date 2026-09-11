@@ -17,6 +17,9 @@ export const SKILLS_DIR = 'skills';
 export const PLUGINS_DIR = 'plugins';
 /** Per-plugin PLUGIN_DATA (`~/.harnesys/plugins-data/<name>`). */
 export const PLUGINS_DATA_DIR = 'plugins-data';
+/** Marketplace checkouts (`~/.harnesys/marketplaces/<id>`). */
+export const MARKETPLACES_DIR = 'marketplaces';
+export const DEFAULT_PLUGIN_REGISTRY_SOURCE = 'anthropics/claude-plugins-official';
 export const DB_FILE = 'studio.db';
 /** NDJSON trace logs: `<home>/logs/studio-YYYY-MM-DD.log`. */
 export const LOGS_DIR = 'logs';

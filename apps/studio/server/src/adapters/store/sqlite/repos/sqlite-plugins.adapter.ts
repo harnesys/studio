@@ -32,6 +32,8 @@ export class SqlitePluginsAdapter implements PluginRepository {
           dataPath: rec.dataPath,
           trusted: rec.trusted,
           enabledWorkspaceIds,
+          registryId: rec.registryId ?? null,
+          catalogPluginName: rec.catalogPluginName ?? null,
           installedAt: rec.installedAt,
           updatedAt: rec.updatedAt,
         })
@@ -44,6 +46,8 @@ export class SqlitePluginsAdapter implements PluginRepository {
             dataPath: rec.dataPath,
             trusted: rec.trusted,
             enabledWorkspaceIds,
+            registryId: rec.registryId ?? null,
+            catalogPluginName: rec.catalogPluginName ?? null,
             updatedAt: rec.updatedAt,
           },
         })
@@ -130,7 +134,7 @@ function parseEnabledWorkspaceIds(raw: string): string[] {
 }
 
 function toRecord(row: PluginRow): PluginInstallRecord {
-  return {
+  const record: PluginInstallRecord = {
     name: row.name,
     source: row.source,
     revision: row.revision,
@@ -141,4 +145,11 @@ function toRecord(row: PluginRow): PluginInstallRecord {
     installedAt: row.installedAt,
     updatedAt: row.updatedAt,
   };
+  if (row.registryId) {
+    record.registryId = row.registryId;
+  }
+  if (row.catalogPluginName) {
+    record.catalogPluginName = row.catalogPluginName;
+  }
+  return record;
 }

@@ -31,6 +31,7 @@ export function registerStudioHttp(args: {
     threadRepo: store.threadRepo,
     attachmentRepo: store.attachmentRepo,
     pluginRepo: store.pluginRepo,
+    pluginRegistryRepo: store.pluginRegistryRepo,
     workspace: platform.workspace,
     workspaceFiles: platform.workspaceFiles,
     filesWatcher: platform.filesWatcher,

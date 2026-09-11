@@ -10,6 +10,8 @@ const GITHUB_SHORTHAND_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 export type ClonePluginRequest = {
   source: string;
   dest: string;
+  /** Branch, tag, or commit to checkout after clone. */
+  ref?: string;
 };
 
 export type PluginRevision = {
@@ -53,8 +55,47 @@ export async function clonePlugin(request: ClonePluginRequest): Promise<PluginRe
   }
   await mkdir(dirname(dest), { recursive: true });
   await runGit(dirname(dest), ['clone', '--', request.source, dest]);
+  if (request.ref !== undefined && request.ref.length > 0) {
+    assertGitRef(request.ref);
+    const fetch = await spawnGit({
+      cwd: dest,
+      args: ['fetch', '--tags', 'origin', request.ref],
+    });
+    if (fetch.code !== 0) {
+      await runGit(dest, ['fetch', '--tags', 'origin']);
+    }
+    await runGit(dest, ['checkout', '--force', request.ref]);
+  }
   const revision = await runGit(dest, ['rev-parse', 'HEAD']);
   return { revision };
+}
+
+export function isMarketplaceJsonUrl(source: string): boolean {
+  const trimmed = source.trim();
+  return /^https?:\/\//i.test(trimmed) && /marketplace\.json(\?|$)/i.test(trimmed);
+}
+
+export function slugFromSource(source: string): string {
+  const trimmed = source
+    .trim()
+    .replace(/\/+$/, '')
+    .replace(/\.git$/i, '');
+  if (GITHUB_SHORTHAND_RE.test(trimmed)) {
+    return trimmed.replace(/\//g, '-').toLowerCase();
+  }
+  try {
+    const url = new URL(trimmed);
+    const parts = url.pathname.split('/').filter(Boolean);
+    const last = parts.at(-1)?.replace(/\.json$/i, '') ?? 'marketplace';
+    const owner = parts.at(-2);
+    if (owner && last) {
+      return `${owner}-${last}`.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
+    }
+    return last.toLowerCase().replace(/[^a-z0-9._-]+/g, '-') || 'marketplace';
+  } catch {
+    const segment = trimmed.split(/[/:]/).filter(Boolean).at(-1) ?? 'marketplace';
+    return segment.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
+  }
 }
 
 export async function updatePluginCheckout(

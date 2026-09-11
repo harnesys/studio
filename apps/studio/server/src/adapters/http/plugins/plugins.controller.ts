@@ -33,8 +33,15 @@ export class PluginsController {
     app.post('/api/plugins/install', async (c) => {
       const body = installPluginBody.parse(await c.req.json());
       const result = await this.deps.installPlugin.execute({
-        source: body.source,
+        ...(body.source !== undefined ? { source: body.source } : {}),
+        ...(body.path !== undefined ? { path: body.path } : {}),
+        ...(body.ref !== undefined ? { ref: body.ref } : {}),
         ...(body.trust !== undefined ? { trust: body.trust } : {}),
+        ...(body.registryId !== undefined ? { registryId: body.registryId } : {}),
+        ...(body.catalogPluginName !== undefined
+          ? { catalogPluginName: body.catalogPluginName }
+          : {}),
+        ...(body.pluginName !== undefined ? { pluginName: body.pluginName } : {}),
       });
       return c.json(result, 201);
     });

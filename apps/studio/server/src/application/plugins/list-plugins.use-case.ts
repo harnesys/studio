@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import type { PluginListItem, PluginSummary } from '@harnesys/studio-shared';
 import { loadPluginFromDirectory } from 'harnesys/adapters/node';
 import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
-import { toPluginSummary } from './install-plugin.use-case.ts';
+import { toPluginSummary } from './plugin-summary.ts';
 
 export type ListPluginsInput = {
   execute(): Promise<PluginListItem[]>;
@@ -71,5 +71,7 @@ function unloadedSummary(record: PluginInstallRecord): PluginSummary {
     mcpServerCount: 0,
     agentCount: 0,
     commandCount: 0,
+    ...(record.registryId ? { registryId: record.registryId } : {}),
+    ...(record.catalogPluginName ? { catalogPluginName: record.catalogPluginName } : {}),
   };
 }

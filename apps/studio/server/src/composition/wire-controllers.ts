@@ -4,7 +4,6 @@ import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import type { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
 import { AgentController } from '../adapters/http/agent/agent.controller.ts';
 import { CatalogController } from '../adapters/http/catalog/catalog.controller.ts';
-import { PluginsController } from '../adapters/http/plugins/plugins.controller.ts';
 import { ProviderController } from '../adapters/http/provider/provider.controller.ts';
 import { ThreadController } from '../adapters/http/thread/thread.controller.ts';
 import { CapabilitiesController } from '../adapters/http/workspace/capabilities.controller.ts';
@@ -15,6 +14,7 @@ import type { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agen
 import type { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
 import type { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import type { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
+import type { SqlitePluginRegistriesAdapter } from '../adapters/store/sqlite/repos/sqlite-plugin-registries.adapter.ts';
 import type { SqlitePluginsAdapter } from '../adapters/store/sqlite/repos/sqlite-plugins.adapter.ts';
 import type { SqliteRunEventStore } from '../adapters/store/sqlite/repos/sqlite-run-events.adapter.ts';
 import type { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
@@ -36,12 +36,6 @@ import { UpdateAgentUseCase } from '../application/agents/update-agent.use-case.
 import { GetCatalogUseCase } from '../application/catalog/get-catalog.use-case.ts';
 import type { GetThreadPlanInput } from '../application/plans/get-thread-plan.use-case.ts';
 import { SavePlanUseCase } from '../application/plans/save-plan.use-case.ts';
-import { EnableWorkspacePluginUseCase } from '../application/plugins/enable-workspace-plugin.use-case.ts';
-import { InstallPluginUseCase } from '../application/plugins/install-plugin.use-case.ts';
-import { ListPluginsUseCase } from '../application/plugins/list-plugins.use-case.ts';
-import { RemovePluginUseCase } from '../application/plugins/remove-plugin.use-case.ts';
-import { TrustPluginUseCase } from '../application/plugins/trust-plugin.use-case.ts';
-import { UpdatePluginUseCase } from '../application/plugins/update-plugin.use-case.ts';
 import { CreateProviderUseCase } from '../application/providers/create-provider.use-case.ts';
 import { CreateProviderModelUseCase } from '../application/providers/create-provider-model.use-case.ts';
 import { DeleteProviderUseCase } from '../application/providers/delete-provider.use-case.ts';
@@ -103,6 +97,7 @@ import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
+import { wirePluginControllers } from './wire-plugin-controllers.ts';
 
 type ControllerDeps = {
   app: Hono;
@@ -116,6 +111,7 @@ type ControllerDeps = {
   threadRepo: SqliteThreadRepo;
   attachmentRepo: SqliteAttachmentRepo;
   pluginRepo: SqlitePluginsAdapter;
+  pluginRegistryRepo: SqlitePluginRegistriesAdapter;
   workspace: WorkspacePort;
   workspaceFiles: WorkspaceFilesPort;
   filesWatcher: FilesWatcherAdapter;
@@ -203,18 +199,14 @@ export function wireControllers(d: ControllerDeps): void {
     getCatalog: new GetCatalogUseCase(),
   }).register(d.app);
 
-  new PluginsController({
-    listPlugins: new ListPluginsUseCase(d.pluginRepo),
-    installPlugin: new InstallPluginUseCase(d.pluginRepo, d.home, d.workspaceHarnesys),
-    updatePlugin: new UpdatePluginUseCase(d.pluginRepo, d.workspaceHarnesys),
-    trustPlugin: new TrustPluginUseCase(d.pluginRepo, d.workspaceHarnesys),
-    enableWorkspacePlugin: new EnableWorkspacePluginUseCase(
-      d.pluginRepo,
-      d.workspaceRepo,
-      d.workspaceHarnesys,
-    ),
-    removePlugin: new RemovePluginUseCase(d.pluginRepo, d.workspaceHarnesys),
-  }).register(d.app);
+  wirePluginControllers({
+    app: d.app,
+    home: d.home,
+    pluginRepo: d.pluginRepo,
+    pluginRegistryRepo: d.pluginRegistryRepo,
+    workspaceRepo: d.workspaceRepo,
+    workspaceHarnesys: d.workspaceHarnesys,
+  });
 
   new ToolsController({
     listWorkspaceTools: new ListWorkspaceToolsUseCase(d.workspaceRepo, d.workspaceHarnesys),

@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-export const installPluginBody = z.object({
-  source: z.string().trim().min(1),
-  trust: z.boolean().optional(),
-});
+export { installPluginBody } from './plugin-registries.body.ts';
 
 export const trustPluginBody = z.object({
   trusted: z.boolean(),

@@ -61,6 +61,15 @@ export type PluginCommandRef = {
   description?: string;
 };
 
+/** Claude-compat / marketplace lspServers entry (stdio language server). */
+export type PluginLspServer = {
+  serverId: string;
+  command: string;
+  args: string[];
+  /** Map file extension (with dot) → LSP languageId. */
+  extensionToLanguage: Record<string, string>;
+};
+
 export type PluginLoadDiagnostic = {
   level: 'error' | 'warning';
   code: string;
@@ -77,4 +86,5 @@ export type Plugin = {
   hooks: PluginHookCommand[];
   agents: PluginAgentRef[];
   commands: PluginCommandRef[];
+  lspServers: PluginLspServer[];
 };

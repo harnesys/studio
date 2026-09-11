@@ -26,6 +26,7 @@ export type PluginSummary = PluginRecord & {
   mcpServerCount: number;
   agentCount: number;
   commandCount: number;
+  lspServerCount: number;
 };
 
 export type PluginMutationResponse = {

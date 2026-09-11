@@ -71,6 +71,7 @@ function unloadedSummary(record: PluginInstallRecord): PluginSummary {
     mcpServerCount: 0,
     agentCount: 0,
     commandCount: 0,
+    lspServerCount: 0,
     ...(record.registryId ? { registryId: record.registryId } : {}),
     ...(record.catalogPluginName ? { catalogPluginName: record.catalogPluginName } : {}),
   };

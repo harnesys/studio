@@ -7,6 +7,7 @@ import type {
   PluginCommandRef,
   PluginHookCommand,
   PluginLoadDiagnostic,
+  PluginLspServer,
   PluginManifest,
   PluginMcpServer,
   PluginSourceFormat,
@@ -21,6 +22,7 @@ import {
   parseInventoryMarkdown,
 } from './claude-compat.ts';
 import { discoverPluginSkills } from './discover-plugin-skills.ts';
+import { parsePluginLspServers } from './parse-plugin-lsp.ts';
 import { parsePluginManifestJson } from './parse-plugin-manifest.ts';
 import { parsePluginMcpFile } from './parse-plugin-mcp.ts';
 
@@ -117,6 +119,9 @@ export function loadPluginFromDirectory(
   );
   diagnostics.push(...commandsResult.diagnostics);
 
+  const lspResult = loadLspServers(root, layout);
+  diagnostics.push(...lspResult.diagnostics);
+
   const plugin: Plugin = {
     root,
     sourceFormat: loaded.sourceFormat,
@@ -126,6 +131,7 @@ export function loadPluginFromDirectory(
     hooks: hooksResult.hooks,
     agents: agentsResult.items,
     commands: commandsResult.items.map(toCommandRef),
+    lspServers: lspResult.servers,
   };
   return Promise.resolve({ plugin, mcp: mcpResult.fragment, diagnostics });
 }
@@ -196,6 +202,32 @@ function loadMcp(root: string, pluginData: string, pluginName: string): LoadedMc
     diagnostics.push(withPath(diagnostic, mcpPath));
   }
   return { servers, fragment: parsed.fragment, diagnostics };
+}
+
+function loadLspServers(
+  root: string,
+  layout: PluginSourceFormat,
+): { servers: PluginLspServer[]; diagnostics: PluginLoadDiagnostic[] } {
+  const candidates =
+    layout === 'claude-compat'
+      ? [path.join(root, '.claude-plugin', 'plugin.json'), path.join(root, 'lsp.json')]
+      : [path.join(root, 'lsp.json'), path.join(root, 'plugin.json')];
+  for (const filePath of candidates) {
+    const json = readOptionalJson(filePath);
+    if (json.kind !== 'ok' || !isPlainObject(json.value)) {
+      continue;
+    }
+    if (!('lspServers' in json.value) && path.basename(filePath) !== 'lsp.json') {
+      continue;
+    }
+    const raw = path.basename(filePath) === 'lsp.json' ? json.value : json.value.lspServers;
+    return parsePluginLspServers(raw, filePath);
+  }
+  return { servers: [], diagnostics: [] };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function loadHooks(hooksFilePath: string): LoadedHooks {

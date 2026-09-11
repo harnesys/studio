@@ -1,3 +1,4 @@
+import type { PluginLspServer } from 'harnesys';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
@@ -68,6 +69,10 @@ export function createStudioHost(args: {
     });
   });
 
+  const lspServersRef: {
+    current: (cwd: string) => PluginLspServer[] | Promise<PluginLspServer[]>;
+  } = { current: () => [] };
+
   const packRegistrations = createPackRegistrations({
     db: store.db,
     schedules: store.scheduleRepo,
@@ -85,6 +90,7 @@ export function createStudioHost(args: {
     getThread: runtime.getThread,
     semanticSessions: memory.semantic,
     memory,
+    resolveLspServers: (cwd) => lspServersRef.current(cwd),
   });
 
   const workspaceHarnesys =
@@ -108,6 +114,17 @@ export function createStudioHost(args: {
       packRegistrations,
     );
   runtime.agentsRef.current = workspaceHarnesys;
+
+  lspServersRef.current = async (cwd) => {
+    const workspace = store.workspaceRepo
+      .list()
+      .find((row) => row.path === cwd || row.path.replace(/\/$/, '') === cwd.replace(/\/$/, ''));
+    if (!workspace) {
+      return [];
+    }
+    const loaded = await workspaceHarnesys.loadEnabledPlugins(workspace.id);
+    return loaded.flatMap((entry) => entry.plugin.lspServers);
+  };
 
   const branchSeeder = new SeedBranchStateUseCase({
     threads: store.threadRepo,

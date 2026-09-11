@@ -9,6 +9,7 @@
     "./domain": "./domain.ts",
     "./packs": "./src/packs/index.ts",
     "./plugins-catalog": "./plugins-catalog.ts",
+    "./lsp": "./lsp.ts",
     "./adapters/node": "./src/adapters/node/index.ts"
   },
   "dependencies": {

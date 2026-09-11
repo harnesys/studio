@@ -8,33 +8,47 @@ export type CatalogPluginMaterializeMeta = {
   name: string;
   description?: string;
   version?: string;
-  /** True when marketplace entry declared lspServers (Harnesys does not run LSP yet). */
-  hasLspServers: boolean;
+  lspServers?: Record<string, unknown>;
 };
 
 /**
  * Claude `strict: false` entries (e.g. typescript-lsp) keep identity/components in
- * marketplace.json; the relative path may only contain LICENSE/README. Synthesize a
- * Claude-compat plugin.json so loadPluginFromDirectory accepts the checkout.
+ * marketplace.json; the relative path may only contain LICENSE/README. Synthesize or
+ * enrich `.claude-plugin/plugin.json` (including lspServers) from the catalog entry.
  */
 export async function materializeCatalogPluginIfNeeded(
   checkout: string,
   meta: CatalogPluginMaterializeMeta,
-): Promise<{ materialized: boolean; hasLspServers: boolean }> {
-  if (hasRecognizedPluginLayout(checkout)) {
-    return { materialized: false, hasLspServers: meta.hasLspServers };
+): Promise<{ materialized: boolean; wroteLspServers: boolean }> {
+  const manifestPath = join(checkout, '.claude-plugin', 'plugin.json');
+  const hasLayout = hasRecognizedPluginLayout(checkout);
+  const existing = hasLayout && existsSync(manifestPath) ? readJsonObject(manifestPath) : undefined;
+  const needsLsp =
+    meta.lspServers !== undefined && (existing === undefined || !isRecord(existing.lspServers));
+  if (hasLayout && !needsLsp) {
+    return { materialized: false, wroteLspServers: false };
   }
+
   const dir = join(checkout, '.claude-plugin');
   await mkdir(dir, { recursive: true });
-  const manifest: Record<string, string> = { name: meta.name };
+  const manifest: Record<string, unknown> = {
+    ...(existing ?? {}),
+    name: meta.name,
+  };
   if (meta.description) {
     manifest.description = meta.description;
   }
   if (meta.version) {
     manifest.version = meta.version;
   }
-  await writeFile(join(dir, 'plugin.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
-  return { materialized: true, hasLspServers: meta.hasLspServers };
+  if (meta.lspServers) {
+    manifest.lspServers = meta.lspServers;
+  }
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  return {
+    materialized: !hasLayout,
+    wroteLspServers: Boolean(meta.lspServers),
+  };
 }
 
 /** Materialize from marketplace root + collect install diagnostics. */
@@ -55,14 +69,6 @@ export async function prepareCatalogCheckout(
       path: checkout,
     });
   }
-  if (materialize.hasLspServers) {
-    diagnostics.push({
-      level: 'warning',
-      code: 'lsp_not_supported',
-      message: 'Marketplace entry declares lspServers; Harnesys does not run language servers yet.',
-      path: checkout,
-    });
-  }
   return diagnostics;
 }
 
@@ -72,18 +78,15 @@ export function readMarketplacePluginMeta(
 ): CatalogPluginMaterializeMeta {
   const location = findMarketplaceManifest(marketplaceRoot);
   if (!location) {
-    return { name: pluginName, hasLspServers: false };
+    return { name: pluginName };
   }
   try {
     const raw: unknown = JSON.parse(readFileSync(location.manifestPath, 'utf8'));
     if (!isRecord(raw) || !Array.isArray(raw.plugins)) {
-      return { name: pluginName, hasLspServers: false };
+      return { name: pluginName };
     }
     for (const item of raw.plugins) {
-      if (!isRecord(item)) {
-        continue;
-      }
-      if (item.name !== pluginName) {
+      if (!isRecord(item) || item.name !== pluginName) {
         continue;
       }
       const description = asString(item.description);
@@ -92,13 +95,13 @@ export function readMarketplacePluginMeta(
         name: pluginName,
         ...(description ? { description } : {}),
         ...(version ? { version } : {}),
-        hasLspServers: isRecord(item.lspServers),
+        ...(isRecord(item.lspServers) ? { lspServers: item.lspServers } : {}),
       };
     }
   } catch {
     // fall through
   }
-  return { name: pluginName, hasLspServers: false };
+  return { name: pluginName };
 }
 
 function hasRecognizedPluginLayout(checkout: string): boolean {
@@ -106,6 +109,15 @@ function hasRecognizedPluginLayout(checkout: string): boolean {
     existsSync(join(checkout, 'plugin.json')) ||
     existsSync(join(checkout, '.claude-plugin', 'plugin.json'))
   );
+}
+
+function readJsonObject(filePath: string): Record<string, unknown> | undefined {
+  try {
+    const raw: unknown = JSON.parse(readFileSync(filePath, 'utf8'));
+    return isRecord(raw) ? raw : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

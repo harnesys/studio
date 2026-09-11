@@ -19,6 +19,7 @@
     "files": {},
     "shell": {},
     "fetch": {},
+    "lsp": {},
     "plan": {},
     "agents": {},
     "threads": {},

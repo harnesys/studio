@@ -160,6 +160,7 @@ export type {
   PluginHookCommand,
   PluginHookEvent,
   PluginLoadDiagnostic,
+  PluginLspServer,
   PluginManifest,
   PluginMcpServer,
   PluginName,

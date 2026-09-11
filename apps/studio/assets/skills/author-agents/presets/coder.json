@@ -17,6 +17,7 @@
   "capabilities": {
     "files": {},
     "shell": {},
+    "lsp": {},
     "plan": {},
     "agents": {},
     "threads": {},

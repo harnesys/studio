@@ -19,6 +19,7 @@ export function toPluginSummary(record: PluginInstallRecord, plugin: Plugin): Pl
     mcpServerCount: plugin.mcpServers.length,
     agentCount: plugin.agents.length,
     commandCount: plugin.commands.length,
+    lspServerCount: plugin.lspServers.length,
   };
   if (record.registryId) {
     summary.registryId = record.registryId;

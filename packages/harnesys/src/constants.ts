@@ -53,6 +53,8 @@ export const MAX_CATALOG_CHARS = 4000;
 export const MAX_ENTRIES = 40;
 export const MAX_CHARS = 4000;
 export const MAX_BATCH = 16;
+/** Max supporting files listed per skill directory. */
+export const MAX_SKILL_FILES = 200;
 export const MIN_PREFIX_LEN = 8;
 export const STREAM_CHUNK_SIZE = 6;
 export const LOAD_TOOLS_NAME = 'load_tools';

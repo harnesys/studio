@@ -22,6 +22,12 @@ export function filterSkills(
       }
       return registry.load(name);
     },
+    loadFile(name: string, relPath: string) {
+      if (!allowed.has(name)) {
+        throw new Error(`unknown skill: ${name}`);
+      }
+      return registry.loadFile(name, relPath);
+    },
     reload() {
       return registry.reload();
     },

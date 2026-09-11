@@ -57,6 +57,14 @@ export function combineSkillRegistries(
       }
       throw new Error(`unknown skill: ${name}`);
     },
+    loadFile(name: string, relPath: string) {
+      // Pack skills have no directory; only FS-owned skills carry files.
+      // FsSkillRegistry throws `unknown skill` / `unknown skill file` itself.
+      if (fs !== undefined) {
+        return fs.loadFile(name, relPath);
+      }
+      throw new Error(`unknown skill: ${name}`);
+    },
     reload() {
       fsNames = null;
       return fs?.reload();

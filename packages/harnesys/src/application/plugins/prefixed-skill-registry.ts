@@ -30,6 +30,16 @@ export function prefixSkillRegistry(
       }
       return await registry.load(original);
     },
+    async loadFile(id: string, relPath: string) {
+      if (!id.startsWith(prefix)) {
+        throw new Error(`unknown skill: ${id}`);
+      }
+      const original = id.slice(prefix.length);
+      if (original.length === 0) {
+        throw new Error(`unknown skill: ${id}`);
+      }
+      return await registry.loadFile(original, relPath);
+    },
     reload() {
       return registry.reload();
     },

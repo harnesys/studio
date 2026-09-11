@@ -26,6 +26,19 @@ export function composeSkillRegistries(regs: SkillRegistry[]): SkillRegistry {
       }
       throw new Error(`unknown skill: ${id}`);
     },
+    async loadFile(id: string, relPath: string) {
+      for (let i = regs.length - 1; i >= 0; i -= 1) {
+        const reg = regs[i];
+        if (reg === undefined) {
+          continue;
+        }
+        const names = new Set((await reg.list()).map((skill) => skill.name));
+        if (names.has(id)) {
+          return reg.loadFile(id, relPath);
+        }
+      }
+      throw new Error(`unknown skill: ${id}`);
+    },
     async reload() {
       for (const reg of regs) {
         await reg.reload();

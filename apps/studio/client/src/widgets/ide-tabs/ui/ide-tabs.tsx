@@ -63,6 +63,7 @@ export function IdeGroupTabs({
     return null;
   }
   const activeId = group.activeId;
+  const hasActiveTab = ws.tabs.some((t) => t.id === ws.activeId);
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: drop target for tabs dragged between editor groups
@@ -172,6 +173,7 @@ export function IdeGroupTabs({
           data-testid="toggle-inspector"
           title={inspectorOpen ? 'Hide inspector' : 'Show inspector'}
           aria-pressed={inspectorOpen}
+          disabled={!hasActiveTab}
           className={cn('shrink-0', inspectorOpen && 'bg-muted text-foreground')}
           onClick={() => useDeskStore.getState().toggleInspector()}
         >

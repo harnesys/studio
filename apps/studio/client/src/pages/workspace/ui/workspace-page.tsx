@@ -58,6 +58,7 @@ function WorkspaceShell({ children: _children }: { children: ReactNode }) {
                 data-testid="toggle-inspector"
                 title={inspectorOpen ? 'Hide inspector' : 'Show inspector'}
                 aria-pressed={inspectorOpen}
+                disabled={!hasTabs || !activeTab}
                 className={cn('ml-auto', inspectorOpen && 'bg-muted text-foreground')}
                 onClick={() => useDeskStore.getState().toggleInspector()}
               >

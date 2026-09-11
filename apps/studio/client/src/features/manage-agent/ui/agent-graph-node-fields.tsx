@@ -143,6 +143,9 @@ function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node)
     case 'control:spawn':
     case 'control:handoff':
     case 'control:goto':
+    case 'control:map':
+    case 'control:yield':
+    case 'control:wait':
     case 'control:interrupt':
       return <ControlNodeFields node={node} onChange={onChange} />;
     default:

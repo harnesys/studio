@@ -125,6 +125,49 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     defaults: () => ({ type: 'control:goto', target: '' }),
   },
   {
+    type: 'control:map',
+    group: 'control',
+    label: 'Map',
+    summary: 'Fan-out over items.',
+    description:
+      'Evaluates items to an array, runs enter/body for each item ($item, $index), joins with barrier all. Body must end at Yield. Optional timeoutMs + onTimeout fail|partial.',
+    inPalette: true,
+    ports: { in: true, out: true },
+    defaults: () => ({
+      type: 'control:map',
+      items: '$state.items',
+      enter: '',
+      body: [],
+      concurrency: 'parallel',
+      barrier: { policy: 'all' },
+    }),
+  },
+  {
+    type: 'control:yield',
+    group: 'control',
+    label: 'Yield',
+    summary: 'End a map worker.',
+    description:
+      'Terminates one map worker. Optional value expr becomes that item’s result. Only valid inside a Map body.',
+    inPalette: true,
+    ports: { in: true, out: false },
+    defaults: () => ({ type: 'control:yield' }),
+  },
+  {
+    type: 'control:wait',
+    group: 'control',
+    label: 'Wait',
+    summary: 'Sleep or gate.',
+    description:
+      'Parks the run as waiting. Sleep: delayMs or untilMs. Gate: resumeSchema (+ optional timeoutMs). HITL asks stay on needs_input; this status is waiting.',
+    inPalette: true,
+    ports: { in: true, out: true },
+    defaults: () => ({
+      type: 'control:wait',
+      delayMs: 1000,
+    }),
+  },
+  {
     type: 'control:interrupt',
     group: 'control',
     label: 'Interrupt',

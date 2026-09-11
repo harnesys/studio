@@ -2,6 +2,7 @@ import { RESERVED, SEMVER_RE } from '../constants.ts';
 import type { AgentDefinition, Edge, Node } from '../domain/agent-definition.ts';
 import type { Diagnostic, DiagnosticSeverity } from '../domain/errors.ts';
 import { type Ast, isPathExpr, parseExpr } from './expr-eval.ts';
+import { validateMapWaitNodes } from './graph-map-validate.ts';
 
 function hasCycle(nodes: Record<string, Node>, edges: Edge[]): boolean {
   const adj = new Map<string, string[]>();
@@ -167,7 +168,7 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
   }
 
   for (const [id, n] of Object.entries(nodes)) {
-    if (n.type === 'core:end' || n.type === 'control:goto') {
+    if (n.type === 'core:end' || n.type === 'control:goto' || n.type === 'control:yield') {
       continue;
     }
     const out = edgesByFrom.get(id);
@@ -175,6 +176,8 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       add('outgoing_required', 'error', `node "${id}" requires outgoing edge`, `graph.nodes.${id}`);
     }
   }
+
+  validateMapWaitNodes(def, edgesByFrom, add);
 
   for (const [from, list] of edgesByFrom) {
     const withWhen = list.filter((e) => e.when !== undefined);
@@ -531,6 +534,15 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
         if (!visited.has(e.to)) {
           visited.add(e.to);
           queue.push(e.to);
+        }
+      }
+      const curNode = nodes[cur];
+      if (curNode?.type === 'control:map' && Array.isArray(curNode.body)) {
+        for (const bid of curNode.body) {
+          if (!visited.has(bid)) {
+            visited.add(bid);
+            queue.push(bid);
+          }
         }
       }
     }

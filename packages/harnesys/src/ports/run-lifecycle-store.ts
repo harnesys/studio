@@ -4,6 +4,7 @@ export type RunLifecycleStatus =
   | 'queued'
   | 'running'
   | 'needs_input'
+  | 'waiting'
   | 'completed'
   | 'failed'
   | 'cancelled';
@@ -15,6 +16,8 @@ export type RunRecord = {
   threadId: string;
   status: RunLifecycleStatus;
   interruptId?: string;
+  /** Epoch ms when a `waiting` run is due for timer wake; cleared on resume. */
+  waitFireAt?: number;
   parentRunId?: string;
   attempt: number;
   leaseInstanceId?: string;
@@ -35,6 +38,8 @@ export type RunTransitionPatch = {
   from: RunLifecycleStatus;
   to: RunLifecycleStatus;
   interruptId?: string | null;
+  /** Set/clear indexed wake time for `waiting` runs. null clears. */
+  waitFireAt?: number | null;
   advanceAttempt?: boolean;
   events?: PendingSessionEvent[];
 };
@@ -66,4 +71,6 @@ export interface RunLifecycleStore {
     before?: string;
     olderThanMs?: number;
   }): Promise<RunRecord[]>;
+  /** waiting-раны с waitFireAt <= now (по умолчанию Date.now()). */
+  listDueTimers(opts?: { limit?: number; now?: number }): Promise<RunRecord[]>;
 }

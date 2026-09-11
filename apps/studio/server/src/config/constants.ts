@@ -125,7 +125,12 @@ export const CONFLICT_CODES = new Set([
   'lease_stale',
   'already_queued',
 ]);
-export const RUN_NON_TERMINAL_STATUSES: RunLifecycleStatus[] = ['queued', 'running', 'needs_input'];
+export const RUN_NON_TERMINAL_STATUSES: RunLifecycleStatus[] = [
+  'queued',
+  'running',
+  'needs_input',
+  'waiting',
+];
 
 /** SQLite */
 export const SQLITE_PRAGMAS = [

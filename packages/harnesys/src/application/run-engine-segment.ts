@@ -50,7 +50,13 @@ function isToolTerminal(event: SessionEvent): boolean {
  * journal ещё не дописан» — карточка теряется live до конца рана.
  */
 function isJournalBoundaryCard(event: SessionEvent): boolean {
-  return event.type === 'agent.spawned' || event.type === 'agent.handoff';
+  return (
+    event.type === 'agent.spawned' ||
+    event.type === 'agent.handoff' ||
+    event.type === 'map.started' ||
+    event.type === 'map.completed' ||
+    event.type === 'wait.started'
+  );
 }
 
 function messageOf(err: unknown): string {
@@ -173,6 +179,35 @@ async function pauseFromSnapshot(
   await pauseOnAsk(env, ctx, ask, interrupt.interruptId);
 }
 
+async function pauseOnWaiting(
+  env: SegmentEnv,
+  ctx: SegmentCtx,
+  snap: Snapshot | null,
+): Promise<void> {
+  if (!(await flushJournal(env, ctx))) {
+    return;
+  }
+  if (env.isLeaseLost()) {
+    return;
+  }
+  const interrupt = snap?.cursor.interrupt;
+  if (interrupt === undefined) {
+    await guardedTransition(env, ctx.runId, ctx.epoch, {
+      from: 'running',
+      to: 'failed',
+      events: [runFailedEvent('waiting without interrupt cursor')],
+    });
+    return;
+  }
+  const fireAt = snap?.cursor.timers?.[0]?.fireAt;
+  await guardedTransition(env, ctx.runId, ctx.epoch, {
+    from: 'running',
+    to: 'waiting',
+    interruptId: interrupt.interruptId,
+    waitFireAt: typeof fireAt === 'number' ? fireAt : null,
+  });
+}
+
 async function pauseOnInterrupt(
   env: SegmentEnv,
   ctx: SegmentCtx,
@@ -207,6 +242,18 @@ async function settleTerminal(
   const status = snap?.status ?? 'completed';
   if (status === 'needs_input') {
     await pauseFromSnapshot(env, ctx, snap);
+    return;
+  }
+  if (status === 'waiting') {
+    await pauseOnWaiting(env, ctx, snap);
+    return;
+  }
+  if (status === 'timed_out') {
+    await guardedTransition(env, ctx.runId, ctx.epoch, {
+      from: 'running',
+      to: 'failed',
+      events: [runFailedEvent(tail.failMessage ?? 'run timed out')],
+    });
     return;
   }
   if (status === 'completed') {

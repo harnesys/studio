@@ -14,6 +14,10 @@ export type Cursor = {
     nodeId: string;
     source?: string;
     output?: unknown;
+    /** control:wait mode; used by timer ticker. */
+    waitMode?: 'sleep' | 'gate';
+    /** control:wait onTimeout; used by timer ticker for gate. */
+    onTimeout?: 'fail' | 'continue' | 'interrupt';
   };
   cancellation?: unknown;
   budget?: { steps: number; tokens: number; startedAt: number };

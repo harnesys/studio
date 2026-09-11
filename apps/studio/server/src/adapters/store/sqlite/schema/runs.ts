@@ -7,6 +7,7 @@ export const runsTable = sqliteTable(
     threadId: text('thread_id').notNull(),
     status: text('status').notNull(),
     interruptId: text('interrupt_id'),
+    waitFireAt: integer('wait_fire_at'),
     parentRunId: text('parent_run_id'),
     attempt: integer('attempt').notNull().default(1),
     leaseInstanceId: text('lease_instance_id'),
@@ -19,6 +20,7 @@ export const runsTable = sqliteTable(
   (table) => ({
     claimIdx: index('runs_claim_idx').on(table.status, table.createdAt),
     askTtlIdx: index('runs_ask_ttl_idx').on(table.status, table.updatedAt),
+    waitFireIdx: index('runs_wait_fire_idx').on(table.status, table.waitFireAt),
   }),
 );
 

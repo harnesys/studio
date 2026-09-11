@@ -106,7 +106,7 @@ export async function resultFromState(state: RuntimeState, runId: string): Promi
       usage,
     };
   }
-  if (status === 'needs_input') {
+  if (status === 'needs_input' || status === 'waiting') {
     const cursor = snap?.cursor as Record<string, unknown> | undefined;
     const interrupt = cursor?.interrupt as
       | {
@@ -120,6 +120,15 @@ export async function resultFromState(state: RuntimeState, runId: string): Promi
       status: 'needs_input',
       runId: id,
       interrupt: interrupt ?? { interruptId: '', reason: 'unknown', resumeSchema: {}, nodeId: '' },
+      usage,
+    };
+  }
+  if (status === 'timed_out') {
+    return {
+      status: 'timed_out',
+      runId: id,
+      error: { code: 'map_timeout', message: 'run timed out' },
+      state: rec,
       usage,
     };
   }

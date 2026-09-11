@@ -234,6 +234,46 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       tool: m?.tool as { name: string; input: unknown; toolCallId: string } | undefined,
     };
   }
+  if (t === 'wait.started') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'wait.started',
+      askId: String(m?.interruptId ?? ''),
+      mode: m?.mode === 'gate' ? 'gate' : 'sleep',
+      fireAt: typeof m?.fireAt === 'number' ? m.fireAt : undefined,
+      source: m?.source === 'timer' ? 'timer' : 'wait',
+      schema: (m?.resumeSchema as Record<string, unknown>) ?? undefined,
+      prompt: typeof m?.reason === 'string' ? m.reason : undefined,
+    };
+  }
+  if (t === 'wait.resumed') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'wait.resumed',
+      nodeId: String(m?.nodeId ?? ''),
+      timedOut: m?.timedOut === true,
+      source: m?.source === 'timer' ? 'timer' : 'respond',
+    };
+  }
+  if (t === 'map.started') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'map.started',
+      nodeId: String(m?.nodeId ?? ''),
+      count: typeof m?.count === 'number' ? m.count : 0,
+      concurrency: typeof m?.concurrency === 'string' ? m.concurrency : undefined,
+    };
+  }
+  if (t === 'map.completed') {
+    const m = ev.metadata as Record<string, unknown> | undefined;
+    return {
+      type: 'map.completed',
+      nodeId: String(m?.nodeId ?? ''),
+      ok: typeof m?.ok === 'number' ? m.ok : 0,
+      failed: typeof m?.failed === 'number' ? m.failed : 0,
+      timedOut: m?.timedOut === true ? true : undefined,
+    };
+  }
   if (t === 'run.completed') {
     const m = ev.metadata as Record<string, unknown> | undefined;
     return {

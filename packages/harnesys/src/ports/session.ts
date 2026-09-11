@@ -53,7 +53,11 @@ export type SessionEventType =
   | 'agent.handoff'
   | 'agent.spawned'
   | 'agent.completed'
-  | 'agent.failed';
+  | 'agent.failed'
+  | 'map.started'
+  | 'map.completed'
+  | 'wait.started'
+  | 'wait.resumed';
 
 export type SessionEvent =
   | {
@@ -155,6 +159,42 @@ export type SessionEvent =
       spawnId: string;
       code?: string;
       message?: string;
+      seq?: number;
+      runId?: string;
+    }
+  | {
+      type: 'map.started';
+      nodeId: string;
+      count: number;
+      concurrency?: string;
+      seq?: number;
+      runId?: string;
+    }
+  | {
+      type: 'map.completed';
+      nodeId: string;
+      ok: number;
+      failed: number;
+      timedOut?: boolean;
+      seq?: number;
+      runId?: string;
+    }
+  | {
+      type: 'wait.started';
+      askId: string;
+      mode: 'sleep' | 'gate';
+      fireAt?: number;
+      source: 'timer' | 'wait';
+      schema?: JsonSchema;
+      prompt?: string;
+      seq?: number;
+      runId?: string;
+    }
+  | {
+      type: 'wait.resumed';
+      nodeId: string;
+      timedOut: boolean;
+      source: 'timer' | 'respond';
       seq?: number;
       runId?: string;
     };

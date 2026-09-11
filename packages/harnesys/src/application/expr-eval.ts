@@ -1,4 +1,13 @@
-export type Slots = { input: unknown; state: Record<string, unknown>; output: unknown; resume: unknown };
+export type Slots = {
+  input: unknown;
+  state: Record<string, unknown>;
+  output: unknown;
+  resume: unknown;
+  /** Set only inside control:map workers. */
+  item?: unknown;
+  /** Set only inside control:map workers. */
+  index?: number;
+};
 type PathNode = { type: 'path'; path: string };
 type LiteralNode = { type: 'literal'; value: string | number | boolean | null };
 type UnaryNode = { type: 'unary'; op: '!'; expr: Ast };
@@ -28,7 +37,7 @@ function tokenize(expr: string): Token[] {
     const ch = expr[i] as string;
     if (/\s/.test(ch)) { i += 1; continue; }
     if (ch === '$') {
-      const rest = expr.slice(i); const m = rest.match(/^\$(input|state|output|resume)\b/);
+      const rest = expr.slice(i); const m = rest.match(/^\$(input|state|output|resume|item|index)\b/);
       if (!m) syntaxError(`invalid path at ${i}`); let end = i + m[0].length;
       while (end < n) {
         const c = expr[end] as string;
@@ -130,9 +139,17 @@ class Parser {
 }
 export function parseExpr(expr: string): Ast { return new Parser(tokenize(expr)).parse(); }
 export function getByPath(root: Slots, path: string): unknown {
-  const trimmed = path.trim(); const m = trimmed.match(/^\$(input|state|output|resume)\b/);
-  if (!m) unknownPathError(`invalid path ${path}`); const base = m[1] as 'input' | 'state' | 'output' | 'resume';
-  let cur: unknown = base === 'input' ? root.input : base === 'state' ? root.state : base === 'output' ? root.output : root.resume;
+  const trimmed = path.trim(); const m = trimmed.match(/^\$(input|state|output|resume|item|index)\b/);
+  if (!m) unknownPathError(`invalid path ${path}`);
+  const base = m[1] as 'input' | 'state' | 'output' | 'resume' | 'item' | 'index';
+  let cur: unknown =
+    base === 'input' ? root.input
+    : base === 'state' ? root.state
+    : base === 'output' ? root.output
+    : base === 'resume' ? root.resume
+    : base === 'item' ? root.item
+    : root.index;
+  if ((base === 'item' || base === 'index') && cur === undefined) unknownPathError(`unknown_path ${path}`);
   let rest = trimmed.slice(m[0].length); let i = 0;
   while (i < rest.length) {
     const ch = rest[i] as string;

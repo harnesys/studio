@@ -20,6 +20,7 @@ import { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteRunEventStore } from '../adapters/store/sqlite/repos/sqlite-run-events.adapter.ts';
 import { SqliteRunLifecycleStore } from '../adapters/store/sqlite/repos/sqlite-run-lifecycle.adapter.ts';
+import { startWaitTicker } from '../adapters/wait-ticker.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
 import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.use-case.ts';
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
@@ -117,6 +118,13 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     lifecycle: runLifecycle,
     kick: runClaimer.kick,
     onCancelled: (threadId) => publishDeskThread(getThread, deskEvents, threadId),
+  });
+  startWaitTicker({
+    lifecycle: runLifecycle,
+    targets: {
+      resolve: (threadId) => targetRef.current?.resolve(threadId) ?? Promise.resolve(null),
+    },
+    kick: runClaimer.kick,
   });
   return {
     runEvents,

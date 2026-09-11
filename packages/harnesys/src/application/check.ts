@@ -127,8 +127,11 @@ export function check(
         'tool:call',
         'control:assign',
         'control:spawn',
+        'control:map',
+        'control:yield',
         'control:goto',
         'control:interrupt',
+        'control:wait',
         'control:handoff',
       ]);
       if (!known.has(node.type)) {

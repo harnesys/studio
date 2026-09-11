@@ -186,7 +186,7 @@ export function createSession(
       if (rec.status === 'completed') {
         throw codedRunError('run_terminal', `run ${runId} is terminal`);
       }
-      if (rec.status !== 'needs_input') {
+      if (rec.status !== 'needs_input' && rec.status !== 'waiting') {
         throw codedRunError('already_resumed', `run ${runId} is ${rec.status}`);
       }
       if (rec.interruptId !== askId) {
@@ -210,9 +210,10 @@ export function createSession(
         clientEventId: respondOpts?.clientEventId,
       } as PendingSessionEvent;
       await ctx.lifecycle.transition(runId, rec.leaseEpoch, {
-        from: 'needs_input',
+        from: rec.status,
         to: 'queued',
         interruptId: null,
+        waitFireAt: null,
         events: [answer],
       });
       ctx.claimer?.kick();
@@ -226,7 +227,7 @@ export function createSession(
       if (rec.status === 'completed') {
         throw codedRunError('run_terminal', `run ${runId} is terminal`);
       }
-      if (rec.status !== 'needs_input') {
+      if (rec.status !== 'needs_input' && rec.status !== 'waiting') {
         throw codedRunError('already_resumed', `run ${runId} is ${rec.status}`);
       }
       if (rec.interruptId !== askId) {
@@ -240,9 +241,10 @@ export function createSession(
         clientEventId: rejectOpts?.clientEventId,
       } as PendingSessionEvent;
       await ctx.lifecycle.transition(runId, rec.leaseEpoch, {
-        from: 'needs_input',
+        from: rec.status,
         to: 'queued',
         interruptId: null,
+        waitFireAt: null,
         events: [answer],
       });
       ctx.claimer?.kick();

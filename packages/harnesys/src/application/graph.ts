@@ -19,6 +19,7 @@ import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { runSummaryPassIfDue } from './compaction/run.ts';
 import type { Plan } from './compile.ts';
+import type { Slots } from './expr-eval.ts';
 import { evalExpr } from './expr-eval.ts';
 import {
   appendSpawnResultsMessage,
@@ -36,8 +37,10 @@ import {
   resolveModelForPort,
   stateKeyOf,
 } from './graph-helpers.ts';
+import { executeMap, type MapNodeSpec, prepareMap } from './graph-map.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
 import { executeSpawn, prepareSpawn, type SpawnNodeSpec } from './graph-spawn.ts';
+import { prepareWait, type WaitNodeSpec } from './graph-wait.ts';
 import { type LlmResult, runLlmGenerate } from './llm.ts';
 import {
   type BudgetLeft,
@@ -168,8 +171,29 @@ export type GraphOpts = {
   childJournal?: (spawnId: string, ev: Event) => void;
   /** Дочерний ран: ни один interrupt-источник не паркует ран, гейты отвечают deny. */
   sandbox?: boolean;
+  /** control:map worker context for $item / $index. */
+  mapContext?: { item: unknown; index: number };
   logger?: Logger;
 };
+
+function graphSlots(
+  opts: GraphOpts,
+  st: Record<string, unknown>,
+  input: unknown,
+  output: unknown,
+): Slots {
+  const slots: Slots = {
+    input,
+    state: st,
+    output,
+    resume: st.$resume ?? null,
+  };
+  if (opts.mapContext) {
+    slots.item = opts.mapContext.item;
+    slots.index = opts.mapContext.index;
+  }
+  return slots;
+}
 
 async function resolveFallbackBindings(
   agent: AgentDefinition,
@@ -389,7 +413,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       yield e;
       throw Object.assign(new Error(`unknown node ${cur}`), { code: 'no_matching_edge' });
     }
-    const slots = { input, state: st, output, resume: st.$resume ?? null };
+    const slots = graphSlots(opts, st, input, output);
 
     if (entryPending && cur === opts.startNodeId) {
       entryPending = false;
@@ -410,7 +434,19 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
       if (isSkippedEntry(node.type, opts.rejected, interruptSource)) {
         st.$resume = opts.rejected ? null : opts.resumePayload;
-        const edgeSlots = { input, state: st, output, resume: st.$resume ?? null };
+        if (node.type === 'control:wait') {
+          const timedOut =
+            opts.resumePayload !== undefined &&
+            typeof opts.resumePayload === 'object' &&
+            opts.resumePayload !== null &&
+            (opts.resumePayload as { timedOut?: unknown }).timedOut === true;
+          yield await commit('running', 'wait.resumed', 'recorded', {
+            nodeId: cur,
+            timedOut,
+            source: interruptSource === 'timer' ? 'timer' : 'respond',
+          });
+        }
+        const edgeSlots = graphSlots(opts, st, input, output);
         let nxt: string | undefined;
         try {
           nxt = matchOutgoing(plan.edgesByFrom.get(cur) ?? [], edgeSlots);
@@ -1048,6 +1084,111 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         break;
       }
       continue;
+    } else if (node.type === 'control:map') {
+      try {
+        const prepared = prepareMap(
+          node as MapNodeSpec,
+          { ...opts, agent, plan, input, toolRegistry },
+          slots,
+          cur,
+        );
+        yield await commit('running', 'map.started', 'recorded', {
+          nodeId: cur,
+          count: prepared.items.length,
+          concurrency: prepared.concurrency,
+        });
+        const mapOutcome = await executeMap(
+          prepared,
+          { ...opts, agent, plan, input, toolRegistry },
+          st,
+          startGraph,
+        );
+        for (const emission of mapOutcome.emissions) {
+          yield await commit('running', emission.type, 'recorded', emission.metadata);
+        }
+        output = { results: mapOutcome.results };
+        yield await commit('running', 'map.completed', 'recorded', {
+          nodeId: cur,
+          ok: mapOutcome.results.filter((r) => !r.error).length,
+          failed: mapOutcome.results.filter((r) => r.error).length,
+          timedOut: mapOutcome.timedOut || undefined,
+        });
+      } catch (err) {
+        const code =
+          err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
+            ? (err as { code: string }).code
+            : 'map_failed';
+        const message = err instanceof Error && err.message ? err.message : 'map failed';
+        if (code === 'map_timeout') {
+          const e = await commit('timed_out', 'run.failed', 'recorded', { code, message });
+          yield e;
+          break;
+        }
+        const e = await commit('failed', 'run.failed', 'recorded', { code, message });
+        yield e;
+        throw Object.assign(new Error(message), { code });
+      }
+    } else if (node.type === 'control:wait') {
+      if (opts.sandbox) {
+        const message = sandboxDenyText('wait', 'user input');
+        const e = await commit('failed', 'run.failed', 'recorded', {
+          code: 'sandbox_blocked',
+          message,
+        });
+        yield e;
+        throw Object.assign(new Error(message), { code: 'sandbox_blocked' });
+      }
+      let preparedWait: ReturnType<typeof prepareWait>;
+      try {
+        preparedWait = prepareWait(node as WaitNodeSpec, slots);
+      } catch (err) {
+        const code =
+          err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
+            ? (err as { code: string }).code
+            : 'wait_failed';
+        const message = err instanceof Error && err.message ? err.message : 'wait failed';
+        const e = await commit('failed', 'run.failed', 'recorded', { code, message });
+        yield e;
+        throw Object.assign(new Error(message), { code });
+      }
+      delete (st as Record<string, unknown>).$resume;
+      const snap = mkSnap(ctx(), 'waiting');
+      (snap.cursor as Record<string, unknown>).interrupt = {
+        interruptId: preparedWait.interruptId,
+        reason: preparedWait.reason,
+        resumeSchema: preparedWait.resumeSchema,
+        nodeId: cur,
+        source: preparedWait.source,
+        output,
+        waitMode: preparedWait.mode,
+        onTimeout: preparedWait.onTimeout,
+      };
+      if (preparedWait.fireAt !== undefined) {
+        (snap.cursor as Record<string, unknown>).timers = [
+          { id: preparedWait.interruptId, fireAt: preparedWait.fireAt },
+        ];
+      }
+      seq += 1;
+      const ev: Event = { ...mkEv(ctx(), 'wait.started'), agentId: agent.id };
+      ev.metadata = {
+        interruptId: preparedWait.interruptId,
+        reason: preparedWait.reason,
+        resumeSchema: preparedWait.resumeSchema,
+        source: preparedWait.source,
+        mode: preparedWait.mode,
+        fireAt: preparedWait.fireAt,
+        onTimeout: preparedWait.onTimeout,
+      };
+      await opts.state.commit(snap, [ev], { kind: 'recorded', sequence: seq });
+      yield ev;
+      break;
+    } else if (node.type === 'control:yield') {
+      const e = await commit('failed', 'run.failed', 'recorded', {
+        code: 'yield_outside_map',
+        message: 'control:yield is only valid inside control:map body',
+      });
+      yield e;
+      throw Object.assign(new Error('yield_outside_map'), { code: 'yield_outside_map' });
     } else {
       const e = await commit('failed', 'run.failed', 'recorded', {
         code: 'node_unsupported',
@@ -1066,7 +1207,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       yield e;
       break;
     }
-    const edgeSlots = { input, state: st, output, resume: st.$resume ?? null };
+    const edgeSlots = graphSlots(opts, st, input, output);
     let nxt: string | undefined;
     try {
       nxt = matchOutgoing(plan.edgesByFrom.get(cur) ?? [], edgeSlots);

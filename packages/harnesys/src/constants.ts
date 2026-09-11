@@ -111,6 +111,12 @@ export const EVENT_TYPES = {
   AGENT_HANDOFF: 'agent.handoff',
   AGENT_COMPLETED: 'agent.completed',
   AGENT_FAILED: 'agent.failed',
+  MAP_STARTED: 'map.started',
+  MAP_ITEM_COMPLETED: 'map.item.completed',
+  MAP_ITEM_FAILED: 'map.item.failed',
+  MAP_COMPLETED: 'map.completed',
+  WAIT_STARTED: 'wait.started',
+  WAIT_RESUMED: 'wait.resumed',
   WORK_ISSUED: 'work.issued',
   WORK_COMPLETED: 'work.completed',
   WORK_FAILED: 'work.failed',
@@ -158,7 +164,16 @@ export const PLAN_STATUSES = [
 export const SUBAGENT_ROLES = ['explore', 'coder', 'verifier', 'general'] as const;
 export const PERMISSION_MODES = ['ask', 'auto', 'dont_ask', 'bypass'] as const;
 export const SCHEDULE_HISTORIES = ['none', 'last', 'all'] as const;
-export const RUN_NON_TERMINAL: RunLifecycleStatus[] = ['queued', 'running', 'needs_input'];
+export const RUN_NON_TERMINAL: RunLifecycleStatus[] = [
+  'queued',
+  'running',
+  'needs_input',
+  'waiting',
+];
+/** Max items in one control:map (same order as tool:call batch). */
+export const MAP_ITEM_LIMIT = 32;
+/** Max control:wait delayMs / relative sleep. */
+export const WAIT_DELAY_MS_MAX = 7 * 24 * 3600 * 1000;
 export const ASK_USER_TOOL = 'ask_user';
 export const AGENTS_SPAWN_TOOL = 'agents_spawn';
 export const AGENTS_HANDOFF_TOOL = 'agents_handoff';

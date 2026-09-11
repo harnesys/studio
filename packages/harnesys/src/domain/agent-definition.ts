@@ -120,8 +120,28 @@ export type Node =
       concurrency: Expr | 'parallel' | 'sequential';
       barrier?: { policy: 'all' };
     }
+  | {
+      type: 'control:map';
+      items: Expr;
+      enter: string;
+      body: string[];
+      concurrency: Expr | 'parallel' | 'sequential';
+      barrier?: { policy: 'all' };
+      timeoutMs?: number;
+      onTimeout?: 'fail' | 'partial';
+    }
+  | { type: 'control:yield'; value?: Expr }
   | { type: 'control:goto'; target: Expr }
   | { type: 'control:interrupt'; reason: InterruptReason; resumeSchema: JsonSchema }
+  | {
+      type: 'control:wait';
+      delayMs?: number;
+      untilMs?: Expr;
+      timeoutMs?: number;
+      onTimeout?: 'fail' | 'continue' | 'interrupt';
+      reason?: InterruptReason;
+      resumeSchema?: JsonSchema;
+    }
   | {
       type: 'control:handoff';
       agentId: string | Expr;

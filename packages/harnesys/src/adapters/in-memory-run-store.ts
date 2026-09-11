@@ -216,6 +216,11 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     } else if (patch.interruptId !== undefined) {
       record.interruptId = patch.interruptId;
     }
+    if (patch.waitFireAt === null) {
+      delete record.waitFireAt;
+    } else if (patch.waitFireAt !== undefined) {
+      record.waitFireAt = patch.waitFireAt;
+    }
     if (patch.advanceAttempt) {
       record.attempt += 1;
     }
@@ -275,6 +280,22 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     const oldAsk = (record: RunRecord): boolean =>
       record.status === 'needs_input' && now - Date.parse(record.updatedAt) > olderThanMs;
     return this.select(oldAsk, (record) => record.updatedAt, opts?.limit, opts?.before);
+  }
+  async listDueTimers(opts?: { limit?: number; now?: number }): Promise<RunRecord[]> {
+    const now = opts?.now ?? Date.now();
+    const due = (record: RunRecord): boolean =>
+      record.status === 'waiting' &&
+      typeof record.waitFireAt === 'number' &&
+      record.waitFireAt <= now;
+    const out: RunRecord[] = [];
+    for (const record of this.runs.values()) {
+      if (!due(record)) {
+        continue;
+      }
+      out.push({ ...record });
+    }
+    out.sort((a, b) => (a.waitFireAt ?? 0) - (b.waitFireAt ?? 0));
+    return out.slice(0, opts?.limit ?? DEFAULT_LIST_LIMIT);
   }
 }
 export type RunEventBus = {

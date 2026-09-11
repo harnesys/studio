@@ -56,10 +56,10 @@ function isWaiting(events: SessionEvent[]): boolean {
     if (TERMINAL_EVENT_TYPES.has(event.type)) {
       return false;
     }
-    if (event.type === 'hitl.answer') {
+    if (event.type === 'hitl.answer' || event.type === 'wait.resumed') {
       return false;
     }
-    if (event.type === 'ask') {
+    if (event.type === 'ask' || event.type === 'wait.started') {
       return true;
     }
   }

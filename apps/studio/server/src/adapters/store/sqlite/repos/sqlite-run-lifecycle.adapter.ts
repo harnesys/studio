@@ -1,6 +1,6 @@
 // biome-ignore-all lint/suspicious/useAwait: async required by RunLifecycleStore port contract
 import { SQLiteError } from 'bun:sqlite';
-import { and, asc, desc, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
 import {
   codedRunError,
   type PendingSessionEvent,
@@ -36,6 +36,7 @@ function rowToRecord(row: RunRow): RunRecord {
     threadId: row.threadId,
     status: row.status as RunLifecycleStatus,
     interruptId: row.interruptId ?? undefined,
+    waitFireAt: row.waitFireAt ?? undefined,
     parentRunId: row.parentRunId ?? undefined,
     attempt: row.attempt,
     leaseInstanceId: row.leaseInstanceId ?? undefined,
@@ -221,11 +222,18 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
         patch.events ?? [],
       );
       const lastSeq = maxSeqOf(stored, record.lastSeq);
+      let waitFireAt: number | null = record.waitFireAt ?? null;
+      if (patch.waitFireAt === null) {
+        waitFireAt = null;
+      } else if (patch.waitFireAt !== undefined) {
+        waitFireAt = patch.waitFireAt;
+      }
       tx.update(runsTable)
         .set({
           status: patch.to,
           interruptId:
             patch.interruptId === null ? null : (patch.interruptId ?? record.interruptId ?? null),
+          waitFireAt,
           attempt: patch.advanceAttempt ? record.attempt + 1 : record.attempt,
           leaseInstanceId: null,
           leaseExpiresAt: null,
@@ -282,6 +290,24 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
       .from(runsTable)
       .where(and(...conditions))
       .orderBy(asc(runsTable.updatedAt))
+      .limit(opts?.limit ?? DEFAULT_LIST_LIMIT)
+      .all()
+      .map(rowToRecord);
+  }
+
+  async listDueTimers(opts?: { limit?: number; now?: number }): Promise<RunRecord[]> {
+    const now = opts?.now ?? Date.now();
+    return this.db
+      .select()
+      .from(runsTable)
+      .where(
+        and(
+          eq(runsTable.status, 'waiting'),
+          sql`${runsTable.waitFireAt} IS NOT NULL`,
+          lte(runsTable.waitFireAt, now),
+        ),
+      )
+      .orderBy(asc(runsTable.waitFireAt))
       .limit(opts?.limit ?? DEFAULT_LIST_LIMIT)
       .all()
       .map(rowToRecord);

@@ -149,6 +149,7 @@ export function bootstrap(db: StudioDb): void {
       thread_id TEXT NOT NULL,
       status TEXT NOT NULL,
       interrupt_id TEXT,
+      wait_fire_at INTEGER,
       parent_run_id TEXT,
       attempt INTEGER NOT NULL DEFAULT 1,
       lease_instance_id TEXT,
@@ -159,9 +160,10 @@ export function bootstrap(db: StudioDb): void {
       updated_at TEXT NOT NULL
     );`,
     `CREATE UNIQUE INDEX IF NOT EXISTS runs_active_root_idx ON runs(thread_id)
-      WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input');`,
+      WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input', 'waiting');`,
     `CREATE INDEX IF NOT EXISTS runs_claim_idx ON runs(status, created_at);`,
     `CREATE INDEX IF NOT EXISTS runs_ask_ttl_idx ON runs(status, updated_at);`,
+    `CREATE INDEX IF NOT EXISTS runs_wait_fire_idx ON runs(status, wait_fire_at);`,
     `CREATE TABLE IF NOT EXISTS run_events (
       run_id TEXT NOT NULL,
       seq INTEGER NOT NULL,
@@ -357,6 +359,23 @@ export function bootstrap(db: StudioDb): void {
         'CREATE INDEX IF NOT EXISTS attachments_thread_pending_idx ON attachments(thread_id) WHERE entry_id IS NULL;',
       ),
     );
+  } catch {}
+  try {
+    db.run(sql.raw('ALTER TABLE runs ADD COLUMN wait_fire_at INTEGER;'));
+  } catch {}
+  try {
+    db.run(sql.raw('DROP INDEX IF EXISTS runs_active_root_idx;'));
+  } catch {}
+  try {
+    db.run(
+      sql.raw(
+        `CREATE UNIQUE INDEX IF NOT EXISTS runs_active_root_idx ON runs(thread_id)
+      WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input', 'waiting');`,
+      ),
+    );
+  } catch {}
+  try {
+    db.run(sql.raw('CREATE INDEX IF NOT EXISTS runs_wait_fire_idx ON runs(status, wait_fire_at);'));
   } catch {}
 
   bootstrapMemory(db);

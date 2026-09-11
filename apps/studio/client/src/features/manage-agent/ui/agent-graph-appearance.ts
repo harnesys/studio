@@ -3,12 +3,15 @@ import {
   CirclePlayIcon,
   FlagIcon,
   GitBranchIcon,
+  Grid2x2Icon,
+  HourglassIcon,
   type LucideIcon,
   PauseCircleIcon,
   PuzzleIcon,
   Redo2Icon,
   SparklesIcon,
   SquarePenIcon,
+  Undo2Icon,
   WrenchIcon,
 } from 'lucide-react';
 
@@ -24,6 +27,9 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   'control:spawn': GitBranchIcon,
   'control:handoff': ArrowRightLeftIcon,
   'control:goto': Redo2Icon,
+  'control:map': Grid2x2Icon,
+  'control:yield': Undo2Icon,
+  'control:wait': HourglassIcon,
   'control:interrupt': PauseCircleIcon,
 };
 

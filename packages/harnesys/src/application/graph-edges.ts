@@ -22,7 +22,13 @@ export function isSkippedEntry(
   rejected: boolean | undefined,
   interruptSource?: string,
 ): boolean {
-  if (nodeType === 'control:interrupt' || interruptSource === 'budget') {
+  if (
+    nodeType === 'control:interrupt' ||
+    nodeType === 'control:wait' ||
+    interruptSource === 'budget' ||
+    interruptSource === 'timer' ||
+    interruptSource === 'wait'
+  ) {
     return true;
   }
   return nodeType === 'tool:call' && rejected === true;

@@ -1,12 +1,25 @@
 import {
   AGENTS_HANDOFF_TOOL,
   AGENTS_SPAWN_TOOL,
+  GRAPH_MAP_TOOL,
+  GRAPH_WAIT_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
+  STATE_MAP_ITEMS_KEY,
   STATE_SPAWNS_KEY,
+  STATE_WAIT_UNTIL_MS_KEY,
 } from '../constants.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 
-export { AGENTS_HANDOFF_TOOL, AGENTS_SPAWN_TOOL, STATE_HANDOFF_AGENT_ID_KEY, STATE_SPAWNS_KEY };
+export {
+  AGENTS_HANDOFF_TOOL,
+  AGENTS_SPAWN_TOOL,
+  GRAPH_MAP_TOOL,
+  GRAPH_WAIT_TOOL,
+  STATE_HANDOFF_AGENT_ID_KEY,
+  STATE_MAP_ITEMS_KEY,
+  STATE_SPAWNS_KEY,
+  STATE_WAIT_UNTIL_MS_KEY,
+};
 
 export type AgentControlToolResult = {
   name: string;
@@ -57,13 +70,15 @@ function handoffAgentIdOf(result: unknown): string | undefined {
   return rec.agentId;
 }
 
-/** After tool:call: queue spawn/handoff intents onto run state for control nodes. */
+/** After tool:call: queue spawn/handoff/map/wait intents onto run state for control nodes. */
 export function applyAgentControlToolResults(
   results: AgentControlToolResult[],
   state: Record<string, unknown>,
 ): void {
   const queued: QueuedSpawnCall[] = [];
   let handoffAgentId: string | undefined;
+  let mapItems: unknown[] | undefined;
+  let waitUntilMs: number | undefined;
   for (const row of results) {
     if (row.isError) {
       continue;
@@ -75,6 +90,16 @@ export function applyAgentControlToolResults(
       if (id) {
         handoffAgentId = id;
       }
+    } else if (row.name === GRAPH_MAP_TOOL) {
+      const rec = asRecord(row.result);
+      if (rec && Array.isArray(rec.items)) {
+        mapItems = rec.items;
+      }
+    } else if (row.name === GRAPH_WAIT_TOOL) {
+      const rec = asRecord(row.result);
+      if (rec && typeof rec.waitUntilMs === 'number' && Number.isFinite(rec.waitUntilMs)) {
+        waitUntilMs = rec.waitUntilMs;
+      }
     }
   }
   if (queued.length > 0) {
@@ -85,6 +110,12 @@ export function applyAgentControlToolResults(
   if (handoffAgentId) {
     state[STATE_HANDOFF_AGENT_ID_KEY] = handoffAgentId;
   }
+  if (mapItems !== undefined) {
+    state[STATE_MAP_ITEMS_KEY] = mapItems;
+  }
+  if (waitUntilMs !== undefined) {
+    state[STATE_WAIT_UNTIL_MS_KEY] = waitUntilMs;
+  }
 }
 
 export function clearQueuedSpawns(state: Record<string, unknown>): void {
@@ -93,6 +124,31 @@ export function clearQueuedSpawns(state: Record<string, unknown>): void {
 
 export function clearQueuedHandoff(state: Record<string, unknown>): void {
   delete state[STATE_HANDOFF_AGENT_ID_KEY];
+}
+
+export function clearQueuedMap(state: Record<string, unknown>): void {
+  delete state[STATE_MAP_ITEMS_KEY];
+}
+
+export function clearQueuedWait(state: Record<string, unknown>): void {
+  delete state[STATE_WAIT_UNTIL_MS_KEY];
+}
+
+function appendAssistantNote(
+  state: Record<string, unknown>,
+  messagesExpr: string | undefined,
+  text: string,
+): void {
+  const key = messagesExpr ? stateKeyOf(messagesExpr) : 'messages';
+  if (!key) {
+    return;
+  }
+  let arr = state[key];
+  if (!Array.isArray(arr)) {
+    arr = [];
+    state[key] = arr;
+  }
+  (arr as unknown[]).push({ role: 'assistant', content: text });
 }
 
 export function appendSpawnResultsMessage(
@@ -133,4 +189,12 @@ export function appendSpawnResultsMessage(
     role: 'assistant',
     content: parts.join('\n'),
   });
+}
+
+export function appendMapResultsMessage(
+  state: Record<string, unknown>,
+  messagesExpr: string | undefined,
+  results: unknown,
+): void {
+  appendAssistantNote(state, messagesExpr, `Map results:\n${JSON.stringify(results)}`);
 }

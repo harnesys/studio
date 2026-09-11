@@ -102,13 +102,26 @@ function workerOutputFromState(state: Record<string, unknown>, snap: Snapshot | 
   return null;
 }
 
-async function seedWorkerState(
-  child: RuntimeState,
-  parentState: Record<string, unknown>,
-  parentOpts: GraphOpts,
-  runId: string,
-): Promise<void> {
+type SeedWorkerArgs = {
+  child: RuntimeState;
+  parentState: Record<string, unknown>;
+  parentOpts: GraphOpts;
+  runId: string;
+  item: unknown;
+  index: number;
+};
+
+async function seedWorkerState(args: SeedWorkerArgs): Promise<void> {
+  const { child, parentState, parentOpts, runId, item, index } = args;
   const parentSnap = await parentOpts.state.load();
+  const state = structuredClone(parentState) as Record<string, unknown>;
+  const msgs = Array.isArray(state.messages) ? [...(state.messages as unknown[])] : [];
+  const itemText = typeof item === 'string' ? item : JSON.stringify(item, null, 2);
+  msgs.push({
+    role: 'user',
+    content: `Map item [${index}]:\n${itemText}\n\nRespond with the result for this item only.`,
+  });
+  state.messages = msgs;
   const ctx: SnapCtx = {
     sessionId: child.sessionId,
     runId,
@@ -116,7 +129,7 @@ async function seedWorkerState(
     agentJson: JSON.stringify(parentOpts.agent),
     orderJson: JSON.stringify(parentOpts.plan.order),
     input: parentOpts.input,
-    state: structuredClone(parentState),
+    state,
     cur: MAP_START_ID,
     steps: 0,
     tokens: 0,
@@ -151,7 +164,7 @@ async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
   const workerId = crypto.randomUUID();
   const child = parent.state.child(workerId);
   const runId = crypto.randomUUID();
-  await seedWorkerState(child, parentState, parent, runId);
+  await seedWorkerState({ child, parentState, parentOpts: parent, runId, item, index });
   const childOpts: GraphOpts = {
     agent: workerDef,
     input: parent.input,

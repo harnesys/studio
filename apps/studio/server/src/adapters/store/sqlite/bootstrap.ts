@@ -163,7 +163,7 @@ export function bootstrap(db: StudioDb): void {
       WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input', 'waiting');`,
     `CREATE INDEX IF NOT EXISTS runs_claim_idx ON runs(status, created_at);`,
     `CREATE INDEX IF NOT EXISTS runs_ask_ttl_idx ON runs(status, updated_at);`,
-    `CREATE INDEX IF NOT EXISTS runs_wait_fire_idx ON runs(status, wait_fire_at);`,
+    // runs_wait_fire_idx is created after ALTER wait_fire_at below.
     `CREATE TABLE IF NOT EXISTS run_events (
       run_id TEXT NOT NULL,
       seq INTEGER NOT NULL,
@@ -363,20 +363,17 @@ export function bootstrap(db: StudioDb): void {
   try {
     db.run(sql.raw('ALTER TABLE runs ADD COLUMN wait_fire_at INTEGER;'));
   } catch {}
+  // Always recreate after column exists (fresh create or ALTER).
   try {
     db.run(sql.raw('DROP INDEX IF EXISTS runs_active_root_idx;'));
   } catch {}
-  try {
-    db.run(
-      sql.raw(
-        `CREATE UNIQUE INDEX IF NOT EXISTS runs_active_root_idx ON runs(thread_id)
+  db.run(
+    sql.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS runs_active_root_idx ON runs(thread_id)
       WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input', 'waiting');`,
-      ),
-    );
-  } catch {}
-  try {
-    db.run(sql.raw('CREATE INDEX IF NOT EXISTS runs_wait_fire_idx ON runs(status, wait_fire_at);'));
-  } catch {}
+    ),
+  );
+  db.run(sql.raw('CREATE INDEX IF NOT EXISTS runs_wait_fire_idx ON runs(status, wait_fire_at);'));
 
   bootstrapMemory(db);
 }

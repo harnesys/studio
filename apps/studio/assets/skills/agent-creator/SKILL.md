@@ -79,7 +79,7 @@ Definition field is `packs` (Studio records and preset files carry the legacy ke
 | `knowledge-memory` | `knowledge_search`, `knowledge_read` |
 | `pin-memory` | `pin_set`, `pin_list`, `pin_remove` |
 
-System tools are always registered: `load_tools`, `load_skill`, `ask_user` (`prompt` + optional `options[{id,label}]`). There is no `knowledge_upsert`, no `semantic_upsert`, no `semantic_search`. `edit_file` args are `path`, `old_string`, `new_string` (unique match required), not camelCase.
+System tools are always registered: `load_tools`, `load_skill`, `ask_user` (`prompt` + optional `options[{id,label}]`), `graph_map` (`items` array → `$state.mapItems` → `control:map`), `graph_wait` (`delayMs` → `$state.waitUntilMs` → `control:wait`). There is no `knowledge_upsert`, no `semantic_upsert`, no `semantic_search`. `edit_file` args are `path`, `old_string`, `new_string` (unique match required), not camelCase. ReAct presets that expose map/wait must route `act` → `map` when `exists($state.mapItems)` and `act` → `wait` when `exists($state.waitUntilMs)`, with a map body ending in `control:yield`. Prefer `graph_wait` for mid-run sleep; `schedule_set` for recurring / next-session fires after the run ends.
 
 ## Skills
 

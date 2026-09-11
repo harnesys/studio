@@ -1,4 +1,11 @@
-export { askUser, fetch, files, shell } from './src/adapters/actions/index.ts';
+export {
+  askUser,
+  fetch,
+  files,
+  graphMap,
+  graphWait,
+  shell,
+} from './src/adapters/actions/index.ts';
 export {
   createRunEventBus,
   InMemoryRunEventStore,

@@ -7,6 +7,8 @@ import {
   createToolRegistry,
   fetch,
   files,
+  graphMap,
+  graphWait,
   type ModelsPort,
   type RunClaimer,
   type RunEngine,
@@ -72,7 +74,14 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     },
   );
   const instanceId = env.STUDIO_INSTANCE_ID ?? 'studio-local';
-  const toolRegistry = createToolRegistry([...files(), shell(), fetch(), askUser()]);
+  const toolRegistry = createToolRegistry([
+    ...files(),
+    shell(),
+    fetch(),
+    askUser(),
+    graphMap(),
+    graphWait(),
+  ]);
   const agentsRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
   const runEngine = createRunEngine({
     lifecycle: runLifecycle,

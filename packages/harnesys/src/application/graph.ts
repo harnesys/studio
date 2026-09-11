@@ -22,10 +22,13 @@ import type { Plan } from './compile.ts';
 import type { Slots } from './expr-eval.ts';
 import { evalExpr } from './expr-eval.ts';
 import {
+  appendMapResultsMessage,
   appendSpawnResultsMessage,
   applyAgentControlToolResults,
   clearQueuedHandoff,
+  clearQueuedMap,
   clearQueuedSpawns,
+  clearQueuedWait,
 } from './graph-agent-controls.ts';
 import { isSkippedEntry, matchOutgoing } from './graph-edges.ts';
 import { type HandoffNodeSpec, prepareHandoff } from './graph-handoff.ts';
@@ -440,6 +443,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             typeof opts.resumePayload === 'object' &&
             opts.resumePayload !== null &&
             (opts.resumePayload as { timedOut?: unknown }).timedOut === true;
+          clearQueuedWait(st);
           yield await commit('running', 'wait.resumed', 'recorded', {
             nodeId: cur,
             timedOut,
@@ -1107,6 +1111,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           yield await commit('running', emission.type, 'recorded', emission.metadata);
         }
         output = { results: mapOutcome.results };
+        appendMapResultsMessage(st, lastMsg, mapOutcome.results);
+        clearQueuedMap(st);
         yield await commit('running', 'map.completed', 'recorded', {
           nodeId: cur,
           ok: mapOutcome.results.filter((r) => !r.error).length,
@@ -1114,6 +1120,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           timedOut: mapOutcome.timedOut || undefined,
         });
       } catch (err) {
+        clearQueuedMap(st);
         const code =
           err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
             ? (err as { code: string }).code

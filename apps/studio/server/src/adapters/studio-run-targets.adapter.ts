@@ -1,5 +1,5 @@
 import type { PackRegistration, RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
-import { createPluginSessionStartNotes, packTools } from 'harnesys';
+import { createPluginSessionStartNotes } from 'harnesys';
 import { PLUGIN_HOOK_TIMEOUT_MS } from '../config/constants.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { BranchStateSeeder } from '../domain/branch-state-seeder.port.ts';
@@ -7,7 +7,6 @@ import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-pr
 import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
 import type { Thread, ThreadRepository } from '../domain/thread.port.ts';
 import type { Workspace, WorkspaceRepository } from '../domain/workspace.port.ts';
-import { runInHostToolScope } from './host-tool-scope.ts';
 import { isRunMode, permissionMapFor, type RunMode } from './tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from './workspace-harnesys.registry.ts';
 
@@ -60,27 +59,11 @@ export class StudioRunTargets implements RunTargets {
     }
     const state = this.deps.runtimeStates.forState(threadId);
     // Same list the runtime was built with (host packs for this workspace),
-    // or agent pack gating and pruning diverge. Pack `create` reads the scope
-    // eagerly, so the run scope is entered before resolving the agent tools.
+    // or agent pack gating diverges. Pack tools are attached once by the
+    // engine (attachPackRun inside the run scope); pre-creating them here
+    // caused pack_tool_collision for every tool.
     const registrations = this.effectiveRegistrations(workspace);
-    const agentTools = runInHostToolScope(
-      { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
-      () => packTools(agent, registrations),
-    );
-    const enabled = new Set(agentTools.map((t) => t.name));
     const registry = new Map(hx.tools.registry());
-    for (const reg of registrations) {
-      for (const { name } of reg.pack.meta.tools) {
-        if (!enabled.has(name)) {
-          registry.delete(name);
-        }
-      }
-    }
-    // Per-agent instances win over the workspace-wide config:{} copies, so pack
-    // specs (e.g. memory.knowledge.spec.topK) reach the tool at execute time.
-    for (const t of agentTools) {
-      registry.set(t.name, t);
-    }
     const enabledPlugins = await this.deps.workspaceHarnesys.loadEnabledPlugins(thread.workspaceId);
     const notes = [
       createPluginSessionStartNotes({

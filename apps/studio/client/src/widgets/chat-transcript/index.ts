@@ -1,3 +1,4 @@
+export { type ComfortScrollOptions, useComfortFollow } from './model/comfort-scroll';
 export {
   extractMaps,
   type MapInfo,

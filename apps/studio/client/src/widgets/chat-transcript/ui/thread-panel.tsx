@@ -7,6 +7,7 @@ import { useCompactingStore } from '@/features/compact-thread';
 import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
 import { useOpenSpawnTab } from '@/features/ide';
 import { retryRun } from '@/features/send-message';
+import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -17,6 +18,7 @@ import {
   useMessageScroller,
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
+import { useComfortFollow } from '../model/comfort-scroll';
 import { extractMaps } from '../model/map-groups';
 import { isCompactRun, splitRuns } from '../model/run-groups';
 import { extractSpawns } from '../model/spawn-groups';
@@ -84,6 +86,19 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     }),
   );
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
+  const comfortFollow = useChatPreferences((state) => state.comfortFollow);
+  const comfortAnchor = useChatPreferences((state) => state.comfortAnchor);
+  const comfortThreshold = useChatPreferences((state) => state.comfortThreshold);
+  const comfortDuration = useChatPreferences((state) => state.comfortDuration);
+  const live = streaming || compacting;
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const comfortPinned = useComfortFollow(viewportRef, {
+    enabled: comfortFollow,
+    anchorPercent: comfortAnchor,
+    thresholdPx: comfortThreshold,
+    durationMs: comfortDuration,
+    streaming: live,
+  });
   const synced = useSyncedThread(threadId, agent.workspaceId);
   const failures = useSessionStore(
     useShallow((state) => {
@@ -107,12 +122,18 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
 
   const compactLive = compacting && ownRuns.some(isCompactRun);
   const showFork = Boolean(thread?.parentThreadId) && inheritedRuns.length > 0;
+  // Резерв под живым краем: scrollToEnd ставит край на якорь, долив — по триггеру.
+  const comfortSpacer = comfortFollow && live;
+  const followPinned = comfortFollow && comfortPinned;
 
   return (
-    <MessageScrollerProvider autoScroll>
+    <MessageScrollerProvider autoScroll={!comfortFollow}>
       <MessageScroller>
-        <MessageScrollerViewport>
-          <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
+        <MessageScrollerViewport ref={viewportRef}>
+          <MessageScrollerContent
+            className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]"
+            style={comfortSpacer ? { paddingBottom: `${100 - comfortAnchor}vh` } : undefined}
+          >
             {inheritedRuns.map((run, index) => {
               const runKey = `inherited-${run.id ?? `run-${index}`}`;
               const forkAt = run.runId ?? run.id ?? '';
@@ -179,9 +200,9 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
             ) : null}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton />
+        {!followPinned ? <MessageScrollerButton /> : null}
         <StickOnSend streaming={streaming || compacting} />
-        <ThreadReadSync threadId={threadId} />
+        <ThreadReadSync threadId={threadId} followPinned={followPinned} />
       </MessageScroller>
     </MessageScrollerProvider>
   );
@@ -199,17 +220,18 @@ function EmptyThreadReadSync({ threadId }: { threadId: string }) {
 }
 
 /** Track bottom-edge visibility and persist read when stuck to end. */
-function ThreadReadSync({ threadId }: { threadId: string }) {
+function ThreadReadSync({ threadId, followPinned }: { threadId: string; followPinned: boolean }) {
   const { end } = useMessageScrollerScrollable();
   const contentEpoch = useSessionStore((state) => state.contentEpoch[threadId] ?? 0);
+  const viewingAtEnd = end || followPinned;
 
   useEffect(() => {
-    useThreadStore.getState().setViewingAtEnd(threadId, end);
+    useThreadStore.getState().setViewingAtEnd(threadId, viewingAtEnd);
     // contentEpoch: re-mark when new events arrive while pinned to bottom.
-    if (end && contentEpoch >= 0) {
+    if (viewingAtEnd && contentEpoch >= 0) {
       scheduleMarkThreadRead(threadId);
     }
-  }, [threadId, end, contentEpoch]);
+  }, [threadId, viewingAtEnd, contentEpoch]);
 
   useEffect(() => {
     return () => {

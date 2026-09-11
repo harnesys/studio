@@ -33,8 +33,10 @@ export function ToolGroup({
   maps?: MapInfo[];
 }) {
   const expandTools = useChatPreferences((state) => state.expandTools);
+  const liveExpand = useChatPreferences((state) => state.liveExpand);
   const pairs = groupPairs(chunks);
-  const collapse = !runLive && !expandTools && pairs.length >= TOOL_GROUP_MIN;
+  const collapse =
+    (!runLive || liveExpand === 'collapsed') && !expandTools && pairs.length >= TOOL_GROUP_MIN;
 
   if (!collapse) {
     return (

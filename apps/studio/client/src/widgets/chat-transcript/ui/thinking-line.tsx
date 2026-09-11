@@ -18,6 +18,7 @@ export function ThinkingLine({
   threadId?: string;
 }) {
   const expandThinking = useChatPreferences((state) => state.expandThinking);
+  const liveExpand = useChatPreferences((state) => state.liveExpand);
   const tail = useLiveTail(live ? threadId : undefined);
   const display = live && tail.kind === 'reasoning' && tail.text ? tail.text : text;
   // Per-thought token count is not in the event stream; estimate from text.
@@ -33,12 +34,14 @@ export function ThinkingLine({
       label="Thought"
       hint={hint}
       active={live}
-      defaultOpen={live || expandThinking}
+      defaultOpen={liveExpand === 'collapsed' ? expandThinking : live || expandThinking}
       hasContent={Boolean(display)}
     >
       <ExpandableScroll
-        follow={live}
-        previewClassName="max-h-28"
+        follow={live && liveExpand !== 'collapsed'}
+        previewClassName={
+          live && liveExpand === 'expanded' ? 'max-h-[min(70vh,24rem)]' : 'max-h-28'
+        }
         fullClassName="max-h-[min(70vh,24rem)]"
       >
         <div className="whitespace-pre-wrap text-[13px] text-muted-foreground/90 leading-5">

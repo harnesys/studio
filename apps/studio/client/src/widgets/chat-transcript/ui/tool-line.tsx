@@ -47,6 +47,7 @@ export function ToolLine({
   maps?: MapInfo[];
 }) {
   const expandTools = useChatPreferences((state) => state.expandTools);
+  const liveExpand = useChatPreferences((state) => state.liveExpand);
   const [inputOpen, setInputOpen] = useState(false);
   const caption = toolCaption(pair.call, pair.result);
   const detail = toolDetail(pair.call, pair.result);
@@ -90,7 +91,9 @@ export function ToolLine({
         badges={badges}
         active={active}
         failed={failed}
-        defaultOpen={live || expandTools || Boolean(map)}
+        defaultOpen={
+          liveExpand === 'collapsed' ? Boolean(map) : live || expandTools || Boolean(map)
+        }
         hasContent
         tail={
           hasInput ? (

@@ -5,7 +5,7 @@ export const skillFieldsSchema = z.object({
   name: z
     .string()
     .trim()
-    .regex(/^[a-z0-9][a-z0-9-]*$/, 'Use kebab-case (e.g. code-review)'),
+    .regex(/^[a-z0-9][a-z0-9-]*$/, 'Use kebab-case (e.g. writing-plans)'),
   description: z.string().trim().min(1, 'Description required'),
   whenToUse: z.string(),
   instructions: z.string().trim().min(1, 'Instructions required'),

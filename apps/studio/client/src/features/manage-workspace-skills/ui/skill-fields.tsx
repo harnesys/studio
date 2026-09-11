@@ -19,7 +19,7 @@ export function SkillFields({ control }: { control: Control<SkillFieldsInput> })
               {...field}
               id="skill-name"
               className="font-mono"
-              placeholder="code-review"
+              placeholder="writing-plans"
               aria-invalid={fieldState.invalid || undefined}
             />
             <FieldDescription>Kebab-case folder name under `.harnesys/skills`.</FieldDescription>

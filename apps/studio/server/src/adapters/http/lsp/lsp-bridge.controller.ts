@@ -9,12 +9,22 @@ import { upgradeWebSocket } from './bun-websocket.ts';
 
 const FILE_SCHEME = 'file://';
 
+/**
+ * Stable connection key. hono/bun builds a fresh WSContext per event, so the
+ * context object cannot key connection state; the wrapped native socket can.
+ */
+function rawOf(ws: WSContext): object {
+  return (ws as { raw?: object }).raw ?? ws;
+}
+
 type ConnectionState = {
   /** Undefined while the language server is still starting. */
   session?: StdioLspSession;
   unsubscribe?: () => void;
   /** Client messages received before the session was ready. */
   pending: string[];
+  /** LSP languageId per the plugin config; overrides the client's value in didOpen. */
+  languageId?: string;
 };
 
 /**
@@ -51,7 +61,7 @@ export class LspBridgeController {
 
       const upgrade = upgradeWebSocket(() => ({
         onOpen: (_evt, ws) => {
-          this.connections.set(ws, { pending: [] });
+          this.connections.set(rawOf(ws), { pending: [] });
           void this.connect(workspaceId, relPath, ws).catch(() => {
             ws.close(1011, 'failed to start language server');
           });
@@ -80,13 +90,14 @@ export class LspBridgeController {
         ws.send(JSON.stringify(rewriteUris(message, (uri) => absoluteToEditorUri(uri, rootHref))));
       }
     });
-    const state = this.connections.get(ws);
+    const state = this.connections.get(rawOf(ws));
     if (!state) {
       unsubscribe();
       return;
     }
     state.session = session;
     state.unsubscribe = unsubscribe;
+    state.languageId = await this.deps.lsp.languageIdFor(workspace.path, relPath);
     // Flush messages the client sent while the language server was starting.
     for (const raw of state.pending.splice(0)) {
       this.forwardRaw(ws, raw);
@@ -94,7 +105,7 @@ export class LspBridgeController {
   }
 
   private forward(ws: WSContext, data: unknown): void {
-    const state = this.connections.get(ws);
+    const state = this.connections.get(rawOf(ws));
     if (!state || typeof data !== 'string') {
       return;
     }
@@ -109,7 +120,7 @@ export class LspBridgeController {
   }
 
   private forwardRaw(ws: WSContext, data: string): void {
-    const state = this.connections.get(ws);
+    const state = this.connections.get(rawOf(ws));
     if (!state?.session) {
       return;
     }
@@ -121,14 +132,27 @@ export class LspBridgeController {
     }
     if (parsed !== null && typeof parsed === 'object') {
       const root = state.session.workspaceRoot;
+      const message = parsed as {
+        method?: string;
+        params?: { textDocument?: { languageId?: string } };
+      };
+      // The editor's language id (e.g. Monaco 'typescript') does not distinguish
+      // ts from tsx; the plugin config does, and tsserver picks the script kind by it.
+      if (
+        message.method === 'textDocument/didOpen' &&
+        message.params?.textDocument &&
+        state.languageId
+      ) {
+        message.params.textDocument.languageId = state.languageId;
+      }
       state.session.sendRaw(
-        rewriteUris(parsed as Record<string, unknown>, (uri) => editorToAbsoluteUri(uri, root)),
+        rewriteUris(message as Record<string, unknown>, (uri) => editorToAbsoluteUri(uri, root)),
       );
     }
   }
 
   private teardown(ws: WSContext): void {
-    const state = this.connections.get(ws);
+    const state = this.connections.get(rawOf(ws));
     state?.unsubscribe?.();
     this.connections.delete(ws);
   }

@@ -18,6 +18,7 @@ import {
   sandboxDenyText,
   skippedGateResult,
 } from './tool-permission.ts';
+import { runBatchWorkerPool } from './tool-pool.ts';
 import { validateToolInput } from './tool-registry.ts';
 
 export type ToolCallBatchOutcome = {
@@ -262,25 +263,7 @@ export async function executeApproveBatch(
       node.concurrency === 'sequential'
         ? 1
         : Math.min(pendingFree.length, ctx.hostMaxConcurrency ?? pendingFree.length);
-    if (width <= 1) {
-      for (const idx of pendingFree) {
-        await runCall(idx);
-      }
-    } else {
-      let cursor = 0;
-      const worker = async (): Promise<void> => {
-        while (cursor < pendingFree.length) {
-          const idx = pendingFree[cursor] as number;
-          cursor += 1;
-          await runCall(idx);
-        }
-      };
-      const workers: Promise<void>[] = [];
-      for (let w = 0; w < Math.min(width, pendingFree.length); w++) {
-        workers.push(worker());
-      }
-      await Promise.all(workers);
-    }
+    await runBatchWorkerPool({ indexes: pendingFree, width, run: runCall });
   }
 
   // needsApprove calls walk sequentially; each step either consumes the resume

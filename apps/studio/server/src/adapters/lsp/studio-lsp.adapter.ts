@@ -79,6 +79,13 @@ export class StudioLspAdapter implements LspPort {
     return servers.some((server) => ext in server.extensionToLanguage);
   }
 
+  /** LSP languageId for the file's extension per the resolved server config. */
+  async languageIdFor(cwd: string, filePath: string): Promise<string | undefined> {
+    const servers = await this.deps.resolveServers(cwd);
+    const ext = extname(filePath);
+    return servers.find((server) => ext in server.extensionToLanguage)?.extensionToLanguage[ext];
+  }
+
   /** Raw session for the file's language server (editor bridge). Starts it if needed. */
   openSession(cwd: string, filePath: string): Promise<StdioLspSession> {
     return this.sessionFor(cwd, filePath);

@@ -18,6 +18,7 @@ import {
   validCheckpointEntries,
 } from './tool-approve-checkpoint.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
+import { runBatchWorkerPool } from './tool-pool.ts';
 
 export type ToolCallResult = {
   id: string;
@@ -209,20 +210,11 @@ export async function executeToolCall(
       }
     }
   } else {
-    const queue = calls.map((_, i) => i);
-    const workers: Promise<void>[] = [];
-    let cursor = 0;
-    const worker = async (): Promise<void> => {
-      while (cursor < queue.length) {
-        const idx = queue[cursor] as number;
-        cursor += 1;
-        await runOne(idx);
-      }
-    };
-    for (let w = 0; w < Math.min(maxConcurrency, queue.length); w += 1) {
-      workers.push(worker());
-    }
-    await Promise.all(workers);
+    await runBatchWorkerPool({
+      indexes: calls.map((_, i) => i),
+      width: maxConcurrency,
+      run: runOne,
+    });
   }
 
   if (ctx.toolMessages !== 'ordered') {

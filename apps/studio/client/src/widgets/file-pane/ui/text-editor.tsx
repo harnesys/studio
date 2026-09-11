@@ -17,6 +17,7 @@ import {
   ensureMonacoImportLinkProviders,
   setMonacoImportLinkContext,
 } from './monaco-import-links';
+import { ensureJsxTagSemanticTokens } from './monaco-jsx-tags';
 import { defineAppThemes } from './monaco-themes';
 
 type FileContent = string;
@@ -153,6 +154,7 @@ export function TextEditor({
 
   const handleBeforeMount = (monaco: Parameters<OnMount>[1]) => {
     defineAppThemes(monaco);
+    ensureJsxTagSemanticTokens(monaco);
     ensureMonacoImportLinkProviders(monaco);
   };
 
@@ -166,6 +168,7 @@ export function TextEditor({
     // Re-apply theme after define to ensure transparent highlights take effect
     // (defineAppThemes called in beforeMount, but may have been cached)
     defineAppThemes(monaco);
+    ensureJsxTagSemanticTokens(monaco);
     const nextTheme = resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light';
     monaco.editor.setTheme(nextTheme);
   };

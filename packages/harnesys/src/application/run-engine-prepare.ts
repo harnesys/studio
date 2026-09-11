@@ -131,6 +131,7 @@ export async function prepareExecuteGraphOpts(
     signal,
     startNodeId,
     notes: opts.notes,
+    skills: opts.skills ?? deps.skills,
     packOutputs,
     agents: deps.agents,
     outputHint: startNodeId === undefined ? undefined : (snap?.cursor.interrupt?.output ?? null),

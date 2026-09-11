@@ -11,17 +11,18 @@ export function createLoadSkillTool(registry: SkillRegistry): ToolDefinition {
       properties: { name: { type: 'string' } },
       required: ['name'],
     },
-    execute(input) {
+    async execute(input) {
       const { name } = input as { name: string };
       try {
-        const doc = registry.load(name) as { instructions: string };
-        return Promise.resolve({ instructions: doc.instructions });
+        // Composed registries (compose/prefix/combine/filter) load async.
+        const doc = (await registry.load(name)) as { instructions: string };
+        return { instructions: doc.instructions };
       } catch (error) {
-        return Promise.resolve({
+        return {
           error: true,
           code: 'UNKNOWN_SKILL',
           message: error instanceof Error ? error.message : String(error),
-        });
+        };
       }
     },
   });

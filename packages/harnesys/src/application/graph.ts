@@ -16,6 +16,7 @@ import type { ModelBinding, ModelsPort, ProviderConfig } from '../ports/models.t
 import type { PathsConfig } from '../ports/paths.ts';
 import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
+import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { runSummaryPassIfDue } from './compaction/run.ts';
 import type { Plan } from './compile.ts';
@@ -164,6 +165,8 @@ export type GraphOpts = {
   outputHint?: unknown;
   notes?: LlmNoteProvider[];
   packOutputs?: PackRunMap;
+  /** FS skill registry; the catalog section is rendered per agent in llm.ts. */
+  skills?: SkillRegistry;
   rejected?: boolean;
   /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
   inputRecorded?: boolean;
@@ -712,6 +715,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               notes,
               notesErrors,
               packOutputs: caps.enabled,
+              skills: opts.skills,
               artifacts: opts.artifacts,
               paths: opts.paths,
             },

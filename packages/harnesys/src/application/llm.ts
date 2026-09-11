@@ -6,12 +6,14 @@ import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
+import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
 import { type AttachmentReadFn, materializeMessageAttachments } from './fold-attachments.ts';
 import { resolveAgentModelRef, stateKeyOf } from './graph-helpers.ts';
 import { assembleNotes, type LlmNote } from './llm-notes.ts';
-import type { PackRunOutput } from './packs/pack-run.ts';
+import { effectiveSkillRegistry, type PackRunOutput } from './packs/pack-run.ts';
+import { formatSkillsCatalog } from './skills/skills-catalog.ts';
 import { formatDeferredCatalog, loadedToolsOf, resolveProgressiveTools } from './tools/exposure.ts';
 
 export type LlmNode = {
@@ -34,6 +36,8 @@ export type LlmContext = {
   notes?: LlmNote[];
   notesErrors?: string[];
   packOutputs?: PackRunOutput[];
+  /** FS skill registry (raw); narrowed per agent + pack skills for the prompt section. */
+  skills?: SkillRegistry;
   artifacts?: ArtifactStore;
   paths?: PathsConfig;
 };
@@ -112,7 +116,14 @@ export async function* runLlmGenerate(
   };
   const prompt = substitutePrompt(agentText, slots);
   const projected = projectCompacted(resolveMessages(node, ctx));
-  const instructions = [prompt, projected.prefix].filter((part) => part.trim()).join('\n\n');
+  const skillsSection = ctx.skills
+    ? formatSkillsCatalog(
+        await effectiveSkillRegistry(ctx.agent, ctx.skills, ctx.packOutputs ?? []).list(),
+      )
+    : '';
+  const instructions = [prompt, skillsSection, projected.prefix]
+    .filter((part) => part.trim())
+    .join('\n\n');
   const resolved = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);
   // Прогрессивный набор применяется к разрешённому списку всегда: явный
   // node.tools ограничивает видимость, но deferred-инструменты внутри него

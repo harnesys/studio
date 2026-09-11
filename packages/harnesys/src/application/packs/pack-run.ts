@@ -12,6 +12,7 @@ import type { LlmNoteProvider } from '../llm-notes.ts';
 import { combineSkillRegistries } from '../skills/combined-skills.ts';
 import { createLoadSkillTool } from '../skills/create-load-skill-tool.ts';
 import { filterSkills } from '../skills/skills-catalog.ts';
+import { aliasTool } from '../tools/tool-alias.ts';
 import type { PackDiagnostic } from './registry.ts';
 import { resolvePacks } from './registry.ts';
 
@@ -208,19 +209,33 @@ export function attachPackRun(input: AttachPackRunInput): PackRunMap {
   return outputs;
 }
 
+/** FS + pack skills merged, narrowed to the agent allowlist (`def.skills`). */
+export function effectiveSkillRegistry(
+  def: AgentDefinition,
+  fsSkills: SkillRegistry | undefined,
+  outputs: PackRunOutput[],
+): SkillRegistry {
+  const merged = combineSkillRegistries(
+    fsSkills,
+    outputs.flatMap((o) => o.skills),
+  );
+  return def.skills !== undefined ? filterSkills(merged, def.skills) : merged;
+}
+
 function registerPackSkillTool(
   runRegistry: Map<string, ToolDefinition>,
   enabled: PackRunOutput[],
   def: AgentDefinition,
   fsSkills?: SkillRegistry,
 ): void {
-  const merged = combineSkillRegistries(
-    fsSkills,
-    enabled.flatMap((o) => o.skills),
-  );
-  const effective = def.skills !== undefined ? filterSkills(merged, def.skills) : merged;
+  const effective = effectiveSkillRegistry(def, fsSkills, enabled);
   if (fsSkills !== undefined || enabled.some((o) => o.skills.length > 0)) {
-    runRegistry.set('load_skill', createLoadSkillTool(effective));
+    const loadSkill = createLoadSkillTool(effective);
+    runRegistry.set('load_skill', loadSkill);
+    // Claude-style plugins address the loader as `Skill`; symlink when free.
+    if (!runRegistry.has('Skill')) {
+      runRegistry.set('Skill', aliasTool(loadSkill, 'Skill'));
+    }
   }
 }
 

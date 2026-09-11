@@ -157,6 +157,7 @@ async function runOneChild(
     signal: parent.signal,
     notes: parent.notes,
     packOutputs: parent.packOutputs,
+    skills: parent.skills,
     agents: parent.agents,
     stream: parent.stream,
     childJournal: parent.childJournal,

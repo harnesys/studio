@@ -240,6 +240,7 @@ async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
     signal,
     notes: [...(parent.notes ?? []), mapWorkerNote],
     packOutputs: parent.packOutputs,
+    skills: parent.skills,
     agents: parent.agents,
     stream: parent.stream,
     childJournal: parent.childJournal,

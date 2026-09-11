@@ -17,9 +17,11 @@ import { attachPackRun, fallbackScope } from './packs/pack-run.ts';
 import { packCatalog } from './packs/tool-names.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
+import { createLoadSkillTool } from './skills/create-load-skill-tool.ts';
 import { createToolRegistry, filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
+import { aliasTool } from './tools/tool-alias.ts';
 
 function isMcpRegistry(value: unknown): boolean {
   return (
@@ -66,6 +68,13 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
 
   const toolRegistry = createToolRegistry(baseTools);
   toolRegistry.set('load_tools', createLoadToolsTool(toolRegistry));
+  if (options.skills) {
+    const loadSkill = createLoadSkillTool(options.skills);
+    toolRegistry.set('load_skill', loadSkill);
+    if (!toolRegistry.has('Skill')) {
+      toolRegistry.set('Skill', aliasTool(loadSkill, 'Skill'));
+    }
+  }
 
   const resolveAgent = (agent: AgentDefinition | string): AgentDefinition => {
     if (typeof agent !== 'string') {
@@ -124,6 +133,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
         notes: options.notes,
+        skills: options.skills,
         packOutputs,
         artifacts: options.artifacts,
         models: options.models,
@@ -156,6 +166,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         permissions: opts.permissions ?? options.permissions,
         paths: opts.paths ?? options.paths,
         notes: options.notes,
+        skills: options.skills,
         packOutputs,
         artifacts: options.artifacts,
         models: options.models,

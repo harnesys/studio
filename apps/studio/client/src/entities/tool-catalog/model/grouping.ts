@@ -7,11 +7,19 @@ export type ToolGroup = {
   tools: WorkspaceTool[];
 };
 
-export const TOOL_GROUP_ORDER = ['files', 'core', 'schedules', 'webhooks', 'memory'] as const;
+export const TOOL_GROUP_ORDER = [
+  'files',
+  'core',
+  'skills',
+  'schedules',
+  'webhooks',
+  'memory',
+] as const;
 
 export const TOOL_GROUP_META: Record<string, { label: string; hint?: string }> = {
   files: { label: 'Files' },
   core: { label: 'Core' },
+  skills: { label: 'Skills' },
   schedules: { label: 'Schedules' },
   webhooks: { label: 'Webhooks' },
   memory: {

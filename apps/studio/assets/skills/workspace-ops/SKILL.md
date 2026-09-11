@@ -1,7 +1,7 @@
 ---
 name: workspace-ops
 description: Set up and run a harnesys workspace - agents, packs, skills, schedules, memory, and delegation through spawn and handoff
-when_to_use: For workspace-level operations: configuring the agent catalog, packs, schedules, memory roots; delegating multi-agent work; verifying workspace state
+when_to_use: "For workspace-level operations: configuring the agent catalog, packs, schedules, memory roots; delegating multi-agent work; verifying workspace state"
 ---
 
 # Workspace Operations

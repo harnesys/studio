@@ -78,7 +78,7 @@ const agentGraphBody = z
   })
   .optional();
 
-const timeoutS = z.number().int().positive();
+const timeoutS = z.number().int().positive().optional();
 
 // harnesys `HookHandler` union minus `inline` (host code; never from HTTP input).
 const hookHandlerBody = z.discriminatedUnion('type', [

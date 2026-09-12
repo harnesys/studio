@@ -1,3 +1,4 @@
+import type { HookEmitCtx } from '../application/hooks/emit-hook.ts';
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { HookBinding } from '../domain/hook.ts';
@@ -25,6 +26,8 @@ export type RunTarget = {
   toolRegistry?: Map<string, ToolDefinition>;
   /** Per-run hook bindings; merged with the runtime opts set on the run bus. */
   hooks?: HookBinding[];
+  /** Host-assembled run bus (E2); wins over deps/opts binding assembly (RunTargetOpts.hooksEmit). */
+  hooksEmit?: HookEmitCtx;
   /** Extra PATH entries for hook/tool processes this run (library composes env; D1 consumes). */
   binDirs?: string[];
   /** Opaque host context, meaningless to the library; passed to deps.withScope. */

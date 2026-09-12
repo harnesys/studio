@@ -1,14 +1,10 @@
 import { readFileSync } from 'node:fs';
 import type {
   AgentDefinition,
-  AgentGenerationSettings,
-  AgentModelRef,
-  AgentPacks,
   AgentRosterEntry,
   CursorMcpJson,
   McpServerSpec,
   ModelsPort,
-  PackAssignment,
   PackRegistration,
   PluginComponent,
   PluginIr,
@@ -26,11 +22,15 @@ import {
   graphMap,
   type Logger,
   mergePluginMcpFragments,
-  normalizePackAssignment,
   type PluginMcpBinding,
   wait,
 } from 'harnesys';
 import { FsSkillRegistry, loadPluginIrFromDirectory } from 'harnesys/adapters/node';
+import {
+  type PluginAgentCatalog,
+  pluginAgentCatalog,
+} from '../application/plugins/plugin-agents.ts';
+import { applyGrantGating } from '../application/plugins/plugin-grant-gate.ts';
 import { pluginUserConfig } from '../application/plugins/plugin-user-config.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
@@ -39,6 +39,7 @@ import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
 import { skillRegistryRoots } from './store/studio-layout.ts';
+import { dbAgentDefinition } from './workspace-agent-definitions.ts';
 
 export type WorkspaceHarnesysRepos = {
   agents?: AgentRepository;
@@ -63,6 +64,8 @@ export type LoadedWorkspacePlugin = {
 
 export class WorkspaceHarnesysRegistry {
   private readonly cache = new Map<string, Promise<RuntimeHandle>>();
+  /** Immutable parse-result cache: `${name}@${revision}` → raw IR. Never mutated. */
+  private readonly irCache = new Map<string, PluginIr>();
 
   constructor(
     private readonly models: ModelsPort,
@@ -114,27 +117,64 @@ export class WorkspaceHarnesysRegistry {
     return [...this.packRegistrations];
   }
 
+  /**
+   * Workspace-enabled plugins with their grant-gated IR view. The cache keeps
+   * parse statuses only; `blocked_by_grant` / `needs_server_approval` are
+   * recomputed on every load from `record.grants` + server approvals and are
+   * never written back into the cache (spec §4 cache invariant).
+   */
   async loadEnabledPlugins(workspaceId: string): Promise<LoadedWorkspacePlugin[]> {
     const repo = this.repos.plugins;
     if (repo === undefined) {
       return [];
     }
-    const enabled = repo
-      .list()
-      .filter((record) => record.enabledWorkspaceIds.includes(workspaceId));
     const loaded: LoadedWorkspacePlugin[] = [];
-    for (const record of enabled) {
-      try {
-        const result = await loadPluginIrFromDirectory({
-          root: record.path,
-          pluginData: record.dataPath,
-        });
-        loaded.push({ record, ir: result.ir });
-      } catch {
-        // skip failed loads; diagnostics surface via plugin list API
+    for (const record of enabledRecords(repo, workspaceId)) {
+      const raw = await this.loadIr(record);
+      if (raw !== undefined) {
+        loaded.push(this.gatedIr(record, raw, workspaceId));
       }
     }
     return loaded;
+  }
+
+  /** Plugin agents of this workspace (`plugin:agent` catalog ids). */
+  async pluginAgents(workspaceId: string): Promise<PluginAgentCatalog> {
+    return pluginAgentCatalog(
+      await this.loadEnabledPlugins(workspaceId),
+      this.repos.modelRepo,
+      this.repos.providerRepo,
+    );
+  }
+
+  private async loadIr(record: PluginInstallRecord): Promise<PluginIr | undefined> {
+    const key = irCacheKey(record);
+    const cached = this.irCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    try {
+      const result = await loadPluginIrFromDirectory({
+        root: record.path,
+        pluginData: record.dataPath,
+      });
+      this.irCache.set(key, result.ir);
+      return result.ir;
+    } catch {
+      // skip failed loads; diagnostics surface via plugin list API
+      return undefined;
+    }
+  }
+
+  private gatedIr(
+    record: PluginInstallRecord,
+    raw: PluginIr,
+    workspaceId: string,
+  ): LoadedWorkspacePlugin {
+    const repo = this.repos.plugins;
+    const grants = record.grants[workspaceId] ?? {};
+    const approved = new Set(repo?.approvals(record.name) ?? []);
+    return { record, ir: applyGrantGating(raw, grants, approved) };
   }
 
   private async create(workspace: Workspace): Promise<RuntimeHandle> {
@@ -163,7 +203,8 @@ export class WorkspaceHarnesysRegistry {
         ),
       ),
     ]);
-    // Grant/per-server approval gating lands with E2; merge is IR-only here.
+    // Grant gating and per-server approvals are already applied to the loaded
+    // IR views; non-native servers never reach the merge.
     const merged = mergePluginMcpFragments(mcpJson, enabledPlugins.map(toMcpBinding));
     for (const diagnostic of merged.diagnostics) {
       this.runtime?.logger?.warn(`[plugins] ${diagnostic.code}: ${diagnostic.message}`);
@@ -199,61 +240,72 @@ export class WorkspaceHarnesysRegistry {
   }
 
   private resolveAgent(id: string): AgentDefinition | undefined {
-    if (!this.repos.agents) {
-      return undefined;
+    if (id.startsWith('plugin:')) {
+      return this.resolvePluginAgent(id);
     }
-    const agent = this.repos.agents.findById(id);
+    const agent = this.repos.agents?.findById(id);
     if (!agent) {
       return undefined;
     }
-    return {
-      id: agent.id,
-      prompts: { main: { instructions: agent.instructions } },
-      model: this.resolveModelRef(agent),
-      skills: agent.skills.length ? agent.skills : undefined,
-      mcpServers: agent.mcpServers.length ? agent.mcpServers : undefined,
-      toolOutput: agent.toolOutput ?? undefined,
-      compaction: agent.compaction,
-      packs: normalizeAgentPacks(agent.capabilities),
-      hooks: agent.hooks.length ? agent.hooks : undefined,
-      enabledPlugins: Object.keys(agent.enabledPlugins).length ? agent.enabledPlugins : undefined,
-      graph: agent.graph,
-      budget: agent.budget ?? undefined,
-    };
+    return dbAgentDefinition(agent, this.repos);
   }
 
-  private resolveModelRef(agent: {
-    modelId: string | null;
-    effort: string | null;
-    generation: unknown;
-  }): AgentModelRef | undefined {
-    if (!agent.modelId) {
+  /**
+   * `plugin:<agent>` via bindAgentComponents over the cached (warm) IRs.
+   * Sync contract of `agents.resolve`: only memoized IRs contribute, so the
+   * first resolve must follow `get(workspace)` / `loadEnabledPlugins`.
+   */
+  private resolvePluginAgent(id: string): AgentDefinition | undefined {
+    const plugins = this.repos.plugins;
+    if (plugins === undefined) {
       return undefined;
     }
-    const effort = agent.effort ?? undefined;
-    const generation = agent.generation as AgentGenerationSettings | undefined;
-    if (this.repos.modelRepo && this.repos.providerRepo) {
-      const model = this.repos.modelRepo.findById(agent.modelId);
-      if (model) {
-        const provider = this.repos.providerRepo.findById(model.providerId);
-        if (provider) {
-          return {
-            provider: provider.name,
-            model: model.name,
-            effort,
-            generation,
-          };
-        }
+    for (const workspaceId of workspaceIdsWithPlugins(plugins)) {
+      const catalog = pluginAgentCatalog(
+        this.cachedLoaded(workspaceId),
+        this.repos.modelRepo,
+        this.repos.providerRepo,
+      );
+      const found = catalog.get(id);
+      if (found !== null) {
+        return found;
       }
-      return undefined;
     }
-    return {
-      provider: '',
-      model: '',
-      effort,
-      generation,
-    };
+    return undefined;
   }
+
+  private cachedLoaded(workspaceId: string): LoadedWorkspacePlugin[] {
+    const repo = this.repos.plugins;
+    if (repo === undefined) {
+      return [];
+    }
+    const loaded: LoadedWorkspacePlugin[] = [];
+    for (const record of enabledRecords(repo, workspaceId)) {
+      const raw = this.irCache.get(irCacheKey(record));
+      if (raw !== undefined) {
+        loaded.push(this.gatedIr(record, raw, workspaceId));
+      }
+    }
+    return loaded;
+  }
+}
+
+function irCacheKey(record: PluginInstallRecord): string {
+  return `${record.name}@${record.revision}`;
+}
+
+function enabledRecords(repo: PluginRepository, workspaceId: string): PluginInstallRecord[] {
+  return repo.list().filter((record) => record.enabledWorkspaceIds.includes(workspaceId));
+}
+
+function workspaceIdsWithPlugins(repo: PluginRepository): string[] {
+  const ids = new Set<string>();
+  for (const record of repo.list()) {
+    for (const workspaceId of record.enabledWorkspaceIds) {
+      ids.add(workspaceId);
+    }
+  }
+  return [...ids];
 }
 
 /** Reader for bindSkillComponents: flat command md files live on disk. */
@@ -275,20 +327,4 @@ function toMcpBinding(entry: LoadedWorkspacePlugin): PluginMcpBinding {
     servers: entry.ir.components.filter(isMcpServerComponent).map((component) => component.spec),
     userConfig: pluginUserConfig(entry.ir, entry.record.options),
   };
-}
-
-/**
- * Stored pack assignments use the `capabilities_json` column. `true`
- * normalizes to `{}`; objects pass through; `false`, `null`, and
- * `undefined` drop the key.
- */
-function normalizeAgentPacks(value: Record<string, unknown>): AgentPacks {
-  const packs: AgentPacks = {};
-  for (const [name, assignment] of Object.entries(value)) {
-    if (assignment === undefined || assignment === null || assignment === false) {
-      continue;
-    }
-    packs[name] = normalizePackAssignment(assignment as PackAssignment);
-  }
-  return packs;
 }

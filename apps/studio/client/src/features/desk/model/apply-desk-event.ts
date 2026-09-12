@@ -46,6 +46,11 @@ export function applyDeskEvent(event: DeskEvent): void {
       useWebhookStore.getState().upsert(toClientWebhook(event.webhook));
       return;
     }
+    case 'run-finish': {
+      // Server-side lifecycle signal (monitor jobs, run hook buses); desk
+      // state updates arrive through thread events.
+      return;
+    }
     default: {
       const _exhaustive: never = event;
       void _exhaustive;

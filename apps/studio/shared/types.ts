@@ -335,4 +335,5 @@ export type DeskEvent =
   | { type: 'schedule-deleted'; id: string }
   | { type: 'plan'; plan: ThreadPlanRecord }
   | { type: 'webhook'; webhook: WebhookRecord }
-  | { type: 'webhook-deleted'; id: string };
+  | { type: 'webhook-deleted'; id: string }
+  | { type: 'run-finish'; threadId: string };

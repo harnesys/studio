@@ -1,5 +1,7 @@
 import type { LspServerSpec, PluginComponent } from 'harnesys';
 import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
+import { MonitorJobRegistrarAdapter } from '../adapters/monitor-job-registrar.adapter.ts';
+import { RunHookBuses } from '../adapters/run-hook-buses.adapter.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
@@ -7,6 +9,7 @@ import { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
 import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
 import { createEpisodicOnCompacted } from '../application/memory/episodic-on-compacted.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
+import type { PluginAgentCatalog } from '../application/plugins/plugin-agents.ts';
 import { pluginUserConfig, substituteLspSpec } from '../application/plugins/plugin-user-config.ts';
 import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
@@ -111,6 +114,12 @@ export function createStudioHost(args: {
     },
   });
 
+  // Late wiring: the agents catalog port (pack registrations) resolves
+  // `plugin:agent` ids through the registry once it exists.
+  const pluginAgentsRef: {
+    current: ((workspaceId: string) => Promise<PluginAgentCatalog>) | null;
+  } = { current: null };
+
   const packRegistrations = createPackRegistrations({
     db: store.db,
     schedules: store.scheduleRepo,
@@ -130,6 +139,7 @@ export function createStudioHost(args: {
     semanticSessions: memory.semantic,
     memory,
     lsp: lspAdapter,
+    pluginAgentsRef,
   });
 
   const workspaceHarnesys =
@@ -153,6 +163,26 @@ export function createStudioHost(args: {
       packRegistrations,
     );
   runtime.agentsRef.current = workspaceHarnesys;
+  pluginAgentsRef.current = (workspaceId) => workspaceHarnesys.pluginAgents(workspaceId);
+
+  // Host-driven hook emissions (FileChanged from the workspace watcher,
+  // Notification from monitor stdout) share the run's hook bus: the bus is
+  // created here and carried via RunTarget.hooksEmit. Closed on run-finish.
+  const runHookBuses = new RunHookBuses({
+    filesWatcher: platform.filesWatcher,
+    lifecycle: runtime.runLifecycle,
+  });
+  const monitorJobs = new MonitorJobRegistrarAdapter({
+    notify: (threadId, text, type) => runHookBuses.emitNotification(threadId, text, type),
+    warn: (message) => logger.warn({ scope: 'monitors' }, message),
+  });
+  platform.deskEvents.subscribeAll((event) => {
+    if (event.type !== 'run-finish') {
+      return;
+    }
+    monitorJobs.deregister(event.threadId);
+    void runHookBuses.close(event.threadId);
+  });
 
   lspServersRef.current = async (cwd) => {
     const workspace = store.workspaceRepo
@@ -195,6 +225,8 @@ export function createStudioHost(args: {
     workspaceHarnesys,
     runtimeStates: runtimeStateRepo,
     branchSeeder,
+    runHookBuses,
+    monitorJobs,
   });
   runtime.targetRef.current = runTargets;
 

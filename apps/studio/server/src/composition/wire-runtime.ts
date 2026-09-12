@@ -12,6 +12,7 @@ import {
   type RunClaimer,
   type RunEngine,
   type RunEventFeed,
+  type RunRecord,
   type RunTargets,
   shell,
   wait,
@@ -28,7 +29,7 @@ import { notifyIdleIfFree } from '../application/schedules/fire-due-schedules.us
 import { GetThreadUseCase } from '../application/threads/get-thread.use-case.ts';
 import { withHandoffCurrentPersist } from '../application/threads/persist-handoff-current.ts';
 import { publishDeskThread } from '../application/threads/publish-desk-thread.ts';
-import { CLAIMER_SWEEP_MS } from '../config/constants.ts';
+import { CLAIMER_SWEEP_MS, TERMINAL_RUN_STATUSES } from '../config/constants.ts';
 import { env } from '../config/env.ts';
 import { toRuntimeLogger } from '../config/logger.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
@@ -102,6 +103,16 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
   const scheduleQueueRef: { current: ScheduleFireQueue | null } = { current: scheduleQueue };
   const webhookQueueRef: { current: ScheduleFireQueue | null } = { current: webhookQueue };
   const targetRef: { current: RunTargets | null } = { current: null };
+  /** Terminal-only run-finish signal for server-side subscribers (monitors, run buses). */
+  const emitRunFinish = (record: RunRecord): void => {
+    if (!TERMINAL_RUN_STATUSES.has(record.status)) {
+      return;
+    }
+    const workspaceId = threadRepo.findById(record.threadId)?.workspaceId;
+    if (workspaceId !== undefined) {
+      deskEvents.emit(workspaceId, { type: 'run-finish', threadId: record.threadId });
+    }
+  };
   const runClaimer = createRunClaimer({
     lifecycle: runLifecycle,
     targets: {
@@ -113,6 +124,7 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     withScope: (target, execute) => runInHostToolScope(target.scope as HostToolScope, execute),
     onComplete: (record) => {
       publishDeskThread(getThread, deskEvents, record.threadId);
+      emitRunFinish(record);
       const queue = scheduleQueueRef.current;
       if (queue !== null) {
         notifyIdleIfFree(runLifecycle, queue, record.threadId);

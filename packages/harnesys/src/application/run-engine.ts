@@ -142,8 +142,10 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       if (terminal) {
         packCache.delete(runId);
         // Закрытие рана: групповое убийство хук-процессов (включая async),
-        // drain deferred, затем emit SessionEnd (спека §2.4).
-        const hooks = hookCache.get(runId);
+        // drain deferred, затем emit SessionEnd (спека §2.4). Хост-собранная
+        // шина (RunTarget.hooksEmit) закрывается здесь же: engine — единая
+        // точка завершения рана.
+        const hooks = opts.hooksEmit ?? hookCache.get(runId);
         if (hooks !== undefined) {
           hookCache.delete(runId);
           await hooks.bus.close();

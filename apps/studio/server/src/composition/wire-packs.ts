@@ -16,7 +16,10 @@ import {
   webhookCapability,
 } from 'harnesys';
 import { lspCapability } from 'harnesys/lsp';
-import { SqliteAgentsCatalogPort } from '../adapters/capabilities/sqlite-agents-catalog.port.ts';
+import {
+  type PluginAgentsRef,
+  SqliteAgentsCatalogPort,
+} from '../adapters/capabilities/sqlite-agents-catalog.port.ts';
 import { SqlitePlanPort } from '../adapters/capabilities/sqlite-plan.port.ts';
 import { SqliteSchedulerPort } from '../adapters/capabilities/sqlite-scheduler.port.ts';
 import { SqliteThreadsPort } from '../adapters/capabilities/sqlite-threads.port.ts';
@@ -74,6 +77,8 @@ export type PackRegistrationsDeps = {
   memory: Pick<StudioMemoryPorts, 'pin' | 'semantic' | 'episodic' | 'knowledge'>;
   /** Shared LSP adapter (tools pack + editor WS bridge). Created in create-host. */
   lsp: StudioLspAdapter;
+  /** Late-wired `plugin:agent` catalog resolver (registry lands after packs). */
+  pluginAgentsRef: PluginAgentsRef;
 };
 
 export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegistration[] {
@@ -112,6 +117,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
           createAgent,
           models: deps.models,
           providers: deps.providers,
+          pluginAgents: deps.pluginAgentsRef,
         }),
       },
       resolveScope,

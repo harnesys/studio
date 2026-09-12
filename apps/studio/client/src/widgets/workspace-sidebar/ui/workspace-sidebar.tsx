@@ -173,7 +173,7 @@ export function WorkspaceSidebar() {
                 {workspace?.path ?? 'no workspace'}
               </span>
             </span>
-            <ChevronsUpDownIcon className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+            <ChevronsUpDownIcon className="size-3.5 shrink-0 text-muted-foreground opacity-60 group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="min-w-52" align="start" side="bottom">
             <DropdownMenuGroup>

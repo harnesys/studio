@@ -1,3 +1,4 @@
+import { CheckIcon, LaptopIcon, type LucideIcon, MoonIcon, SunIcon } from 'lucide-react';
 import {
   UI_ACCENT_SWATCHES,
   UI_ACCENTS,
@@ -9,97 +10,189 @@ import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { useTheme } from '@/shared/ui/theme-provider';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
+type SegmentOption = {
+  value: string;
+  label: string;
+};
+
+type ThemeChoice = 'dark' | 'light' | 'system';
+
+const THEME_CHOICES: { value: ThemeChoice; label: string; icon: LucideIcon }[] = [
+  { value: 'dark', label: 'Dark', icon: MoonIcon },
+  { value: 'light', label: 'Light', icon: SunIcon },
+  { value: 'system', label: 'System', icon: LaptopIcon },
+];
+
+const SCALE_OPTIONS: SegmentOption[] = UI_SCALES.map((item) => ({
+  value: item,
+  label: UI_SCALE_LABELS[item],
+}));
+
 export function AppearancePane() {
   const { theme, setTheme, scale, setScale, accent, setAccent } = useTheme();
 
   return (
     <FieldGroup className="gap-6">
       <Field>
-        <FieldLabel id="theme-label">Theme</FieldLabel>
-        <ToggleGroup
-          aria-labelledby="theme-label"
-          variant="outline"
-          spacing={0}
-          value={[theme]}
-          onValueChange={(value) => {
-            const next = value[0];
-            if (next === 'dark' || next === 'light' || next === 'system') {
-              setTheme(next);
-            }
-          }}
-        >
-          <ToggleGroupItem value="dark" className="min-w-[72px]">
-            Dark
-          </ToggleGroupItem>
-          <ToggleGroupItem value="light" className="min-w-[72px]">
-            Light
-          </ToggleGroupItem>
-          <ToggleGroupItem value="system" className="min-w-[72px]">
-            System
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </Field>
-      <Field>
-        <FieldLabel id="accent-label">
-          Accent{' '}
-          <span className="font-normal text-muted-foreground">
-            <span className="mr-2">·</span>
-            {UI_ACCENT_SWATCHES[accent].label}
-          </span>
-        </FieldLabel>
-        <div className="flex flex-wrap items-center gap-2.5 py-1" data-testid="accent-select">
-          {UI_ACCENTS.map((id) => {
-            const option = UI_ACCENT_SWATCHES[id];
-            const selected = accent === id;
+        <FieldLabel>Theme</FieldLabel>
+        <div data-testid="theme-select" className="grid max-w-md grid-cols-3 gap-2">
+          {THEME_CHOICES.map(({ value, label, icon: Icon }) => {
+            const selected = theme === value;
             return (
               <button
-                key={id}
+                key={value}
                 type="button"
                 aria-pressed={selected}
-                aria-label={option.label}
-                title={option.label}
-                data-testid={`accent-${id}`}
+                data-testid={`theme-${value}`}
+                onClick={() => setTheme(value)}
                 className={cn(
-                  'group relative flex size-5.5 items-center justify-center rounded-full border-2 bg-transparent outline-none transition-all',
-                  'ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring',
-                  selected ? 'border-current' : 'opacity-70 hover:opacity-100',
+                  'flex flex-col gap-1.5 rounded-lg border bg-transparent p-1.5 text-left outline-none transition-colors',
+                  'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  selected ? 'border-live' : 'border-border hover:border-foreground/25',
                 )}
-                style={{ borderColor: option.swatch }}
-                onClick={() => setAccent(id)}
               >
-                {selected ? (
-                  <span
-                    className="size-2.5 rounded-full transition-all"
-                    style={{ backgroundColor: option.swatch }}
-                  />
-                ) : null}
+                <span className="block h-16 overflow-hidden rounded-md border border-border">
+                  <ThemePreview choice={value} />
+                </span>
+                <span className="flex items-center gap-1.5 px-0.5 text-sm">
+                  <Icon className="size-3.5 text-muted-foreground" />
+                  {label}
+                  {selected ? <CheckIcon className="ml-auto size-3.5 text-live" /> : null}
+                </span>
               </button>
             );
           })}
         </div>
       </Field>
       <Field>
+        <FieldLabel id="accent-label">Accent</FieldLabel>
+        <div className="flex flex-wrap items-center gap-3 py-0.5" data-testid="accent-select">
+          <div className="flex items-center gap-2">
+            {UI_ACCENTS.map((id) => {
+              const option = UI_ACCENT_SWATCHES[id];
+              const selected = accent === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={selected}
+                  aria-label={option.label}
+                  title={option.label}
+                  data-testid={`accent-${id}`}
+                  className={cn(
+                    'flex size-6 items-center justify-center rounded-full outline-none',
+                    'ring-offset-2 ring-offset-background transition-[transform,opacity,box-shadow]',
+                    'focus-visible:ring-2 focus-visible:ring-ring',
+                    selected
+                      ? 'ring-2 ring-foreground/25'
+                      : 'opacity-65 hover:scale-110 hover:opacity-100',
+                  )}
+                  style={{ backgroundColor: option.swatch }}
+                  onClick={() => setAccent(id)}
+                >
+                  {selected ? (
+                    <CheckIcon className="size-3" style={{ color: option.onSwatch }} />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+          <span className="text-muted-foreground text-xs">{UI_ACCENT_SWATCHES[accent].label}</span>
+        </div>
+      </Field>
+      <Field>
         <FieldLabel id="scale-label">Scale</FieldLabel>
-        <ToggleGroup
-          aria-labelledby="scale-label"
-          variant="outline"
-          spacing={0}
-          value={[scale]}
-          data-testid="scale-select"
-          onValueChange={(value) => {
-            const next = value[0];
+        <Segment
+          labelId="scale-label"
+          options={SCALE_OPTIONS}
+          value={scale}
+          testId="scale-select"
+          onChange={(next) => {
             if (next === 'small' || next === 'middle' || next === 'large' || next === 'extra') {
               setScale(next);
             }
           }}
-        >
-          {UI_SCALES.map((item) => (
-            <ToggleGroupItem key={item} value={item} className="min-w-[72px]">
-              {UI_SCALE_LABELS[item]}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        />
       </Field>
     </FieldGroup>
+  );
+}
+
+function ThemePreview({ choice }: { choice: ThemeChoice }) {
+  if (choice === 'system') {
+    return (
+      <span className="flex h-full w-full">
+        <span className="flex-1">
+          <MiniWindow variant="light" />
+        </span>
+        <span className="flex-1">
+          <MiniWindow variant="dark" />
+        </span>
+      </span>
+    );
+  }
+  return <MiniWindow variant={choice} />;
+}
+
+function MiniWindow({ variant }: { variant: 'dark' | 'light' }) {
+  const palette =
+    variant === 'dark'
+      ? { shell: 'bg-[#0f1114]', side: 'bg-[#16191d]', line: 'bg-[#2a2f36]' }
+      : { shell: 'bg-[#f4f5f6]', side: 'bg-[#eeeff1]', line: 'bg-[#d9dce0]' };
+  return (
+    <span className={cn('flex h-full w-full', palette.shell)}>
+      <span className={cn('w-1/3 shrink-0', palette.side)} />
+      <span className="flex flex-1 flex-col gap-1 p-1.5">
+        <span className={cn('h-1 w-3/4 rounded-full', palette.line)} />
+        <span className={cn('h-1 w-1/2 rounded-full', palette.line)} />
+        <span className="mt-auto h-1 w-2/3 rounded-full bg-live/80" />
+      </span>
+    </span>
+  );
+}
+
+function Segment({
+  labelId,
+  options,
+  value,
+  onChange,
+  testId,
+}: {
+  labelId: string;
+  options: SegmentOption[];
+  value: string;
+  onChange: (value: string) => void;
+  testId?: string;
+}) {
+  return (
+    <ToggleGroup
+      aria-labelledby={labelId}
+      spacing={1}
+      value={[value]}
+      data-testid={testId}
+      className="rounded-lg bg-muted p-1 dark:bg-white/[0.04]"
+      onValueChange={(next) => {
+        const picked = next[0];
+        if (picked !== undefined) {
+          onChange(picked);
+        }
+      }}
+    >
+      {options.map((option) => (
+        <ToggleGroupItem
+          key={option.value}
+          value={option.value}
+          className={cn(
+            'h-6 rounded-md px-2.5 text-muted-foreground shadow-none',
+            'hover:bg-background/70 hover:text-foreground dark:hover:bg-white/[0.06]',
+            'aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm',
+            'data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm',
+            'dark:data-[state=on]:bg-white/[0.10] dark:aria-pressed:bg-white/[0.10]',
+          )}
+        >
+          {option.label}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }

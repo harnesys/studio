@@ -29,8 +29,8 @@ export function isLiveExpandMode(value: string | null): value is LiveExpandMode 
 }
 
 /** Якорь comfort-follow: где паркуется живой край после отката, % от верха. */
-export const COMFORT_ANCHOR_MIN = 40;
-export const COMFORT_ANCHOR_MAX = 70;
+export const COMFORT_ANCHOR_MIN = 10;
+export const COMFORT_ANCHOR_MAX = 90;
 export const DEFAULT_COMFORT_ANCHOR = 55;
 
 /** Триггер низа: откат, когда живой край подходит к низу ближе этого, px. */

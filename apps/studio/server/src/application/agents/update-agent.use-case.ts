@@ -6,6 +6,7 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
+import type { HooksBinding } from 'harnesys';
 import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
@@ -31,6 +32,8 @@ export type UpdateAgentRequest = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  hooks?: HooksBinding[];
+  enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
@@ -113,6 +116,14 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.capabilities !== undefined) {
       patch.capabilities = request.capabilities;
+    }
+
+    if (request.hooks !== undefined) {
+      patch.hooks = request.hooks;
+    }
+
+    if (request.enabledPlugins !== undefined) {
+      patch.enabledPlugins = request.enabledPlugins;
     }
 
     if (request.modes !== undefined) {

@@ -203,6 +203,8 @@ export class WorkspaceHarnesysRegistry {
       toolOutput: agent.toolOutput ?? undefined,
       compaction: agent.compaction,
       packs: normalizeAgentPacks(agent.capabilities),
+      hooks: agent.hooks.length ? agent.hooks : undefined,
+      enabledPlugins: Object.keys(agent.enabledPlugins).length ? agent.enabledPlugins : undefined,
       graph: agent.graph,
       budget: agent.budget ?? undefined,
     };

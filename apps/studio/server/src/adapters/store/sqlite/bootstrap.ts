@@ -328,6 +328,16 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   try {
+    db.run(sql.raw(`ALTER TABLE agents ADD COLUMN hooks_json text NOT NULL DEFAULT '[]';`));
+  } catch {}
+
+  try {
+    db.run(
+      sql.raw(`ALTER TABLE agents ADD COLUMN enabled_plugins_json text NOT NULL DEFAULT '{}';`),
+    );
+  } catch {}
+
+  try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN parent_id text;'));
   } catch {}
 

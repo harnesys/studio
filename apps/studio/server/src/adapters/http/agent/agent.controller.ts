@@ -1,3 +1,4 @@
+import type { HooksBinding } from 'harnesys';
 import type { Hono } from 'hono';
 import type { CreateAgentInput } from '../../../application/agents/create-agent.use-case.ts';
 import type { CreateAgentFromPresetInput } from '../../../application/agents/create-agent-from-preset.use-case.ts';
@@ -52,6 +53,8 @@ export class AgentController {
         mcpServers: body.mcpServers,
         tools: body.tools,
         graph: body.graph as AgentGraph | undefined,
+        hooks: body.hooks as HooksBinding[] | undefined,
+        enabledPlugins: body.enabledPlugins,
         defaultModeId: body.defaultModeId ?? null,
         modes: body.modes,
       });
@@ -87,6 +90,8 @@ export class AgentController {
         mcpServers: body.mcpServers,
         tools: body.tools,
         graph: body.graph as AgentGraph | undefined,
+        hooks: body.hooks as HooksBinding[] | undefined,
+        enabledPlugins: body.enabledPlugins,
         defaultModeId: body.defaultModeId,
         modes: body.modes,
       });

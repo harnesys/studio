@@ -12,6 +12,7 @@ import {
   defaultAgentCompaction,
   modeFromPreset,
 } from '@harnesys/studio-shared';
+import type { HooksBinding } from 'harnesys';
 import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
@@ -43,6 +44,8 @@ export type CreateAgentRequest = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  hooks?: HooksBinding[];
+  enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
@@ -98,6 +101,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
       (request.graph === undefined || isStockReactGraph(graph) ? DEFAULT_REACT_BUDGET : null);
     const modes = ensureAskMode(request.modes ?? this.seedDefaultModes());
     const defaultModeId = request.defaultModeId ?? null;
+    const hooks = request.hooks ?? [];
+    const enabledPlugins = request.enabledPlugins ?? {};
     validateModeIds(modes);
     validateDefaultModeId(defaultModeId, modes);
 
@@ -124,6 +129,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
       graph,
       budget,
       capabilities,
+      hooks,
+      enabledPlugins,
       defaultModeId,
       modes,
       createdAt: now,

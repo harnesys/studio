@@ -1,4 +1,4 @@
-import type { Edge, Node, PackConfig } from 'harnesys';
+import type { Edge, HooksBinding, Node, PackConfig } from 'harnesys';
 
 import type { AgentGenerationSettings, PortRef, ToolOutputSettings } from './harnesys-bridge.ts';
 import type { AgentMode } from './modes.ts';
@@ -50,6 +50,10 @@ export type AgentRecord = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  /** Declarative hook bindings for this agent. */
+  hooks?: HooksBinding[];
+  /** Per-agent plugin enable overrides. */
+  enabledPlugins?: Record<string, boolean>;
   /** Null = DEFAULT_MODE_ID ('ask'). */
   defaultModeId?: string | null;
   modes?: AgentMode[];

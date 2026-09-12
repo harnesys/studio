@@ -16,7 +16,7 @@ import type {
   PluginRegistryRecord,
   PluginRegistryRepository,
 } from '../../domain/plugin-registry.port.ts';
-import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
 import {
   findCatalogEntryWithRenames,
@@ -25,6 +25,7 @@ import {
   resolveCatalogEntryVersion,
 } from './materialize-catalog-plugin.ts';
 import { toPluginSummary } from './plugin-summary.ts';
+import { findDependantNames } from './resolve-dependencies.ts';
 import type { SyncPluginRegistryInput } from './sync-plugin-registry.use-case.ts';
 
 export type UpdatePluginRequest = {
@@ -53,6 +54,10 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
     }
     if (!existsSync(current.path)) {
       throw new NotFoundError('plugin checkout not found');
+    }
+    const dependants = findDependantNames(this.plugins, request.name);
+    if (dependants.length > 0) {
+      throw new ConflictError(`plugin ${request.name} is required by: ${dependants.join(', ')}`);
     }
 
     if (!existsSync(join(current.path, '.git'))) {

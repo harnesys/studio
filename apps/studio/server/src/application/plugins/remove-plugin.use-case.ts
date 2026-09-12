@@ -2,8 +2,9 @@ import type { PluginName } from '@harnesys/studio-shared';
 import { removePluginPath } from '../../adapters/plugin-git.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { PluginRepository } from '../../domain/plugin.port.ts';
-import { NotFoundError } from '../../domain/studio.error.ts';
+import { ConflictError, NotFoundError } from '../../domain/studio.error.ts';
 import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+import { findDependantNames } from './resolve-dependencies.ts';
 
 export type RemovePluginRequest = {
   name: PluginName;
@@ -24,6 +25,10 @@ export class RemovePluginUseCase implements RemovePluginInput {
     const current = this.plugins.findByName(request.name);
     if (!current) {
       throw new NotFoundError('plugin not found');
+    }
+    const dependants = findDependantNames(this.plugins, request.name);
+    if (dependants.length > 0) {
+      throw new ConflictError(`plugin ${request.name} is required by: ${dependants.join(', ')}`);
     }
     this.plugins.delete(request.name);
     await removePluginPath(current.path);

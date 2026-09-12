@@ -15,7 +15,9 @@ import type { PluginRepository } from '../../domain/plugin.port.ts';
 import type { PluginRegistryRepository } from '../../domain/plugin-registry.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { type MaterializedInstallArgs, PluginTreeInstaller } from './install-plugin-tree.ts';
+import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
 import { findCatalogEntryWithRenames } from './materialize-catalog-plugin.ts';
+import { resolvePluginDependencies } from './resolve-dependencies.ts';
 
 export type InstallPluginRequest = {
   source?: string;
@@ -38,13 +40,18 @@ export class InstallPluginUseCase implements InstallPluginInput {
   constructor(
     private readonly plugins: PluginRepository,
     private readonly home: string,
-    workspaceHarnesys: WorkspaceHarnesysRegistry,
+    private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly registries?: PluginRegistryRepository,
   ) {
     this.tree = new PluginTreeInstaller(plugins, home, workspaceHarnesys);
   }
 
-  execute(request: InstallPluginRequest): Promise<InstallPluginResponse> {
+  async execute(request: InstallPluginRequest): Promise<InstallPluginResponse> {
+    const result = await this.install(request);
+    return this.settleDependencies(result);
+  }
+
+  private install(request: InstallPluginRequest): Promise<InstallPluginResponse> {
     if (request.registryId && request.pluginName) {
       return this.installFromCatalog(request.registryId, request.pluginName);
     }
@@ -59,6 +66,35 @@ export class InstallPluginUseCase implements InstallPluginInput {
       registryId: request.registryId,
       catalogPluginName: request.catalogPluginName,
     });
+  }
+
+  /**
+   * Post-install dependency pass: resolve declared dependencies against the
+   * catalogs, cascade the parent's workspace enables onto installed deps, and
+   * surface cycles/unsatisfied ranges as diagnostics. Install is not rolled
+   * back on unsatisfied dependencies.
+   */
+  private async settleDependencies(result: InstallPluginResponse): Promise<InstallPluginResponse> {
+    const record = this.plugins.findByName(result.plugin.name);
+    if (!record) {
+      return result;
+    }
+    const resolution = await resolvePluginDependencies(record, this.registries, this.plugins);
+    for (const workspaceId of record.enabledWorkspaceIds) {
+      for (const dep of resolution.dependencies) {
+        if (this.plugins.findByName(dep.name)) {
+          this.plugins.setWorkspaceEnabled(dep.name, workspaceId, true);
+        }
+      }
+    }
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, record.enabledWorkspaceIds);
+    if (resolution.diagnostics.length === 0) {
+      return result;
+    }
+    return {
+      plugin: result.plugin,
+      diagnostics: [...result.diagnostics, ...resolution.diagnostics],
+    };
   }
 
   private installFromCatalog(

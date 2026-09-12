@@ -6,6 +6,7 @@ export {
   type ParseClaudeMarketplaceOptions,
   parseClaudeMarketplace,
 } from './src/application/plugins/parse-claude-marketplace.ts';
+export { semverSatisfies } from './src/application/plugins/semver-lite.ts';
 export type {
   CatalogEntry,
   CatalogInstallSource,

@@ -24,8 +24,7 @@ export function SemanticFields({
             <FieldLabel id="semantic-scope-label">Scope</FieldLabel>
             <ToggleGroup
               aria-labelledby="semantic-scope-label"
-              variant="outline"
-              spacing={0}
+              variant="segment"
               value={[field.value]}
               onValueChange={(value) => {
                 if (scopeLocked) {
@@ -38,12 +37,7 @@ export function SemanticFields({
               }}
             >
               {SCOPE_ITEMS.map((item) => (
-                <ToggleGroupItem
-                  key={item.value}
-                  value={item.value}
-                  className="min-w-[72px]"
-                  disabled={scopeLocked}
-                >
+                <ToggleGroupItem key={item.value} value={item.value} disabled={scopeLocked}>
                   {item.label}
                 </ToggleGroupItem>
               ))}

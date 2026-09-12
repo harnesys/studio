@@ -44,8 +44,7 @@ export function KnowledgeFilesPanel({
         <p className="font-medium text-sm">Files</p>
         <ToggleGroup
           className="ml-auto"
-          variant="outline"
-          spacing={0}
+          variant="segment"
           value={[status]}
           onValueChange={(value) => {
             const next = value[0];

@@ -143,8 +143,7 @@ export function AgentGraphCanvas({
           Auto
         </Button>
         <ToggleGroup
-          variant="outline"
-          spacing={0}
+          variant="segment"
           size="sm"
           value={[rankdir]}
           onValueChange={(value) => {

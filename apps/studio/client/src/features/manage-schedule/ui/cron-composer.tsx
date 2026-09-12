@@ -63,9 +63,8 @@ export function CronComposer({ value, onChange, hint }: CronComposerProps) {
   return (
     <div className="flex flex-col gap-3" data-testid="cron-composer">
       <ToggleGroup
-        variant="outline"
-        spacing={0}
-        className="flex w-full flex-wrap"
+        variant="segment"
+        className="flex w-full max-w-none flex-wrap"
         value={[preset]}
         onValueChange={(selected) => {
           const next = selected[0];

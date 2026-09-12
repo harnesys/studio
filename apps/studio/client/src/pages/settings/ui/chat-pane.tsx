@@ -52,8 +52,7 @@ export function ChatPane() {
         <FieldDescription>Text size for agent and user messages.</FieldDescription>
         <ToggleGroup
           aria-labelledby="chat-font-label"
-          variant="outline"
-          spacing={0}
+          variant="segment"
           value={[chatFontSize]}
           data-testid="chat-font-select"
           onValueChange={(value) => {
@@ -64,7 +63,7 @@ export function ChatPane() {
           }}
         >
           {CHAT_FONT_SIZES.map((item) => (
-            <ToggleGroupItem key={item} value={item} className="min-w-[72px]">
+            <ToggleGroupItem key={item} value={item}>
               {CHAT_FONT_SIZE_LABELS[item]}
             </ToggleGroupItem>
           ))}
@@ -223,8 +222,7 @@ export function ChatPane() {
             </FieldDescription>
             <ToggleGroup
               aria-label="Live element"
-              variant="outline"
-              spacing={0}
+              variant="segment"
               value={[liveExpand]}
               data-testid="live-expand-select"
               onValueChange={(value) => {
@@ -235,7 +233,7 @@ export function ChatPane() {
               }}
             >
               {LIVE_EXPAND_MODES.map((item) => (
-                <ToggleGroupItem key={item} value={item} className="min-w-[72px]">
+                <ToggleGroupItem key={item} value={item}>
                   {LIVE_EXPAND_LABELS[item]}
                 </ToggleGroupItem>
               ))}

@@ -203,8 +203,7 @@ export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
             <Field key={gate.name}>
               <FieldLabel>{gate.label}</FieldLabel>
               <ToggleGroup
-                variant="outline"
-                spacing={0}
+                variant="segment"
                 value={[state[gate.name]]}
                 disabled={contentLocked}
                 onValueChange={(value) => {

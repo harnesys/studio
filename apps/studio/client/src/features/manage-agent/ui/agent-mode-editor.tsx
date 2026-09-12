@@ -133,8 +133,7 @@ export function AgentModeEditor({
               <Field>
                 <FieldLabel>{gate.label}</FieldLabel>
                 <ToggleGroup
-                  variant="outline"
-                  spacing={0}
+                  variant="segment"
                   value={[field.value]}
                   onValueChange={(value) => {
                     const next = value[0];

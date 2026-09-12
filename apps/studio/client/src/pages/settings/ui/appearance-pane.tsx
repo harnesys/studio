@@ -167,10 +167,9 @@ function Segment({
   return (
     <ToggleGroup
       aria-labelledby={labelId}
-      spacing={1}
+      variant="segment"
       value={[value]}
       data-testid={testId}
-      className="rounded-lg bg-muted p-1 dark:bg-white/[0.04]"
       onValueChange={(next) => {
         const picked = next[0];
         if (picked !== undefined) {
@@ -179,17 +178,7 @@ function Segment({
       }}
     >
       {options.map((option) => (
-        <ToggleGroupItem
-          key={option.value}
-          value={option.value}
-          className={cn(
-            'h-6 rounded-md px-2.5 text-muted-foreground shadow-none',
-            'hover:bg-background/70 hover:text-foreground dark:hover:bg-white/[0.06]',
-            'aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm',
-            'data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm',
-            'dark:data-[state=on]:bg-white/[0.10] dark:aria-pressed:bg-white/[0.10]',
-          )}
-        >
+        <ToggleGroupItem key={option.value} value={option.value}>
           {option.label}
         </ToggleGroupItem>
       ))}

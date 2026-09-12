@@ -119,9 +119,11 @@ export class SqliteThreadRepo implements ThreadRepository {
     const meta = (
       typeof current.metadata === 'object' && current.metadata !== null ? current.metadata : {}
     ) as Record<string, unknown>;
+    // injectedRunMode = mode of the last run that already carried the instructions
+    // block; the send use case compares against it to avoid duplicate blocks.
     const row = this.db
       .update(threadsTable)
-      .set({ metadata: JSON.stringify({ ...meta, runMode: mode }) })
+      .set({ metadata: JSON.stringify({ ...meta, runMode: mode, injectedRunMode: mode }) })
       .where(eq(threadsTable.id, id))
       .returning()
       .get();

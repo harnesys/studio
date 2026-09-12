@@ -3,6 +3,7 @@ import { Controller, type UseFormReturn, useWatch } from 'react-hook-form';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Field, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
+import { Switch } from '@/shared/ui/switch';
 import { Textarea } from '@/shared/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
@@ -14,6 +15,8 @@ type AgentModeEditorProps = {
   skillNames: string[];
   agentSkills: string[];
   packNames: string[];
+  isDefault: boolean;
+  onSetDefault: (next: boolean) => void;
 };
 
 const GATES: { name: 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp'; label: string }[] = [
@@ -29,6 +32,8 @@ export function AgentModeEditor({
   skillNames,
   agentSkills,
   packNames,
+  isDefault,
+  onSetDefault,
 }: AgentModeEditorProps) {
   const mode = useWatch({ control: form.control, name: `modes.${index}` });
   const selectedSkills = mode?.skills ?? [];
@@ -50,6 +55,19 @@ export function AgentModeEditor({
 
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid="agent-mode-editor">
+      <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+        <span className="min-w-0">
+          <span className="block text-sm">Make Default</span>
+          <span className="block text-[11px] text-muted-foreground">
+            Runs when a thread starts without a chosen mode.
+          </span>
+        </span>
+        <Switch
+          checked={isDefault}
+          onCheckedChange={(value) => onSetDefault(Boolean(value))}
+          aria-label={`Make default: ${mode?.name || mode?.id || `mode ${index + 1}`}`}
+        />
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <Field>
           <FieldLabel htmlFor={`mode-name-${index}`}>Name</FieldLabel>

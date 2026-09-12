@@ -44,6 +44,16 @@ export function runModeFields(thread: Pick<Thread, 'metadata'>): { runMode?: str
   return {};
 }
 
+/** Mode whose instructions block already rode on a previous run (null = none yet). */
+export function injectedRunModeField(thread: Pick<Thread, 'metadata'>): string | null {
+  const meta = thread.metadata;
+  const mode =
+    typeof meta === 'object' && meta !== null
+      ? (meta as { injectedRunMode?: unknown }).injectedRunMode
+      : undefined;
+  return typeof mode === 'string' && isModeId(mode) ? mode : null;
+}
+
 export function toSummary(thread: ThreadRecord): ThreadSummary {
   return {
     id: thread.id,

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDownIcon } from 'lucide-react';
+import { CogIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { Agent } from '@/entities/agent';
 import {
@@ -9,7 +9,6 @@ import {
   workspaceSkillsQuery,
   workspaceToolsQuery,
 } from '@/shared/api';
-import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Switch } from '@/shared/ui/switch';
 
@@ -177,15 +176,13 @@ function McpServerCard({
           <Button
             type="button"
             variant="ghost"
-            size="icon-xs"
-            aria-label={expanded ? `Collapse ${server.serverId}` : `Expand ${server.serverId}`}
-            aria-expanded={expanded}
+            size="icon-sm"
+            aria-label={`${server.serverId} tools`}
+            aria-pressed={expanded}
             onClick={onToggleExpand}
             className="opacity-70"
           >
-            <ChevronDownIcon
-              className={cn('size-3.5 transition-transform', expanded && 'rotate-180')}
-            />
+            <CogIcon />
           </Button>
           <Switch
             size="sm"

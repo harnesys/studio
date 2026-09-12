@@ -20,7 +20,7 @@ export function validateModeIds(modes: AgentMode[]): void {
   }
 }
 
-/** 'ask' is builtin on every agent: tolerated exactly once, appended when absent. */
+/** Creation-time seed: agents start with a copy of the builtin 'ask' preset. */
 export function ensureAskMode(modes: AgentMode[]): AgentMode[] {
   return modes.some((mode) => mode.id === DEFAULT_MODE_ID) ? modes : [...modes, { ...ASK_MODE }];
 }

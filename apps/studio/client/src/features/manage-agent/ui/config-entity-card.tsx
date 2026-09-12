@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 type ConfigEntityCardProps = {
   title: string;
   badge?: string;
+  /** Accent badge next to `badge` (e.g. "Default Mode"). */
+  statusBadge?: string;
   description?: string;
   initials: string;
   monoTitle?: boolean;
@@ -17,6 +19,7 @@ type ConfigEntityCardProps = {
 export function ConfigEntityCard({
   title,
   badge,
+  statusBadge,
   description,
   initials,
   monoTitle = false,
@@ -45,6 +48,11 @@ export function ConfigEntityCard({
           {badge ? (
             <span className="shrink-0 font-mono text-[10px] text-muted-foreground uppercase tracking-wide">
               {badge}
+            </span>
+          ) : null}
+          {statusBadge ? (
+            <span className="shrink-0 rounded bg-primary/15 px-1 font-medium text-[9px] text-primary uppercase leading-4 tracking-wide">
+              {statusBadge}
             </span>
           ) : null}
         </div>

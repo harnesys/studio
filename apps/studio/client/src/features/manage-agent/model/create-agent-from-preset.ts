@@ -30,7 +30,7 @@ export function agentDraftFromPreset(preset: AgentPresetRecord): Agent {
     skills: preset.skills ?? [],
     mcpServers: preset.mcpServers ?? [],
     tools: preset.tools ?? [],
-    graph: { nodes: {}, edges: [] },
+    graph: preset.graph ?? { nodes: {}, edges: [] },
     capabilities: preset.capabilities ?? {},
     defaultModeId: null,
     modes: [],

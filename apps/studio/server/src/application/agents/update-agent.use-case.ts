@@ -9,12 +9,7 @@ import type {
 import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-import {
-  ensureAskMode,
-  requireAgent,
-  validateDefaultModeId,
-  validateModeIds,
-} from './agent.helpers.ts';
+import { requireAgent, validateDefaultModeId, validateModeIds } from './agent.helpers.ts';
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
@@ -122,12 +117,14 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.modes !== undefined) {
       validateModeIds(request.modes);
-      patch.modes = ensureAskMode(request.modes);
+      // The list is the user's copy: dropping 'ask' here is allowed; only
+      // creation seeds it (see create-agent.use-case).
+      patch.modes = request.modes;
     }
 
     if (request.defaultModeId !== undefined) {
       patch.defaultModeId = request.defaultModeId;
-      // Validate against the union of stored and incoming modes (post self-heal).
+      // Validate against the union of stored and incoming modes.
       const allowedModes = [...agent.modes, ...(patch.modes ?? request.modes ?? [])];
       validateDefaultModeId(request.defaultModeId, allowedModes);
     }

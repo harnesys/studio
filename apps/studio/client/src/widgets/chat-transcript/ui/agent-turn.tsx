@@ -18,6 +18,7 @@ import { FileChip } from '@/shared/ui/file-chip';
 import { Markdown } from '@/shared/ui/markdown';
 import { toast } from '@/shared/ui/toast';
 import type { MapInfo } from '../model/map-groups';
+import { splitModeTags } from '../model/mode-tag';
 import type { SpawnInfo } from '../model/spawn-groups';
 import {
   groupSegments,
@@ -32,6 +33,7 @@ import { CompactionMessageCard } from './compaction-card';
 import { FeedNotice } from './feed-notice';
 import { HandoffCard } from './handoff-card';
 import { MessageActions } from './message-actions';
+import { ModeTagBadges } from './mode-tag-badge';
 import { PlanModeBadge } from './plan-mode-badge';
 import { SpawnCard } from './spawn-card';
 import { ThinkingLine } from './thinking-line';
@@ -219,8 +221,9 @@ function TurnSegmentView({
     const atts = segment.event.attachments;
     const wake = isScheduleWakeEvent(segment.event);
     const rawText = segment.event.text ?? '';
-    const planPrompt = extractPlanModePrompt(rawText);
-    const visibleText = visiblePlanModeText(rawText);
+    const { text: withoutModeTags, badges: modeBadges } = splitModeTags(rawText);
+    const planPrompt = extractPlanModePrompt(withoutModeTags);
+    const visibleText = visiblePlanModeText(withoutModeTags);
     return (
       <div className="flex flex-col items-end gap-2">
         {wake ? (
@@ -234,6 +237,7 @@ function TurnSegmentView({
                 ))}
               </div>
             ) : null}
+            <ModeTagBadges badges={modeBadges} />
             {planPrompt ? <PlanModeBadge prompt={planPrompt} /> : null}
             {visibleText ? (
               <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3.5 py-1.5 text-secondary-foreground shadow-xs">

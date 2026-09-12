@@ -90,14 +90,12 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
   const comfortAnchor = useChatPreferences((state) => state.comfortAnchor);
   const comfortThreshold = useChatPreferences((state) => state.comfortThreshold);
   const comfortDuration = useChatPreferences((state) => state.comfortDuration);
-  const live = streaming || compacting;
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const comfortPinned = useComfortFollow(viewportRef, {
     enabled: comfortFollow,
     anchorPercent: comfortAnchor,
     thresholdPx: comfortThreshold,
     durationMs: comfortDuration,
-    streaming: live,
   });
   const synced = useSyncedThread(threadId, agent.workspaceId);
   const failures = useSessionStore(
@@ -123,7 +121,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
   const compactLive = compacting && ownRuns.some(isCompactRun);
   const showFork = Boolean(thread?.parentThreadId) && inheritedRuns.length > 0;
   // Резерв под живым краем: scrollToEnd ставит край на якорь, долив — по триггеру.
-  const comfortSpacer = comfortFollow && live;
+  const comfortSpacer = comfortFollow && comfortPinned;
   const followPinned = comfortFollow && comfortPinned;
 
   return (

@@ -1,7 +1,6 @@
-import type { ModePreset } from '@harnesys/studio-shared';
-import { modeFromPreset } from '@harnesys/studio-shared';
+import { DEFAULT_MODE_ID, type ModePreset, modeFromPreset } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
-import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
+import { CogIcon, PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { type UseFormReturn, useFieldArray, useWatch } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
@@ -49,8 +48,24 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
     .map((pack) => pack.name)
     .filter((name) => agentPackNames.includes(name));
 
-  function setDefault(id: string | null) {
-    form.setValue('defaultModeId', id, { shouldDirty: true });
+  function isDefaultOf(index: number): boolean {
+    const row = rows[index];
+    if (!row) {
+      return false;
+    }
+    if (row.id === DEFAULT_MODE_ID) {
+      return defaultModeId === DEFAULT_MODE_ID || defaultModeId === null;
+    }
+    return defaultModeId === row.id;
+  }
+
+  function setDefaultOf(index: number, next: boolean) {
+    const row = rows[index];
+    if (!row) {
+      return;
+    }
+    // Off always falls back to the builtin 'ask' chain (defaultModeId = null).
+    form.setValue('defaultModeId', next ? row.id : null, { shouldDirty: true });
   }
 
   function toggleExpanded(index: number) {
@@ -69,8 +84,8 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
 
   function removeMode(index: number) {
     const removed = rows[index];
-    if (removed && removed.id === defaultModeId) {
-      setDefault(null);
+    if (removed && defaultModeId === removed.id) {
+      form.setValue('defaultModeId', null, { shouldDirty: true });
     }
     modes.remove(index);
     setExpandedIndex(null);
@@ -78,46 +93,41 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
 
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid="agent-modes-pane">
-      <ConfigEntityCard
-        title="Ask before changes"
-        badge="built-in"
-        description="Fallback mode · every gate asks before it runs"
-        initials="As"
-        trailing={
-          <ModeDefaultRadio
-            title="Ask before changes"
-            checked={defaultModeId === null}
-            onSetDefault={() => setDefault(null)}
-          />
-        }
-      />
       {modes.fields.map((field, index) => {
         const row = rows[index];
         if (!row) {
           return null;
         }
         const expanded = expandedIndex === index;
+        const title = row.name || '(unnamed mode)';
         return (
           <ConfigEntityCard
             key={field.id}
-            title={row.name || '(unnamed mode)'}
-            badge="mode"
+            title={title}
+            badge={row.id === DEFAULT_MODE_ID ? 'built-in' : 'mode'}
+            statusBadge={isDefaultOf(index) ? 'Default Mode' : undefined}
             description={row.description || row.id || undefined}
             initials={initialsFromLabel(row.name || row.id || 'mode')}
             expanded={expanded}
             onClick={() => toggleExpanded(index)}
             trailing={
               <>
-                <ModeDefaultRadio
-                  title={row.name || row.id || `mode ${index + 1}`}
-                  checked={defaultModeId === row.id}
-                  onSetDefault={() => setDefault(row.id)}
-                />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Remove ${row.name || row.id || 'mode'}`}
+                  aria-label={`Mode settings: ${title}`}
+                  aria-pressed={expanded}
+                  onClick={() => toggleExpanded(index)}
+                  className="opacity-70"
+                >
+                  <CogIcon />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Remove ${title}`}
                   onClick={() => removeMode(index)}
                   className="opacity-70"
                 >
@@ -134,6 +144,8 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
                 skillNames={skillNames}
                 agentSkills={activeAgent?.skills ?? []}
                 packNames={packNames}
+                isDefault={isDefaultOf(index)}
+                onSetDefault={(next) => setDefaultOf(index, next)}
               />
             ) : null}
           </ConfigEntityCard>
@@ -166,27 +178,6 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
         </DropdownMenu>
       </div>
     </div>
-  );
-}
-
-function ModeDefaultRadio({
-  title,
-  checked,
-  onSetDefault,
-}: {
-  title: string;
-  checked: boolean;
-  onSetDefault: () => void;
-}) {
-  return (
-    <input
-      type="radio"
-      name="agent-default-mode"
-      checked={checked}
-      onChange={onSetDefault}
-      aria-label={`Default mode: ${title}`}
-      className="size-3.5 shrink-0 accent-primary"
-    />
   );
 }
 

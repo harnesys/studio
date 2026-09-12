@@ -17,7 +17,6 @@ import { Button } from '@/shared/ui/button';
 import { Message, MessageContent, MessageFooter, MessageHeader } from '@/shared/ui/message';
 import { Textarea } from '@/shared/ui/textarea';
 import { toast } from '@/shared/ui/toast';
-
 import { MessageActions } from './message-actions';
 import { MessageAttachments } from './message-attachments';
 import { PlanModeBadge } from './plan-mode-badge';

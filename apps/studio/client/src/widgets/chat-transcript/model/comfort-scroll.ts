@@ -8,7 +8,6 @@ export type ComfortScrollOptions = {
   thresholdPx: number;
   /** Длительность плавного отката, мс. 0 — мгновенно. */
   durationMs: number;
-  streaming: boolean;
 };
 
 const PIN_SLACK_PX = 64;
@@ -68,13 +67,13 @@ export function useComfortFollow(
       }
     };
 
-    const scrollToEnd = () => {
+    const scrollToEnd = (instant = false) => {
       const target = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
       if (Math.abs(target - viewport.scrollTop) < 1) {
         return;
       }
       cancelAnimation();
-      const duration = optionsRef.current.durationMs;
+      const duration = instant ? 0 : optionsRef.current.durationMs;
       if (duration <= 0 || prefersReducedMotion()) {
         viewport.scrollTop = target;
         return;
@@ -110,10 +109,10 @@ export function useComfortFollow(
     };
 
     const onContentGrew = () => {
-      const opts = optionsRef.current;
-      if (!opts.streaming || !pinnedRef.current) {
+      if (!pinnedRef.current) {
         return;
       }
+      const opts = optionsRef.current;
       const reserve = reserveFor(viewport.clientHeight);
       const triggerAt = Math.max(MIN_FILL_PX, reserve - opts.thresholdPx);
       if (distanceToBottom(viewport) >= triggerAt) {
@@ -132,9 +131,18 @@ export function useComfortFollow(
     viewport.addEventListener('wheel', onUserGesture, { passive: true });
     viewport.addEventListener('touchmove', onUserGesture, { passive: true });
     onScroll();
+    // Открытый тред с прилипанием паркуем на якорь, а не в сырой низ.
+    const parkRaf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (pinnedRef.current) {
+          scrollToEnd(true);
+        }
+      });
+    });
 
     return () => {
       cancelAnimation();
+      cancelAnimationFrame(parkRaf);
       observer.disconnect();
       viewport.removeEventListener('scroll', onScroll);
       viewport.removeEventListener('wheel', onUserGesture);

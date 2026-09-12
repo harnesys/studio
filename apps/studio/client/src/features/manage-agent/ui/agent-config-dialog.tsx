@@ -87,8 +87,10 @@ export function AgentConfigDialog({
   const storeReturnParent = useAgentStore((state) =>
     returnParentId ? (state.byId(returnParentId) ?? null) : null,
   );
-  const activeAgent =
-    storeFocus ?? (focusAgentId && focusAgentId === rootAgent?.id ? rootAgent : null);
+  // Synthetic preset drafts carry id: '' — resolve them so prefill panes read the draft.
+  const isPresetDraft = rootAgent !== null && rootAgent.id === '';
+  const focusMatches = Boolean(focusAgentId && focusAgentId === rootAgent?.id);
+  const activeAgent = storeFocus ?? (focusMatches || isPresetDraft ? rootAgent : null);
   const returnParent =
     storeReturnParent ?? (returnParentId && returnParentId === rootAgent?.id ? rootAgent : null);
   const showSubagents = Boolean(activeAgent && !activeAgent.parentId && activeAgent.id !== '');
@@ -138,7 +140,9 @@ export function AgentConfigDialog({
   function buildResult(values: AgentFieldsOutput): AgentConfigResult {
     const draft = toAgentDraft(values);
     const sanitized = sanitizeForModel(draft.modelId, draft.effort, draft.generation, providers);
-    const graph = graphTouchedRef.current ? graphDocRef.current : undefined;
+    // Preset drafts carry the preset graph from open; send it even if the tab was never visited.
+    const includeGraph = graphTouchedRef.current || rootAgent?.id === '';
+    const graph = includeGraph ? graphDocRef.current : undefined;
     return {
       fields: { ...draft, ...sanitized, ...(graph !== undefined ? { graph } : {}) },
       capabilities: capabilitiesRef.current,

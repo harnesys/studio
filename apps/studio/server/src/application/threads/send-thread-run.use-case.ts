@@ -16,7 +16,7 @@ import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { escapeXml } from './plan-mode-prompt.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
-import { runModeFields } from './thread.helpers.ts';
+import { injectedRunModeField, runModeFields } from './thread.helpers.ts';
 
 export type SendThreadRunRequest = {
   threadId: string;
@@ -109,7 +109,11 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
       modes: agentRow.modes,
     });
     this.threads.setRunMode(thread.id, runModeId);
-    input.text = decorateText(effectiveMode(agentRow.modes, runModeId), request.text);
+    // The instructions block rides only when the resolved mode differs from the
+    // previous run's mode; otherwise the user message would repeat it verbatim.
+    const modeBlock = modeInstructionsBlock(effectiveMode(agentRow.modes, runModeId));
+    const modeChanged = injectedRunModeField(thread) !== runModeId;
+    input.text = modeBlock && modeChanged ? prependBlock(modeBlock, request.text) : request.text;
 
     const hx = await this.workspaceHarnesys.get(workspace);
     const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
@@ -165,11 +169,7 @@ function modeInstructionsBlock(mode: AgentMode): string | undefined {
   return `<mode id="${mode.id}" name="${escapeXml(mode.name)}">\n${parts.join('\n')}\n</mode>`;
 }
 
-function decorateText(mode: AgentMode, text: string | undefined): string | undefined {
-  const block = modeInstructionsBlock(mode);
-  if (!block) {
-    return text;
-  }
+function prependBlock(block: string, text: string | undefined): string {
   return text ? `${block}\n\n${text}` : block;
 }
 

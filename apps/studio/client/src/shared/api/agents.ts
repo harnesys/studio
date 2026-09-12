@@ -60,6 +60,7 @@ export type AgentPresetRecord = {
   mcpServers?: string[];
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  graph?: AgentGraph;
 };
 
 export function listAgents(workspaceId: string) {

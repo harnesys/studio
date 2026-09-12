@@ -93,6 +93,46 @@ Biome плагин `lint/plugins` (корень монорепо) ловит `T[
 
 - Не подменять ручную проверку через agent-browser автотестами (`*.test.ts` / playwright и т.п.) — юнит/e2e тесты по-прежнему запрещены отдельным пунктом выше.
 
+RULE D1: DELETION IS ALWAYS CASCADING.
+When instructed to remove a feature, an enum member, a type, a function, or a module, you MUST trace and remove every artifact that depends on it. This includes:
+
+All switch/case branches, if/else blocks, and pattern matches that reference the removed item.
+
+All callers (direct and indirect), including callers in other modules, packages, and test files.
+
+All re-exports, barrel files (index.ts, mod.rs, __init__.py), and public API surface entries.
+
+All associated tests, fixtures, mocks, and documentation that exclusively cover the removed functionality.
+
+All associated types, interfaces, constants, and configuration keys that were created solely to support the removed item.
+
+RULE D2: NEVER REPLACE DELETED LOGIC WITH NEW CONDITIONALS.
+If you remove an enum member, do NOT add if (x === RemovedMember) guards. If you remove a function, do NOT add a stub that throws NotImplementedError unless explicitly requested. The goal is subtraction, not substitution. Adding new branches to handle the absence of removed code is forbidden and will be treated as a failed task.
+
+RULE D3: VERIFY THE ABSENCE BEFORE COMMITTING.
+After performing a deletion, you MUST verify that no residual references remain. Run the project's type checker, linter, and test suite. Specifically:
+
+Use the language server's "find all references" or an equivalent tool (e.g., grep, rg) for the removed symbol names.
+
+Confirm that the build passes without warnings about unused imports or unreachable code.
+
+If a test fails because it was testing the removed functionality, delete that test. Do not modify the test to test something else.
+
+RULE D4: RE-EXPORTS AND BARREL FILES ARE PART OF THE API SURFACE.
+When removing a symbol, check every file that re-exports it. Remove the re-export line entirely. Do not leave a commented-out export or a re-export of a non-existent symbol. If a barrel file becomes empty, delete the barrel file and update its importers.
+
+RULE D5: DEAD CODE MUST BE DELETED, NOT COMMENTED OUT.
+Never comment out removed code "for reference." Never leave // removed: X comments. If the removal is correct, the code is gone. Version control is the reference.
+
+RULE D6: DO NOT INTRODUCE BACKWARD-COMPATIBILITY SHIMS.
+Unless the user explicitly asks for a deprecation path, do not create aliases, wrapper functions, or migration adapters for the removed functionality. A hard cut is the default. If the user wants a soft deprecation, they will specify it.
+
+RULE D7: UPDATE ALL DOCUMENTATION AND CONFIGURATION.
+If the removed functionality was mentioned in README.md, docs/, OpenAPI specs, JSON schemas, feature flag definitions, or CI configuration, remove those mentions in the same change. Stale documentation is a bug.
+
+RULE D8: IF UNCERTAIN, ASK BEFORE ADDING.
+If tracing the full dependency chain reveals an ambiguity (e.g., a symbol is used in a context you cannot fully analyze), STOP and ask the user for clarification. Do NOT guess by adding a defensive if or a try/catch. The default action when uncertain is to ask, not to invent.
+
 ## Проза (чат, документы, PR, комментарии)
 
 Неотредактированный модельный ритм в репозитории неприемлем. Модель как черновик — можно; публиковать черновик — нельзя.

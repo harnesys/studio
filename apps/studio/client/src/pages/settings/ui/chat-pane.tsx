@@ -135,7 +135,7 @@ export function ChatPane() {
               onCheckedChange={setComfortFollow}
             />
           </Field>
-          <Field className="gap-1.5 rounded-md px-2 py-2">
+          <Field className="gap-2 rounded-md px-2 py-2">
             <div className="flex items-center justify-between gap-2">
               <FieldLabel htmlFor="comfort-anchor">Anchor position</FieldLabel>
               <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -160,7 +160,7 @@ export function ChatPane() {
               }}
             />
           </Field>
-          <Field className="gap-1.5 rounded-md px-2 py-2">
+          <Field className="gap-2 rounded-md px-2 py-2">
             <div className="flex items-center justify-between gap-2">
               <FieldLabel htmlFor="comfort-threshold">Bottom trigger</FieldLabel>
               <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -185,7 +185,7 @@ export function ChatPane() {
               }}
             />
           </Field>
-          <Field className="gap-1.5 rounded-md px-2 py-2">
+          <Field className="gap-2 rounded-md px-2 py-2">
             <div className="flex items-center justify-between gap-2">
               <FieldLabel htmlFor="comfort-duration">Jump duration</FieldLabel>
               <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -215,7 +215,7 @@ export function ChatPane() {
       <FieldSet>
         <FieldLabel>Live element</FieldLabel>
         <FieldGroup className="gap-1">
-          <Field className="gap-1.5 rounded-md px-2 py-2">
+          <Field className="gap-2 rounded-md px-2 py-2">
             <FieldDescription>
               How the active thought or tool stays open while streaming. Finished runs still use the
               toggles above.

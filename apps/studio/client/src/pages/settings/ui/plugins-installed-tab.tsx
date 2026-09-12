@@ -120,7 +120,7 @@ export function PluginsInstalledTab() {
             }}
           >
             <PlusIcon />
-            Install from git
+            Install from Git
           </Button>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function PluginsInstalledTab() {
             <EmptyHeader>
               <EmptyTitle>No plugins yet</EmptyTitle>
               <EmptyDescription>
-                Install from git (`obra/superpowers`) or open Discover to install from a
+                Install from Git (`obra/superpowers`) or open Discover to install from a
                 marketplace.
               </EmptyDescription>
             </EmptyHeader>

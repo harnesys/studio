@@ -6,7 +6,7 @@ import { openAddModelDialog } from '@/features/manage-model';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 
-import { modelRows } from './model-rows';
+import { type ModelRow, modelRows } from './model-rows';
 import {
   type ModelAttachInput,
   type ModelDetachInput,
@@ -35,19 +35,27 @@ export function ProviderModelsSection({
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const rows = modelRows(selected.models, found);
-  const filteredRows = modelSearch.trim()
-    ? rows.filter((row) => row.name.toLowerCase().includes(modelSearch.toLowerCase()))
+  const needle = modelSearch.trim().toLowerCase();
+  const filteredRows = needle
+    ? rows.filter((row) => row.name.toLowerCase().includes(needle))
     : rows;
+  const attached = filteredRows.filter((row) => row.saved);
+  const available = filteredRows.filter((row) => !row.saved);
 
   return (
     <div className="mt-8">
-      <div className="flex h-8 items-center gap-2">
+      <div className="flex h-8 items-center gap-1">
         <p className="font-medium text-sm">Models</p>
+        <span className="font-mono text-[10px] text-muted-foreground">
+          {selected.models.length} attached
+        </span>
         <div className="ml-auto flex items-center gap-1">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon-xs"
             className="text-muted-foreground"
+            aria-label="Search models"
+            aria-pressed={searchOpen}
             onClick={() => {
               setSearchOpen((open) => {
                 if (open) {
@@ -59,8 +67,7 @@ export function ProviderModelsSection({
               });
             }}
           >
-            <SearchIcon />
-            Search
+            {searchOpen ? <XIcon /> : <SearchIcon />}
           </Button>
           <Button
             variant="ghost"
@@ -71,7 +78,29 @@ export function ProviderModelsSection({
             onClick={onDiscover}
           >
             <RefreshCwIcon />
-            Discover
+            {discovering ? 'Discovering…' : 'Discover'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            data-testid="add-model"
+            onClick={() => {
+              void openAddModelDialog().then((draft) => {
+                if (!draft) {
+                  return;
+                }
+                const { name, ...fields } = draft;
+                onAttach({
+                  providerId: selected.id,
+                  name,
+                  metadata: fields,
+                });
+              });
+            }}
+          >
+            <PlusIcon />
+            Add model
           </Button>
         </div>
       </div>
@@ -91,17 +120,6 @@ export function ProviderModelsSection({
               }
             }}
           />
-          {modelSearch ? (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
-              onClick={() => setModelSearch('')}
-              aria-label="Clear search"
-            >
-              <XIcon />
-            </Button>
-          ) : null}
         </div>
       ) : null}
       {rows.length === 0 ? (
@@ -109,40 +127,67 @@ export function ProviderModelsSection({
           Discover to list what the provider returns, then attach the ones you want.
         </p>
       ) : (
-        <div className="flex flex-col gap-1">
-          {filteredRows.map((row) => (
-            <ProviderModelRow
-              key={row.stored?.id ?? `found:${row.name}`}
-              row={row}
+        <div className="flex flex-col gap-3">
+          {attached.length > 0 ? (
+            <ModelGroup
+              label="Attached"
+              rows={attached}
               providerId={selected.id}
               onAttach={onAttach}
               onPatchModel={onPatchModel}
               onDetach={onDetach}
             />
-          ))}
+          ) : null}
+          {available.length > 0 ? (
+            <ModelGroup
+              label="From provider"
+              rows={available}
+              providerId={selected.id}
+              onAttach={onAttach}
+              onPatchModel={onPatchModel}
+              onDetach={onDetach}
+            />
+          ) : null}
+          {attached.length === 0 && available.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No models match “{modelSearch}”.</p>
+          ) : null}
         </div>
       )}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mt-1 text-muted-foreground"
-        onClick={() => {
-          void openAddModelDialog().then((draft) => {
-            if (!draft) {
-              return;
-            }
-            const { name, ...fields } = draft;
-            onAttach({
-              providerId: selected.id,
-              name,
-              metadata: fields,
-            });
-          });
-        }}
-      >
-        <PlusIcon />
-        Add model
-      </Button>
+    </div>
+  );
+}
+
+function ModelGroup({
+  label,
+  rows,
+  providerId,
+  onAttach,
+  onPatchModel,
+  onDetach,
+}: {
+  label: string;
+  rows: ModelRow[];
+  providerId: string;
+  onAttach: (input: ModelAttachInput) => void;
+  onPatchModel: (input: ModelPatchInput) => void;
+  onDetach: (input: ModelDetachInput) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="flex h-7 items-center gap-2 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+        {label}
+        <span className="font-mono normal-case">{rows.length}</span>
+      </p>
+      {rows.map((row) => (
+        <ProviderModelRow
+          key={row.stored?.id ?? `found:${row.name}`}
+          row={row}
+          providerId={providerId}
+          onAttach={onAttach}
+          onPatchModel={onPatchModel}
+          onDetach={onDetach}
+        />
+      ))}
     </div>
   );
 }

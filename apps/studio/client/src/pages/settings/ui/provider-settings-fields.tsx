@@ -1,9 +1,8 @@
 import type { Driver, ProviderPublic, StudioCatalog } from '@harnesys/studio-shared';
 import { isDriver } from '@harnesys/studio-shared';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { useState } from 'react';
 
-import { Button } from '@/shared/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
+import { Field, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import {
   Select,
@@ -27,18 +26,16 @@ type ProviderPatch = {
 export function ProviderSettingsFields({
   selected,
   catalog,
-  showKey,
-  onToggleKey,
   onUpdate,
 }: {
   selected: ProviderPublic;
   catalog: StudioCatalog | undefined;
-  showKey: boolean;
-  onToggleKey: () => void;
   onUpdate: (patch: ProviderPatch) => void;
 }) {
+  const [keySaved, setKeySaved] = useState(false);
+
   return (
-    <FieldGroup className="gap-4">
+    <div className="grid gap-4 sm:grid-cols-2">
       <Field>
         <FieldLabel htmlFor="provider-driver">Driver</FieldLabel>
         <Select
@@ -81,37 +78,33 @@ export function ProviderSettingsFields({
           onUpdate({ id: selected.id, apiUrl: apiUrl || null });
         }}
       />
-      <Field>
-        <FieldLabel htmlFor="provider-key">API key</FieldLabel>
-        <div className="relative">
-          <Input
-            id="provider-key"
-            type={showKey ? 'text' : 'password'}
-            defaultValue=""
-            key={`${selected.id}-key-${selected.hasKey}`}
-            placeholder={selected.hasKey ? 'Key is set' : 'Enter API key'}
-            autoComplete="off"
-            className="pr-9 font-mono"
-            onBlur={(event) => {
-              const apiKey = event.target.value.trim();
-              if (!apiKey) {
-                return;
-              }
-              onUpdate({ id: selected.id, apiKey });
-              event.target.value = '';
-            }}
-          />
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
-            onClick={onToggleKey}
-            aria-label={showKey ? 'Hide API key' : 'Show API key'}
-          >
-            {showKey ? <EyeOffIcon /> : <EyeIcon />}
-          </Button>
+      <Field className="sm:col-span-2">
+        <div className="flex items-center justify-between">
+          <FieldLabel htmlFor="provider-key">API key</FieldLabel>
+          {keySaved ? (
+            <span className="font-mono text-[10px] text-live uppercase tracking-wide">Saved</span>
+          ) : null}
         </div>
+        <Input
+          id="provider-key"
+          key={`${selected.id}-key-${selected.hasKey}`}
+          type="password"
+          defaultValue=""
+          placeholder={selected.hasKey ? 'Replace stored key' : 'Enter API key'}
+          autoComplete="off"
+          className="font-mono"
+          onFocus={() => setKeySaved(false)}
+          onBlur={(event) => {
+            const apiKey = event.target.value.trim();
+            if (!apiKey) {
+              return;
+            }
+            onUpdate({ id: selected.id, apiKey });
+            event.target.value = '';
+            setKeySaved(true);
+          }}
+        />
       </Field>
-    </FieldGroup>
+    </div>
   );
 }

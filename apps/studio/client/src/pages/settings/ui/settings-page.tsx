@@ -18,6 +18,7 @@ import { ChatPane } from './chat-pane';
 import { GitPane } from './git-pane';
 import { McpPane } from './mcp-pane';
 import { MemoryPane } from './memory-pane';
+import { ModePresetsPane } from './mode-presets-pane';
 import { ModelsPane } from './models-pane';
 import { PluginsPane } from './plugins-pane';
 import { SkillsPane } from './skills-pane';
@@ -75,7 +76,8 @@ export function SettingsPage() {
                 active === 'mcp' ||
                 active === 'plugins' ||
                 active === 'memory' ||
-                active === 'tools'
+                active === 'tools' ||
+                active === 'mode-presets'
                 ? 'max-w-3xl'
                 : 'max-w-xl',
             )}
@@ -135,6 +137,8 @@ function SettingsPane({ category }: { category: SettingsCategory }) {
       return <PluginsPane />;
     case 'tools':
       return <ToolsPane />;
+    case 'mode-presets':
+      return <ModePresetsPane />;
     case 'memory':
       return <MemoryPane />;
     case 'git':

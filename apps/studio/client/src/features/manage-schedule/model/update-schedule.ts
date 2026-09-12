@@ -33,7 +33,7 @@ export async function updateSchedule(
     targetAgentId: patch.targetAgentId,
     detail: patch.detail,
     cron,
-    mode: patch.mode,
+    modeId: patch.modeId,
     history: patch.history,
     historyLast: patch.historyLast,
     threadId: patch.threadId,

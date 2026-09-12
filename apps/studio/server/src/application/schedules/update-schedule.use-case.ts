@@ -1,14 +1,13 @@
 import {
+  DEFAULT_MODE_ID,
+  isModeId,
   isScheduleHistory,
-  PERMISSION_MODES,
-  type PermissionMode,
   SCHEDULE_STATUSES,
   type ScheduleHistory,
   type ScheduleRecord,
 } from '@harnesys/studio-shared';
 import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
-import { isPermissionMode } from '../../adapters/tool-confirm-policy.ts';
-import type { AgentRepository } from '../../domain/agent.port.ts';
+import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type {
   SchedulePatch,
@@ -30,7 +29,7 @@ export type UpdateScheduleRequest = {
   targetAgentId?: string;
   detail?: string;
   cron?: string;
-  mode?: PermissionMode;
+  modeId?: string;
   history?: ScheduleHistory;
   historyLast?: number;
   threadId?: string;
@@ -98,12 +97,14 @@ export class UpdateScheduleUseCase implements UpdateScheduleInput {
       patch.status = request.status;
     }
 
+    let nextAgent: Agent | undefined;
     if (request.targetAgentId !== undefined) {
       const agent = this.agents.findById(request.targetAgentId);
       if (!agent || agent.workspaceId !== request.workspaceId) {
         throw new ValidationError('agent not found');
       }
       patch.targetAgentId = agent.id;
+      nextAgent = agent;
     }
 
     if (request.detail !== undefined) {
@@ -122,11 +123,17 @@ export class UpdateScheduleUseCase implements UpdateScheduleInput {
       patch.nextRunAt = nextCronRunAt(cron);
     }
 
-    if (request.mode !== undefined) {
-      if (!isPermissionMode(request.mode)) {
-        throw new ValidationError(`mode must be one of ${PERMISSION_MODES.join(', ')}`);
+    if (request.modeId !== undefined) {
+      const agent = nextAgent ?? this.agents.findById(current.targetAgentId);
+      const allowedModeIds = new Set((agent?.modes ?? []).map((mode) => mode.id));
+      if (agent?.defaultModeId) {
+        allowedModeIds.add(agent.defaultModeId);
       }
-      patch.mode = request.mode;
+      allowedModeIds.add(DEFAULT_MODE_ID);
+      if (!isModeId(request.modeId) || !allowedModeIds.has(request.modeId)) {
+        throw new ValidationError('schedule modeId is not a mode of the target agent');
+      }
+      patch.modeId = request.modeId;
     }
 
     if (request.history !== undefined) {

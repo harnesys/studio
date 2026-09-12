@@ -17,7 +17,7 @@ export async function createSchedule(
     targetAgentId: draft.targetAgentId,
     detail: draft.detail.trim() || undefined,
     cron: draft.cron.trim() || undefined,
-    mode: draft.mode,
+    modeId: draft.modeId,
     history: draft.history,
     historyLast: draft.historyLast,
     threadId: draft.threadId || undefined,

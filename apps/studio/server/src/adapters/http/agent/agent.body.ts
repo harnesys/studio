@@ -1,4 +1,17 @@
+import { MODE_ID_RE, MODE_OPS } from '@harnesys/studio-shared';
 import { z } from 'zod';
+
+const modeOpGate = z.enum(['allow', 'ask', 'deny']);
+
+const agentModeBody = z.object({
+  id: z.string().regex(MODE_ID_RE, 'lowercase letters, digits, dash').max(48),
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(200).optional(),
+  instructions: z.string().max(4000).optional(),
+  skills: z.array(z.string().trim().min(1)).max(32).optional(),
+  packs: z.array(z.string().trim().min(1)).max(16).optional(),
+  permissions: z.partialRecord(z.enum(MODE_OPS), modeOpGate).optional(),
+});
 
 const generationBody = z
   .object({
@@ -81,6 +94,8 @@ export const createAgentBody = z.object({
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
   graph: agentGraphBody,
+  defaultModeId: z.string().regex(MODE_ID_RE).max(48).nullish(),
+  modes: z.array(agentModeBody).max(24).optional(),
 });
 
 export const updateAgentBody = z.object({
@@ -98,6 +113,8 @@ export const updateAgentBody = z.object({
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
   graph: agentGraphBody,
+  defaultModeId: z.string().regex(MODE_ID_RE).max(48).nullish(),
+  modes: z.array(agentModeBody).max(24).optional(),
 });
 
 export const createAgentFromPresetBody = z.object({

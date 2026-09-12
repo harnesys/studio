@@ -1,7 +1,6 @@
 # Agent Modes Design
 
-**Status:** accepted
-**Date:** 2026-09-12 (rewritten; v1 от 2026-09-11 заменена: режимы-имена упразднены, введены пресеты)
+**Status:** implemented (2026-09-12; v1 от 2026-09-11 заменена: режимы-имена упразднены, введены пресеты)
 **Scope:** Studio host + `@harnesys/studio-shared` + одно дженерик-дополнение в `packages/harnesys` (Deferred-2).
 
 ## Goal
@@ -31,7 +30,7 @@
 2. **Копия, не ссылка.** Установка пресета на агента копирует поля в `AgentMode`. Правка пресета не меняет живых агентов; правка режима агента не меняет пресет. Reference-семантика — V2 при появлении запроса.
 3. **У агента `modes: AgentMode[]` и `defaultModeId: string | null`.** `ask` есть у каждого агента всегда, удалить нельзя. `defaultModeId: null` = `ask`. Новый агент получает копии всех пресетов с `installedByDefault: true` + `ask`. Существующие агенты бэкфиллится так же (bootstrap, только если `modes_json` пуст).
 4. **Цепочка резолва одна:** `body.mode` > `thread.metadata.runMode` > `agent.defaultModeId` > `ask`. Значение валидно, если совпадает паттерн id и присутствует в `agent.modes`; невалидный id = отсутствующее значение (провал по цепочке). Удалённый у агента режим → дефолт агента → `ask`. Handoff меняет `agentId`, `runMode` не трогает — режим резолвится уже режимами нового агента.
-5. **Бекенд без имён.** `RUN_MODES`, `RunMode`, `isRunMode`, `isPermissionMode`, `permissionMapFor`, `ThreadRunMode`, `COMPOSER_MODES`, `MODE_LABELS`, zod-enum режима удаляются. Валидация id — паттерн `^[a-z0-9][a-z0-9-]*$` + вхождение в `agent.modes`. Единственный литерал — `DEFAULT_MODE_ID = 'ask'` в shared (и `PLAN_PACK_ID = 'plan'` — id пака, они и так ключи Capabilities).
+5. **Бекенд без имён.** `RUN_MODES`, `RunMode`, `isRunMode`, `isPermissionMode`, `permissionMapFor`, `ThreadRunMode`, `COMPOSER_MODES`, `MODE_LABELS`, zod-enum режима удаляются. Валидация id — паттерн `^[a-z0-9][a-z0-9_-]*$` + вхождение в `agent.modes`. Единственный литерал — `DEFAULT_MODE_ID = 'ask'` в shared (и `PLAN_PACK_ID = 'plan'` — id пака, они и так ключи Capabilities).
 6. **Пермишены из данных.** База: ask-карта (`fs.read: allow`, четыре гейта `ask`), поверх — `mode.permissions` по тем же ключам операций. Кастомный режим никогда не даёт базы светлее ask — эскалация через отсутствие данных невозможна.
 7. **Паки режима — контекстная ось.** `mode.packs: string[]` — какие паки агента держат схемы инструментов в контексте сразу; остальные паки агента помечаются `exposure: 'deferred'` и грузятся через `load_tools`. Правила: пересечение с включёнными паками агента; поле отсутствует или пусто = все паки агента (сегодняшнее поведение); deferred не равно deny — исполняет только `permissions`. Смена режима в треде = один cache bust на шаге, режим в треде стабилен.
 8. **Единственное касание библиотеки (Deferred-2):** `RunTarget.deferredPacks?: readonly string[]` — список имён паков, чьи инструменты при аттаче получают `exposure: 'deferred'`. Дженерик, без имён режимов; студия сама считает список. Без этого ось packs из Decision 7 невозможна: pack-инструменты создаются внутри библиотеки (`pack-run.ts`).
@@ -49,7 +48,7 @@ export const MODE_OPS = ['fs.write', 'process', 'network', 'mcp'] as const;
 export type ModeOp = (typeof MODE_OPS)[number];
 export type ModeOpGate = 'allow' | 'ask' | 'deny';
 export type ModeOpPermissions = Partial<Record<ModeOp, ModeOpGate>>;
-export const MODE_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
+export const MODE_ID_RE = /^[a-z0-9][a-z0-9_-]*$/;
 export const DEFAULT_MODE_ID = 'ask';
 export const PLAN_PACK_ID = 'plan';
 

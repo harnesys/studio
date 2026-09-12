@@ -100,6 +100,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     paths: options.paths,
     notes: options.notes,
     packRegistrations,
+    deferredPacks: options.deferredPacks,
     skills: options.skills,
     toolMessages: options.toolMessages ?? 'ordered',
     mergeState: options.mergeState,
@@ -124,6 +125,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         runRegistry,
         fsSkills: options.skills,
         scopeFallback: stubScope,
+        deferredPacks: options.deferredPacks,
         logger,
       });
       return runGraph({
@@ -157,6 +159,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         runRegistry,
         fsSkills: options.skills,
         scopeFallback: stubScope,
+        deferredPacks: options.deferredPacks,
         logger,
       });
       return startGraph({

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { PermissionMode, Schedule, ScheduleHistory, ScheduleStatus } from './schedule';
+import type { Schedule, ScheduleHistory, ScheduleStatus } from './schedule';
 
 export type SchedulePatch = {
   name?: string;
@@ -8,7 +8,7 @@ export type SchedulePatch = {
   targetAgentId?: string;
   detail?: string;
   cron?: string;
-  mode?: PermissionMode;
+  modeId?: string;
   history?: ScheduleHistory;
   historyLast?: number;
   threadId?: string;
@@ -64,7 +64,7 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
               targetAgentId: patch.targetAgentId ?? item.targetAgentId,
               detail: patch.detail?.trim() || item.detail,
               cron: patch.cron?.trim() || item.cron,
-              mode: patch.mode ?? item.mode,
+              modeId: patch.modeId ?? item.modeId,
             }
           : item,
       ),

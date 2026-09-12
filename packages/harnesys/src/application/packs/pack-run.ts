@@ -164,9 +164,12 @@ export function selectPackOutputs(
 export function attachPackTools(
   runRegistry: Map<string, ToolDefinition>,
   enabled: PackRunOutput[],
+  deferredPacks?: readonly string[],
   logger?: Logger,
 ): void {
+  const deferred = deferredPacks === undefined ? undefined : new Set(deferredPacks);
   for (const out of enabled) {
+    const markDeferred = deferred?.has(out.reg.pack.name) === true;
     for (const t of out.tools) {
       if (runRegistry.has(t.name)) {
         printPackDiagnostics(
@@ -181,7 +184,7 @@ export function attachPackTools(
         );
         continue;
       }
-      runRegistry.set(t.name, t);
+      runRegistry.set(t.name, markDeferred ? { ...t, exposure: 'deferred' } : t);
     }
   }
 }
@@ -192,6 +195,7 @@ export type AttachPackRunInput = {
   runRegistry: Map<string, ToolDefinition>;
   fsSkills?: SkillRegistry;
   scopeFallback?: () => CapabilityScope;
+  deferredPacks?: readonly string[];
   logger?: Logger;
 };
 
@@ -204,7 +208,7 @@ export function attachPackRun(input: AttachPackRunInput): PackRunMap {
     input.scopeFallback ?? fallbackScope,
   );
   printPackDiagnostics(diagnostics, input.logger);
-  attachPackTools(input.runRegistry, enabled, input.logger);
+  attachPackTools(input.runRegistry, enabled, input.deferredPacks, input.logger);
   registerPackSkillTool(input.runRegistry, enabled, input.def, input.fsSkills);
   return outputs;
 }
@@ -245,6 +249,7 @@ export type ReusePackRunInput = {
   cached: PackRunMap;
   runRegistry: Map<string, ToolDefinition>;
   fsSkills?: SkillRegistry;
+  deferredPacks?: readonly string[];
   logger?: Logger;
 };
 
@@ -253,7 +258,7 @@ export type ReusePackRunInput = {
 export function reusePackRun(input: ReusePackRunInput): PackRunMap {
   const { enabled, diagnostics } = selectPackOutputs(input.def, input.cached);
   printPackDiagnostics(diagnostics, input.logger);
-  attachPackTools(input.runRegistry, enabled, input.logger);
+  attachPackTools(input.runRegistry, enabled, input.deferredPacks, input.logger);
   registerPackSkillTool(input.runRegistry, enabled, input.def, input.fsSkills);
   return input.cached;
 }

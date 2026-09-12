@@ -1,7 +1,9 @@
-import { type Agent, toClientAgent, useAgentStore } from '@/entities/agent';
+import { defaultAgentCompaction } from '@harnesys/studio-shared';
+import { type Agent, initialsFromName, toClientAgent, useAgentStore } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import { type Thread, toClientThread, useThreadStore } from '@/entities/thread';
 import { createAgentFromPresetRecord, createThreadRecord } from '@/shared/api';
+import type { AgentPresetRecord } from '@/shared/api/agents';
 
 import { refreshWorkspaceAgents } from './create-agent';
 
@@ -9,6 +11,37 @@ export type CreateAgentFromPresetResult = {
   agent: Agent;
   thread: Thread | null;
 };
+
+/** Synthetic agent-shaped draft: feeds AgentConfigDialog prefill; never persisted. */
+export function agentDraftFromPreset(preset: AgentPresetRecord): Agent {
+  return {
+    id: '',
+    name: preset.name,
+    workspaceId: '',
+    parentId: null,
+    modelId: null,
+    role: preset.role,
+    instructions: preset.instructions,
+    effort: null,
+    generation: null,
+    toolOutput: null,
+    budget: preset.budget ?? null,
+    compaction: defaultAgentCompaction(),
+    skills: preset.skills ?? [],
+    mcpServers: preset.mcpServers ?? [],
+    tools: preset.tools ?? [],
+    graph: { nodes: {}, edges: [] },
+    capabilities: preset.capabilities ?? {},
+    defaultModeId: null,
+    modes: [],
+    createdAt: '',
+    updatedAt: '',
+    status: 'idle',
+    initials: initialsFromName(preset.name),
+    lastActiveAt: '',
+    currentTask: '',
+  };
+}
 
 export async function createAgentFromPreset(
   workspaceId: string,

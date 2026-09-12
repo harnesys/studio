@@ -1,12 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { planModePromptPath } from '../../adapters/store/studio-layout.ts';
-
-/** Forced inject for `runMode === 'plan'`. Body: `apps/studio/assets/plan-mode.md` (read each call so asset edits apply). */
-export function planModePrompt(): string {
-  return readFileSync(planModePromptPath(), 'utf8').trim();
-}
-
-function escapeXml(value: string): string {
+export function escapeXml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')

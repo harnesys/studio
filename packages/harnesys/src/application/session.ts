@@ -30,6 +30,7 @@ export type RuntimeContext = {
   paths?: PathsConfig;
   notes?: LlmNoteProvider[];
   packRegistrations: PackRegistration[];
+  deferredPacks?: readonly string[];
   skills?: SkillRegistry;
   toolMessages: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
@@ -145,6 +146,7 @@ export function createSession(
         paths: resolvePaths(def.paths, ctx.paths, opts.paths),
         notes: ctx.notes,
         packs: ctx.packRegistrations,
+        deferredPacks: ctx.deferredPacks,
         skills: ctx.skills,
       });
     },

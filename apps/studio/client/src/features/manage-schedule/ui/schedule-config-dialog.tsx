@@ -1,12 +1,7 @@
+import { type AgentMode, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 import { useState } from 'react';
-
 import type { Agent } from '@/entities/agent';
-import {
-  PERMISSION_MODES,
-  SCHEDULE_STATUSES,
-  type Schedule,
-  scheduleStatusLabel,
-} from '@/entities/schedule';
+import { SCHEDULE_STATUSES, type Schedule, scheduleStatusLabel } from '@/entities/schedule';
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
@@ -21,15 +16,19 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
-import {
-  draftFrom,
-  emptyScheduleDraft,
-  MODE_LABELS,
-  type ScheduleFormDraft,
-} from '../model/schedule-draft';
+import { draftFrom, emptyScheduleDraft, type ScheduleFormDraft } from '../model/schedule-draft';
 import { CronComposer } from './cron-composer';
 import { ScheduleHistoryFields } from './schedule-history-fields';
 import { ScheduleThreadField } from './schedule-thread-field';
+
+type AgentModesLike = {
+  modes?: AgentMode[];
+  defaultModeId?: string | null;
+};
+
+function hasAgentModes(agent: Agent): agent is Agent & AgentModesLike {
+  return 'modes' in agent;
+}
 
 export type ScheduleConfigData = {
   agents: Agent[];
@@ -44,9 +43,21 @@ export function ScheduleConfigDialog({
   const agents = data?.agents ?? [];
   const workspaceId = data?.workspaceId ?? '';
   const schedule = data?.schedule ?? null;
-  const [draft, setDraft] = useState<ScheduleFormDraft>(() =>
-    schedule ? draftFrom(schedule) : emptyScheduleDraft(agents),
-  );
+  const [draft, setDraft] = useState<ScheduleFormDraft>(() => {
+    if (schedule) {
+      return draftFrom(schedule);
+    }
+    const base = emptyScheduleDraft(agents);
+    const first = agents.find((item) => item.id === base.targetAgentId);
+    const defaultModeId = first !== undefined && hasAgentModes(first) ? first.defaultModeId : null;
+    return { ...base, modeId: defaultModeId ?? DEFAULT_MODE_ID };
+  });
+  const agent = agents.find((item) => item.id === draft.targetAgentId);
+  const agentModes = agent !== undefined && hasAgentModes(agent) ? (agent.modes ?? []) : [];
+  const modeItems =
+    agentModes.length > 0
+      ? agentModes.map((mode) => ({ value: mode.id, label: mode.name }))
+      : [{ value: DEFAULT_MODE_ID, label: DEFAULT_MODE_ID }];
   const canSave = draft.name.trim().length > 0 && draft.cron.trim().length > 0 && agents.length > 0;
 
   return (
@@ -99,10 +110,14 @@ export function ScheduleConfigDialog({
             value={draft.targetAgentId}
             onValueChange={(value) => {
               if (typeof value === 'string') {
+                const next = agents.find((item) => item.id === value);
+                const defaultModeId =
+                  next !== undefined && hasAgentModes(next) ? next.defaultModeId : null;
                 setDraft({
                   ...draft,
                   targetAgentId: value,
                   threadId: schedule ? draft.threadId : '',
+                  modeId: defaultModeId ?? DEFAULT_MODE_ID,
                 });
               }
             }}
@@ -136,21 +151,13 @@ export function ScheduleConfigDialog({
           <CronComposer value={draft.cron} onChange={(cron) => setDraft({ ...draft, cron })} />
         </Field>
         <Field>
-          <FieldLabel htmlFor="schedule-mode">Permission mode</FieldLabel>
+          <FieldLabel htmlFor="schedule-mode">Mode</FieldLabel>
           <Select
-            items={PERMISSION_MODES.map((mode) => ({
-              value: mode,
-              label: MODE_LABELS[mode],
-            }))}
-            value={draft.mode}
+            items={modeItems}
+            value={draft.modeId}
             onValueChange={(value) => {
-              if (
-                value === 'ask' ||
-                value === 'auto' ||
-                value === 'dont_ask' ||
-                value === 'bypass'
-              ) {
-                setDraft({ ...draft, mode: value });
+              if (typeof value === 'string') {
+                setDraft({ ...draft, modeId: value });
               }
             }}
           >
@@ -159,9 +166,9 @@ export function ScheduleConfigDialog({
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {PERMISSION_MODES.map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    {MODE_LABELS[mode]}
+                {modeItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
                   </SelectItem>
                 ))}
               </SelectGroup>

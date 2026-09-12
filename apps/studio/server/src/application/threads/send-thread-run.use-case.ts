@@ -1,7 +1,7 @@
 import type { AcceptedRunResponse } from '@harnesys/studio-shared';
+import { type AgentMode, effectiveMode, resolveModeId } from '@harnesys/studio-shared';
 import type { Attachment, SendFile, SendInput } from 'harnesys';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
-import { isRunMode, type RunMode } from '../../adapters/tool-confirm-policy.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { AUTO_THREAD_TITLE_MAX_CHARS } from '../../config/constants.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
@@ -14,15 +14,16 @@ import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { kindFromMediaType } from './attachment-kind.ts';
 import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
-import { planModePrompt } from './plan-mode-prompt.ts';
+import { escapeXml } from './plan-mode-prompt.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
+import { runModeFields } from './thread.helpers.ts';
 
 export type SendThreadRunRequest = {
   threadId: string;
   text?: string;
   effort?: string;
   attachmentIds?: string[];
-  mode?: RunMode;
+  mode?: string;
   origin?: string;
   foldHistory?: unknown[];
   clientEventId?: string;
@@ -99,11 +100,16 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     }
 
     const input = buildSendInput(request, this.attachments, request.threadId);
-    const runMode = resolveRunMode(request.mode);
-    input.text = this.decorateText(runMode, input.text);
-    // RunTarget permissions resolve from thread metadata; persist per-run mode
-    // so composer/schedule choices actually drive the permission map.
-    this.threads.setRunMode(thread.id, runMode);
+    // Chain: body mode > thread metadata > agent default > ask; membership in
+    // the agent's modes is checked by the resolver.
+    const runModeId = resolveModeId({
+      bodyMode: request.mode ?? null,
+      threadMode: runModeFields(thread).runMode ?? null,
+      defaultModeId: agentRow.defaultModeId ?? null,
+      modes: agentRow.modes,
+    });
+    this.threads.setRunMode(thread.id, runModeId);
+    input.text = decorateText(effectiveMode(agentRow.modes, runModeId), request.text);
 
     const hx = await this.workspaceHarnesys.get(workspace);
     const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
@@ -127,14 +133,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     }
   }
 
-  /** Injects the plan-mode contract into the outgoing text. Active-plan status rides runtime notes. */
-  private decorateText(runMode: RunMode, text: string | undefined): string | undefined {
-    if (runMode === 'plan') {
-      const prompt = planModePrompt();
-      return text ? `${prompt}\n\n${text}` : prompt;
-    }
-    return text;
-  }
   private deriveTitle(thread: Thread, text: string | undefined): void {
     if (thread.kind !== 'chat' || thread.title !== DEFAULT_THREAD_TITLE) {
       return;
@@ -150,11 +148,29 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   }
 }
 
-function resolveRunMode(mode: RunMode | undefined): RunMode {
-  if (mode && isRunMode(mode)) {
-    return mode;
+/** Mode instructions + skills ride as an XML block ahead of the user text. */
+function modeInstructionsBlock(mode: AgentMode): string | undefined {
+  const skills = (mode.skills ?? []).map((s) => s.trim()).filter(Boolean);
+  if (!mode.instructions?.trim() && skills.length === 0) {
+    return undefined;
   }
-  return 'ask';
+  const parts = [
+    mode.instructions?.trim()
+      ? `<instructions>${escapeXml(mode.instructions.trim())}</instructions>`
+      : null,
+    skills.length > 0
+      ? `<mode-skills>Before working in this mode, call load_skill for each: ${skills.join(', ')}.</mode-skills>`
+      : null,
+  ].filter(Boolean);
+  return `<mode id="${mode.id}" name="${escapeXml(mode.name)}">\n${parts.join('\n')}\n</mode>`;
+}
+
+function decorateText(mode: AgentMode, text: string | undefined): string | undefined {
+  const block = modeInstructionsBlock(mode);
+  if (!block) {
+    return text;
+  }
+  return text ? `${block}\n\n${text}` : block;
 }
 
 function deriveThreadTitle(text: string): string {

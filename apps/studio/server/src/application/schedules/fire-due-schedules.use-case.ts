@@ -80,7 +80,7 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
       await this.sendThreadRun.execute({
         threadId: schedule.threadId,
         text: scheduledTaskText(schedule.name, schedule.detail),
-        mode: schedule.mode,
+        mode: schedule.modeId,
         origin: SCHEDULE_HUMAN_ORIGIN,
       });
       this.threads.touch(schedule.threadId);

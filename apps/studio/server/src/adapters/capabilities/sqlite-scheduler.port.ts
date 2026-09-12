@@ -1,4 +1,5 @@
 import type { ScheduleRecord as StudioScheduleRecord } from '@harnesys/studio-shared';
+import { DEFAULT_MODE_ID, PERMISSION_MODES, type PermissionMode } from '@harnesys/studio-shared';
 import type {
   CapabilityScope,
   ScheduleCreatedRecord,
@@ -22,6 +23,13 @@ export type SqliteSchedulerPortDeps = {
   deleteSchedule: DeleteScheduleInput;
 };
 
+/** Library SchedulerPort still speaks PermissionMode; unknown ids degrade to 'ask'. */
+function permissionModeFrom(modeId: string): PermissionMode {
+  return (PERMISSION_MODES as readonly string[]).includes(modeId)
+    ? (modeId as PermissionMode)
+    : DEFAULT_MODE_ID;
+}
+
 function toScheduleRecord(row: StudioScheduleRecord): ScheduleRecord {
   return {
     id: row.id,
@@ -31,7 +39,7 @@ function toScheduleRecord(row: StudioScheduleRecord): ScheduleRecord {
     targetAgentId: row.targetAgentId,
     detail: row.detail,
     cron: row.cron,
-    mode: row.mode,
+    mode: permissionModeFrom(row.modeId),
     history: row.history,
     historyLast: row.historyLast,
     threadId: row.threadId,
@@ -72,7 +80,7 @@ export class SqliteSchedulerPort implements SchedulerPort {
       targetAgentId: input.targetAgentId ?? scope.agentId,
       cron: input.cron,
       detail: input.detail,
-      mode: input.mode,
+      modeId: input.mode,
       history: input.history,
       historyLast: input.historyLast,
       threadId: input.threadId,
@@ -97,6 +105,7 @@ export class SqliteSchedulerPort implements SchedulerPort {
       workspaceId: scope.workspaceId,
       id,
       ...patch,
+      ...(patch.mode !== undefined ? { modeId: patch.mode } : {}),
     });
     return toScheduleRecord(record);
   }

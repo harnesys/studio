@@ -1,4 +1,10 @@
-import { defaultAgentCompaction, type PackConfig, type PortRef } from '@harnesys/studio-shared';
+import {
+  type AgentMode,
+  defaultAgentCompaction,
+  isModeId,
+  type PackConfig,
+  type PortRef,
+} from '@harnesys/studio-shared';
 import { and, eq } from 'drizzle-orm';
 import type { PackAssignment } from 'harnesys';
 import { type Edge, type Node, normalizePackAssignment } from 'harnesys';
@@ -52,6 +58,7 @@ export class SqliteAgentRepo implements AgentRepository {
       const {
         skills,
         mcpServers,
+        modes,
         tools: _tools,
         generation,
         toolOutput,
@@ -75,6 +82,7 @@ export class SqliteAgentRepo implements AgentRepository {
           graphJson: JSON.stringify(graph),
           budgetJson: serializeJsonColumn(budget),
           capabilitiesJson: JSON.stringify(capabilities),
+          modesJson: serializeJson(modes) ?? '[]',
         })
         .returning()
         .get();
@@ -89,6 +97,7 @@ export class SqliteAgentRepo implements AgentRepository {
       const {
         skills,
         mcpServers,
+        modes,
         tools: _tools,
         generation,
         toolOutput,
@@ -110,6 +119,7 @@ export class SqliteAgentRepo implements AgentRepository {
           ...(graph !== undefined ? { graphJson: JSON.stringify(graph) } : {}),
           ...(budget !== undefined ? { budgetJson: serializeJsonColumn(budget) } : {}),
           ...(capabilities !== undefined ? { capabilitiesJson: JSON.stringify(capabilities) } : {}),
+          ...(modes !== undefined ? { modesJson: serializeJson(modes) ?? '[]' } : {}),
         })
         .where(eq(agentsTable.id, id))
         .returning()
@@ -152,6 +162,8 @@ function toAgent(row: AgentRow): Agent {
     graph: parseGraph(row.graphJson),
     budget: parseJsonObject(row.budgetJson),
     capabilities: parsePacks(row.capabilitiesJson),
+    defaultModeId: row.defaultModeId ?? null,
+    modes: parseAgentModes(row.modesJson),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -229,6 +241,39 @@ function parseStringList(raw: string): string[] {
       return [];
     }
     return parsed.filter((item): item is string => typeof item === 'string');
+  } catch {
+    return [];
+  }
+}
+
+function parseAgentModes(raw: string): AgentMode[] {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const modes: AgentMode[] = [];
+    const seen = new Set<string>();
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        continue;
+      }
+      const candidate = item as AgentMode;
+      if (
+        typeof candidate.id !== 'string' ||
+        typeof candidate.name !== 'string' ||
+        candidate.name === ''
+      ) {
+        continue;
+      }
+      // 'ask' is a legal builtin copy on the agent (Decision 3); only duplicates drop.
+      if (!isModeId(candidate.id) || seen.has(candidate.id)) {
+        continue;
+      }
+      seen.add(candidate.id);
+      modes.push(candidate);
+    }
+    return modes;
   } catch {
     return [];
   }

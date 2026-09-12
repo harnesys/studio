@@ -31,6 +31,8 @@ export type RunEngineDeps = {
   artifacts?: ArtifactStore;
   /** Runtime-wide registrations (RuntimeContext); RunTargetOpts.packs wins when set. */
   packRegistrations?: PackRegistration[];
+  /** Runtime-wide deferred-pack default; RunTargetOpts.deferredPacks wins when set. */
+  deferredPacks?: readonly string[];
   /** FS skill registry; RunTargetOpts.skills wins when set. */
   skills?: SkillRegistry;
   agents: AgentsResolve;
@@ -46,6 +48,8 @@ export type RunTargetOpts = {
   notes?: LlmNoteProvider[];
   /** Per-run pack registrations; overrides RunEngineDeps.packRegistrations. */
   packs?: PackRegistration[];
+  /** Pack names whose tools attach as exposure:'deferred' this run (host-owned context axis). */
+  deferredPacks?: readonly string[];
   /** Memoized per-run pack outputs; when present the engine skips create. */
   packOutputs?: PackRunMap;
   /** FS skill registry for the combined load_skill catalog. */

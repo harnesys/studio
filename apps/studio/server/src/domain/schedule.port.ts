@@ -1,4 +1,4 @@
-import type { PermissionMode, ScheduleHistory } from '@harnesys/studio-shared';
+import type { ScheduleHistory } from '@harnesys/studio-shared';
 
 export type ScheduleStatus = 'active' | 'paused' | 'failed';
 
@@ -10,7 +10,7 @@ export type Schedule = {
   targetAgentId: string;
   detail: string;
   cron: string;
-  mode: PermissionMode;
+  modeId: string;
   history: ScheduleHistory;
   historyLast: number;
   threadId: string;
@@ -28,7 +28,7 @@ export type SchedulePatch = Partial<{
   targetAgentId: string;
   detail: string;
   cron: string;
-  mode: PermissionMode;
+  modeId: string;
   history: ScheduleHistory;
   historyLast: number;
   threadId: string;

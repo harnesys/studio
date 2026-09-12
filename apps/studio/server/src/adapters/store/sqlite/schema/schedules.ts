@@ -28,9 +28,7 @@ export const schedulesTable = sqliteTable(
       .references(() => agentsTable.id),
     detail: text('detail').notNull().default(''),
     cron: text('cron').notNull(),
-    mode: text('mode', { enum: ['ask', 'auto', 'dont_ask', 'bypass'] })
-      .notNull()
-      .default('auto'),
+    modeId: text('mode_id').notNull().default('ask'),
     history: text('history', { enum: ['none', 'last', 'all'] })
       .notNull()
       .default('none'),
@@ -47,10 +45,6 @@ export const schedulesTable = sqliteTable(
     statusCheck: check(
       'schedules_status_check',
       sql`${table.status} IN ('active', 'paused', 'failed')`,
-    ),
-    modeCheck: check(
-      'schedules_mode_check',
-      sql`${table.mode} IN ('ask', 'auto', 'dont_ask', 'bypass')`,
     ),
     historyCheck: check(
       'schedules_history_check',

@@ -52,6 +52,17 @@ export {
   watchKnowledgeIndexState,
 } from './memory';
 export {
+  createModePreset,
+  deleteModePreset,
+  listModePresets,
+  type ModePresetBody,
+  type ModePresetPatch,
+  type ModePresetRecord,
+  modePresetsQuery,
+  modePresetsQueryKey,
+  updateModePreset,
+} from './mode-presets';
+export {
   type AddPluginRegistryRequest,
   addPluginRegistry,
   listPluginCatalog,

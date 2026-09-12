@@ -37,6 +37,8 @@ export async function updateAgent(workspaceId: string, agentId: string, draft: A
     generation,
     toolOutput,
     budget,
+    modes: draft.modes ?? [],
+    defaultModeId: draft.defaultModeId ?? null,
     ...(draft.compaction !== undefined ? { compaction: draft.compaction } : {}),
     ...(draft.capabilities !== undefined ? { capabilities: draft.capabilities } : {}),
     ...(draft.graph !== undefined ? { graph: draft.graph } : {}),

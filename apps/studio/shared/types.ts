@@ -31,12 +31,11 @@ export {
 } from './src/catalog.ts';
 
 import type {
-  PermissionMode,
   ScheduleHistory,
   McpResourceInfo as WorkspaceMcpResource,
   ToolCatalogEntry as WorkspaceTool,
 } from 'harnesys';
-import { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys/domain';
+import { SCHEDULE_HISTORIES } from 'harnesys/domain';
 import type { ThreadPlanRecord } from './src/plan-types.ts';
 import type { ThreadRecord as ThreadRecordType } from './src/thread.ts';
 
@@ -95,6 +94,18 @@ export type {
   UpsertKnowledgeRootRequest,
   UpsertKnowledgeSettingsRequest,
 } from './src/knowledge.ts';
+export type { AgentMode, ModeOp, ModeOpGate, ModeOpPermissions, ModePreset } from './src/modes.ts';
+export {
+  ASK_MODE,
+  DEFAULT_MODE_ID,
+  effectiveMode,
+  isModeId,
+  MODE_ID_RE,
+  MODE_OPS,
+  modeFromPreset,
+  PLAN_PACK_ID,
+  resolveModeId,
+} from './src/modes.ts';
 export {
   extractPlanModePrompt,
   hasPlanModePrompt,
@@ -174,12 +185,9 @@ export type HumanEntry = {
 export const SCHEDULE_STATUSES = ['active', 'paused', 'failed'] as const;
 export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
 
+/** Library SchedulerPort still speaks PermissionMode; consumed by the studio bridge only. */
 export type { PermissionMode, ScheduleHistory } from 'harnesys/domain';
 export { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys/domain';
-
-/** `plan` is read-only planning, never sent to the library as permissionMode. */
-export const RUN_MODES = [...PERMISSION_MODES, 'plan'] as const;
-export type RunMode = (typeof RUN_MODES)[number];
 
 export function isScheduleHistory(value: string): value is ScheduleHistory {
   return (SCHEDULE_HISTORIES as readonly string[]).includes(value);
@@ -193,7 +201,7 @@ export type ScheduleRecord = {
   targetAgentId: string;
   detail: string;
   cron: string;
-  mode: PermissionMode;
+  modeId: string;
   history: ScheduleHistory;
   historyLast: number;
   threadId: string;

@@ -9,6 +9,7 @@ export * from './knowledge-roots.ts';
 export * from './knowledge-settings.ts';
 export * from './llm-models.ts';
 export * from './llm-providers.ts';
+export * from './mode-presets.ts';
 export * from './plans.ts';
 export * from './plugin-registries.ts';
 export * from './plugins.ts';

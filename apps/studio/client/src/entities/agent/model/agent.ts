@@ -2,6 +2,7 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentGraph,
+  AgentMode,
   PackConfig,
   PortRef,
   ToolOutputSettings,
@@ -30,6 +31,8 @@ export type Agent = {
   tools: string[];
   graph: AgentGraph;
   capabilities: Record<string, PackConfig | null>;
+  defaultModeId: string | null;
+  modes: AgentMode[];
   createdAt: string;
   updatedAt: string;
   status: AgentStatus;
@@ -51,6 +54,8 @@ export type AgentDraft = {
   compaction?: PortRef;
   capabilities?: Record<string, PackConfig | null>;
   graph?: AgentGraph;
+  defaultModeId?: string | null;
+  modes?: AgentMode[];
 };
 
 export type AgentPatch = Partial<
@@ -70,6 +75,8 @@ export type AgentPatch = Partial<
     | 'tools'
     | 'graph'
     | 'capabilities'
+    | 'defaultModeId'
+    | 'modes'
   >
 >;
 

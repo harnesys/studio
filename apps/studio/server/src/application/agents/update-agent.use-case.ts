@@ -1,6 +1,7 @@
 import type {
   AgentBudget,
   AgentGenerationSettings,
+  AgentMode,
   PackConfig,
   PortRef,
   ToolOutputSettings,
@@ -8,7 +9,12 @@ import type {
 import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-import { requireAgent } from './agent.helpers.ts';
+import {
+  ensureAskMode,
+  requireAgent,
+  validateDefaultModeId,
+  validateModeIds,
+} from './agent.helpers.ts';
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
@@ -30,6 +36,8 @@ export type UpdateAgentRequest = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  defaultModeId?: string | null;
+  modes?: AgentMode[];
 };
 
 export type UpdateAgentInput = {
@@ -110,6 +118,18 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.capabilities !== undefined) {
       patch.capabilities = request.capabilities;
+    }
+
+    if (request.modes !== undefined) {
+      validateModeIds(request.modes);
+      patch.modes = ensureAskMode(request.modes);
+    }
+
+    if (request.defaultModeId !== undefined) {
+      patch.defaultModeId = request.defaultModeId;
+      // Validate against the union of stored and incoming modes (post self-heal).
+      const allowedModes = [...agent.modes, ...(patch.modes ?? request.modes ?? [])];
+      validateDefaultModeId(request.defaultModeId, allowedModes);
     }
 
     if (request.graph !== undefined) {

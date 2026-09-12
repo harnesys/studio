@@ -1,6 +1,5 @@
 import type {
   CreateScheduleResponse,
-  PermissionMode,
   ScheduleHistory,
   ScheduleRecord,
   ScheduleStatus,
@@ -13,7 +12,7 @@ export type CreateScheduleInput = {
   targetAgentId: string;
   detail?: string;
   cron?: string;
-  mode?: PermissionMode;
+  modeId?: string;
   history?: ScheduleHistory;
   historyLast?: number;
   threadId?: string;
@@ -25,7 +24,7 @@ export type UpdateScheduleInput = {
   targetAgentId?: string;
   detail?: string;
   cron?: string;
-  mode?: PermissionMode;
+  modeId?: string;
   history?: ScheduleHistory;
   historyLast?: number;
   threadId?: string;

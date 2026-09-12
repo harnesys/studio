@@ -1,6 +1,7 @@
 import type {
   AgentBudget,
   AgentGenerationSettings,
+  AgentMode,
   PackConfig,
   PortRef,
   ToolOutputSettings,
@@ -44,6 +45,8 @@ export type Agent = {
   graph: AgentGraph;
   budget: AgentBudget | null;
   capabilities: Record<string, PackConfig | null>;
+  defaultModeId: string | null;
+  modes: AgentMode[];
   createdAt: string;
   updatedAt: string;
 };
@@ -65,6 +68,8 @@ export type AgentPatch = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  defaultModeId?: string | null;
+  modes?: AgentMode[];
   updatedAt?: string;
 };
 

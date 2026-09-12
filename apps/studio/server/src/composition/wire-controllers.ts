@@ -4,6 +4,7 @@ import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import type { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
 import { AgentController } from '../adapters/http/agent/agent.controller.ts';
 import { CatalogController } from '../adapters/http/catalog/catalog.controller.ts';
+import { ModePresetController } from '../adapters/http/mode-preset/mode-preset.controller.ts';
 import { ProviderController } from '../adapters/http/provider/provider.controller.ts';
 import { ThreadController } from '../adapters/http/thread/thread.controller.ts';
 import { CapabilitiesController } from '../adapters/http/workspace/capabilities.controller.ts';
@@ -15,6 +16,7 @@ import type { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agen
 import type { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
 import type { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import type { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
+import type { SqliteModePresetRepo } from '../adapters/store/sqlite/repos/sqlite-mode-preset.repo.ts';
 import type { SqlitePluginRegistriesAdapter } from '../adapters/store/sqlite/repos/sqlite-plugin-registries.adapter.ts';
 import type { SqlitePluginsAdapter } from '../adapters/store/sqlite/repos/sqlite-plugins.adapter.ts';
 import type { SqliteRunEventStore } from '../adapters/store/sqlite/repos/sqlite-run-events.adapter.ts';
@@ -35,6 +37,10 @@ import { ListAgentPresetsUseCase } from '../application/agents/list-agent-preset
 import { ListAgentsUseCase } from '../application/agents/list-agents.use-case.ts';
 import { UpdateAgentUseCase } from '../application/agents/update-agent.use-case.ts';
 import { GetCatalogUseCase } from '../application/catalog/get-catalog.use-case.ts';
+import { CreateModePresetUseCase } from '../application/mode-presets/create-mode-preset.use-case.ts';
+import { DeleteModePresetUseCase } from '../application/mode-presets/delete-mode-preset.use-case.ts';
+import { ListModePresetsUseCase } from '../application/mode-presets/list-mode-presets.use-case.ts';
+import { UpdateModePresetUseCase } from '../application/mode-presets/update-mode-preset.use-case.ts';
 import type { GetThreadPlanInput } from '../application/plans/get-thread-plan.use-case.ts';
 import { SavePlanUseCase } from '../application/plans/save-plan.use-case.ts';
 import { CreateProviderUseCase } from '../application/providers/create-provider.use-case.ts';
@@ -107,6 +113,7 @@ type ControllerDeps = {
   agentRepo: SqliteAgentRepo;
   llmProviderRepo: SqliteLlmProviderRepo;
   llmModelRepo: SqliteLlmModelRepo;
+  modePresetRepo: SqliteModePresetRepo;
   scheduleRepo: SqliteScheduleRepo;
   webhookRepo: SqliteWebhookRepo;
   threadRepo: SqliteThreadRepo;
@@ -236,7 +243,7 @@ export function wireControllers(d: ControllerDeps): void {
     deleteProviderModel: new DeleteProviderModelUseCase(d.llmProviderRepo, d.llmModelRepo),
   }).register(d.app);
 
-  const createAgent = new CreateAgentUseCase(d.agentRepo);
+  const createAgent = new CreateAgentUseCase(d.agentRepo, undefined, d.modePresetRepo);
   new AgentController({
     listAgents: new ListAgentsUseCase(d.agentRepo),
     listAgentPresets: new ListAgentPresetsUseCase(),
@@ -244,6 +251,13 @@ export function wireControllers(d: ControllerDeps): void {
     createAgentFromPreset: new CreateAgentFromPresetUseCase(d.agentRepo, createAgent),
     updateAgent: new UpdateAgentUseCase(d.agentRepo),
     deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo),
+  }).register(d.app);
+
+  new ModePresetController({
+    listModePresets: new ListModePresetsUseCase(d.modePresetRepo),
+    createModePreset: new CreateModePresetUseCase(d.modePresetRepo),
+    updateModePreset: new UpdateModePresetUseCase(d.modePresetRepo),
+    deleteModePreset: new DeleteModePresetUseCase(d.modePresetRepo),
   }).register(d.app);
 
   const sessions = new ThreadSessionsAdapter({

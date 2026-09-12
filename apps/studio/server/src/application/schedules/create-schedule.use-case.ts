@@ -1,11 +1,11 @@
 import {
   type CreateScheduleResponse,
+  DEFAULT_MODE_ID,
+  isModeId,
   isScheduleHistory,
-  type PermissionMode,
   type ScheduleHistory,
 } from '@harnesys/studio-shared';
 import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
-import { isPermissionMode } from '../../adapters/tool-confirm-policy.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { ScheduleRepository } from '../../domain/schedule.port.ts';
@@ -23,7 +23,7 @@ export type CreateScheduleRequest = {
   targetAgentId: string;
   detail?: string;
   cron?: string;
-  mode?: PermissionMode;
+  modeId?: string;
   history?: ScheduleHistory;
   historyLast?: number;
   threadId?: string;
@@ -92,8 +92,15 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
     if (!isValidCron(cron)) {
       throw new ValidationError('invalid cron');
     }
-    const mode: PermissionMode =
-      request.mode && isPermissionMode(request.mode) ? request.mode : 'auto';
+    const allowedModeIds = new Set(agent.modes.map((mode) => mode.id));
+    if (agent.defaultModeId) {
+      allowedModeIds.add(agent.defaultModeId);
+    }
+    allowedModeIds.add(DEFAULT_MODE_ID);
+    const modeId = request.modeId ?? agent.defaultModeId ?? DEFAULT_MODE_ID;
+    if (!isModeId(modeId) || !allowedModeIds.has(modeId)) {
+      throw new ValidationError('schedule modeId is not a mode of the target agent');
+    }
 
     let history: ScheduleHistory = 'none';
     if (request.history !== undefined) {
@@ -135,7 +142,7 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
         targetAgentId: agent.id,
         detail,
         cron,
-        mode,
+        modeId,
         history,
         historyLast,
         threadId: thread.id,

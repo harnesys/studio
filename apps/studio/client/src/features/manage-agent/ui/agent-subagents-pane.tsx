@@ -12,14 +12,17 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { toast } from '@/shared/ui/toast';
-
-import { createAgentFromPreset } from '../model/create-agent-from-preset';
+import type { AgentConfigResult } from '../model/agent-config';
+import { createAgent } from '../model/create-agent';
+import { agentDraftFromPreset } from '../model/create-agent-from-preset';
 import { deleteAgent } from '../model/delete-agent';
+import { updateAgentCapabilities } from '../model/update-agent';
 import { ConfigEntityCard } from './config-entity-card';
 
 type AgentSubagentsPaneProps = {
   workspaceId: string;
   parentId: string;
+  openAgentDialog: (agent: Agent | null, workspaceId: string) => Promise<AgentConfigResult | null>;
   onConfigure: (agent: Agent) => void;
   onConfirmDelete: (agent: Agent) => Promise<boolean>;
 };
@@ -27,6 +30,7 @@ type AgentSubagentsPaneProps = {
 export function AgentSubagentsPane({
   workspaceId,
   parentId,
+  openAgentDialog,
   onConfigure,
   onConfirmDelete,
 }: AgentSubagentsPaneProps) {
@@ -41,16 +45,26 @@ export function AgentSubagentsPane({
   const presets = presetsQuery.data ?? [];
 
   const addFromPreset = (presetId: string) => {
-    void createAgentFromPreset(workspaceId, presetId, { parentId })
-      .then(() => {
-        toast.add({ title: 'Subagent added' });
-      })
-      .catch((err: unknown) => {
+    const preset = presets.find((item) => item.id === presetId);
+    if (!preset) {
+      return;
+    }
+    void openAgentDialog(agentDraftFromPreset(preset), workspaceId).then(async (result) => {
+      if (!result) {
+        return;
+      }
+      try {
+        const created = await createAgent(workspaceId, { ...result.fields, parentId });
+        if (created) {
+          await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
+          toast.add({ title: 'Subagent added' });
+        }
+      } catch (error) {
         toast.add({
-          title: 'Could not add subagent',
-          description: err instanceof Error ? err.message : String(err),
+          title: error instanceof Error ? error.message : 'Could not add subagent',
         });
-      });
+      }
+    });
   };
 
   return (

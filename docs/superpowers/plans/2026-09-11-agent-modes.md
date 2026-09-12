@@ -146,7 +146,7 @@ export type ModeOp = (typeof MODE_OPS)[number];
 export type ModeOpGate = 'allow' | 'ask' | 'deny';
 export type ModeOpPermissions = Partial<Record<ModeOp, ModeOpGate>>;
 
-export const MODE_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
+export const MODE_ID_RE = /^[a-z0-9][a-z0-9_-]*$/;
 export const DEFAULT_MODE_ID = 'ask';
 /** Pack id, not a mode name: plan preset preloads this pack (Capabilities key). */
 export const PLAN_PACK_ID = 'plan';

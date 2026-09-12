@@ -1,6 +1,5 @@
 import type {
   AcceptedRunResponse,
-  RunMode,
   ThreadAttachment,
   ThreadPlanRecord,
   ThreadRecord,
@@ -51,7 +50,7 @@ export type SendThreadRunOptions = {
   text: string;
   effort?: string;
   attachmentIds?: string[];
-  mode?: RunMode;
+  mode?: string;
   clientEventId?: string;
 };
 

@@ -27,7 +27,8 @@ export type ThreadPatch = Partial<{
   kind: ThreadKind;
   metadata: unknown;
 }>;
-export type ThreadRunMode = 'ask' | 'auto' | 'dont_ask' | 'bypass' | 'plan';
+/** Mode id of the agent's modes; resolved by the chain in shared resolveModeId. */
+export type ThreadRunMode = string;
 export type ThreadRepository = {
   listByWorkspace(workspaceId: string): Thread[];
   findById(id: string): Thread | undefined;

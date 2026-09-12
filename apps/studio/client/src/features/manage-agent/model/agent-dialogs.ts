@@ -1,16 +1,7 @@
 import type { Agent } from '@/entities/agent';
-import { alert, dialog } from '@/shared/services/overlay';
+import { alert } from '@/shared/services/overlay';
 
-import { AgentConfigDialog } from '../ui/agent-config-dialog';
-
-export function openAgentConfigDialog(agent: Agent | null, workspaceId: string) {
-  return dialog.open(AgentConfigDialog, {
-    title: agent ? `Configure ${agent.name}` : 'New agent',
-    className: 'flex min-h-0 h-[min(78vh,48rem)] w-full max-w-3xl sm:max-w-3xl overflow-hidden',
-    testId: 'agent-config-dialog',
-    data: { agent, workspaceId },
-  });
-}
+export { openAgentConfigDialog } from '../ui/agent-config-dialog';
 
 export function confirmDeleteAgent(agent: Agent) {
   return alert.confirm({

@@ -1,4 +1,10 @@
-import { type AgentRecord, defaultAgentCompaction } from '@harnesys/studio-shared';
+import {
+  type AgentMode,
+  type AgentRecord,
+  DEFAULT_MODE_ID,
+  defaultAgentCompaction,
+  isModeId,
+} from '@harnesys/studio-shared';
 
 import { type Agent, initialsFromName } from './agent';
 
@@ -21,6 +27,8 @@ export function toClientAgent(record: AgentRecord): Agent {
     tools: record.tools ?? [],
     graph: record.graph ?? { nodes: {}, edges: [] },
     capabilities: record.capabilities ?? {},
+    defaultModeId: record.defaultModeId ?? null,
+    modes: parseModes(record.modes),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     status: 'idle',
@@ -28,4 +36,18 @@ export function toClientAgent(record: AgentRecord): Agent {
     currentTask: record.modelId ? 'Ready.' : 'Pick a model to chat.',
     lastActiveAt: new Date().toISOString(),
   };
+}
+
+/** Same shape-guard as the server repo: drop malformed entries and the builtin 'ask'. */
+function parseModes(modes: AgentMode[] | undefined): AgentMode[] {
+  if (!Array.isArray(modes)) {
+    return [];
+  }
+  return modes.filter(
+    (mode): mode is AgentMode =>
+      isModeId(mode?.id) &&
+      mode.id !== DEFAULT_MODE_ID &&
+      typeof mode?.name === 'string' &&
+      mode.name.trim() !== '',
+  );
 }

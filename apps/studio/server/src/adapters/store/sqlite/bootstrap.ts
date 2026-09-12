@@ -1,6 +1,11 @@
-import { sql } from 'drizzle-orm';
+import { ASK_MODE, DEFAULT_MODE_ID, modeFromPreset } from '@harnesys/studio-shared';
+import { eq, sql } from 'drizzle-orm';
+import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
 import type { StudioDb } from './connection.ts';
+import { SqliteModePresetRepo } from './repos/sqlite-mode-preset.repo.ts';
+import { agentsTable } from './schema/agents.ts';
+import { modePresetsTable } from './schema/mode-presets.ts';
 
 export function bootstrap(db: StudioDb): void {
   // Drop journal tables (0.5.0 cutover)
@@ -327,6 +332,59 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   try {
+    db.run(
+      sql.raw(`CREATE TABLE IF NOT EXISTS mode_presets (
+      id text PRIMARY KEY, name text NOT NULL, description text NOT NULL DEFAULT '',
+      instructions text NOT NULL DEFAULT '', skills_json text NOT NULL DEFAULT '[]',
+      packs_json text NOT NULL DEFAULT '[]', permissions_json text NOT NULL DEFAULT '{}',
+      builtin integer NOT NULL DEFAULT 0, installed_by_default integer NOT NULL DEFAULT 0,
+      created_at text NOT NULL, updated_at text NOT NULL);`),
+    );
+  } catch {}
+
+  const presetSeedNow = new Date().toISOString();
+  for (const seed of builtinModePresetSeed()) {
+    db.insert(modePresetsTable)
+      .values({
+        ...seed,
+        skillsJson: JSON.stringify(seed.skills ?? []),
+        packsJson: JSON.stringify(seed.packs ?? []),
+        permissionsJson: JSON.stringify(seed.permissions ?? {}),
+        createdAt: presetSeedNow,
+        updatedAt: presetSeedNow,
+      })
+      .onConflictDoNothing()
+      .run();
+  }
+
+  try {
+    db.run(sql.raw('ALTER TABLE agents ADD COLUMN default_mode_id text;'));
+  } catch {}
+
+  try {
+    db.run(sql.raw("ALTER TABLE agents ADD COLUMN modes_json text NOT NULL DEFAULT '[]';"));
+  } catch {}
+
+  // Backfill: install installedByDefault presets + ask into agents without modes.
+  const presetRepo = new SqliteModePresetRepo(db);
+  const defaults = presetRepo
+    .list()
+    .filter((preset) => preset.installedByDefault || preset.id === DEFAULT_MODE_ID);
+  for (const row of db.select().from(agentsTable).all()) {
+    if (row.modesJson !== '[]') {
+      continue;
+    }
+    const modes = defaults.map(modeFromPreset);
+    if (!modes.some((mode) => mode.id === DEFAULT_MODE_ID)) {
+      modes.push({ ...ASK_MODE });
+    }
+    db.update(agentsTable)
+      .set({ modesJson: JSON.stringify(modes) })
+      .where(eq(agentsTable.id, row.id))
+      .run();
+  }
+
+  try {
     db.run(sql.raw(`ALTER TABLE threads ADD COLUMN kind text NOT NULL DEFAULT 'chat';`));
   } catch {}
 
@@ -416,6 +474,11 @@ export function bootstrap(db: StudioDb): void {
     ),
   );
   db.run(sql.raw('CREATE INDEX IF NOT EXISTS runs_wait_fire_idx ON runs(status, wait_fire_at);'));
+
+  try {
+    db.run(sql.raw("ALTER TABLE schedules ADD COLUMN mode_id text NOT NULL DEFAULT 'ask';"));
+  } catch {}
+  db.run(sql.raw('UPDATE schedules SET mode_id = mode;'));
 
   bootstrapMemory(db);
 }

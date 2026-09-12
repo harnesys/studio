@@ -15,8 +15,8 @@ export type Thread = {
   updatedAt: string;
   unread: boolean;
   pinned?: boolean;
-  /** Last run mode persisted on the thread (`plan` until Apply switches to `auto`). */
-  runMode?: 'ask' | 'auto' | 'dont_ask' | 'bypass' | 'plan';
+  /** Last POST /runs mode persisted on the thread. */
+  runMode?: string;
   /** Live run known from the last full record. Drives stream reconnect without refetch. */
   activeRunId?: string | null;
 };

@@ -1,47 +1,25 @@
-import type { PermissionMode, RunMode } from '@harnesys/studio-shared';
-import type { PermissionGate, PermissionMap } from 'harnesys';
-import { EXTERNAL_OPS, MUTATE_OPS, PROCESS_OPS, RESEARCH_OPS } from '../config/constants.ts';
-
-export type { PermissionMode, RunMode };
+import { MODE_OPS, type ModeOpPermissions } from '@harnesys/studio-shared';
+import type { PermissionMap } from 'harnesys';
 
 // PermissionMap keys are tool operations (ToolDefinition.operations), not tool
 // names: resolveToolPermission/checkPermission look up by operation and fall
 // back to 'ask' for unknown ones. fs.read: read_file/glob/grep/list_dir;
 // fs.write: write_file/edit_file; process: shell; network: fetch; mcp: MCP tools.
-export function isPermissionMode(value: string): value is PermissionMode {
-  return value === 'ask' || value === 'auto' || value === 'dont_ask' || value === 'bypass';
-}
 
-export function isRunMode(value: string): value is RunMode {
-  return value === 'plan' || isPermissionMode(value);
-}
-
-export function permissionMapFor(mode: RunMode = 'ask'): PermissionMap {
-  const map: PermissionMap = { 'fs.read': 'allow' };
-  const set = (ops: readonly string[], value: PermissionGate) => {
-    for (const op of ops) {
-      map[op] = value;
-    }
+/** Ask-based floor plus the mode's own gates; a custom mode never gets lighter than ask by omission. */
+export function permissionMapForMode(perms?: ModeOpPermissions): PermissionMap {
+  const map: PermissionMap = {
+    'fs.read': 'allow',
+    'fs.write': 'ask',
+    process: 'ask',
+    network: 'ask',
+    mcp: 'ask',
   };
-
-  if (mode === 'plan') {
-    // Read-only local + research: block write/shell, allow fetch/MCP.
-    set(MUTATE_OPS, 'deny');
-    set(PROCESS_OPS, 'deny');
-    set(RESEARCH_OPS, 'allow');
-    return map;
-  }
-  if (mode === 'bypass') {
-    set(MUTATE_OPS, 'allow');
-    set(EXTERNAL_OPS, 'allow');
-    return map;
-  }
-  const mutateGate: PermissionGate = mode === 'ask' ? 'ask' : 'allow';
-  set(MUTATE_OPS, mutateGate);
-  if (mode === 'dont_ask') {
-    set(EXTERNAL_OPS, 'deny');
-  } else {
-    set(EXTERNAL_OPS, 'ask');
+  for (const op of MODE_OPS) {
+    const gate = perms?.[op];
+    if (gate) {
+      map[op] = gate;
+    }
   }
   return map;
 }

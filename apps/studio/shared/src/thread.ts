@@ -29,7 +29,7 @@ export type ThreadRecord = {
   unread: boolean;
   pinned: boolean;
   /** Last POST /runs mode persisted on the thread. */
-  runMode?: 'ask' | 'auto' | 'dont_ask' | 'bypass' | 'plan';
+  runMode?: string;
   events: SessionEvent[];
   activeRun: ThreadActiveRun | null;
 };

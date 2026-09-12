@@ -30,6 +30,7 @@ export {
   refreshWorkspaceAgents,
 } from './model/create-agent';
 export {
+  agentDraftFromPreset,
   type CreateAgentFromPresetResult,
   createAgentFromPreset,
 } from './model/create-agent-from-preset';

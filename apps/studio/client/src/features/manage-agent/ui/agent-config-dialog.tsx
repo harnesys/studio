@@ -6,7 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
 import { providersQuery } from '@/shared/api';
-import { type DialogComponentProps, patchOverlayOptions } from '@/shared/services/overlay';
+import { type DialogComponentProps, dialog, patchOverlayOptions } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { toast } from '@/shared/ui/toast';
@@ -49,6 +49,15 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
   };
 }
 
+export function openAgentConfigDialog(agent: Agent | null, workspaceId: string) {
+  return dialog.open(AgentConfigDialog, {
+    title: agent ? `Configure ${agent.name}` : 'New agent',
+    className: DEFAULT_DIALOG_CLASS,
+    testId: 'agent-config-dialog',
+    data: { agent, workspaceId },
+  });
+}
+
 export function AgentConfigDialog({
   onResolve,
   data,
@@ -82,7 +91,7 @@ export function AgentConfigDialog({
     storeFocus ?? (focusAgentId && focusAgentId === rootAgent?.id ? rootAgent : null);
   const returnParent =
     storeReturnParent ?? (returnParentId && returnParentId === rootAgent?.id ? rootAgent : null);
-  const showSubagents = Boolean(activeAgent && !activeAgent.parentId);
+  const showSubagents = Boolean(activeAgent && !activeAgent.parentId && activeAgent.id !== '');
   const navCategories = showSubagents
     ? AGENT_CONFIG_CATEGORIES
     : AGENT_CONFIG_CATEGORIES.filter((item) => item.id !== 'subagents');
@@ -254,6 +263,7 @@ export function AgentConfigDialog({
             graphTouchedRef={graphTouchedRef}
             setGraphDoc={setGraphDoc}
             capabilitiesRef={capabilitiesRef}
+            openAgentDialog={openAgentConfigDialog}
             onOpenSubagent={(delegate) => {
               void openSubagent(delegate);
             }}

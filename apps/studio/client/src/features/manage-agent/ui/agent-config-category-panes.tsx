@@ -4,12 +4,13 @@ import type { Agent } from '@/entities/agent';
 import { cn } from '@/shared/lib/utils';
 import { alert } from '@/shared/services/overlay';
 
-import type { AgentCapabilitiesDraft } from '../model/agent-config';
+import type { AgentCapabilitiesDraft, AgentConfigResult } from '../model/agent-config';
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 import type { StudioGraphDocument } from '../model/agent-graph-document';
 import type { AgentConfigCategory } from './agent-config-nav';
 import { AgentIdentityPane, AgentLimitsPane, AgentModelPane } from './agent-config-panes';
 import { AgentGraphPane } from './agent-graph-pane';
+import { AgentModesPane } from './agent-modes-pane';
 import { AgentSubagentsPane } from './agent-subagents-pane';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
 import { DraftCapabilityPacks } from './draft-capability-packs';
@@ -30,6 +31,7 @@ type AgentConfigCategoryPanesProps = {
   graphTouchedRef: MutableRefObject<boolean>;
   setGraphDoc: (next: StudioGraphDocument) => void;
   capabilitiesRef: MutableRefObject<AgentCapabilitiesDraft>;
+  openAgentDialog: (agent: Agent | null, workspaceId: string) => Promise<AgentConfigResult | null>;
   onOpenSubagent: (agent: Agent) => void;
 };
 
@@ -44,6 +46,7 @@ export function AgentConfigCategoryPanes({
   graphTouchedRef,
   setGraphDoc,
   capabilitiesRef,
+  openAgentDialog,
   onOpenSubagent,
 }: AgentConfigCategoryPanesProps) {
   return (
@@ -60,6 +63,14 @@ export function AgentConfigCategoryPanes({
       </div>
       <div className={cn(category !== 'model' && 'hidden')}>
         <AgentModelPane form={form} />
+      </div>
+      <div className={cn(category !== 'modes' && 'hidden')}>
+        <AgentModesPane
+          form={form}
+          workspaceId={workspaceId}
+          activeAgent={activeAgent}
+          active={category === 'modes'}
+        />
       </div>
       <div className={cn(category !== 'capabilities' && 'hidden')}>
         <DraftCapabilityPacks
@@ -99,6 +110,7 @@ export function AgentConfigCategoryPanes({
           <AgentSubagentsPane
             workspaceId={workspaceId}
             parentId={activeAgent.id}
+            openAgentDialog={openAgentDialog}
             onConfigure={onOpenSubagent}
             onConfirmDelete={(delegate) =>
               alert.confirm({

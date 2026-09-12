@@ -1,4 +1,5 @@
 import type { ThreadKind, ThreadRecord } from '@harnesys/studio-shared';
+import { DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 import { DEFAULT_THREAD_TITLE } from '../../config/constants.ts';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
@@ -66,7 +67,7 @@ export class CreateThreadUseCase implements CreateThreadInput {
       kind,
       parentThreadId,
       forkAt,
-      metadata: {},
+      metadata: { runMode: agent.defaultModeId ?? DEFAULT_MODE_ID },
       createdAt: now,
       updatedAt: now,
       lastReadAt: now,
@@ -87,6 +88,10 @@ export class CreateThreadUseCase implements CreateThreadInput {
       pinned: false,
       lastReadAt: thread.lastReadAt,
       unread: false,
+      runMode:
+        thread.metadata && typeof thread.metadata === 'object'
+          ? (thread.metadata as { runMode?: string }).runMode
+          : undefined,
       events: [],
       activeRun: null,
     });

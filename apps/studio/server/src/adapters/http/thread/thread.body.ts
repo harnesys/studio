@@ -26,7 +26,7 @@ export const sendThreadRunBody = z
     clientEventId: z.string().uuid().optional(),
     text: z.string().trim().optional().default(''),
     effort: z.string().trim().min(1).optional(),
-    mode: z.enum(['ask', 'auto', 'dont_ask', 'bypass', 'plan']).optional(),
+    mode: z.string().trim().min(1).max(48).optional(),
     attachmentIds: z.array(z.string().uuid()).optional(),
   })
   .refine((value) => (value.text?.length ?? 0) > 0 || (value.attachmentIds?.length ?? 0) > 0, {

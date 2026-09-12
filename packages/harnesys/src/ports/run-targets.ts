@@ -16,6 +16,8 @@ export type RunTarget = {
   notes?: LlmNoteProvider[];
   /** Pack registrations for the run; host set wins, otherwise the runtime ctx set. */
   packs?: PackRegistration[];
+  /** Pack names whose tools attach as exposure:'deferred' this run (host-owned context axis). */
+  deferredPacks?: readonly string[];
   /** FS skill registry for the run; falls back to the runtime ctx set. */
   skills?: SkillRegistry;
   /** Per-run tool registry; overrides the engine default when present. */

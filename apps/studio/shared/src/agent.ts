@@ -1,6 +1,7 @@
 import type { Edge, Node, PackConfig } from 'harnesys';
 
 import type { AgentGenerationSettings, PortRef, ToolOutputSettings } from './harnesys-bridge.ts';
+import type { AgentMode } from './modes.ts';
 
 export type BudgetPolicy = 'ask' | 'error';
 
@@ -49,6 +50,9 @@ export type AgentRecord = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  /** Null = DEFAULT_MODE_ID ('ask'). */
+  defaultModeId?: string | null;
+  modes?: AgentMode[];
   createdAt: string;
   updatedAt: string;
 };

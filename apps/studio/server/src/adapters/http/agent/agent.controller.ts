@@ -52,6 +52,8 @@ export class AgentController {
         mcpServers: body.mcpServers,
         tools: body.tools,
         graph: body.graph as AgentGraph | undefined,
+        defaultModeId: body.defaultModeId ?? null,
+        modes: body.modes,
       });
       return c.json(agent, 201);
     });
@@ -85,6 +87,8 @@ export class AgentController {
         mcpServers: body.mcpServers,
         tools: body.tools,
         graph: body.graph as AgentGraph | undefined,
+        defaultModeId: body.defaultModeId,
+        modes: body.modes,
       });
       return c.json(agent);
     });

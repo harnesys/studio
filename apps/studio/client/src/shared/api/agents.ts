@@ -2,6 +2,7 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentGraph,
+  AgentMode,
   AgentRecord,
   PackConfig,
   PortRef,
@@ -26,6 +27,8 @@ export type CreateAgentInput = {
   tools?: string[];
   graph?: AgentGraph;
   capabilities?: Record<string, PackConfig | null>;
+  defaultModeId?: string | null;
+  modes?: AgentMode[];
 };
 
 export type UpdateAgentInput = {
@@ -43,6 +46,8 @@ export type UpdateAgentInput = {
   tools?: string[];
   graph?: AgentGraph;
   capabilities?: Record<string, PackConfig | null>;
+  defaultModeId?: string | null;
+  modes?: AgentMode[];
 };
 
 export type AgentPresetRecord = {

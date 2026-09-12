@@ -10,6 +10,7 @@ import {
   type LucideIcon,
   PuzzleIcon,
   ServerIcon,
+  SlidersHorizontalIcon,
   UserRoundIcon,
   WorkflowIcon,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ import { cn } from '@/shared/lib/utils';
 export type AgentConfigCategory =
   | 'identity'
   | 'model'
+  | 'modes'
   | 'capabilities'
   | 'compaction'
   | 'skills'
@@ -35,6 +37,7 @@ export type AgentConfigNavItem = {
 export const AGENT_CONFIG_CATEGORIES: AgentConfigNavItem[] = [
   { id: 'identity', label: 'Identity', icon: UserRoundIcon },
   { id: 'model', label: 'Model', icon: CpuIcon },
+  { id: 'modes', label: 'Modes', icon: SlidersHorizontalIcon },
   { id: 'graph', label: 'Graph', icon: WorkflowIcon },
   { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
   { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },

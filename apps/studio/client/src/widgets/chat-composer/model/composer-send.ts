@@ -2,14 +2,14 @@ import type { ThreadAttachment } from '@harnesys/studio-shared';
 import { sendMessage } from '@/features/send-message';
 import { uploadThreadAttachment } from '@/shared/api';
 
-import type { RunnableComposerMode } from './composer-mode';
+import type { ComposerMode } from './composer-mode';
 
 export type UploadAndSendOptions = {
   threadId: string;
   content: string;
   effort: string | undefined;
   files: File[];
-  mode: RunnableComposerMode;
+  mode: ComposerMode;
 };
 
 export async function uploadAndSend(options: UploadAndSendOptions): Promise<void> {

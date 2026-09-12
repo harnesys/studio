@@ -21,6 +21,8 @@ export const agentsTable = sqliteTable(
     compactionJson: text('compaction_json'),
     memoryJson: text('memory_json'),
     skills: text('skills').notNull().default('[]'),
+    defaultModeId: text('default_mode_id'),
+    modesJson: text('modes_json').notNull().default('[]'),
     mcpServers: text('mcp_servers').notNull().default('[]'),
     tools: text('tools').notNull().default('[]'),
     graphJson: text('graph_json'),

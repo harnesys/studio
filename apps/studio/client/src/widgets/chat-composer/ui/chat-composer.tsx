@@ -1,3 +1,4 @@
+import { DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpIcon, LoaderCircleIcon, SquareIcon, TriangleAlertIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -13,7 +14,7 @@ import { Button } from '@/shared/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from '@/shared/ui/input-group';
 import { addComposerFiles } from '../model/add-composer-files';
 import { agentEfforts, agentModelVerified, selectedEffort } from '../model/agent-effort';
-import { type ComposerMode, isComposerMode, runnableMode } from '../model/composer-mode';
+import { type ComposerMode, composerModeItems, knownMode } from '../model/composer-mode';
 import { filesFromClipboard } from '../model/composer-send';
 import { executeComposerSlash, submitComposer } from '../model/composer-submit';
 import {
@@ -57,13 +58,13 @@ export function ChatComposer() {
   const [pending, setPending] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [slashIndex, setSlashIndex] = useState(0);
-  const [mode, setMode] = useState<ComposerMode>('ask');
+  const [mode, setMode] = useState<ComposerMode>(DEFAULT_MODE_ID);
   const slashMatches = matchSlashCommands(value);
   const scheduleMode = useScheduleStore((state) => {
     if (thread?.kind !== 'schedule') {
       return null;
     }
-    return state.items.find((item) => item.threadId === thread.id)?.mode ?? null;
+    return state.items.find((item) => item.threadId === thread.id)?.modeId ?? null;
   });
   const [effort, setEffort] = useState<string | undefined>(undefined);
   const currentEffort = selectedEffort(levels, effort ?? agent?.effort ?? undefined);
@@ -105,15 +106,22 @@ export function ChatComposer() {
     }
   }, [levels, effort, agent?.effort]);
 
+  const agentModes = agent?.modes ?? [];
   useEffect(() => {
-    if (scheduleMode) {
+    if (scheduleMode && knownMode(agentModes, scheduleMode)) {
       setMode(scheduleMode);
       return;
     }
-    if (thread?.runMode && isComposerMode(thread.runMode)) {
+    if (thread?.runMode && knownMode(agentModes, thread.runMode)) {
       setMode(thread.runMode);
+      return;
     }
-  }, [thread?.runMode, scheduleMode]);
+    if (agent?.defaultModeId && knownMode(agentModes, agent.defaultModeId)) {
+      setMode(agent.defaultModeId);
+      return;
+    }
+    setMode(DEFAULT_MODE_ID);
+  }, [thread?.runMode, scheduleMode, agent?.defaultModeId, agentModes]);
 
   useEffect(() => {
     setSlashIndex(0);
@@ -205,7 +213,12 @@ export function ChatComposer() {
         <InputGroupAddon align="block-end" className="justify-between gap-2 px-2 pb-2">
           <div className="flex min-w-0 items-center gap-0.5">
             <AttachMenu allowed={allowed} disabled={disabled} onPick={addFiles} />
-            <ModeSelect value={mode} disabled={disabled} onChange={setMode} />
+            <ModeSelect
+              modes={composerModeItems(agentModes)}
+              value={mode}
+              disabled={disabled}
+              onChange={setMode}
+            />
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
             <ContextRing
@@ -302,7 +315,7 @@ export function ChatComposer() {
       pending,
       threadId: thread.id,
       effort: currentEffort,
-      mode: runnableMode(mode),
+      mode,
       disabled,
       setSending,
       setValue,

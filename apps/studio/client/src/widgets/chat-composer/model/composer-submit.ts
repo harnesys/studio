@@ -1,7 +1,7 @@
 import { ApiError } from '@/shared/api';
 import { toast } from '@/shared/ui/toast';
 
-import type { RunnableComposerMode } from './composer-mode';
+import type { ComposerMode } from './composer-mode';
 import { uploadAndSend } from './composer-send';
 import { runSlashCommand } from './run-slash-command';
 import { exactSlashCommand, type SlashCommand } from './slash-commands';
@@ -11,7 +11,7 @@ export type ComposerSubmitOptions = {
   pending: File[];
   threadId: string;
   effort: string | undefined;
-  mode: RunnableComposerMode;
+  mode: ComposerMode;
   disabled: boolean;
   setSending(value: boolean): void;
   setValue(value: string): void;

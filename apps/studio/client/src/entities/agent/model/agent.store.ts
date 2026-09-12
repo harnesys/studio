@@ -45,6 +45,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       tools: [],
       graph: draft.graph ?? { nodes: {}, edges: [] },
       capabilities: draft.capabilities ?? {},
+      defaultModeId: draft.defaultModeId ?? null,
+      modes: draft.modes ?? [],
       createdAt: now,
       updatedAt: now,
       status: 'idle',
@@ -96,6 +98,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
               graph: patch.graph !== undefined ? patch.graph : agent.graph,
               capabilities:
                 patch.capabilities !== undefined ? patch.capabilities : agent.capabilities,
+              defaultModeId:
+                patch.defaultModeId !== undefined ? patch.defaultModeId : agent.defaultModeId,
+              modes: patch.modes !== undefined ? patch.modes : agent.modes,
               initials: name ? initialsFromName(name) : agent.initials,
             }
           : agent,

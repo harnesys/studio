@@ -1,4 +1,4 @@
-import { PERMISSION_MODES, SCHEDULE_HISTORIES, SCHEDULE_STATUSES } from '@harnesys/studio-shared';
+import { SCHEDULE_HISTORIES, SCHEDULE_STATUSES } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 export const createScheduleBody = z.object({
@@ -6,7 +6,7 @@ export const createScheduleBody = z.object({
   targetAgentId: z.string().uuid(),
   detail: z.string().trim().optional(),
   cron: z.string().trim().min(1).optional(),
-  mode: z.enum(PERMISSION_MODES).optional(),
+  modeId: z.string().trim().min(1).max(48).optional(),
   history: z.enum(SCHEDULE_HISTORIES).optional(),
   historyLast: z.number().int().min(1).max(99).optional(),
   threadId: z.string().uuid().optional(),
@@ -18,7 +18,7 @@ export const updateScheduleBody = z.object({
   targetAgentId: z.string().uuid().optional(),
   detail: z.string().trim().optional(),
   cron: z.string().trim().min(1).optional(),
-  mode: z.enum(PERMISSION_MODES).optional(),
+  modeId: z.string().trim().min(1).max(48).optional(),
   history: z.enum(SCHEDULE_HISTORIES).optional(),
   historyLast: z.number().int().min(1).max(99).optional(),
   threadId: z.string().uuid().optional(),

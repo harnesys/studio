@@ -1,63 +1,21 @@
-import type { RunMode } from '@harnesys/studio-shared';
-import {
-  BanIcon,
-  ClipboardListIcon,
-  HandIcon,
-  type LucideIcon,
-  ShieldAlertIcon,
-  ShieldIcon,
-} from 'lucide-react';
+import { type AgentMode, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 
-export type ComposerMode = RunMode;
-
-/** Modes accepted by POST /runs, including UI-owned `plan`. */
-export type RunnableComposerMode = RunMode;
+export type ComposerMode = string;
 
 export type ComposerModeItem = {
-  value: ComposerMode;
+  value: string;
   label: string;
   detail: string;
-  icon: LucideIcon;
-  disabled?: boolean;
 };
 
-export const COMPOSER_MODES: readonly ComposerModeItem[] = [
-  {
-    value: 'ask',
-    label: 'Ask before changes',
-    detail: 'Ask before file changes.',
-    icon: HandIcon,
-  },
-  {
-    value: 'auto',
-    label: 'Edit automatically',
-    detail: 'Edit files automatically.',
-    icon: ShieldIcon,
-  },
-  {
-    value: 'plan',
-    label: 'Plan mode',
-    detail: 'Research → propose → Approve/Revise → Apply (Edit automatically). No writes or shell.',
-    icon: ClipboardListIcon,
-  },
-  {
-    value: 'dont_ask',
-    label: "Don't ask",
-    detail: 'Auto-deny instead of pausing.',
-    icon: BanIcon,
-  },
-  {
-    value: 'bypass',
-    label: 'Bypass',
-    detail: 'Run without confirmations.',
-    icon: ShieldAlertIcon,
-  },
-] as const;
-
-export function isComposerMode(value: string): value is ComposerMode {
-  return COMPOSER_MODES.some((item) => item.value === value);
+export function composerModeItems(modes: AgentMode[]): ComposerModeItem[] {
+  return modes.map((mode) => ({
+    value: mode.id,
+    label: mode.name,
+    detail: mode.description ?? '',
+  }));
 }
 
-export function runnableMode(mode: ComposerMode): RunnableComposerMode {
-  return mode;
+export function knownMode(modes: AgentMode[], id: string | null | undefined): boolean {
+  return typeof id === 'string' && (id === DEFAULT_MODE_ID || modes.some((mode) => mode.id === id));
 }

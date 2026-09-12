@@ -5,6 +5,7 @@ import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.rep
 import { SqliteAttachmentRepo } from '../adapters/store/sqlite/repos/sqlite-attachment.repo.ts';
 import { SqliteLlmModelRepo } from '../adapters/store/sqlite/repos/sqlite-llm-model.repo.ts';
 import { SqliteLlmProviderRepo } from '../adapters/store/sqlite/repos/sqlite-llm-provider.repo.ts';
+import { SqliteModePresetRepo } from '../adapters/store/sqlite/repos/sqlite-mode-preset.repo.ts';
 import { SqlitePluginRegistriesAdapter } from '../adapters/store/sqlite/repos/sqlite-plugin-registries.adapter.ts';
 import { SqlitePluginsAdapter } from '../adapters/store/sqlite/repos/sqlite-plugins.adapter.ts';
 import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
@@ -26,6 +27,7 @@ export type StudioStore = {
   agentRepo: SqliteAgentRepo;
   llmProviderRepo: SqliteLlmProviderRepo;
   llmModelRepo: SqliteLlmModelRepo;
+  modePresetRepo: SqliteModePresetRepo;
   scheduleRepo: SqliteScheduleRepo;
   webhookRepo: SqliteWebhookRepo;
   threadRepo: SqliteThreadRepo;
@@ -50,6 +52,7 @@ export function createStudioStore(options: StudioStoreOptions = {}): StudioStore
     agentRepo: new SqliteAgentRepo(db),
     llmProviderRepo: new SqliteLlmProviderRepo(db),
     llmModelRepo: new SqliteLlmModelRepo(db),
+    modePresetRepo: new SqliteModePresetRepo(db),
     scheduleRepo: new SqliteScheduleRepo(db),
     webhookRepo: new SqliteWebhookRepo(db),
     threadRepo: new SqliteThreadRepo(db),

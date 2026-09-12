@@ -1,6 +1,7 @@
 import type {
   AgentBudget,
   AgentGenerationSettings,
+  AgentMode,
   Effort,
   PackConfig,
   ProviderModelPublic,
@@ -9,6 +10,8 @@ import type {
 } from '@harnesys/studio-shared';
 import { filterGenerationSettings, withChatGenerationParameters } from '@harnesys/studio-shared';
 import { z } from 'zod';
+
+import { agentModesSchema, fieldsToMode, modeToFields } from './agent-mode-fields';
 
 const optionalAmount = z
   .string()
@@ -45,6 +48,8 @@ export const agentFieldsSchema = z.object({
   budgetMaxTokens: optionalPositiveInt,
   budgetDeadlineSec: optionalPositiveInt,
   budgetPolicy: z.enum(['ask', 'error']),
+  defaultModeId: z.string().nullable(),
+  modes: agentModesSchema,
 });
 
 export type AgentFieldsInput = z.input<typeof agentFieldsSchema>;
@@ -90,6 +95,8 @@ export function emptyAgentFields(): AgentFieldsInput {
     budgetMaxTokens: '',
     budgetDeadlineSec: '',
     budgetPolicy: 'ask',
+    defaultModeId: null,
+    modes: [],
   };
 }
 
@@ -102,6 +109,8 @@ export function agentFieldsFrom(agent: {
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
   budget?: AgentBudget | null;
+  defaultModeId?: string | null;
+  modes?: AgentMode[];
 }): AgentFieldsInput {
   return {
     name: agent.name,
@@ -109,6 +118,8 @@ export function agentFieldsFrom(agent: {
     instructions: agent.instructions,
     modelId: agent.modelId,
     effort: agent.effort ?? null,
+    defaultModeId: agent.defaultModeId ?? null,
+    modes: (agent.modes ?? []).map(modeToFields),
     temperature: stringify(agent.generation?.temperature),
     topP: stringify(agent.generation?.topP),
     topK: stringify(agent.generation?.topK),
@@ -142,6 +153,8 @@ export function toAgentDraft(
   toolOutput: ToolOutputSettings | null;
   budget: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  defaultModeId: string | null;
+  modes: AgentMode[];
 } {
   const generation = compactGeneration({
     temperature: values.temperature,
@@ -176,6 +189,8 @@ export function toAgentDraft(
     instructions: values.instructions,
     modelId: values.modelId,
     effort: values.effort,
+    defaultModeId: values.defaultModeId,
+    modes: values.modes.map(fieldsToMode),
     generation,
     toolOutput: compactToolOutput({
       maxChars: values.toolOutputMaxChars,

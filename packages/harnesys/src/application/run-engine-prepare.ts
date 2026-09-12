@@ -100,6 +100,7 @@ export async function prepareExecuteGraphOpts(
         cached,
         runRegistry,
         fsSkills: opts.skills ?? deps.skills,
+        deferredPacks: opts.deferredPacks ?? deps.deferredPacks,
         logger: runLogger,
       });
     } else {
@@ -108,6 +109,7 @@ export async function prepareExecuteGraphOpts(
         registrations: opts.packs ?? deps.packRegistrations ?? [],
         runRegistry,
         fsSkills: opts.skills ?? deps.skills,
+        deferredPacks: opts.deferredPacks ?? deps.deferredPacks,
         logger: runLogger,
       });
       packCache.set(runId, packOutputs);

@@ -26,6 +26,7 @@ export function registerStudioHttp(args: {
     agentRepo: store.agentRepo,
     llmProviderRepo: store.llmProviderRepo,
     llmModelRepo: store.llmModelRepo,
+    modePresetRepo: store.modePresetRepo,
     scheduleRepo: store.scheduleRepo,
     webhookRepo: store.webhookRepo,
     threadRepo: store.threadRepo,

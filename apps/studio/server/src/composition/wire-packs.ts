@@ -1,3 +1,4 @@
+import { effectiveMode, PLAN_PACK_ID, resolveModeId } from '@harnesys/studio-shared';
 import {
   agentsCapability,
   episodicMemoryCapability,
@@ -26,7 +27,6 @@ import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
-import { isRunMode } from '../adapters/tool-confirm-policy.ts';
 import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { SavePlanUseCase } from '../application/plans/save-plan.use-case.ts';
@@ -38,6 +38,7 @@ import { PeekScheduleUseCase } from '../application/schedules/peek-schedule.use-
 import { UpdateScheduleUseCase } from '../application/schedules/update-schedule.use-case.ts';
 import type { GetThreadInput } from '../application/threads/get-thread.use-case.ts';
 import { ListThreadsUseCase } from '../application/threads/list-threads.use-case.ts';
+import { runModeFields } from '../application/threads/thread.helpers.ts';
 import { CreateWebhookUseCase } from '../application/webhooks/create-webhook.use-case.ts';
 import { DeleteWebhookUseCase } from '../application/webhooks/delete-webhook.use-case.ts';
 import { ListWebhooksUseCase } from '../application/webhooks/list-webhooks.use-case.ts';
@@ -47,6 +48,7 @@ import type { AttachmentRepository } from '../domain/attachment.port.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { DeskEventsPort } from '../domain/desk-events.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
+import type { ModePresetRepository } from '../domain/mode-preset.port.ts';
 import type { ScheduleRepository } from '../domain/schedule.port.ts';
 import type { SemanticSessionCleanup } from '../domain/semantic-session.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
@@ -60,6 +62,7 @@ export type PackRegistrationsDeps = {
   webhooks: WebhookRepository;
   threads: ThreadRepository;
   agents: AgentRepository;
+  modePresets: ModePresetRepository;
   models: LlmModelRepository;
   providers: LlmProviderRepository;
   workspaces: WorkspaceRepository;
@@ -94,7 +97,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
   );
   const listSchedules = new ListSchedulesUseCase(deps.schedules, deps.workspaces);
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
-  const createAgent = new CreateAgentUseCase(deps.agents, deps.models);
+  const createAgent = new CreateAgentUseCase(deps.agents, deps.models, deps.modePresets);
 
   return [
     registerPack(filesCapability, { resolveScope: stubScope }),
@@ -124,9 +127,16 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
         }),
         isPlanRunMode: () => {
           const thread = deps.threads.findById(resolveScope().threadId);
-          const meta = thread?.metadata as { runMode?: unknown } | null | undefined;
-          const mode = meta && typeof meta === 'object' ? meta.runMode : undefined;
-          return typeof mode === 'string' && isRunMode(mode) && mode === 'plan';
+          const agentRow = thread ? deps.agents.findById(thread.agentId) : undefined;
+          if (!thread || !agentRow) {
+            return false;
+          }
+          const runModeId = resolveModeId({
+            threadMode: runModeFields(thread).runMode ?? null,
+            defaultModeId: agentRow.defaultModeId ?? null,
+            modes: agentRow.modes,
+          });
+          return (effectiveMode(agentRow.modes, runModeId).packs ?? []).includes(PLAN_PACK_ID);
         },
       },
       resolveScope,

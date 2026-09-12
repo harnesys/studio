@@ -108,6 +108,7 @@ export function createStudioHost(args: {
     webhooks: store.webhookRepo,
     threads: store.threadRepo,
     agents: store.agentRepo,
+    modePresets: store.modePresetRepo,
     models: store.llmModelRepo,
     providers: store.llmProviderRepo,
     workspaces: store.workspaceRepo,

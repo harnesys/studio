@@ -27,6 +27,9 @@ export async function createAgent(
     toolOutput: draft.toolOutput ?? null,
     budget: draft.budget ?? null,
     capabilities: draft.capabilities,
+    defaultModeId: draft.defaultModeId ?? null,
+    // Empty list = let the server seed installedByDefault presets + ask (Decision 3).
+    ...(draft.modes?.length ? { modes: draft.modes } : {}),
     ...(draft.graph !== undefined ? { graph: draft.graph } : {}),
   });
   const agent = toClientAgent(record);

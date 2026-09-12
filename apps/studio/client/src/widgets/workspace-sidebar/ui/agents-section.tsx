@@ -6,9 +6,9 @@ import type { Agent } from '@/entities/agent';
 import { useAgentsSlideStore } from '@/features/desk';
 import { useIdeStore } from '@/features/ide';
 import {
+  agentDraftFromPreset,
   confirmDeleteAgent,
   createAgent,
-  createAgentFromPreset,
   deleteAgent,
   openAgentConfigDialog,
   updateAgent,
@@ -75,21 +75,25 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
   };
 
   const createFromPreset = (presetId: string) => {
-    if (!workspaceId) {
+    const preset = presets.find((item) => item.id === presetId);
+    if (!workspaceId || !preset) {
       return;
     }
-    void createAgentFromPreset(workspaceId, presetId)
-      .then(async (created) => {
+    void openAgentConfigDialog(agentDraftFromPreset(preset), workspaceId).then(async (result) => {
+      if (!result || !workspaceId) {
+        return;
+      }
+      try {
+        const created = await createAgent(workspaceId, result.fields);
         if (created) {
-          await openCreated(created);
+          await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
         }
-      })
-      .catch((err: unknown) => {
+      } catch (error) {
         toast.add({
-          title: 'Could not create from preset',
-          description: err instanceof Error ? err.message : String(err),
+          title: error instanceof Error ? error.message : 'Could not create agent',
         });
-      });
+      }
+    });
   };
 
   const presets = presetsQuery.data ?? [];

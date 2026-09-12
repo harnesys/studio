@@ -1,4 +1,4 @@
-import type { RunMode, ThreadAttachment } from '@harnesys/studio-shared';
+import type { ThreadAttachment } from '@harnesys/studio-shared';
 import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { ApiError, cancelRun, sendThreadRun } from '@/shared/api';
@@ -11,7 +11,7 @@ export type SendMessageOptions = {
   content: string;
   effort?: string;
   attachments?: ThreadAttachment[];
-  mode?: RunMode;
+  mode?: string;
 };
 
 type RunConflictBody = {

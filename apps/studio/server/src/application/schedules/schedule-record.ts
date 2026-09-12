@@ -10,7 +10,7 @@ export function toScheduleRecord(schedule: Schedule): ScheduleRecord {
     targetAgentId: schedule.targetAgentId,
     detail: schedule.detail,
     cron: schedule.cron,
-    mode: schedule.mode,
+    modeId: schedule.modeId,
     history: schedule.history,
     historyLast: schedule.historyLast,
     threadId: schedule.threadId,

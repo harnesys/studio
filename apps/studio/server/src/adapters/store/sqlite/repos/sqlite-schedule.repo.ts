@@ -1,4 +1,4 @@
-import type { PermissionMode, ScheduleHistory } from '@harnesys/studio-shared';
+import type { ScheduleHistory } from '@harnesys/studio-shared';
 import { and, eq, isNotNull, lte } from 'drizzle-orm';
 import type {
   Schedule,
@@ -100,7 +100,7 @@ function toSchedule(row: ScheduleRow): Schedule {
     targetAgentId: row.targetAgentId,
     detail: row.detail,
     cron: row.cron,
-    mode: (row.mode || 'auto') as PermissionMode,
+    modeId: row.modeId,
     history: (row.history || 'none') as ScheduleHistory,
     historyLast: row.historyLast > 0 ? row.historyLast : 1,
     threadId: row.threadId,

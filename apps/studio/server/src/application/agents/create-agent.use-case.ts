@@ -1,15 +1,23 @@
 import type {
   AgentBudget,
   AgentGenerationSettings,
+  AgentMode,
   PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
-import { defaultAgentCompaction } from '@harnesys/studio-shared';
+import {
+  ASK_MODE,
+  DEFAULT_MODE_ID,
+  defaultAgentCompaction,
+  modeFromPreset,
+} from '@harnesys/studio-shared';
 import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
+import type { ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { ensureAskMode, validateDefaultModeId, validateModeIds } from './agent.helpers.ts';
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
@@ -35,6 +43,8 @@ export type CreateAgentRequest = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  defaultModeId?: string | null;
+  modes?: AgentMode[];
 };
 
 export type CreateAgentInput = {
@@ -45,6 +55,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
   constructor(
     private readonly agents: AgentRepository,
     private readonly models?: LlmModelRepository,
+    private readonly modePresets?: ModePresetRepository,
   ) {}
 
   async execute(request: CreateAgentRequest): Promise<Agent> {
@@ -85,6 +96,10 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const budget =
       request.budget ??
       (request.graph === undefined || isStockReactGraph(graph) ? DEFAULT_REACT_BUDGET : null);
+    const modes = ensureAskMode(request.modes ?? this.seedDefaultModes());
+    const defaultModeId = request.defaultModeId ?? null;
+    validateModeIds(modes);
+    validateDefaultModeId(defaultModeId, modes);
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
@@ -109,11 +124,23 @@ export class CreateAgentUseCase implements CreateAgentInput {
       graph,
       budget,
       capabilities,
+      defaultModeId,
+      modes,
       createdAt: now,
       updatedAt: now,
     });
 
     return await Promise.resolve(created);
+  }
+
+  private seedDefaultModes(): AgentMode[] {
+    const defaults = (this.modePresets?.list() ?? [])
+      .filter((preset) => preset.installedByDefault)
+      .map(modeFromPreset);
+    if (!defaults.some((mode) => mode.id === DEFAULT_MODE_ID)) {
+      defaults.push({ ...ASK_MODE });
+    }
+    return defaults;
   }
 }
 

@@ -1,12 +1,12 @@
-import type {
-  PermissionMode,
-  ScheduleHistory,
-  ScheduleRecord,
-  ScheduleStatus,
+import {
+  DEFAULT_MODE_ID,
+  type ScheduleHistory,
+  type ScheduleRecord,
+  type ScheduleStatus,
 } from '@harnesys/studio-shared';
 
-export { PERMISSION_MODES, SCHEDULE_HISTORIES, SCHEDULE_STATUSES } from '@harnesys/studio-shared';
-export type { PermissionMode, ScheduleHistory, ScheduleStatus };
+export { SCHEDULE_HISTORIES, SCHEDULE_STATUSES } from '@harnesys/studio-shared';
+export type { ScheduleHistory, ScheduleStatus };
 
 export function scheduleStatusTone(
   status: ScheduleStatus,
@@ -51,7 +51,7 @@ export type Schedule = {
   targetAgentId: string;
   detail: string;
   cron: string;
-  mode: PermissionMode;
+  modeId: string;
   history: ScheduleHistory;
   historyLast: number;
   threadId: string;
@@ -69,7 +69,7 @@ export function toClientSchedule(record: ScheduleRecord): Schedule {
     targetAgentId: record.targetAgentId,
     detail: record.detail,
     cron: record.cron,
-    mode: record.mode ?? 'auto',
+    modeId: record.modeId ?? DEFAULT_MODE_ID,
     history: record.history ?? 'none',
     historyLast: record.historyLast > 0 ? record.historyLast : 1,
     threadId: record.threadId,

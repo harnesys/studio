@@ -37,7 +37,7 @@ const GATES: { name: PresetGateName; label: string }[] = [
 const FALLBACK_GATE: ModeOpGate = 'ask';
 
 const DESCRIPTION_MAX = 200;
-const INSTRUCTIONS_MAX = 1024;
+const INSTRUCTIONS_MAX = 6000;
 
 function presetToForm(preset: ModePreset): PresetFormState {
   return {

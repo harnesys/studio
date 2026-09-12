@@ -79,7 +79,9 @@ export class StudioRunTargets implements RunTargets {
       createPluginSessionStartNotes({
         plugins: enabledPlugins.map(({ ir, record }) => ({
           ir,
-          trusted: record.trusted,
+          // Session-start command hooks are process-class; grants replaced the
+          // former trusted flag (full hook gating lands with the hook bus).
+          trusted: record.grants[thread.workspaceId]?.process === true,
         })),
         timeoutMs: PLUGIN_HOOK_TIMEOUT_MS,
       }),

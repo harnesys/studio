@@ -10,7 +10,7 @@ export function toPluginSummary(record: PluginInstallRecord, ir: PluginIr): Plug
     revision: record.revision,
     path: record.path,
     dataPath: record.dataPath,
-    trusted: record.trusted,
+    trusted: false,
     enabledWorkspaceIds: record.enabledWorkspaceIds,
     installedAt: record.installedAt,
     updatedAt: record.updatedAt,

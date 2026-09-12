@@ -1,0 +1,31 @@
+import type { PluginName } from '@harnesys/studio-shared';
+import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
+import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
+import { NotFoundError } from '../../domain/studio.error.ts';
+import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+
+export type ApproveServerRequest = {
+  name: PluginName;
+  serverId: string;
+};
+
+export type ApproveServerInput = {
+  execute(request: ApproveServerRequest): Promise<PluginInstallRecord>;
+};
+
+export class ApproveServerUseCase implements ApproveServerInput {
+  constructor(
+    private readonly plugins: PluginRepository,
+    private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
+  ) {}
+
+  async execute(request: ApproveServerRequest): Promise<PluginInstallRecord> {
+    const current = this.plugins.findByName(request.name);
+    if (!current) {
+      throw new NotFoundError('plugin not found');
+    }
+    this.plugins.approveServer(request.name, request.serverId);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, current.enabledWorkspaceIds);
+    return current;
+  }
+}

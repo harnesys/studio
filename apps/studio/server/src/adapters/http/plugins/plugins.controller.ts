@@ -1,15 +1,15 @@
 import type { Hono } from 'hono';
+import type { ApproveServerInput } from '../../../application/plugins/approve-server.use-case.ts';
 import type { EnableWorkspacePluginInput } from '../../../application/plugins/enable-workspace-plugin.use-case.ts';
 import type { InstallPluginInput } from '../../../application/plugins/install-plugin.use-case.ts';
 import type { ListPluginsInput } from '../../../application/plugins/list-plugins.use-case.ts';
 import type { RemovePluginInput } from '../../../application/plugins/remove-plugin.use-case.ts';
-import type { TrustPluginInput } from '../../../application/plugins/trust-plugin.use-case.ts';
+import type { SetGrantsInput } from '../../../application/plugins/set-grants.use-case.ts';
 import type { UpdatePluginInput } from '../../../application/plugins/update-plugin.use-case.ts';
 import {
   enableWorkspacePluginBody,
   installPluginBody,
   removePluginBody,
-  trustPluginBody,
   updatePluginBody,
 } from './plugins.body.ts';
 
@@ -17,7 +17,8 @@ export type PluginsControllerDeps = {
   listPlugins: ListPluginsInput;
   installPlugin: InstallPluginInput;
   updatePlugin: UpdatePluginInput;
-  trustPlugin: TrustPluginInput;
+  setGrants: SetGrantsInput;
+  approveServer: ApproveServerInput;
   enableWorkspacePlugin: EnableWorkspacePluginInput;
   removePlugin: RemovePluginInput;
 };
@@ -36,7 +37,6 @@ export class PluginsController {
         ...(body.source !== undefined ? { source: body.source } : {}),
         ...(body.path !== undefined ? { path: body.path } : {}),
         ...(body.ref !== undefined ? { ref: body.ref } : {}),
-        ...(body.trust !== undefined ? { trust: body.trust } : {}),
         ...(body.registryId !== undefined ? { registryId: body.registryId } : {}),
         ...(body.catalogPluginName !== undefined
           ? { catalogPluginName: body.catalogPluginName }
@@ -54,15 +54,6 @@ export class PluginsController {
         ...(body.ref !== undefined ? { ref: body.ref } : {}),
       });
       return c.json(result);
-    });
-
-    app.post('/api/plugins/:name/trust', async (c) => {
-      const body = trustPluginBody.parse(await c.req.json());
-      const plugin = await this.deps.trustPlugin.execute({
-        name: c.req.param('name'),
-        trusted: body.trusted,
-      });
-      return c.json({ plugin });
     });
 
     app.post('/api/workspaces/:workspaceId/plugins/:name/enable', async (c) => {

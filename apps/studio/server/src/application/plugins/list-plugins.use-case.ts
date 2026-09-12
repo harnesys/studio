@@ -62,7 +62,7 @@ function unloadedSummary(record: PluginInstallRecord): PluginSummary {
     revision: record.revision,
     path: record.path,
     dataPath: record.dataPath,
-    trusted: record.trusted,
+    trusted: false,
     enabledWorkspaceIds: record.enabledWorkspaceIds,
     installedAt: record.installedAt,
     updatedAt: record.updatedAt,

@@ -24,7 +24,6 @@ export type TreeInstallArgs = {
   from: string;
   displaySource: string;
   revision?: string;
-  trust: boolean;
   registryId?: string;
   catalogPluginName?: string;
   preferredName: string;
@@ -34,7 +33,6 @@ export type TreeInstallArgs = {
 export type MaterializedInstallArgs = {
   installSource: RemoteCatalogSource;
   displaySource: string;
-  trust: boolean;
   registryId: string;
   catalogPluginName: string;
   marketplaceRoot: string;
@@ -66,7 +64,6 @@ export class PluginTreeInstaller {
         from: staged,
         displaySource: args.displaySource,
         revision: materialized.revision ?? 'unknown',
-        trust: args.trust,
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
         preferredName: args.catalogPluginName,
@@ -95,7 +92,6 @@ export class PluginTreeInstaller {
         checkout,
         displaySource: args.displaySource,
         revision: args.revision ?? 'marketplace',
-        trust: args.trust,
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
         onRename: (next) => {
@@ -122,7 +118,6 @@ export class PluginTreeInstaller {
     checkout: string;
     displaySource: string;
     revision: string;
-    trust: boolean;
     registryId?: string;
     catalogPluginName?: string;
     onRename: (next: string) => void;
@@ -158,7 +153,9 @@ export class PluginTreeInstaller {
       revision: args.revision,
       path: checkout,
       dataPath,
-      trusted: args.trust,
+      format: loaded.ir.sourceFormat,
+      grants: {},
+      options: {},
       enabledWorkspaceIds: [],
       installedAt: now,
       updatedAt: now,

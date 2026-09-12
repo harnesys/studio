@@ -1,4 +1,10 @@
-import type { PluginName } from 'harnesys';
+import type { GrantClass, PluginName } from '@harnesys/studio-shared';
+
+export type PluginInstallFormat = 'agent-plugins' | 'claude-compat' | 'unknown';
+
+export type PluginGrants = Partial<Record<GrantClass, boolean>>;
+
+export type PluginOptionValue = string | number | boolean;
 
 export type PluginInstallRecord = {
   name: PluginName;
@@ -6,7 +12,9 @@ export type PluginInstallRecord = {
   revision: string;
   path: string;
   dataPath: string;
-  trusted: boolean;
+  format: PluginInstallFormat;
+  grants: Record<string, PluginGrants>;
+  options: Record<string, PluginOptionValue>;
   enabledWorkspaceIds: string[];
   registryId?: string;
   catalogPluginName?: string;
@@ -19,6 +27,9 @@ export type PluginRepository = {
   findByName(name: PluginName): PluginInstallRecord | undefined;
   upsert(rec: PluginInstallRecord): PluginInstallRecord;
   delete(name: PluginName): void;
-  setTrusted(name: PluginName, trusted: boolean): PluginInstallRecord;
+  setGrants(workspaceId: string, name: PluginName, classes: GrantClass[]): PluginInstallRecord;
+  setOption(name: PluginName, key: string, value: PluginOptionValue): PluginInstallRecord;
+  approveServer(name: PluginName, serverId: string): void;
+  approvals(name: PluginName): string[];
   setWorkspaceEnabled(name: PluginName, workspaceId: string, enabled: boolean): PluginInstallRecord;
 };

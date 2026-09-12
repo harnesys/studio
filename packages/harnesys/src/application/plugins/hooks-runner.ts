@@ -4,6 +4,7 @@ import type {
   RunPluginHookCommandResult,
 } from '../../ports/plugins.ts';
 import { expandPluginVars } from './expand-plugin-vars.ts';
+import { substituteUserConfig } from './user-config.ts';
 
 type SpawnHookCommandOptions = {
   command: string;
@@ -23,7 +24,19 @@ export async function runPluginHookCommand(
 ): Promise<RunPluginHookCommandResult> {
   const pluginRoot = path.resolve(options.pluginRoot);
   const pluginData = path.resolve(options.pluginData);
-  const command = expandPluginVars(options.command, { pluginRoot, pluginData });
+  let command = expandPluginVars(options.command, { pluginRoot, pluginData });
+  if (options.userConfig !== undefined && command.includes('${user_config.')) {
+    const substituted = substituteUserConfig(
+      command,
+      options.userConfig.values,
+      options.userConfig.sensitiveKeys,
+    );
+    if (typeof substituted === 'string') {
+      command = substituted;
+    } else {
+      return { ok: false, error: `user_config: ${substituted.message}` };
+    }
+  }
   try {
     return await spawnHookCommand({
       command,

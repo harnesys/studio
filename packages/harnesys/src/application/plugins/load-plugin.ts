@@ -8,7 +8,6 @@ import type {
   PluginGrants,
   PluginIr,
 } from '../../domain/plugin-ir.ts';
-import type { CursorMcpJson } from '../../ports/mcp.ts';
 import * as agentPlugins from './formats/agent-plugins.ts';
 import { discoverAgentComponents, discoverCommandComponents } from './formats/agents-commands.ts';
 import * as claudeCompat from './formats/claude-compat.ts';
@@ -51,11 +50,10 @@ export type LoadPluginIrOptions = {
 
 export type LoadPluginIrResult = {
   ir: PluginIr;
-  mcpFragment: CursorMcpJson;
   diagnostics: PluginDiagnostic[];
 };
 
-/** Layout detect → манифест (formats) → discovery (formats) → PluginIr + MCP-фрагмент. */
+/** Layout detect → манифест (formats) → discovery (formats) → PluginIr. */
 export function loadPluginIrFromDirectory(
   options: LoadPluginIrOptions,
 ): Promise<LoadPluginIrResult> {
@@ -140,7 +138,7 @@ export function loadPluginIrFromDirectory(
     grants: computeGrants(components),
     diagnostics,
   };
-  return Promise.resolve({ ir, mcpFragment: mcp.fragment, diagnostics });
+  return Promise.resolve({ ir, diagnostics });
 }
 
 function detectLayout(listing: string[]): PluginSourceFormat | 'unknown' {

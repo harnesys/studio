@@ -1,10 +1,13 @@
 import type { PluginIr } from '../../domain/plugin-ir.ts';
 import type { LlmNote, LlmNoteContext, LlmNoteProvider } from '../llm-notes.ts';
 import { runPluginHookCommand } from './hooks-runner.ts';
+import type { UserConfigContentOptions } from './user-config.ts';
 
 export type PluginSessionStartSource = {
   ir: PluginIr;
   trusted: boolean;
+  /** Exec-подстановка `${user_config.*}` в SessionStart command-хуков. */
+  userConfig?: UserConfigContentOptions;
 };
 
 export type CreatePluginSessionStartNotesOptions = {
@@ -96,6 +99,7 @@ async function sessionStartText(
       pluginData: binding.vars.pluginData,
       command: binding.handler.command,
       timeoutMs,
+      userConfig: source.userConfig,
     });
     if (!result.ok) {
       continue;

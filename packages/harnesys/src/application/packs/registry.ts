@@ -1,11 +1,15 @@
 import Ajv from 'ajv';
 import type { AgentDefinition } from '../../domain/agent-definition.ts';
 import type { AgentPacks, PackConfig, PackRegistration } from '../../domain/pack.ts';
+import type { SettingDefaultSpec } from '../../domain/plugin-ir.ts';
 
 export type ResolvedPack = {
   reg: PackRegistration;
   config: PackConfig;
 };
+
+/** Плагинные дефолты спецификаций: имя пака → setting-default компоненты. */
+export type PackSettingDefaults = Record<string, SettingDefaultSpec[]>;
 
 export type PackDiagnosticCode =
   | 'pack_unknown'
@@ -40,16 +44,24 @@ function enabledConfig(reg: RegLike, packs: AgentPacks | undefined): PackConfig 
 function resolveRegs<R extends RegLike>(
   packs: AgentPacks | undefined,
   registrations: R[],
+  settingDefaults?: PackSettingDefaults,
 ): { enabled: Array<{ reg: R; config: PackConfig }>; diagnostics: PackDiagnostic[] } {
   const diagnostics: PackDiagnostic[] = [];
   const byName = new Map(registrations.map((r) => [r.pack.name, r]));
   const enabled: Array<{ reg: R; config: PackConfig }> = [];
   const sorted = [...registrations].sort((a, b) => (a.pack.name < b.pack.name ? -1 : 1));
   for (const reg of sorted) {
-    const config = enabledConfig(reg, packs);
-    if (config === null) {
+    const assigned = enabledConfig(reg, packs);
+    if (assigned === null) {
       continue;
     }
+    // Единственная точка оверлея: плагинные дефолты под явными настройками
+    // агента, до specSchema-валидации (спека §3 setting-default).
+    const defaults = settingDefaults?.[reg.pack.name];
+    const config: PackConfig =
+      defaults !== undefined && defaults.length > 0
+        ? { ...assigned, spec: applySettingDefaults(assigned.spec, defaults) }
+        : assigned;
     if (reg.resolveScope === undefined && reg.ports !== undefined) {
       diagnostics.push({
         severity: 'warning',
@@ -83,11 +95,53 @@ function resolveRegs<R extends RegLike>(
   return { enabled, diagnostics };
 }
 
+/**
+ * Дефолты под явными значениями: скаляр и массив дефолта уходят только при
+ * отсутствии явного ключа; объекты сливаются глубоко, явные листья выигрывают.
+ */
+export function applySettingDefaults(
+  spec: Record<string, unknown> | undefined,
+  defaults: readonly SettingDefaultSpec[],
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...(spec ?? {}) };
+  for (const entry of defaults) {
+    merged[entry.key] = overlayDefault(merged[entry.key], entry.value);
+  }
+  return merged;
+}
+
+function overlayDefault(explicit: unknown, fallback: unknown): unknown {
+  if (explicit === undefined) {
+    return fallback;
+  }
+  if (isPlainObject(explicit) && isPlainObject(fallback)) {
+    return overlayObjects(fallback, explicit);
+  }
+  return explicit;
+}
+
+function overlayObjects(
+  fallback: Record<string, unknown>,
+  explicit: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...fallback };
+  for (const [key, value] of Object.entries(explicit)) {
+    const base = out[key];
+    out[key] = isPlainObject(base) && isPlainObject(value) ? overlayObjects(base, value) : value;
+  }
+  return out;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export function resolvePacks(
   def: AgentDefinition,
   registrations: PackRegistration[],
+  settingDefaults?: PackSettingDefaults,
 ): { enabled: ResolvedPack[]; diagnostics: PackDiagnostic[] } {
-  return resolveRegs(def.packs, registrations);
+  return resolveRegs(def.packs, registrations, settingDefaults);
 }
 
 export function compareStrings(a: string, b: string): number {

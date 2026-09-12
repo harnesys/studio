@@ -6,9 +6,11 @@ import type {
   AgentPacks,
   AgentRosterEntry,
   CursorMcpJson,
+  McpServerSpec,
   ModelsPort,
   PackAssignment,
   PackRegistration,
+  PluginComponent,
   PluginIr,
   RunClaimer,
   RunEventFeed,
@@ -25,9 +27,11 @@ import {
   type Logger,
   mergePluginMcpFragments,
   normalizePackAssignment,
+  type PluginMcpBinding,
   wait,
 } from 'harnesys';
 import { FsSkillRegistry, loadPluginIrFromDirectory } from 'harnesys/adapters/node';
+import { pluginUserConfig } from '../application/plugins/plugin-user-config.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { PluginInstallRecord, PluginRepository } from '../domain/plugin.port.ts';
@@ -55,7 +59,6 @@ export type WorkspaceRuntimeWiring = {
 export type LoadedWorkspacePlugin = {
   record: PluginInstallRecord;
   ir: PluginIr;
-  mcp: CursorMcpJson;
 };
 
 export class WorkspaceHarnesysRegistry {
@@ -126,7 +129,7 @@ export class WorkspaceHarnesysRegistry {
           root: record.path,
           pluginData: record.dataPath,
         });
-        loaded.push({ record, ir: result.ir, mcp: result.mcpFragment });
+        loaded.push({ record, ir: result.ir });
       } catch {
         // skip failed loads; diagnostics surface via plugin list API
       }
@@ -152,12 +155,20 @@ export class WorkspaceHarnesysRegistry {
     });
     const skills = composeSkillRegistries([
       fsSkills,
-      ...enabledPlugins.map((entry) => bindSkillComponents(entry.ir, readPluginSkillFile)),
+      ...enabledPlugins.map((entry) =>
+        bindSkillComponents(
+          entry.ir,
+          readPluginSkillFile,
+          pluginUserConfig(entry.ir, entry.record.options),
+        ),
+      ),
     ]);
-    const mcp = mergePluginMcpFragments(
-      mcpJson,
-      enabledPlugins.map((entry) => entry.mcp),
-    );
+    // Grant/per-server approval gating lands with E2; merge is IR-only here.
+    const merged = mergePluginMcpFragments(mcpJson, enabledPlugins.map(toMcpBinding));
+    for (const diagnostic of merged.diagnostics) {
+      this.runtime?.logger?.warn(`[plugins] ${diagnostic.code}: ${diagnostic.message}`);
+    }
+    const mcp = merged.mcp;
     return createRuntime({
       models: this.models,
       // files/shell/fetch come from the base packs in packRegistrations;
@@ -248,6 +259,22 @@ export class WorkspaceHarnesysRegistry {
 /** Reader for bindSkillComponents: flat command md files live on disk. */
 function readPluginSkillFile(file: string): string {
   return readFileSync(file, 'utf8');
+}
+
+type McpServerComponent = PluginComponent & { spec: McpServerSpec };
+
+function isMcpServerComponent(component: PluginComponent): component is McpServerComponent {
+  return component.kind === 'mcp-server' && component.status === 'native';
+}
+
+function toMcpBinding(entry: LoadedWorkspacePlugin): PluginMcpBinding {
+  return {
+    name: entry.record.name,
+    pluginRoot: entry.record.path,
+    pluginData: entry.record.dataPath,
+    servers: entry.ir.components.filter(isMcpServerComponent).map((component) => component.spec),
+    userConfig: pluginUserConfig(entry.ir, entry.record.options),
+  };
 }
 
 /**

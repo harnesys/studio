@@ -6,6 +6,8 @@ import type { SkillDocument, SkillSummary } from '../../domain/skill.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
 import { composeSkillRegistries } from '../skills/compose-skill-registries.ts';
 import { prefixSkillRegistry } from './prefixed-skill-registry.ts';
+import type { UserConfigContentOptions } from './user-config.ts';
+import { substituteUserConfigContent } from './user-config.ts';
 
 /** Reads one file from disk; injected so binding stays host-agnostic. */
 export type SkillFileReader = (file: string) => string;
@@ -15,8 +17,14 @@ export type SkillFileReader = (file: string) => string;
  * roots scan through `FsSkillRegistry`; flat `commands/<name>.md` become skills
  * with frontmatter passthrough (name from frontmatter/stem, description and
  * body as-is, no strict SKILL.md validation). All names end up `plugin:skill`.
+ * `userConfig` turns on `${user_config.*}` substitution in skill content;
+ * sensitive keys are dropped, never substituted.
  */
-export function bindSkillComponents(ir: PluginIr, readSkillFile: SkillFileReader): SkillRegistry {
+export function bindSkillComponents(
+  ir: PluginIr,
+  readSkillFile: SkillFileReader,
+  userConfig?: UserConfigContentOptions,
+): SkillRegistry {
   const roots = new Set<string>();
   const commands: CommandSpec[] = [];
   for (const component of ir.components) {
@@ -30,15 +38,51 @@ export function bindSkillComponents(ir: PluginIr, readSkillFile: SkillFileReader
       commands.push(component.spec);
     }
   }
-  const fsRegistry = new FsSkillRegistry({ roots: [...roots] });
+  const fs = new FsSkillRegistry({ roots: [...roots] });
+  const fsRegistry = withUserConfigContent(fs, userConfig);
   if (commands.length === 0) {
     return prefixSkillRegistry(fsRegistry, ir.identity.name);
   }
-  const commandRegistry = buildCommandRegistry(commands, skillNames(fsRegistry), readSkillFile);
+  const commandRegistry = buildCommandRegistry(commands, skillNames(fs), readSkillFile, userConfig);
   return prefixSkillRegistry(
     composeSkillRegistries([fsRegistry, commandRegistry]),
     ir.identity.name,
   );
+}
+
+/** Lazy SKILL.md bodies flow through `load`; substitute on the way out. */
+function withUserConfigContent(
+  registry: SkillRegistry,
+  userConfig: UserConfigContentOptions | undefined,
+): SkillRegistry {
+  if (userConfig === undefined) {
+    return registry;
+  }
+  return {
+    list: () => registry.list(),
+    load: async (id: string) => substituteSkillDocument(await registry.load(id), userConfig),
+    loadFile: (id: string, relPath: string) => registry.loadFile(id, relPath),
+    reload: () => registry.reload(),
+  };
+}
+
+function substituteSkillDocument(value: unknown, uc: UserConfigContentOptions): unknown {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return value;
+  }
+  const source = value as Record<string, unknown>;
+  if (typeof source.instructions !== 'string') {
+    return value;
+  }
+  const doc: Record<string, unknown> = { ...source };
+  doc.instructions = substituteUserConfigContent(source.instructions, uc);
+  if (typeof source.description === 'string') {
+    doc.description = substituteUserConfigContent(source.description, uc);
+  }
+  if (typeof source.whenToUse === 'string') {
+    doc.whenToUse = substituteUserConfigContent(source.whenToUse, uc);
+  }
+  return doc;
 }
 
 function skillNames(registry: FsSkillRegistry): Set<string> {
@@ -50,10 +94,11 @@ function buildCommandRegistry(
   commands: CommandSpec[],
   taken: ReadonlySet<string>,
   readSkillFile: SkillFileReader,
+  userConfig: UserConfigContentOptions | undefined,
 ): SkillRegistry {
   const docs = new Map<string, SkillDocument>();
   for (const command of commands) {
-    const doc = parseCommandDocument(command, readSkillFile);
+    const doc = parseCommandDocument(command, readSkillFile, userConfig);
     if (doc === undefined || taken.has(doc.name) || docs.has(doc.name)) {
       continue;
     }
@@ -81,6 +126,7 @@ function buildCommandRegistry(
 function parseCommandDocument(
   spec: CommandSpec,
   readSkillFile: SkillFileReader,
+  userConfig: UserConfigContentOptions | undefined,
 ): SkillDocument | undefined {
   let content: string;
   try {
@@ -99,12 +145,14 @@ function parseCommandDocument(
   } catch {
     return undefined;
   }
-  const description = typeof data.description === 'string' ? data.description : '';
-  const whenToUse = typeof data.when_to_use === 'string' ? data.when_to_use : undefined;
+  const substitute = (value: string): string =>
+    userConfig ? substituteUserConfigContent(value, userConfig) : value;
+  const description = typeof data.description === 'string' ? substitute(data.description) : '';
+  const whenToUse = typeof data.when_to_use === 'string' ? substitute(data.when_to_use) : undefined;
   return {
     name: spec.name,
     description,
-    instructions: body.trim(),
+    instructions: substitute(body.trim()),
     ...(whenToUse !== undefined ? { whenToUse } : {}),
   };
 }

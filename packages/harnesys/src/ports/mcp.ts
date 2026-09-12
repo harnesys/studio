@@ -18,8 +18,11 @@ export type UrlEntry = {
 };
 
 export type CursorMcpJson = {
-  mcpServers: Record<string, StdioEntry | UrlEntry>;
+  mcpServers: McpServerEntries;
 };
+
+/** Карта серверов `CursorMcpJson`; именованный алиас вместо индексного доступа. */
+export type McpServerEntries = Record<string, StdioEntry | UrlEntry>;
 
 export type McpServerToolInfo = {
   name: string;

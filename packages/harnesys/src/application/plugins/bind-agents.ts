@@ -3,6 +3,8 @@ import matter from 'gray-matter';
 import type { AgentDefinition, AgentGraph, AgentModelRef } from '../../domain/agent-definition.ts';
 import type { PluginDiagnostic } from '../../domain/plugin-diagnostics.ts';
 import type { AgentSpec, PluginIr } from '../../domain/plugin-ir.ts';
+import type { UserConfigContentOptions } from './user-config.ts';
+import { substituteUserConfigContent } from './user-config.ts';
 
 /** Каталогная запись плагинного агента; id `plugin:agent` глобально уникален. */
 export type CatalogAgentEntry = {
@@ -17,6 +19,13 @@ export type CatalogAgentEntry = {
 /** Резолв model-строки против моделей хоста; null → компонент отбрасывается. */
 export type ResolveAgentModel = (ref: string) => AgentModelRef | null;
 
+/** Колбэки и опции одного прогона биндинга агентов. */
+export type AgentBindContext = {
+  resolveModel: ResolveAgentModel;
+  onDiagnostic: BindDiagnosticSink | undefined;
+  userConfig: UserConfigContentOptions | undefined;
+};
+
 /** Приёмник диагностик биндинга; хост решает, где их показывать. */
 export type BindDiagnosticSink = (diagnostic: PluginDiagnostic) => void;
 
@@ -26,20 +35,23 @@ export type BindDiagnosticSink = (diagnostic: PluginDiagnostic) => void;
  * как есть, `maxTurns` → `budget.maxSteps`, `model`/`effort` → `AgentModelRef`
  * через `resolveModel`. `memory`/`background` носителя не имеют: поле
  * отбрасывается с diagnostic `unsupported_frontmatter_field`; `isolation`
- * помечается на парсе.
+ * помечается на парсе. `userConfig` включает подстановку `${user_config.*}`
+ * в контент (sensitive-ключи выбрасываются).
  */
 export function bindAgentComponents(
   ir: PluginIr,
   resolveModel: ResolveAgentModel,
   onDiagnostic?: BindDiagnosticSink,
+  userConfig?: UserConfigContentOptions,
 ): CatalogAgentEntry[] {
   const entries: CatalogAgentEntry[] = [];
+  const bind: AgentBindContext = { resolveModel, onDiagnostic, userConfig };
   for (const component of ir.components) {
     if (component.kind !== 'agent' || component.status !== 'native') {
       continue;
     }
     const spec = component.spec as AgentSpec;
-    const entry = buildEntry(spec, component.source.file, resolveModel, onDiagnostic);
+    const entry = buildEntry(spec, component.source.file, bind);
     if (entry !== undefined) {
       entries.push(entry);
     }
@@ -50,15 +62,14 @@ export function bindAgentComponents(
 function buildEntry(
   spec: AgentSpec,
   sourceFile: string,
-  resolveModel: ResolveAgentModel,
-  onDiagnostic: BindDiagnosticSink | undefined,
+  bind: AgentBindContext,
 ): CatalogAgentEntry | undefined {
-  warnUnsupportedField(spec, sourceFile, onDiagnostic);
-  const model = resolveSpecModel(spec, sourceFile, resolveModel, onDiagnostic);
+  warnUnsupportedField(spec, sourceFile, bind.onDiagnostic);
+  const model = resolveSpecModel(spec, sourceFile, bind);
   if (model === null) {
     return undefined;
   }
-  const instructions = readAgentBody(spec, sourceFile, onDiagnostic);
+  const instructions = readAgentBody(spec, sourceFile, bind);
   if (instructions === null) {
     return undefined;
   }
@@ -82,7 +93,13 @@ function buildEntry(
   return {
     id: spec.id,
     definition,
-    ...(spec.description !== undefined ? { description: spec.description } : {}),
+    ...(spec.description !== undefined
+      ? {
+          description: bind.userConfig
+            ? substituteUserConfigContent(spec.description, bind.userConfig)
+            : spec.description,
+        }
+      : {}),
     ...(spec.disallowedTools !== undefined ? { disallowedTools: spec.disallowedTools } : {}),
   };
 }
@@ -115,15 +132,14 @@ function warnUnsupportedField(
 function resolveSpecModel(
   spec: AgentSpec,
   sourceFile: string,
-  resolveModel: ResolveAgentModel,
-  onDiagnostic: BindDiagnosticSink | undefined,
+  bind: AgentBindContext,
 ): AgentModelRef | null | undefined {
   if (spec.model === undefined) {
     return undefined;
   }
-  const resolved = resolveModel(spec.model);
+  const resolved = bind.resolveModel(spec.model);
   if (resolved === null) {
-    onDiagnostic?.({
+    bind.onDiagnostic?.({
       level: 'warning',
       code: 'unresolved_model',
       message: `agent model "${spec.model}" does not resolve against host models; component dropped`,
@@ -134,15 +150,12 @@ function resolveSpecModel(
   return spec.effort !== undefined ? { ...resolved, effort: spec.effort } : resolved;
 }
 
-function readAgentBody(
-  spec: AgentSpec,
-  sourceFile: string,
-  onDiagnostic: BindDiagnosticSink | undefined,
-): string | null {
+function readAgentBody(spec: AgentSpec, sourceFile: string, bind: AgentBindContext): string | null {
   try {
-    return matter(readFileSync(spec.file, 'utf8')).content.trim();
+    const body = matter(readFileSync(spec.file, 'utf8')).content.trim();
+    return bind.userConfig ? substituteUserConfigContent(body, bind.userConfig) : body;
   } catch (cause) {
-    onDiagnostic?.({
+    bind.onDiagnostic?.({
       level: 'error',
       code: 'invalid_component',
       message: `agent body unreadable: ${cause instanceof Error ? cause.message : String(cause)}`,

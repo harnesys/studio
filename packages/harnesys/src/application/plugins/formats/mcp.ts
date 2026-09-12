@@ -1,7 +1,6 @@
 import path from 'node:path';
 import type { PluginDiagnostic } from '../../../domain/plugin-diagnostics.ts';
 import type { McpServerConfig, McpServerSpec, PluginComponent } from '../../../domain/plugin-ir.ts';
-import type { CursorMcpJson, StdioEntry, UrlEntry } from '../../../ports/mcp.ts';
 import {
   type ExpandPluginVarsContext,
   expandPluginVars,
@@ -39,7 +38,6 @@ export type DiscoverMcpOptions = {
 
 export type DiscoverMcpResult = {
   components: PluginComponent[];
-  fragment: CursorMcpJson;
   diagnostics: PluginDiagnostic[];
 };
 
@@ -81,7 +79,6 @@ export function discoverMcpComponents(
       const message = cause instanceof Error ? cause.message : String(cause);
       return {
         components: [],
-        fragment: { mcpServers: {} },
         diagnostics: [{ level: 'error', code: 'server_config_invalid', message, path: filePath }],
       };
     }
@@ -91,11 +88,11 @@ export function discoverMcpComponents(
     pluginRoot: path.resolve(ctx.root),
     pluginData: path.resolve(options.pluginData),
   };
-  return isAp ? parseApMcp(ctx, options, raw, label) : parseClaudeMcp(ctx, parseCtx, raw, label);
+  return isAp ? parseApMcp(ctx, options, raw, label) : parseClaudeMcp(parseCtx, raw, label);
 }
 
 function emptyResult(): DiscoverMcpResult {
-  return { components: [], fragment: { mcpServers: {} }, diagnostics: [] };
+  return { components: [], diagnostics: [] };
 }
 
 function parseApMcp(
@@ -120,7 +117,6 @@ function parseApMcp(
     const expected = options.declaredSchema ?? AP_MCP_SCHEMA_ID;
     return {
       components: [droppedServerComponent(label, '$', raw)],
-      fragment: { mcpServers: {} },
       diagnostics: [
         {
           level: 'error',
@@ -142,35 +138,30 @@ function parseApMcp(
   }
   const servers = isPlainObject(raw.mcpServers) ? raw.mcpServers : {};
   const components: PluginComponent[] = [];
-  const fragment: CursorMcpJson = { mcpServers: {} };
   for (const [key, value] of Object.entries(servers)) {
     try {
       const spec = parseApServer(key, value, parseCtx);
       components.push(nativeServerComponent(label, key, spec));
-      fragment.mcpServers[fragmentKey(ctx, key)] = specToEntry(spec);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
       diagnostics.push(serverWarning(label, key, message));
       components.push(droppedServerComponent(label, key, value));
     }
   }
-  return { components, fragment, diagnostics };
+  return { components, diagnostics };
 }
 
 function parseClaudeMcp(
-  ctx: DiscoverContext,
   parseCtx: ExpandPluginVarsContext,
   raw: unknown,
   label: string,
 ): DiscoverMcpResult {
   const diagnostics: PluginDiagnostic[] = [];
   const components: PluginComponent[] = [];
-  const fragment: CursorMcpJson = { mcpServers: {} };
   const servers = isPlainObject(raw) && isPlainObject(raw.mcpServers) ? raw.mcpServers : undefined;
   if (servers === undefined) {
     return {
       components,
-      fragment,
       diagnostics: [entryWarning(label, '.mcp.json must contain an "mcpServers" object')],
     };
   }
@@ -185,7 +176,6 @@ function parseClaudeMcp(
     try {
       const spec = parseClaudeServer(key, value, parseCtx);
       components.push(nativeServerComponent(label, key, spec));
-      fragment.mcpServers[fragmentKey(ctx, key)] = specToEntry(spec);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
       const code = message.startsWith('path escapes plugin root')
@@ -200,11 +190,7 @@ function parseClaudeMcp(
       components.push(droppedServerComponent(label, key, value));
     }
   }
-  return { components, fragment, diagnostics };
-}
-
-function fragmentKey(ctx: DiscoverContext, key: string): string {
-  return `${ctx.pluginName}/${key}`;
+  return { components, diagnostics };
 }
 
 function serverWarning(label: string, key: string, message: string): PluginDiagnostic {
@@ -304,6 +290,10 @@ function parseUrlConfig(
     const headers: Record<string, string> = {};
     for (const [key, header] of Object.entries(value.headers)) {
       if (typeof header === 'string') {
+        if (header.includes('${user_config.')) {
+          // Спека §3: http headers вычисляются вне exec-биндера — reject при парсе.
+          throw new Error(`headers.${key}: ${'$'}{user_config.*} is not allowed`);
+        }
         headers[key] = header;
       }
     }
@@ -408,28 +398,6 @@ function droppedServerComponent(label: string, pointer: string, raw: unknown): P
     status: 'dropped',
   };
   return component;
-}
-
-function specToEntry(spec: McpServerSpec): StdioEntry | UrlEntry {
-  const config = spec.config;
-  if (config.type === 'stdio') {
-    const entry: StdioEntry = { command: config.command };
-    if (config.cwd !== undefined) {
-      entry.cwd = config.cwd;
-    }
-    if (config.args !== undefined) {
-      entry.args = config.args;
-    }
-    if (config.env !== undefined) {
-      entry.env = config.env;
-    }
-    return entry;
-  }
-  const entry: UrlEntry = { url: config.url, type: config.type === 'sse' ? 'sse' : 'http' };
-  if (config.headers !== undefined) {
-    entry.headers = config.headers;
-  }
-  return entry;
 }
 
 function escapeRegExp(value: string): string {

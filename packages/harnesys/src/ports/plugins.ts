@@ -1,6 +1,6 @@
+import type { UserConfigContentOptions } from '../application/plugins/user-config.ts';
 import type { PluginDiagnostic } from '../domain/plugin-diagnostics.ts';
 import type { PluginIr } from '../domain/plugin-ir.ts';
-import type { CursorMcpJson } from './mcp.ts';
 
 export type LoadPluginIrFromDirectoryOptions = {
   root: string;
@@ -9,7 +9,6 @@ export type LoadPluginIrFromDirectoryOptions = {
 
 export type LoadPluginIrResult = {
   ir: PluginIr;
-  mcpFragment: CursorMcpJson;
   diagnostics: PluginDiagnostic[];
 };
 
@@ -23,6 +22,7 @@ export type RunPluginHookCommandOptions = {
   command: string;
   timeoutMs: number;
   envExtra?: Record<string, string>;
+  userConfig?: UserConfigContentOptions;
 };
 
 export type RunPluginHookCommandOk = {

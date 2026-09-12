@@ -1,5 +1,6 @@
 import type { HookEffect, HookHandler, HookPayload } from '../../domain/hook.ts';
 import type { PluginDiagnostic, PluginDiagnosticCode } from '../../domain/plugin-diagnostics.ts';
+import type { UserConfigContentOptions } from '../plugins/user-config.ts';
 import type { HookRuntimeCtx } from './bus.ts';
 import { mapClaudeJsonFields, parseClaudeJsonObject, truncateHookString } from './claude-output.ts';
 import { defaultTimeoutS, runCommand, toStdinPayload } from './command-run.ts';
@@ -26,6 +27,8 @@ export type HookHandlerVars = {
   projectDir: string;
   registry?: HookProcessRegistry;
   signal?: AbortSignal;
+  /** Exec-подстановка `${user_config.*}` в command-хендлеры; составляют хост-биндеры. */
+  userConfig?: UserConfigContentOptions;
 };
 
 export type HookHandlerResult = { effects: HookEffect[]; diagnostics: PluginDiagnostic[] };

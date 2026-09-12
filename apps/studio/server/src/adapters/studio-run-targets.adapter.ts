@@ -1,6 +1,7 @@
 import { effectiveMode, resolveModeId } from '@harnesys/studio-shared';
 import type { AgentPacks, PackRegistration, RunTarget, RunTargets, RuntimeHandle } from 'harnesys';
 import { createPluginSessionStartNotes } from 'harnesys';
+import { pluginUserConfig } from '../application/plugins/plugin-user-config.ts';
 import { runModeFields } from '../application/threads/thread.helpers.ts';
 import { PLUGIN_HOOK_TIMEOUT_MS } from '../config/constants.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
@@ -82,6 +83,7 @@ export class StudioRunTargets implements RunTargets {
           // Session-start command hooks are process-class; grants replaced the
           // former trusted flag (full hook gating lands with the hook bus).
           trusted: record.grants[thread.workspaceId]?.process === true,
+          userConfig: pluginUserConfig(ir, record.options),
         })),
         timeoutMs: PLUGIN_HOOK_TIMEOUT_MS,
       }),

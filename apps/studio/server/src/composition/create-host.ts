@@ -7,6 +7,7 @@ import { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
 import { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
 import { createEpisodicOnCompacted } from '../application/memory/episodic-on-compacted.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
+import { pluginUserConfig, substituteLspSpec } from '../application/plugins/plugin-user-config.ts';
 import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { logger, toRuntimeLogger } from '../config/logger.ts';
@@ -83,6 +84,14 @@ export function createStudioHost(args: {
 
   const lspAdapter = new StudioLspAdapter({
     resolveServers: (cwd) => lspServersRef.current(cwd),
+    onDiagnostic: (diagnostic) => {
+      const message = `plugin lsp ${diagnostic.code}: ${diagnostic.message}`;
+      if (diagnostic.level === 'error') {
+        logger.error({ scope: 'lsp' }, message);
+      } else {
+        logger.warn({ scope: 'lsp' }, message);
+      }
+    },
     onSessionOpened: (cwd) => {
       if (watcherStops.has(cwd)) {
         return;
@@ -153,9 +162,23 @@ export function createStudioHost(args: {
       return [];
     }
     const loaded = await workspaceHarnesys.loadEnabledPlugins(workspace.id);
-    return loaded.flatMap((entry) =>
-      entry.ir.components.filter(isLspServerComponent).map(toLspSpec),
-    );
+    const servers: LspServerSpec[] = [];
+    for (const entry of loaded) {
+      // First-wins dedupe by extension (lsp_shadowed) happens in the adapter.
+      const userConfig = pluginUserConfig(entry.ir, entry.record.options);
+      for (const component of entry.ir.components.filter(isLspServerComponent)) {
+        const substituted = substituteLspSpec(component.spec, userConfig);
+        if ('message' in substituted) {
+          logger.warn(
+            { scope: 'lsp' },
+            `plugin lsp server "${component.spec.serverId}" dropped: ${substituted.message}`,
+          );
+          continue;
+        }
+        servers.push(substituted);
+      }
+    }
+    return servers;
   };
 
   const branchSeeder = new SeedBranchStateUseCase({
@@ -209,8 +232,4 @@ function isLspServerComponent(component: PluginComponent): component is LspServe
     'command' in component.spec &&
     'extensionToLanguage' in component.spec
   );
-}
-
-function toLspSpec(component: LspServerComponent): LspServerSpec {
-  return component.spec;
 }

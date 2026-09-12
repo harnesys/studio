@@ -6,7 +6,10 @@ import type { LspServerSpec } from 'harnesys';
 import type { LspDiagnostic, LspHover, LspLocation } from 'harnesys/lsp';
 import { LspDocuments } from './lsp-documents.ts';
 import { isRecord, normalizeHover, normalizeLocations, toDiagnostic } from './lsp-messages.ts';
-import { spawnServer } from './spawn-lsp-server.ts';
+import { lspServerRoot, spawnServer } from './spawn-lsp-server.ts';
+
+const DEFAULT_REQUEST_TIMEOUT_MS = 20_000;
+const DEFAULT_SHUTDOWN_TIMEOUT_MS = 5_000;
 
 type Pending = {
   resolve: (value: unknown) => void;
@@ -52,7 +55,7 @@ export class StdioLspSession {
   }
 
   static async start(config: LspServerSpec, workspaceRoot: string): Promise<StdioLspSession> {
-    const root = realpathSync(workspaceRoot);
+    const root = realpathSync(lspServerRoot(config, workspaceRoot));
     const proc = spawnServer(config, root);
     const session = new StdioLspSession(proc, config, root);
     await session.initialize();
@@ -131,8 +134,9 @@ export class StdioLspSession {
   }
 
   async dispose(): Promise<void> {
+    const shutdownTimeoutMs = this.config.shutdownTimeoutMs ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
     try {
-      await this.request('shutdown', null);
+      await this.request('shutdown', null, shutdownTimeoutMs);
       this.notifyMessage({ jsonrpc: '2.0', method: 'exit' });
     } catch {
       // ignore
@@ -170,23 +174,34 @@ export class StdioLspSession {
 
   private async initialize(): Promise<void> {
     const rootUri = pathToFileURL(this.workspaceRoot).href;
-    await this.request('initialize', {
-      processId: process.pid,
-      rootUri,
-      capabilities: {
-        textDocument: {
-          synchronization: { didSave: true },
-          hover: { contentFormat: ['markdown', 'plaintext'] },
-          definition: { linkSupport: true },
-          references: {},
-          publishDiagnostics: {},
+    await this.request(
+      'initialize',
+      {
+        processId: process.pid,
+        rootUri,
+        capabilities: {
+          textDocument: {
+            synchronization: { didSave: true },
+            hover: { contentFormat: ['markdown', 'plaintext'] },
+            definition: { linkSupport: true },
+            references: {},
+            publishDiagnostics: {},
+          },
+          workspace: { workspaceFolders: true },
         },
-        workspace: { workspaceFolders: true },
+        workspaceFolders: [{ uri: rootUri, name: 'workspace' }],
+        initializationOptions: this.config.initializationOptions ?? {},
       },
-      workspaceFolders: [{ uri: rootUri, name: 'workspace' }],
-      initializationOptions: {},
-    });
+      this.config.startupTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+    );
     this.notifyMessage({ jsonrpc: '2.0', method: 'initialized', params: {} });
+    if (this.config.settings !== undefined) {
+      this.notifyMessage({
+        jsonrpc: '2.0',
+        method: 'workspace/didChangeConfiguration',
+        params: { settings: this.config.settings },
+      });
+    }
     this.initialized = true;
   }
 
@@ -202,7 +217,7 @@ export class StdioLspSession {
     return abs;
   }
 
-  private request(method: string, params: unknown): Promise<unknown> {
+  private request(method: string, params: unknown, timeoutMs?: number): Promise<unknown> {
     const id = this.nextId;
     this.nextId += 1;
     return new Promise((resolvePromise, reject) => {
@@ -213,7 +228,7 @@ export class StdioLspSession {
           this.pending.delete(id);
           reject(new Error(`LSP timeout: ${method}`));
         }
-      }, 20_000);
+      }, timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
     });
   }
 

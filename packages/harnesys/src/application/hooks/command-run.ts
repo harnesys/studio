@@ -1,4 +1,6 @@
 import type { HookEventName, HookHandler, HookPayload } from '../../domain/hook.ts';
+import type { ConfigError, UserConfigContentOptions } from '../plugins/user-config.ts';
+import { substituteUserConfig } from '../plugins/user-config.ts';
 import type { HookRuntimeCtx } from './bus.ts';
 import { appendCapturedOutput, mapCommandExit } from './claude-output.ts';
 import type {
@@ -27,7 +29,20 @@ export async function runCommand(
   ctx: HookRuntimeCtx,
   vars: HookHandlerVars,
 ): Promise<HookHandlerResult> {
-  const argv = buildCommandArgv(h, vars);
+  const resolved = resolveCommandHandler(h, vars.userConfig);
+  if (resolved.handler === undefined) {
+    return {
+      effects: [],
+      diagnostics: [
+        {
+          level: 'warning',
+          code: 'invalid_command_form',
+          message: `user_config: ${resolved.error}`,
+        },
+      ],
+    };
+  }
+  const argv = buildCommandArgv(resolved.handler, vars);
   if (argv === undefined) {
     return {
       effects: [],
@@ -127,6 +142,58 @@ function buildCommandArgv(
     return undefined;
   }
   return tokens.map((token) => expandCommandPlaceholders(token, vars));
+}
+
+type CommandHandler = Extract<HookHandler, { type: 'command' }>;
+
+type ResolvedCommandHandler =
+  | { handler: CommandHandler; error?: undefined }
+  | { handler?: undefined; error: string };
+
+/** Exec-подстановка `${user_config.*}` в command/args/env; неразрешённая ссылка — отказ. */
+function resolveCommandHandler(
+  h: CommandHandler,
+  userConfig: UserConfigContentOptions | undefined,
+): ResolvedCommandHandler {
+  if (userConfig === undefined) {
+    return { handler: h };
+  }
+  const substitute = (value: string): string | ConfigError =>
+    substituteUserConfig(value, userConfig.values, userConfig.sensitiveKeys);
+  const command = substitute(h.command);
+  if (typeof command !== 'string') {
+    return { error: command.message };
+  }
+  let args: string[] | undefined;
+  if (h.args !== undefined) {
+    args = [];
+    for (const arg of h.args) {
+      const substituted = substitute(arg);
+      if (typeof substituted !== 'string') {
+        return { error: substituted.message };
+      }
+      args.push(substituted);
+    }
+  }
+  let env: Record<string, string> | undefined;
+  if (h.env !== undefined) {
+    env = {};
+    for (const [key, value] of Object.entries(h.env)) {
+      const substituted = substitute(value);
+      if (typeof substituted !== 'string') {
+        return { error: substituted.message };
+      }
+      env[key] = substituted;
+    }
+  }
+  return {
+    handler: {
+      ...h,
+      command,
+      ...(args !== undefined ? { args } : {}),
+      ...(env !== undefined ? { env } : {}),
+    },
+  };
 }
 
 function expandCommandPlaceholders(token: string, vars: HookHandlerVars): string {

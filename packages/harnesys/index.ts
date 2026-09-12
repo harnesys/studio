@@ -46,7 +46,11 @@ export {
 } from './src/application/llm.ts';
 export type { LlmNote, LlmNoteContext, LlmNoteProvider } from './src/application/llm-notes.ts';
 export type { ResolvedPack } from './src/application/packs/registry.ts';
-export { resolvePacks } from './src/application/packs/registry.ts';
+export {
+  applySettingDefaults,
+  type PackSettingDefaults,
+  resolvePacks,
+} from './src/application/packs/registry.ts';
 export type { PackCatalogEntry } from './src/application/packs/tool-names.ts';
 export { packCatalog, packTools } from './src/application/packs/tool-names.ts';
 export {
@@ -55,11 +59,21 @@ export {
   type CatalogAgentEntry,
 } from './src/application/plugins/bind-agents.ts';
 export {
+  bindMonitorComponents,
+  type MonitorExecContext,
+  type MonitorJobSpec,
+  type MonitorWhen,
+} from './src/application/plugins/bind-monitors.ts';
+export {
   bindSkillComponents,
   type SkillFileReader,
 } from './src/application/plugins/bind-skills.ts';
 export { runPluginHookCommand } from './src/application/plugins/hooks-runner.ts';
-export { mergePluginMcpFragments } from './src/application/plugins/merge-plugin-runtime.ts';
+export {
+  type MergedPluginMcp,
+  mergePluginMcpFragments,
+  type PluginMcpBinding,
+} from './src/application/plugins/merge-plugin-runtime.ts';
 export { prefixSkillRegistry } from './src/application/plugins/prefixed-skill-registry.ts';
 export type {
   CreatePluginSessionStartNotesOptions,
@@ -69,6 +83,14 @@ export {
   createPluginSessionStartNotes,
   parseSessionStartContext,
 } from './src/application/plugins/session-start-notes.ts';
+export {
+  type ConfigError,
+  substituteUserConfig,
+  substituteUserConfigContent,
+  type UserConfigContentOptions,
+  type UserConfigValue,
+  type UserConfigValues,
+} from './src/application/plugins/user-config.ts';
 export type { RunClaimer } from './src/application/run-claimer.ts';
 export { createRunClaimer } from './src/application/run-claimer.ts';
 export { createRunEngine } from './src/application/run-engine.ts';

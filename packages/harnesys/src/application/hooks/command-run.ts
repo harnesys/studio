@@ -58,14 +58,7 @@ export async function runCommand(
   const timeoutS = h.timeoutS ?? defaultTimeoutS(payload.event, 'command');
   let proc: Bun.Subprocess<'pipe', 'pipe', 'pipe'>;
   try {
-    proc = Bun.spawn(argv, {
-      cwd: vars.pluginRoot,
-      env: hookProcessEnv(ctx, vars, h.env),
-      stdout: 'pipe',
-      stderr: 'pipe',
-      stdin: 'pipe',
-      detached: true,
-    });
+    proc = spawnHookCommand(argv, { cwd: vars.pluginRoot, env: hookProcessEnv(ctx, vars, h.env) });
   } catch (error) {
     return {
       effects: [],
@@ -259,6 +252,38 @@ function tokenizeCommand(command: string): string[] | undefined {
     tokens.push(current);
   }
   return tokens;
+}
+
+type HookSpawnOptions = { cwd: string; env: Record<string, string> };
+
+/** Spawn argv; ENOEXEC/EACCES (полиглот без шебанга — канонический `.cmd` Claude) → повтор под bash — паритет шелл-исполнения Claude (спека §2.2). */
+function spawnHookCommand(
+  argv: string[],
+  options: HookSpawnOptions,
+): Bun.Subprocess<'pipe', 'pipe', 'pipe'> {
+  const base = {
+    ...options,
+    stdout: 'pipe' as const,
+    stderr: 'pipe' as const,
+    stdin: 'pipe' as const,
+    detached: true,
+  };
+  try {
+    return Bun.spawn(argv, base);
+  } catch (error) {
+    if (!isExecFormatError(error)) {
+      throw error;
+    }
+    return Bun.spawn(['bash', ...argv], base);
+  }
+}
+
+function isExecFormatError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const code = (error as NodeJS.ErrnoException).code;
+  return code === 'ENOEXEC' || code === 'EACCES' || error.message.startsWith('ENOEXEC');
 }
 
 /** Групповое убийство `kill(-pid, SIGKILL)`, при ESRCH фолбэк `kill(pid)` (спека §2.2 п.2). */

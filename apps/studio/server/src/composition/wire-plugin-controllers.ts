@@ -13,6 +13,7 @@ import { InstallPluginUseCase } from '../application/plugins/install-plugin.use-
 import { ListPluginsUseCase } from '../application/plugins/list-plugins.use-case.ts';
 import { RemovePluginUseCase } from '../application/plugins/remove-plugin.use-case.ts';
 import { SetGrantsUseCase } from '../application/plugins/set-grants.use-case.ts';
+import { SetPluginOptionUseCase } from '../application/plugins/set-plugin-option.use-case.ts';
 import {
   AddPluginRegistryUseCase,
   EnsureDefaultPluginRegistriesUseCase,
@@ -22,6 +23,7 @@ import {
   SyncPluginRegistryUseCase,
 } from '../application/plugins/sync-plugin-registry.use-case.ts';
 import { UpdatePluginUseCase } from '../application/plugins/update-plugin.use-case.ts';
+import type { SecretStore } from '../domain/secret-store.port.ts';
 
 export type WirePluginControllersDeps = {
   app: Hono;
@@ -31,6 +33,7 @@ export type WirePluginControllersDeps = {
   workspaceRepo: SqliteWorkspaceRepo;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   lsp: StudioLspAdapter;
+  secretStore?: SecretStore;
 };
 
 export function wirePluginControllers(d: WirePluginControllersDeps): void {
@@ -62,6 +65,7 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
     ),
     setGrants: new SetGrantsUseCase(d.pluginRepo, d.workspaceHarnesys),
     approveServer: new ApproveServerUseCase(d.pluginRepo, d.workspaceHarnesys),
+    setPluginOption: new SetPluginOptionUseCase(d.pluginRepo, d.workspaceHarnesys, d.secretStore),
     enableWorkspacePlugin: new EnableWorkspacePluginUseCase(
       d.pluginRepo,
       d.workspaceRepo,
@@ -78,7 +82,11 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
     addRegistry: addPluginRegistry,
     syncRegistry: syncPluginRegistry,
     removeRegistry: new RemovePluginRegistryUseCase(d.pluginRegistryRepo),
-    listCatalog: new ListPluginCatalogUseCase(d.pluginRegistryRepo, ensureDefaultPluginRegistries),
+    listCatalog: new ListPluginCatalogUseCase(
+      d.pluginRegistryRepo,
+      ensureDefaultPluginRegistries,
+      d.pluginRepo,
+    ),
   }).register(d.app);
 
   new LspBridgeController({

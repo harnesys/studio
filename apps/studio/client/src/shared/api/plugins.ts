@@ -5,7 +5,6 @@ import type {
   PluginMutationResponse,
   PluginSummary,
   RemovePluginRequest,
-  TrustPluginRequest,
 } from '@harnesys/studio-shared';
 import { queryOptions } from '@tanstack/react-query';
 
@@ -18,11 +17,6 @@ export type {
   PluginMutationResponse,
   PluginSummary,
   RemovePluginRequest,
-  TrustPluginRequest,
-};
-
-export type TrustPluginResponse = {
-  plugin: PluginSummary;
 };
 
 export type EnableWorkspacePluginResponse = {
@@ -52,13 +46,6 @@ export function installPlugin(body: InstallPluginRequest) {
 
 export function updatePlugin(name: string, body: { ref?: string } = {}) {
   return apiJson<PluginMutationResponse>(`/api/plugins/${encodeURIComponent(name)}/update`, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export function trustPlugin(name: string, body: TrustPluginRequest) {
-  return apiJson<TrustPluginResponse>(`/api/plugins/${encodeURIComponent(name)}/trust`, {
     method: 'POST',
     body: JSON.stringify(body),
   });

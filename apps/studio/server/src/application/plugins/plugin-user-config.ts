@@ -9,7 +9,9 @@ import type { PluginOptionValue } from '../../domain/plugin.port.ts';
 
 type ConfigOptionComponent = PluginComponent & { spec: ConfigOptionSpec };
 
-function isConfigOptionComponent(component: PluginComponent): component is ConfigOptionComponent {
+export function isConfigOptionComponent(
+  component: PluginComponent,
+): component is ConfigOptionComponent {
   return component.kind === 'config-option' && 'title' in component.spec;
 }
 

@@ -90,9 +90,6 @@ export {
   pluginsQueryKey,
   type RemovePluginRequest,
   removePlugin,
-  type TrustPluginRequest,
-  type TrustPluginResponse,
-  trustPlugin,
   updatePlugin,
 } from './plugins';
 export {

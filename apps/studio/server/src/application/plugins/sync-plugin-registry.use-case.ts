@@ -17,11 +17,13 @@ import {
 } from '../../adapters/plugin-git.adapter.ts';
 import { marketplaceInstallPath } from '../../adapters/store/studio-layout.ts';
 import { DEFAULT_PLUGIN_REGISTRY_SOURCE } from '../../config/constants.ts';
+import type { PluginRepository } from '../../domain/plugin.port.ts';
 import type {
   PluginRegistryRecord,
   PluginRegistryRepository,
 } from '../../domain/plugin-registry.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { decorateCatalogEntries } from './catalog-entry-status.ts';
 
 export type SyncPluginRegistryInput = {
   execute(registryId: string): Promise<PluginRegistryRecord>;
@@ -191,11 +193,12 @@ export class ListPluginCatalogUseCase implements ListPluginCatalogInput {
   constructor(
     private readonly registries: PluginRegistryRepository,
     private readonly ensureDefault: EnsureDefaultPluginRegistriesInput,
+    private readonly plugins: PluginRepository,
   ) {}
 
   async execute(filter: { registryId?: string; q?: string } = {}) {
     await this.ensureDefault.execute();
-    return this.registries.listCatalog(filter);
+    return decorateCatalogEntries(await this.registries.listCatalog(filter), this.plugins);
   }
 }
 

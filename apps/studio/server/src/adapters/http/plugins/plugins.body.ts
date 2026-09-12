@@ -13,3 +13,7 @@ export const removePluginBody = z.object({
 export const updatePluginBody = z.object({
   ref: z.string().trim().min(1).optional(),
 });
+
+export const approveServerBody = z.object({
+  serverId: z.string().trim().min(1),
+});

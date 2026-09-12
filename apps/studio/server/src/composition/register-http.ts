@@ -41,6 +41,7 @@ export function registerStudioHttp(args: {
     attachments: platform.attachments,
     workspaceHarnesys: host.workspaceHarnesys,
     lsp: host.lsp,
+    secretStore: host.secretStore,
     threadRegistry: host.threadRegistry,
     runtimeStateRepo: host.runtimeStateRepo,
     lifecycle: runtime.runLifecycle,

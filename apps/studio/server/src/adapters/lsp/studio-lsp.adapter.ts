@@ -159,7 +159,7 @@ export class StudioLspAdapter implements LspPort {
     const servers = await this.effectiveServers(cwd);
     if (servers.byExtension.size === 0) {
       throw new Error(
-        'No LSP servers configured. Enable a workspace plugin that declares lspServers (e.g. typescript-lsp) and trust it.',
+        'No LSP servers configured. Enable a workspace plugin that declares lspServers (e.g. typescript-lsp) and grant it the process class.',
       );
     }
     const ext = extname(filePath);

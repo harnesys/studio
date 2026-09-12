@@ -5,7 +5,6 @@ export const installPluginFieldsSchema = z.object({
   source: z.string().trim().min(1, 'Source required'),
   path: z.string().trim(),
   ref: z.string().trim(),
-  trust: z.boolean(),
 });
 
 export type InstallPluginFieldsInput = z.input<typeof installPluginFieldsSchema>;
@@ -16,7 +15,6 @@ export function emptyInstallPluginFields(): InstallPluginFieldsInput {
     source: '',
     path: '',
     ref: '',
-    trust: false,
   };
 }
 
@@ -25,7 +23,6 @@ export function toInstallPluginRequest(values: InstallPluginFieldsOutput): Insta
     source: values.source,
     ...(values.path ? { path: values.path } : {}),
     ...(values.ref ? { ref: values.ref } : {}),
-    ...(values.trust ? { trust: true } : {}),
   };
 }
 

@@ -2,31 +2,68 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { PluginLoadDiagnostic } from '@harnesys/studio-shared';
-import { findMarketplaceManifest } from 'harnesys/plugins-catalog';
+import type { CatalogEntry, CatalogRenames } from 'harnesys/plugins-catalog';
+import { findMarketplaceManifest, parseClaudeMarketplace } from 'harnesys/plugins-catalog';
+import type { PluginRegistryRepository } from '../../domain/plugin-registry.port.ts';
+
+/** Component-definition fields a marketplace entry may declare under `strict: false`. */
+type MaterializeComponentField =
+  | 'skills'
+  | 'commands'
+  | 'agents'
+  | 'hooks'
+  | 'mcpServers'
+  | 'lspServers';
+
+const COMPONENT_FIELDS: MaterializeComponentField[] = [
+  'skills',
+  'commands',
+  'agents',
+  'hooks',
+  'mcpServers',
+  'lspServers',
+];
+
+const RENAMES_CHAIN_MAX = 10;
 
 export type CatalogPluginMaterializeMeta = {
   name: string;
   description?: string;
   version?: string;
-  lspServers?: Record<string, unknown>;
+  strict?: boolean;
+  components?: Partial<Record<MaterializeComponentField, unknown>>;
+};
+
+export type CatalogPluginMaterializeResult = {
+  materialized: boolean;
+  wroteLspServers: boolean;
+  replacedByEntry: boolean;
 };
 
 /**
- * Claude `strict: false` entries (e.g. typescript-lsp) keep identity/components in
- * marketplace.json; the relative path may only contain LICENSE/README. Synthesize or
- * enrich `.claude-plugin/plugin.json` (including lspServers) from the catalog entry.
+ * Claude `strict: true` entries with a missing layout (or missing lspServers) get
+ * the manifest synthesized/enriched from the catalog entry.
+ *
+ * Claude `strict: false` entries (e.g. typescript-lsp) keep identity and components
+ * in marketplace.json — the entry is the entire definition. The manifest is rebuilt
+ * from entry fields; plugin.json component declarations are dropped (Claude treats
+ * them as a conflict, the entry wins).
  */
 export async function materializeCatalogPluginIfNeeded(
   checkout: string,
   meta: CatalogPluginMaterializeMeta,
-): Promise<{ materialized: boolean; wroteLspServers: boolean }> {
+): Promise<CatalogPluginMaterializeResult> {
+  if (meta.strict === false) {
+    return replaceManifestFromEntry(checkout, meta);
+  }
+
   const manifestPath = join(checkout, '.claude-plugin', 'plugin.json');
   const hasLayout = hasRecognizedPluginLayout(checkout);
   const existing = hasLayout && existsSync(manifestPath) ? readJsonObject(manifestPath) : undefined;
-  const needsLsp =
-    meta.lspServers !== undefined && (existing === undefined || !isRecord(existing.lspServers));
+  const lsp = meta.components?.lspServers;
+  const needsLsp = lsp !== undefined && (existing === undefined || !isRecord(existing.lspServers));
   if (hasLayout && !needsLsp) {
-    return { materialized: false, wroteLspServers: false };
+    return { materialized: false, wroteLspServers: false, replacedByEntry: false };
   }
 
   const dir = join(checkout, '.claude-plugin');
@@ -41,13 +78,48 @@ export async function materializeCatalogPluginIfNeeded(
   if (meta.version) {
     manifest.version = meta.version;
   }
-  if (meta.lspServers) {
-    manifest.lspServers = meta.lspServers;
+  if (lsp !== undefined) {
+    manifest.lspServers = lsp;
   }
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   return {
     materialized: !hasLayout,
-    wroteLspServers: Boolean(meta.lspServers),
+    wroteLspServers: lsp !== undefined,
+    replacedByEntry: false,
+  };
+}
+
+async function replaceManifestFromEntry(
+  checkout: string,
+  meta: CatalogPluginMaterializeMeta,
+): Promise<CatalogPluginMaterializeResult> {
+  const manifestPath = join(checkout, '.claude-plugin', 'plugin.json');
+  const hasLayout = hasRecognizedPluginLayout(checkout);
+  const existing = hasLayout && existsSync(manifestPath) ? readJsonObject(manifestPath) : undefined;
+
+  const manifest: Record<string, unknown> = { name: meta.name };
+  if (meta.description) {
+    manifest.description = meta.description;
+  }
+  if (meta.version) {
+    manifest.version = meta.version;
+  }
+  for (const field of COMPONENT_FIELDS) {
+    const value = meta.components?.[field];
+    if (value !== undefined) {
+      manifest[field] = value;
+    }
+  }
+
+  if (existing && stableStringify(existing) === stableStringify(manifest)) {
+    return { materialized: false, wroteLspServers: false, replacedByEntry: false };
+  }
+  await mkdir(join(checkout, '.claude-plugin'), { recursive: true });
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  return {
+    materialized: !hasLayout,
+    wroteLspServers: meta.components?.lspServers !== undefined,
+    replacedByEntry: hasLayout,
   };
 }
 
@@ -66,6 +138,14 @@ export async function prepareCatalogCheckout(
       code: 'catalog_manifest_materialized',
       message:
         'Plugin directory had no plugin.json; synthesized .claude-plugin/plugin.json from marketplace entry (Claude strict:false).',
+      path: checkout,
+    });
+  } else if (materialize.replacedByEntry) {
+    diagnostics.push({
+      level: 'warning',
+      code: 'catalog_manifest_replaced_by_entry',
+      message:
+        'Marketplace entry strict:false is the plugin definition; .claude-plugin/plugin.json was rebuilt from entry fields.',
       path: checkout,
     });
   }
@@ -91,11 +171,13 @@ export function readMarketplacePluginMeta(
       }
       const description = asString(item.description);
       const version = asString(item.version);
+      const components = readEntryComponents(item);
       return {
         name: pluginName,
+        ...(item.strict === false ? { strict: false } : {}),
         ...(description ? { description } : {}),
         ...(version ? { version } : {}),
-        ...(isRecord(item.lspServers) ? { lspServers: item.lspServers } : {}),
+        ...(components ? { components } : {}),
       };
     }
   } catch {
@@ -104,11 +186,126 @@ export function readMarketplacePluginMeta(
   return { name: pluginName };
 }
 
+function readEntryComponents(
+  entry: Record<string, unknown>,
+): Partial<Record<MaterializeComponentField, unknown>> | undefined {
+  const components: Partial<Record<MaterializeComponentField, unknown>> = {};
+  for (const field of COMPONENT_FIELDS) {
+    const value = entry[field];
+    if (value !== undefined && value !== null) {
+      components[field] = value;
+    }
+  }
+  return Object.keys(components).length > 0 ? components : undefined;
+}
+
+/**
+ * Catalog entry lookup with `renames` fallback: when `pluginName` is missing from
+ * the catalog, follow the marketplace `renames` map (former name → current name;
+ * `null` marks removal) up to `renames` chain length guard.
+ */
+export function findCatalogEntryWithRenames(
+  registries: PluginRegistryRepository,
+  registryId: string,
+  pluginName: string,
+): CatalogEntry | undefined {
+  const direct = registries.findCatalogEntry(registryId, pluginName);
+  if (direct) {
+    return direct;
+  }
+  const registry = registries.findById(registryId);
+  if (!registry) {
+    return undefined;
+  }
+  const renames = readMarketplaceRenames(registry.path);
+  if (!renames) {
+    return undefined;
+  }
+  let current = pluginName;
+  for (let hop = 0; hop < RENAMES_CHAIN_MAX; hop += 1) {
+    const next = renames[current];
+    if (next === undefined || next === null) {
+      return undefined;
+    }
+    current = next;
+    const entry = registries.findCatalogEntry(registryId, current);
+    if (entry) {
+      return entry;
+    }
+  }
+  return undefined;
+}
+
+function readMarketplaceRenames(marketplaceRoot: string): CatalogRenames | undefined {
+  const location = findMarketplaceManifest(marketplaceRoot);
+  if (!location) {
+    return undefined;
+  }
+  try {
+    const raw: unknown = JSON.parse(readFileSync(location.manifestPath, 'utf8'));
+    return parseClaudeMarketplace(raw, { rootHint: location.root }).renames;
+  } catch {
+    return undefined;
+  }
+}
+
+export type CatalogVersionInput = {
+  entry: CatalogEntry;
+  manifestVersion?: string;
+  /** Git sha of the marketplace checkout; applies to git-backed sources. */
+  registryRevision?: string;
+  /** Content revision of the materialized source: npm package version or archive digest(12). */
+  sourceRevision?: string;
+};
+
+/**
+ * Version precedence: manifest > entry > git sha (git-backed sources) >
+ * archive sha256(12) / npm package version > 'unknown'.
+ */
+export function resolveCatalogEntryVersion(input: CatalogVersionInput): string {
+  if (input.manifestVersion) {
+    return input.manifestVersion;
+  }
+  if (input.entry.version) {
+    return input.entry.version;
+  }
+  const source = input.entry.installSource;
+  const gitBacked =
+    source === undefined ||
+    source.type === 'relative' ||
+    source.type === 'github' ||
+    source.type === 'url' ||
+    source.type === 'git-subdir';
+  if (gitBacked && input.registryRevision) {
+    return input.registryRevision;
+  }
+  if (source?.type === 'archive' && source.sha256) {
+    return source.sha256.slice(0, 12);
+  }
+  if (input.sourceRevision) {
+    return input.sourceRevision;
+  }
+  return 'unknown';
+}
+
 function hasRecognizedPluginLayout(checkout: string): boolean {
   return (
     existsSync(join(checkout, 'plugin.json')) ||
     existsSync(join(checkout, '.claude-plugin', 'plugin.json'))
   );
+}
+
+/** `version` from `.claude-plugin/plugin.json` (or root plugin.json) of a checkout. */
+export function readPluginManifestVersion(checkout: string): string | undefined {
+  const nested = join(checkout, '.claude-plugin', 'plugin.json');
+  const root = join(checkout, 'plugin.json');
+  let manifest: Record<string, unknown> | undefined;
+  if (existsSync(nested)) {
+    manifest = readJsonObject(nested);
+  } else if (existsSync(root)) {
+    manifest = readJsonObject(root);
+  }
+  return asString(manifest?.version);
 }
 
 function readJsonObject(filePath: string): Record<string, unknown> | undefined {
@@ -122,6 +319,18 @@ function readJsonObject(filePath: string): Record<string, unknown> | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Key-order-insensitive JSON comparison for manifest equality. */
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+  if (isRecord(value)) {
+    const keys = Object.keys(value).sort();
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
 }
 
 function asString(value: unknown): string | undefined {

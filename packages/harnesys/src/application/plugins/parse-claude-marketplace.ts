@@ -1,6 +1,7 @@
 import type {
   CatalogEntry,
   CatalogInstallSource,
+  CatalogRenames,
   ParsedMarketplace,
 } from '../../domain/plugin-catalog.ts';
 
@@ -34,11 +35,40 @@ export function parseClaudeMarketplace(
     }
   }
   const description = asNonEmptyString(raw.description);
+  const renames = parseRenames(raw.renames);
   return {
     name,
     ...(description ? { description } : {}),
+    ...(renames ? { renames } : {}),
     entries,
   };
+}
+
+/**
+ * `renames` maps a former plugin name to its current name, or to `null` when the
+ * plugin was removed. Entries with empty names or non-string/non-null targets
+ * are skipped; an empty or absent map yields `undefined`.
+ */
+function parseRenames(value: unknown): CatalogRenames | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const renames: CatalogRenames = {};
+  for (const [from, to] of Object.entries(value)) {
+    const former = from.trim();
+    if (!former) {
+      continue;
+    }
+    if (to === null) {
+      renames[former] = null;
+      continue;
+    }
+    const current = typeof to === 'string' ? to.trim() : '';
+    if (current) {
+      renames[former] = current;
+    }
+  }
+  return Object.keys(renames).length > 0 ? renames : undefined;
 }
 
 function resolvePluginRoot(raw: Record<string, unknown>): string | undefined {
@@ -190,6 +220,40 @@ function mapSource(source: unknown, pluginRoot: string | undefined): MapSourceRe
         ...(sha ? { sha } : {}),
       },
     };
+  }
+
+  if (kind === 'npm') {
+    const pkg = asNonEmptyString(source.package);
+    if (!pkg) {
+      return { ok: false, reason: 'npm source missing package' };
+    }
+    const version = asNonEmptyString(source.version);
+    const registry = asNonEmptyString(source.registry);
+    return {
+      ok: true,
+      source: {
+        type: 'npm',
+        package: pkg,
+        ...(version ? { version } : {}),
+        ...(registry ? { registry } : {}),
+      },
+    };
+  }
+
+  if (kind === 'archive') {
+    const url = asNonEmptyString(source.url);
+    if (!url) {
+      return { ok: false, reason: 'archive source missing url' };
+    }
+    const sha256 = asNonEmptyString(source.sha256);
+    return {
+      ok: true,
+      source: { type: 'archive', url, ...(sha256 ? { sha256 } : {}) },
+    };
+  }
+
+  if (kind === 'command') {
+    return { ok: false, reason: 'source_unsupported' };
   }
 
   return { ok: false, reason: `unsupported source type: ${kind}` };

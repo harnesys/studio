@@ -9,6 +9,7 @@ export {
 export type {
   CatalogEntry,
   CatalogInstallSource,
+  CatalogRenames,
   ParsedMarketplace,
   RegistryKind,
 } from './src/domain/plugin-catalog.ts';

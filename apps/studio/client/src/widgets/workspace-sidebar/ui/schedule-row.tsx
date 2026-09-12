@@ -80,7 +80,7 @@ export function ScheduleRow({
             <Button
               variant="ghost"
               size="icon-xs"
-              className="absolute top-1 right-0.5 opacity-0 group-hover/auto:opacity-100 group-data-[collapsible=icon]:hidden"
+              className="absolute top-1 right-1 opacity-0 group-hover/auto:opacity-100 group-data-[collapsible=icon]:hidden"
             />
           }
           onClick={(event) => event.stopPropagation()}

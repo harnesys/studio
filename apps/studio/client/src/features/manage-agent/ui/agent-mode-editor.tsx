@@ -58,7 +58,7 @@ export function AgentModeEditor({
 
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid="agent-mode-editor">
-      <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+      <div className="flex items-center justify-between gap-3 py-2">
         <span className="min-w-0">
           <span className="block text-sm">Make Default</span>
           <span className="block text-[11px] text-muted-foreground">
@@ -201,3 +201,5 @@ function Checklist({
 function isGate(value: string): value is ModeOpGate {
   return value === 'allow' || value === 'ask' || value === 'deny';
 }
+
+export { Checklist as ModeChecklist };

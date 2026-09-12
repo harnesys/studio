@@ -68,9 +68,9 @@ export function ConfigEntityCard({
   return (
     <div
       className={cn(
-        'relative flex flex-col rounded-lg border bg-card/40',
+        'relative flex flex-col rounded-lg border bg-card/30',
         'transition-colors hover:border-border hover:bg-muted/40',
-        expanded && 'border-border bg-muted/30',
+        expanded && 'border-border bg-muted/40',
       )}
     >
       <div className="flex items-start gap-3 px-3 py-2.5">
@@ -85,9 +85,7 @@ export function ConfigEntityCard({
         ) : (
           <div className="flex min-w-0 flex-1 items-start gap-3">{body}</div>
         )}
-        {trailing ? (
-          <div className="flex shrink-0 items-center gap-1 pt-0.5">{trailing}</div>
-        ) : null}
+        {trailing ? <div className="flex shrink-0 items-center gap-1">{trailing}</div> : null}
       </div>
       {expanded && children ? (
         <div className="border-border/60 border-t px-3 py-2.5">{children}</div>

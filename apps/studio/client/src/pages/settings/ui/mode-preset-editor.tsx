@@ -1,14 +1,15 @@
 import type { ModeOpGate, ModePreset } from '@harnesys/studio-shared';
 import { MODE_ID_RE } from '@harnesys/studio-shared';
 import { useState } from 'react';
-import type { DialogComponentProps } from '@/shared/services/overlay';
+
+import { ModeChecklist } from '@/features/manage-agent';
 import { Button } from '@/shared/ui/button';
-import { DialogFooter } from '@/shared/ui/dialog';
 import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Switch } from '@/shared/ui/switch';
 import { Textarea } from '@/shared/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
+
 import type { ModePresetDraft } from './mode-preset-draft';
 
 type PresetGateName = 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp';
@@ -18,8 +19,8 @@ type PresetFormState = {
   name: string;
   description: string;
   instructions: string;
-  skillsCsv: string;
-  packsCsv: string;
+  skills: string[];
+  packs: string[];
   permWrite: ModeOpGate;
   permProcess: ModeOpGate;
   permNetwork: ModeOpGate;
@@ -35,7 +36,6 @@ const GATES: { name: PresetGateName; label: string }[] = [
 ];
 
 const FALLBACK_GATE: ModeOpGate = 'ask';
-
 const DESCRIPTION_MAX = 200;
 const INSTRUCTIONS_MAX = 6000;
 
@@ -45,8 +45,8 @@ function presetToForm(preset: ModePreset): PresetFormState {
     name: preset.name,
     description: preset.description ?? '',
     instructions: preset.instructions ?? '',
-    skillsCsv: (preset.skills ?? []).join(', '),
-    packsCsv: (preset.packs ?? []).join(', '),
+    skills: [...(preset.skills ?? [])],
+    packs: [...(preset.packs ?? [])],
     permWrite: preset.permissions?.['fs.write'] ?? FALLBACK_GATE,
     permProcess: preset.permissions?.process ?? FALLBACK_GATE,
     permNetwork: preset.permissions?.network ?? FALLBACK_GATE,
@@ -55,32 +55,21 @@ function presetToForm(preset: ModePreset): PresetFormState {
   };
 }
 
-function blankForm(): PresetFormState {
-  return {
-    id: '',
-    name: '',
-    description: '',
-    instructions: '',
-    skillsCsv: '',
-    packsCsv: '',
-    permWrite: FALLBACK_GATE,
-    permProcess: FALLBACK_GATE,
-    permNetwork: FALLBACK_GATE,
-    permMcp: FALLBACK_GATE,
-    installedByDefault: false,
-  };
-}
-
-function splitCsv(value: string): string[] {
-  return value
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
+const BLANK_FORM: PresetFormState = {
+  id: '',
+  name: '',
+  description: '',
+  instructions: '',
+  skills: [],
+  packs: [],
+  permWrite: FALLBACK_GATE,
+  permProcess: FALLBACK_GATE,
+  permNetwork: FALLBACK_GATE,
+  permMcp: FALLBACK_GATE,
+  installedByDefault: false,
+};
 
 function formToDraft(state: PresetFormState): ModePresetDraft {
-  const skills = splitCsv(state.skillsCsv);
-  const packs = splitCsv(state.packsCsv);
   const description = state.description.trim();
   const instructions = state.instructions.trim();
   return {
@@ -88,8 +77,8 @@ function formToDraft(state: PresetFormState): ModePresetDraft {
     name: state.name.trim(),
     ...(description ? { description } : {}),
     ...(instructions ? { instructions } : {}),
-    ...(skills.length ? { skills } : {}),
-    ...(packs.length ? { packs } : {}),
+    ...(state.skills.length ? { skills: state.skills } : {}),
+    ...(state.packs.length ? { packs: state.packs } : {}),
     permissions: {
       'fs.write': state.permWrite,
       process: state.permProcess,
@@ -104,14 +93,31 @@ function isGate(value: string): value is ModeOpGate {
   return value === 'allow' || value === 'ask' || value === 'deny';
 }
 
-type ModePresetDialogProps = DialogComponentProps<ModePresetDraft, { preset: ModePreset }>;
+function mergeNames(available: string[], selected: string[]): string[] {
+  return [...selected, ...available.filter((name) => !selected.includes(name))];
+}
 
-export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
-  const preset = data?.preset ?? null;
+type ModePresetEditorProps = {
+  preset: ModePreset | null;
+  skillNames: string[];
+  packNames: string[];
+  busy?: boolean;
+  onSave: (draft: ModePresetDraft) => void;
+  onCancel: () => void;
+};
+
+export function ModePresetEditor({
+  preset,
+  skillNames,
+  packNames,
+  busy = false,
+  onSave,
+  onCancel,
+}: ModePresetEditorProps) {
   const contentLocked = preset?.builtin === true;
   const idLocked = preset !== null;
   const [state, setState] = useState<PresetFormState>(() =>
-    preset ? presetToForm(preset) : blankForm(),
+    preset ? presetToForm(preset) : BLANK_FORM,
   );
   const idValid = MODE_ID_RE.test(state.id.trim());
   const descriptionOver = state.description.trim().length > DESCRIPTION_MAX;
@@ -123,11 +129,36 @@ export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
     setState((current) => ({ ...current, ...next }));
   }
 
+  function toggleIn(list: 'skills' | 'packs', name: string) {
+    setState((current) => {
+      const selected = current[list];
+      return {
+        ...current,
+        [list]: selected.includes(name)
+          ? selected.filter((item) => item !== name)
+          : [...selected, name],
+      };
+    });
+  }
+
   return (
-    <div className="flex min-h-0 flex-col gap-4">
-      <FieldGroup className="min-h-0 gap-3 overflow-y-auto">
+    <div className="flex min-w-0 flex-col gap-3" data-testid="mode-preset-editor">
+      <div className="flex items-center justify-between gap-3 py-2">
+        <span className="min-w-0">
+          <span className="block text-sm">Install by default</span>
+          <span className="block text-[11px] text-muted-foreground">
+            Adds this preset to new agents out of the box.
+          </span>
+        </span>
+        <Switch
+          checked={state.installedByDefault}
+          onCheckedChange={(checked) => patch({ installedByDefault: Boolean(checked) })}
+          aria-label={`Install by default: ${state.name.trim() || state.id.trim() || 'new preset'}`}
+        />
+      </div>
+      <FieldGroup className="gap-3">
         <div className="grid grid-cols-2 gap-3">
-          <Field data-invalid={!idLocked && !idValid ? true : undefined}>
+          <Field>
             <FieldLabel htmlFor="mode-preset-name">Name</FieldLabel>
             <Input
               id="mode-preset-name"
@@ -177,26 +208,22 @@ export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
           ) : null}
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field>
-            <FieldLabel htmlFor="mode-preset-skills">Skills</FieldLabel>
-            <Input
-              id="mode-preset-skills"
-              placeholder="comma, separated, names"
-              value={state.skillsCsv}
-              disabled={contentLocked}
-              onChange={(event) => patch({ skillsCsv: event.target.value })}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="mode-preset-packs">Packs</FieldLabel>
-            <Input
-              id="mode-preset-packs"
-              placeholder="comma, separated, names"
-              value={state.packsCsv}
-              disabled={contentLocked}
-              onChange={(event) => patch({ packsCsv: event.target.value })}
-            />
-          </Field>
+          <ModeChecklist
+            title="Skills"
+            emptyHint={skillNames.length === 0 ? 'No skills in `.harnesys/skills`.' : null}
+            items={mergeNames(skillNames, state.skills)}
+            selected={state.skills}
+            outsideAllowlist={(name) => !skillNames.includes(name)}
+            onToggle={(name) => toggleIn('skills', name)}
+          />
+          <ModeChecklist
+            title="Packs"
+            emptyHint={packNames.length === 0 ? 'No packs available in this workspace.' : null}
+            items={mergeNames(packNames, state.packs)}
+            selected={state.packs}
+            outsideAllowlist={(name) => !packNames.includes(name)}
+            onToggle={(name) => toggleIn('packs', name)}
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           {GATES.map((gate) => (
@@ -208,10 +235,9 @@ export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
                 disabled={contentLocked}
                 onValueChange={(value) => {
                   const next = value[0];
-                  if (!isGate(next)) {
-                    return;
+                  if (isGate(next)) {
+                    patch({ [gate.name]: next });
                   }
-                  setState((current) => ({ ...current, [gate.name]: next }));
                 }}
               >
                 <ToggleGroupItem value="allow">Allow</ToggleGroupItem>
@@ -227,22 +253,14 @@ export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
           </p>
         ) : null}
       </FieldGroup>
-      <div className="flex items-center gap-2">
-        <Switch
-          size="sm"
-          checked={state.installedByDefault}
-          onCheckedChange={(checked) => patch({ installedByDefault: Boolean(checked) })}
-        />
-        <span className="text-sm">Install by default</span>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={() => onResolve?.()}>
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onCancel}>
           Cancel
         </Button>
-        <Button disabled={!canSave} onClick={() => onResolve?.(formToDraft(state))}>
+        <Button size="sm" disabled={!canSave || busy} onClick={() => onSave(formToDraft(state))}>
           {preset ? 'Save' : 'Create preset'}
         </Button>
-      </DialogFooter>
+      </div>
     </div>
   );
 }

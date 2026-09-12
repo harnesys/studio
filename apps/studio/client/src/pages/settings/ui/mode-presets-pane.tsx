@@ -1,8 +1,8 @@
-import type { ModeOp, ModeOpGate } from '@harnesys/studio-shared';
-import { MODE_OPS } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CopyIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { useState } from 'react';
 
+import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
 import {
   createModePreset,
   deleteModePreset,
@@ -11,31 +11,17 @@ import {
   modePresetsQuery,
   modePresetsQueryKey,
   updateModePreset,
+  workspaceCapabilitiesQuery,
+  workspaceSkillsQuery,
 } from '@/shared/api';
-import { alert, dialog } from '@/shared/services/overlay';
-import { Badge } from '@/shared/ui/badge';
+import { useStudioLocation } from '@/shared/config/location';
+import { alert } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
-import { Switch } from '@/shared/ui/switch';
 import { toast } from '@/shared/ui/toast';
 
-import { ModePresetDialog } from './mode-preset-dialog';
 import type { ModePresetDraft } from './mode-preset-draft';
-
-const OP_LABELS: Record<ModeOp, string> = {
-  'fs.write': 'writes',
-  process: 'shell',
-  network: 'network',
-  mcp: 'mcp',
-};
-
-const GATE_VARIANTS: Record<ModeOpGate, 'secondary' | 'outline' | 'destructive'> = {
-  allow: 'secondary',
-  ask: 'outline',
-  deny: 'destructive',
-};
-
-const FALLBACK_GATE: ModeOpGate = 'ask';
+import { ModePresetEditor } from './mode-preset-editor';
 
 function contentPatch(draft: ModePresetDraft): ModePresetPatch {
   return {
@@ -49,31 +35,32 @@ function contentPatch(draft: ModePresetDraft): ModePresetPatch {
   };
 }
 
+type PresetEditing =
+  | { kind: 'edit'; preset: ModePresetRecord }
+  | { kind: 'draft'; preset: ModePresetRecord | null };
+
 export function ModePresetsPane() {
+  const { workspaceId } = useStudioLocation();
   const queryClient = useQueryClient();
   const presetsQuery = useQuery(modePresetsQuery);
   const presets = presetsQuery.data ?? [];
-
-  function replaceInCache(updated: ModePresetRecord) {
-    queryClient.setQueryData<ModePresetRecord[]>(modePresetsQueryKey, (current) =>
-      (current ?? []).map((preset) => (preset.id === updated.id ? updated : preset)),
-    );
-  }
+  const [editing, setEditing] = useState<PresetEditing | null>(null);
+  const skillsQuery = useQuery({
+    ...workspaceSkillsQuery(workspaceId ?? ''),
+    enabled: Boolean(workspaceId),
+  });
+  const packsQuery = useQuery({
+    ...workspaceCapabilitiesQuery(workspaceId ?? ''),
+    enabled: Boolean(workspaceId),
+  });
+  const skillNames = (skillsQuery.data?.skills ?? []).map((skill) => skill.name);
+  const packNames = (packsQuery.data?.capabilities ?? [])
+    .filter((pack) => !pack.name.endsWith('-memory'))
+    .map((pack) => pack.name);
 
   async function refreshCache() {
     await queryClient.invalidateQueries({ queryKey: modePresetsQueryKey });
   }
-
-  const setInstalled = useMutation({
-    mutationFn: (input: { id: string; installedByDefault: boolean }) =>
-      updateModePreset(input.id, { installedByDefault: input.installedByDefault }),
-    onSuccess: replaceInCache,
-    onError: (error) => {
-      toast.add({
-        title: error instanceof Error ? error.message : 'Could not update preset',
-      });
-    },
-  });
 
   const create = useMutation({
     mutationFn: (draft: ModePresetDraft) => createModePreset({ ...draft }),
@@ -120,49 +107,28 @@ export function ModePresetsPane() {
     },
   });
 
-  function openCreate() {
-    void dialog
-      .open(ModePresetDialog, {
-        title: 'New mode preset',
-        className: 'sm:max-w-lg',
-        testId: 'mode-preset-dialog',
+  function confirmRemove(preset: ModePresetRecord) {
+    void alert
+      .confirm({
+        title: `Delete ${preset.name}?`,
+        description: 'Agents keep their installed copies.',
+        confirmText: 'Delete',
+        variant: 'destructive',
       })
-      .then((draft) => {
-        if (draft) {
-          create.mutate(draft);
+      .then((confirmed) => {
+        if (confirmed) {
+          remove.mutate(preset.id);
         }
       });
   }
 
-  function openDuplicate(preset: ModePresetRecord) {
-    void dialog
-      .open(ModePresetDialog, {
-        title: `Duplicate ${preset.name}`,
-        className: 'sm:max-w-lg',
-        testId: 'mode-preset-dialog',
-        data: { preset: { ...preset, id: `${preset.id}-copy`, builtin: false } },
-      })
-      .then((draft) => {
-        if (draft) {
-          create.mutate(draft);
-        }
-      });
+  function toggleEdit(preset: ModePresetRecord) {
+    setEditing((current) =>
+      current?.kind === 'edit' && current.preset.id === preset.id ? null : { kind: 'edit', preset },
+    );
   }
 
-  function openEdit(preset: ModePresetRecord) {
-    void dialog
-      .open(ModePresetDialog, {
-        title: `Edit ${preset.name}`,
-        className: 'sm:max-w-lg',
-        testId: 'mode-preset-dialog',
-        data: { preset },
-      })
-      .then((draft) => {
-        if (draft) {
-          update.mutate({ preset, draft });
-        }
-      });
-  }
+  const draft = editing?.kind === 'draft' ? editing : null;
 
   return (
     <div className="flex flex-col gap-4" data-testid="mode-presets-pane">
@@ -174,7 +140,7 @@ export function ModePresetsPane() {
             size="sm"
             className="text-muted-foreground"
             disabled={create.isPending}
-            onClick={openCreate}
+            onClick={() => setEditing({ kind: 'draft', preset: null })}
             data-testid="mode-presets-create"
           >
             <PlusIcon />
@@ -185,7 +151,7 @@ export function ModePresetsPane() {
 
       {presetsQuery.isPending && <p className="text-muted-foreground text-sm">Loading presets…</p>}
       {!presetsQuery.isPending &&
-        (presets.length === 0 ? (
+        (presets.length === 0 && !draft ? (
           <Empty className="min-h-0 border-0 py-8">
             <EmptyHeader>
               <EmptyTitle>No mode presets</EmptyTitle>
@@ -195,99 +161,98 @@ export function ModePresetsPane() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-1">
-            {presets.map((preset) => (
-              <div
-                key={preset.id}
-                className="flex flex-col gap-1 rounded-md border px-3 py-2"
-                data-testid={`mode-preset-${preset.id}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm">{preset.name}</span>
-                  {preset.builtin ? <Badge variant="secondary">built-in</Badge> : null}
-                  <span className="truncate font-mono text-[11px] text-muted-foreground">
-                    {preset.id}
-                  </span>
-                  <div className="ml-auto flex shrink-0 items-center gap-0.5">
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label={`Edit ${preset.name}`}
-                      onClick={() => openEdit(preset)}
-                      data-testid={`mode-preset-edit-${preset.id}`}
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label={`Duplicate ${preset.name}`}
-                      onClick={() => openDuplicate(preset)}
-                      data-testid={`mode-preset-duplicate-${preset.id}`}
-                    >
-                      <CopyIcon />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label={`Delete ${preset.name}`}
-                      disabled={preset.builtin}
-                      onClick={() => {
-                        void alert
-                          .confirm({
-                            title: `Delete ${preset.name}?`,
-                            description: 'Agents keep their installed copies.',
-                            confirmText: 'Delete',
-                            variant: 'destructive',
-                          })
-                          .then((confirmed) => {
-                            if (confirmed) {
-                              remove.mutate(preset.id);
-                            }
-                          });
-                      }}
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  </div>
-                </div>
-                {preset.description ? (
-                  <p className="text-muted-foreground text-sm">{preset.description}</p>
-                ) : null}
-                <div className="flex flex-wrap items-center gap-1">
-                  {MODE_OPS.map((op) => {
-                    const gate = preset.permissions?.[op] ?? FALLBACK_GATE;
-                    return (
-                      <Badge key={op} variant={GATE_VARIANTS[gate]}>
-                        {OP_LABELS[op]} {gate}
-                      </Badge>
-                    );
-                  })}
-                  {(preset.packs ?? []).map((pack) => (
-                    <Badge key={pack} variant="outline">
-                      pack: {pack}
-                    </Badge>
-                  ))}
-                  {(preset.skills ?? []).length > 0 ? (
-                    <Badge variant="outline">{(preset.skills ?? []).length} skills</Badge>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    size="sm"
-                    checked={preset.installedByDefault}
-                    disabled={setInstalled.isPending && setInstalled.variables?.id === preset.id}
-                    onCheckedChange={(checked) =>
-                      setInstalled.mutate({
-                        id: preset.id,
-                        installedByDefault: Boolean(checked),
-                      })
+          <div className="flex flex-col gap-2">
+            {presets.map((preset) => {
+              const expanded = editing?.kind === 'edit' && editing.preset.id === preset.id;
+              return (
+                <div key={preset.id} data-testid={`mode-preset-${preset.id}`}>
+                  <ConfigEntityCard
+                    title={preset.name}
+                    badge={preset.builtin ? 'built-in' : 'preset'}
+                    statusBadge={preset.installedByDefault ? 'By default' : undefined}
+                    description={preset.description || preset.id}
+                    initials={initialsFromLabel(preset.name || preset.id)}
+                    expanded={expanded}
+                    onClick={() => toggleEdit(preset)}
+                    trailing={
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="opacity-70"
+                          aria-label={`Duplicate ${preset.name}`}
+                          onClick={() =>
+                            setEditing({
+                              kind: 'draft',
+                              preset: {
+                                ...preset,
+                                id: `${preset.id}-copy`,
+                                builtin: false,
+                              },
+                            })
+                          }
+                          data-testid={`mode-preset-duplicate-${preset.id}`}
+                        >
+                          <CopyIcon />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="opacity-70"
+                          aria-label={`Delete ${preset.name}`}
+                          disabled={preset.builtin}
+                          onClick={() => confirmRemove(preset)}
+                          data-testid={`mode-preset-remove-${preset.id}`}
+                        >
+                          <Trash2Icon />
+                        </Button>
+                      </>
                     }
-                  />
-                  <span className="text-muted-foreground text-xs">Install by default</span>
+                  >
+                    {expanded ? (
+                      <ModePresetEditor
+                        preset={preset}
+                        skillNames={skillNames}
+                        packNames={packNames}
+                        busy={update.isPending}
+                        onSave={(formDraft) =>
+                          update.mutate(
+                            { preset, draft: formDraft },
+                            { onSuccess: () => setEditing(null) },
+                          )
+                        }
+                        onCancel={() => setEditing(null)}
+                      />
+                    ) : null}
+                  </ConfigEntityCard>
                 </div>
+              );
+            })}
+            {draft ? (
+              <div data-testid="mode-preset-new">
+                <ConfigEntityCard
+                  title={draft.preset ? `Copy of ${draft.preset.name}` : 'New preset'}
+                  badge="preset"
+                  description={draft.preset?.description}
+                  initials={initialsFromLabel(draft.preset?.name ?? 'new preset')}
+                  expanded
+                  onClick={() => setEditing(null)}
+                >
+                  <ModePresetEditor
+                    preset={draft.preset}
+                    skillNames={skillNames}
+                    packNames={packNames}
+                    busy={create.isPending}
+                    onSave={(formDraft) =>
+                      create.mutate(formDraft, { onSuccess: () => setEditing(null) })
+                    }
+                    onCancel={() => setEditing(null)}
+                  />
+                </ConfigEntityCard>
               </div>
-            ))}
+            ) : null}
           </div>
         ))}
     </div>

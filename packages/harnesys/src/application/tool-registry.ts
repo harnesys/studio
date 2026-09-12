@@ -30,16 +30,21 @@ export function mergeTools(
 
 export function filterToolsForAgent(
   registry: Map<string, ToolDefinition>,
-  agent: { mcpServers?: string[] },
+  agent: { mcpServers?: string[]; disallowedTools?: string[] },
 ): Map<string, ToolDefinition> {
-  if (agent.mcpServers === undefined) {
+  const disallowed = agent.disallowedTools;
+  if (agent.mcpServers === undefined && (disallowed === undefined || disallowed.length === 0)) {
     return registry;
   }
-  const allowed = new Set(agent.mcpServers);
+  const allowed = new Set(agent.mcpServers ?? []);
+  const blocked = new Set(disallowed ?? []);
   const out = new Map<string, ToolDefinition>();
   for (const [name, def] of registry) {
     const isMcp = def.operations?.includes('mcp') ?? false;
     if (isMcp && def.group !== undefined && !allowed.has(def.group)) {
+      continue;
+    }
+    if (blocked.has(name)) {
       continue;
     }
     out.set(name, def);

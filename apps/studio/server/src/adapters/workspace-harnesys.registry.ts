@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type {
   AgentDefinition,
   AgentGenerationSettings,
@@ -17,7 +18,7 @@ import type {
 } from 'harnesys';
 import {
   askUser,
-  buildPluginSkillRegistries,
+  bindSkillComponents,
   composeSkillRegistries,
   createRuntime,
   graphMap,
@@ -151,7 +152,7 @@ export class WorkspaceHarnesysRegistry {
     });
     const skills = composeSkillRegistries([
       fsSkills,
-      ...buildPluginSkillRegistries(enabledPlugins.map((entry) => entry.ir)),
+      ...enabledPlugins.map((entry) => bindSkillComponents(entry.ir, readPluginSkillFile)),
     ]);
     const mcp = mergePluginMcpFragments(
       mcpJson,
@@ -242,6 +243,11 @@ export class WorkspaceHarnesysRegistry {
       generation,
     };
   }
+}
+
+/** Reader for bindSkillComponents: flat command md files live on disk. */
+function readPluginSkillFile(file: string): string {
+  return readFileSync(file, 'utf8');
 }
 
 /**

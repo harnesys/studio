@@ -55,6 +55,8 @@ export type ToolCallContext = {
   toolOutput?: ToolOutputSettings | null;
   /** Шина хуков рана: PostToolBatch в конце batch-ветки. */
   hooks?: HookEmitCtx;
+  /** Готовый env рана для процессов тулов; отсутствие — process env. */
+  env?: Record<string, string>;
 };
 
 function codeError(code: string, message: string): never {

@@ -18,6 +18,8 @@ export type ToolContext = {
   resume?: unknown;
   /** Дочерний ран: интерактива нет, ask_user отвечает deny-текстом вместо throw. */
   sandbox?: boolean;
+  /** Готовый env рана (PATH = RunTarget.binDirs ++ process PATH); absent → inherit process env. */
+  env?: Record<string, string>;
 };
 
 export type ToolExecute = (input: unknown, ctx: ToolContext) => Promise<unknown> | unknown;

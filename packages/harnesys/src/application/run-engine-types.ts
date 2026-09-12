@@ -63,6 +63,9 @@ export type RunTargetOpts = {
   hooksEmit?: HookEmitCtx;
   /** Per-run registry; overrides RunEngineDeps.toolRegistry when present. */
   toolRegistry?: Map<string, ToolDefinition>;
+  /** Extra PATH dirs for hook/tool processes (RunTarget.binDirs carrier);
+   *  the engine composes the run env from it. */
+  binDirs?: string[];
 };
 
 export type RunEngine = {

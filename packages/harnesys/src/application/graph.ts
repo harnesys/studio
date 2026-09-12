@@ -168,6 +168,9 @@ export type GraphOpts = {
   packOutputs?: PackRunMap;
   /** FS skill registry; the catalog section is rendered per agent in llm.ts. */
   skills?: SkillRegistry;
+  /** Готовый env рана для tool-процессов (PATH = RunTarget.binDirs ++ process PATH);
+   *  отсутствие — тулы наследуют process env. */
+  env?: Record<string, string>;
   /** Шина хуков рана; идентичность резолвится в startGraph. */
   hooks?: HookEmitCtx;
   rejected?: boolean;
@@ -925,6 +928,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           sandbox: opts.sandbox,
           toolOutput: agent.toolOutput,
           hooks,
+          env: opts.env,
         });
       } catch (e) {
         if (e instanceof AskUserInterrupt) {

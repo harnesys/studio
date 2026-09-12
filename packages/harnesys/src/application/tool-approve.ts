@@ -167,6 +167,7 @@ export async function runSingleToolCall(
         ? (ctx.resume ?? undefined)
         : undefined,
       sandbox: ctx.sandbox,
+      env: ctx.env,
     };
     const value = await def.execute(execArgs, toolCtx);
     const post = await emitHook(ctx.hooks, 'PostToolUse', {

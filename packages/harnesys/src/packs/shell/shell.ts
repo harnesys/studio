@@ -39,7 +39,10 @@ export function shell(options: ShellOptions = {}): ToolDefinition {
         Math.max(1, parsed.timeout_ms ?? defaultTimeout),
         MAX_SHELL_TIMEOUT_MS,
       );
-      return runOnHost(parsed.command, timeoutMs, ctx.cwd, ctx.signal);
+      return runOnHost(parsed.command, timeoutMs, ctx.cwd, {
+        signal: ctx.signal,
+        env: ctx.env,
+      });
     },
   });
 }
@@ -72,10 +75,17 @@ function gateShellCommand(
   return undefined;
 }
 
-async function runOnHost(command: string, timeoutMs: number, cwd: string, signal?: AbortSignal) {
+async function runOnHost(
+  command: string,
+  timeoutMs: number,
+  cwd: string,
+  opts: { signal?: AbortSignal; env?: Record<string, string> },
+) {
+  const { signal, env } = opts;
   const started = performance.now();
   const proc = Bun.spawn(['/bin/sh', '-c', command], {
     cwd: path.resolve(cwd),
+    env,
     stdout: 'pipe',
     stderr: 'pipe',
     stdin: 'ignore',

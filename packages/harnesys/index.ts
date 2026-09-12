@@ -49,11 +49,17 @@ export type { ResolvedPack } from './src/application/packs/registry.ts';
 export { resolvePacks } from './src/application/packs/registry.ts';
 export type { PackCatalogEntry } from './src/application/packs/tool-names.ts';
 export { packCatalog, packTools } from './src/application/packs/tool-names.ts';
-export { runPluginHookCommand } from './src/application/plugins/hooks-runner.ts';
 export {
-  buildPluginSkillRegistries,
-  mergePluginMcpFragments,
-} from './src/application/plugins/merge-plugin-runtime.ts';
+  type BindDiagnosticSink,
+  bindAgentComponents,
+  type CatalogAgentEntry,
+} from './src/application/plugins/bind-agents.ts';
+export {
+  bindSkillComponents,
+  type SkillFileReader,
+} from './src/application/plugins/bind-skills.ts';
+export { runPluginHookCommand } from './src/application/plugins/hooks-runner.ts';
+export { mergePluginMcpFragments } from './src/application/plugins/merge-plugin-runtime.ts';
 export { prefixSkillRegistry } from './src/application/plugins/prefixed-skill-registry.ts';
 export type {
   CreatePluginSessionStartNotesOptions,

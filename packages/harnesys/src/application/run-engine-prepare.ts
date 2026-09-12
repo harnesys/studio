@@ -20,6 +20,27 @@ type HitlAnswer = {
   rejected?: boolean;
 };
 
+/** Run env for tool processes: full process env with binDirs prepended to PATH. */
+function composeRunEnv(binDirs: string[] | undefined): Record<string, string> | undefined {
+  if (binDirs === undefined || binDirs.length === 0) {
+    return undefined;
+  }
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) {
+      env[key] = value;
+    }
+  }
+  const processPath = env.PATH ?? '';
+  env.PATH = [...binDirs, processPath].filter((part) => part !== '').join(':');
+  return env;
+}
+
+/** Hook envBase keeps its minimal shape; only the composed PATH lands there. */
+function hookEnvBase(runEnv: Record<string, string> | undefined): Record<string, string> {
+  return runEnv?.PATH !== undefined ? { PATH: runEnv.PATH } : {};
+}
+
 type UserInput = {
   text: string;
   attachments?: Attachment[];
@@ -120,6 +141,7 @@ export async function prepareExecuteGraphOpts(
     }
   }
   const cwd = opts.paths?.cwd ?? '';
+  const runEnv = composeRunEnv(opts.binDirs);
   let hooksEmit = opts.hooksEmit;
   if (hooksEmit === undefined) {
     const cached = hookCache.get(runId);
@@ -129,8 +151,12 @@ export async function prepareExecuteGraphOpts(
       const bindings = [...(deps.hooks ?? []), ...(opts.hooks ?? [])];
       if (bindings.length > 0) {
         // envBase — шов хоста (E2): HARNESSYS_PLUGIN_OPTION_* составляются хостом.
+        // PATH рана (binDirs ++) добавляется поверх пустой базы.
         hooksEmit = {
-          bus: createHookBus({ bindings, ctx: { cwd, projectDir: cwd, envBase: {} } }),
+          bus: createHookBus({
+            bindings,
+            ctx: { cwd, projectDir: cwd, envBase: hookEnvBase(runEnv) },
+          }),
           sessionId: opts.state.sessionId,
           runId,
           agentId: agent.id,
@@ -163,6 +189,7 @@ export async function prepareExecuteGraphOpts(
     skills: opts.skills ?? deps.skills,
     packOutputs,
     hooks: hooksEmit,
+    env: runEnv,
     agents: deps.agents,
     outputHint: startNodeId === undefined ? undefined : (snap?.cursor.interrupt?.output ?? null),
     rejected: answer?.rejected === true,

@@ -110,6 +110,7 @@ export type {
   AddPluginRegistryRequest,
   CatalogInstallSource,
   EnableWorkspacePluginRequest,
+  GrantClass,
   InstallPluginRequest,
   PluginCatalogEntry,
   PluginDiagnostic,

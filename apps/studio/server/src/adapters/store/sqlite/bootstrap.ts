@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
 import type { StudioDb } from './connection.ts';
+import { migratePluginGrantsSchema } from './plugins-migration.ts';
 import { SqliteModePresetRepo } from './repos/sqlite-mode-preset.repo.ts';
 import { agentsTable } from './schema/agents.ts';
 import { modePresetsTable } from './schema/mode-presets.ts';
@@ -188,12 +189,21 @@ export function bootstrap(db: StudioDb): void {
       revision TEXT NOT NULL,
       path TEXT NOT NULL,
       data_path TEXT NOT NULL,
-      trusted INTEGER NOT NULL DEFAULT 0,
+      format TEXT,
+      ir_summary TEXT,
+      grants TEXT NOT NULL DEFAULT '{}',
+      options TEXT NOT NULL DEFAULT '{}',
       enabled_workspace_ids TEXT NOT NULL DEFAULT '[]',
       registry_id TEXT,
       catalog_plugin_name TEXT,
       installed_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS plugin_approvals (
+      plugin_name TEXT NOT NULL,
+      server_id TEXT NOT NULL,
+      approved_at TEXT NOT NULL,
+      PRIMARY KEY (plugin_name, server_id)
     );`,
     `CREATE TABLE IF NOT EXISTS plugin_registries (
       id TEXT PRIMARY KEY,
@@ -261,6 +271,8 @@ export function bootstrap(db: StudioDb): void {
   try {
     db.run(sql.raw('ALTER TABLE plugins ADD COLUMN catalog_plugin_name text;'));
   } catch {}
+
+  migratePluginGrantsSchema(db);
 
   try {
     db.run(sql.raw('DELETE FROM webhooks WHERE thread_id IS NULL;'));
@@ -454,6 +466,10 @@ export function bootstrap(db: StudioDb): void {
 
   try {
     db.run(sql.raw(`ALTER TABLE schedules ADD COLUMN history_last integer NOT NULL DEFAULT 1;`));
+  } catch {}
+
+  try {
+    db.run(sql.raw('ALTER TABLE schedules ADD COLUMN metadata text;'));
   } catch {}
 
   // Legacy chat used attachments.message_id; journal uses entry_id.

@@ -10,7 +10,6 @@ export const installPluginBody = z
     source: z.string().trim().min(1).optional(),
     path: z.string().trim().min(1).optional(),
     ref: z.string().trim().min(1).optional(),
-    trust: z.boolean().optional(),
     registryId: z.string().trim().min(1).optional(),
     catalogPluginName: z.string().trim().min(1).optional(),
     pluginName: z.string().trim().min(1).optional(),

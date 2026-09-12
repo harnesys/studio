@@ -2,6 +2,8 @@ import type { PluginDiagnostic, PluginName, PluginSourceFormat } from 'harnesys'
 
 export type { PluginDiagnostic, PluginName, PluginSourceFormat } from 'harnesys';
 
+export type GrantClass = 'content' | 'process' | 'network';
+
 export type PluginRecord = {
   name: PluginName;
   source: string;

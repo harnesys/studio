@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const pluginsTable = sqliteTable(
   'plugins',
@@ -9,7 +9,10 @@ export const pluginsTable = sqliteTable(
     revision: text('revision').notNull(),
     path: text('path').notNull(),
     dataPath: text('data_path').notNull(),
-    trusted: integer('trusted', { mode: 'boolean' }).notNull().default(false),
+    format: text('format'),
+    irSummary: text('ir_summary'),
+    grants: text('grants').notNull().default('{}'),
+    options: text('options').notNull().default('{}'),
     enabledWorkspaceIds: text('enabled_workspace_ids').notNull().default('[]'),
     registryId: text('registry_id'),
     catalogPluginName: text('catalog_plugin_name'),

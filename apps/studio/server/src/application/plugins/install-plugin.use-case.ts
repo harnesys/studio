@@ -21,7 +21,6 @@ export type InstallPluginRequest = {
   source?: string;
   path?: string;
   ref?: string;
-  trust?: boolean;
   registryId?: string;
   catalogPluginName?: string;
   pluginName?: string;
@@ -47,11 +46,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
 
   execute(request: InstallPluginRequest): Promise<InstallPluginResponse> {
     if (request.registryId && request.pluginName) {
-      return this.installFromCatalog(
-        request.registryId,
-        request.pluginName,
-        request.trust === true,
-      );
+      return this.installFromCatalog(request.registryId, request.pluginName);
     }
     const source = request.source?.trim() ?? '';
     if (source.length === 0) {
@@ -61,7 +56,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       source,
       path: request.path?.trim() || undefined,
       ref: request.ref?.trim() || undefined,
-      trust: request.trust === true,
       registryId: request.registryId,
       catalogPluginName: request.catalogPluginName,
     });
@@ -70,7 +64,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
   private installFromCatalog(
     registryId: string,
     pluginName: string,
-    trust: boolean,
   ): Promise<InstallPluginResponse> {
     if (!this.registries) {
       throw new ValidationError('plugin registries are not configured');
@@ -90,7 +83,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       installSource: entry.installSource,
       marketplaceRoot: registry.path,
       displaySource: `${entry.pluginName}@${registry.name}`,
-      trust,
       registryId,
       catalogPluginName: entry.pluginName,
     });
@@ -100,7 +92,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
     installSource: CatalogInstallSource;
     marketplaceRoot: string;
     displaySource: string;
-    trust: boolean;
     registryId: string;
     catalogPluginName: string;
   }): Promise<InstallPluginResponse> {
@@ -119,7 +110,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       return this.tree.fromCopiedTree({
         from,
         displaySource: args.displaySource,
-        trust: args.trust,
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
         preferredName: args.catalogPluginName,
@@ -131,7 +121,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       return this.installFromGit({
         source: installSource.repo,
         ref: installSource.sha ?? installSource.ref,
-        trust: args.trust,
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
       });
@@ -141,7 +130,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       return this.installFromGit({
         source: installSource.url,
         ref: installSource.sha ?? installSource.ref,
-        trust: args.trust,
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
       });
@@ -151,7 +139,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       return this.tree.fromMaterialized({
         installSource,
         displaySource: args.displaySource,
-        trust: args.trust,
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
         marketplaceRoot: args.marketplaceRoot,
@@ -162,7 +149,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       source: installSource.url,
       path: installSource.path,
       ref: installSource.sha ?? installSource.ref,
-      trust: args.trust,
       registryId: args.registryId,
       catalogPluginName: args.catalogPluginName,
     });
@@ -172,7 +158,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
     source: string;
     path?: string;
     ref?: string;
-    trust: boolean;
     registryId?: string;
     catalogPluginName?: string;
   }): Promise<InstallPluginResponse> {
@@ -206,7 +191,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
         checkout,
         displaySource: args.source,
         revision: cloned.revision,
-        trust: args.trust,
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
         onRename: (next) => {

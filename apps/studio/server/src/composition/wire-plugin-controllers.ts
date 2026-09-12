@@ -7,10 +7,12 @@ import type { SqlitePluginRegistriesAdapter } from '../adapters/store/sqlite/rep
 import type { SqlitePluginsAdapter } from '../adapters/store/sqlite/repos/sqlite-plugins.adapter.ts';
 import type { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
 import type { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
+import { ApproveServerUseCase } from '../application/plugins/approve-server.use-case.ts';
 import { EnableWorkspacePluginUseCase } from '../application/plugins/enable-workspace-plugin.use-case.ts';
 import { InstallPluginUseCase } from '../application/plugins/install-plugin.use-case.ts';
 import { ListPluginsUseCase } from '../application/plugins/list-plugins.use-case.ts';
 import { RemovePluginUseCase } from '../application/plugins/remove-plugin.use-case.ts';
+import { SetGrantsUseCase } from '../application/plugins/set-grants.use-case.ts';
 import {
   AddPluginRegistryUseCase,
   EnsureDefaultPluginRegistriesUseCase,
@@ -19,7 +21,6 @@ import {
   RemovePluginRegistryUseCase,
   SyncPluginRegistryUseCase,
 } from '../application/plugins/sync-plugin-registry.use-case.ts';
-import { TrustPluginUseCase } from '../application/plugins/trust-plugin.use-case.ts';
 import { UpdatePluginUseCase } from '../application/plugins/update-plugin.use-case.ts';
 
 export type WirePluginControllersDeps = {
@@ -59,7 +60,8 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
       d.pluginRegistryRepo,
       syncPluginRegistry,
     ),
-    trustPlugin: new TrustPluginUseCase(d.pluginRepo, d.workspaceHarnesys),
+    setGrants: new SetGrantsUseCase(d.pluginRepo, d.workspaceHarnesys),
+    approveServer: new ApproveServerUseCase(d.pluginRepo, d.workspaceHarnesys),
     enableWorkspacePlugin: new EnableWorkspacePluginUseCase(
       d.pluginRepo,
       d.workspaceRepo,

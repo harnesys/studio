@@ -3,6 +3,7 @@ import type {
   AgentGenerationSettings,
   AgentGraph,
   AgentMode,
+  HooksBinding,
   PackConfig,
   PortRef,
   ToolOutputSettings,
@@ -32,6 +33,7 @@ export type Agent = {
   tools: string[];
   graph: AgentGraph;
   capabilities: Record<string, PackConfig | null>;
+  /** Declarative hook bindings for this agent; empty = none. */
   hooks: HooksBinding[];
   /** Per-agent plugin enable overrides; full map when set (sparse map disables the rest). */
   enabledPlugins: Record<string, boolean>;
@@ -57,6 +59,8 @@ export type AgentDraft = {
   budget?: AgentBudget | null;
   compaction?: PortRef;
   capabilities?: Record<string, PackConfig | null>;
+  hooks?: HooksBinding[];
+  enabledPlugins?: Record<string, boolean>;
   graph?: AgentGraph;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;

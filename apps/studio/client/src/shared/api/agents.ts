@@ -4,6 +4,7 @@ import type {
   AgentGraph,
   AgentMode,
   AgentRecord,
+  HooksBinding,
   PackConfig,
   PortRef,
   ToolOutputSettings,

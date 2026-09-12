@@ -32,6 +32,8 @@ export function agentDraftFromPreset(preset: AgentPresetRecord): Agent {
     tools: preset.tools ?? [],
     graph: preset.graph ?? { nodes: {}, edges: [] },
     capabilities: preset.capabilities ?? {},
+    hooks: [],
+    enabledPlugins: {},
     defaultModeId: null,
     modes: [],
     createdAt: '',

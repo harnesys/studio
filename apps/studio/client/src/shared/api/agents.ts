@@ -4,6 +4,7 @@ import type {
   AgentGraph,
   AgentMode,
   AgentRecord,
+  HooksBinding,
   PackConfig,
   PortRef,
   ToolOutputSettings,
@@ -27,6 +28,8 @@ export type CreateAgentInput = {
   tools?: string[];
   graph?: AgentGraph;
   capabilities?: Record<string, PackConfig | null>;
+  hooks?: HooksBinding[];
+  enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
@@ -46,6 +49,8 @@ export type UpdateAgentInput = {
   tools?: string[];
   graph?: AgentGraph;
   capabilities?: Record<string, PackConfig | null>;
+  hooks?: HooksBinding[];
+  enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };

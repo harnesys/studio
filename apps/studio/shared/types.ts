@@ -40,6 +40,7 @@ import type { ThreadPlanRecord } from './src/plan-types.ts';
 import type { ThreadRecord as ThreadRecordType } from './src/thread.ts';
 
 export type {
+  HooksBinding,
   KnowledgeHit,
   MemoryRecord,
   MemoryRecordSource,

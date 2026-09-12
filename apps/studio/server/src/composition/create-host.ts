@@ -175,6 +175,7 @@ export function createStudioHost(args: {
   const runHookBuses = new RunHookBuses({
     filesWatcher: platform.filesWatcher,
     lifecycle: runtime.runLifecycle,
+    logger: toRuntimeLogger('hooks'),
   });
   const monitorJobs = new MonitorJobRegistrarAdapter({
     notify: (threadId, text, type) => runHookBuses.emitNotification(threadId, text, type),

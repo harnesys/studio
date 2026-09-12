@@ -155,7 +155,7 @@ export async function prepareExecuteGraphOpts(
         hooksEmit = {
           bus: createHookBus({
             bindings,
-            ctx: { cwd, projectDir: cwd, envBase: hookEnvBase(runEnv) },
+            ctx: { cwd, projectDir: cwd, envBase: hookEnvBase(runEnv), logger: deps.logger },
           }),
           sessionId: opts.state.sessionId,
           runId,

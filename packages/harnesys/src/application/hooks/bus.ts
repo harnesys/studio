@@ -1,5 +1,6 @@
 import type { HookBinding, HookEffect, HookEventName, HookPayload } from '../../domain/hook.ts';
 import type { PluginDiagnostic } from '../../domain/plugin-diagnostics.ts';
+import type { Logger } from '../../ports/logger.ts';
 import {
   type HookHandlerResult,
   type HookProcessEntry,
@@ -15,6 +16,8 @@ export type HookRuntimeCtx = {
   envBase: Record<string, string>;
   mcpToolCall?: (server: string, tool: string, input: Record<string, unknown>) => Promise<unknown>;
   promptModel?: (prompt: string, model?: string) => Promise<string>;
+  /** Точка логов диагностик хуков: `hook_failed`/`hook_timeout` не молчат. */
+  logger?: Logger;
 };
 
 export type HookOutcome = {
@@ -43,6 +46,12 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
   let lastPayload: HookPayload | undefined;
   const asyncRuns = new Set<Promise<void>>();
 
+  function logDiagnostics(event: HookEventName, diagnostics: PluginDiagnostic[]): void {
+    for (const diagnostic of diagnostics) {
+      ctx.logger?.warn(`[hooks] ${event} ${diagnostic.code}: ${diagnostic.message}`);
+    }
+  }
+
   async function emit(event: HookEventName, payload: HookPayload): Promise<HookOutcome> {
     lastPayload = payload;
     const matched = bindings.filter((b) => matchesBinding(b, payload));
@@ -56,6 +65,7 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
         .then((res) => {
           deferred.push(...res.effects);
           pendingDiagnostics.push(...res.diagnostics);
+          logDiagnostics(payload.event, res.diagnostics);
         })
         .catch(() => {})
         .finally(() => asyncRuns.delete(tracked));
@@ -67,6 +77,7 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
         .filter((b) => !isAsync(b))
         .map(async (b) => {
           const res = await runBinding(b, payload, abort.signal);
+          logDiagnostics(event, res.diagnostics);
           if (res.effects.some((eff) => eff.kind === 'block')) {
             abort.abort();
           }

@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import type { WorkspaceFileEvent } from '@harnesys/studio-shared';
-import type { HookBinding, HookEmitCtx, HookPayload, RunLifecycleStore } from 'harnesys';
+import type { HookBinding, HookEmitCtx, HookPayload, Logger, RunLifecycleStore } from 'harnesys';
 import { createHookBus, type HookBus } from 'harnesys';
 import type { FilesWatcherInput } from '../domain/files-watcher.port.ts';
 
@@ -8,6 +8,8 @@ export type RunHookBusesDeps = {
   filesWatcher: FilesWatcherInput;
   /** Active run lookup for FileChanged payload identity (`run_id`). */
   lifecycle: RunLifecycleStore;
+  /** Host sink for hook diagnostics (hook_failed/hook_timeout). */
+  logger?: Logger;
 };
 
 export type RunHookBusInput = {
@@ -50,6 +52,7 @@ export class RunHookBuses {
         cwd: input.workspacePath,
         projectDir: input.workspacePath,
         envBase: composeEnvBase(input.binDirs),
+        logger: this.deps.logger,
       },
     });
     const entry: BusEntry = {

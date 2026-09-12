@@ -52,7 +52,10 @@ function assembleRunHooks(
   const cwd = paths?.cwd ?? '';
   // envBase — шов хоста (E2): HARNESSYS_PLUGIN_OPTION_* составляются хостом.
   return {
-    bus: createHookBus({ bindings: [...bindings], ctx: { cwd, projectDir: cwd, envBase: {} } }),
+    bus: createHookBus({
+      bindings: [...bindings],
+      ctx: { cwd, projectDir: cwd, envBase: {}, logger: options.logger ?? CONSOLE_LOGGER },
+    }),
     sessionId: '',
     runId: '',
     agentId: '',

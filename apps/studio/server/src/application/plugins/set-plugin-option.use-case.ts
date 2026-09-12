@@ -61,7 +61,11 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
     if (spec.sensitive === true) {
       return await this.saveSensitive(record, request);
     }
-    const saved = this.plugins.setOption(request.name, request.key, request.value);
+    const saved = this.plugins.setOption(
+      request.name,
+      request.key,
+      coerceOptionValue(spec, request.value),
+    );
     await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
     return { plugin: saved, diagnostics: [] };
   }
@@ -108,4 +112,28 @@ function findOptionSpec(ir: PluginIr, key: string): ConfigOptionSpec | undefined
   return ir.components
     .filter(isConfigOptionComponent)
     .find((component) => component.spec.key === key)?.spec;
+}
+
+/** Значение приводится к типу опции: number/boolean приходят строками из UI. */
+function coerceOptionValue(spec: ConfigOptionSpec, value: PluginOptionValue): PluginOptionValue {
+  if (spec.type === 'number') {
+    const num = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(num)) {
+      throw new ValidationError(`option "${spec.key}" expects a number`);
+    }
+    return num;
+  }
+  if (spec.type === 'boolean') {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (value === 'true') {
+      return true;
+    }
+    if (value === 'false') {
+      return false;
+    }
+    throw new ValidationError(`option "${spec.key}" expects a boolean`);
+  }
+  return String(value);
 }

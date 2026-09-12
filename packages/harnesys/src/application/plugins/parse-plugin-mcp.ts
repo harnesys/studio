@@ -7,7 +7,7 @@ import {
   PLUGIN_DATA_PLACEHOLDER,
   PLUGIN_ROOT_PLACEHOLDER,
 } from './expand-plugin-vars.ts';
-import { isInsidePluginRoot, resolvePluginPath } from './plugin-path-safety.ts';
+import { assertInsideRoot } from './plugin-conformance.ts';
 
 export const AGENT_PLUGINS_MCP_SCHEMA_ID =
   'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json';
@@ -74,9 +74,17 @@ function hasUnknownKeys(raw: Record<string, unknown>, allowed: Set<string>): str
   return undefined;
 }
 
+function resolveInsideRoot(pluginRoot: string, relativePath: string): string {
+  const resolved = path.resolve(pluginRoot, relativePath);
+  if (!assertInsideRoot(pluginRoot, resolved)) {
+    throw new Error(`path escapes plugin root: ${relativePath}`);
+  }
+  return resolved;
+}
+
 function resolveStdioCommand(pluginRoot: string, command: string): string {
   if (command.startsWith('./')) {
-    return resolvePluginPath(pluginRoot, command);
+    return resolveInsideRoot(pluginRoot, command);
   }
   if (command.includes('/') || command.includes('\\')) {
     throw new Error(`command must be a bare executable or start with "./": ${command}`);
@@ -151,16 +159,16 @@ function resolveCwd(
   const kind = cwdKindBeforeExpand(rawCwd);
   const expanded = expandPluginVars(rawCwd, expandCtx);
   if (rawCwd.startsWith('./')) {
-    return resolvePluginPath(ctx.pluginRoot, expanded);
+    return resolveInsideRoot(ctx.pluginRoot, expanded);
   }
   const resolved = path.resolve(expanded);
   if (kind === 'pluginRoot') {
-    if (!isInsidePluginRoot(ctx.pluginRoot, resolved)) {
+    if (!assertInsideRoot(ctx.pluginRoot, resolved)) {
       throw new Error(`cwd escapes plugin root: ${rawCwd}`);
     }
     return resolved;
   }
-  if (!isInsidePluginRoot(ctx.pluginData, resolved)) {
+  if (!assertInsideRoot(ctx.pluginData, resolved)) {
     throw new Error(`cwd escapes plugin data: ${rawCwd}`);
   }
   return resolved;

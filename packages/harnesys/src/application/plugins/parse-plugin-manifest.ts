@@ -1,5 +1,5 @@
 import type { PluginAuthor, PluginExtensions, PluginManifest } from '../../domain/plugin.ts';
-import { assertPluginName } from './plugin-name.ts';
+import { assertPluginName } from './plugin-conformance.ts';
 
 export const AGENT_PLUGINS_SCHEMA_ID = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json';
 
@@ -139,11 +139,9 @@ export function parsePluginManifestJson(raw: unknown): ParsePluginManifestResult
   if (typeof name !== 'string') {
     throw new PluginManifestError('plugin.json field "name" must be a string', 'name');
   }
-  try {
-    assertPluginName(name);
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : String(cause);
-    throw new PluginManifestError(message, 'name');
+  const nameErrors = assertPluginName(name);
+  if (nameErrors.length > 0) {
+    throw new PluginManifestError(nameErrors.join('; '), 'name');
   }
 
   const version = optionalString(raw, 'version');

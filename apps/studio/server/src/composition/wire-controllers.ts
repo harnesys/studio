@@ -273,7 +273,7 @@ export function wireControllers(d: ControllerDeps): void {
     getThreadPlan: d.getThreadPlan,
     createThread: new CreateThreadUseCase(d.threadRepo, d.agentRepo, d.workspaceRepo),
     updateThread: new UpdateThreadUseCase(d.threadRepo, d.agentRepo, d.events, d.lifecycle),
-    markThreadRead: new MarkThreadReadUseCase(d.threadRepo, d.agentRepo, d.events, d.lifecycle),
+    markThreadRead: new MarkThreadReadUseCase(d.threadRepo, d.agentRepo, d.lifecycle),
     deleteThread: new DeleteThreadUseCase({
       threads: d.threadRepo,
       workspaces: d.workspaceRepo,

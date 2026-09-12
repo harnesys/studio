@@ -123,21 +123,18 @@ export function useComfortFollow(
     // Пользовательский жест прерывает анимацию; программный скролл — нет.
     const onUserGesture = () => cancelAnimation();
 
+    // Монтирование: сначала паркуемся на живой край, только потом слушаем скролл.
+    // Обратный порядок даёт ложный unpin на setup — «не у нижнего края» ещё не
+    // значит « пользователь ушёл вверх».
     const content = viewport.firstElementChild ?? viewport;
     const observer = new ResizeObserver(onContentGrew);
     observer.observe(content);
-
-    viewport.addEventListener('scroll', onScroll, { passive: true });
-    viewport.addEventListener('wheel', onUserGesture, { passive: true });
-    viewport.addEventListener('touchmove', onUserGesture, { passive: true });
-    onScroll();
-    // Открытый тред с прилипанием паркуем на якорь, а не в сырой низ.
     const parkRaf = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (pinnedRef.current) {
-          scrollToEnd(true);
-        }
-      });
+      scrollToEnd(true);
+      viewport.addEventListener('scroll', onScroll, { passive: true });
+      viewport.addEventListener('wheel', onUserGesture, { passive: true });
+      viewport.addEventListener('touchmove', onUserGesture, { passive: true });
+      onScroll();
     });
 
     return () => {

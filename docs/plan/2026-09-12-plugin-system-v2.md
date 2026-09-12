@@ -67,14 +67,18 @@ export type HookEventName =
   | 'TeammateIdle' | 'TaskCreated' | 'TaskCompleted' | 'WorktreeCreate'
   | 'WorktreeRemove' | 'ConfigChange' | 'CwdChanged' | 'DirectoryAdded'
   | 'InstructionsLoaded' | 'StopFailure' | 'PreModelSwitch' | 'PostModelSwitch'
-  | 'Elicitation' | 'ElicitationResult';
+  | 'Elicitation' | 'ElicitationResult'
+  | 'PreModelCall' | 'PostModelCall' | 'NodeStart' | 'NodeEnd';
 
 export const NATIVE_HOOK_EVENTS: readonly HookEventName[];
 export const UNSUPPORTED_HOOK_EVENTS: readonly HookEventName[];
 // NATIVE: SessionStart, SessionEnd, UserPromptSubmit, PreToolUse, PostToolUse,
 // PostToolUseFailure, PostToolBatch, Stop, SubagentStart, SubagentStop,
-// PreCompact, PostCompact, Notification, PermissionRequest, FileChanged (15).
-// UNSUPPORTED: остальные 18, включая Setup и PermissionDenied.
+// PreCompact, PostCompact, Notification, PermissionRequest, FileChanged,
+// PreModelCall, PostModelCall, NodeStart, NodeEnd (19 = 15 Claude + 4 Harnesys).
+// UNSUPPORTED: остальные 18 Claude, включая Setup и PermissionDenied.
+// PreModelCall/PostModelCall/NodeStart/NodeEnd — Harnesys-namespace, вне
+// Claude-контракта, биндятся как нативные.
 
 export type HookPayload = {
   event: HookEventName;
@@ -93,6 +97,9 @@ export type HookPayload = {
   agent_type?: string;                                            // Subagent*
   notification?: { type: string; text: string };                  // Notification
   file_path?: string;                                             // FileChanged
+  model?: { provider: string; model: string };                    // Pre/PostModelCall
+  usage?: { steps: number; tokens: number; cost?: number };       // PostModelCall
+  node?: { id: string; type: string };                            // NodeStart/NodeEnd
   message?: string;                                               // UserPromptSubmit; в stdin сериализуется полем `prompt` (спека §2.1)
 };
 
@@ -109,15 +116,16 @@ export type HookHandler =
   | { type: 'http'; url: string; headers?: Record<string, string>; timeoutS?: number }
   | { type: 'mcp_tool'; server: string; tool: string; input?: Record<string, string>; timeoutS?: number }
   | { type: 'prompt'; prompt: string; model?: string; timeoutS?: number }
-  | { type: 'agent'; prompt: string; model?: string; timeoutS?: number }; // inert до hook-verifier рантайма
+  | { type: 'agent'; prompt: string; model?: string; timeoutS?: number } // inert до hook-verifier рантайма
+  | { type: 'inline'; fn: (payload: HookPayload) => HookEffect[] | void | Promise<HookEffect[] | void> }; // host-код; парсеры не производят, origin 'host' без grant-фильтра
 
 export type HookMatcher = { event: HookEventName; matcher?: string };
 
 export type HookBinding = HookMatcher & {
-  id: string;                       // плагинные: `${plugin}:${event}:${sha1(canonicalHandlerJson).slice(0,8)}`; агентные: `${agentId}:${event}:${n}` — стабилен между обновлениями плагина
-  origin: 'plugin' | 'agent';
+  id: string;                       // плагинные: `${plugin}:${event}:${sha1(canonicalHandlerJson).slice(0,8)}`; агентные: `${agentId}:${event}:${n}`; host: `${source}:${event}:${n}` — стабилен между обновлениями плагина
+  origin: 'plugin' | 'agent' | 'host';
   handler: HookHandler;
-  vars: { pluginRoot: string; pluginData: string }; // агентные биндинги: обе paths = workspace cwd
+  vars: { pluginRoot: string; pluginData: string }; // агентные биндинги: обе paths = workspace cwd; host-биндинги vars не читают
 };
 
 export type HooksBinding = HookMatcher & {   // то, что лежит в AgentDefinition
@@ -224,6 +232,10 @@ export type PluginIr = {
 - [ ] Step 4: commit `feat(plugins): add plugin IR domain types`
 
 ### Task A3: Удаление мёртвой Middleware
+
+Контракт мидлварей переезжает в хуки: `PreModelCall`/`PostModelCall`/
+`NodeStart`/`NodeEnd` + `inline`-хендлер (A1, швы C2); отдельной поверхности
+расширения не остаётся.
 
 **Files:**
 - Delete: `packages/harnesys/src/domain/middleware.ts`
@@ -352,7 +364,7 @@ AP-адаптер возвращает `pathOverrides` пустой (маниф�
 
 **Files:**
 - Create: `packages/harnesys/src/application/hooks/bus.ts`
-- Create: `packages/harnesys/src/application/hooks/executors.ts` (command argv/http/mcp_tool/prompt)
+- Create: `packages/harnesys/src/application/hooks/executors.ts` (command argv/http/mcp_tool/prompt/inline)
 - Create: `packages/harnesys/src/application/hooks/matchers.ts`
 - Create: `packages/harnesys/src/application/hooks/claude-output.ts`
 - Modify: `packages/harnesys/index.ts` (экспорт `createHookBus`)
@@ -382,7 +394,9 @@ export function runHookHandler(h: HookHandler, payload: HookPayload, ctx: HookRu
 ```
 
 Семантика (реализовать дословно). Исполнение параллельное по всем matches, свёртка
-детерминированная по порядку binding'ов (плагины по имени, затем agent bindings):
+детерминированная по порядку binding'ов (плагины по имени, затем agent bindings,
+затем host `origin: 'host'`; inline-хендлер = вызов функции в процессе, без
+спавна/сериализации/grant):
 `block` любого участника блокирует событие (участники после победившего block всё
 равно дожидаться не нужно — abort по AbortController emit); `context` — конкатенация
 в порядке binding'ов; `update_input`/`update_output` — первый binding'ов, не первый
@@ -421,7 +435,8 @@ CSV-pipe-список; иначе `new RegExp(matcher).test(subject)`); subject 
 tool-события → tool_name (MCP-инструменты: `mcp__plugin_<plugin>_<server>__<tool>`
 у плагинных серверов, `mcp__<server>__<tool>` у хостовых; матчёр по голому ключу
 сервера плагина не совпадает — Claude-паритет), SessionStart → source,
-Subagent* → agent_type, *Compact → trigger, FileChanged → file_path.
+Subagent* → agent_type, *Compact → trigger, FileChanged → file_path,
+Pre/PostModelCall → model.model, NodeStart/NodeEnd → node.type.
 
 Процесс-менеджмент command-хендлеров (норматив для `executors.ts`; единственная
 точка порождения и убийства процессов, полный текст нормы — спека §2.2):
@@ -449,11 +464,12 @@ Subagent* → agent_type, *Compact → trigger, FileChanged → file_path.
 **Files:**
 - Modify: `packages/harnesys/src/application/tool-approve.ts` (`runSingleToolCall` :53 — единственный общий проход для обычного и approve-путей: emit `PreToolUse` до исполнения (`update_input` подменяет args, `block` → `ToolCallResult{error: reason}` без исполнения), `PostToolUse`/`PostToolUseFailure` по исходу (`update_output` подменяет result)
 - Modify: `packages/harnesys/src/application/tool-call.ts` (только `PostToolBatch` в конце `executeToolCall` при batch-ветке; `runOne` не трогается — чекпоинт/HITL-механика остаётся как есть)
-- Modify: `packages/harnesys/src/application/graph.ts` / `graph-run.ts` (`startGraph`: `UserPromptSubmit` на первом сегменте (message = input text) и `SessionStart` с source по типу входа; финал Graph: `Stop`)
+- Modify: `packages/harnesys/src/application/llm.ts` (`runLlmGenerate` :103 — единственный шов вызова модели: emit `PreModelCall` до обращения к провайдеру (payload `model`), `PostModelCall` после (`model` + `usage`); `block` на `PreModelCall` → узел получает error-результат без вызова модели)
+- Modify: `packages/harnesys/src/application/graph.ts` / `graph-run.ts` (`startGraph`: `UserPromptSubmit` на первом сегменте (message = input text) и `SessionStart` с source по типу входа; финал Graph: `Stop`; `NodeStart`/`NodeEnd` в цикле диспетчеризации узлов :486-819, payload `node: {id, type}`)
 - Modify: `packages/harnesys/src/application/graph-spawn.ts` (`SubagentStart` до, `SubagentStop` после; matcher subject = `agent_type` из def-id; `context`-эффект стартового события добавляется в messages ребёнка)
 - Modify: compaction (`packages/harnesys/src/application/compaction/*`): `PreCompact` (trigger manual/auto) с правом `block` отменить compact; `PostCompact` после записи
 - Modify: `packages/harnesys/src/application/tool-permission.ts` (`PermissionRequest` перед ask-веткой: `allow` effect отсутствует в модели Claude — маппится так: `block` → deny с причиной, `ask` → без изменений (уже ask); результат пермита не мутируется `update_input`)
-- Modify: `packages/harnesys/src/ports/create-runtime.ts` (`CreateRuntimeOptions.hooks?: HookBinding[]`) + `packages/harnesys/src/ports/run-targets.ts` (`RunTarget` на :11-27 += `hooks?: HookBinding[]`, `binDirs?: string[]`) + `create-runtime.ts`: сборка `HookBus` на ран (bindings = runtime opts ∪ target.hooks); `RuntimeHandle.close()` — групповое убийство незавершённых хук-процессов из реестра шины, включая async (норматив C1, спека §2.2), drain deferred-очереди, emit `SessionEnd` перед `mcpRegistry.closeAll()`
+- Modify: `packages/harnesys/src/ports/create-runtime.ts` (`CreateRuntimeOptions.hooks?: HookBinding[]`) + `packages/harnesys/src/ports/run-targets.ts` (`RunTarget` на :11-27 += `hooks?: HookBinding[]`, `binDirs?: string[]`) + `create-runtime.ts`: сборка `HookBus` на ран (bindings = runtime opts ∪ target.hooks; host-inline биндинги `origin: 'host'` приходят через runtime opts); `RuntimeHandle.close()` — групповое убийство незавершённых хук-процессов из реестра шины, включая async (норматив C1, спека §2.2), drain deferred-очереди, emit `SessionEnd` перед `mcpRegistry.closeAll()`
 - Modify: `packages/harnesys/src/application/session.ts`: `context`-эффекты `UserPromptSubmit` инжектятся в user-сообщение префикс-блоком `[hooks]\n...` (как Claude additionalContext); `context` от `SessionStart` пушится в `RunTarget.notes`-массив (notes-порт уже есть, studio-run-targets.adapter.ts:78-87 — тот же канал); перед обращением к модели — `bus.drainDeferred()` и доставка
 
 **Interfaces:** Consumes: `HookBus` из C1, тип `HookBinding`. Все emit-точки пишутся через helper `emitHook(ctx, event, payload)` — no-op при пустом bus (проверка `bus.bindings().length === 0` до сборки payload: горячий путь не платит).

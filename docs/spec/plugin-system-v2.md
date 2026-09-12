@@ -110,7 +110,9 @@ type PluginKind =
 Событие — именованное сообщение с payload: `session_id`, `run_id`, `agent_id`,
 `thread_id`, `cwd`, `permission_mode`, плюс per-event поля (tool-события:
 `tool_name`, `tool_input`, `tool_use_id`; compact: `trigger`; subagent: `agent_type`
-с namespacing `plugin:name`; PostToolBatch: `tool_results`).
+с namespacing `plugin:name`; PostToolBatch: `tool_results`; model-call:
+`model: {provider, model}`, `usage: {steps, tokens, cost?}`; node-события:
+`node: {id, type}`).
 
 Ответ-эффект (union): `block(reason)`, `context(text)`, `updateInput(newInput)`,
 `updateOutput(newOutput)`, `ask(reason)`, `stop(reason)`, void. Блокировка
@@ -152,7 +154,8 @@ type HookHandler =
   | { type: 'http'; url: string; headers?: Record<string, string>; timeoutS?: number }
   | { type: 'mcp_tool'; server: string; tool: string; input?: Record<string, string> } // ${dotted.path} подстановка из payload
   | { type: 'prompt'; prompt: string; model?: string; timeoutS?: number }
-  | { type: 'agent'; prompt: string; model?: string; timeoutS?: number }; // inert до hook-verifier рантайма
+  | { type: 'agent'; prompt: string; model?: string; timeoutS?: number } // inert до hook-verifier рантайма
+  | { type: 'inline'; fn: (payload: HookPayload) => HookEffect[] | void | Promise<HookEffect[] | void> }; // host-код, парсерами не производится
 ```
 
 Поле `if` (permission-rule на отдельном handler'е) в v1 нет: матчинг события и
@@ -176,6 +179,12 @@ type HookHandler =
 пропускается на SessionStart до готовности MCP-клиентов (как Claude). Env
 `HARNESSYS_PLUGIN_OPTION_<KEY>` экспортирует все опции, включая sensitive;
 monitor-процессы переменных опций не получают (паритет Claude).
+
+`inline`: вызов в процессе хоста без спавна, сериализации и grant-класса.
+Инвариант: парсеры манифестов хендлер `inline` не производят никогда,
+биндинги с ним конструирует только composition хоста (`origin: 'host'`).
+Назначение: observability (трейсинг/метрики на `Post*`-событиях с `usage`
+в payload) и guard'ы хоста (`block` на `PreModelCall`).
 
 Процесс-менеджмент `command`-хендлеров. Все пути завершения идут через один
 исполнитель, норма без исключений:
@@ -222,6 +231,8 @@ monitor-процессы переменных опций не получают (
 | `Notification` | `HookBus.emitNotification` (единый вход для мониторов и хост-уведомлений; доменной шины событий для хуков нет) |
 | `PermissionRequest` | `application/tool-permission.ts` (before ask) |
 | `FileChanged` | matchers по путям (watcher поверх workspace path, subject = `file_path`) |
+| `PreModelCall` / `PostModelCall` | `runLlmGenerate` (`application/llm.ts`), единственный шов вызова модели; payload: `model`, на Post также `usage` |
+| `NodeStart` / `NodeEnd` | цикл диспетчеризации узлов `startGraph` (`application/graph.ts`) |
 
 Нет аналога в движке → diagnostic `event_unsupported` при enable (не при install).
 18 событий:
@@ -230,12 +241,17 @@ monitor-процессы переменных опций не получают (
 `DirectoryAdded`, `InstructionsLoaded`, `StopFailure`, `PreModelSwitch`,
 `PostModelSwitch`, `Elicitation`, `ElicitationResult`.
 Итого 15 нативных + 18 неподдерживаемых = 33 события Claude-контракта.
+Плюс 4 события Harnesys-namespace: `PreModelCall`, `PostModelCall`,
+`NodeStart`, `NodeEnd` (не входят в Claude-контракт, имеют нативные швы,
+биндятся как обычные события; Claude-плагины их не называют, Harnesys-native
+плагины могут). `NATIVE_HOOK_EVENTS` = 19.
 
 Matchers — семантика Claude:
 `*`/пусто/omitted = все; `[A-Za-z0-9_,- |]` = точное или список через `|`/`,`;
 иначе regex без якорей. Matcher match: имя инструмента (tool-события), источник
 события (SessionStart), agent type (Subagent*, namespacing), `file_path`
-(FileChanged). Для MCP-инструментов subject — scoped-имя:
+(FileChanged), имя модели (`PreModelCall`/`PostModelCall`), тип узла
+(`NodeStart`/`NodeEnd`). Для MCP-инструментов subject — scoped-имя:
 `mcp__plugin_<plugin>_<server>__<tool>` у плагинных серверов,
 `mcp__<server>__<tool>` у хостовых; матчёр по голому ключу сервера плагина
 не совпадает никогда (паритет Claude). Матчёры SessionEnd (reason) и Notification
@@ -256,7 +272,8 @@ Matchers — семантика Claude:
 
 Обработчики одного события исполняются параллельно, свёртка результатов
 детерминирована: эффекты применяются не по завершении, а по фиксированному
-порядку binding'ов (плагины по имени, затем agent bindings): `block` любого
+порядку binding'ов (плагины по имени, затем agent bindings, затем host-inline
+`origin: 'host'`): `block` любого
 участника блокирует событие, `context` конкатенируются в этом же порядке,
 `update_input`/`update_output` — первый в порядке binding'ов, не первый
 завершившийся. Таймауты по умолчанию Claude: 600s command/http/mcp_tool, 30s
@@ -273,7 +290,8 @@ HookBus и дрейнятся session loop перед следующим обр�
 событие остаётся на 600s).
 
 `domain/middleware.ts` и необращаемый `middleware` из RuntimeContext удаляются:
-их роль берёт HookBus (правила D1–D5).
+их роль берёт HookBus: guard-точки `PreModelCall`/`PreToolUse` (deny = `block`,
+ask остаётся HITL движка), наблюдение на `Post*`/`NodeEnd` (правила D1–D5).
 
 ## 3. Binder: компоненты в нативные примитивы
 
@@ -299,6 +317,10 @@ HookBus и дрейнятся session loop перед следующим обр�
 - process: hooks(command), mcp(stdio), lsp, monitors, bin(path-entry),
   hooks(mcp_tool) — класс наследуется от адресуемого сервера.
 - network: hooks(http), mcp(streamable-http/sse) с внешним url.
+
+`hooks(inline)` grant-класса не имеет: биндинги `origin: 'host'` не проходят
+grant-фильтр binder'а (код хоста доверен по определению), парсеры манифестов
+этот тип хендлера не производят.
 
 Запись доверия: `grants: Partial<Record<GrantClass, boolean>>` на плагин ×
 workspace. Хранение (Studio): JSON-карта на записи плагина

@@ -111,8 +111,9 @@
 
 - `PluginIr`/`PluginComponent`: формат-нейтральность, `sourceFormat` не выходит
   за адаптеры.
-- `HookEventName` — полный список Claude; новые события Claude добавляются
-  в union.
+- `HookEventName` — полный список Claude плюс события Harnesys-namespace
+  (`PreModelCall`, `PostModelCall`, `NodeStart`, `NodeEnd`); новые события
+  обоих родов добавляются в union аддитивно.
 - Неймспейс `mcp__plugin_<name>_<server>__<tool>` и `plugin:<name>:<server>`.
 - `PLUGIN_DATA` персистентен при update (AP §9.1); путь
   `~/.harnesys/plugins-data/<name>`.

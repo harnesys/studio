@@ -78,6 +78,55 @@ const agentGraphBody = z
   })
   .optional();
 
+const timeoutS = z.number().int().positive();
+
+// harnesys `HookHandler` union minus `inline` (host code; never from HTTP input).
+const hookHandlerBody = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('command'),
+    command: z.string().trim().min(1),
+    args: z.array(z.string()).optional(),
+    timeoutS,
+    async: z.boolean().optional(),
+    env: z.record(z.string(), z.string()).optional(),
+  }),
+  z.object({
+    type: z.literal('http'),
+    url: z.string().trim().min(1),
+    headers: z.record(z.string(), z.string()).optional(),
+    timeoutS,
+  }),
+  z.object({
+    type: z.literal('mcp_tool'),
+    server: z.string().trim().min(1),
+    tool: z.string().trim().min(1),
+    input: z.record(z.string(), z.string()).optional(),
+    timeoutS,
+  }),
+  z.object({
+    type: z.literal('prompt'),
+    prompt: z.string().trim().min(1),
+    model: z.string().optional(),
+    timeoutS,
+  }),
+  z.object({
+    type: z.literal('agent'),
+    prompt: z.string().trim().min(1),
+    model: z.string().optional(),
+    timeoutS,
+  }),
+]);
+
+const hooksBindingBody = z.object({
+  event: z.string().trim().min(1),
+  matcher: z.string().optional(),
+  handler: hookHandlerBody,
+  when: z.enum(['agent', 'mode']).optional(),
+});
+
+const hooksBody = z.array(hooksBindingBody).max(32).optional();
+const enabledPluginsBody = z.record(z.string(), z.boolean()).optional();
+
 export const createAgentBody = z.object({
   name: z.string().trim().min(1),
   parentId: z.string().trim().min(1).nullish(),
@@ -94,6 +143,8 @@ export const createAgentBody = z.object({
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
   graph: agentGraphBody,
+  hooks: hooksBody,
+  enabledPlugins: enabledPluginsBody,
   defaultModeId: z.string().regex(MODE_ID_RE).max(48).nullish(),
   modes: z.array(agentModeBody).max(24).optional(),
 });
@@ -113,6 +164,8 @@ export const updateAgentBody = z.object({
   mcpServers: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
   graph: agentGraphBody,
+  hooks: hooksBody,
+  enabledPlugins: enabledPluginsBody,
   defaultModeId: z.string().regex(MODE_ID_RE).max(48).nullish(),
   modes: z.array(agentModeBody).max(24).optional(),
 });

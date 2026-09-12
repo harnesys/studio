@@ -1,6 +1,7 @@
 import { validateStructural } from '../application/validate.ts';
 import { ValidationError } from './errors.ts';
 import type { Expr } from './expr.ts';
+import type { HooksBinding } from './hook.ts';
 import type { JsonSchema } from './json-schema.ts';
 import type { AgentPacks, PackConfig } from './pack.ts';
 
@@ -73,6 +74,10 @@ export type AgentDefinition = {
   budget?: AgentBudget;
   packs?: AgentPacks;
   capabilities?: Record<string, PackConfig | null>;
+  /** Декларативные hook-биндинги агента: события и обработчики этого агента. */
+  hooks?: HooksBinding[];
+  /** Переопределение включённости плагинов для агента: имя плагина → вкл/выкл. */
+  enabledPlugins?: Record<string, boolean>;
 };
 
 export type Edge = { from: string; to: string; when?: Expr };

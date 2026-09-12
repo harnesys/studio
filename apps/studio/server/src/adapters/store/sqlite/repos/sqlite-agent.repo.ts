@@ -6,14 +6,9 @@ import {
   type PortRef,
 } from '@harnesys/studio-shared';
 import { and, eq } from 'drizzle-orm';
-import type { PackAssignment } from 'harnesys';
-import { type Edge, type Node, normalizePackAssignment } from 'harnesys';
+import { type HooksBinding, normalizePackAssignment, type PackAssignment } from 'harnesys';
 import type {
   Agent,
-  AgentGraph,
-  AgentGraphLayout,
-  AgentGraphPosition,
-  AgentGraphRankdir,
   AgentInsert,
   AgentPatch,
   AgentRepository,
@@ -22,6 +17,7 @@ import { NotFoundError } from '../../../../domain/studio.error.ts';
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type AgentRow, agentsTable } from '../schema';
+import { parseGraph } from './agent-graph-json.ts';
 
 export class SqliteAgentRepo implements AgentRepository {
   constructor(private readonly db: StudioDb) {}
@@ -66,6 +62,8 @@ export class SqliteAgentRepo implements AgentRepository {
         graph,
         budget,
         capabilities,
+        hooks,
+        enabledPlugins,
         ...rest
       } = rec;
       // `tools` stays on the record type for Task 8 consumers but
@@ -82,6 +80,8 @@ export class SqliteAgentRepo implements AgentRepository {
           graphJson: JSON.stringify(graph),
           budgetJson: serializeJsonColumn(budget),
           capabilitiesJson: JSON.stringify(capabilities),
+          hooksJson: JSON.stringify(hooks),
+          enabledPluginsJson: JSON.stringify(enabledPlugins),
           modesJson: serializeJson(modes) ?? '[]',
         })
         .returning()
@@ -105,6 +105,8 @@ export class SqliteAgentRepo implements AgentRepository {
         graph,
         budget,
         capabilities,
+        hooks,
+        enabledPlugins,
         ...rest
       } = patch;
       const row = this.db
@@ -119,6 +121,10 @@ export class SqliteAgentRepo implements AgentRepository {
           ...(graph !== undefined ? { graphJson: JSON.stringify(graph) } : {}),
           ...(budget !== undefined ? { budgetJson: serializeJsonColumn(budget) } : {}),
           ...(capabilities !== undefined ? { capabilitiesJson: JSON.stringify(capabilities) } : {}),
+          ...(hooks !== undefined ? { hooksJson: JSON.stringify(hooks) } : {}),
+          ...(enabledPlugins !== undefined
+            ? { enabledPluginsJson: JSON.stringify(enabledPlugins) }
+            : {}),
           ...(modes !== undefined ? { modesJson: serializeJson(modes) ?? '[]' } : {}),
         })
         .where(eq(agentsTable.id, id))
@@ -162,6 +168,8 @@ function toAgent(row: AgentRow): Agent {
     graph: parseGraph(row.graphJson),
     budget: parseJsonObject(row.budgetJson),
     capabilities: parsePacks(row.capabilitiesJson),
+    hooks: parseHooks(row.hooksJson),
+    enabledPlugins: parseEnabledPlugins(row.enabledPluginsJson),
     defaultModeId: row.defaultModeId ?? null,
     modes: parseAgentModes(row.modesJson),
     createdAt: row.createdAt,
@@ -198,6 +206,50 @@ function serializeJson(value: object | null | undefined): string | null {
     return null;
   }
   return JSON.stringify(value);
+}
+
+/** Shape-guard for stored hook bindings: keep entries with an event name and a handler object. */
+function parseHooks(raw: string | null): HooksBinding[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const out: HooksBinding[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        continue;
+      }
+      const candidate = item as HooksBinding;
+      if (
+        typeof candidate.event !== 'string' ||
+        !candidate.handler ||
+        typeof candidate.handler !== 'object' ||
+        typeof candidate.handler.type !== 'string'
+      ) {
+        continue;
+      }
+      out.push(candidate);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/** Boolean-valued entries only; anything else in the column drops. */
+function parseEnabledPlugins(raw: string | null): Record<string, boolean> {
+  const parsed = parseJsonObject<Record<string, unknown>>(raw) ?? {};
+  const out: Record<string, boolean> = {};
+  for (const [name, value] of Object.entries(parsed)) {
+    if (typeof value === 'boolean') {
+      out[name] = value;
+    }
+  }
+  return out;
 }
 
 /** Persists JSON including literal `null` (explicit off). */
@@ -277,70 +329,4 @@ function parseAgentModes(raw: string): AgentMode[] {
   } catch {
     return [];
   }
-}
-
-const EMPTY_GRAPH: AgentGraph = { nodes: {}, edges: [] };
-
-function parseGraph(raw: string | null): AgentGraph {
-  if (!raw) {
-    return EMPTY_GRAPH;
-  }
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return EMPTY_GRAPH;
-    }
-    const obj = parsed as Record<string, unknown>;
-    const nodes = typeof obj.nodes === 'object' && obj.nodes !== null ? obj.nodes : {};
-    const edges = Array.isArray(obj.edges) ? obj.edges : [];
-    const layout = parseLayout(obj.layout);
-    return {
-      nodes: nodes as Record<string, Node>,
-      edges: edges as Edge[],
-      ...(layout !== undefined ? { layout } : {}),
-    };
-  } catch {
-    return EMPTY_GRAPH;
-  }
-}
-
-function parseLayout(raw: unknown): AgentGraphLayout | undefined {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return undefined;
-  }
-  const obj = raw as Record<string, unknown>;
-  const rankdir = parseRankdir(obj.rankdir);
-  if (rankdir === undefined) {
-    return undefined;
-  }
-  if (!obj.positions || typeof obj.positions !== 'object' || Array.isArray(obj.positions)) {
-    return undefined;
-  }
-  const positions: Record<string, AgentGraphPosition> = {};
-  for (const [id, value] of Object.entries(obj.positions as Record<string, unknown>)) {
-    const position = parsePosition(value);
-    if (position === undefined) {
-      return undefined;
-    }
-    positions[id] = position;
-  }
-  return { rankdir, positions };
-}
-
-function parseRankdir(raw: unknown): AgentGraphRankdir | undefined {
-  if (raw === 'TB' || raw === 'LR') {
-    return raw;
-  }
-  return undefined;
-}
-
-function parsePosition(raw: unknown): AgentGraphPosition | undefined {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return undefined;
-  }
-  const obj = raw as Record<string, unknown>;
-  if (typeof obj.x !== 'number' || typeof obj.y !== 'number') {
-    return undefined;
-  }
-  return { x: obj.x, y: obj.y };
 }

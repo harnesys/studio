@@ -43,6 +43,7 @@ export function registerStudioHttp(args: {
     lsp: host.lsp,
     secretStore: host.secretStore,
     threadRegistry: host.threadRegistry,
+    threadRunHooks: host.threadRunHooks,
     runtimeStateRepo: host.runtimeStateRepo,
     lifecycle: runtime.runLifecycle,
     events: runtime.runEvents,

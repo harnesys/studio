@@ -12,6 +12,7 @@ import { createEpisodicOnCompacted } from '../application/memory/episodic-on-com
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import type { PluginAgentCatalog } from '../application/plugins/plugin-agents.ts';
 import { pluginUserConfig, substituteLspSpec } from '../application/plugins/plugin-user-config.ts';
+import type { ThreadRunHooks } from '../application/threads/compact-thread.use-case.ts';
 import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { logger, toRuntimeLogger } from '../config/logger.ts';
@@ -30,6 +31,8 @@ export type StudioHost = {
   runtimeStateRepo: SqliteRuntimeStateRepo;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   threadRegistry: ThreadRuntimeRegistry;
+  /** Хук-шина рана для вне-рановых проходов (ручная компакция). */
+  threadRunHooks: ThreadRunHooks;
   getThreadPlan: GetThreadPlanUseCase;
   sendThreadRun: SendThreadRunUseCase;
   lsp: StudioLspAdapter;
@@ -235,6 +238,12 @@ export function createStudioHost(args: {
   });
   runtime.targetRef.current = runTargets;
 
+  /** Хук-шина для вне-рановых проходов тредa (ручная компакция). */
+  const threadRunHooks = {
+    ensure: (threadId: string) => runTargets.ensureHooksForThread(threadId),
+    release: (threadId: string) => runHookBuses.close(threadId),
+  };
+
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
   const getThreadPlan = new GetThreadPlanUseCase(new SqliteUnitOfWork(store.db));
   const sendThreadRun = new SendThreadRunUseCase({
@@ -266,6 +275,7 @@ export function createStudioHost(args: {
     runtimeStateRepo,
     workspaceHarnesys,
     threadRegistry,
+    threadRunHooks,
     getThreadPlan,
     sendThreadRun,
     lsp: lspAdapter,

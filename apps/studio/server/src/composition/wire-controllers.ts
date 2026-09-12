@@ -53,7 +53,10 @@ import { ListProvidersUseCase } from '../application/providers/list-providers.us
 import { UpdateProviderUseCase } from '../application/providers/update-provider.use-case.ts';
 import { UpdateProviderModelUseCase } from '../application/providers/update-provider-model.use-case.ts';
 import { CancelRunUseCase } from '../application/threads/cancel-run.use-case.ts';
-import { CompactThreadUseCase } from '../application/threads/compact-thread.use-case.ts';
+import {
+  CompactThreadUseCase,
+  type ThreadRunHooks,
+} from '../application/threads/compact-thread.use-case.ts';
 import { CreateThreadUseCase } from '../application/threads/create-thread.use-case.ts';
 import { CreateThreadAttachmentUseCase } from '../application/threads/create-thread-attachment.use-case.ts';
 import { DeleteThreadUseCase } from '../application/threads/delete-thread.use-case.ts';
@@ -140,6 +143,7 @@ type ControllerDeps = {
   getThread: GetThreadInput;
   getThreadPlan: GetThreadPlanInput;
   sendThreadRun: SendThreadRunInput;
+  threadRunHooks: ThreadRunHooks;
 };
 
 export function wireControllers(d: ControllerDeps): void {
@@ -297,6 +301,7 @@ export function wireControllers(d: ControllerDeps): void {
       deskEvents: d.deskEvents,
       getThread: d.getThread,
       runEvents: d.events,
+      runHooks: d.threadRunHooks,
     }),
     streamRunEvents: new StreamRunEventsUseCase({
       lifecycle: d.lifecycle,

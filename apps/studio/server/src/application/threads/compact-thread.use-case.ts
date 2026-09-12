@@ -4,6 +4,7 @@ import type {
   CompactionMessage,
   EpisodicPort,
   Event,
+  HookEmitCtx,
   ModelBinding,
   ModelsPort,
   PendingSessionEvent,
@@ -57,6 +58,13 @@ export type CompactThreadDeps = {
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
   runEvents: CompactJournalPort;
+  runHooks: ThreadRunHooks;
+};
+
+/** Хук-шина рана для PreCompact/PostCompact на ручном проходе (спека §2.3). */
+export type ThreadRunHooks = {
+  ensure(threadId: string): Promise<HookEmitCtx | undefined>;
+  release(threadId: string): Promise<void>;
 };
 
 /**
@@ -139,34 +147,40 @@ export class CompactThreadUseCase implements CompactThreadInput {
     const signal = request.signal ?? new AbortController().signal;
 
     let message: CompactionMessage | undefined;
-    for await (const ev of compactForced({
-      agent: def,
-      state: st,
-      sessionId: state.sessionId,
-      binding,
-      models: this.deps.models,
-      toolRegistry: hx.tools.registry() as Map<string, ToolDefinition>,
-      paths: { allow: [workspace.path], cwd: workspace.path },
-      signal,
-      logger: toRuntimeLogger('runtime'),
-    })) {
-      if (ev.type === 'completed') {
-        message = ev.message;
-        continue;
+    const hooks = await this.deps.runHooks.ensure(thread.id);
+    try {
+      for await (const ev of compactForced({
+        agent: def,
+        state: st,
+        sessionId: state.sessionId,
+        binding,
+        models: this.deps.models,
+        toolRegistry: hx.tools.registry() as Map<string, ToolDefinition>,
+        paths: { allow: [workspace.path], cwd: workspace.path },
+        signal,
+        logger: toRuntimeLogger('runtime'),
+        hooks,
+      })) {
+        if (ev.type === 'completed') {
+          message = ev.message;
+          continue;
+        }
+        if (ev.type === 'failed') {
+          throw new ValidationError(ev.error);
+        }
+        const pending = sessionEventFromCompactionPass(ev);
+        if (!pending) {
+          continue;
+        }
+        const assigned = await this.deps.runEvents.appendForThread(thread.id, journalRunId, [
+          pending,
+        ]);
+        for (const event of assigned) {
+          yield { kind: 'event', event };
+        }
       }
-      if (ev.type === 'failed') {
-        throw new ValidationError(ev.error);
-      }
-      const pending = sessionEventFromCompactionPass(ev);
-      if (!pending) {
-        continue;
-      }
-      const assigned = await this.deps.runEvents.appendForThread(thread.id, journalRunId, [
-        pending,
-      ]);
-      for (const event of assigned) {
-        yield { kind: 'event', event };
-      }
+    } finally {
+      await this.deps.runHooks.release(thread.id).catch(() => undefined);
     }
     if (!message) {
       yield { kind: 'result', response: { compacted: false } };

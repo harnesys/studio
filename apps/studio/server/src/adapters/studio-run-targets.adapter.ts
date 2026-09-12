@@ -3,6 +3,7 @@ import type {
   AgentDefinition,
   AgentPacks,
   HookBinding,
+  HookEmitCtx,
   PackRegistration,
   PathEntrySpec,
   RunTarget,
@@ -43,6 +44,39 @@ export type StudioRunTargetsDeps = {
 
 export class StudioRunTargets implements RunTargets {
   constructor(private readonly deps: StudioRunTargetsDeps) {}
+
+  /**
+   * Хук-шина для вне-рановых проходов (ручная компакция): те же грант-фильтрованные
+   * биндинги, что собрал бы ран этого треда. `undefined`, если биндингов нет.
+   */
+  async ensureHooksForThread(threadId: string): Promise<HookEmitCtx | undefined> {
+    const thread = this.deps.threads.findById(threadId);
+    if (!thread) {
+      return undefined;
+    }
+    const workspace = this.deps.workspaces.findById(thread.workspaceId);
+    const agent = workspace
+      ? this.deps.workspaceHarnesys.resolveAgentDefinition(thread.agentId)
+      : undefined;
+    if (!workspace || !agent) {
+      return undefined;
+    }
+    const plugins = effectivePlugins(
+      await this.deps.workspaceHarnesys.loadEnabledPlugins(thread.workspaceId),
+      agent,
+    );
+    const bindings = composeHookBindings(plugins, agent, workspace.path);
+    if (bindings.length === 0) {
+      return undefined;
+    }
+    return this.deps.runHookBuses.ensure({
+      threadId,
+      workspaceId: thread.workspaceId,
+      workspacePath: workspace.path,
+      bindings,
+      binDirs: collectBinDirs(plugins),
+    });
+  }
 
   async resolve(threadId: string): Promise<RunTarget | null> {
     await this.deps.branchSeeder.seedIfNeeded(threadId);

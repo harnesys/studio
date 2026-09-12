@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
@@ -90,8 +90,8 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
   const comfortAnchor = useChatPreferences((state) => state.comfortAnchor);
   const comfortThreshold = useChatPreferences((state) => state.comfortThreshold);
   const comfortDuration = useChatPreferences((state) => state.comfortDuration);
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const comfortPinned = useComfortFollow(viewportRef, {
+  const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
+  const comfortPinned = useComfortFollow(viewport, {
     enabled: comfortFollow,
     anchorPercent: comfortAnchor,
     thresholdPx: comfortThreshold,
@@ -127,7 +127,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
   return (
     <MessageScrollerProvider autoScroll={!comfortFollow}>
       <MessageScroller>
-        <MessageScrollerViewport ref={viewportRef}>
+        <MessageScrollerViewport ref={setViewport}>
           <MessageScrollerContent
             className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]"
             style={comfortSpacer ? { paddingBottom: `${100 - comfortAnchor}vh` } : undefined}

@@ -1,4 +1,4 @@
-import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type ComfortScrollOptions = {
   enabled: boolean;
@@ -35,9 +35,11 @@ function distanceToBottom(viewport: HTMLDivElement): number {
  * Контент получает нижний отступ (резерв), поэтому обычный scrollToEnd ставит
  * живой край на якорную линию. Хук доливает до конца только когда край
  * подходит к низу ближе thresholdPx; ручной скролл вверх отцепляет следование.
+ * Принимает элемент вьюпорта через callback-ref: скроллер монтируется позже
+ * первой отрисовки панели (скелетон до гидрации), эффект должен перезапуститься.
  */
 export function useComfortFollow(
-  viewportRef: RefObject<HTMLDivElement | null>,
+  viewport: HTMLDivElement | null,
   options: ComfortScrollOptions,
 ): boolean {
   const { enabled } = options;
@@ -55,7 +57,6 @@ export function useComfortFollow(
   }, []);
 
   useEffect(() => {
-    const viewport = viewportRef.current;
     if (!viewport || !enabled) {
       return;
     }
@@ -145,7 +146,7 @@ export function useComfortFollow(
       viewport.removeEventListener('wheel', onUserGesture);
       viewport.removeEventListener('touchmove', onUserGesture);
     };
-  }, [enabled, viewportRef, setPinnedBoth]);
+  }, [enabled, viewport, setPinnedBoth]);
 
   useEffect(() => {
     if (!enabled) {

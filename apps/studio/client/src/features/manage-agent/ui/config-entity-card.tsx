@@ -68,7 +68,7 @@ export function ConfigEntityCard({
   return (
     <div
       className={cn(
-        'relative flex flex-col rounded-lg border bg-card/30',
+        'relative flex flex-col rounded-lg border border-muted bg-card/30',
         'transition-colors hover:border-border hover:bg-muted/40',
         expanded && 'border-border bg-muted/40',
       )}

@@ -16,6 +16,8 @@ export {
   filterGenerationSettings,
   withChatGenerationParameters,
 } from './src/domain/generation-settings.ts';
+export type { HookEventName } from './src/domain/hook.ts';
+export { NATIVE_HOOK_EVENTS } from './src/domain/hook.ts';
 export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan.ts';
 export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from './src/domain/plan.ts';
 export type { PermissionMode, ScheduleHistory } from './src/domain/schedule.ts';

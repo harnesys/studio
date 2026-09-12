@@ -1,5 +1,5 @@
 import type { HookEventName, HookHandler, HooksBinding } from 'harnesys';
-import { NATIVE_HOOK_EVENTS } from 'harnesys';
+import { NATIVE_HOOK_EVENTS } from 'harnesys/domain';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 

@@ -69,21 +69,12 @@ export {
   bindSkillComponents,
   type SkillFileReader,
 } from './src/application/plugins/bind-skills.ts';
-export { runPluginHookCommand } from './src/application/plugins/hooks-runner.ts';
 export {
   type MergedPluginMcp,
   mergePluginMcpFragments,
   type PluginMcpBinding,
 } from './src/application/plugins/merge-plugin-runtime.ts';
 export { prefixSkillRegistry } from './src/application/plugins/prefixed-skill-registry.ts';
-export type {
-  CreatePluginSessionStartNotesOptions,
-  PluginSessionStartSource,
-} from './src/application/plugins/session-start-notes.ts';
-export {
-  createPluginSessionStartNotes,
-  parseSessionStartContext,
-} from './src/application/plugins/session-start-notes.ts';
 export {
   type ConfigError,
   substituteUserConfig,
@@ -339,10 +330,6 @@ export type {
   LoadPluginIrFromDirectoryOptions,
   LoadPluginIrResult,
   PluginLoader,
-  RunPluginHookCommandFail,
-  RunPluginHookCommandOk,
-  RunPluginHookCommandOptions,
-  RunPluginHookCommandResult,
 } from './src/ports/plugins.ts';
 export type {
   PendingSessionEvent,

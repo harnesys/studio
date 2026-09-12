@@ -69,8 +69,8 @@ export const SETTINGS_GROUPS = [
       },
       {
         id: 'tools' as const,
-        label: 'Tools',
-        description: 'What agents may run without asking again.',
+        label: 'Packages',
+        description: 'Workspace tools grouped into packages.',
       },
       {
         id: 'mode-presets' as const,

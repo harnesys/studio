@@ -1,16 +1,9 @@
 import type { PluginListItem, PluginLoadDiagnostic } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ChevronDownIcon,
-  ChevronRightIcon,
-  PlusIcon,
-  RefreshCwIcon,
-  ShieldCheckIcon,
-  ShieldOffIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import { PlusIcon, RefreshCwIcon, ShieldCheckIcon, ShieldOffIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
+import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
 import { confirmRemovePlugin, openInstallPluginDialog } from '@/features/manage-plugins';
 import {
   enableWorkspacePlugin,
@@ -22,7 +15,6 @@ import {
   updatePlugin,
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
@@ -150,39 +142,80 @@ export function PluginsInstalledTab() {
         ) : (
           <div className="flex flex-col gap-1">
             {items.map((item) => {
-              const expanded = expandedName === item.plugin.name;
+              const plugin = item.plugin;
+              const expanded = expandedName === plugin.name;
               const enabledHere = workspaceId
-                ? item.plugin.enabledWorkspaceIds.includes(workspaceId)
+                ? plugin.enabledWorkspaceIds.includes(workspaceId)
                 : false;
               return (
-                <div key={item.plugin.name} className="flex flex-col">
-                  <PluginRow
-                    item={item}
-                    enabledHere={enabledHere}
-                    busy={busy}
+                <div key={plugin.name} data-testid={`plugin-${plugin.name}`}>
+                  <ConfigEntityCard
+                    title={plugin.name}
+                    badge={plugin.version ?? plugin.sourceFormat ?? undefined}
+                    statusBadge={enabledHere ? 'enabled' : undefined}
+                    description={pluginSummary(item)}
+                    initials={initialsFromLabel(plugin.name)}
+                    monoTitle
                     expanded={expanded}
-                    canEnable={Boolean(workspaceId)}
-                    onToggle={() =>
-                      setExpandedName((current) =>
-                        current === item.plugin.name ? null : item.plugin.name,
-                      )
+                    onClick={() => setExpandedName(expanded ? null : plugin.name)}
+                    trailing={
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground"
+                          disabled={!workspaceId || busy}
+                          onClick={() =>
+                            enable.mutate({ name: plugin.name, enabled: !enabledHere })
+                          }
+                        >
+                          {enabledHere ? 'Disable' : 'Enable'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="opacity-70"
+                          aria-label={
+                            plugin.trusted ? `Untrust ${plugin.name}` : `Trust ${plugin.name}`
+                          }
+                          disabled={busy}
+                          onClick={() =>
+                            trust.mutate({ name: plugin.name, trusted: !plugin.trusted })
+                          }
+                        >
+                          {plugin.trusted ? <ShieldOffIcon /> : <ShieldCheckIcon />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="opacity-70"
+                          aria-label={`Update ${plugin.name}`}
+                          disabled={busy}
+                          onClick={() => update.mutate(plugin.name)}
+                        >
+                          <RefreshCwIcon />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="opacity-70"
+                          aria-label={`Remove ${plugin.name}`}
+                          disabled={busy}
+                          onClick={() => {
+                            void confirmRemovePlugin(plugin.name).then((confirmed) => {
+                              if (confirmed) {
+                                remove.mutate(plugin.name);
+                              }
+                            });
+                          }}
+                        >
+                          <Trash2Icon />
+                        </Button>
+                      </>
                     }
-                    onEnable={() =>
-                      enable.mutate({ name: item.plugin.name, enabled: !enabledHere })
-                    }
-                    onTrust={() =>
-                      trust.mutate({ name: item.plugin.name, trusted: !item.plugin.trusted })
-                    }
-                    onUpdate={() => update.mutate(item.plugin.name)}
-                    onRemove={() => {
-                      void confirmRemovePlugin(item.plugin.name).then((confirmed) => {
-                        if (confirmed) {
-                          remove.mutate(item.plugin.name);
-                        }
-                      });
-                    }}
-                  />
-                  {expanded ? <PluginDetail item={item} /> : null}
+                  >
+                    <PluginDetail item={item} />
+                  </ConfigEntityCard>
                 </div>
               );
             })}
@@ -192,128 +225,25 @@ export function PluginsInstalledTab() {
   );
 }
 
-function PluginRow({
-  item,
-  enabledHere,
-  busy,
-  expanded,
-  canEnable,
-  onToggle,
-  onEnable,
-  onTrust,
-  onUpdate,
-  onRemove,
-}: {
-  item: PluginListItem;
-  enabledHere: boolean;
-  busy: boolean;
-  expanded: boolean;
-  canEnable: boolean;
-  onToggle: () => void;
-  onEnable: () => void;
-  onTrust: () => void;
-  onUpdate: () => void;
-  onRemove: () => void;
-}) {
-  const plugin = item.plugin;
+function pluginSummary(item: PluginListItem): string {
+  const { plugin } = item;
+  const parts = [
+    `${plugin.skillCount} skills`,
+    `${plugin.hookCount} hooks`,
+    `${plugin.agentCount} agents`,
+    `${plugin.commandCount} commands`,
+  ];
   const diagnosticHint = diagnosticSummary(item.diagnostics);
-
-  return (
-    <div
-      className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
-      data-testid={`plugin-${plugin.name}`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-sm">{plugin.name}</span>
-          {plugin.version ? (
-            <Badge variant="secondary" className="font-mono">
-              {plugin.version}
-            </Badge>
-          ) : null}
-          {plugin.sourceFormat ? (
-            <Badge variant="outline" className="font-mono">
-              {plugin.sourceFormat}
-            </Badge>
-          ) : null}
-          {plugin.trusted ? (
-            <Badge variant="secondary" className="font-mono">
-              trusted
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="font-mono">
-              untrusted
-            </Badge>
-          )}
-          {enabledHere ? (
-            <Badge variant="secondary" className="font-mono">
-              enabled
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="font-mono">
-              off
-            </Badge>
-          )}
-        </div>
-        <p className="text-muted-foreground text-xs">
-          {plugin.skillCount} skills · {plugin.hookCount} hooks · {plugin.agentCount} agents ·{' '}
-          {plugin.commandCount} commands
-          {diagnosticHint ? ` · ${diagnosticHint}` : null}
-        </p>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`${expanded ? 'Hide' : 'Show'} details for ${plugin.name}`}
-        onClick={onToggle}
-      >
-        {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground"
-        disabled={!canEnable || busy}
-        onClick={onEnable}
-      >
-        {enabledHere ? 'Disable' : 'Enable'}
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={plugin.trusted ? `Untrust ${plugin.name}` : `Trust ${plugin.name}`}
-        disabled={busy}
-        onClick={onTrust}
-      >
-        {plugin.trusted ? <ShieldOffIcon /> : <ShieldCheckIcon />}
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground"
-        disabled={busy}
-        onClick={onUpdate}
-      >
-        <RefreshCwIcon />
-        Update
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`Remove ${plugin.name}`}
-        disabled={busy}
-        onClick={onRemove}
-      >
-        <Trash2Icon />
-      </Button>
-    </div>
-  );
+  if (diagnosticHint) {
+    parts.push(diagnosticHint);
+  }
+  return parts.join(' · ');
 }
 
 function PluginDetail({ item }: { item: PluginListItem }) {
   const plugin = item.plugin;
   return (
-    <div className="mb-1 ml-2 flex flex-col gap-2 border-l pl-3">
+    <div className="flex flex-col gap-2">
       <DetailBlock
         label="Inventory"
         items={[
@@ -330,6 +260,8 @@ function PluginDetail({ item }: { item: PluginListItem }) {
           plugin.source,
           plugin.revision ? `revision ${plugin.revision.slice(0, 12)}` : 'revision unknown',
           ...(plugin.registryId ? [`registry ${plugin.registryId}`] : []),
+          ...(plugin.sourceFormat ? [`format ${plugin.sourceFormat}`] : []),
+          plugin.trusted ? 'trusted' : 'untrusted',
         ]}
       />
       <DetailBlock

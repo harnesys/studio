@@ -2,6 +2,7 @@ import type { PluginCatalogEntry } from '@harnesys/studio-shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
+import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
 import { openInstallCatalogPluginDialog } from '@/features/manage-plugins';
 import {
   pluginCatalogQuery,
@@ -9,7 +10,6 @@ import {
   pluginRegistriesQuery,
   pluginsQueryKey,
 } from '@/shared/api';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { Input } from '@/shared/ui/input';
@@ -112,49 +112,35 @@ function CatalogRow({
   onInstalled: (name: string) => Promise<void>;
 }) {
   return (
-    <div
-      className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
-      data-testid={`catalog-${entry.pluginName}`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-sm">
-            {entry.displayName ?? entry.pluginName}
-          </span>
-          <Badge variant="outline" className="font-mono">
-            {registryName}
-          </Badge>
-          {entry.category ? (
-            <Badge variant="secondary" className="font-mono">
-              {entry.category}
-            </Badge>
-          ) : null}
-          {!entry.installable ? (
-            <Badge variant="outline" className="font-mono">
-              unsupported
-            </Badge>
-          ) : null}
-        </div>
-        <p className="line-clamp-2 text-muted-foreground text-xs">{catalogDescription(entry)}</p>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground"
-        disabled={!entry.installable}
-        onClick={() => {
-          void openInstallCatalogPluginDialog({
-            registryId: entry.registryId,
-            pluginName: entry.pluginName,
-          }).then(async (result) => {
-            if (result) {
-              await onInstalled(result.plugin.name);
-            }
-          });
-        }}
-      >
-        Install
-      </Button>
+    <div data-testid={`catalog-${entry.pluginName}`}>
+      <ConfigEntityCard
+        title={entry.displayName ?? entry.pluginName}
+        badge={registryName}
+        statusBadge={entry.category ?? undefined}
+        description={catalogDescription(entry)}
+        initials={initialsFromLabel(entry.pluginName)}
+        monoTitle
+        trailing={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            disabled={!entry.installable}
+            onClick={() => {
+              void openInstallCatalogPluginDialog({
+                registryId: entry.registryId,
+                pluginName: entry.pluginName,
+              }).then(async (result) => {
+                if (result) {
+                  await onInstalled(result.plugin.name);
+                }
+              });
+            }}
+          >
+            {entry.installable ? 'Install' : 'Unsupported'}
+          </Button>
+        }
+      />
     </div>
   );
 }

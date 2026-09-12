@@ -179,6 +179,31 @@ export type {
   PluginSourceFormat,
 } from './src/domain/plugin.ts';
 export type {
+  PluginDiagnostic,
+  PluginDiagnosticCode,
+} from './src/domain/plugin-diagnostics.ts';
+export type {
+  AgentSpec,
+  CommandSpec,
+  ComponentSource,
+  ComponentStatus,
+  ConfigOptionSpec,
+  HookSpec,
+  InertKind,
+  InertSpec,
+  LspServerSpec,
+  McpServerSpec,
+  MonitorSpec,
+  PathEntrySpec,
+  PluginComponent,
+  PluginGrants,
+  PluginIdentity,
+  PluginIr,
+  PluginKind,
+  SettingDefaultSpec,
+  SkillSpec,
+} from './src/domain/plugin-ir.ts';
+export type {
   Command,
   RunCancelled,
   RunFailed,

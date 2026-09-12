@@ -126,6 +126,16 @@ export {
   filterGenerationSettings,
   withChatGenerationParameters,
 } from './src/domain/generation-settings.ts';
+export type {
+  HookBinding,
+  HookEffect,
+  HookEventName,
+  HookHandler,
+  HookMatcher,
+  HookPayload,
+  HooksBinding,
+} from './src/domain/hook.ts';
+export { NATIVE_HOOK_EVENTS, UNSUPPORTED_HOOK_EVENTS } from './src/domain/hook.ts';
 export type { JsonSchema } from './src/domain/json-schema.ts';
 export type {
   McpHttpTransport,

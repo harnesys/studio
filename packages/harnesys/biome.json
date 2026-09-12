@@ -82,6 +82,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["index.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noExcessiveLinesPerFile": "off"
+          }
+        }
+      }
     }
   ]
 }

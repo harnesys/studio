@@ -115,23 +115,29 @@ export function SkillsPane() {
                   description={skill.description}
                   initials={initialsFromLabel(skill.name)}
                   monoTitle
-                  expanded={Boolean(skill.whenToUse) && expanded}
-                  onClick={
-                    skill.whenToUse
-                      ? () => setExpandedName(expanded ? null : skill.name)
-                      : undefined
-                  }
+                  expanded={expanded}
+                  onClick={() => setExpandedName(expanded ? null : skill.name)}
                 >
-                  {skill.whenToUse ? (
-                    <div className="flex flex-col gap-0.5" data-testid={`skill-${skill.name}`}>
+                  <div className="flex flex-col gap-2" data-testid={`skill-${skill.name}`}>
+                    <div className="flex flex-col gap-0.5">
                       <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-                        When to use
+                        Description
                       </p>
                       <p className="wrap-anywhere text-muted-foreground text-xs leading-4">
-                        {skill.whenToUse}
+                        {skill.description}
                       </p>
                     </div>
-                  ) : null}
+                    {skill.whenToUse ? (
+                      <div className="flex flex-col gap-0.5">
+                        <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+                          When to use
+                        </p>
+                        <p className="wrap-anywhere text-muted-foreground text-xs leading-4">
+                          {skill.whenToUse}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
                 </ConfigEntityCard>
               );
             })}

@@ -1,10 +1,13 @@
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { type AnySQLiteColumn, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { threadsTable } from './threads.ts';
 
 export const runsTable = sqliteTable(
   'runs',
   {
     runId: text('run_id').primaryKey(),
-    threadId: text('thread_id').notNull(),
+    threadId: text('thread_id')
+      .notNull()
+      .references((): AnySQLiteColumn => threadsTable.id, { onDelete: 'cascade' }),
     status: text('status').notNull(),
     interruptId: text('interrupt_id'),
     waitFireAt: integer('wait_fire_at'),

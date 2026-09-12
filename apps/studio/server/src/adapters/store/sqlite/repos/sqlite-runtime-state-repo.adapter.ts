@@ -12,8 +12,4 @@ export class SqliteRuntimeStateRepo implements RuntimeStateRepository {
   forState(threadId: string): SqliteRuntimeState {
     return new SqliteRuntimeState(this.db, threadId, threadId, this.onEvents);
   }
-
-  deleteByThread(_threadId: string): void {
-    // TODO: implement cleanup when thread is deleted
-  }
 }

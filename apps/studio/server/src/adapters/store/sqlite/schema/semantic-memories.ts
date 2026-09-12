@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { check, index, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  type AnySQLiteColumn,
+  check,
+  index,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
+import { threadsTable } from './threads.ts';
 import { workspacesTable } from './workspaces.ts';
 
 export const semanticMemoriesTable = sqliteTable(
@@ -14,7 +22,11 @@ export const semanticMemoriesTable = sqliteTable(
     key: text('key'),
     text: text('text').notNull(),
     source: text('source', { enum: ['agent', 'human', 'compaction'] }).notNull(),
-    threadId: text('thread_id'),
+    // Session-строки удаляет delete-thread.use-case (deleteSessionByThread);
+    // долгая память (long) переживает удаление треда, ссылка обнуляется.
+    threadId: text('thread_id').references((): AnySQLiteColumn => threadsTable.id, {
+      onDelete: 'set null',
+    }),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },

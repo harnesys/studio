@@ -1,4 +1,5 @@
 import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { pluginRegistriesTable } from './plugin-registries.ts';
 
 export const pluginsTable = sqliteTable(
   'plugins',
@@ -14,7 +15,9 @@ export const pluginsTable = sqliteTable(
     grants: text('grants').notNull().default('{}'),
     options: text('options').notNull().default('{}'),
     enabledWorkspaceIds: text('enabled_workspace_ids').notNull().default('[]'),
-    registryId: text('registry_id'),
+    registryId: text('registry_id').references(() => pluginRegistriesTable.id, {
+      onDelete: 'set null',
+    }),
     catalogPluginName: text('catalog_plugin_name'),
     installedAt: text('installed_at').notNull(),
     updatedAt: text('updated_at').notNull(),

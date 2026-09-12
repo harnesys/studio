@@ -20,11 +20,11 @@ const MEMORY_STATEMENTS = [
     key TEXT,
     text TEXT NOT NULL,
     source TEXT NOT NULL,
-    thread_id TEXT,
+    thread_id TEXT REFERENCES threads(id) ON DELETE SET NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     CHECK(scope IN ('session', 'long')),
-    CHECK(source IN ('agent', 'human'))
+    CHECK(source IN ('agent', 'human', 'compaction'))
   );`,
   `DROP INDEX IF EXISTS semantic_memories_keyed_unique;`,
   `CREATE UNIQUE INDEX IF NOT EXISTS semantic_memories_long_keyed_unique
@@ -40,7 +40,7 @@ const MEMORY_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS episodic_chunks (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-    thread_id TEXT NOT NULL,
+    thread_id TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
     entry_id TEXT NOT NULL,
     seq INTEGER NOT NULL,
     text TEXT NOT NULL,

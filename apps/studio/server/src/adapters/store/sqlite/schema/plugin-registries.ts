@@ -23,7 +23,9 @@ export const pluginCatalogEntriesTable = sqliteTable(
   'plugin_catalog_entries',
   {
     id: text('id').primaryKey(),
-    registryId: text('registry_id').notNull(),
+    registryId: text('registry_id')
+      .notNull()
+      .references(() => pluginRegistriesTable.id, { onDelete: 'cascade' }),
     pluginName: text('plugin_name').notNull(),
     payload: text('payload').notNull(),
     updatedAt: text('updated_at').notNull(),

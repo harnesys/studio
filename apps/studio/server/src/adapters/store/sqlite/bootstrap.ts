@@ -152,7 +152,7 @@ export function bootstrap(db: StudioDb): void {
     `CREATE INDEX IF NOT EXISTS thread_plan_items_plan_order_idx ON thread_plan_items(plan_id, "order");`,
     `CREATE TABLE IF NOT EXISTS runs (
       run_id TEXT PRIMARY KEY,
-      thread_id TEXT NOT NULL,
+      thread_id TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
       status TEXT NOT NULL,
       interrupt_id TEXT,
       wait_fire_at INTEGER,
@@ -171,9 +171,9 @@ export function bootstrap(db: StudioDb): void {
     `CREATE INDEX IF NOT EXISTS runs_ask_ttl_idx ON runs(status, updated_at);`,
     // runs_wait_fire_idx is created after ALTER wait_fire_at below.
     `CREATE TABLE IF NOT EXISTS run_events (
-      run_id TEXT NOT NULL,
+      run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
       seq INTEGER NOT NULL,
-      thread_id TEXT NOT NULL,
+      thread_id TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
       type TEXT NOT NULL,
       timestamp INTEGER NOT NULL,
       metadata TEXT,
@@ -194,13 +194,13 @@ export function bootstrap(db: StudioDb): void {
       grants TEXT NOT NULL DEFAULT '{}',
       options TEXT NOT NULL DEFAULT '{}',
       enabled_workspace_ids TEXT NOT NULL DEFAULT '[]',
-      registry_id TEXT,
+      registry_id TEXT REFERENCES plugin_registries(id) ON DELETE SET NULL,
       catalog_plugin_name TEXT,
       installed_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );`,
     `CREATE TABLE IF NOT EXISTS plugin_approvals (
-      plugin_name TEXT NOT NULL,
+      plugin_name TEXT NOT NULL REFERENCES plugins(name) ON DELETE CASCADE,
       server_id TEXT NOT NULL,
       approved_at TEXT NOT NULL,
       PRIMARY KEY (plugin_name, server_id)
@@ -219,7 +219,7 @@ export function bootstrap(db: StudioDb): void {
     );`,
     `CREATE TABLE IF NOT EXISTS plugin_catalog_entries (
       id TEXT PRIMARY KEY,
-      registry_id TEXT NOT NULL,
+      registry_id TEXT NOT NULL REFERENCES plugin_registries(id) ON DELETE CASCADE,
       plugin_name TEXT NOT NULL,
       payload TEXT NOT NULL,
       updated_at TEXT NOT NULL,

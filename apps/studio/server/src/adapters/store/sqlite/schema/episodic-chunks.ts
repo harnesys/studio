@@ -1,4 +1,12 @@
-import { blob, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  type AnySQLiteColumn,
+  blob,
+  index,
+  integer,
+  sqliteTable,
+  text,
+} from 'drizzle-orm/sqlite-core';
+import { threadsTable } from './threads.ts';
 import { workspacesTable } from './workspaces.ts';
 
 export const episodicChunksTable = sqliteTable(
@@ -8,7 +16,9 @@ export const episodicChunksTable = sqliteTable(
     workspaceId: text('workspace_id')
       .notNull()
       .references(() => workspacesTable.id, { onDelete: 'cascade' }),
-    threadId: text('thread_id').notNull(),
+    threadId: text('thread_id')
+      .notNull()
+      .references((): AnySQLiteColumn => threadsTable.id, { onDelete: 'cascade' }),
     entryId: text('entry_id').notNull(),
     seq: integer('seq').notNull(),
     text: text('text').notNull(),

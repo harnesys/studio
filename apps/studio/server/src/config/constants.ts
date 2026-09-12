@@ -125,6 +125,9 @@ export const SKILL_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 export const PRESET_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 /** Status sets */
+/** Хост-политика спеки §2.4: SessionStart-хуки не держат старт рана дольше 30s (у Claude событие 600s). */
+export const PLUGIN_SESSION_START_HOOK_TIMEOUT_MS = 30_000;
+
 export const WEBHOOK_STATUSES: readonly WebhookStatus[] = ['active', 'paused', 'failed'];
 export const TERMINAL_RUN_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 export const CONFLICT_CODES = new Set([

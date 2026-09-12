@@ -13,6 +13,7 @@ import { bindMonitorComponents } from 'harnesys';
 import { agentHookBindings, pluginHookBindings } from '../application/plugins/plugin-grant-gate.ts';
 import { pluginUserConfig } from '../application/plugins/plugin-user-config.ts';
 import { runModeFields } from '../application/threads/thread.helpers.ts';
+import { PLUGIN_SESSION_START_HOOK_TIMEOUT_MS } from '../config/constants.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { BranchStateSeeder } from '../domain/branch-state-seeder.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
@@ -170,7 +171,25 @@ function composeHookBindings(
     .flatMap((entry) =>
       pluginHookBindings(entry.ir, pluginUserConfig(entry.ir, entry.record.options)),
     );
-  return [...pluginBindings, ...agentHookBindings(agent.id, agent.hooks ?? [], workspacePath)];
+  const bindings = [
+    ...pluginBindings,
+    ...agentHookBindings(agent.id, agent.hooks ?? [], workspacePath),
+  ];
+  return bindings.map(lowerSessionStartTimeout);
+}
+
+/** Спека §2.4: хост понижает SessionStart до 30s, чтобы старт рана не зависал на 600s. */
+function lowerSessionStartTimeout(binding: HookBinding): HookBinding {
+  if (binding.event !== 'SessionStart' || binding.handler.type === 'inline') {
+    return binding;
+  }
+  if (binding.handler.timeoutS !== undefined) {
+    return binding;
+  }
+  return {
+    ...binding,
+    handler: { ...binding.handler, timeoutS: PLUGIN_SESSION_START_HOOK_TIMEOUT_MS / 1000 },
+  };
 }
 
 /** `bin/` path-entry dirs → RunTarget.binDirs (gated by the derived IR). */

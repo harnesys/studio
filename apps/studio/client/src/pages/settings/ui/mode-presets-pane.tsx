@@ -161,7 +161,7 @@ export function ModePresetsPane() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
             {presets.map((preset) => {
               const expanded = editing?.kind === 'edit' && editing.preset.id === preset.id;
               return (

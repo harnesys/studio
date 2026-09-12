@@ -148,9 +148,7 @@ export function McpPane() {
           <div className="flex flex-col gap-1">
             {servers.map((server) => {
               const live = liveServers.get(server.serverId);
-              const expandable =
-                server.connected === true &&
-                ((live?.tools.length ?? 0) > 0 || (live?.resources.length ?? 0) > 0);
+              const expandable = Boolean(live);
               const expanded = expandable && expandedId === server.serverId;
               return (
                 <div key={server.serverId} data-testid={`mcp-server-${server.serverId}`}>
@@ -158,7 +156,7 @@ export function McpPane() {
                     title={server.serverId}
                     badge={server.transport}
                     statusBadge={server.enabled ? undefined : 'off'}
-                    description={serverSummary(server, live)}
+                    description={serverSummary(server)}
                     initials={initialsFromLabel(server.serverId)}
                     monoTitle
                     expanded={expanded}
@@ -210,15 +208,56 @@ export function McpPane() {
                   >
                     {live ? (
                       <div className="flex flex-col gap-2">
-                        <ServerDetailBlock label="Tools" items={live.tools.map(toToolLine)} />
-                        <ServerDetailBlock
-                          label="Resources"
-                          items={live.resources.map(
-                            (resource) =>
-                              `${resource.name}${resource.mimeType ? ` · ${resource.mimeType}` : ''} — ${resource.uri}`,
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+                            Tools
+                          </p>
+                          {live.tools.length === 0 ? (
+                            <p className="text-muted-foreground text-xs">
+                              No tools on this server.
+                            </p>
+                          ) : (
+                            live.tools.map((tool) => (
+                              <div
+                                key={tool.name}
+                                className="min-w-0 px-1 py-0.5"
+                                data-testid={`mcp-tool-${tool.name}`}
+                              >
+                                <p className="truncate font-mono text-[12px] leading-snug">
+                                  {shortToolName(tool.name)}
+                                </p>
+                                {tool.description ? (
+                                  <p className="line-clamp-2 text-[11px] text-muted-foreground leading-snug">
+                                    {tool.description}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ))
                           )}
-                          emptyText="No resources exposed."
-                        />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+                            Resources
+                          </p>
+                          {live.resources.length === 0 ? (
+                            <p className="text-muted-foreground text-xs">No resources exposed.</p>
+                          ) : (
+                            live.resources.map((resource) => (
+                              <div
+                                key={resource.uri}
+                                className="min-w-0 px-1 py-0.5"
+                                data-testid={`mcp-resource-${resource.uri}`}
+                              >
+                                <p className="truncate font-mono text-[12px] leading-snug">
+                                  {resource.name}
+                                </p>
+                                <p className="wrap-anywhere text-[11px] text-muted-foreground leading-snug">
+                                  {[resource.mimeType, resource.uri].filter(Boolean).join(' · ')}
+                                </p>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                     ) : null}
                   </ConfigEntityCard>
@@ -231,50 +270,13 @@ export function McpPane() {
   );
 }
 
-function serverSummary(
-  server: WorkspaceMcpConfigServer,
-  live: { tools: unknown[]; resources: unknown[] } | undefined,
-): string {
+function serverSummary(server: WorkspaceMcpConfigServer): string {
   if (!server.enabled) {
-    return 'Disabled';
+    return `disabled · ${server.toolCount} tools`;
   }
-  if (!server.connected) {
-    return 'Disconnected';
-  }
-  const parts = ['Connected', `${server.toolCount} tools`];
-  if (live && live.resources.length > 0) {
-    parts.push(`${live.resources.length} resources`);
-  }
-  return parts.join(' · ');
+  return `${server.toolCount} tools · ${server.connected ? 'connected' : 'offline'}`;
 }
 
-function toToolLine(tool: { name: string; description: string }): string {
-  return tool.description ? `${tool.name} — ${tool.description}` : tool.name;
-}
-
-function ServerDetailBlock({
-  label,
-  items,
-  emptyText = 'None.',
-}: {
-  label: string;
-  items: string[];
-  emptyText?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5 py-1">
-      <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-        {label}
-      </p>
-      {items.length === 0 ? (
-        <p className="text-muted-foreground text-xs">{emptyText}</p>
-      ) : (
-        items.map((item) => (
-          <p key={item} className="wrap-anywhere text-muted-foreground text-xs">
-            {item}
-          </p>
-        ))
-      )}
-    </div>
-  );
+function shortToolName(name: string): string {
+  return name.includes('__') ? name.split('__').slice(1).join('__') : name;
 }

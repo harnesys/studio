@@ -7,30 +7,46 @@ export type ToolGroup = {
   tools: WorkspaceTool[];
 };
 
+/** Runtime pack groups from `packages/harnesys/src/packs`; MCP servers are not packages. */
 export const TOOL_GROUP_ORDER = [
-  'files',
   'core',
+  'files',
+  'lsp',
+  'plan',
+  'memory',
   'skills',
+  'agents',
+  'control',
   'schedules',
   'webhooks',
-  'memory',
 ] as const;
 
 export const TOOL_GROUP_META: Record<string, { label: string; hint?: string }> = {
-  files: { label: 'Files' },
   core: { label: 'Core' },
+  files: { label: 'Files' },
+  lsp: { label: 'LSP' },
+  plan: { label: 'Plan' },
+  memory: { label: 'Memory' },
   skills: { label: 'Skills' },
+  agents: { label: 'Agents' },
+  control: { label: 'Control' },
   schedules: { label: 'Schedules' },
   webhooks: { label: 'Webhooks' },
-  memory: {
-    label: 'Memory',
-  },
 };
 
-/** Group a flat tool catalog by purpose; MCP servers become their own groups. */
-export function groupTools(tools: WorkspaceTool[]): ToolGroup[] {
+/**
+ * Group a flat tool catalog by runtime package.
+ * Tools that belong to an MCP server (group equals server id, or the name
+ * carries the `<serverId>__` prefix) are excluded; they live on the MCP tab.
+ */
+export function groupTools(
+  tools: WorkspaceTool[],
+  mcpServerIds: Iterable<string> = [],
+): ToolGroup[] {
+  const serverIds = new Set(mcpServerIds);
+  const packageTools = tools.filter((tool) => !isMcpTool(tool, serverIds));
   const byGroup = new Map<string, WorkspaceTool[]>();
-  for (const tool of tools) {
+  for (const tool of packageTools) {
     const id = tool.group ?? 'core';
     const bucket = byGroup.get(id);
     if (bucket) {
@@ -45,15 +61,32 @@ export function groupTools(tools: WorkspaceTool[]): ToolGroup[] {
     ...TOOL_GROUP_META[id],
     tools: sortByName(byGroup.get(id) ?? []),
   }));
-  const mcpGroups = [...byGroup.keys()]
+  const unknown = [...byGroup.keys()]
     .filter((id) => !(TOOL_GROUP_ORDER as readonly string[]).includes(id))
     .sort((a, b) => a.localeCompare(b))
     .map((id) => ({
       id,
-      label: `${id} · MCP`,
+      label: labelFromGroupId(id),
       tools: sortByName(byGroup.get(id) ?? []),
     }));
-  return [...known, ...mcpGroups];
+  return [...known, ...unknown];
+}
+
+function isMcpTool(tool: WorkspaceTool, serverIds: Set<string>): boolean {
+  if (tool.group && serverIds.has(tool.group)) {
+    return true;
+  }
+  for (const serverId of serverIds) {
+    if (tool.name.startsWith(`${serverId}__`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function labelFromGroupId(id: string): string {
+  const spaced = id.replace(/[-_]+/g, ' ').trim();
+  return spaced ? `${spaced[0].toUpperCase()}${spaced.slice(1)}` : id;
 }
 
 function sortByName(tools: WorkspaceTool[]): WorkspaceTool[] {

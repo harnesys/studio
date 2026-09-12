@@ -74,9 +74,10 @@ export const NATIVE_HOOK_EVENTS: readonly HookEventName[];
 export const UNSUPPORTED_HOOK_EVENTS: readonly HookEventName[];
 // NATIVE: SessionStart, SessionEnd, UserPromptSubmit, PreToolUse, PostToolUse,
 // PostToolUseFailure, PostToolBatch, Stop, SubagentStart, SubagentStop,
-// PreCompact, PostCompact, Notification, PermissionRequest, FileChanged,
-// PreModelCall, PostModelCall, NodeStart, NodeEnd (19 = 15 Claude + 4 Harnesys).
-// UNSUPPORTED: остальные 18 Claude, включая Setup и PermissionDenied.
+// PreCompact, PostCompact, Notification, PermissionRequest, PermissionDenied,
+// FileChanged, PreModelCall, PostModelCall, NodeStart, NodeEnd
+// (20 = 16 Claude + 4 Harnesys).
+// UNSUPPORTED: остальные 17 Claude, включая Setup.
 // PreModelCall/PostModelCall/NodeStart/NodeEnd — Harnesys-namespace, вне
 // Claude-контракта, биндятся как нативные.
 
@@ -100,6 +101,7 @@ export type HookPayload = {
   model?: { provider: string; model: string };                    // Pre/PostModelCall
   usage?: { steps: number; tokens: number; cost?: number };       // PostModelCall
   node?: { id: string; type: string };                            // NodeStart/NodeEnd
+  reason?: string;                                                // SessionEnd, PermissionDenied
   message?: string;                                               // UserPromptSubmit; в stdin сериализуется полем `prompt` (спека §2.1)
 };
 
@@ -327,7 +329,7 @@ AP-адаптер возвращает `pathOverrides` пустой (маниф�
 
 **Files:**
 - Create: `packages/harnesys/src/application/plugins/formats/discover.ts` (общий: обход `skills/` с одним уровнем вложенности AP §7.1; root `SKILL.md` = одиночный skill для Claude; плоские `commands/*.md`)
-- Create: `packages/harnesys/src/application/plugins/formats/mcp.ts` (обе конвенции: `mcp.json` AP со строгой `validateApMcp` + variants §7.2.1 (single-token command, cwd-формы, env PLUGIN_ROOT/PLUGIN_DATA запрещены, transport-support skip), `.mcp.json` Claude + `CLAUDE_*`-плейсхолдеры → нормализуются в `McpServerSpec`; `$schema` mismatch с манифестом → MCP-компонент невалиден, остальное живёт, §7.2.2)
+- Create: `packages/harnesys/src/application/plugins/formats/mcp.ts` (обе конвенции: `mcp.json` AP со строгой `validateApMcp` + variants §7.2.1 (single-token command, cwd-формы, env PLUGIN_ROOT/PLUGIN_DATA запрещены, transport-support skip), `.mcp.json` Claude + `CLAUDE_*`-плейсхолдеры → нормализуются в `McpServerSpec`; `transport: 'socket'` в Claude-конвенции принимается и исполняется поверх stdio, AP-union остаётся закрытым без socket; `$schema` mismatch с манифестом → MCP-компонент невалиден, остальное живёт, §7.2.2)
 - Create: `packages/harnesys/src/application/plugins/formats/hooks.ts` (`hooks.json`/inline: парсить ВСЕ события из `HookEventName`; `NATIVE_HOOK_EVENTS` → `HookBinding` с `origin: 'plugin'`, `vars` = pluginRoot/pluginData; остальные → компонент со status `'dropped'`, code `event_unsupported`; handler'ы: `command` (argv `args` и shell-форму; неизвестные поля-хендлера, включая `if` и `shell`, → ignore + warning diagnostic), `http`, `mcp_tool`, `prompt` → `HookHandler`; `agent` → `status:'inert'`, `inertReason: 'needs_verifier_runtime'`; matcher-структура `{matcher, hooks:[...]}` раскрывается в N биндингов)
 - Create: `packages/harnesys/src/application/plugins/formats/agents-commands.ts` (frontmatter по образцу существующего `parseInventoryMarkdown`: `matter(file)`, поля по AgentSpec выше; маппинг на `AgentDefinition` — по таблице спеки §3 (`model`-строка остаётся строкой в `AgentSpec`, резолвер модели — в D1 (E2 прокидывает порт)); `isolation` → diagnostic `unsupported_isolation`; `hooks`/`mcpServers`/`permissionMode` в plugin-agent → `invalid_component`; неизвестные frontmatter-поля → ignore + `unsupported_frontmatter_field`; отсутствующий/unparseable frontmatter: именование по файлу, `plugin:<filebase>` (Claude-паритет: плагинные агенты снисходительны))
 - Create: `packages/harnesys/src/application/plugins/formats/extras.ts` (`monitors/monitors.json` + `experimental.monitors` inline → MonitorSpec (запрет `${user_config.` в command → invalid_component с сообщением); `bin/` → path-entry при наличии исполняемых файлов; `settings.json` → setting-default (только ключи `agent`, `subagentStatusLine`, остальное ignore+warning); `themes/`, `output-styles/`, `workflows/`, `channels`, `experimental.evals` → InertSpec с `inertReason`; LSP: `.lsp.json` (Claude) / `lsp.json` + inline `lspServers` (AP), общий парсер в `parse-plugin-lsp.ts` расширяется полнотой LspServerSpec)
@@ -436,7 +438,9 @@ tool-события → tool_name (MCP-инструменты: `mcp__plugin_<plu
 у плагинных серверов, `mcp__<server>__<tool>` у хостовых; матчёр по голому ключу
 сервера плагина не совпадает — Claude-паритет), SessionStart → source,
 Subagent* → agent_type, *Compact → trigger, FileChanged → file_path,
-Pre/PostModelCall → model.model, NodeStart/NodeEnd → node.type.
+Pre/PostModelCall → model.model, NodeStart/NodeEnd → node.type,
+SessionEnd → reason, Notification → notification.type,
+PermissionRequest/PermissionDenied → tool_name.
 
 Процесс-менеджмент command-хендлеров (норматив для `executors.ts`; единственная
 точка порождения и убийства процессов, полный текст нормы — спека §2.2):
@@ -468,7 +472,7 @@ Pre/PostModelCall → model.model, NodeStart/NodeEnd → node.type.
 - Modify: `packages/harnesys/src/application/graph.ts` / `graph-run.ts` (`startGraph`: `UserPromptSubmit` на первом сегменте (message = input text) и `SessionStart` с source по типу входа; финал Graph: `Stop`; `NodeStart`/`NodeEnd` в цикле диспетчеризации узлов :486-819, payload `node: {id, type}`)
 - Modify: `packages/harnesys/src/application/graph-spawn.ts` (`SubagentStart` до, `SubagentStop` после; matcher subject = `agent_type` из def-id; `context`-эффект стартового события добавляется в messages ребёнка)
 - Modify: compaction (`packages/harnesys/src/application/compaction/*`): `PreCompact` (trigger manual/auto) с правом `block` отменить compact; `PostCompact` после записи
-- Modify: `packages/harnesys/src/application/tool-permission.ts` (`PermissionRequest` перед ask-веткой: `allow` effect отсутствует в модели Claude — маппится так: `block` → deny с причиной, `ask` → без изменений (уже ask); результат пермита не мутируется `update_input`)
+- Modify: `packages/harnesys/src/application/tool-permission.ts` (`PermissionRequest` перед ask-веткой: `allow` effect отсутствует в модели Claude — маппится так: `block` → deny с причиной, `ask` → без изменений (уже ask); результат пермита не мутируется `update_input`; denied-исход permission-проверки (auto-deny без ask) → emit `PermissionDenied`, payload: tool-поля + `reason`)
 - Modify: `packages/harnesys/src/ports/create-runtime.ts` (`CreateRuntimeOptions.hooks?: HookBinding[]`) + `packages/harnesys/src/ports/run-targets.ts` (`RunTarget` на :11-27 += `hooks?: HookBinding[]`, `binDirs?: string[]`) + `create-runtime.ts`: сборка `HookBus` на ран (bindings = runtime opts ∪ target.hooks; host-inline биндинги `origin: 'host'` приходят через runtime opts); `RuntimeHandle.close()` — групповое убийство незавершённых хук-процессов из реестра шины, включая async (норматив C1, спека §2.2), drain deferred-очереди, emit `SessionEnd` перед `mcpRegistry.closeAll()`
 - Modify: `packages/harnesys/src/application/session.ts`: `context`-эффекты `UserPromptSubmit` инжектятся в user-сообщение префикс-блоком `[hooks]\n...` (как Claude additionalContext); `context` от `SessionStart` пушится в `RunTarget.notes`-массив (notes-порт уже есть, studio-run-targets.adapter.ts:78-87 — тот же канал); перед обращением к модели — `bus.drainDeferred()` и доставка
 

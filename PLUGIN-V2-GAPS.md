@@ -22,15 +22,10 @@
 
 ## Хуки: события
 
-`HookEventName` содержит все 33 события Claude-контракта. Нативных швов — 15,
-остальные 18 (включая `Setup`, `PermissionDenied`, `UserPromptExpansion`)
+`HookEventName` содержит все 33 события Claude-контракта. Нативных швов — 16,
+остальные 17 (включая `Setup`, `UserPromptExpansion`)
 отдают diagnostic `event_unsupported` при enable. Дожатие — по одному шву:
 
-- `PermissionDenied`: нужен источник «auto-mode denial» в permission-подсистеме;
-  шов рядом с `PermissionRequest` в `application/tool-permission.ts`, поле
-  payload добавляется опционально.
-- Матчёры `SessionEnd` (reason) и `Notification` (тип) в v1 игнорируются;
-  паритет требует двух опциональных полей payload.
 - `PreModelSwitch`/`PostModelSwitch`, `WorktreeCreate`/`Remove`, `Elicitation*`,
   `ConfigChange`, `CwdChanged`, `DirectoryAdded`, `InstructionsLoaded`,
   `StopFailure`, `TeammateIdle`, `TaskCreated`/`Completed`,
@@ -88,7 +83,6 @@
   `plugin:<name>:<server>` — сразу паритетные, переделка не потребуется.
 - OAuth remote MCP — client-managed по AP; дожатие — адаптер авторизации
   в реестре серверов Studio.
-- `transport: socket` принимается и исполняется поверх stdio — как у Claude.
 
 ## Гранты и approvals
 

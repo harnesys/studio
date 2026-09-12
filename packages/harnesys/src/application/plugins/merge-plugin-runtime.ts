@@ -25,6 +25,15 @@ export type MergedPluginMcp = {
 const SERVER_KEY_PREFIX = 'plugin:';
 
 /**
+ * Scoped-имя инструментов плагинного сервера (спека §2.2, инвариант GAPS):
+ * `mcp__plugin_<plugin>_<server>__<tool>`; символы вне [A-Za-z0-9_-] → `_`.
+ */
+function scopedToolPrefix(pluginName: string, serverId: string): string {
+  const sanitize = (value: string): string => value.replace(/[^A-Za-z0-9_-]/g, '_');
+  return `mcp__plugin_${sanitize(pluginName)}_${sanitize(serverId)}__`;
+}
+
+/**
  * IR-specs → CursorMcpJson: нормализация в Stdio/UrlEntry, подстановка
  * `${user_config.*}` в exec-поля (command/args/env/url), containment `cwd`
  * внутри pluginRoot/pluginData; ссылка, которая не разрешается, отбрасывает
@@ -41,6 +50,7 @@ export function mergePluginMcpFragments(
     for (const spec of plugin.servers) {
       const entry = bindServerEntry(spec, plugin, diagnostics);
       if (entry !== undefined) {
+        entry.toolPrefix = scopedToolPrefix(plugin.name, spec.serverId);
         mcpServers[`${SERVER_KEY_PREFIX}${plugin.name}:${spec.serverId}`] = entry;
       }
     }

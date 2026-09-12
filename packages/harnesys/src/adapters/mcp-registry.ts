@@ -156,6 +156,7 @@ function toServerConfig(id: string, entry: StdioEntry | UrlEntry): McpServerConf
   if ('command' in entry) {
     return {
       serverId: id,
+      toolPrefix: entry.toolPrefix,
       transport: {
         type: 'stdio',
         command: entry.command,
@@ -167,6 +168,7 @@ function toServerConfig(id: string, entry: StdioEntry | UrlEntry): McpServerConf
   }
   return {
     serverId: id,
+    toolPrefix: entry.toolPrefix,
     transport: {
       type: (entry.type ?? 'http') as 'sse' | 'http',
       url: entry.url,

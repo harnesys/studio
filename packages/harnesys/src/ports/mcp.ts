@@ -8,6 +8,8 @@ export type StdioEntry = {
   env?: Record<string, string>;
   cwd?: string;
   enabled?: boolean;
+  /** Префикс имён инструментов реестра; плагинные сервера получают scoped-форму Claude. */
+  toolPrefix?: string;
 };
 
 export type UrlEntry = {
@@ -15,6 +17,8 @@ export type UrlEntry = {
   headers?: Record<string, string>;
   type?: 'sse' | 'http';
   enabled?: boolean;
+  /** См. StdioEntry.toolPrefix. */
+  toolPrefix?: string;
 };
 
 export type CursorMcpJson = {

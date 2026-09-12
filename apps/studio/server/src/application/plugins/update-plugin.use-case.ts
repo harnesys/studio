@@ -1,15 +1,33 @@
 import { cpSync, existsSync } from 'node:fs';
-import { rename } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
-import type { PluginMutationResponse, PluginName } from '@harnesys/studio-shared';
+import { mkdir, rename } from 'node:fs/promises';
+import { basename, dirname, join, resolve } from 'node:path';
+import type {
+  PluginLoadDiagnostic,
+  PluginMutationResponse,
+  PluginName,
+} from '@harnesys/studio-shared';
 import { loadPluginFromDirectory } from 'harnesys/adapters/node';
+import type { CatalogEntry } from 'harnesys/plugins-catalog';
 import { removePluginPath, updatePluginCheckout } from '../../adapters/plugin-git.adapter.ts';
+import {
+  installPluginDependencies,
+  materializeSource,
+  type RemoteCatalogSource,
+} from '../../adapters/plugin-source.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
-import type { PluginRegistryRepository } from '../../domain/plugin-registry.port.ts';
+import type {
+  PluginRegistryRecord,
+  PluginRegistryRepository,
+} from '../../domain/plugin-registry.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
-import { prepareCatalogCheckout } from './materialize-catalog-plugin.ts';
+import {
+  findCatalogEntryWithRenames,
+  prepareCatalogCheckout,
+  readPluginManifestVersion,
+  resolveCatalogEntryVersion,
+} from './materialize-catalog-plugin.ts';
 import { toPluginSummary } from './plugin-summary.ts';
 import type { SyncPluginRegistryInput } from './sync-plugin-registry.use-case.ts';
 
@@ -67,9 +85,13 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
   }
 
   /**
-   * Catalog installs with a `relative` source are plain copies of the marketplace
-   * checkout (no .git). Update = sync the registry, re-copy the entry, re-materialize
-   * the manifest. Trust and workspace enables are preserved.
+   * Catalog installs without .git: `relative` (plain copy of the marketplace
+   * checkout), `npm` and `archive` (materialized trees). Update = sync the
+   * registry, re-resolve the entry (following `renames`), re-materialize,
+   * re-materialize the manifest. Trust and workspace enables are preserved;
+   * PLUGIN_DATA (dataPath) is never touched. Materialized sources swap into a
+   * version-keyed cache dir `plugins/<name>/<revision>`; the record revision is
+   * cleaned to the resolved version.
    */
   private async updateNonGit(
     current: PluginInstallRecord,
@@ -91,7 +113,11 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
     if (!registry) {
       throw new NotFoundError(`registry ${current.registryId} not found`);
     }
-    const entry = this.registries.findCatalogEntry(current.registryId, current.catalogPluginName);
+    const entry = findCatalogEntryWithRenames(
+      this.registries,
+      current.registryId,
+      current.catalogPluginName,
+    );
     if (!entry) {
       throw new NotFoundError(
         `plugin ${current.catalogPluginName} not found in registry ${current.registryId}`,
@@ -99,6 +125,13 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
     }
     if (!entry.installable || !entry.installSource) {
       throw new ValidationError(entry.unsupportedReason ?? 'plugin source is not installable');
+    }
+    if (entry.installSource.type === 'npm' || entry.installSource.type === 'archive') {
+      return this.updateMaterialized(current, {
+        registry,
+        entry,
+        source: entry.installSource,
+      });
     }
     if (entry.installSource.type !== 'relative') {
       throw new ValidationError(
@@ -118,14 +151,14 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
 
     const staged = `${current.path}__update`;
     await removePluginPath(staged).catch(() => undefined);
-    let extraDiagnostics: Awaited<ReturnType<typeof prepareCatalogCheckout>> = [];
     try {
       cpSync(from, staged, { recursive: true });
-      extraDiagnostics = await prepareCatalogCheckout(
+      const extraDiagnostics = await prepareCatalogCheckout(
         staged,
         registry.path,
-        current.catalogPluginName,
+        entry.pluginName,
       );
+      const depsDiagnostics = await installCheckoutDependencies(staged);
       const loaded = await loadPluginFromDirectory({
         root: staged,
         pluginData: current.dataPath,
@@ -133,15 +166,94 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
       await removePluginPath(current.path);
       await rename(staged, current.path);
       const now = new Date().toISOString();
-      const saved = this.plugins.upsert({ ...current, updatedAt: now });
+      const saved = this.plugins.upsert({
+        ...current,
+        catalogPluginName: entry.pluginName,
+        updatedAt: now,
+      });
       await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
       return {
         plugin: toPluginSummary(saved, loaded.plugin),
-        diagnostics: [...extraDiagnostics, ...loaded.diagnostics],
+        diagnostics: [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
       };
     } catch (err) {
       await removePluginPath(staged).catch(() => undefined);
       throw err;
     }
   }
+
+  /** npm/archive: re-materialize into a version-keyed cache dir and swap. */
+  private async updateMaterialized(
+    current: PluginInstallRecord,
+    args: {
+      registry: PluginRegistryRecord;
+      entry: CatalogEntry;
+      source: RemoteCatalogSource;
+    },
+  ): Promise<UpdatePluginResponse> {
+    const staged = `${current.path}__update`;
+    await removePluginPath(staged).catch(() => undefined);
+    try {
+      const materialized = await materializeSource({ source: args.source, dest: staged });
+      const extraDiagnostics = await prepareCatalogCheckout(
+        staged,
+        args.registry.path,
+        args.entry.pluginName,
+      );
+      const version = resolveCatalogEntryVersion({
+        entry: args.entry,
+        manifestVersion: readPluginManifestVersion(staged),
+        registryRevision: args.registry.revision,
+        sourceRevision: materialized.revision,
+      });
+      const depsDiagnostics = await installCheckoutDependencies(staged);
+      const loaded = await loadPluginFromDirectory({
+        root: staged,
+        pluginData: current.dataPath,
+      });
+      const nextPath = versionedInstallPath(current.path, current.name, version);
+      await removePluginPath(current.path);
+      await mkdir(dirname(nextPath), { recursive: true });
+      await rename(staged, nextPath);
+      const now = new Date().toISOString();
+      const saved = this.plugins.upsert({
+        ...current,
+        path: nextPath,
+        revision: version,
+        catalogPluginName: args.entry.pluginName,
+        updatedAt: now,
+      });
+      await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
+      return {
+        plugin: toPluginSummary(saved, loaded.plugin),
+        diagnostics: [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
+      };
+    } catch (err) {
+      await removePluginPath(staged).catch(() => undefined);
+      throw err;
+    }
+  }
+}
+
+/** Version-keyed cache dir `plugins/<name>/<revision>`; flat installs nest under their name dir. */
+function versionedInstallPath(currentPath: string, name: string, version: string): string {
+  const versionedRoot = basename(currentPath) === name ? currentPath : dirname(currentPath);
+  return join(versionedRoot, version);
+}
+
+/** Lockfile-bearing checkouts get `bun install --ignore-scripts`; failure is non-blocking. */
+async function installCheckoutDependencies(checkout: string): Promise<PluginLoadDiagnostic[]> {
+  const ok = await installPluginDependencies(checkout).catch(() => false);
+  if (ok) {
+    return [];
+  }
+  return [
+    {
+      level: 'warning',
+      code: 'plugin_deps_install_failed',
+      message:
+        'bun install --ignore-scripts failed or timed out; plugin node dependencies are not installed',
+      path: checkout,
+    },
+  ];
 }

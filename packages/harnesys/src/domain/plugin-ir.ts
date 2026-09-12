@@ -2,13 +2,16 @@ import type { HookBinding } from './hook.ts';
 import type { PluginName, PluginSourceFormat } from './plugin.ts';
 import type { PluginDiagnostic } from './plugin-diagnostics.ts';
 
+/** Автор плагина: подмножество contact-полей манифеста. */
+export type PluginAuthor = { name?: string; email?: string; url?: string };
+
 /** Метаданные плагина из манифеста/маркетплейса; имя — ключ всех записей. */
 export type PluginIdentity = {
   name: PluginName;
   displayName?: string;
   version?: string;
   description?: string;
-  author?: { name?: string; email?: string; url?: string };
+  author?: PluginAuthor;
   homepage?: string;
   repository?: string;
   license?: string;

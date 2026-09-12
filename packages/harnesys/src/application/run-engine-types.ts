@@ -1,5 +1,5 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
-
+import type { HookBinding } from '../domain/hook.ts';
 import type { PackRegistration } from '../domain/pack.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { AgentsResolve } from '../ports/create-runtime.ts';
@@ -12,6 +12,7 @@ import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import type { HookEmitCtx } from './hooks/emit-hook.ts';
 import type { LlmNoteProvider } from './llm-notes.ts';
 import type { PackRunMap } from './packs/pack-run.ts';
 import type { RunEventFeed } from './run-event-feed.ts';
@@ -36,6 +37,8 @@ export type RunEngineDeps = {
   /** FS skill registry; RunTargetOpts.skills wins when set. */
   skills?: SkillRegistry;
   agents: AgentsResolve;
+  /** Runtime-wide hook bindings; merged with RunTargetOpts.hooks on the per-run bus. */
+  hooks?: HookBinding[];
   /** Host diagnostics sink; defaults to the library console logger. */
   logger?: Logger;
 };
@@ -54,6 +57,10 @@ export type RunTargetOpts = {
   packOutputs?: PackRunMap;
   /** FS skill registry for the combined load_skill catalog. */
   skills?: SkillRegistry;
+  /** Per-run hook bindings (RunTarget.hooks); merged with RunEngineDeps.hooks on the run bus. */
+  hooks?: HookBinding[];
+  /** Pre-assembled hook emit context (oneshot path); wins over deps/opts binding assembly. */
+  hooksEmit?: HookEmitCtx;
   /** Per-run registry; overrides RunEngineDeps.toolRegistry when present. */
   toolRegistry?: Map<string, ToolDefinition>;
 };

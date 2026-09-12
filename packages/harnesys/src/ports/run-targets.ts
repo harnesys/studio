@@ -1,5 +1,6 @@
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
+import type { HookBinding } from '../domain/hook.ts';
 
 import type { PackRegistration } from '../domain/pack.ts';
 import type { PathsConfig } from './paths.ts';
@@ -22,6 +23,10 @@ export type RunTarget = {
   skills?: SkillRegistry;
   /** Per-run tool registry; overrides the engine default when present. */
   toolRegistry?: Map<string, ToolDefinition>;
+  /** Per-run hook bindings; merged with the runtime opts set on the run bus. */
+  hooks?: HookBinding[];
+  /** Extra PATH entries for hook/tool processes this run (library composes env; D1 consumes). */
+  binDirs?: string[];
   /** Opaque host context, meaningless to the library; passed to deps.withScope. */
   scope?: unknown;
 };

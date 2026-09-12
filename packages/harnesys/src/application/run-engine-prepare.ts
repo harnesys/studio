@@ -5,6 +5,8 @@ import type { Logger } from '../ports/logger.ts';
 import { compileOrThrow } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
 import { abandonForeignSnapshot } from './graph-snap.ts';
+import { createHookBus } from './hooks/bus.ts';
+import type { HookEmitCtx } from './hooks/emit-hook.ts';
 import type { PackRunMap } from './packs/pack-run.ts';
 import { attachPackRun, reusePackRun } from './packs/pack-run.ts';
 import type { RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
@@ -67,15 +69,17 @@ export type PrepareExecuteGraphOptsArgs = {
   runId: string;
   signal: AbortSignal;
   packCache: Map<string, PackRunMap>;
+  /** Per-run hook buses; segments reuse the bus, terminal run closes it (run-engine). */
+  hookCache: Map<string, HookEmitCtx>;
   runLogger: Logger;
   childJournal: (spawnId: string, ev: Event) => void;
 };
 
-/** HITL/user lookup, compile, tool registry, packs → GraphOpts for one segment. */
+/** HITL/user lookup, compile, tool registry, packs, hook bus → GraphOpts for one segment. */
 export async function prepareExecuteGraphOpts(
   args: PrepareExecuteGraphOptsArgs,
 ): Promise<GraphOpts> {
-  const { deps, opts, runId, signal, packCache, runLogger, childJournal } = args;
+  const { deps, opts, runId, signal, packCache, hookCache, runLogger, childJournal } = args;
   const answer = await findLastAnswer(deps, runId);
   if (answer === null) {
     await abandonForeignSnapshot(opts.state, runId);
@@ -115,6 +119,29 @@ export async function prepareExecuteGraphOpts(
       packCache.set(runId, packOutputs);
     }
   }
+  const cwd = opts.paths?.cwd ?? '';
+  let hooksEmit = opts.hooksEmit;
+  if (hooksEmit === undefined) {
+    const cached = hookCache.get(runId);
+    if (cached !== undefined) {
+      hooksEmit = cached;
+    } else {
+      const bindings = [...(deps.hooks ?? []), ...(opts.hooks ?? [])];
+      if (bindings.length > 0) {
+        // envBase — шов хоста (E2): HARNESSYS_PLUGIN_OPTION_* составляются хостом.
+        hooksEmit = {
+          bus: createHookBus({ bindings, ctx: { cwd, projectDir: cwd, envBase: {} } }),
+          sessionId: opts.state.sessionId,
+          runId,
+          agentId: agent.id,
+          threadId: opts.state.sessionId,
+          cwd,
+          permissionMode: '',
+        };
+        hookCache.set(runId, hooksEmit);
+      }
+    }
+  }
   return {
     agent,
     input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
@@ -135,6 +162,7 @@ export async function prepareExecuteGraphOpts(
     notes: opts.notes,
     skills: opts.skills ?? deps.skills,
     packOutputs,
+    hooks: hooksEmit,
     agents: deps.agents,
     outputHint: startNodeId === undefined ? undefined : (snap?.cursor.interrupt?.output ?? null),
     rejected: answer?.rejected === true,

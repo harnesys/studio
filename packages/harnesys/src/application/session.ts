@@ -2,6 +2,7 @@ import Ajv from 'ajv';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Attachment, AttachmentKind } from '../domain/attachment.ts';
 import { codedRunError } from '../domain/errors.ts';
+import type { HookBinding } from '../domain/hook.ts';
 import type { PackRegistration } from '../domain/pack.ts';
 import type { ArtifactStore, SendFile } from '../ports/artifacts.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
@@ -26,6 +27,8 @@ export type RuntimeContext = {
   artifacts?: ArtifactStore;
   permissions?: PermissionMap;
   paths?: PathsConfig;
+  /** Runtime-wide hook bindings; land in the default RunTarget and merge into the run bus. */
+  hooks?: HookBinding[];
   notes?: LlmNoteProvider[];
   packRegistrations: PackRegistration[];
   deferredPacks?: readonly string[];
@@ -143,6 +146,7 @@ export function createSession(
         ),
         paths: resolvePaths(def.paths, ctx.paths, opts.paths),
         notes: ctx.notes,
+        hooks: ctx.hooks,
         packs: ctx.packRegistrations,
         deferredPacks: ctx.deferredPacks,
         skills: ctx.skills,

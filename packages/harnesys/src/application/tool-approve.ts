@@ -1,6 +1,12 @@
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import { presentCallOutput, serializeToolOutput } from './clip-tool-output.ts';
+import {
+  emitHook,
+  hookBlockedReason,
+  hookUpdateInputOf,
+  hookUpdateOutputOf,
+} from './hooks/emit-hook.ts';
 import { checkPermission } from './permissions.ts';
 import {
   clearCheckpoint,
@@ -87,13 +93,24 @@ export async function runSingleToolCall(
     if (!permCheck.allowed) {
       if (permCheck.gate === 'deny') {
         const content = `permission denied: ${permCheck.operation}`;
+        await emitHook(ctx.hooks, 'PermissionDenied', {
+          tool_name: call.name,
+          tool_input: call.args,
+          tool_use_id: call.id,
+          reason: content,
+        });
         return {
           result: { id: call.id, name: call.name, result: content, isError: true },
           message: message(content),
         };
       }
       if (permCheck.gate === 'ask') {
-        const parked = applyPermissionGate({ call, ctx, idx, operation: permCheck.operation });
+        const parked = await applyPermissionGate({
+          call,
+          ctx,
+          idx,
+          operation: permCheck.operation,
+        });
         if (parked) {
           return parked;
         }
@@ -101,7 +118,7 @@ export async function runSingleToolCall(
     }
   }
   if (callGate?.decision === 'ask') {
-    const parked = applyPermissionGate({
+    const parked = await applyPermissionGate({
       call,
       ctx,
       idx,
@@ -123,10 +140,24 @@ export async function runSingleToolCall(
       message: message('cancelled'),
     };
   }
+  let execArgs: unknown = call.args;
   try {
     if (!ctx.paths?.cwd) {
       throw new Error('paths.cwd is required');
     }
+    const pre = await emitHook(ctx.hooks, 'PreToolUse', {
+      tool_name: call.name,
+      tool_input: call.args,
+      tool_use_id: call.id,
+    });
+    const preBlocked = hookBlockedReason(pre);
+    if (preBlocked !== undefined) {
+      return {
+        result: { id: call.id, name: call.name, result: preBlocked, isError: true },
+        message: message(preBlocked),
+      };
+    }
+    execArgs = hookUpdateInputOf(pre) ?? call.args;
     const toolCtx = {
       cwd: ctx.paths.cwd,
       paths: { allow: ctx.paths?.allow ?? [] },
@@ -137,11 +168,18 @@ export async function runSingleToolCall(
         : undefined,
       sandbox: ctx.sandbox,
     };
-    const value = await def.execute(call.args, toolCtx);
+    const value = await def.execute(execArgs, toolCtx);
+    const post = await emitHook(ctx.hooks, 'PostToolUse', {
+      tool_name: call.name,
+      tool_input: execArgs,
+      tool_use_id: call.id,
+      tool_output: value,
+    });
+    const out = hookUpdateOutputOf(post) ?? value;
     // Песочница: ask_user отвечает deny-текстом вместо throw — детект по
     // идентичности тула, не по префиксу текста.
     if (ctx.sandbox && call.name === 'ask_user') {
-      const reason = typeof value === 'string' ? value : serializeToolOutput(value);
+      const reason = typeof out === 'string' ? out : serializeToolOutput(out);
       recordDenied(ctx.state, call.id, { tool: call.name, reason });
       return {
         result: { id: call.id, name: call.name, result: reason, isError: true },
@@ -162,8 +200,8 @@ export async function runSingleToolCall(
       }
     }
     return {
-      result: { id: call.id, name: call.name, result: value, isError: false },
-      message: message(await presentCallOutput(ctx, call, value)),
+      result: { id: call.id, name: call.name, result: out, isError: false },
+      message: message(await presentCallOutput(ctx, call, out)),
     };
   } catch (e) {
     if ((e as { name?: string }).name === 'AbortError' || ctx.signal.aborted) {
@@ -192,8 +230,20 @@ export async function runSingleToolCall(
       throw e;
     }
     const content = e instanceof Error ? e.message : String(e);
+    const post = await emitHook(ctx.hooks, 'PostToolUseFailure', {
+      tool_name: call.name,
+      tool_input: execArgs,
+      tool_use_id: call.id,
+      failure_reason: content,
+    });
+    const substituted = hookUpdateOutputOf(post);
     return {
-      result: { id: call.id, name: call.name, result: content, isError: true },
+      result: {
+        id: call.id,
+        name: call.name,
+        result: substituted !== undefined ? substituted : content,
+        isError: true,
+      },
       message: message(content),
     };
   }

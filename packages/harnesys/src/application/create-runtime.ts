@@ -5,14 +5,18 @@ import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import { registerPack } from '../domain/pack.ts';
 import type { RunResult } from '../domain/run-result.ts';
+import type { Event } from '../domain/snapshot.ts';
 import { fetchCapability, filesCapability, shellCapability } from '../packs/base.ts';
 import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtime.ts';
 import { CONSOLE_LOGGER } from '../ports/logger.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
+import type { PathsConfig } from '../ports/paths.ts';
 import { check } from './check.ts';
 import { compile, compileOrThrow } from './compile.ts';
 import { startGraph } from './graph.ts';
 import { runGraph } from './graph-run.ts';
+import { createHookBus } from './hooks/bus.ts';
+import { emitHook, type HookEmitCtx } from './hooks/emit-hook.ts';
 import { attachPackRun, fallbackScope } from './packs/pack-run.ts';
 import { packCatalog } from './packs/tool-names.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
@@ -31,6 +35,31 @@ function isMcpRegistry(value: unknown): boolean {
     'tools' in value &&
     'closeAll' in value
   );
+}
+
+/**
+ * Шина хуков на ран из runtime-опций (host-inline биндинги приходят здесь).
+ * Идентичность рана (session/run/agent) резолвит startGraph через resolveHookCtx.
+ */
+function assembleRunHooks(
+  options: CreateRuntimeOptions,
+  paths: PathsConfig | undefined,
+): HookEmitCtx | undefined {
+  const bindings = options.hooks ?? [];
+  if (bindings.length === 0) {
+    return undefined;
+  }
+  const cwd = paths?.cwd ?? '';
+  // envBase — шов хоста (E2): HARNESSYS_PLUGIN_OPTION_* составляются хостом.
+  return {
+    bus: createHookBus({ bindings: [...bindings], ctx: { cwd, projectDir: cwd, envBase: {} } }),
+    sessionId: '',
+    runId: '',
+    agentId: '',
+    threadId: '',
+    cwd,
+    permissionMode: '',
+  };
 }
 
 export async function createRuntime(options: CreateRuntimeOptions): Promise<RuntimeHandle> {
@@ -91,12 +120,34 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
   const events = options.events;
   const feed = options.feed ?? createRunEventFeed({ events, lifecycle, bus: createRunEventBus() });
 
+  /** Живые шины хуков oneshot-ранов; close() рантайма гасит их перед mcpRegistry. */
+  const liveHooks = new Set<HookEmitCtx>();
+  const finalizeRunHooks = async (hooks: HookEmitCtx | undefined): Promise<void> => {
+    if (!hooks) {
+      return;
+    }
+    liveHooks.delete(hooks);
+    await hooks.bus.close();
+    await emitHook(hooks, 'SessionEnd', {});
+  };
+  async function* withHooksFinal(
+    iter: AsyncIterable<Event>,
+    hooks: HookEmitCtx | undefined,
+  ): AsyncIterable<Event> {
+    try {
+      yield* iter;
+    } finally {
+      await finalizeRunHooks(hooks);
+    }
+  }
+
   const runtimeCtx: RuntimeContext = {
     models: options.models,
     toolRegistry,
     artifacts: options.artifacts,
     permissions: options.permissions,
     paths: options.paths,
+    hooks: options.hooks,
     notes: options.notes,
     packRegistrations,
     deferredPacks: options.deferredPacks,
@@ -127,25 +178,34 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         deferredPacks: options.deferredPacks,
         logger,
       });
-      return runGraph({
-        agent: def,
-        input: opts.input,
-        state: opts.state,
-        permissions: opts.permissions ?? options.permissions,
-        paths: opts.paths ?? options.paths,
-        notes: options.notes,
-        skills: options.skills,
-        packOutputs,
-        artifacts: options.artifacts,
-        models: options.models,
-        toolRegistry: runRegistry,
-        plan,
-        toolMessages: options.toolMessages ?? 'ordered',
-        mergeState: options.mergeState,
-        stream: options.stream,
-        agents: options.agents,
-        logger,
-      });
+      const hooks = assembleRunHooks(options, opts.paths ?? options.paths);
+      if (hooks) {
+        liveHooks.add(hooks);
+      }
+      try {
+        return await runGraph({
+          agent: def,
+          input: opts.input,
+          state: opts.state,
+          permissions: opts.permissions ?? options.permissions,
+          paths: opts.paths ?? options.paths,
+          notes: options.notes,
+          skills: options.skills,
+          packOutputs,
+          artifacts: options.artifacts,
+          models: options.models,
+          toolRegistry: runRegistry,
+          plan,
+          toolMessages: options.toolMessages ?? 'ordered',
+          mergeState: options.mergeState,
+          stream: options.stream,
+          agents: options.agents,
+          hooks,
+          logger,
+        });
+      } finally {
+        await finalizeRunHooks(hooks);
+      }
     },
     start: (agent, opts) => {
       const def = resolveAgent(agent);
@@ -161,25 +221,33 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         deferredPacks: options.deferredPacks,
         logger,
       });
-      return startGraph({
-        agent: def,
-        input: opts.input,
-        state: opts.state,
-        permissions: opts.permissions ?? options.permissions,
-        paths: opts.paths ?? options.paths,
-        notes: options.notes,
-        skills: options.skills,
-        packOutputs,
-        artifacts: options.artifacts,
-        models: options.models,
-        toolRegistry: runRegistry,
-        plan,
-        toolMessages: options.toolMessages ?? 'ordered',
-        mergeState: options.mergeState,
-        stream: options.stream,
-        agents: options.agents,
-        logger,
-      });
+      const hooks = assembleRunHooks(options, opts.paths ?? options.paths);
+      if (hooks) {
+        liveHooks.add(hooks);
+      }
+      return withHooksFinal(
+        startGraph({
+          agent: def,
+          input: opts.input,
+          state: opts.state,
+          permissions: opts.permissions ?? options.permissions,
+          paths: opts.paths ?? options.paths,
+          notes: options.notes,
+          skills: options.skills,
+          packOutputs,
+          artifacts: options.artifacts,
+          models: options.models,
+          toolRegistry: runRegistry,
+          plan,
+          toolMessages: options.toolMessages ?? 'ordered',
+          mergeState: options.mergeState,
+          stream: options.stream,
+          agents: options.agents,
+          hooks,
+          logger,
+        }),
+        hooks,
+      );
     },
     // Resume path removed with the journal-first engine: use SessionHandle.respond.
     // The method stays on the handle so existing callers fail loudly, not silently.
@@ -219,6 +287,11 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       await mcpRegistry?.reload();
     },
     close: async () => {
+      // Порядок C2: убийство хук-процессов и drain deferred, emit SessionEnd,
+      // только затем mcpRegistry.closeAll().
+      for (const hooks of [...liveHooks]) {
+        await finalizeRunHooks(hooks);
+      }
       await mcpRegistry?.closeAll();
     },
   };

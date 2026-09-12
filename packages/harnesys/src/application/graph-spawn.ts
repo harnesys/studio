@@ -8,6 +8,7 @@ import { formatAgentTargets, resolveAgentTarget } from './agent-target-resolve.t
 import { compileOrThrow } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import type { GraphOpts } from './graph.ts';
+import { emitHook, hookContextText, withHookContextPrefix } from './hooks/emit-hook.ts';
 import { type DeniedToolEntry, deniedToolsList } from './tool-approve-checkpoint.ts';
 import { filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
@@ -138,13 +139,22 @@ async function runOneChild(
   target: SpawnTarget,
   runChild: ChildRunner,
 ): Promise<SpawnResultItem> {
+  const startOutcome = await emitHook(parent.hooks, 'SubagentStart', {
+    agent_type: target.call.agentId,
+  });
+  // context-эффект стартового события доставляется в messages ребёнка.
+  const childInput = withHookContextPrefix(target.call.input, hookContextText(startOutcome));
+  const stopEvent = (): Promise<unknown> =>
+    emitHook(parent.hooks, 'SubagentStop', { agent_type: target.call.agentId });
   const childState: RuntimeState = parent.state.child(target.spawnId);
   const plan = compileOrThrow(target.def);
   const runRegistry = new Map(filterToolsForAgent(parent.toolRegistry, target.def));
   runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
+  // События ребёнка на шину родителя не идут: жизнь сабагента покрывают
+  // SubagentStart/SubagentStop.
   const childOpts: GraphOpts = {
     agent: target.def,
-    input: target.call.input,
+    input: childInput,
     state: childState,
     permissions: parent.permissions,
     paths: parent.paths,
@@ -188,6 +198,7 @@ async function runOneChild(
         : 'spawn_child_failed';
     const message = err instanceof Error && err.message ? err.message : 'spawn child failed';
     await readBlocked();
+    await stopEvent();
     return {
       agentId: target.call.agentId,
       spawnId: target.spawnId,
@@ -201,6 +212,7 @@ async function runOneChild(
   const rec = (snap?.state as Record<string, unknown>) ?? {};
   blocked = deniedToolsList(rec);
   if (status === 'completed') {
+    await stopEvent();
     return {
       agentId: target.call.agentId,
       spawnId: target.spawnId,
@@ -210,6 +222,7 @@ async function runOneChild(
   }
   // needs_input из ребёнка невозможен по построению; защита на случай обхода.
   if (status === 'needs_input') {
+    await stopEvent();
     return {
       agentId: target.call.agentId,
       spawnId: target.spawnId,
@@ -221,6 +234,7 @@ async function runOneChild(
       ...blockedProp(),
     };
   }
+  await stopEvent();
   return {
     agentId: target.call.agentId,
     spawnId: target.spawnId,

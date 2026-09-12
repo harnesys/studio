@@ -12,6 +12,7 @@ import type { ModelBinding, ModelsPort, ProviderConfig } from '../../ports/model
 import type { PathsConfig } from '../../ports/paths.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { findBind, isPort, resolveModelForPort } from '../graph-helpers.ts';
+import { emitHook, type HookEmitCtx, hookBlockedReason } from '../hooks/emit-hook.ts';
 import { projectCompacted, projectedForEstimate } from '../llm.ts';
 import { estimateTokens } from './estimate.ts';
 import { writeCompactionFile } from './file-log.ts';
@@ -28,6 +29,8 @@ export type CompactionPassContext = {
   paths?: PathsConfig;
   signal: AbortSignal;
   logger?: Logger;
+  /** Шина хуков рана: PreCompact (block отменяет compact) и PostCompact. */
+  hooks?: HookEmitCtx;
 };
 
 export type CompactionPassEvent =
@@ -106,6 +109,13 @@ async function* passIfDue(
     reason === 'manual' ? 0 : Math.floor(contextLength * spec.protectRecentRatio);
   const plan = planCut(messages, { protectTokens, afterIndex });
   if (!plan) {
+    return;
+  }
+  const pre = await emitHook(ctx.hooks, 'PreCompact', {
+    trigger: reason === 'manual' ? 'manual' : 'auto',
+  });
+  if (hookBlockedReason(pre) !== undefined) {
+    // Хук отменил компакцию: сообщений не касается, якорей не пишет.
     return;
   }
   yield* writeCompactionMessage(ctx, {
@@ -212,6 +222,9 @@ async function* writeCompactionMessage(
       `[compaction] file log failed: ${e instanceof Error ? e.message : String(e)}`,
     );
   }
+  await emitHook(ctx.hooks, 'PostCompact', {
+    trigger: args.reason === 'manual' ? 'manual' : 'auto',
+  });
   yield { type: 'completed', message };
 }
 

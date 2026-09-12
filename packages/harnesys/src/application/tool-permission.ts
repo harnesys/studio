@@ -1,6 +1,8 @@
 import { SANDBOX_DENY_PREFIX } from '../constants.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
+import type { HookEmitCtx } from './hooks/emit-hook.ts';
+import { emitHook, hookBlockedReason } from './hooks/emit-hook.ts';
 import { loadCheckpoint, recordDenied, recordGranted } from './tool-approve-checkpoint.ts';
 import type { ToolCallResult } from './tool-call.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
@@ -22,6 +24,8 @@ export type PermissionGateContext = {
   nodeId: string;
   /** Дочерний ран: вопросы запрещены, gate отвечает deny вместо AskUserInterrupt. */
   sandbox?: boolean;
+  /** Шина хуков рана: PermissionRequest перед ask-веткой. */
+  hooks?: HookEmitCtx;
 };
 
 export type PermissionGateDone = {
@@ -102,12 +106,14 @@ export function skippedGateResult(
 // leaves the payload for the approve loop; only the matching perm/ resume is consumed.
 // Выданное разрешение записывается в чекпоинт батча: иначе один resume
 // разрешает ровно один вызов, а остальные переспрашиваются до бесконечности.
-export function applyPermissionGate(input: {
+// PermissionRequest срабатывает перед ask-веткой: block → deny с причиной без
+// вопроса, ask → без изменений (уже ask); update_input результат не мутирует.
+export async function applyPermissionGate(input: {
   call: PermissionGateCall;
   ctx: PermissionGateContext;
   idx: number;
   operation: string | undefined;
-}): PermissionGateDone | null {
+}): Promise<PermissionGateDone | null> {
   const { call, ctx, idx, operation } = input;
   if (loadCheckpoint(ctx.state, ctx.nodeId)?.granted?.[call.id]) {
     return null;
@@ -123,6 +129,19 @@ export function applyPermissionGate(input: {
   const approved = resumeApproved(ctx);
   const resumeIdx = permissionResumeCallIndex(ctx);
   if (approved === null || (resumeIdx !== null && resumeIdx !== idx)) {
+    const request = await emitHook(ctx.hooks, 'PermissionRequest', {
+      tool_name: call.name,
+      tool_input: call.args,
+      tool_use_id: call.id,
+    });
+    const blocked = hookBlockedReason(request);
+    if (blocked !== undefined) {
+      recordDenied(ctx.state, call.id, { tool: call.name, reason: blocked });
+      return {
+        result: { id: call.id, name: call.name, result: blocked, isError: true },
+        message: buildToolMessage({ toolCallId: call.id, name: call.name, content: blocked }),
+      };
+    }
     throwPermissionAsk(call, ctx, idx, operation);
   }
   if (approved === false) {

@@ -4,6 +4,7 @@ import type { Event } from '../domain/snapshot.ts';
 import { CONSOLE_LOGGER } from '../ports/logger.ts';
 import type { SessionEvent } from '../ports/session.ts';
 import type { GraphOpts } from './graph.ts';
+import { emitHook, type HookEmitCtx } from './hooks/emit-hook.ts';
 import type { PackRunMap } from './packs/pack-run.ts';
 import { eventToSessionEvent, runFailedEvent, runStartedEvent } from './run-engine-events.ts';
 import { prepareExecuteGraphOpts } from './run-engine-prepare.ts';
@@ -27,6 +28,8 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
   /** Built pack outputs per runId. First segment builds via `create`; later
    *  segments (`respond`) reuse the map so stateful `create` runs once per run. */
   const packCache = new Map<string, PackRunMap>();
+  /** Per-run hook emit contexts; segments reuse the bus, terminal run closes it. */
+  const hookCache = new Map<string, HookEmitCtx>();
 
   function envWith(leaseLost: () => boolean): SegmentEnv {
     return {
@@ -52,6 +55,11 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       haltRun(run);
     }
     packCache.clear();
+    // Незавершённые хук-процессы (включая async) не переживают остановку движка.
+    for (const hooks of hookCache.values()) {
+      void hooks.bus.close();
+    }
+    hookCache.clear();
   }
 
   async function execute(runId: string, opts: RunTargetOpts): Promise<void> {
@@ -109,6 +117,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           runId,
           signal,
           packCache,
+          hookCache,
           runLogger,
           childJournal,
         });
@@ -132,6 +141,14 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         .catch(() => false);
       if (terminal) {
         packCache.delete(runId);
+        // Закрытие рана: групповое убийство хук-процессов (включая async),
+        // drain deferred, затем emit SessionEnd (спека §2.4).
+        const hooks = hookCache.get(runId);
+        if (hooks !== undefined) {
+          hookCache.delete(runId);
+          await hooks.bus.close();
+          await emitHook(hooks, 'SessionEnd', {});
+        }
       }
     } finally {
       haltRun(run);

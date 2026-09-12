@@ -45,6 +45,7 @@ import { executeMap, type MapNodeSpec, prepareMap } from './graph-map.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
 import { executeSpawn, prepareSpawn, type SpawnNodeSpec } from './graph-spawn.ts';
 import { prepareWait, type WaitNodeSpec } from './graph-wait.ts';
+import { emitHook, type HookEmitCtx, hookContextText, resolveHookCtx } from './hooks/emit-hook.ts';
 import { type LlmResult, runLlmGenerate } from './llm.ts';
 import {
   type BudgetLeft,
@@ -167,6 +168,8 @@ export type GraphOpts = {
   packOutputs?: PackRunMap;
   /** FS skill registry; the catalog section is rendered per agent in llm.ts. */
   skills?: SkillRegistry;
+  /** Шина хуков рана; идентичность резолвится в startGraph. */
+  hooks?: HookEmitCtx;
   rejected?: boolean;
   /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
   inputRecorded?: boolean;
@@ -286,6 +289,23 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
   const interruptSource = loaded?.cursor?.interrupt?.source;
   let output: unknown = opts.startNodeId === undefined ? null : (opts.outputHint ?? null);
+  // Шина рана с живой идентичностью: дальше по графу используется только она.
+  const hooks = resolveHookCtx(opts.hooks, {
+    sessionId: opts.state.sessionId,
+    runId,
+    agentId: agent.id,
+    threadId: opts.state.sessionId,
+    cwd: opts.paths?.cwd ?? '',
+  });
+  // SessionStart открывает ран: context-эффект доставляется через notes-канал.
+  const hookNotes: LlmNote[] = [];
+  const sessionStart = await emitHook(hooks, 'SessionStart', {
+    source: isResumable ? 'resume' : 'startup',
+  });
+  const sessionStartContext = hookContextText(sessionStart);
+  if (sessionStartContext !== undefined) {
+    hookNotes.push({ tag: 'hooks', text: sessionStartContext });
+  }
   // Бюджет живёт внутри одного запуска: новый запрос (статус completed/failed)
   // начинает отсчёт заново, а прерванный (needs_input/running) продолжает —
   // иначе дедлайн последнего рана срабатывает мгновенно при следующем сообщении.
@@ -483,6 +503,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
     }
 
+    await emitHook(hooks, 'NodeStart', { node: { id: cur, type: node.type } });
     if (node.type === 'core:start') {
       output = { input };
       if (input && typeof input === 'object') {
@@ -498,7 +519,22 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             st[msgKey] = arr;
           }
           const content = normalized.text ?? '';
-          const userMsg: Record<string, unknown> = { role: 'user', content };
+          const ups = await emitHook(hooks, 'UserPromptSubmit', { message: content });
+          if (ups?.blocked) {
+            // Блок UserPromptSubmit: промпт не обрабатывается (паритет Claude).
+            const e = await commit('failed', 'run.failed', 'recorded', {
+              code: 'user_prompt_blocked',
+              message: ups.blocked.reason,
+            });
+            yield e;
+            break;
+          }
+          const upsContext = hookContextText(ups);
+          const hookPrefix = upsContext !== undefined ? `[hooks]\n${upsContext}\n\n` : '';
+          const userMsg: Record<string, unknown> = {
+            role: 'user',
+            content: `${hookPrefix}${content}`,
+          };
           if (normalized.attachments) {
             userMsg.attachments = normalized.attachments;
           }
@@ -530,7 +566,19 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           arr = [];
           st[msgKey] = arr;
         }
-        arr.push({ role: 'user', content: input });
+        const ups = await emitHook(hooks, 'UserPromptSubmit', { message: input });
+        if (ups?.blocked) {
+          // Блок UserPromptSubmit: промпт не обрабатывается (паритет Claude).
+          const e = await commit('failed', 'run.failed', 'recorded', {
+            code: 'user_prompt_blocked',
+            message: ups.blocked.reason,
+          });
+          yield e;
+          break;
+        }
+        const upsContext = hookContextText(ups);
+        const hookPrefix = upsContext !== undefined ? `[hooks]\n${upsContext}\n\n` : '';
+        arr.push({ role: 'user', content: `${hookPrefix}${input}` });
         if (!inputRecorded) {
           const ue = await commit('running', 'user.message', 'recorded', { text: input });
           yield ue;
@@ -539,6 +587,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const e = await commit('running', 'node.completed');
       yield e;
     } else if (node.type === 'core:end') {
+      // Финал Graph-рана агентом: точка события Stop.
+      await emitHook(hooks, 'Stop', {});
       let fin: unknown = output;
       if (typeof node.output === 'string') {
         try {
@@ -619,6 +669,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           paths: opts.paths,
           signal: opts.signal ?? new AbortController().signal,
           logger: opts.logger,
+          hooks,
         })) {
           if (ev.type === 'completed') {
             const m = ev.message;
@@ -668,6 +719,16 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           if (left) {
             notes.push(budgetNote(left));
           }
+          // Deferred-эффекты асинхронных хуков дренируются перед обращением
+          // к модели; hookNotes (SessionStart + deferred context) — sticky.
+          if (hooks) {
+            for (const eff of hooks.bus.drainDeferred()) {
+              if (eff.kind === 'context') {
+                hookNotes.push({ tag: 'hooks', text: eff.text });
+              }
+            }
+          }
+          notes.push(...hookNotes);
           const notesErrors: string[] = [];
           if (opts.notes?.length || caps.enabled.length > 0) {
             const noteCtx: LlmNoteContext = {
@@ -718,6 +779,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               skills: opts.skills,
               artifacts: opts.artifacts,
               paths: opts.paths,
+              hooks,
+              steps,
             },
           );
           for await (const event of stream) {
@@ -861,6 +924,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           resumeInterruptId: opts.resumeInterruptId,
           sandbox: opts.sandbox,
           toolOutput: agent.toolOutput,
+          hooks,
         });
       } catch (e) {
         if (e instanceof AskUserInterrupt) {
@@ -1039,7 +1103,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         }
         spawnOutcome = await executeSpawn(
           prepared,
-          { ...opts, agent, plan, input, toolRegistry },
+          { ...opts, agent, plan, input, toolRegistry, hooks },
           startGraph,
         );
       } catch (err) {
@@ -1112,7 +1176,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         });
         const mapIter = executeMap(
           prepared,
-          { ...opts, agent, plan, input, toolRegistry },
+          { ...opts, agent, plan, input, toolRegistry, hooks },
           st,
           startGraph,
         );
@@ -1220,6 +1284,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
     nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
     steps += 1;
+    await emitHook(hooks, 'NodeEnd', { node: { id: cur, type: node.type } });
     const over = budgetOver();
     if (over) {
       const e = await budgetStop(over);

@@ -3,6 +3,7 @@ import { extname, isAbsolute, join } from 'node:path';
 import { callModel, type StreamChunk } from '../adapters/ai-llm-adapter.ts';
 import { LLM_CHUNK_EVENTS, MIME_MAP } from '../constants.ts';
 import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.ts';
+import { codedRunError } from '../domain/errors.ts';
 import type { ArtifactStore } from '../ports/artifacts.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { PathsConfig } from '../ports/paths.ts';
@@ -11,6 +12,7 @@ import type { ToolDefinition } from '../ports/tools.ts';
 import { evalExpr, substitutePrompt } from './expr-eval.ts';
 import { type AttachmentReadFn, materializeMessageAttachments } from './fold-attachments.ts';
 import { resolveAgentModelRef, stateKeyOf } from './graph-helpers.ts';
+import { emitHook, type HookEmitCtx, hookBlockedReason } from './hooks/emit-hook.ts';
 import { assembleNotes, type LlmNote } from './llm-notes.ts';
 import { effectiveSkillRegistry, type PackRunOutput } from './packs/pack-run.ts';
 import { formatSkillsCatalog } from './skills/skills-catalog.ts';
@@ -40,6 +42,10 @@ export type LlmContext = {
   skills?: SkillRegistry;
   artifacts?: ArtifactStore;
   paths?: PathsConfig;
+  /** Шина хуков рана: Pre/PostModelCall. */
+  hooks?: HookEmitCtx;
+  /** Пройденные шаги рана: поле steps в usage PostModelCall. */
+  steps?: number;
 };
 
 function attachmentReader(
@@ -159,6 +165,14 @@ export async function* runLlmGenerate(
   };
 
   const modelRef = resolveAgentModelRef(node.model, ctx.agent);
+  const hookModel = { provider: ctx.modelBinding.driver, model: ctx.modelBinding.name };
+  const pre = await emitHook(ctx.hooks, 'PreModelCall', { model: hookModel });
+  const preBlocked = hookBlockedReason(pre);
+  if (preBlocked !== undefined) {
+    // Блок без вызова провайдера: узел получает error-результат через
+    // штатный путь ошибки модели (граф ловит и переводит ран в failed).
+    throw codedRunError('model_call_blocked', preBlocked);
+  }
   const stream = callModel(
     ctx.modelBinding,
     instructions,
@@ -218,8 +232,26 @@ export async function* runLlmGenerate(
       }
     }
 
+    await emitHook(ctx.hooks, 'PostModelCall', {
+      model: hookModel,
+      usage: { steps: ctx.steps ?? 0, tokens: usageTokensOf(res.usage) },
+    });
+
     yield { type: 'model.completed', data: out };
   }
+}
+
+function usageTokensOf(usage: unknown): number {
+  if (!usage || typeof usage !== 'object') {
+    return 0;
+  }
+  const u = usage as Record<string, unknown>;
+  if (typeof u.totalTokens === 'number' && Number.isFinite(u.totalTokens)) {
+    return u.totalTokens;
+  }
+  const input = typeof u.inputTokens === 'number' ? u.inputTokens : 0;
+  const output = typeof u.outputTokens === 'number' ? u.outputTokens : 0;
+  return input + output;
 }
 
 /** Projection for the model call: stable prefix + chat without system roles. */

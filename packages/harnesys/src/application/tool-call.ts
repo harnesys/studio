@@ -10,6 +10,8 @@ import type { ToolDefinition } from '../ports/tools.ts';
 import { presentCallOutput } from './clip-tool-output.ts';
 import { evalExpr } from './expr-eval.ts';
 import { stateKeyOf } from './graph-helpers.ts';
+import type { HookEmitCtx } from './hooks/emit-hook.ts';
+import { emitHook } from './hooks/emit-hook.ts';
 import { executeApproveBatch, type PreparedToolCall, runSingleToolCall } from './tool-approve.ts';
 import {
   clearCheckpoint,
@@ -51,6 +53,8 @@ export type ToolCallContext = {
   /** Дочерний ран: гейты отвечают deny вместо AskUserInterrupt. */
   sandbox?: boolean;
   toolOutput?: ToolOutputSettings | null;
+  /** Шина хуков рана: PostToolBatch в конце batch-ветки. */
+  hooks?: HookEmitCtx;
 };
 
 function codeError(code: string, message: string): never {
@@ -238,5 +242,6 @@ export async function executeToolCall(
   }
 
   clearCheckpoint(ctx.state, ctx.nodeId);
+  await emitHook(ctx.hooks, 'PostToolBatch', { tool_results: results as ToolCallResult[] });
   return { results: results as ToolCallResult[] };
 }

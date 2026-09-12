@@ -12,6 +12,7 @@ import {
   ServerIcon,
   SlidersHorizontalIcon,
   UserRoundIcon,
+  WebhookIcon,
   WorkflowIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -23,6 +24,7 @@ export type AgentConfigCategory =
   | 'capabilities'
   | 'compaction'
   | 'skills'
+  | 'hooks'
   | 'graph'
   | 'mcp'
   | 'limits'
@@ -42,6 +44,7 @@ export const AGENT_CONFIG_CATEGORIES: AgentConfigNavItem[] = [
   { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
   { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },
   { id: 'skills', label: 'Skills', icon: PuzzleIcon },
+  { id: 'hooks', label: 'Hooks', icon: WebhookIcon },
   { id: 'mcp', label: 'MCP', icon: ServerIcon },
   { id: 'limits', label: 'Limits', icon: GaugeIcon },
   { id: 'subagents', label: 'Subagents', icon: BotIcon },

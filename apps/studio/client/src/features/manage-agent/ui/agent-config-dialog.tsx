@@ -46,6 +46,8 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
     mcpServers: agent?.mcpServers ?? [],
     compaction: agent?.compaction,
     capabilities: agent?.capabilities ?? {},
+    hooks: agent?.hooks ?? [],
+    enabledPlugins: agent?.enabledPlugins ?? {},
   };
 }
 

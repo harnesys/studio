@@ -77,19 +77,27 @@ export {
   removePluginRegistry,
 } from './plugin-registries';
 export {
+  type ApprovePluginServerRequest,
+  approvePluginServer,
   type EnableWorkspacePluginRequest,
   type EnableWorkspacePluginResponse,
   enableWorkspacePlugin,
   type InstallPluginRequest,
   installPlugin,
   listPlugins,
+  type PluginDiagnostic,
   type PluginListItem,
   type PluginMutationResponse,
+  type PluginRecord,
   type PluginSummary,
   pluginsQuery,
   pluginsQueryKey,
   type RemovePluginRequest,
   removePlugin,
+  type SetPluginGrantsRequest,
+  type SetPluginOptionRequest,
+  setPluginGrants,
+  setPluginOption,
   updatePlugin,
 } from './plugins';
 export {

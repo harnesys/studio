@@ -10,11 +10,13 @@ import type { StudioGraphDocument } from '../model/agent-graph-document';
 import type { AgentConfigCategory } from './agent-config-nav';
 import { AgentIdentityPane, AgentLimitsPane, AgentModelPane } from './agent-config-panes';
 import { AgentGraphPane } from './agent-graph-pane';
+import { AgentHooksPane } from './agent-hooks-pane';
 import { AgentModesPane } from './agent-modes-pane';
 import { AgentSubagentsPane } from './agent-subagents-pane';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
 import { DraftCapabilityPacks } from './draft-capability-packs';
 import { DraftCompaction } from './draft-compaction';
+import { DraftEnabledPlugins } from './draft-enabled-plugins';
 
 function capabilitiesSection(category: AgentConfigCategory): DraftCapabilitiesSection {
   return category === 'mcp' ? 'mcp' : 'skills';
@@ -79,6 +81,23 @@ export function AgentConfigCategoryPanes({
           value={activeAgent?.capabilities ?? {}}
           onChange={(capabilities) => {
             capabilitiesRef.current = { ...capabilitiesRef.current, capabilities };
+          }}
+        />
+        <DraftEnabledPlugins
+          key={`plugins-${activeAgent?.id ?? 'new'}`}
+          workspaceId={workspaceId}
+          value={activeAgent?.enabledPlugins ?? {}}
+          onChange={(enabledPlugins) => {
+            capabilitiesRef.current = { ...capabilitiesRef.current, enabledPlugins };
+          }}
+        />
+      </div>
+      <div className={cn(category !== 'hooks' && 'hidden')}>
+        <AgentHooksPane
+          key={`hooks-${activeAgent?.id ?? 'new'}`}
+          value={activeAgent?.hooks ?? []}
+          onChange={(hooks) => {
+            capabilitiesRef.current = { ...capabilitiesRef.current, hooks };
           }}
         />
       </div>

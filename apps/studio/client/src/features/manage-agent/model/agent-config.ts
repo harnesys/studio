@@ -1,4 +1,5 @@
 import type { AgentGraph, PackConfig } from '@harnesys/studio-shared';
+import type { HooksBinding } from 'harnesys';
 import type { AgentDraft } from '@/entities/agent';
 
 export type AgentCapabilitiesDraft = {
@@ -7,6 +8,8 @@ export type AgentCapabilitiesDraft = {
   mcpServers?: string[];
   compaction?: unknown;
   capabilities?: Record<string, PackConfig | null>;
+  hooks?: HooksBinding[];
+  enabledPlugins?: Record<string, boolean>;
 };
 
 export type AgentConfigResult = {

@@ -2,11 +2,8 @@ export {
   confirmRemovePlugin,
   confirmRemoveRegistry,
   openAddRegistryDialog,
+  openEnablePluginDialog,
   openInstallCatalogPluginDialog,
   openInstallPluginDialog,
+  openPluginDetailDrawer,
 } from './model/plugin-dialogs';
-export {
-  AddRegistryDialog,
-  InstallCatalogPluginDialog,
-  InstallPluginDialog,
-} from './ui/plugin-dialogs';

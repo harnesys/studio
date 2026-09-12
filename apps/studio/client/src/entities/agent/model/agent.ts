@@ -7,6 +7,7 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
+import type { HooksBinding } from 'harnesys';
 
 export const AGENT_STATUSES = ['idle', 'running', 'waiting', 'error', 'offline'] as const;
 
@@ -31,6 +32,9 @@ export type Agent = {
   tools: string[];
   graph: AgentGraph;
   capabilities: Record<string, PackConfig | null>;
+  hooks: HooksBinding[];
+  /** Per-agent plugin enable overrides; full map when set (sparse map disables the rest). */
+  enabledPlugins: Record<string, boolean>;
   defaultModeId: string | null;
   modes: AgentMode[];
   createdAt: string;
@@ -54,6 +58,8 @@ export type AgentDraft = {
   compaction?: PortRef;
   capabilities?: Record<string, PackConfig | null>;
   graph?: AgentGraph;
+  hooks?: HooksBinding[];
+  enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
@@ -75,6 +81,8 @@ export type AgentPatch = Partial<
     | 'tools'
     | 'graph'
     | 'capabilities'
+    | 'hooks'
+    | 'enabledPlugins'
     | 'defaultModeId'
     | 'modes'
   >
@@ -84,6 +92,8 @@ export type AgentCapabilitiesPatch = {
   skills?: string[];
   mcpServers?: string[];
   tools?: string[];
+  hooks?: HooksBinding[];
+  enabledPlugins?: Record<string, boolean>;
 };
 
 export function initialsFromName(name: string): string {

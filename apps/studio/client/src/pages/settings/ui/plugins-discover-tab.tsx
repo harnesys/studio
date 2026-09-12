@@ -13,12 +13,16 @@ import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { Input } from '@/shared/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { toast } from '@/shared/ui/toast';
+
+const FORMAT_ALL = 'all';
 
 export function PluginsDiscoverTab() {
   const queryClient = useQueryClient();
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
+  const [formatFilter, setFormatFilter] = useState<string>(FORMAT_ALL);
   const registriesQuery = useQuery(pluginRegistriesQuery());
   const catalogQuery = useQuery(pluginCatalogQuery({ q: debouncedQ || undefined }));
   const registryNames = useMemo(() => {
@@ -29,7 +33,21 @@ export function PluginsDiscoverTab() {
     return map;
   }, [registriesQuery.data]);
 
-  const entries = catalogQuery.data ?? [];
+  const catalogEntries = catalogQuery.data ?? [];
+  const formats = useMemo(
+    () => [...new Set(catalogEntries.map((entry) => entry.format ?? 'unknown'))].toSorted(),
+    [catalogEntries],
+  );
+  const entries =
+    formatFilter === FORMAT_ALL
+      ? catalogEntries
+      : catalogEntries.filter((entry) => (entry.format ?? 'unknown') === formatFilter);
+
+  async function onInstalled(name: string) {
+    await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+    await queryClient.invalidateQueries({ queryKey: pluginCatalogQueryKey });
+    toast.add({ title: 'Plugin installed', description: name });
+  }
 
   return (
     <div className="flex flex-col gap-4" data-testid="plugins-discover-tab">
@@ -53,13 +71,37 @@ export function PluginsDiscoverTab() {
         >
           Search
         </Button>
+        <Select
+          items={formatItems(formats)}
+          value={formatFilter}
+          onValueChange={(next) => {
+            if (typeof next === 'string') {
+              setFormatFilter(next);
+            }
+          }}
+        >
+          <SelectTrigger
+            className="w-44"
+            data-testid="plugin-format-filter"
+            aria-label="Filter by format"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {formatItems(formats).map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {(catalogQuery.isPending || registriesQuery.isPending) && (
         <p className="text-muted-foreground text-sm">Loading catalog…</p>
       )}
 
-      {!catalogQuery.isPending && entries.length === 0 ? (
+      {!catalogQuery.isPending && catalogEntries.length === 0 ? (
         <Empty className="min-h-0 border-0 py-8">
           <EmptyHeader>
             <EmptyTitle>No catalog entries</EmptyTitle>
@@ -70,21 +112,34 @@ export function PluginsDiscoverTab() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="flex flex-col gap-1">
-          {entries.map((entry) => (
-            <CatalogRow
-              key={`${entry.registryId}:${entry.pluginName}`}
-              entry={entry}
-              registryName={registryNames.get(entry.registryId) ?? entry.registryId}
-              onInstalled={async (name) => {
-                await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
-                await queryClient.invalidateQueries({ queryKey: pluginCatalogQueryKey });
-                toast.add({ title: 'Plugin installed', description: name });
-              }}
-            />
-          ))}
-        </div>
+        <CatalogList entries={entries} registryNames={registryNames} onInstalled={onInstalled} />
       )}
+    </div>
+  );
+}
+
+function CatalogList({
+  entries,
+  registryNames,
+  onInstalled,
+}: {
+  entries: PluginCatalogEntry[];
+  registryNames: Map<string, string>;
+  onInstalled: (name: string) => Promise<void>;
+}) {
+  if (entries.length === 0) {
+    return <p className="text-muted-foreground text-sm">No entries for this format.</p>;
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      {entries.map((entry) => (
+        <CatalogRow
+          key={`${entry.registryId}:${entry.pluginName}`}
+          entry={entry}
+          registryName={registryNames.get(entry.registryId) ?? entry.registryId}
+          onInstalled={onInstalled}
+        />
+      ))}
     </div>
   );
 }
@@ -100,6 +155,13 @@ function catalogDescription(entry: PluginCatalogEntry): string {
     return entry.installSource.type;
   }
   return 'No description';
+}
+
+function formatItems(formats: string[]): { value: string; label: string }[] {
+  return [
+    { value: FORMAT_ALL, label: 'All formats' },
+    ...formats.map((format) => ({ value: format, label: `Format: ${format}` })),
+  ];
 }
 
 function CatalogRow({
@@ -121,6 +183,13 @@ function CatalogRow({
           <span className="truncate font-mono text-sm">
             {entry.displayName ?? entry.pluginName}
           </span>
+          <Badge
+            variant="outline"
+            className="font-mono"
+            data-testid={`catalog-format-${entry.pluginName}`}
+          >
+            {entry.format ?? 'unknown'}
+          </Badge>
           <Badge variant="outline" className="font-mono">
             {registryName}
           </Badge>

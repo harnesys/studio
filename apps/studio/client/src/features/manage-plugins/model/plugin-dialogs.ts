@@ -1,11 +1,17 @@
-import type { InstallPluginRequest, PluginMutationResponse } from '@harnesys/studio-shared';
+import type {
+  InstallPluginRequest,
+  PluginListItem,
+  PluginMutationResponse,
+  PluginSummary,
+} from '@harnesys/studio-shared';
 import { alert, dialog } from '@/shared/services/overlay';
-
+import { PluginDetailDrawer } from '../ui/plugin-detail-drawer';
 import {
   AddRegistryDialog,
   InstallCatalogPluginDialog,
   InstallPluginDialog,
 } from '../ui/plugin-dialogs';
+import { EnablePluginDialog } from '../ui/plugin-enable-dialog';
 
 export function openInstallPluginDialog(prefill?: InstallPluginRequest) {
   return dialog.open(InstallPluginDialog, {
@@ -35,6 +41,25 @@ export function openAddRegistryDialog() {
     className: 'sm:max-w-lg',
     testId: 'add-registry-dialog',
   });
+}
+
+export function openEnablePluginDialog(plugin: PluginSummary, workspaceId: string) {
+  return dialog.open(EnablePluginDialog, {
+    title: `Enable ${plugin.name}`,
+    description: 'Review components, grant classes and configure user settings.',
+    className: 'sm:max-w-lg',
+    testId: 'enable-plugin-dialog',
+    data: { plugin, workspaceId },
+  }) as Promise<PluginSummary | null>;
+}
+
+export function openPluginDetailDrawer(item: PluginListItem, workspaceId: string) {
+  return dialog.open(PluginDetailDrawer, {
+    title: item.plugin.name,
+    className: 'sm:max-w-md',
+    testId: 'plugin-detail-drawer',
+    data: { item, workspaceId },
+  }) as Promise<null>;
 }
 
 export function confirmRemovePlugin(name: string) {

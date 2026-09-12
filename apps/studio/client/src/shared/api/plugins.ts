@@ -1,22 +1,32 @@
 import type {
+  ApprovePluginServerRequest,
   EnableWorkspacePluginRequest,
   InstallPluginRequest,
+  PluginDiagnostic,
   PluginListItem,
   PluginMutationResponse,
+  PluginRecord,
   PluginSummary,
   RemovePluginRequest,
+  SetPluginGrantsRequest,
+  SetPluginOptionRequest,
 } from '@harnesys/studio-shared';
 import { queryOptions } from '@tanstack/react-query';
 
 import { apiJson } from './client';
 
 export type {
+  ApprovePluginServerRequest,
   EnableWorkspacePluginRequest,
   InstallPluginRequest,
+  PluginDiagnostic,
   PluginListItem,
   PluginMutationResponse,
+  PluginRecord,
   PluginSummary,
   RemovePluginRequest,
+  SetPluginGrantsRequest,
+  SetPluginOptionRequest,
 };
 
 export type EnableWorkspacePluginResponse = {
@@ -49,6 +59,33 @@ export function updatePlugin(name: string, body: { ref?: string } = {}) {
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+export function setPluginGrants(workspaceId: string, name: string, body: SetPluginGrantsRequest) {
+  return apiJson<{ plugin: PluginRecord }>(
+    `/api/workspaces/${workspaceId}/plugins/${encodeURIComponent(name)}/grants`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function approvePluginServer(name: string, body: ApprovePluginServerRequest) {
+  return apiJson<{ plugin: PluginRecord }>(`/api/plugins/${encodeURIComponent(name)}/approvals`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function setPluginOption(workspaceId: string, name: string, body: SetPluginOptionRequest) {
+  return apiJson<{ plugin: PluginRecord; diagnostics: PluginDiagnostic[] }>(
+    `/api/workspaces/${workspaceId}/plugins/${encodeURIComponent(name)}/options`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 export function enableWorkspacePlugin(

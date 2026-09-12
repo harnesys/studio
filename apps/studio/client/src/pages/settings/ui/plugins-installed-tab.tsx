@@ -5,8 +5,6 @@ import {
   ChevronRightIcon,
   PlusIcon,
   RefreshCwIcon,
-  ShieldCheckIcon,
-  ShieldOffIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -18,7 +16,6 @@ import {
   pluginsQuery,
   pluginsQueryKey,
   removePlugin,
-  trustPlugin,
   updatePlugin,
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
@@ -60,18 +57,6 @@ export function PluginsInstalledTab() {
     },
   });
 
-  const trust = useMutation({
-    mutationFn: (input: { name: string; trusted: boolean }) =>
-      trustPlugin(input.name, { trusted: input.trusted }),
-    onSuccess: async (result) => {
-      await invalidatePlugins();
-      toast.add({
-        title: result.plugin.trusted ? 'Plugin trusted' : 'Plugin untrusted',
-        description: result.plugin.name,
-      });
-    },
-  });
-
   const enable = useMutation({
     mutationFn: (input: { name: string; enabled: boolean }) => {
       if (!workspaceId) {
@@ -96,7 +81,7 @@ export function PluginsInstalledTab() {
     },
   });
 
-  const busy = update.isPending || trust.isPending || enable.isPending || remove.isPending;
+  const busy = update.isPending || enable.isPending || remove.isPending;
 
   return (
     <div className="flex flex-col gap-4" data-testid="plugins-installed-tab">
@@ -170,9 +155,6 @@ export function PluginsInstalledTab() {
                     onEnable={() =>
                       enable.mutate({ name: item.plugin.name, enabled: !enabledHere })
                     }
-                    onTrust={() =>
-                      trust.mutate({ name: item.plugin.name, trusted: !item.plugin.trusted })
-                    }
                     onUpdate={() => update.mutate(item.plugin.name)}
                     onRemove={() => {
                       void confirmRemovePlugin(item.plugin.name).then((confirmed) => {
@@ -200,7 +182,6 @@ function PluginRow({
   canEnable,
   onToggle,
   onEnable,
-  onTrust,
   onUpdate,
   onRemove,
 }: {
@@ -211,7 +192,6 @@ function PluginRow({
   canEnable: boolean;
   onToggle: () => void;
   onEnable: () => void;
-  onTrust: () => void;
   onUpdate: () => void;
   onRemove: () => void;
 }) {
@@ -231,20 +211,11 @@ function PluginRow({
               {plugin.version}
             </Badge>
           ) : null}
-          {plugin.sourceFormat ? (
+          {plugin.format !== 'unknown' ? (
             <Badge variant="outline" className="font-mono">
-              {plugin.sourceFormat}
+              {plugin.format}
             </Badge>
           ) : null}
-          {plugin.trusted ? (
-            <Badge variant="secondary" className="font-mono">
-              trusted
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="font-mono">
-              untrusted
-            </Badge>
-          )}
           {enabledHere ? (
             <Badge variant="secondary" className="font-mono">
               enabled
@@ -277,15 +248,6 @@ function PluginRow({
         onClick={onEnable}
       >
         {enabledHere ? 'Disable' : 'Enable'}
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={plugin.trusted ? `Untrust ${plugin.name}` : `Trust ${plugin.name}`}
-        disabled={busy}
-        onClick={onTrust}
-      >
-        {plugin.trusted ? <ShieldOffIcon /> : <ShieldCheckIcon />}
       </Button>
       <Button
         variant="ghost"

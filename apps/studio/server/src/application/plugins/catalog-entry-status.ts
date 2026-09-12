@@ -1,0 +1,51 @@
+import { existsSync } from 'node:fs';
+import type { PluginIr, PluginKind } from 'harnesys';
+import { loadPluginIrFromDirectory } from 'harnesys/adapters/node';
+import type { CatalogEntry } from 'harnesys/plugins-catalog';
+import type { PluginRepository } from '../../domain/plugin.port.ts';
+
+/**
+ * Decorates catalog entries with the layout format and inert component kinds
+ * of the installed plugin of the same name, from its last load. Entries with
+ * no installed plugin stay as parsed from the marketplace manifest.
+ */
+export async function decorateCatalogEntries(
+  entries: CatalogEntry[],
+  plugins: PluginRepository,
+): Promise<CatalogEntry[]> {
+  return await Promise.all(entries.map((entry) => decorateEntry(entry, plugins)));
+}
+
+async function decorateEntry(
+  entry: CatalogEntry,
+  plugins: PluginRepository,
+): Promise<CatalogEntry> {
+  const record = plugins.findByName(entry.pluginName);
+  if (!record || !existsSync(record.path)) {
+    return entry;
+  }
+  try {
+    const loaded = await loadPluginIrFromDirectory({
+      root: record.path,
+      pluginData: record.dataPath,
+    });
+    const inertComponents = inertKinds(loaded.ir);
+    return {
+      ...entry,
+      format: loaded.ir.sourceFormat,
+      ...(inertComponents.length > 0 ? { inertComponents } : {}),
+    };
+  } catch {
+    return { ...entry, format: record.format };
+  }
+}
+
+function inertKinds(ir: PluginIr): PluginKind[] {
+  const kinds = new Set<PluginKind>();
+  for (const component of ir.components) {
+    if (component.status === 'inert') {
+      kinds.add(component.kind);
+    }
+  }
+  return [...kinds];
+}

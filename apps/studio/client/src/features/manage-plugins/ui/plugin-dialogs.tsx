@@ -40,7 +40,6 @@ export function InstallPluginDialog({
       source: data?.source ?? '',
       path: data?.path ?? '',
       ref: data?.ref ?? '',
-      trust: data?.trust === true,
     },
   });
   const [stage, setStage] = useState<string | null>(null);
@@ -96,13 +95,9 @@ export function InstallPluginDialog({
 export function InstallCatalogPluginDialog({
   onResolve,
   data,
-}: DialogComponentProps<
-  PluginMutationResponse,
-  { registryId: string; pluginName: string; trust?: boolean }
->) {
+}: DialogComponentProps<PluginMutationResponse, { registryId: string; pluginName: string }>) {
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [trust, setTrust] = useState(data?.trust === true);
   const [started, setStarted] = useState(false);
 
   async function runInstall() {
@@ -116,7 +111,6 @@ export function InstallCatalogPluginDialog({
       const result = await installPlugin({
         registryId: data.registryId,
         pluginName: data.pluginName,
-        ...(trust ? { trust: true } : {}),
       });
       setStage('done');
       onResolve?.(result);
@@ -132,14 +126,6 @@ export function InstallCatalogPluginDialog({
         <p className="text-sm">
           Install <span className="font-mono">{data?.pluginName}</span> from marketplace?
         </p>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={trust}
-            onChange={(event) => setTrust(event.target.checked)}
-          />
-          Trust on install
-        </label>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onResolve?.()}>
             Cancel

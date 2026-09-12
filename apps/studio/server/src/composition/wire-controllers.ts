@@ -99,6 +99,7 @@ import { UpdateWorkspaceUseCase } from '../application/workspaces/update-workspa
 import { UpsertWorkspaceMcpServerUseCase } from '../application/workspaces/upsert-workspace-mcp-server.use-case.ts';
 import { WriteWorkspaceFileContentUseCase } from '../application/workspaces/write-workspace-file-content.use-case.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
+import type { SecretStore } from '../domain/secret-store.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
@@ -126,6 +127,7 @@ type ControllerDeps = {
   attachments: AttachmentsPort;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   lsp: StudioLspAdapter;
+  secretStore?: SecretStore;
   threadRegistry: ThreadRuntimeRegistry;
   runtimeStateRepo: SqliteRuntimeStateRepo;
   lifecycle: RunLifecycleStore;
@@ -214,6 +216,7 @@ export function wireControllers(d: ControllerDeps): void {
     workspaceRepo: d.workspaceRepo,
     workspaceHarnesys: d.workspaceHarnesys,
     lsp: d.lsp,
+    secretStore: d.secretStore,
   });
 
   new ToolsController({

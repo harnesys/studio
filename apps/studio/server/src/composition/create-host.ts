@@ -1,5 +1,6 @@
 import type { LspServerSpec, PluginComponent } from 'harnesys';
 import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
+import { MacosSecretStoreAdapter } from '../adapters/secret-store-macos.adapter.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
@@ -11,6 +12,7 @@ import { pluginUserConfig, substituteLspSpec } from '../application/plugins/plug
 import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
 import { logger, toRuntimeLogger } from '../config/logger.ts';
+import type { SecretStore } from '../domain/secret-store.port.ts';
 import type { StudioPlatform } from './create-platform.ts';
 import type { StudioStore } from './create-store.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
@@ -28,6 +30,8 @@ export type StudioHost = {
   getThreadPlan: GetThreadPlanUseCase;
   sendThreadRun: SendThreadRunUseCase;
   lsp: StudioLspAdapter;
+  /** Undefined when the platform has no Keychain access; sensitive options then refuse to save. */
+  secretStore?: SecretStore;
 };
 
 export function createStudioHost(args: {
@@ -213,6 +217,18 @@ export function createStudioHost(args: {
     getThread: runtime.getThread,
   });
 
+  let secretStore: SecretStore | undefined;
+  try {
+    secretStore = new MacosSecretStoreAdapter();
+  } catch (err) {
+    logger.warn(
+      { scope: 'plugins' },
+      `SecretStore unavailable, sensitive plugin options will refuse to save: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+
   return {
     runtimeStateRepo,
     workspaceHarnesys,
@@ -220,6 +236,7 @@ export function createStudioHost(args: {
     getThreadPlan,
     sendThreadRun,
     lsp: lspAdapter,
+    ...(secretStore ? { secretStore } : {}),
   };
 }
 

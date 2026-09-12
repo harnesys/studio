@@ -18,11 +18,7 @@ export function openInstallPluginDialog(prefill?: InstallPluginRequest) {
   });
 }
 
-export function openInstallCatalogPluginDialog(input: {
-  registryId: string;
-  pluginName: string;
-  trust?: boolean;
-}) {
+export function openInstallCatalogPluginDialog(input: { registryId: string; pluginName: string }) {
   return dialog.open(InstallCatalogPluginDialog, {
     title: `Install ${input.pluginName}`,
     description: 'Install from the connected marketplace catalog.',

@@ -1,9 +1,7 @@
 import { type Control, Controller } from 'react-hook-form';
 
-import { Checkbox } from '@/shared/ui/checkbox';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
 
 import type { AddRegistryFieldsInput, InstallPluginFieldsInput } from '../model/plugin-fields';
 
@@ -65,22 +63,6 @@ export function InstallPluginFields({ control }: { control: Control<InstallPlugi
             />
             {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
           </Field>
-        )}
-      />
-      <Controller
-        control={control}
-        name="trust"
-        render={({ field }) => (
-          <div className="flex items-center gap-2 pt-1">
-            <Checkbox
-              id="plugin-trust"
-              checked={field.value}
-              onCheckedChange={(value) => field.onChange(value === true)}
-            />
-            <Label htmlFor="plugin-trust" className="font-normal text-sm">
-              Trust on install
-            </Label>
-          </div>
         )}
       />
     </>

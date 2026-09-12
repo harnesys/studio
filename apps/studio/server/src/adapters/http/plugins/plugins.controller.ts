@@ -5,13 +5,17 @@ import type { InstallPluginInput } from '../../../application/plugins/install-pl
 import type { ListPluginsInput } from '../../../application/plugins/list-plugins.use-case.ts';
 import type { RemovePluginInput } from '../../../application/plugins/remove-plugin.use-case.ts';
 import type { SetGrantsInput } from '../../../application/plugins/set-grants.use-case.ts';
+import type { SetPluginOptionInput } from '../../../application/plugins/set-plugin-option.use-case.ts';
 import type { UpdatePluginInput } from '../../../application/plugins/update-plugin.use-case.ts';
 import {
+  approveServerBody,
   enableWorkspacePluginBody,
   installPluginBody,
   removePluginBody,
   updatePluginBody,
 } from './plugins.body.ts';
+import { setGrantsBody } from './plugins.grants.body.ts';
+import { setPluginOptionBody } from './plugins.options.body.ts';
 
 export type PluginsControllerDeps = {
   listPlugins: ListPluginsInput;
@@ -19,6 +23,7 @@ export type PluginsControllerDeps = {
   updatePlugin: UpdatePluginInput;
   setGrants: SetGrantsInput;
   approveServer: ApproveServerInput;
+  setPluginOption: SetPluginOptionInput;
   enableWorkspacePlugin: EnableWorkspacePluginInput;
   removePlugin: RemovePluginInput;
 };
@@ -52,6 +57,36 @@ export class PluginsController {
       const result = await this.deps.updatePlugin.execute({
         name: c.req.param('name'),
         ...(body.ref !== undefined ? { ref: body.ref } : {}),
+      });
+      return c.json(result);
+    });
+
+    app.put('/api/workspaces/:workspaceId/plugins/:name/grants', async (c) => {
+      const body = setGrantsBody.parse(await c.req.json());
+      const plugin = await this.deps.setGrants.execute({
+        workspaceId: c.req.param('workspaceId'),
+        name: c.req.param('name'),
+        classes: body.classes,
+      });
+      return c.json({ plugin });
+    });
+
+    app.post('/api/plugins/:name/approvals', async (c) => {
+      const body = approveServerBody.parse(await c.req.json());
+      const plugin = await this.deps.approveServer.execute({
+        name: c.req.param('name'),
+        serverId: body.serverId,
+      });
+      return c.json({ plugin }, 201);
+    });
+
+    app.put('/api/workspaces/:workspaceId/plugins/:name/options', async (c) => {
+      const body = setPluginOptionBody.parse(await c.req.json());
+      const result = await this.deps.setPluginOption.execute({
+        workspaceId: c.req.param('workspaceId'),
+        name: c.req.param('name'),
+        key: body.key,
+        value: body.value,
       });
       return c.json(result);
     });

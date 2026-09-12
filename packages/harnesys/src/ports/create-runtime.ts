@@ -5,7 +5,6 @@ import type { PackCatalogEntry } from '../application/packs/tool-names.ts';
 import type { RunClaimer } from '../application/run-claimer.ts';
 import type { RunEventFeed } from '../application/run-event-feed.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
-import type { Middleware } from '../domain/middleware.ts';
 import type { PackRegistration } from '../domain/pack.ts';
 import type { Command, RunResult } from '../domain/run-result.ts';
 import type { SkillSummary } from '../domain/skill.ts';
@@ -50,7 +49,6 @@ export type CreateRuntimeOptions = {
   deferredPacks?: readonly string[];
   artifacts?: ArtifactStore;
   nodes?: Record<string, CustomNodeImpl>;
-  middleware?: Middleware[];
   toolMessages?: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
   stream?: { chunkIntervalMs?: number; chunkSize?: number };

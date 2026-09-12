@@ -146,7 +146,6 @@ export type {
   McpToolInfo,
   McpTransport,
 } from './src/domain/mcp.ts';
-export type { GuardDecision, Middleware, MiddlewareContext } from './src/domain/middleware.ts';
 export type {
   AgentPacks,
   CapabilityScope,

@@ -58,14 +58,14 @@ export class ResumeHashError extends Error {
 
 export class AskUserInterrupt extends Error {
   readonly prompt: string;
-  readonly source?: 'ask_user' | 'approve' | 'permission' | 'middleware';
+  readonly source?: 'ask_user' | 'approve' | 'permission';
   readonly tool?: { name: string; input: unknown; toolCallId: string };
   interruptId?: string;
   readonly resumeSchema?: JsonSchema;
 
   constructor(input: {
     prompt: string;
-    source?: 'ask_user' | 'approve' | 'permission' | 'middleware';
+    source?: 'ask_user' | 'approve' | 'permission';
     tool?: { name: string; input: unknown; toolCallId: string };
     interruptId?: string;
     resumeSchema?: JsonSchema;

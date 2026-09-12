@@ -95,7 +95,6 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     models: options.models,
     toolRegistry,
     artifacts: options.artifacts,
-    middleware: options.middleware,
     permissions: options.permissions,
     paths: options.paths,
     notes: options.notes,

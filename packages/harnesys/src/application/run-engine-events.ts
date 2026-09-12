@@ -222,13 +222,8 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       askId: String(m?.interruptId ?? ''),
       schema,
       source:
-        (m?.source as
-          | 'permission'
-          | 'approve'
-          | 'middleware'
-          | 'interrupt'
-          | 'ask_user'
-          | 'budget') ?? 'interrupt',
+        (m?.source as 'permission' | 'approve' | 'interrupt' | 'ask_user' | 'budget') ??
+        'interrupt',
       prompt: typeof m?.reason === 'string' ? m.reason : undefined,
       tool: m?.tool as { name: string; input: unknown; toolCallId: string } | undefined,
     };

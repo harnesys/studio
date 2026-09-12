@@ -1,4 +1,4 @@
-import type { PluginLspServer } from 'harnesys';
+import type { LspServerSpec, PluginComponent } from 'harnesys';
 import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
@@ -72,7 +72,7 @@ export function createStudioHost(args: {
   });
 
   const lspServersRef: {
-    current: (cwd: string) => PluginLspServer[] | Promise<PluginLspServer[]>;
+    current: (cwd: string) => LspServerSpec[] | Promise<LspServerSpec[]>;
   } = { current: () => [] };
 
   // FS/git watcher → LSP: when a session for a workspace starts, subscribe the
@@ -153,7 +153,9 @@ export function createStudioHost(args: {
       return [];
     }
     const loaded = await workspaceHarnesys.loadEnabledPlugins(workspace.id);
-    return loaded.flatMap((entry) => entry.plugin.lspServers);
+    return loaded.flatMap((entry) =>
+      entry.ir.components.filter(isLspServerComponent).map(toLspSpec),
+    );
   };
 
   const branchSeeder = new SeedBranchStateUseCase({
@@ -196,4 +198,19 @@ export function createStudioHost(args: {
     sendThreadRun,
     lsp: lspAdapter,
   };
+}
+
+type LspServerComponent = PluginComponent & { spec: LspServerSpec };
+
+function isLspServerComponent(component: PluginComponent): component is LspServerComponent {
+  return (
+    component.kind === 'lsp-server' &&
+    component.status === 'native' &&
+    'command' in component.spec &&
+    'extensionToLanguage' in component.spec
+  );
+}
+
+function toLspSpec(component: LspServerComponent): LspServerSpec {
+  return component.spec;
 }

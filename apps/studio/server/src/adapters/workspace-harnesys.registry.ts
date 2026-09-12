@@ -8,7 +8,7 @@ import type {
   ModelsPort,
   PackAssignment,
   PackRegistration,
-  Plugin,
+  PluginIr,
   RunClaimer,
   RunEventFeed,
   RunEventStore,
@@ -26,7 +26,7 @@ import {
   normalizePackAssignment,
   wait,
 } from 'harnesys';
-import { FsSkillRegistry, loadPluginFromDirectory } from 'harnesys/adapters/node';
+import { FsSkillRegistry, loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { PluginInstallRecord, PluginRepository } from '../domain/plugin.port.ts';
@@ -53,7 +53,7 @@ export type WorkspaceRuntimeWiring = {
 
 export type LoadedWorkspacePlugin = {
   record: PluginInstallRecord;
-  plugin: Plugin;
+  ir: PluginIr;
   mcp: CursorMcpJson;
 };
 
@@ -121,11 +121,11 @@ export class WorkspaceHarnesysRegistry {
     const loaded: LoadedWorkspacePlugin[] = [];
     for (const record of enabled) {
       try {
-        const result = await loadPluginFromDirectory({
+        const result = await loadPluginIrFromDirectory({
           root: record.path,
           pluginData: record.dataPath,
         });
-        loaded.push({ record, plugin: result.plugin, mcp: result.mcp });
+        loaded.push({ record, ir: result.ir, mcp: result.mcpFragment });
       } catch {
         // skip failed loads; diagnostics surface via plugin list API
       }
@@ -151,7 +151,7 @@ export class WorkspaceHarnesysRegistry {
     });
     const skills = composeSkillRegistries([
       fsSkills,
-      ...buildPluginSkillRegistries(enabledPlugins.map((entry) => entry.plugin)),
+      ...buildPluginSkillRegistries(enabledPlugins.map((entry) => entry.ir)),
     ]);
     const mcp = mergePluginMcpFragments(
       mcpJson,

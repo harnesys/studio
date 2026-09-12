@@ -1,7 +1,7 @@
 import { stat } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { PluginLspServer } from 'harnesys';
+import type { LspServerSpec } from 'harnesys';
 import type { LspDiagnostic } from 'harnesys/lsp';
 import { isRecord } from './lsp-messages.ts';
 
@@ -18,7 +18,7 @@ export class LspDocuments {
   private readonly lastSentText = new Map<string, string>();
 
   constructor(
-    private readonly config: PluginLspServer,
+    private readonly config: LspServerSpec,
     private readonly send: (message: object) => void,
   ) {}
 

@@ -77,10 +77,9 @@ export class StudioRunTargets implements RunTargets {
     const enabledPlugins = await this.deps.workspaceHarnesys.loadEnabledPlugins(thread.workspaceId);
     const notes = [
       createPluginSessionStartNotes({
-        plugins: enabledPlugins.map(({ plugin, record }) => ({
-          plugin,
+        plugins: enabledPlugins.map(({ ir, record }) => ({
+          ir,
           trusted: record.trusted,
-          pluginData: record.dataPath,
         })),
         timeoutMs: PLUGIN_HOOK_TIMEOUT_MS,
       }),

@@ -6,21 +6,22 @@ export type ExpandPluginVarsContext = {
 export const PLUGIN_ROOT_PLACEHOLDER = '${' + 'PLUGIN_ROOT}';
 export const PLUGIN_DATA_PLACEHOLDER = '${' + 'PLUGIN_DATA}';
 
-/** Single-pass textual replace of exact PLUGIN_ROOT / PLUGIN_DATA placeholders (AP §9.2). */
+/** Claude-синонимы: канонический AP-плейсхолдер и Claude-форма — один смысл. */
+const PLACEHOLDER_TARGETS: ReadonlyArray<readonly [string, keyof ExpandPluginVarsContext]> = [
+  [PLUGIN_ROOT_PLACEHOLDER, 'pluginRoot'],
+  [PLUGIN_DATA_PLACEHOLDER, 'pluginData'],
+  ['${' + 'CLAUDE_PLUGIN_ROOT}', 'pluginRoot'],
+  ['${' + 'CLAUDE_PLUGIN_DATA}', 'pluginData'],
+];
+
+/** Single-pass textual replace of PLUGIN_ROOT / PLUGIN_DATA placeholders and Claude synonyms (AP §9.2). */
 export function expandPluginVars(value: string, ctx: ExpandPluginVarsContext): string {
-  const pattern = new RegExp(
-    `(${escapeRegExp(PLUGIN_ROOT_PLACEHOLDER)}|${escapeRegExp(PLUGIN_DATA_PLACEHOLDER)})`,
-  );
+  const pattern = new RegExp(`(${PLACEHOLDER_TARGETS.map(([p]) => escapeRegExp(p)).join('|')})`);
   const parts = value.split(pattern);
   let out = '';
   for (const part of parts) {
-    if (part === PLUGIN_ROOT_PLACEHOLDER) {
-      out += ctx.pluginRoot;
-    } else if (part === PLUGIN_DATA_PLACEHOLDER) {
-      out += ctx.pluginData;
-    } else {
-      out += part;
-    }
+    const target = PLACEHOLDER_TARGETS.find(([placeholder]) => placeholder === part);
+    out += target === undefined ? part : ctx[target[1]];
   }
   return out;
 }

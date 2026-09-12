@@ -1,12 +1,8 @@
 import { cpSync, existsSync } from 'node:fs';
 import { mkdir, rename } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
-import type {
-  PluginLoadDiagnostic,
-  PluginMutationResponse,
-  PluginName,
-} from '@harnesys/studio-shared';
-import { loadPluginFromDirectory } from 'harnesys/adapters/node';
+import type { PluginDiagnostic, PluginMutationResponse, PluginName } from '@harnesys/studio-shared';
+import { loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import type { CatalogEntry } from 'harnesys/plugins-catalog';
 import { removePluginPath, updatePluginCheckout } from '../../adapters/plugin-git.adapter.ts';
 import {
@@ -67,7 +63,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
       path: current.path,
       ...(request.ref !== undefined ? { ref: request.ref } : {}),
     });
-    const loaded = await loadPluginFromDirectory({
+    const loaded = await loadPluginIrFromDirectory({
       root: current.path,
       pluginData: current.dataPath,
     });
@@ -79,7 +75,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
     });
     await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
     return {
-      plugin: toPluginSummary(saved, loaded.plugin),
+      plugin: toPluginSummary(saved, loaded.ir),
       diagnostics: loaded.diagnostics,
     };
   }
@@ -159,7 +155,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
         entry.pluginName,
       );
       const depsDiagnostics = await installCheckoutDependencies(staged);
-      const loaded = await loadPluginFromDirectory({
+      const loaded = await loadPluginIrFromDirectory({
         root: staged,
         pluginData: current.dataPath,
       });
@@ -173,7 +169,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
       });
       await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
       return {
-        plugin: toPluginSummary(saved, loaded.plugin),
+        plugin: toPluginSummary(saved, loaded.ir),
         diagnostics: [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
       };
     } catch (err) {
@@ -207,7 +203,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
         sourceRevision: materialized.revision,
       });
       const depsDiagnostics = await installCheckoutDependencies(staged);
-      const loaded = await loadPluginFromDirectory({
+      const loaded = await loadPluginIrFromDirectory({
         root: staged,
         pluginData: current.dataPath,
       });
@@ -225,7 +221,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
       });
       await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
       return {
-        plugin: toPluginSummary(saved, loaded.plugin),
+        plugin: toPluginSummary(saved, loaded.ir),
         diagnostics: [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
       };
     } catch (err) {
@@ -242,7 +238,7 @@ function versionedInstallPath(currentPath: string, name: string, version: string
 }
 
 /** Lockfile-bearing checkouts get `bun install --ignore-scripts`; failure is non-blocking. */
-async function installCheckoutDependencies(checkout: string): Promise<PluginLoadDiagnostic[]> {
+async function installCheckoutDependencies(checkout: string): Promise<PluginDiagnostic[]> {
   const ok = await installPluginDependencies(checkout).catch(() => false);
   if (ok) {
     return [];
@@ -250,7 +246,7 @@ async function installCheckoutDependencies(checkout: string): Promise<PluginLoad
   return [
     {
       level: 'warning',
-      code: 'plugin_deps_install_failed',
+      code: 'dependency_unsatisfied',
       message:
         'bun install --ignore-scripts failed or timed out; plugin node dependencies are not installed',
       path: checkout,

@@ -91,18 +91,21 @@ export type AgentSpec = {
 /** Хук: event/matcher уже в binding (HookMatcher). */
 export type HookSpec = { binding: HookBinding };
 
+/** Конфигурация MCP-сервера: stdio-команда или внешний url (streamable-http/sse). */
+export type McpServerConfig =
+  | {
+      type: 'stdio';
+      command: string;
+      args?: string[];
+      env?: Record<string, string>;
+      cwd?: string;
+    }
+  | { type: 'streamable-http' | 'sse'; url: string; headers?: Record<string, string> };
+
 /** MCP-сервер: stdio-команда или внешний url (streamable-http/sse). */
 export type McpServerSpec = {
   serverId: string;
-  config:
-    | {
-        type: 'stdio';
-        command: string;
-        args?: string[];
-        env?: Record<string, string>;
-        cwd?: string;
-      }
-    | { type: 'streamable-http' | 'sse'; url: string; headers?: Record<string, string> };
+  config: McpServerConfig;
 };
 
 /** Языковой сервер: полная форма Claude lspServers-записи. */

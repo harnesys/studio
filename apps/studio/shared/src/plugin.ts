@@ -1,6 +1,6 @@
-import type { PluginLoadDiagnostic, PluginName, PluginSourceFormat } from 'harnesys';
+import type { PluginDiagnostic, PluginName, PluginSourceFormat } from 'harnesys';
 
-export type { PluginLoadDiagnostic, PluginName, PluginSourceFormat } from 'harnesys';
+export type { PluginDiagnostic, PluginName, PluginSourceFormat } from 'harnesys';
 
 export type PluginRecord = {
   name: PluginName;
@@ -31,7 +31,7 @@ export type PluginSummary = PluginRecord & {
 
 export type PluginMutationResponse = {
   plugin: PluginSummary;
-  diagnostics: PluginLoadDiagnostic[];
+  diagnostics: PluginDiagnostic[];
 };
 
 export type PluginListItem = PluginMutationResponse;

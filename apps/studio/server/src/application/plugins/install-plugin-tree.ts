@@ -2,7 +2,7 @@ import { cpSync, existsSync } from 'node:fs';
 import { mkdir, rename } from 'node:fs/promises';
 import type { PluginMutationResponse } from '@harnesys/studio-shared';
 import type { PluginName } from 'harnesys';
-import { loadPluginFromDirectory } from 'harnesys/adapters/node';
+import { loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import { removePluginPath } from '../../adapters/plugin-git.adapter.ts';
 import {
   materializeSource,
@@ -129,11 +129,11 @@ export class PluginTreeInstaller {
     setInstalledName: (name: PluginName) => void;
   }): Promise<PluginMutationResponse> {
     let checkout = args.checkout;
-    let loaded = await loadPluginFromDirectory({
+    let loaded = await loadPluginIrFromDirectory({
       root: checkout,
       pluginData: pluginDataPath(this.home, repoNameFromPath(checkout)),
     });
-    const name = loaded.plugin.manifest.name;
+    const name = loaded.ir.identity.name;
     const finalDest = pluginInstallPath(this.home, name);
     if (checkout !== finalDest) {
       if (this.plugins.findByName(name) || existsSync(finalDest)) {
@@ -142,7 +142,7 @@ export class PluginTreeInstaller {
       await rename(checkout, finalDest);
       checkout = finalDest;
       args.onRename(finalDest);
-      loaded = await loadPluginFromDirectory({
+      loaded = await loadPluginIrFromDirectory({
         root: checkout,
         pluginData: pluginDataPath(this.home, name),
       });
@@ -170,7 +170,7 @@ export class PluginTreeInstaller {
     await mkdir(dataPath, { recursive: true });
     await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
     return {
-      plugin: toPluginSummary(saved, loaded.plugin),
+      plugin: toPluginSummary(saved, loaded.ir),
       diagnostics: loaded.diagnostics,
     };
   }

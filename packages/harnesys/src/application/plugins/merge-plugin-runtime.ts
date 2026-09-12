@@ -1,6 +1,6 @@
-import { join } from 'node:path';
+import { dirname } from 'node:path';
 import { FsSkillRegistry } from '../../adapters/fs-skill-registry.ts';
-import type { Plugin } from '../../domain/plugin.ts';
+import type { PluginIr } from '../../domain/plugin-ir.ts';
 import type { CursorMcpJson } from '../../ports/mcp.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
 import { prefixSkillRegistry } from './prefixed-skill-registry.ts';
@@ -17,12 +17,15 @@ export function mergePluginMcpFragments(
   return { mcpServers };
 }
 
-/** One prefixed `FsSkillRegistry` per plugin `skills/` root. */
-export function buildPluginSkillRegistries(plugins: Plugin[]): SkillRegistry[] {
-  return plugins.map((plugin) =>
-    prefixSkillRegistry(
-      new FsSkillRegistry({ roots: [join(plugin.root, 'skills')] }),
-      plugin.manifest.name,
-    ),
-  );
+/** One prefixed `FsSkillRegistry` per plugin: roots = parent dirs of IR SkillSpec entries. */
+export function buildPluginSkillRegistries(plugins: PluginIr[]): SkillRegistry[] {
+  return plugins.map((ir) => {
+    const roots = new Set<string>();
+    for (const component of ir.components) {
+      if (component.kind === 'skill' && component.status !== 'dropped' && 'dir' in component.spec) {
+        roots.add(dirname(component.spec.dir));
+      }
+    }
+    return prefixSkillRegistry(new FsSkillRegistry({ roots: [...roots] }), ir.identity.name);
+  });
 }

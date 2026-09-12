@@ -1,11 +1,11 @@
 import type { PluginSummary } from '@harnesys/studio-shared';
-import type { Plugin } from 'harnesys';
+import type { PluginIr, PluginKind } from 'harnesys';
 import type { PluginInstallRecord } from '../../domain/plugin.port.ts';
 
-export function toPluginSummary(record: PluginInstallRecord, plugin: Plugin): PluginSummary {
+export function toPluginSummary(record: PluginInstallRecord, ir: PluginIr): PluginSummary {
   const summary: PluginSummary = {
     name: record.name,
-    sourceFormat: plugin.sourceFormat,
+    sourceFormat: ir.sourceFormat,
     source: record.source,
     revision: record.revision,
     path: record.path,
@@ -14,12 +14,12 @@ export function toPluginSummary(record: PluginInstallRecord, plugin: Plugin): Pl
     enabledWorkspaceIds: record.enabledWorkspaceIds,
     installedAt: record.installedAt,
     updatedAt: record.updatedAt,
-    skillCount: plugin.skills.length,
-    hookCount: plugin.hooks.length,
-    mcpServerCount: plugin.mcpServers.length,
-    agentCount: plugin.agents.length,
-    commandCount: plugin.commands.length,
-    lspServerCount: plugin.lspServers.length,
+    skillCount: countKind(ir, 'skill'),
+    hookCount: countKind(ir, 'hook'),
+    mcpServerCount: countKind(ir, 'mcp-server'),
+    agentCount: countKind(ir, 'agent'),
+    commandCount: countKind(ir, 'command'),
+    lspServerCount: countKind(ir, 'lsp-server'),
   };
   if (record.registryId) {
     summary.registryId = record.registryId;
@@ -27,11 +27,15 @@ export function toPluginSummary(record: PluginInstallRecord, plugin: Plugin): Pl
   if (record.catalogPluginName) {
     summary.catalogPluginName = record.catalogPluginName;
   }
-  if (plugin.manifest.version !== undefined) {
-    summary.version = plugin.manifest.version;
+  if (ir.identity.version !== undefined) {
+    summary.version = ir.identity.version;
   }
-  if (plugin.manifest.description !== undefined) {
-    summary.description = plugin.manifest.description;
+  if (ir.identity.description !== undefined) {
+    summary.description = ir.identity.description;
   }
   return summary;
+}
+
+function countKind(ir: PluginIr, kind: PluginKind): number {
+  return ir.components.filter((component) => component.kind === kind).length;
 }

@@ -162,23 +162,7 @@ export type {
 export { definePack, normalizePackAssignment, registerPack } from './src/domain/pack.ts';
 export type { PlanItemStatus, PlanStatus, SubagentRole } from './src/domain/plan.ts';
 export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from './src/domain/plan.ts';
-export type {
-  Plugin,
-  PluginAgentRef,
-  PluginAuthor,
-  PluginCommandRef,
-  PluginExtensions,
-  PluginHookCommand,
-  PluginHookEvent,
-  PluginLoadDiagnostic,
-  PluginLspServer,
-  PluginManifest,
-  PluginMcpServer,
-  PluginName,
-  PluginSchemaVersion,
-  PluginSkillRef,
-  PluginSourceFormat,
-} from './src/domain/plugin.ts';
+export type { PluginName, PluginSourceFormat } from './src/domain/plugin.ts';
 export type {
   PluginDiagnostic,
   PluginDiagnosticCode,
@@ -196,6 +180,7 @@ export type {
   McpServerSpec,
   MonitorSpec,
   PathEntrySpec,
+  PluginAuthor,
   PluginComponent,
   PluginGrants,
   PluginIdentity,
@@ -322,8 +307,8 @@ export type { PermissionGate, PermissionMap } from './src/ports/permissions.ts';
 export { DEFAULT_PERMISSIONS, resolveToolPermission } from './src/ports/permissions.ts';
 export type { PlanItem, PlanPort, PlanSaveItemInput, PlanSnapshot } from './src/ports/plan.ts';
 export type {
-  LoadPluginFromDirectoryOptions,
-  LoadPluginResult,
+  LoadPluginIrFromDirectoryOptions,
+  LoadPluginIrResult,
   PluginLoader,
   RunPluginHookCommandFail,
   RunPluginHookCommandOk,

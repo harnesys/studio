@@ -1,11 +1,10 @@
-import type { Plugin, PluginHookCommand } from '../../domain/plugin.ts';
+import type { PluginIr } from '../../domain/plugin-ir.ts';
 import type { LlmNote, LlmNoteContext, LlmNoteProvider } from '../llm-notes.ts';
 import { runPluginHookCommand } from './hooks-runner.ts';
 
 export type PluginSessionStartSource = {
-  plugin: Plugin;
+  ir: PluginIr;
   trusted: boolean;
-  pluginData: string;
 };
 
 export type CreatePluginSessionStartNotesOptions = {
@@ -66,7 +65,7 @@ async function collectSessionStartNotes(
       continue;
     }
     notes.push({
-      tag: `plugin-session-start:${source.plugin.manifest.name}`,
+      tag: `plugin-session-start:${source.ir.identity.name}`,
       text,
     });
   }
@@ -78,14 +77,24 @@ async function sessionStartText(
   timeoutMs: number,
 ): Promise<string | undefined> {
   const parts: string[] = [];
-  for (const hook of source.plugin.hooks) {
-    if (!isStartupSessionStartHook(hook)) {
+  for (const component of source.ir.components) {
+    if (component.kind !== 'hook' || component.status !== 'native') {
+      continue;
+    }
+    if (!('binding' in component.spec)) {
+      continue;
+    }
+    const binding = component.spec.binding;
+    if (!isStartupSessionStartBinding(binding.event, binding.matcher)) {
+      continue;
+    }
+    if (binding.handler.type !== 'command') {
       continue;
     }
     const result = await runPluginHookCommand({
-      pluginRoot: source.plugin.root,
-      pluginData: source.pluginData,
-      command: hook.command,
+      pluginRoot: binding.vars.pluginRoot,
+      pluginData: binding.vars.pluginData,
+      command: binding.handler.command,
       timeoutMs,
     });
     if (!result.ok) {
@@ -102,8 +111,11 @@ async function sessionStartText(
   return parts.join('\n\n');
 }
 
-function isStartupSessionStartHook(hook: PluginHookCommand): boolean {
-  return hook.event === 'SessionStart' || hook.event === 'SessionStart:startup';
+function isStartupSessionStartBinding(event: string, matcher?: string): boolean {
+  if (event !== 'SessionStart') {
+    return false;
+  }
+  return matcher === undefined || matcher === '' || matcher === '*' || matcher === 'startup';
 }
 
 function nestedAdditionalContext(value: unknown): string | undefined {

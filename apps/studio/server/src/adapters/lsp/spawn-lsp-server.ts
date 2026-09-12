@@ -1,9 +1,10 @@
-import type { PluginLspServer } from 'harnesys';
+import type { LspServerSpec } from 'harnesys';
 
-export function spawnServer(config: PluginLspServer, cwd: string): ReturnType<typeof Bun.spawn> {
+export function spawnServer(config: LspServerSpec, cwd: string): ReturnType<typeof Bun.spawn> {
+  const args = config.args ?? [];
   const argv = commandExists(config.command)
-    ? [config.command, ...config.args]
-    : ['bunx', '--bun', config.command, ...config.args];
+    ? [config.command, ...args]
+    : ['bunx', '--bun', config.command, ...args];
   return Bun.spawn(argv, {
     cwd,
     stdin: 'pipe',

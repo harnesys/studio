@@ -1,30 +1,27 @@
-import type { Stats } from 'node:fs';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import type { PluginSourceFormat } from '../../domain/plugin.ts';
+import type { PluginDiagnostic } from '../../domain/plugin-diagnostics.ts';
 import type {
-  Plugin,
-  PluginAgentRef,
-  PluginCommandRef,
-  PluginHookCommand,
-  PluginLoadDiagnostic,
-  PluginLspServer,
-  PluginManifest,
-  PluginMcpServer,
-  PluginSourceFormat,
-} from '../../domain/plugin.ts';
+  ConfigOptionSpec,
+  PluginComponent,
+  PluginGrants,
+  PluginIr,
+} from '../../domain/plugin-ir.ts';
 import type { CursorMcpJson } from '../../ports/mcp.ts';
-import type { LoadPluginFromDirectoryOptions, LoadPluginResult } from '../../ports/plugins.ts';
+import * as agentPlugins from './formats/agent-plugins.ts';
+import { discoverAgentComponents, discoverCommandComponents } from './formats/agents-commands.ts';
+import * as claudeCompat from './formats/claude-compat.ts';
 import {
-  detectPluginLayout,
-  type InventoryMarkdownFields,
-  parseClaudeHooksJson,
-  parseClaudePluginManifestJson,
-  parseInventoryMarkdown,
-} from './claude-compat.ts';
-import { discoverPluginSkills } from './discover-plugin-skills.ts';
-import { parsePluginLspServers } from './parse-plugin-lsp.ts';
-import { parsePluginManifestJson } from './parse-plugin-manifest.ts';
-import { parsePluginMcpFile } from './parse-plugin-mcp.ts';
+  type DiscoverContext,
+  discoverSkillComponents,
+  isDirectory,
+  overrideDirs,
+} from './formats/discover.ts';
+import { discoverExtraComponents } from './formats/extras.ts';
+import { discoverHookComponents } from './formats/hooks.ts';
+import { isPlainObject } from './formats/manifest-result.ts';
+import { discoverMcpComponents } from './formats/mcp.ts';
 
 export const HARNESYS_STUDIO_EXTENSION_DIR = 'com.harnesys.studio';
 
@@ -47,286 +44,167 @@ export class UnknownPluginLayoutError extends PluginLoadError {
   }
 }
 
-type OptionalJsonMissing = { kind: 'missing' };
-type OptionalJsonOk = { kind: 'ok'; value: unknown };
-type OptionalJsonInvalid = { kind: 'invalid'; message: string };
-type OptionalJsonResult = OptionalJsonMissing | OptionalJsonOk | OptionalJsonInvalid;
-
-type LoadedManifest = {
-  sourceFormat: PluginSourceFormat;
-  manifest: PluginManifest;
-  diagnostics: PluginLoadDiagnostic[];
+export type LoadPluginIrOptions = {
+  root: string;
+  pluginData: string;
 };
 
-type MarkdownInventoryKind = 'agent' | 'command';
-
-type MarkdownInventoryResult = {
-  items: PluginAgentRef[];
-  diagnostics: PluginLoadDiagnostic[];
+export type LoadPluginIrResult = {
+  ir: PluginIr;
+  mcpFragment: CursorMcpJson;
+  diagnostics: PluginDiagnostic[];
 };
 
-type LoadedMcp = {
-  servers: PluginMcpServer[];
-  fragment: CursorMcpJson;
-  diagnostics: PluginLoadDiagnostic[];
-};
-
-type LoadedHooks = {
-  hooks: PluginHookCommand[];
-  diagnostics: PluginLoadDiagnostic[];
-};
-
-export function loadPluginFromDirectory(
-  options: LoadPluginFromDirectoryOptions,
-): Promise<LoadPluginResult> {
+/** Layout detect → манифест (formats) → discovery (formats) → PluginIr + MCP-фрагмент. */
+export function loadPluginIrFromDirectory(
+  options: LoadPluginIrOptions,
+): Promise<LoadPluginIrResult> {
   const root = path.resolve(options.root);
   const pluginData = path.resolve(options.pluginData);
-  const rootListing = listRoot(root);
-  const layout = detectPluginLayout(rootListing);
+  const listing = listRoot(root);
+  const layout = detectLayout(listing);
   if (layout === 'unknown') {
     throw new UnknownPluginLayoutError(root);
   }
 
-  const loaded = loadManifest(root, layout);
-  const diagnostics: PluginLoadDiagnostic[] = [...loaded.diagnostics];
-  const pluginName = loaded.manifest.name;
+  const manifestPath =
+    layout === 'agent-plugins'
+      ? path.join(root, 'plugin.json')
+      : path.join(root, '.claude-plugin', 'plugin.json');
+  const rawManifest = readRequiredJson(manifestPath);
+  const manifest =
+    layout === 'agent-plugins'
+      ? agentPlugins.parseManifest(rawManifest)
+      : claudeCompat.parseManifest(rawManifest);
+  const full =
+    layout === 'claude-compat' ? claudeCompat.parseClaudeManifestFull(rawManifest) : undefined;
 
-  const skillsResult = discoverPluginSkills(root, pluginName);
-  diagnostics.push(...skillsResult.diagnostics);
+  const namespaceDir = path.join(root, HARNESYS_STUDIO_EXTENSION_DIR);
+  const inventoryRoot =
+    layout === 'agent-plugins' && isDirectory(namespaceDir) ? namespaceDir : root;
+  const ctx: DiscoverContext = { root, pluginName: manifest.identity.name };
+  const inv: DiscoverContext = { root: inventoryRoot, pluginName: manifest.identity.name };
+  const overrides = manifest.pathOverrides;
 
-  const mcpResult = loadMcp(root, pluginData, pluginName);
-  diagnostics.push(...mcpResult.diagnostics);
-
-  const studioExtensionPresent = isDirectory(path.join(root, HARNESYS_STUDIO_EXTENSION_DIR));
-  const inventoryRoot = studioExtensionPresent
-    ? path.join(root, HARNESYS_STUDIO_EXTENSION_DIR)
-    : root;
-
-  const hooksResult = loadHooks(path.join(inventoryRoot, 'hooks', 'hooks.json'));
-  diagnostics.push(...hooksResult.diagnostics);
-
-  const agentsResult = discoverMarkdownInventory(
-    path.join(inventoryRoot, 'agents'),
-    pluginName,
-    'agent',
+  // Namespace (com.harnesys.studio/) — дом хуков/мониторов/агентов/команд AP-плагина;
+  // skills, mcp.json, lsp, bin/, settings.json читаются от корня (спека §1.3).
+  const skills = discoverSkillComponents(ctx, overrideDirs(root, overrides.skills));
+  const commands = discoverCommandComponents(
+    inv,
+    overrides.commands !== undefined ? overrideDirs(inventoryRoot, overrides.commands) : undefined,
   );
-  diagnostics.push(...agentsResult.diagnostics);
-
-  const commandsResult = discoverMarkdownInventory(
-    path.join(inventoryRoot, 'commands'),
-    pluginName,
-    'command',
+  const agents = discoverAgentComponents(
+    inv,
+    overrides.agents !== undefined ? overrideDirs(inventoryRoot, overrides.agents) : undefined,
   );
-  diagnostics.push(...commandsResult.diagnostics);
-
-  const lspResult = loadLspServers(root, layout);
-  diagnostics.push(...lspResult.diagnostics);
-
-  const plugin: Plugin = {
-    root,
-    sourceFormat: loaded.sourceFormat,
-    manifest: loaded.manifest,
-    skills: skillsResult.skills,
-    mcpServers: mcpResult.servers,
-    hooks: hooksResult.hooks,
-    agents: agentsResult.items,
-    commands: commandsResult.items.map(toCommandRef),
-    lspServers: lspResult.servers,
-  };
-  return Promise.resolve({ plugin, mcp: mcpResult.fragment, diagnostics });
-}
-
-function toCommandRef(item: PluginAgentRef): PluginCommandRef {
-  const ref: PluginCommandRef = {
-    id: item.id,
-    path: item.path,
-    name: item.name,
-  };
-  if (item.description !== undefined) {
-    ref.description = item.description;
-  }
-  return ref;
-}
-
-function loadManifest(root: string, layout: PluginSourceFormat): LoadedManifest {
-  if (layout === 'agent-plugins') {
-    const manifestPath = path.join(root, 'plugin.json');
-    const parsed = parsePluginManifestJson(readRequiredJson(manifestPath));
-    return {
-      sourceFormat: 'agent-plugins',
-      manifest: parsed.manifest,
-      diagnostics: ignoredFieldDiagnostics(parsed.ignoredFields, manifestPath),
-    };
-  }
-  const manifestPath = path.join(root, '.claude-plugin', 'plugin.json');
-  const parsed = parseClaudePluginManifestJson(readRequiredJson(manifestPath));
-  return {
-    sourceFormat: 'claude-compat',
-    manifest: parsed.manifest,
-    diagnostics: ignoredFieldDiagnostics(parsed.ignoredFields, manifestPath),
-  };
-}
-
-function loadMcp(root: string, pluginData: string, pluginName: string): LoadedMcp {
-  const emptyFragment: CursorMcpJson = { mcpServers: {} };
-  const mcpPath = path.join(root, 'mcp.json');
-  const json = readOptionalJson(mcpPath);
-  if (json.kind === 'missing') {
-    return { servers: [], fragment: emptyFragment, diagnostics: [] };
-  }
-  if (json.kind === 'invalid') {
-    return {
-      servers: [],
-      fragment: emptyFragment,
-      diagnostics: [
-        {
-          level: 'error',
-          code: 'invalid_mcp_file',
-          message: json.message,
-          path: mcpPath,
-        },
-      ],
-    };
-  }
-  const parsed = parsePluginMcpFile(json.value, {
-    pluginRoot: root,
+  const hooks = discoverHookComponents(inv, {
     pluginData,
-    pluginName,
+    override: overrides.hooks,
   });
-  const servers: PluginMcpServer[] = [];
-  for (const serverId of Object.keys(parsed.fragment.mcpServers)) {
-    servers.push({ serverId });
-  }
-  const diagnostics: PluginLoadDiagnostic[] = [];
-  for (const diagnostic of parsed.diagnostics) {
-    diagnostics.push(withPath(diagnostic, mcpPath));
-  }
-  return { servers, fragment: parsed.fragment, diagnostics };
-}
+  const mcp = discoverMcpComponents(ctx, {
+    pluginData,
+    declaredSchema: manifest.declaredSchema,
+    override: overrides.mcpServers,
+  });
+  const extras = discoverExtraComponents(ctx, {
+    experimental: full?.experimental,
+    lspOverride: overrides.lspServers,
+    lspServersInline: isPlainObject(rawManifest) ? rawManifest.lspServers : undefined,
+  });
 
-function loadLspServers(
-  root: string,
-  layout: PluginSourceFormat,
-): { servers: PluginLspServer[]; diagnostics: PluginLoadDiagnostic[] } {
-  const candidates =
-    layout === 'claude-compat'
-      ? [path.join(root, '.claude-plugin', 'plugin.json'), path.join(root, 'lsp.json')]
-      : [path.join(root, 'lsp.json'), path.join(root, 'plugin.json')];
-  for (const filePath of candidates) {
-    const json = readOptionalJson(filePath);
-    if (json.kind !== 'ok' || !isPlainObject(json.value)) {
-      continue;
-    }
-    if (!('lspServers' in json.value) && path.basename(filePath) !== 'lsp.json') {
-      continue;
-    }
-    const raw = path.basename(filePath) === 'lsp.json' ? json.value : json.value.lspServers;
-    return parsePluginLspServers(raw, filePath);
-  }
-  return { servers: [], diagnostics: [] };
-}
+  const userConfig = manifest.userConfig.map((spec) => configOptionComponent(spec));
+  const components: PluginComponent[] = [
+    ...skills.components,
+    ...commands.components,
+    ...agents.components,
+    ...hooks.components,
+    ...mcp.components,
+    ...extras.components,
+    ...userConfig,
+  ];
+  const diagnostics: PluginDiagnostic[] = [
+    ...manifest.diagnostics,
+    ...skills.diagnostics,
+    ...commands.diagnostics,
+    ...agents.diagnostics,
+    ...hooks.diagnostics,
+    ...mcp.diagnostics,
+    ...extras.diagnostics,
+  ];
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function loadHooks(hooksFilePath: string): LoadedHooks {
-  const json = readOptionalJson(hooksFilePath);
-  if (json.kind === 'missing') {
-    return { hooks: [], diagnostics: [] };
-  }
-  if (json.kind === 'invalid') {
-    return {
-      hooks: [],
-      diagnostics: [
-        {
-          level: 'warning',
-          code: 'invalid_hook',
-          message: json.message,
-          path: hooksFilePath,
-        },
-      ],
-    };
-  }
-  return parseClaudeHooksJson(json.value, hooksFilePath);
-}
-
-function discoverMarkdownInventory(
-  dir: string,
-  pluginName: string,
-  kind: MarkdownInventoryKind,
-): MarkdownInventoryResult {
-  const items: PluginAgentRef[] = [];
-  const diagnostics: PluginLoadDiagnostic[] = [];
-  const code = kind === 'agent' ? 'invalid_agent' : 'invalid_command';
-  if (!isDirectory(dir)) {
-    return { items, diagnostics };
-  }
-
-  let names: string[];
-  try {
-    names = readdirSync(dir);
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : String(cause);
-    diagnostics.push({ level: 'warning', code, message, path: dir });
-    return { items, diagnostics };
-  }
-
-  for (const name of names) {
-    if (!name.endsWith('.md')) {
-      continue;
-    }
-    const filePath = path.join(dir, name);
-    const fileStat = tryStat(filePath);
-    if (fileStat === undefined || !fileStat.isFile()) {
-      continue;
-    }
-    const item = readMarkdownRef(filePath, name, pluginName, code);
-    if ('diagnostic' in item) {
-      diagnostics.push(item.diagnostic);
-      continue;
-    }
-    items.push(item.ref);
-  }
-  return { items, diagnostics };
-}
-
-type MarkdownRefOk = { ref: PluginAgentRef };
-type MarkdownRefFail = { diagnostic: PluginLoadDiagnostic };
-type MarkdownRefResult = MarkdownRefOk | MarkdownRefFail;
-
-function readMarkdownRef(
-  filePath: string,
-  fileName: string,
-  pluginName: string,
-  code: string,
-): MarkdownRefResult {
-  let content: string;
-  try {
-    content = readFileSync(filePath, 'utf8');
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : String(cause);
-    return { diagnostic: { level: 'warning', code, message, path: filePath } };
-  }
-
-  let fields: InventoryMarkdownFields;
-  try {
-    fields = parseInventoryMarkdown(content);
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : String(cause);
-    return { diagnostic: { level: 'warning', code, message, path: filePath } };
-  }
-
-  const stem = path.parse(fileName).name;
-  const ref: PluginAgentRef = {
-    id: `${pluginName}/${stem}`,
-    path: filePath,
-    name: fields.name ?? stem,
+  const ir: PluginIr = {
+    identity: manifest.identity,
+    sourceFormat: layout,
+    declaredSchema: manifest.declaredSchema,
+    components,
+    grants: computeGrants(components),
+    diagnostics,
   };
-  if (fields.description !== undefined) {
-    ref.description = fields.description;
+  return Promise.resolve({ ir, mcpFragment: mcp.fragment, diagnostics });
+}
+
+function detectLayout(listing: string[]): PluginSourceFormat | 'unknown' {
+  if (listing.includes('plugin.json')) {
+    return 'agent-plugins';
   }
-  return { ref };
+  if (listing.includes('.claude-plugin')) {
+    return 'claude-compat';
+  }
+  return 'unknown';
+}
+
+function configOptionComponent(spec: ConfigOptionSpec): PluginComponent {
+  const component: PluginComponent = {
+    kind: 'config-option',
+    spec,
+    source: { file: 'plugin.json', pointer: spec.key },
+    status: 'native',
+  };
+  return component;
+}
+
+function computeGrants(components: PluginComponent[]): PluginGrants {
+  let needsProcess = false;
+  let needsNetwork = false;
+  for (const component of components) {
+    if (component.status !== 'native') {
+      continue;
+    }
+    if (isProcessComponent(component)) {
+      needsProcess = true;
+    }
+    if (isNetworkComponent(component)) {
+      needsNetwork = true;
+    }
+  }
+  return { needsProcess, needsNetwork };
+}
+
+function isProcessComponent(component: PluginComponent): boolean {
+  if (
+    component.kind === 'monitor' ||
+    component.kind === 'path-entry' ||
+    component.kind === 'lsp-server'
+  ) {
+    return true;
+  }
+  if (component.kind === 'hook' && 'binding' in component.spec) {
+    return component.spec.binding.handler.type === 'command';
+  }
+  if (component.kind === 'mcp-server' && 'config' in component.spec) {
+    return component.spec.config.type === 'stdio';
+  }
+  return false;
+}
+
+function isNetworkComponent(component: PluginComponent): boolean {
+  if (component.kind === 'hook' && 'binding' in component.spec) {
+    return component.spec.binding.handler.type === 'http';
+  }
+  if (component.kind === 'mcp-server' && 'config' in component.spec) {
+    return component.spec.config.type !== 'stdio';
+  }
+  return false;
 }
 
 function listRoot(root: string): string[] {
@@ -352,58 +230,5 @@ function readRequiredJson(filePath: string): unknown {
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause);
     throw new PluginLoadError(message, filePath);
-  }
-}
-
-function readOptionalJson(filePath: string): OptionalJsonResult {
-  const fileStat = tryStat(filePath);
-  if (fileStat === undefined || !fileStat.isFile()) {
-    return { kind: 'missing' };
-  }
-  let text: string;
-  try {
-    text = readFileSync(filePath, 'utf8');
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : String(cause);
-    return { kind: 'invalid', message };
-  }
-  try {
-    const value: unknown = JSON.parse(text);
-    return { kind: 'ok', value };
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : String(cause);
-    return { kind: 'invalid', message };
-  }
-}
-
-function ignoredFieldDiagnostics(fields: string[], manifestPath: string): PluginLoadDiagnostic[] {
-  const diagnostics: PluginLoadDiagnostic[] = [];
-  for (const field of fields) {
-    diagnostics.push({
-      level: 'warning',
-      code: 'ignored_manifest_field',
-      message: `ignored unknown top-level field "${field}"`,
-      path: manifestPath,
-    });
-  }
-  return diagnostics;
-}
-
-function withPath(diagnostic: PluginLoadDiagnostic, filePath: string): PluginLoadDiagnostic {
-  if (diagnostic.path !== undefined) {
-    return diagnostic;
-  }
-  return { ...diagnostic, path: filePath };
-}
-
-function isDirectory(absPath: string): boolean {
-  return tryStat(absPath)?.isDirectory() === true;
-}
-
-function tryStat(target: string): Stats | undefined {
-  try {
-    return statSync(target);
-  } catch {
-    return undefined;
   }
 }

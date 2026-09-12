@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { realpathSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { PluginLspServer } from 'harnesys';
+import type { LspServerSpec } from 'harnesys';
 import type { LspDiagnostic, LspHover, LspLocation } from 'harnesys/lsp';
 import { LspDocuments } from './lsp-documents.ts';
 import { isRecord, normalizeHover, normalizeLocations, toDiagnostic } from './lsp-messages.ts';
@@ -27,7 +27,7 @@ export class StdioLspSession {
 
   private constructor(
     proc: ReturnType<typeof Bun.spawn>,
-    readonly config: PluginLspServer,
+    readonly config: LspServerSpec,
     readonly workspaceRoot: string,
   ) {
     this.proc = proc;
@@ -51,7 +51,7 @@ export class StdioLspSession {
     }
   }
 
-  static async start(config: PluginLspServer, workspaceRoot: string): Promise<StdioLspSession> {
+  static async start(config: LspServerSpec, workspaceRoot: string): Promise<StdioLspSession> {
     const root = realpathSync(workspaceRoot);
     const proc = spawnServer(config, root);
     const session = new StdioLspSession(proc, config, root);

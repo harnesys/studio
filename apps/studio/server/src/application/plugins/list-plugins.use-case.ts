@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import type { PluginListItem, PluginSummary } from '@harnesys/studio-shared';
-import { loadPluginFromDirectory } from 'harnesys/adapters/node';
+import { loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
 import { toPluginSummary } from './plugin-summary.ts';
 
@@ -24,7 +24,7 @@ async function loadListItem(record: PluginInstallRecord): Promise<PluginListItem
       diagnostics: [
         {
           level: 'error',
-          code: 'plugin_checkout_missing',
+          code: 'invalid_component',
           message: `plugin checkout not found: ${record.path}`,
           path: record.path,
         },
@@ -32,12 +32,12 @@ async function loadListItem(record: PluginInstallRecord): Promise<PluginListItem
     };
   }
   try {
-    const loaded = await loadPluginFromDirectory({
+    const loaded = await loadPluginIrFromDirectory({
       root: record.path,
       pluginData: record.dataPath,
     });
     return {
-      plugin: toPluginSummary(record, loaded.plugin),
+      plugin: toPluginSummary(record, loaded.ir),
       diagnostics: loaded.diagnostics,
     };
   } catch (err) {
@@ -46,7 +46,7 @@ async function loadListItem(record: PluginInstallRecord): Promise<PluginListItem
       diagnostics: [
         {
           level: 'error',
-          code: 'plugin_load_failed',
+          code: 'invalid_component',
           message: err instanceof Error ? err.message : 'plugin load failed',
           path: record.path,
         },

@@ -1,11 +1,11 @@
 import { extname, join } from 'node:path';
-import type { PluginLspServer } from 'harnesys';
+import type { LspServerSpec } from 'harnesys';
 import type { LspDiagnostic, LspHover, LspLocation, LspPort } from 'harnesys/lsp';
 import { StdioLspSession } from './stdio-lsp-session.ts';
 
 export type StudioLspAdapterDeps = {
   /** Resolve LSP server configs for a workspace cwd. */
-  resolveServers: (cwd: string) => PluginLspServer[] | Promise<PluginLspServer[]>;
+  resolveServers: (cwd: string) => LspServerSpec[] | Promise<LspServerSpec[]>;
   /**
    * Called once per workspace when the first session starts. The host uses it to
    * subscribe the FS watcher so external edits are pushed into open documents.

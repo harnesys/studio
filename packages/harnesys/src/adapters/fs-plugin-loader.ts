@@ -1,18 +1,20 @@
-import { loadPluginFromDirectory as loadPluginFromDirectoryImpl } from '../application/plugins/load-plugin.ts';
+import { loadPluginIrFromDirectory as loadPluginIrFromDirectoryImpl } from '../application/plugins/load-plugin.ts';
 import type {
-  LoadPluginFromDirectoryOptions,
-  LoadPluginResult,
+  LoadPluginIrFromDirectoryOptions,
+  LoadPluginIrResult,
   PluginLoader,
 } from '../ports/plugins.ts';
 
 export class FsPluginLoader implements PluginLoader {
-  loadPluginFromDirectory(options: LoadPluginFromDirectoryOptions): Promise<LoadPluginResult> {
-    return loadPluginFromDirectoryImpl(options);
+  loadPluginIrFromDirectory(
+    options: LoadPluginIrFromDirectoryOptions,
+  ): Promise<LoadPluginIrResult> {
+    return loadPluginIrFromDirectoryImpl(options);
   }
 }
 
-export function loadPluginFromDirectory(
-  options: LoadPluginFromDirectoryOptions,
-): Promise<LoadPluginResult> {
-  return loadPluginFromDirectoryImpl(options);
+export function loadPluginIrFromDirectory(
+  options: LoadPluginIrFromDirectoryOptions,
+): Promise<LoadPluginIrResult> {
+  return loadPluginIrFromDirectoryImpl(options);
 }

@@ -1,4 +1,4 @@
-import type { PluginListItem, PluginLoadDiagnostic } from '@harnesys/studio-shared';
+import type { PluginDiagnostic, PluginListItem } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChevronDownIcon,
@@ -369,12 +369,12 @@ function DetailBlock({
   );
 }
 
-function formatDiagnostic(diagnostic: PluginLoadDiagnostic): string {
+function formatDiagnostic(diagnostic: PluginDiagnostic): string {
   const path = diagnostic.path ? ` · ${diagnostic.path}` : '';
   return `${diagnostic.level}: ${diagnostic.code} — ${diagnostic.message}${path}`;
 }
 
-function diagnosticSummary(diagnostics: PluginLoadDiagnostic[]): string | undefined {
+function diagnosticSummary(diagnostics: PluginDiagnostic[]): string | undefined {
   if (diagnostics.length === 0) {
     return undefined;
   }

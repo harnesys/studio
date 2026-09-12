@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { PluginLoadDiagnostic } from '@harnesys/studio-shared';
+import type { PluginDiagnostic } from '@harnesys/studio-shared';
 import type { CatalogEntry, CatalogRenames } from 'harnesys/plugins-catalog';
 import { findMarketplaceManifest, parseClaudeMarketplace } from 'harnesys/plugins-catalog';
 import type { PluginRegistryRepository } from '../../domain/plugin-registry.port.ts';
@@ -128,14 +128,14 @@ export async function prepareCatalogCheckout(
   checkout: string,
   marketplaceRoot: string,
   pluginName: string,
-): Promise<PluginLoadDiagnostic[]> {
+): Promise<PluginDiagnostic[]> {
   const meta = readMarketplacePluginMeta(marketplaceRoot, pluginName);
   const materialize = await materializeCatalogPluginIfNeeded(checkout, meta);
-  const diagnostics: PluginLoadDiagnostic[] = [];
+  const diagnostics: PluginDiagnostic[] = [];
   if (materialize.materialized) {
     diagnostics.push({
       level: 'warning',
-      code: 'catalog_manifest_materialized',
+      code: 'unknown_manifest_field',
       message:
         'Plugin directory had no plugin.json; synthesized .claude-plugin/plugin.json from marketplace entry (Claude strict:false).',
       path: checkout,
@@ -143,7 +143,7 @@ export async function prepareCatalogCheckout(
   } else if (materialize.replacedByEntry) {
     diagnostics.push({
       level: 'warning',
-      code: 'catalog_manifest_replaced_by_entry',
+      code: 'unknown_manifest_field',
       message:
         'Marketplace entry strict:false is the plugin definition; .claude-plugin/plugin.json was rebuilt from entry fields.',
       path: checkout,

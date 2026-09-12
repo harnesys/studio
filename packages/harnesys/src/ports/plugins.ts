@@ -1,19 +1,20 @@
-import type { Plugin, PluginLoadDiagnostic } from '../domain/plugin.ts';
+import type { PluginDiagnostic } from '../domain/plugin-diagnostics.ts';
+import type { PluginIr } from '../domain/plugin-ir.ts';
 import type { CursorMcpJson } from './mcp.ts';
 
-export type LoadPluginFromDirectoryOptions = {
+export type LoadPluginIrFromDirectoryOptions = {
   root: string;
   pluginData: string;
 };
 
-export type LoadPluginResult = {
-  plugin: Plugin;
-  mcp: CursorMcpJson;
-  diagnostics: PluginLoadDiagnostic[];
+export type LoadPluginIrResult = {
+  ir: PluginIr;
+  mcpFragment: CursorMcpJson;
+  diagnostics: PluginDiagnostic[];
 };
 
 export type PluginLoader = {
-  loadPluginFromDirectory(options: LoadPluginFromDirectoryOptions): Promise<LoadPluginResult>;
+  loadPluginIrFromDirectory(options: LoadPluginIrFromDirectoryOptions): Promise<LoadPluginIrResult>;
 };
 
 export type RunPluginHookCommandOptions = {

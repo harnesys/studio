@@ -1,4 +1,3 @@
-import { effectiveMode, PLAN_PACK_ID, resolveModeId } from '@harnesys/studio-shared';
 import {
   agentsCapability,
   episodicMemoryCapability,
@@ -38,7 +37,6 @@ import { PeekScheduleUseCase } from '../application/schedules/peek-schedule.use-
 import { UpdateScheduleUseCase } from '../application/schedules/update-schedule.use-case.ts';
 import type { GetThreadInput } from '../application/threads/get-thread.use-case.ts';
 import { ListThreadsUseCase } from '../application/threads/list-threads.use-case.ts';
-import { runModeFields } from '../application/threads/thread.helpers.ts';
 import { CreateWebhookUseCase } from '../application/webhooks/create-webhook.use-case.ts';
 import { DeleteWebhookUseCase } from '../application/webhooks/delete-webhook.use-case.ts';
 import { ListWebhooksUseCase } from '../application/webhooks/list-webhooks.use-case.ts';
@@ -125,19 +123,6 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
           updatePlanItem: new UpdatePlanItemUseCase(uow, deps.deskEvents),
           getThreadPlan: new GetThreadPlanUseCase(uow),
         }),
-        isPlanRunMode: () => {
-          const thread = deps.threads.findById(resolveScope().threadId);
-          const agentRow = thread ? deps.agents.findById(thread.agentId) : undefined;
-          if (!thread || !agentRow) {
-            return false;
-          }
-          const runModeId = resolveModeId({
-            threadMode: runModeFields(thread).runMode ?? null,
-            defaultModeId: agentRow.defaultModeId ?? null,
-            modes: agentRow.modes,
-          });
-          return (effectiveMode(agentRow.modes, runModeId).packs ?? []).includes(PLAN_PACK_ID);
-        },
       },
       resolveScope,
     }),

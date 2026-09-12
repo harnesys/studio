@@ -3,7 +3,7 @@ import { useThreadStore } from '@/entities/thread';
 import { useDeskStore } from '@/features/desk';
 import type { IdeTab } from '@/features/ide';
 import { openFileKind } from '@/features/open-file';
-import { HitlPrompt, PlanApplyBar } from '@/features/send-message';
+import { HitlPrompt } from '@/features/send-message';
 import { ChatComposer } from '@/widgets/chat-composer';
 import { SpawnView, ThreadPanel } from '@/widgets/chat-transcript';
 import { MediaPreview, TextEditor } from '@/widgets/file-pane';
@@ -37,7 +37,6 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
             <ThreadPanel threadId={thread.id} agent={agent} />
           </div>
           <HitlPrompt />
-          <PlanApplyBar />
           <ChatComposer />
         </div>
       );
@@ -46,7 +45,6 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
       <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-thread">
         <ThreadJournal threadId={thread.id} agent={agent} kind={thread.kind} />
         <HitlPrompt />
-        <PlanApplyBar />
       </div>
     );
   }

@@ -10,7 +10,6 @@ import {
   SKILLS_DIR,
   STUDIO_DIR,
   STUDIO_DIR_LEGACY,
-  WORKSPACES_DIR,
 } from '../../config/constants.ts';
 import { env } from '../../config/env.ts';
 
@@ -88,11 +87,6 @@ export function skillRegistryRoots(workspacePath: string): string[] {
   const systemRoot = systemSkillsPath();
   mkdirSync(systemRoot, { recursive: true });
   return [bundledSkillsPath(), systemRoot, workspaceSkillsPath(workspacePath)];
-}
-
-export function defaultWorkspacePath(home: string, name: string): string {
-  const slug = name.replace(/[/\\]/g, '-').replace(/^\.+/, '').trim() || 'workspace';
-  return join(home, WORKSPACES_DIR, slug);
 }
 
 export function attachmentsDir(workspacePath: string, threadId: string): string {

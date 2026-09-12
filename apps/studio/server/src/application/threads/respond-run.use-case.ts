@@ -1,19 +1,10 @@
-import type { RunEventStore, RunLifecycleStore } from 'harnesys';
+import type { RunLifecycleStore } from 'harnesys';
 import type { ThreadSessions } from '../../adapters/thread-sessions.adapter.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
-import type { RuntimeStateRepository } from '../../domain/runtime-state.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
-import type { SavePlanInput } from '../plans/save-plan.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { mapCodedError } from './map-coded-error.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
-import {
-  lastAskFor,
-  lastProposeCallId,
-  proposalAction,
-  settlePlanProposalApprove,
-  settlePlanProposalCancel,
-} from './settle-plan-proposal.ts';
 
 export type RespondRunRequest = {
   runId: string;
@@ -38,12 +29,9 @@ export type RespondRunInput = {
 
 export type RespondRunDeps = {
   lifecycle: RunLifecycleStore;
-  events: RunEventStore;
   sessions: ThreadSessions;
   getThread: GetThreadInput;
   deskEvents: DeskEventsPort;
-  savePlan: SavePlanInput;
-  runtimeStates: RuntimeStateRepository;
 };
 
 export class RespondRunUseCase implements RespondRunInput {
@@ -53,26 +41,6 @@ export class RespondRunUseCase implements RespondRunInput {
     const rec = await this.deps.lifecycle.get(request.runId);
     if (!rec) {
       throw new NotFoundError('run not found');
-    }
-    const journal = await this.deps.events.tail(request.runId, 0);
-    const ask = lastAskFor(journal, request.askId);
-    if (ask?.source === 'plan_proposal' && proposalAction(request.payload) === 'approve') {
-      try {
-        await settlePlanProposalApprove({
-          lifecycle: this.deps.lifecycle,
-          savePlan: this.deps.savePlan,
-          runtime: this.deps.runtimeStates.forState(rec.threadId),
-          runId: request.runId,
-          threadId: rec.threadId,
-          askId: request.askId,
-          ask,
-          journal,
-        });
-      } catch (error) {
-        throw mapCodedError(error);
-      }
-      this.publishDesk(rec.threadId);
-      return { runId: request.runId };
     }
     const handle = await this.deps.sessions.forThread(rec.threadId);
     try {
@@ -88,24 +56,6 @@ export class RespondRunUseCase implements RespondRunInput {
     const rec = await this.deps.lifecycle.get(request.runId);
     if (!rec) {
       throw new NotFoundError('run not found');
-    }
-    const journal = await this.deps.events.tail(request.runId, 0);
-    const ask = lastAskFor(journal, request.askId);
-    if (ask?.source === 'plan_proposal') {
-      try {
-        await settlePlanProposalCancel({
-          lifecycle: this.deps.lifecycle,
-          runtime: this.deps.runtimeStates.forState(rec.threadId),
-          runId: request.runId,
-          askId: request.askId,
-          toolCallId: ask.tool?.toolCallId || lastProposeCallId(journal),
-          note: request.note,
-        });
-      } catch (error) {
-        throw mapCodedError(error);
-      }
-      this.publishDesk(rec.threadId);
-      return { runId: request.runId };
     }
     const handle = await this.deps.sessions.forThread(rec.threadId);
     try {

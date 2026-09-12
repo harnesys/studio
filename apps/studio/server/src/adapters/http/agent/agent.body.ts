@@ -7,7 +7,7 @@ const agentModeBody = z.object({
   id: z.string().regex(MODE_ID_RE, 'lowercase letters, digits, dash').max(48),
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().max(200).optional(),
-  instructions: z.string().max(4000).optional(),
+  instructions: z.string().max(6000).optional(),
   skills: z.array(z.string().trim().min(1)).max(32).optional(),
   packs: z.array(z.string().trim().min(1)).max(16).optional(),
   permissions: z.partialRecord(z.enum(MODE_OPS), modeOpGate).optional(),

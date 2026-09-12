@@ -94,14 +94,7 @@ export type SessionEvent =
       type: 'ask';
       askId: string;
       schema: JsonSchema;
-      source:
-        | 'permission'
-        | 'approve'
-        | 'middleware'
-        | 'interrupt'
-        | 'ask_user'
-        | 'budget'
-        | 'plan_proposal';
+      source: 'permission' | 'approve' | 'middleware' | 'interrupt' | 'ask_user' | 'budget';
       prompt?: string;
       tool?: { name: string; input: unknown; toolCallId: string };
       seq?: number;

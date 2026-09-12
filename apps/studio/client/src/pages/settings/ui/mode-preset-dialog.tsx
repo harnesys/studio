@@ -36,6 +36,9 @@ const GATES: { name: PresetGateName; label: string }[] = [
 
 const FALLBACK_GATE: ModeOpGate = 'ask';
 
+const DESCRIPTION_MAX = 200;
+const INSTRUCTIONS_MAX = 1024;
+
 function presetToForm(preset: ModePreset): PresetFormState {
   return {
     id: preset.id,
@@ -111,7 +114,10 @@ export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
     preset ? presetToForm(preset) : blankForm(),
   );
   const idValid = MODE_ID_RE.test(state.id.trim());
-  const canSave = state.name.trim().length > 0 && (idLocked || idValid);
+  const descriptionOver = state.description.trim().length > DESCRIPTION_MAX;
+  const instructionsOver = state.instructions.length > INSTRUCTIONS_MAX;
+  const canSave =
+    state.name.trim().length > 0 && (idLocked || idValid) && !descriptionOver && !instructionsOver;
 
   function patch(next: Partial<PresetFormState>) {
     setState((current) => ({ ...current, ...next }));
@@ -141,17 +147,24 @@ export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
             />
           </Field>
         </div>
-        <Field>
-          <FieldLabel htmlFor="mode-preset-description">Description</FieldLabel>
+        <Field data-invalid={descriptionOver ? true : undefined}>
+          <FieldLabel htmlFor="mode-preset-description">
+            Description · {state.description.trim().length}/{DESCRIPTION_MAX}
+          </FieldLabel>
           <Input
             id="mode-preset-description"
             value={state.description}
             disabled={contentLocked}
             onChange={(event) => patch({ description: event.target.value })}
           />
+          {descriptionOver ? (
+            <p className="text-[11px] text-destructive">Max {DESCRIPTION_MAX} characters</p>
+          ) : null}
         </Field>
-        <Field>
-          <FieldLabel htmlFor="mode-preset-instructions">Instructions</FieldLabel>
+        <Field data-invalid={instructionsOver ? true : undefined}>
+          <FieldLabel htmlFor="mode-preset-instructions">
+            Instructions · {state.instructions.length}/{INSTRUCTIONS_MAX}
+          </FieldLabel>
           <Textarea
             id="mode-preset-instructions"
             className="field-sizing-fixed h-24 resize-none text-xs leading-relaxed"
@@ -159,6 +172,9 @@ export function ModePresetDialog({ onResolve, data }: ModePresetDialogProps) {
             disabled={contentLocked}
             onChange={(event) => patch({ instructions: event.target.value })}
           />
+          {instructionsOver ? (
+            <p className="text-[11px] text-destructive">Max {INSTRUCTIONS_MAX} characters</p>
+          ) : null}
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field>

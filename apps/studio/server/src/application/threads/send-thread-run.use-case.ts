@@ -14,7 +14,6 @@ import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { kindFromMediaType } from './attachment-kind.ts';
 import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
-import { escapeXml } from './plan-mode-prompt.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
 import { injectedRunModeField, runModeFields } from './thread.helpers.ts';
 
@@ -167,6 +166,14 @@ function modeInstructionsBlock(mode: AgentMode): string | undefined {
       : null,
   ].filter(Boolean);
   return `<mode id="${mode.id}" name="${escapeXml(mode.name)}">\n${parts.join('\n')}\n</mode>`;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
 function prependBlock(block: string, text: string | undefined): string {

@@ -25,7 +25,6 @@ import type { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-s
 import type { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
 import type { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import type { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
-import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import type { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
 import { ThreadSessionsAdapter } from '../adapters/thread-sessions.adapter.ts';
 import type { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter.ts';
@@ -42,7 +41,6 @@ import { DeleteModePresetUseCase } from '../application/mode-presets/delete-mode
 import { ListModePresetsUseCase } from '../application/mode-presets/list-mode-presets.use-case.ts';
 import { UpdateModePresetUseCase } from '../application/mode-presets/update-mode-preset.use-case.ts';
 import type { GetThreadPlanInput } from '../application/plans/get-thread-plan.use-case.ts';
-import { SavePlanUseCase } from '../application/plans/save-plan.use-case.ts';
 import { CreateProviderUseCase } from '../application/providers/create-provider.use-case.ts';
 import { CreateProviderModelUseCase } from '../application/providers/create-provider-model.use-case.ts';
 import { DeleteProviderUseCase } from '../application/providers/delete-provider.use-case.ts';
@@ -306,12 +304,9 @@ export function wireControllers(d: ControllerDeps): void {
     lifecycle: d.lifecycle,
     respondRun: new RespondRunUseCase({
       lifecycle: d.lifecycle,
-      events: d.events,
       sessions,
       getThread: d.getThread,
       deskEvents: d.deskEvents,
-      savePlan: new SavePlanUseCase(new SqliteUnitOfWork(d.db), d.deskEvents),
-      runtimeStates: d.runtimeStateRepo,
     }),
     retryRun: new RetryRunUseCase({ lifecycle: d.lifecycle, sessions, claimer: d.claimer }),
     createThreadAttachment: new CreateThreadAttachmentUseCase({

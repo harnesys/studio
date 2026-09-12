@@ -18,8 +18,6 @@ export function AskLine({
   let label = 'Question';
   if (event.source === 'budget') {
     label = 'Budget limit reached';
-  } else if (event.source === 'plan_proposal') {
-    label = 'Plan proposal';
   }
 
   return (

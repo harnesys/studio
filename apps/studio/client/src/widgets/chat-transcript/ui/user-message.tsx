@@ -1,9 +1,4 @@
-import {
-  extractPlanModePrompt,
-  type HumanEntry,
-  visiblePlanModeText,
-  visibleScheduledText,
-} from '@harnesys/studio-shared';
+import { type HumanEntry, visibleScheduledText } from '@harnesys/studio-shared';
 import { useState } from 'react';
 
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
@@ -19,7 +14,6 @@ import { Textarea } from '@/shared/ui/textarea';
 import { toast } from '@/shared/ui/toast';
 import { MessageActions } from './message-actions';
 import { MessageAttachments } from './message-attachments';
-import { PlanModeBadge } from './plan-mode-badge';
 
 export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: string }) {
   const [editing, setEditing] = useState(false);
@@ -28,7 +22,6 @@ export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: 
   const { workspaceId } = useStudioLocation();
   const { openThread } = useStudioNavigation();
   const rawText = entry.text ?? '';
-  const planPrompt = extractPlanModePrompt(rawText);
   const visibleText = visibleMessageText(rawText);
 
   return (
@@ -37,7 +30,6 @@ export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: 
         <MessageHeader className="gap-2 px-0 font-normal text-[11px]">
           <span>You</span>
           <span className="font-mono text-muted-foreground">{formatClock(entry.createdAt)}</span>
-          {planPrompt ? <PlanModeBadge prompt={planPrompt} /> : null}
         </MessageHeader>
         <MessageAttachments entry={entry} threadId={threadId} />
         {editing && (
@@ -120,7 +112,7 @@ function EditDraft({
 }
 
 function visibleMessageText(text: string): string {
-  const body = visibleScheduledText(visiblePlanModeText(text));
+  const body = visibleScheduledText(text);
   const cut = body.search(/\n\nAttached:\n/);
   if (cut >= 0) {
     return body.slice(0, cut);

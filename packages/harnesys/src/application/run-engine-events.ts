@@ -228,8 +228,7 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
           | 'middleware'
           | 'interrupt'
           | 'ask_user'
-          | 'budget'
-          | 'plan_proposal') ?? 'interrupt',
+          | 'budget') ?? 'interrupt',
       prompt: typeof m?.reason === 'string' ? m.reason : undefined,
       tool: m?.tool as { name: string; input: unknown; toolCallId: string } | undefined,
     };

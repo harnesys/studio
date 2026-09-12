@@ -8,6 +8,7 @@ import { Textarea } from '@/shared/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
+import { MODE_INSTRUCTIONS_MAX } from '../model/agent-mode-fields';
 
 type AgentModeEditorProps = {
   form: UseFormReturn<AgentFieldsInput, unknown, AgentFieldsOutput>;
@@ -38,6 +39,8 @@ export function AgentModeEditor({
   const mode = useWatch({ control: form.control, name: `modes.${index}` });
   const selectedSkills = mode?.skills ?? [];
   const selectedPacks = mode?.packs ?? [];
+  const instructions = form.watch(`modes.${index}.instructions`) ?? '';
+  const instructionsError = form.formState.errors.modes?.[index]?.instructions?.message;
 
   function toggleSkills(skillName: string) {
     const next = selectedSkills.includes(skillName)
@@ -86,13 +89,18 @@ export function AgentModeEditor({
         <FieldLabel htmlFor={`mode-description-${index}`}>Description</FieldLabel>
         <Input id={`mode-description-${index}`} {...form.register(`modes.${index}.description`)} />
       </Field>
-      <Field>
-        <FieldLabel htmlFor={`mode-instructions-${index}`}>Instructions</FieldLabel>
+      <Field data-invalid={instructionsError ? true : undefined}>
+        <FieldLabel htmlFor={`mode-instructions-${index}`}>
+          Instructions · {instructions.length}/{MODE_INSTRUCTIONS_MAX}
+        </FieldLabel>
         <Textarea
           id={`mode-instructions-${index}`}
           className="field-sizing-fixed h-24 resize-none text-xs leading-relaxed"
           {...form.register(`modes.${index}.instructions`)}
         />
+        {instructionsError ? (
+          <p className="text-[11px] text-destructive">{instructionsError}</p>
+        ) : null}
       </Field>
       <Checklist
         title="Skills"

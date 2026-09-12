@@ -127,7 +127,6 @@ export const EVENT_TYPES = {
 
 export const THRESHOLD_SUMMARY_NAME = 'threshold-summary';
 export const ASK_SCHEMA_KEYS = ['options', 'multi', 'allowText'] as const;
-export const PLAN_PROPOSE_TOOL = 'plan_propose';
 export const DRIVERS = [
   'openai',
   'openai-compatible',

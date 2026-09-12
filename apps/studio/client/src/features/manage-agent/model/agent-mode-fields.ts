@@ -1,11 +1,13 @@
 import { type AgentMode, MODE_ID_RE, type ModeOpGate } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
+export const MODE_INSTRUCTIONS_MAX = 6000;
+
 export const agentModeSchema = z.object({
   id: z.string().regex(MODE_ID_RE, 'lowercase letters, digits, dash').max(48),
   name: z.string().trim().min(1, 'Name required').max(80),
   description: z.string().max(200),
-  instructions: z.string().max(4000),
+  instructions: z.string().max(MODE_INSTRUCTIONS_MAX, `Max ${MODE_INSTRUCTIONS_MAX} characters`),
   skills: z.array(z.string()),
   packs: z.array(z.string()),
   permWrite: z.enum(['allow', 'ask', 'deny']),

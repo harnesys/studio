@@ -6,18 +6,14 @@ import {
   LoaderCircleIcon,
   MinusCircleIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { PlanItemStatus } from '@/entities/plan';
 import { loadThreadPlan, planProgress, usePlanStore } from '@/entities/plan';
-import { useSessionStore } from '@/entities/session';
 import { useSelectedThread } from '@/features/desk';
-import { applyApprovedPlan, usePlanApplyStore } from '@/features/send-message';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
 import { Progress } from '@/shared/ui/progress';
-import { toast } from '@/shared/ui/toast';
 
 const STATUS_ICON: Record<PlanItemStatus, typeof CircleIcon> = {
   pending: CircleIcon,
@@ -47,13 +43,6 @@ export function PlanInspector() {
   const thread = useSelectedThread();
   const threadId = thread?.id ?? null;
   const plan = usePlanStore((state) => (threadId ? (state.byThread[threadId] ?? null) : null));
-  const streaming = useSessionStore((state) =>
-    threadId ? Boolean(state.activeRuns[threadId]) : false,
-  );
-  const applyArmed = usePlanApplyStore((state) =>
-    threadId ? Boolean(state.byThread[threadId]) : false,
-  );
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (threadId) {
@@ -66,24 +55,6 @@ export function PlanInspector() {
   }
 
   const { done, total } = planProgress(plan);
-  const canApply = plan.status === 'approved' && !streaming && !applyArmed && done === 0;
-
-  const onApply = async () => {
-    if (busy || !threadId) {
-      return;
-    }
-    setBusy(true);
-    try {
-      await applyApprovedPlan(threadId);
-    } catch (error) {
-      toast.add({
-        title: 'Could not start plan',
-        description: error instanceof Error ? error.message : 'Apply failed',
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <section className="flex flex-col gap-2" data-testid="plan-inspector">
@@ -96,18 +67,6 @@ export function PlanInspector() {
           {done}/{total}
         </span>
       </div>
-      {canApply ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={busy}
-          className="h-7 w-full text-[11px]"
-          onClick={() => void onApply()}
-        >
-          Apply plan
-        </Button>
-      ) : null}
       <Progress value={total > 0 ? (done / total) * 100 : 0} className="h-1" />
       <div className="flex flex-col gap-0.5">
         {plan.items.map((item) => {

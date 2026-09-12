@@ -14,7 +14,6 @@ import { type PendingHitl, pendingHitl } from '../model/pending-hitl';
 import { summarizeToolInput } from '../model/tool-input-summary';
 import { HitlPreview } from './hitl-preview';
 import { HitlShell } from './hitl-shell';
-import { PlanProposalCard } from './plan-proposal-card';
 
 export function HitlPrompt() {
   const thread = useSelectedThread();
@@ -29,14 +28,6 @@ export function HitlPrompt() {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
         <BudgetCard pending={pending} threadId={thread?.id ?? ''} />
-      </div>
-    );
-  }
-
-  if (pending.source === 'plan_proposal') {
-    return (
-      <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
-        <PlanProposalCard pending={pending} threadId={thread?.id ?? ''} />
       </div>
     );
   }

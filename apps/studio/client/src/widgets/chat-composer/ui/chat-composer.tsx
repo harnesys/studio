@@ -86,9 +86,7 @@ export function ChatComposer() {
   const canSend = value.trim().length > 0 || pending.length > 0;
   let placeholder = 'Select an agent to start a thread';
   if (hitl) {
-    if (hitl.source === 'plan_proposal') {
-      placeholder = 'Approve or request changes above…';
-    } else if (hitl.source === 'ask_user') {
+    if (hitl.source === 'ask_user') {
       placeholder = 'Answer the prompt above…';
     } else {
       placeholder = 'Allow or deny the tool above…';

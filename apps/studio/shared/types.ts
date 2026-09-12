@@ -106,11 +106,6 @@ export {
   PLAN_PACK_ID,
   resolveModeId,
 } from './src/modes.ts';
-export {
-  extractPlanModePrompt,
-  hasPlanModePrompt,
-  visiblePlanModeText,
-} from './src/plan-mode-prompt.ts';
 export type {
   AddPluginRegistryRequest,
   CatalogInstallSource,

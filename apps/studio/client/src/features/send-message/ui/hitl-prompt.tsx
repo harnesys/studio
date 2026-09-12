@@ -1,5 +1,5 @@
 import type { AskPayload } from '@harnesys/studio-shared';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelectedThread, useThreadEvents } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -19,6 +19,15 @@ export function HitlPrompt() {
   const thread = useSelectedThread();
   const events = useThreadEvents(thread?.id ?? null);
   const pending = pendingHitl(events);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const askId = pending?.askId;
+
+  useEffect(() => {
+    if (!askId) {
+      return;
+    }
+    shellRef.current?.querySelector('textarea')?.focus();
+  }, [askId]);
 
   if (!pending) {
     return null;
@@ -26,7 +35,7 @@ export function HitlPrompt() {
 
   if (pending.source === 'budget') {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
+      <div ref={shellRef} className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
         <BudgetCard pending={pending} threadId={thread?.id ?? ''} />
       </div>
     );
@@ -35,7 +44,7 @@ export function HitlPrompt() {
   const isConfirm = pending.source === 'permission' || pending.source === 'approve';
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
+    <div ref={shellRef} className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
       {isConfirm ? (
         <ConfirmCard pending={pending} threadId={thread?.id ?? ''} />
       ) : (

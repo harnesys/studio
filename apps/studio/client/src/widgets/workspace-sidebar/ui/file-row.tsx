@@ -199,7 +199,7 @@ export function FileRow({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/file:opacity-100 group-data-[collapsible=icon]:hidden"
+                className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/file:opacity-60 group-data-[collapsible=icon]:hidden"
               />
             }
             onClick={(event) => event.stopPropagation()}
@@ -212,25 +212,25 @@ export function FileRow({
               {isDir && (
                 <>
                   <DropdownMenuItem onClick={() => onStartCreate('file', fullPath)}>
-                    <FileIcon />
+                    <FileIcon className="size-3.5" />
                     New file
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onStartCreate('dir', fullPath)}>
-                    <FolderIcon />
+                    <FolderIcon className="size-3.5" />
                     New folder
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </>
               )}
               <DropdownMenuItem onClick={() => {}}>
-                <InfoIcon />
+                <InfoIcon className="size-3.5" />
                 Info
                 <span className="ml-auto text-[11px] text-muted-foreground">{infoLabel}</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={() => onDelete(fullPath)}>
-              <TrashIcon />
+              <TrashIcon className="size-3.5" />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>

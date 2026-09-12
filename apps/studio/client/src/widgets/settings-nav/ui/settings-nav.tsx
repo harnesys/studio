@@ -3,6 +3,7 @@ import {
   BoxIcon,
   BrainIcon,
   DownloadIcon,
+  FolderKeyIcon,
   GitBranchIcon,
   type LucideIcon,
   MessageSquareIcon,
@@ -17,6 +18,7 @@ import { SETTINGS_GROUPS, type SettingsCategory } from '@/shared/config/settings
 import { cn } from '@/shared/lib/utils';
 
 const NAV_ICONS: Record<SettingsCategory, LucideIcon> = {
+  workspace: FolderKeyIcon,
   profile: UserIcon,
   appearance: SunIcon,
   chat: MessageSquareIcon,

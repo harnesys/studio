@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "docs:merge": "bun run scripts/docs-merge.ts",
+    "vendor:plugin-schemas": "bun run scripts/vendor-plugin-schemas.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write --unsafe .",
     "typecheck": "bun run --cwd packages/harnesys typecheck && bun run --cwd apps/studio typecheck"

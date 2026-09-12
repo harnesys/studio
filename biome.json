@@ -142,6 +142,15 @@
   },
   "overrides": [
     {
+      "includes": ["**/application/plugins/schemas/**"],
+      "linter": {
+        "enabled": false
+      },
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
       "includes": ["**/tests/**"],
       "linter": {
         "rules": {

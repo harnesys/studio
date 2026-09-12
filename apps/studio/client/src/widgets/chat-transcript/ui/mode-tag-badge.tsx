@@ -19,14 +19,6 @@ export function ModeTagBadges({ badges }: { badges: ModeTagBadge[] }) {
           body={modeBadge.body || 'No extra instructions in this mode.'}
         />
       ) : null}
-      {skillsBadge && skillsBadge.kind === 'skills' ? (
-        <BadgeTooltip
-          label="Mode Skills"
-          aria="Mode skills"
-          title="Mode skills"
-          body={skillsBadge.body}
-        />
-      ) : null}
     </span>
   );
 }

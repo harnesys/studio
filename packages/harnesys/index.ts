@@ -40,6 +40,7 @@ export { runGraph } from './src/application/graph-run.ts';
 export type { HookBus, HookOutcome, HookRuntimeCtx } from './src/application/hooks/bus.ts';
 export { createHookBus } from './src/application/hooks/bus.ts';
 export type { HookEmitCtx } from './src/application/hooks/emit-hook.ts';
+export { matchesBinding } from './src/application/hooks/matchers.ts';
 export {
   type CompactedProjection,
   projectCompacted,

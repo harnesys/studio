@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import type { WorkspaceFileEvent } from '@harnesys/studio-shared';
 import type { HookBinding, HookEmitCtx, HookPayload, Logger, RunLifecycleStore } from 'harnesys';
-import { createHookBus, type HookBus } from 'harnesys';
+import { createHookBus, type HookBus, matchesBinding } from 'harnesys';
 import type { FilesWatcherInput } from '../domain/files-watcher.port.ts';
 
 export type RunHookBusesDeps = {
@@ -93,9 +93,6 @@ export class RunHookBuses {
     if (entry === undefined) {
       return;
     }
-    if (!fileMatcherMatches(entry.bindings, event.name)) {
-      return;
-    }
     const active = await this.deps.lifecycle.activeByThread(threadId).catch(() => null);
     const payload: HookPayload = {
       event: 'FileChanged',
@@ -107,6 +104,11 @@ export class RunHookBuses {
       permission_mode: '',
       file_path: join(entry.workspacePath, event.dir, event.name),
     };
+    // Сеансовые матчеры решает matchers.ts (exact/CSV/regex по file_path) —
+    // префильтр по basename терял regex-матчеры (план C1).
+    if (!entry.bindings.some((b) => b.event === 'FileChanged' && matchesBinding(b, payload))) {
+      return;
+    }
     await entry.bus.emit('FileChanged', payload).catch(() => {});
   }
 
@@ -131,25 +133,4 @@ function composeEnvBase(binDirs: string[]): Record<string, string> {
     return {};
   }
   return { PATH: [...binDirs, process.env.PATH ?? ''].join(':') };
-}
-
-/**
- * FileChanged matcher segments (split on `|`) are literal file names filtered
- * by basename; `*` / empty matcher = all files (spec §2.3).
- */
-function fileMatcherMatches(bindings: HookBinding[], fileBaseName: string): boolean {
-  const fileBindings = bindings.filter((binding) => binding.event === 'FileChanged');
-  if (fileBindings.length === 0) {
-    return false;
-  }
-  return fileBindings.some((binding) => {
-    const matcher = binding.matcher;
-    if (matcher === undefined || matcher.length === 0 || matcher === '*') {
-      return true;
-    }
-    return matcher
-      .split('|')
-      .map((segment) => segment.trim())
-      .some((segment) => segment.length > 0 && segment === fileBaseName);
-  });
 }

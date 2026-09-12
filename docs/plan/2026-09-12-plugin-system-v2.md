@@ -423,6 +423,24 @@ tool-события → tool_name (MCP-инструменты: `mcp__plugin_<plu
 сервера плагина не совпадает — Claude-паритет), SessionStart → source,
 Subagent* → agent_type, *Compact → trigger, FileChanged → file_path.
 
+Процесс-менеджмент command-хендлеров (норматив для `executors.ts`; единственная
+точка порождения и убийства процессов, полный текст нормы — спека §2.2):
+
+1. `Bun.spawn` с `detached: true` (POSIX: `pid == pgid`, потомки наследуют
+   группу).
+2. Таймаут `timeoutS` и abort (emit-AbortController, `close()`) → групповое
+   `kill(-pid, SIGKILL)`, при `ESRCH` фолбэк `kill(pid)`; самостоятельный
+   выход — без убийства.
+3. `await proc.exited` в `finally` на всех путях; спавн без ожидания `exited`
+   запрещён (защита от зомби).
+4. AbortSignal-подписка снимается по завершении emit.
+5. Stdin закрывается после записи payload.
+6. `async: true`-процессы регистрируются в реестре шины при старте; `close()`
+   берёт их из реестра (C2), групповое убийство до emit `SessionEnd`, затем
+   drain deferred.
+7. stdout/stderr к моменту убийства включаются в diagnostic
+   `hook_timeout`/`hook_failed`.
+
 - [ ] Step 1: matchers, claude-output, executors, bus (внутри — по файлам, после каждого typecheck)
 - [ ] Step 2: `bun run typecheck && bun run lint`; commit `feat(hooks): hook bus with matchers and executors`
 
@@ -435,7 +453,7 @@ Subagent* → agent_type, *Compact → trigger, FileChanged → file_path.
 - Modify: `packages/harnesys/src/application/graph-spawn.ts` (`SubagentStart` до, `SubagentStop` после; matcher subject = `agent_type` из def-id; `context`-эффект стартового события добавляется в messages ребёнка)
 - Modify: compaction (`packages/harnesys/src/application/compaction/*`): `PreCompact` (trigger manual/auto) с правом `block` отменить compact; `PostCompact` после записи
 - Modify: `packages/harnesys/src/application/tool-permission.ts` (`PermissionRequest` перед ask-веткой: `allow` effect отсутствует в модели Claude — маппится так: `block` → deny с причиной, `ask` → без изменений (уже ask); результат пермита не мутируется `update_input`)
-- Modify: `packages/harnesys/src/ports/create-runtime.ts` (`CreateRuntimeOptions.hooks?: HookBinding[]`) + `packages/harnesys/src/ports/run-targets.ts` (`RunTarget` на :11-27 += `hooks?: HookBinding[]`, `binDirs?: string[]`) + `create-runtime.ts`: сборка `HookBus` на ран (bindings = runtime opts ∪ target.hooks); `RuntimeHandle.close()` — abort незавершённых хук-процессов, drain deferred-очереди, emit `SessionEnd` перед `mcpRegistry.closeAll()`
+- Modify: `packages/harnesys/src/ports/create-runtime.ts` (`CreateRuntimeOptions.hooks?: HookBinding[]`) + `packages/harnesys/src/ports/run-targets.ts` (`RunTarget` на :11-27 += `hooks?: HookBinding[]`, `binDirs?: string[]`) + `create-runtime.ts`: сборка `HookBus` на ран (bindings = runtime opts ∪ target.hooks); `RuntimeHandle.close()` — групповое убийство незавершённых хук-процессов из реестра шины, включая async (норматив C1, спека §2.2), drain deferred-очереди, emit `SessionEnd` перед `mcpRegistry.closeAll()`
 - Modify: `packages/harnesys/src/application/session.ts`: `context`-эффекты `UserPromptSubmit` инжектятся в user-сообщение префикс-блоком `[hooks]\n...` (как Claude additionalContext); `context` от `SessionStart` пушится в `RunTarget.notes`-массив (notes-порт уже есть, studio-run-targets.adapter.ts:78-87 — тот же канал); перед обращением к модели — `bus.drainDeferred()` и доставка
 
 **Interfaces:** Consumes: `HookBus` из C1, тип `HookBinding`. Все emit-точки пишутся через helper `emitHook(ctx, event, payload)` — no-op при пустом bus (проверка `bus.bindings().length === 0` до сборки payload: горячий путь не платит).

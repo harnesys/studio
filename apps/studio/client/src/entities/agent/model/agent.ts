@@ -8,7 +8,6 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
-import type { HooksBinding } from 'harnesys';
 
 export const AGENT_STATUSES = ['idle', 'running', 'waiting', 'error', 'offline'] as const;
 
@@ -59,8 +58,6 @@ export type AgentDraft = {
   budget?: AgentBudget | null;
   compaction?: PortRef;
   capabilities?: Record<string, PackConfig | null>;
-  hooks?: HooksBinding[];
-  enabledPlugins?: Record<string, boolean>;
   graph?: AgentGraph;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;

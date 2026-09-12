@@ -9,8 +9,6 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
-import type { HooksBinding } from 'harnesys';
-
 import { apiJson } from './client';
 
 export type CreateAgentInput = {

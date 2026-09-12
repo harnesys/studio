@@ -17,8 +17,8 @@ const toggleVariants = cva(
           'aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm',
           'data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm',
           'dark:text-muted-foreground dark:hover:text-foreground',
-          'dark:aria-pressed:border-input dark:aria-pressed:bg-input',
-          'dark:data-[state=on]:border-input dark:data-[state=on]:bg-input',
+          'dark:aria-pressed:border-input dark:aria-pressed:bg-input dark:aria-pressed:text-white',
+          'dark:data-[state=on]:border-input dark:data-[state=on]:bg-input dark:data-[state=on]:text-white',
         ),
       },
       size: {

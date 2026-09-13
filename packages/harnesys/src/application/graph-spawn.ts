@@ -1,3 +1,4 @@
+import { DEFAULT_PERMISSIONS } from '../constants.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Expr } from '../domain/expr.ts';
@@ -9,6 +10,7 @@ import { compileOrThrow } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import type { GraphOpts } from './graph.ts';
 import { emitHook, hookContextText, withHookContextPrefix } from './hooks/emit-hook.ts';
+import { intersectPermissions } from './permissions.ts';
 import { type DeniedToolEntry, deniedToolsList } from './tool-approve-checkpoint.ts';
 import { filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
@@ -102,13 +104,20 @@ function parseCalls(raw: unknown): SpawnCall[] {
   });
 }
 
-function resolveTargets(calls: SpawnCall[], agents: AgentsResolve): SpawnTarget[] {
+function resolveTargets(
+  calls: SpawnCall[],
+  agents: AgentsResolve,
+  runAgentId: string,
+): SpawnTarget[] {
   const out: SpawnTarget[] = [];
   const roster: AgentRosterEntry[] = agents.list?.() ?? [];
   for (const call of calls) {
     let def = agents.resolve(call.agentId);
     if (!def && roster.length > 0) {
-      const hit = resolveAgentTarget(call.agentId, roster);
+      const visible = roster.filter(
+        (entry) => entry.parentId == null || entry.parentId === runAgentId,
+      );
+      const hit = resolveAgentTarget(call.agentId, visible);
       if ('error' in hit) {
         throw codedRunError('spawn_target_missing', hit.error);
       }
@@ -149,6 +158,12 @@ async function runOneChild(
   const childState: RuntimeState = parent.state.child(target.spawnId);
   const plan = compileOrThrow(target.def);
   const runRegistry = new Map(filterToolsForAgent(parent.toolRegistry, target.def));
+  // Запрет вложенности на уровне движка: ребёнок не получает тулы пака agents.
+  for (const [name, def] of runRegistry) {
+    if (def.group === 'agents') {
+      runRegistry.delete(name);
+    }
+  }
   runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
   // События ребёнка на шину родителя не идут: жизнь сабагента покрывают
   // SubagentStart/SubagentStop.
@@ -156,7 +171,10 @@ async function runOneChild(
     agent: target.def,
     input: childInput,
     state: childState,
-    permissions: parent.permissions,
+    permissions: intersectPermissions(
+      target.def.permissions ?? DEFAULT_PERMISSIONS,
+      parent.permissions ?? DEFAULT_PERMISSIONS,
+    ),
     paths: parent.paths,
     artifacts: parent.artifacts,
     models: parent.models,
@@ -259,7 +277,7 @@ export function prepareSpawn(
   const rawCalls = evalExpr(node.calls, slots);
   const calls = parseCalls(rawCalls);
   const concurrency = resolveConcurrency(node.concurrency, slots);
-  const targets = resolveTargets(calls, parent.agents);
+  const targets = resolveTargets(calls, parent.agents, parent.agent.id);
   return { targets, concurrency };
 }
 

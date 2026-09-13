@@ -1,6 +1,7 @@
 import type { PluginRegistrySummary } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
+import { useState } from 'react';
 
 import { confirmRemoveRegistry, openAddRegistryDialog } from '@/features/manage-plugins';
 import {
@@ -14,12 +15,13 @@ import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
 
-import { Row, RowChip, RowHeader, RowList } from './capability-rows';
+import { Row, RowChip, RowField, RowHeader, RowList, RowSection } from './capability-rows';
 
 export function PluginsMarketplacesTab() {
   const queryClient = useQueryClient();
   const registriesQuery = useQuery(pluginRegistriesQuery());
   const items = registriesQuery.data ?? [];
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   async function invalidate() {
     await queryClient.invalidateQueries({ queryKey: pluginRegistriesQueryKey });
@@ -50,10 +52,7 @@ export function PluginsMarketplacesTab() {
 
   return (
     <div className="flex flex-col gap-2" data-testid="plugins-marketplaces-tab">
-      <RowHeader
-        label="Marketplaces"
-        count={registriesQuery.isPending ? undefined : items.length}
-      >
+      <RowHeader label="Marketplaces" count={registriesQuery.isPending ? undefined : items.length}>
         <Button
           variant="ghost"
           size="sm"
@@ -94,6 +93,8 @@ export function PluginsMarketplacesTab() {
                 key={item.id}
                 item={item}
                 busy={refresh.isPending || remove.isPending}
+                expanded={expandedId === item.id}
+                onToggle={() => setExpandedId((current) => (current === item.id ? null : item.id))}
                 onRefresh={() => refresh.mutate(item.id)}
                 onRemove={() => {
                   void confirmRemoveRegistry(item.name).then((confirmed) => {
@@ -111,36 +112,53 @@ export function PluginsMarketplacesTab() {
 }
 
 function registryStatus(item: PluginRegistrySummary): {
-  chip: { label: string; tone: 'neutral' | 'accent' | 'danger' };
+  label: string;
+  tone: 'neutral' | 'accent' | 'danger';
 } {
   if (item.lastError) {
-    return { chip: { label: 'error', tone: 'danger' } };
+    return { label: 'error', tone: 'danger' };
   }
   if (item.lastSyncAt) {
-    return { chip: { label: 'synced', tone: 'neutral' } };
+    return { label: 'synced', tone: 'neutral' };
   }
-  return { chip: { label: 'pending', tone: 'neutral' } };
+  return { label: 'pending', tone: 'accent' };
+}
+
+function syncLabel(item: PluginRegistrySummary): string {
+  if (item.lastError) {
+    return item.lastError;
+  }
+  if (item.lastSyncAt) {
+    return new Date(item.lastSyncAt).toLocaleString();
+  }
+  return 'Never synced';
 }
 
 function RegistryRow({
   item,
   busy,
+  expanded,
+  onToggle,
   onRefresh,
   onRemove,
 }: {
   item: PluginRegistrySummary;
   busy: boolean;
+  expanded: boolean;
+  onToggle: () => void;
   onRefresh: () => void;
   onRemove: () => void;
 }) {
-  const { chip } = registryStatus(item);
+  const status = registryStatus(item);
   return (
     <Row
       testId={`registry-${item.id}`}
       title={item.name}
       meta={item.kind}
       summary={item.lastError ? `${item.source} — ${item.lastError}` : item.source}
-      chips={<RowChip tone={chip.tone}>{chip.label}</RowChip>}
+      chips={<RowChip tone={status.tone}>{status.label}</RowChip>}
+      onToggle={onToggle}
+      expanded={expanded}
       actions={
         <>
           <Button
@@ -164,6 +182,16 @@ function RegistryRow({
           </Button>
         </>
       }
-    />
+    >
+      <RowSection label="Source">
+        <RowField label="repo" value={item.source} />
+        <RowField label="path" value={item.path} />
+        {item.revision ? <RowField label="revision" value={item.revision.slice(0, 12)} /> : null}
+      </RowSection>
+      <RowSection label="Sync">
+        <RowField label="last sync" value={syncLabel(item)} />
+        <RowField label="added" value={new Date(item.createdAt).toLocaleDateString()} />
+      </RowSection>
+    </Row>
   );
 }

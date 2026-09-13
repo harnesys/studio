@@ -139,7 +139,8 @@ export function SkillsPane() {
                   }
                   onToggle={
                     hasDetail
-                      ? () => setExpandedName((current) => (current === skill.name ? null : skill.name))
+                      ? () =>
+                          setExpandedName((current) => (current === skill.name ? null : skill.name))
                       : undefined
                   }
                   expanded={expanded && hasDetail}

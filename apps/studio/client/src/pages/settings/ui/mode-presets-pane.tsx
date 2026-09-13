@@ -146,9 +146,7 @@ export function ModePresetsPane() {
         </Button>
       </RowHeader>
 
-      {presetsQuery.isPending && (
-        <p className="text-muted-foreground text-sm">Loading presets…</p>
-      )}
+      {presetsQuery.isPending && <p className="text-muted-foreground text-sm">Loading presets…</p>}
       {!presetsQuery.isPending &&
         (presets.length === 0 && !draft ? (
           <Empty className="min-h-0 border-0 py-8">
@@ -176,9 +174,7 @@ export function ModePresetsPane() {
                     mono={false}
                     meta={preset.builtin ? 'built-in' : undefined}
                     chips={
-                      preset.installedByDefault ? (
-                        <RowChip tone="accent">default</RowChip>
-                      ) : null
+                      preset.installedByDefault ? <RowChip tone="accent">default</RowChip> : null
                     }
                     summary={
                       expanded

@@ -14,7 +14,7 @@ export function StatusDot({ tone, className, label }: StatusDotProps) {
       aria-label={label}
       title={label}
       className={cn(
-        'inline-block size-1.5 shrink-0 rounded-full',
+        'relative -top-px inline-block size-1.5 shrink-0 rounded-full',
         tone === 'live' && 'live-dot bg-live',
         tone === 'wait' && 'bg-live/55',
         tone === 'danger' && 'bg-destructive',

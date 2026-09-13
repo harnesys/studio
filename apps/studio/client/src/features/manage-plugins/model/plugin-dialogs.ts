@@ -1,11 +1,9 @@
 import type {
   InstallPluginRequest,
-  PluginListItem,
   PluginMutationResponse,
   PluginSummary,
 } from '@harnesys/studio-shared';
 import { alert, dialog } from '@/shared/services/overlay';
-import { PluginDetailDrawer } from '../ui/plugin-detail-drawer';
 import {
   AddRegistryDialog,
   InstallCatalogPluginDialog,
@@ -51,15 +49,6 @@ export function openEnablePluginDialog(plugin: PluginSummary, workspaceId: strin
     testId: 'enable-plugin-dialog',
     data: { plugin, workspaceId },
   }) as Promise<PluginSummary | null>;
-}
-
-export function openPluginDetailDrawer(item: PluginListItem, workspaceId: string) {
-  return dialog.open(PluginDetailDrawer, {
-    title: item.plugin.name,
-    className: 'sm:max-w-md',
-    testId: 'plugin-detail-drawer',
-    data: { item, workspaceId },
-  }) as Promise<null>;
 }
 
 export function confirmRemovePlugin(name: string) {

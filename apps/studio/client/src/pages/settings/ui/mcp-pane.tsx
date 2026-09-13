@@ -23,15 +23,7 @@ import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
 
-import {
-  Row,
-  RowChip,
-  RowField,
-  RowHeader,
-  RowItem,
-  RowList,
-  RowSection,
-} from './capability-rows';
+import { Row, RowChip, RowField, RowHeader, RowItem, RowList, RowSection } from './capability-rows';
 
 export function McpPane() {
   const { workspaceId } = useStudioLocation();
@@ -166,15 +158,7 @@ export function McpPane() {
                   }
                   muted={!server.enabled}
                   meta={server.transport}
-                  status={
-                    !server.enabled
-                      ? { tone: 'off', label: 'Disabled' }
-                      : live
-                        ? live.connected
-                          ? { tone: 'live', label: 'Connected' }
-                          : { tone: 'danger', label: 'Offline' }
-                        : { tone: 'idle', label: 'Not connected' }
-                  }
+                  status={serverStatus(server.enabled, live)}
                   chips={
                     <>
                       {plugin ? (
@@ -198,7 +182,9 @@ export function McpPane() {
                         }${!server.enabled ? ' · disabled in .harnesys/mcp.json' : ''}`
                   }
                   onToggle={() =>
-                    setExpandedId((current) => (current === server.serverId ? null : server.serverId))
+                    setExpandedId((current) =>
+                      current === server.serverId ? null : server.serverId,
+                    )
                   }
                   expanded={expanded}
                   actions={
@@ -316,6 +302,21 @@ export function McpPane() {
 function pluginServerTitle(serverId: string, pluginName: string): string {
   const prefix = `plugin:${pluginName}:`;
   return serverId.startsWith(prefix) ? serverId.slice(prefix.length) : serverId;
+}
+
+function serverStatus(
+  enabled: boolean,
+  live: { connected: boolean } | undefined,
+): { tone: 'off' | 'idle' | 'live' | 'danger'; label: string } {
+  if (!enabled) {
+    return { tone: 'off', label: 'Disabled' };
+  }
+  if (!live) {
+    return { tone: 'idle', label: 'Not connected' };
+  }
+  return live.connected
+    ? { tone: 'live', label: 'Connected' }
+    : { tone: 'danger', label: 'Offline' };
 }
 
 function shortToolName(name: string): string {

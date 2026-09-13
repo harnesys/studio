@@ -5,7 +5,6 @@ export {
   openEnablePluginDialog,
   openInstallCatalogPluginDialog,
   openInstallPluginDialog,
-  openPluginDetailDrawer,
 } from './model/plugin-dialogs';
 export { grantedClasses } from './model/plugin-grants';
 export {

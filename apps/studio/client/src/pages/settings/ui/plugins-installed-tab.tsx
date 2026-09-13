@@ -13,13 +13,13 @@ import {
   confirmRemovePlugin,
   grantedClasses,
   openEnablePluginDialog,
-  optionDrafts,
-  type PluginOptionDraft,
-  patchOptionDraft,
   openInstallPluginDialog,
+  optionDrafts,
   PluginComponentMatrix,
   PluginGrantCheckboxes,
+  type PluginOptionDraft,
   PluginOptionsFields,
+  patchOptionDraft,
 } from '@/features/manage-plugins';
 import {
   approvePluginServer,
@@ -149,7 +149,9 @@ export function PluginsInstalledTab() {
                   chips={
                     <>
                       {enabledHere ? <RowChip tone="accent">here</RowChip> : null}
-                      <RowChip>{plugin.format === 'unknown' ? 'unattested' : plugin.format}</RowChip>
+                      <RowChip>
+                        {plugin.format === 'unknown' ? 'unattested' : plugin.format}
+                      </RowChip>
                       <DiagnosticChip diagnostics={item.diagnostics} />
                     </>
                   }
@@ -251,7 +253,9 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
       if (!workspaceId) {
         throw new Error('No workspace');
       }
-      return Promise.all(changes.map((change) => setPluginOption(workspaceId, plugin.name, change)));
+      return Promise.all(
+        changes.map((change) => setPluginOption(workspaceId, plugin.name, change)),
+      );
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });

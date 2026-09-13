@@ -1,6 +1,7 @@
 import { ASK_MODE, DEFAULT_MODE_ID, modeFromPreset } from '@harnesys/studio-shared';
 import { eq, sql } from 'drizzle-orm';
 import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
+import { backfillAgentsModeGates } from './bootstrap-agents-gate-migration.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
 import { cleanupReservedModeIds } from './bootstrap-modes-cleanup.ts';
 import type { StudioDb } from './connection.ts';
@@ -428,6 +429,10 @@ export function bootstrap(db: StudioDb): void {
       .where(eq(agentsTable.id, row.id))
       .run();
   }
+
+  // Rows predating the `agents` operation: preset rows and agent mode copies
+  // get the spec gate; custom modes keep inheriting the agent base.
+  backfillAgentsModeGates(db);
 
   try {
     db.run(sql.raw(`ALTER TABLE threads ADD COLUMN kind text NOT NULL DEFAULT 'chat';`));

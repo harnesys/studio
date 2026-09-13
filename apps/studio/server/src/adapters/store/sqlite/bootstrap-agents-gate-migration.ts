@@ -38,7 +38,9 @@ export function backfillAgentsModeGates(db: StudioDb): void {
     if (!row.builtin) {
       continue;
     }
-    const gate = BUILTIN_AGENTS_GATES[row.id];
+    const gate = Object.hasOwn(BUILTIN_AGENTS_GATES, row.id)
+      ? BUILTIN_AGENTS_GATES[row.id]
+      : undefined;
     const perms = parseObject(row.permissionsJson);
     if (gate === undefined || !perms || perms.agents !== undefined) {
       continue;
@@ -65,7 +67,10 @@ export function backfillAgentsModeGates(db: StudioDb): void {
         mode && typeof mode === 'object' && !Array.isArray(mode)
           ? (mode as Record<string, unknown>)
           : null;
-      const gate = rec && typeof rec.id === 'string' ? BUILTIN_AGENTS_GATES[rec.id] : undefined;
+      const gate =
+        rec && typeof rec.id === 'string' && Object.hasOwn(BUILTIN_AGENTS_GATES, rec.id)
+          ? BUILTIN_AGENTS_GATES[rec.id]
+          : undefined;
       if (!rec || gate === undefined) {
         return mode;
       }

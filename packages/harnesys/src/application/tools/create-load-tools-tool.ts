@@ -22,12 +22,12 @@ export function createLoadToolsTool(registry: Map<string, ToolDefinition>): Tool
       const unknown: string[] = [];
       const tools: { name: string; description: string; input: unknown }[] = [];
       for (const name of parsed.names ?? []) {
-        const def = registry.get(resolveToolAlias(name));
+        const def = registry.get(name) ?? registry.get(resolveToolAlias(name));
         if (!def) {
           unknown.push(name);
           continue;
         }
-        loaded.push(name);
+        loaded.push(def.name);
         tools.push({ name: def.name, description: def.description, input: def.input });
       }
       return { loaded, unknown, tools };

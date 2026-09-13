@@ -852,6 +852,75 @@ git add -A && git commit -m "feat: agent color dots on cards and spawn views"
 
 ---
 
+### Task 13: Пресеты из скилла в корень assets (по просьбе хозяина, ход 2026-09-13)
+
+Выполняется сразу после Task 8, до Task 9.
+
+**Files:**
+- Move: `apps/studio/assets/skills/agent-creator/presets/*.json` → `apps/studio/assets/presets/agents/*.json` (git mv, 10 файлов)
+- Modify: `apps/studio/server/src/adapters/agent-presets-fs.adapter.ts` (`presetRoots`, комментарий над `listAgentPresets`)
+- Modify: `apps/studio/server/src/config/constants.ts` (`PRESETS_DIR = 'agent-creator/presets'` → константы новых корней)
+- Modify: `apps/studio/server/src/adapters/store/studio-layout.ts` (хелперы корней пресетов)
+- Create: `apps/studio/assets/presets/modes/{ask,auto,plan,dont_ask,bypass}.json`
+- Create/Modify: `apps/studio/server/src/adapters/mode-presets-fs.adapter.ts` + `apps/studio/server/src/config/mode-preset-seed.ts` (сид читает файлы)
+- Modify: `apps/studio/assets/skills/agent-creator/SKILL.md` (упоминания пути пресетов)
+- Modify: `docs/superpowers/specs/2026-09-13-subagents-permissions-design.md` (строки про mode-preset-seed)
+
+**Interfaces:**
+- Produces: агент-пресеты грузятся из `apps/studio/assets/presets/agents/` (бандл) и `~/.harnesys/presets/agents/` (home затеняет бандл); mode-пресеты — те же два корня с `presets/modes/`. Публичные функции `listAgentPresets`/`readAgentPreset`/`builtinModePresetSeed` сохраняют сигнатуры.
+
+**Rulings (контроллера):**
+- R8: новые домашние корни `~/.harnesys/presets/{agents,modes}`, старый `~/.harnesys/skills/agent-creator/presets` не читается (hard cut, правило D6).
+- R9: формат mode-файла = поля `ModePreset` без `builtin/createdAt/updatedAt`: `id, name, description?, instructions? | instructionsFile?, skills?, packs?, permissions?, installedByDefault`. `instructionsFile` резолвится от корня `apps/studio/assets/` (план: `"instructionsFile": "plan-mode.md"`). `builtin: true` ставит загрузчик для файлов бандла; home-пресеты не builtin.
+
+- [ ] **Step 1: агент-пресеты**
+
+git mv JSON в `assets/presets/agents/`; в studio-layout.ts добавить:
+
+```ts
+/** Bundled agent/mode preset roots under apps/studio/assets. */
+export function bundledPresetsPath(sub: 'agents' | 'modes'): string {
+  return join(import.meta.dir, '..', '..', '..', '..', 'assets', 'presets', sub);
+}
+
+/** User preset root, shadows bundled: ~/.harnesys/presets/<sub>. */
+export function systemPresetsPath(sub: 'agents' | 'modes', home: string = defaultHomePath()): string {
+  return join(home, 'presets', sub);
+}
+```
+
+`agent-presets-fs.adapter.ts`: `presetRoots()` → `[bundledPresetsPath('agents'), systemPresetsPath('agents')]`, убрать `PRESETS_DIR`-склейку; комментарий над `listAgentPresets` переписать под новые пути. `PRESETS_DIR` удалить из constants.ts, если других потребителей нет (rg).
+
+- [ ] **Step 2: mode-пресеты в файлы**
+
+Создать 5 JSON по таблице спеки (ask/auto/plan/dont_ask/bypass; поля как R9; `agents` в permissions у каждого: ask/ask/deny/deny/allow). Новый адаптер `mode-presets-fs.adapter.ts`:
+
+```ts
+const modePresetBodySchema = z.object({
+  id: z.string().regex(MODE_ID_RE),
+  name: z.string().trim().min(1),
+  description: z.string().optional(),
+  instructions: z.string().optional(),
+  instructionsFile: z.string().optional(),
+  skills: z.array(z.string()).optional(),
+  packs: z.array(z.string()).optional(),
+  permissions: z.record(z.string(), z.enum(['allow', 'ask', 'deny'])).optional(),
+  installedByDefault: z.boolean().default(false),
+});
+```
+
+`readModePresets(): Omit<ModePreset, 'createdAt' | 'updatedAt'>[]` — home затеняет бандл по id (тот же паттерн Map, что у agent-адаптера), `instructionsFile` читает `planModePromptPath()`-образно от корня assets и делает `.trim()`, `builtin = (корень === бандловый)`. `mode-preset-seed.ts`: `builtinModePresetSeed()` остаётся синхронной обёрткой над чтением файлов (bootstrap дергает её синхронно); readFileSync + план-текст без кэша, как сейчас.
+
+- [ ] **Step 3: SKILL.md и спека**
+
+`agent-creator/SKILL.md`: упоминания `agent-creator/presets` → `assets/presets/agents` (rg по файлу). Спека: строку про сиды (`Сиды режимов (mode-preset-seed.ts) без изменений`) поправить на «пресеты режимов в `apps/studio/assets/presets/modes/*.json`, сид читает файлы»; вторую ссылку на seed оставить (обёртка существует).
+
+- [ ] **Step 4: Верификация и коммит**
+
+`bun run typecheck && bun run lint`; rg-проверки остатков: `rg "agent-creator/presets|PRESETS_DIR" apps/studio/server/src` — пусто (кроме истории git). Коммит только своих путей: `refactor: move agent and mode presets to assets/presets`.
+
+---
+
 ### Task 12: Финальная верификация
 
 **Files:** — (только проверки; правки по найденным расхождениям)

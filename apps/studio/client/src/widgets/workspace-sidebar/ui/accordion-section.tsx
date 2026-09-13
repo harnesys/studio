@@ -33,7 +33,7 @@ export function AccordionSection({
     <>
       <div
         className={cn(
-          'flex h-7 shrink-0 items-center gap-0.5 rounded-md px-1 transition-colors group-data-[collapsible=icon]:hidden',
+          'group/head flex h-7 shrink-0 items-center gap-0.5 rounded-md px-1 transition-colors group-data-[collapsible=icon]:hidden',
           'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
           'opacity-70 hover:opacity-100',
         )}
@@ -51,7 +51,11 @@ export function AccordionSection({
             <span className="shrink-0 font-normal text-muted-foreground/80 text-xs">{count}</span>
           ) : null}
         </button>
-        {actions ? <span className="flex shrink-0 items-center">{actions}</span> : null}
+        {actions ? (
+          <span className="flex shrink-0 items-center opacity-0 transition-opacity group-hover/head:opacity-100 has-data-open:opacity-100">
+            {actions}
+          </span>
+        ) : null}
       </div>
       {shown ? (
         <ScrollArea

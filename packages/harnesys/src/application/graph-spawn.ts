@@ -112,8 +112,17 @@ function resolveTargets(
   const out: SpawnTarget[] = [];
   const roster: AgentRosterEntry[] = agents.list?.() ?? [];
   for (const call of calls) {
-    let def = agents.resolve(call.agentId);
-    if (!def && roster.length > 0) {
+    // Exact-id прямой resolve обходит фильтр видимости ростера: чужой делегат
+    // (parentId задан и не равен runAgentId) трактуем как missing.
+    // Нет записи в ростере или ростера нет вовсе → разрешаем: хост без roster
+    // не даёт информации о владении (в т.ч. plugin-таргеты).
+    const rosterEntry = roster.find((e) => e.id === call.agentId);
+    const foreign =
+      rosterEntry !== undefined &&
+      rosterEntry.parentId != null &&
+      rosterEntry.parentId !== runAgentId;
+    let def = foreign ? undefined : agents.resolve(call.agentId);
+    if (!def && rosterEntry === undefined && roster.length > 0) {
       const visible = roster.filter(
         (entry) => entry.parentId == null || entry.parentId === runAgentId,
       );
@@ -276,6 +285,11 @@ export function prepareSpawn(
   parent: GraphOpts,
   slots: SpawnSlots,
 ): PreparedSpawn {
+  // Песочница: тулы пака agents вырезаны, но узлы control:spawn исполняются
+  // и в кастомном графе ребёнка. Вложенный спавн запрещён на уровне движка.
+  if (parent.sandbox) {
+    throw codedRunError('spawn_in_sandbox', 'spawn is not allowed in a sandboxed run');
+  }
   if (node.barrier !== undefined && node.barrier.policy !== 'all') {
     throw codedRunError('barrier_policy', 'barrier.policy must be "all"');
   }

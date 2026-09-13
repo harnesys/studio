@@ -1132,7 +1132,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     } else if (node.type === 'control:handoff') {
       let prepared: ReturnType<typeof prepareHandoff>;
       try {
-        prepared = prepareHandoff(node as HandoffNodeSpec, opts.agents, opts.toolRegistry, slots);
+        prepared = prepareHandoff(
+          node as HandoffNodeSpec,
+          { ...opts, agent, plan, input, toolRegistry },
+          slots,
+        );
       } catch (err) {
         const code =
           err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'

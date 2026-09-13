@@ -1,10 +1,10 @@
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Expr } from '../domain/expr.ts';
-import type { AgentsResolve } from '../ports/create-runtime.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { compileOrThrow, type Plan } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
+import type { GraphOpts } from './graph.ts';
 import { filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
@@ -71,12 +71,15 @@ function resolveAgentId(raw: string | Expr, slots: HandoffSlots): string {
 /** Resolve target + plan/tools/input for in-loop rebind. Same RuntimeState; no child. */
 export function prepareHandoff(
   node: HandoffNodeSpec,
-  agents: AgentsResolve,
-  parentToolRegistry: Map<string, ToolDefinition>,
+  parent: GraphOpts,
   slots: HandoffSlots,
 ): HandoffPrepareResult {
+  // Sandbox children must not rebind the thread: handoff is a top-level control.
+  if (parent.sandbox) {
+    throw codedRunError('handoff_in_sandbox', 'handoff is not allowed in a sandboxed run');
+  }
   const agentId = resolveAgentId(node.agentId, slots);
-  const def = agents.resolve(agentId);
+  const def = parent.agents.resolve(agentId);
   if (!def) {
     throw codedRunError('handoff_target', `handoff target "${agentId}" not found`);
   }
@@ -85,7 +88,7 @@ export function prepareHandoff(
   if (!startNodeId) {
     throw codedRunError('start_count', `handoff target "${agentId}" missing start`);
   }
-  const toolRegistry = new Map(filterToolsForAgent(parentToolRegistry, def));
+  const toolRegistry = new Map(filterToolsForAgent(parent.toolRegistry, def));
   toolRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(toolRegistry));
   return {
     agent: def,

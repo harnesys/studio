@@ -52,8 +52,7 @@ export function ChatPane() {
         <FieldDescription>Text size for agent and user messages.</FieldDescription>
         <ToggleGroup
           aria-labelledby="chat-font-label"
-          variant="outline"
-          spacing={0}
+          variant="segment"
           value={[chatFontSize]}
           data-testid="chat-font-select"
           onValueChange={(value) => {
@@ -64,7 +63,7 @@ export function ChatPane() {
           }}
         >
           {CHAT_FONT_SIZES.map((item) => (
-            <ToggleGroupItem key={item} value={item} className="min-w-[72px]">
+            <ToggleGroupItem key={item} value={item}>
               {CHAT_FONT_SIZE_LABELS[item]}
             </ToggleGroupItem>
           ))}
@@ -136,7 +135,7 @@ export function ChatPane() {
               onCheckedChange={setComfortFollow}
             />
           </Field>
-          <Field className="gap-1.5 rounded-md px-2 py-2">
+          <Field className="gap-2 rounded-md px-2 py-2">
             <div className="flex items-center justify-between gap-2">
               <FieldLabel htmlFor="comfort-anchor">Anchor position</FieldLabel>
               <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -161,7 +160,7 @@ export function ChatPane() {
               }}
             />
           </Field>
-          <Field className="gap-1.5 rounded-md px-2 py-2">
+          <Field className="gap-2 rounded-md px-2 py-2">
             <div className="flex items-center justify-between gap-2">
               <FieldLabel htmlFor="comfort-threshold">Bottom trigger</FieldLabel>
               <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -186,7 +185,7 @@ export function ChatPane() {
               }}
             />
           </Field>
-          <Field className="gap-1.5 rounded-md px-2 py-2">
+          <Field className="gap-2 rounded-md px-2 py-2">
             <div className="flex items-center justify-between gap-2">
               <FieldLabel htmlFor="comfort-duration">Jump duration</FieldLabel>
               <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -216,15 +215,14 @@ export function ChatPane() {
       <FieldSet>
         <FieldLabel>Live element</FieldLabel>
         <FieldGroup className="gap-1">
-          <Field className="gap-1.5 rounded-md px-2 py-2">
+          <Field className="gap-2 rounded-md px-2 py-2">
             <FieldDescription>
               How the active thought or tool stays open while streaming. Finished runs still use the
               toggles above.
             </FieldDescription>
             <ToggleGroup
               aria-label="Live element"
-              variant="outline"
-              spacing={0}
+              variant="segment"
               value={[liveExpand]}
               data-testid="live-expand-select"
               onValueChange={(value) => {
@@ -235,7 +233,7 @@ export function ChatPane() {
               }}
             >
               {LIVE_EXPAND_MODES.map((item) => (
-                <ToggleGroupItem key={item} value={item} className="min-w-[72px]">
+                <ToggleGroupItem key={item} value={item}>
                   {LIVE_EXPAND_LABELS[item]}
                 </ToggleGroupItem>
               ))}

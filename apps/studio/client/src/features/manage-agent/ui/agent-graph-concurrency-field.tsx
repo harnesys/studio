@@ -12,8 +12,7 @@ export function ConcurrencyField({
     <Field>
       <FieldLabel>Concurrency</FieldLabel>
       <ToggleGroup
-        variant="outline"
-        spacing={0}
+        variant="segment"
         size="sm"
         value={[value === 'sequential' ? 'sequential' : 'parallel']}
         onValueChange={(next) => {

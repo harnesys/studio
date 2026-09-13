@@ -23,6 +23,7 @@ import { ModelsPane } from './models-pane';
 import { PluginsPane } from './plugins-pane';
 import { SkillsPane } from './skills-pane';
 import { ToolsPane } from './tools-pane';
+import { WorkspacePane } from './workspace-pane';
 
 export function SettingsPage() {
   const { category } = useParams();
@@ -108,6 +109,8 @@ function findSettingsItem(id: SettingsCategory) {
 
 function SettingsPane({ category }: { category: SettingsCategory }) {
   switch (category) {
+    case 'workspace':
+      return <WorkspacePane />;
     case 'profile':
       return (
         <FieldGroup className="gap-4">

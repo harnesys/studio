@@ -3,6 +3,7 @@ import {
   BoxIcon,
   BrainIcon,
   DownloadIcon,
+  FolderKeyIcon,
   GitBranchIcon,
   type LucideIcon,
   MessageSquareIcon,
@@ -17,6 +18,7 @@ import { SETTINGS_GROUPS, type SettingsCategory } from '@/shared/config/settings
 import { cn } from '@/shared/lib/utils';
 
 const NAV_ICONS: Record<SettingsCategory, LucideIcon> = {
+  workspace: FolderKeyIcon,
   profile: UserIcon,
   appearance: SunIcon,
   chat: MessageSquareIcon,
@@ -57,7 +59,7 @@ export function SettingsNav({ active, onSelect }: SettingsNavProps) {
                 data-testid={`settings-nav-${item.id}`}
                 data-active={selected ? 'true' : 'false'}
                 className={cn(
-                  'flex h-7 items-center gap-2 rounded-md px-2 text-left text-sm transition-colors',
+                  'flex h-7 items-center gap-2 rounded-md px-2.5 text-left text-sm transition-colors',
                   selected
                     ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                     : 'text-muted-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-foreground',

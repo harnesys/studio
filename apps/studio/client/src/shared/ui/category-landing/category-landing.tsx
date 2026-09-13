@@ -29,7 +29,7 @@ export function CategoryLanding({
         className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:radial-gradient(circle_at_1px_1px,var(--foreground)_1px,transparent_0)] [background-size:16px_16px]"
         aria-hidden
       />
-      <div className="relative w-full max-w-[560px]">{children}</div>
+      <div className="relative -mt-32 w-full max-w-140">{children}</div>
     </div>
   );
 }

@@ -101,7 +101,7 @@ export function ProviderEndpointFields({
           </FieldDescription>
         </Field>
       ) : null}
-      <Field>
+      <Field className={hasPresets ? 'sm:col-span-2' : undefined}>
         <FieldLabel htmlFor={`${idPrefix}-base-url`}>Base URL</FieldLabel>
         <Input
           id={`${idPrefix}-base-url`}

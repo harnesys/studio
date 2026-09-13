@@ -9,12 +9,8 @@ import {
 } from 'lucide-react';
 import { type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useThreadStore } from '@/entities/thread';
-import { useDeleteWorkspace, useWorkspaces } from '@/entities/workspace';
-import {
-  confirmDeleteWorkspace,
-  openCreateWorkspaceDialog,
-  openEditWorkspaceDialog,
-} from '@/features/create-workspace';
+import { useWorkspaces } from '@/entities/workspace';
+import { openCreateWorkspaceDialog } from '@/features/create-workspace';
 import {
   useAgentsSlideStore,
   useAgentThreads,
@@ -68,7 +64,6 @@ export function WorkspaceSidebar() {
   const webhooks = useWorkspaceWebhooks(workspaceId);
   const { openWorkspace, leaveWorkspace, openSettings } = useStudioNavigation();
   const { setOpenMobile } = useSidebar();
-  const removeWorkspace = useDeleteWorkspace();
   const ideTabs = useIdeTabs(workspaceId);
   const activeThreadId = ideTabs.tabs.find((tab) => tab.id === ideTabs.activeId)?.threadId ?? null;
   const slideAgentId = useAgentsSlideStore((state) => state.agentId);
@@ -173,7 +168,7 @@ export function WorkspaceSidebar() {
                 {workspace?.path ?? 'no workspace'}
               </span>
             </span>
-            <ChevronsUpDownIcon className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+            <ChevronsUpDownIcon className="size-3.5 shrink-0 text-muted-foreground opacity-60 group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="min-w-52" align="start" side="bottom">
             <DropdownMenuGroup>
@@ -198,32 +193,6 @@ export function WorkspaceSidebar() {
                 <PlusIcon />
                 New workspace
               </DropdownMenuItem>
-              {workspace ? (
-                <>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      void openEditWorkspaceDialog(workspace);
-                    }}
-                  >
-                    Rename / folder
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onClick={() => {
-                      void confirmDeleteWorkspace(workspace).then((confirmed) => {
-                        if (!confirmed) {
-                          return;
-                        }
-                        void removeWorkspace.mutateAsync(workspace.id).then(() => {
-                          leaveWorkspace();
-                        });
-                      });
-                    }}
-                  >
-                    Delete workspace
-                  </DropdownMenuItem>
-                </>
-              ) : null}
               <DropdownMenuItem onClick={() => leaveWorkspace()}>All workspaces</DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>

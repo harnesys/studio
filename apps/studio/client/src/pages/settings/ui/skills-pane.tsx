@@ -1,7 +1,9 @@
 import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon } from 'lucide-react';
+import { useState } from 'react';
 
+import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
 import { openCreateSkillDialog } from '@/features/manage-workspace-skills';
 import {
   createWorkspaceSkill,
@@ -22,6 +24,7 @@ export function SkillsPane() {
     enabled: Boolean(workspaceId),
   });
   const skills = skillsQuery.data?.skills ?? [];
+  const [expandedName, setExpandedName] = useState<string | null>(null);
 
   const reload = useMutation({
     mutationFn: () => {
@@ -103,19 +106,41 @@ export function SkillsPane() {
           </Empty>
         ) : (
           <div className="flex flex-col gap-1">
-            {skills.map((skill) => (
-              <div
-                key={skill.name}
-                className="flex min-h-9 flex-col gap-0.5 rounded-md px-2 py-2 hover:bg-muted/50"
-                data-testid={`skill-${skill.name}`}
-              >
-                <span className="font-mono text-sm">{skill.name}</span>
-                <span className="text-muted-foreground text-sm">{skill.description}</span>
-                {skill.whenToUse ? (
-                  <span className="text-muted-foreground/80 text-xs">{skill.whenToUse}</span>
-                ) : null}
-              </div>
-            ))}
+            {skills.map((skill) => {
+              const expanded = expandedName === skill.name;
+              return (
+                <ConfigEntityCard
+                  key={skill.name}
+                  title={skill.name}
+                  description={skill.description}
+                  initials={initialsFromLabel(skill.name)}
+                  monoTitle
+                  expanded={expanded}
+                  onClick={() => setExpandedName(expanded ? null : skill.name)}
+                >
+                  <div className="flex flex-col gap-2" data-testid={`skill-${skill.name}`}>
+                    <div className="flex flex-col gap-0.5">
+                      <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+                        Description
+                      </p>
+                      <p className="wrap-anywhere text-muted-foreground text-xs leading-4">
+                        {skill.description}
+                      </p>
+                    </div>
+                    {skill.whenToUse ? (
+                      <div className="flex flex-col gap-0.5">
+                        <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+                          When to use
+                        </p>
+                        <p className="wrap-anywhere text-muted-foreground text-xs leading-4">
+                          {skill.whenToUse}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </ConfigEntityCard>
+              );
+            })}
           </div>
         ))}
     </div>

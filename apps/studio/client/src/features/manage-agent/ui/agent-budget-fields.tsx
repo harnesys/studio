@@ -76,8 +76,7 @@ export function AgentBudgetFields({
           <Field>
             <FieldLabel>On limit</FieldLabel>
             <ToggleGroup
-              variant="outline"
-              spacing={0}
+              variant="segment"
               value={[field.value]}
               onValueChange={(value) => {
                 const next = value[0];

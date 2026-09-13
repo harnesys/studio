@@ -1,4 +1,5 @@
 export const SETTINGS_CATEGORIES = [
+  'workspace',
   'profile',
   'appearance',
   'chat',
@@ -20,6 +21,11 @@ export const SETTINGS_GROUPS = [
     id: 'basics',
     label: 'Basics',
     items: [
+      {
+        id: 'workspace' as const,
+        label: 'Workspace',
+        description: 'This workspace, its folder on disk, and removal from Studio.',
+      },
       {
         id: 'profile' as const,
         label: 'Profile',
@@ -63,8 +69,8 @@ export const SETTINGS_GROUPS = [
       },
       {
         id: 'tools' as const,
-        label: 'Tools',
-        description: 'What agents may run without asking again.',
+        label: 'Packages',
+        description: 'Workspace tools grouped into packages.',
       },
       {
         id: 'mode-presets' as const,

@@ -101,8 +101,7 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
     <Section label="Semantic" hint={streaming ? 'live' : undefined}>
       <div className="mb-1.5 flex items-center gap-1">
         <ToggleGroup
-          variant="outline"
-          spacing={0}
+          variant="segment"
           size="sm"
           value={[scope]}
           onValueChange={(value) => {

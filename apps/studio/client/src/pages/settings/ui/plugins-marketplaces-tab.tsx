@@ -2,6 +2,7 @@ import type { PluginRegistrySummary } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 
+import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
 import { confirmRemoveRegistry, openAddRegistryDialog } from '@/features/manage-plugins';
 import {
   pluginCatalogQueryKey,
@@ -10,7 +11,6 @@ import {
   refreshPluginRegistry,
   removePluginRegistry,
 } from '@/shared/api';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
@@ -109,26 +109,14 @@ export function PluginsMarketplacesTab() {
   );
 }
 
-function RegistryStatusBadge({ item }: { item: PluginRegistrySummary }) {
+function registryStatus(item: PluginRegistrySummary): string {
   if (item.lastError) {
-    return (
-      <Badge variant="destructive" className="font-mono">
-        error
-      </Badge>
-    );
+    return 'error';
   }
   if (item.lastSyncAt) {
-    return (
-      <Badge variant="secondary" className="font-mono">
-        synced
-      </Badge>
-    );
+    return 'synced';
   }
-  return (
-    <Badge variant="outline" className="font-mono">
-      pending
-    </Badge>
-  );
+  return 'pending';
 }
 
 function RegistryRow({
@@ -142,43 +130,41 @@ function RegistryRow({
   onRefresh: () => void;
   onRemove: () => void;
 }) {
+  const description = item.lastError ? `${item.source} · ${item.lastError}` : item.source;
   return (
-    <div
-      className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
-      data-testid={`registry-${item.id}`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-sm">{item.name}</span>
-          <Badge variant="outline" className="font-mono">
-            {item.kind}
-          </Badge>
-          <RegistryStatusBadge item={item} />
-        </div>
-        <p className="truncate text-muted-foreground text-xs">
-          {item.source}
-          {item.lastError ? ` · ${item.lastError}` : null}
-        </p>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground"
-        disabled={busy}
-        onClick={onRefresh}
-      >
-        <RefreshCwIcon />
-        Refresh
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`Remove ${item.name}`}
-        disabled={busy}
-        onClick={onRemove}
-      >
-        <Trash2Icon />
-      </Button>
+    <div data-testid={`registry-${item.id}`}>
+      <ConfigEntityCard
+        title={item.name}
+        badge={item.kind}
+        statusBadge={registryStatus(item)}
+        description={description}
+        initials={initialsFromLabel(item.name)}
+        monoTitle
+        trailing={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              disabled={busy}
+              onClick={onRefresh}
+            >
+              <RefreshCwIcon />
+              Refresh
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="opacity-70"
+              aria-label={`Remove ${item.name}`}
+              disabled={busy}
+              onClick={onRemove}
+            >
+              <Trash2Icon />
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }

@@ -41,5 +41,7 @@ export { updateAgent, updateAgentCapabilities } from './model/update-agent';
 export { AgentEffortField, AgentGenerationFields } from './ui/agent-generation-fields';
 export type { AgentGraphPaneProps } from './ui/agent-graph-pane';
 export { AgentGraphPane } from './ui/agent-graph-pane';
+export { ModeChecklist } from './ui/agent-mode-editor';
 export { AgentToolOutputFields } from './ui/agent-tool-output-fields';
+export { ConfigEntityCard, initialsFromLabel } from './ui/config-entity-card';
 export { ModelSelect } from './ui/model-select';

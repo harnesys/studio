@@ -1,14 +1,16 @@
 import type { DiscoveredModelView, ProviderExportBundle } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
-import { DownloadIcon, PlusIcon, Trash2Icon, UploadIcon } from 'lucide-react';
+import { DownloadIcon, PlusIcon, UploadIcon } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { initialsFromLabel } from '@/features/manage-agent';
 import { catalogQuery } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 import { alert, dialog } from '@/shared/services/overlay';
+import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { Switch } from '@/shared/ui/switch';
@@ -37,7 +39,6 @@ export function ModelsPane() {
   const providersQuery = useProviders();
   const providers = providersQuery.data ?? [];
   const [foundByProvider, setFoundByProvider] = useState<Record<string, DiscoveredModelView[]>>({});
-  const [showKey, setShowKey] = useState(false);
   const create = useCreateProvider();
   const update = useUpdateProvider();
   const remove = useDeleteProvider();
@@ -57,7 +58,6 @@ export function ModelsPane() {
       if (!workspaceId) {
         return;
       }
-      setShowKey(false);
       void navigate(studioPath.settings(workspaceId, 'providers', id), { replace });
     },
     [workspaceId, navigate],
@@ -116,14 +116,75 @@ export function ModelsPane() {
     }
   }
 
+  function handleDeleteProvider(id: string, name: string) {
+    void alert
+      .confirm({
+        title: `Delete ${name}?`,
+        description: 'Stored models on this provider leave the list.',
+        confirmText: 'Delete',
+        variant: 'destructive',
+      })
+      .then((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        void remove.mutateAsync(id).then(() => {
+          setFoundByProvider((current) => {
+            const next = { ...current };
+            delete next[id];
+            return next;
+          });
+          const next = providers.find((item) => item.id !== id)?.id ?? undefined;
+          if (workspaceId) {
+            void navigate(studioPath.settings(workspaceId, 'providers', next), { replace: true });
+          }
+        });
+      });
+  }
+
   return (
     <div
-      className="grid gap-8 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-x-10 md:gap-y-2"
+      className="grid gap-8 md:grid-cols-[12rem_minmax(0,1fr)] md:gap-x-10 md:gap-y-2"
       data-testid="models-pane"
     >
-      <p className="flex h-8 items-center px-1 font-medium text-[11px] text-muted-foreground uppercase tracking-[0.08em] md:col-start-1 md:row-start-1">
-        Providers
-      </p>
+      <div className="flex h-8 items-center gap-1 px-1 md:col-start-1 md:row-start-1">
+        <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+          Providers
+        </p>
+        <div className="ml-auto flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="text-muted-foreground"
+            aria-label="Export providers"
+            data-testid="providers-export"
+            disabled={exportProviders.isPending || providers.length === 0}
+            onClick={() => void handleExport()}
+          >
+            <DownloadIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="text-muted-foreground"
+            aria-label="Import providers"
+            data-testid="providers-import"
+            disabled={importProviders.isPending}
+            onClick={() => importFileRef.current?.click()}
+          >
+            <UploadIcon />
+          </Button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            data-testid="providers-import-file"
+            onChange={(event) => void handleImportFile(event)}
+          />
+        </div>
+      </div>
+
       <aside className="w-full min-w-0 md:col-start-1 md:row-start-2">
         <div className="flex flex-col gap-0.5">
           {providers.map((item) => {
@@ -135,20 +196,27 @@ export function ModelsPane() {
                 data-testid={`provider-${item.name}`}
                 className={
                   active
-                    ? 'flex h-8 items-center justify-between rounded-md bg-muted px-2 text-left font-medium text-sm'
-                    : 'flex h-8 items-center justify-between rounded-md px-2 text-left text-muted-foreground text-sm hover:bg-muted/60 hover:text-foreground'
+                    ? 'flex h-11 items-center gap-2 rounded-md bg-muted px-2 text-left'
+                    : 'flex h-11 items-center gap-2 rounded-md px-2 text-left hover:bg-muted/60'
                 }
                 onClick={() => openProvider(item.id)}
               >
-                <span className="truncate">{item.name}</span>
-                <span
-                  className={
-                    item.enabled
-                      ? 'font-mono text-[10px] text-live'
-                      : 'font-mono text-[10px] text-muted-foreground'
-                  }
-                >
-                  {item.enabled ? 'on' : 'off'}
+                <Avatar size="sm" className="-mt-1.5 shrink-0 after:hidden">
+                  <AvatarFallback className="bg-[color-mix(in_oklab,var(--live)_12%,transparent)] text-[9px]">
+                    {initialsFromLabel(item.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="flex min-w-0 flex-col">
+                  <span
+                    className={
+                      item.enabled ? 'truncate text-sm' : 'truncate text-muted-foreground text-sm'
+                    }
+                  >
+                    {item.name}
+                  </span>
+                  <span className="truncate font-mono text-[10px] text-muted-foreground">
+                    {item.enabled ? `${item.models.length} models` : 'off'}
+                  </span>
                 </span>
               </button>
             );
@@ -157,7 +225,7 @@ export function ModelsPane() {
         <Button
           variant="ghost"
           size="sm"
-          className="mt-2 w-full justify-start text-muted-foreground"
+          className="mt-2 h-11 w-full justify-start rounded-lg border border-dashed text-muted-foreground"
           onClick={() => {
             void dialog
               .open(ProviderForm, {
@@ -178,45 +246,16 @@ export function ModelsPane() {
           <PlusIcon />
           Add provider
         </Button>
-        <div className="mt-1 flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 justify-start text-muted-foreground"
-            data-testid="providers-export"
-            disabled={exportProviders.isPending || providers.length === 0}
-            onClick={() => void handleExport()}
-          >
-            <DownloadIcon />
-            Export
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 justify-start text-muted-foreground"
-            data-testid="providers-import"
-            disabled={importProviders.isPending}
-            onClick={() => importFileRef.current?.click()}
-          >
-            <UploadIcon />
-            Import
-          </Button>
-          <input
-            ref={importFileRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            data-testid="providers-import-file"
-            onChange={(event) => void handleImportFile(event)}
-          />
-        </div>
       </aside>
 
       {selected ? (
         <>
-          <div className="flex h-8 min-w-0 items-center gap-2 md:col-start-2 md:row-start-1">
-            <h2 className="font-medium text-sm">{selected.name}</h2>
-            <span className="inline-flex items-center gap-2 text-sm">
+          <div className="flex h-8 min-w-0 items-center gap-3 md:col-start-2 md:row-start-1">
+            <h2 className="truncate font-medium text-sm">{selected.name}</h2>
+            <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wide">
+              {selected.driver}
+            </span>
+            <span className="ml-auto inline-flex items-center gap-2 text-sm">
               <Switch
                 size="sm"
                 checked={selected.enabled}
@@ -226,51 +265,12 @@ export function ModelsPane() {
               />
               Enabled
             </span>
-            <div className="ml-auto flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label="Delete provider"
-                onClick={() => {
-                  void alert
-                    .confirm({
-                      title: `Delete ${selected.name}?`,
-                      description: 'Stored models on this provider leave the list.',
-                      confirmText: 'Delete',
-                      variant: 'destructive',
-                    })
-                    .then((confirmed) => {
-                      if (!confirmed) {
-                        return;
-                      }
-                      void remove.mutateAsync(selected.id).then(() => {
-                        setFoundByProvider((current) => {
-                          const next = { ...current };
-                          delete next[selected.id];
-                          return next;
-                        });
-                        const next =
-                          providers.find((item) => item.id !== selected.id)?.id ?? undefined;
-                        if (workspaceId) {
-                          void navigate(studioPath.settings(workspaceId, 'providers', next), {
-                            replace: true,
-                          });
-                        }
-                      });
-                    });
-                }}
-              >
-                <Trash2Icon />
-              </Button>
-            </div>
           </div>
 
           <div className="min-w-0 md:col-start-2 md:row-start-2">
             <ProviderSettingsFields
               selected={selected}
               catalog={catalog}
-              showKey={showKey}
-              onToggleKey={() => setShowKey((value) => !value)}
               onUpdate={(patch) => update.mutate(patch)}
             />
             <ProviderModelsSection
@@ -289,6 +289,26 @@ export function ModelsPane() {
               onPatchModel={(input) => patchModel.mutate(input)}
               onDetach={(input) => detach.mutate(input)}
             />
+            <section className="mt-8 flex flex-col gap-2" data-testid="provider-danger">
+              <h2 className="font-medium text-destructive text-sm">Danger</h2>
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 px-3 py-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-sm">Delete provider</span>
+                  <span className="text-muted-foreground text-xs">
+                    Stored models on this provider leave the list.
+                  </span>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={remove.isPending}
+                  onClick={() => handleDeleteProvider(selected.id, selected.name)}
+                  data-testid="provider-delete"
+                >
+                  Delete
+                </Button>
+              </div>
+            </section>
           </div>
         </>
       ) : (

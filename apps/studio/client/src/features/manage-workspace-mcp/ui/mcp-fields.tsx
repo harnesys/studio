@@ -64,8 +64,7 @@ export function McpFields({
             <FieldLabel id="mcp-transport-label">Transport</FieldLabel>
             <ToggleGroup
               aria-labelledby="mcp-transport-label"
-              variant="outline"
-              spacing={0}
+              variant="segment"
               value={[field.value]}
               onValueChange={(value) => {
                 const next = value[0];
@@ -75,7 +74,7 @@ export function McpFields({
               }}
             >
               {TRANSPORT_ITEMS.map((item) => (
-                <ToggleGroupItem key={item.value} value={item.value} className="min-w-[72px]">
+                <ToggleGroupItem key={item.value} value={item.value}>
                   {item.label}
                 </ToggleGroupItem>
               ))}

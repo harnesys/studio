@@ -219,11 +219,12 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           if (!input.name || !input.role || !input.instructions) {
             return { error: 'name, role, and instructions are required' };
           }
-          const ag = input.packs?.agents;
-          if (ag !== undefined && ag !== null) {
+          const packMap = input.packs ?? input.capabilities;
+          const ag: unknown = packMap?.agents;
+          if (ag !== undefined && ag !== null && ag !== false) {
             return { error: 'packs.agents is forbidden for subagents (nesting ban)' };
           }
-          const packs = input.packs ?? input.capabilities;
+          const packs = packMap;
           const next: AgentCatalogCreateInput & { capabilities?: unknown } = {
             ...input,
             parentId: scope.agentId,

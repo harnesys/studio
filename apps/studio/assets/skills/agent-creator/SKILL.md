@@ -89,7 +89,7 @@ Three roots, ascending precedence: shipped bundle (`apps/studio/assets/skills/<n
 
 ## Presets
 
-`apps/studio/assets/presets/agents/<id>.json` (bundle) and `~/.harnesys/presets/agents/<id>.json` (home), id pattern `^[a-z0-9][a-z0-9-]*$` from the filename. A same-id file in home shadows the bundle. Recognized keys: `name`, `role`, `instructions` (required), `tools`, `skills`, `mcpServers`, `budget`, `capabilities`, `graph`. Unknown keys (including `model`, `compaction`, `packs`) are silently stripped; model and compaction come from Studio defaults. Without `graph` the host builds the default ReAct loop. The loader zod-checks shape but not the tool-calls invariant; validate the graph yourself. One unparseable file breaks the entire preset listing.
+`apps/studio/assets/presets/agents/<id>.json` (bundle) and `~/.harnesys/presets/agents/<id>.json` (home), id pattern `^[a-z0-9][a-z0-9-]*$` from the filename. A same-id file in home shadows the bundle. Recognized keys: `name`, `role`, `instructions` (required), `tools`, `skills`, `mcpServers`, `budget`, `capabilities`, `permissions`, `graph`. Unknown keys (including `model`, `compaction`, `packs`) are silently stripped; model and compaction come from Studio defaults. Without `graph` the host builds the default ReAct loop. The loader zod-checks shape but not the tool-calls invariant; validate the graph yourself. One unparseable file breaks the entire preset listing. Subagents: presets without the `agents` pack (explorer, general) are delegate-safe; agents-pack presets (assistant, coder, orchestrator, researcher) create top-level agents only.
 
 ## Before saving (checklist)
 

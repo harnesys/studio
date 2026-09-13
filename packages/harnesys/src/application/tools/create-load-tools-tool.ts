@@ -1,6 +1,7 @@
 import { MAX_BATCH } from '../../constants.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
+import { resolveToolAlias } from '../tool-aliases.ts';
 
 export function createLoadToolsTool(registry: Map<string, ToolDefinition>): ToolDefinition {
   return tool('load_tools', {
@@ -21,7 +22,7 @@ export function createLoadToolsTool(registry: Map<string, ToolDefinition>): Tool
       const unknown: string[] = [];
       const tools: { name: string; description: string; input: unknown }[] = [];
       for (const name of parsed.names ?? []) {
-        const def = registry.get(name);
+        const def = registry.get(resolveToolAlias(name));
         if (!def) {
           unknown.push(name);
           continue;

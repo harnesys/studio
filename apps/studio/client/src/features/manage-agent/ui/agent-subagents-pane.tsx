@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
+import { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { agentColorClass, useAgentStore } from '@/entities/agent';
@@ -41,8 +42,10 @@ export function AgentSubagentsPane({
   // This pane always creates delegates: presets with the agents pack would fail
   // the server ban, so they are not offered (explorer/general stay, coder/orchestrator do not).
   const presets = (presetsQuery.data ?? []).filter((preset) => !preset.capabilities?.agents);
+  const [creating, setCreating] = useState(false);
 
   const addFromPreset = async (presetId: string) => {
+    setCreating(true);
     try {
       const result = await createAgentFromPreset(workspaceId, presetId, { parentId });
       if (result) {
@@ -52,6 +55,8 @@ export function AgentSubagentsPane({
       toast.add({
         title: error instanceof Error ? error.message : 'Could not add subagent',
       });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -63,7 +68,10 @@ export function AgentSubagentsPane({
       description="Spawn targets for this agent."
       extra={
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="sm" />}>
+          <DropdownMenuTrigger
+            disabled={creating}
+            render={<Button type="button" variant="ghost" size="sm" />}
+          >
             <PlusIcon />
             Add from preset
           </DropdownMenuTrigger>

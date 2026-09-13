@@ -52,9 +52,7 @@ export function SpawnView({
 
   const { spawns } = extractSpawns(events, seenAt);
   const spawn = spawns.find((item) => item.spawnId === spawnId);
-  const agent = useAgentStore((state) =>
-    spawn ? (state.byId(spawn.agentId) ?? undefined) : undefined,
-  );
+  const agent = useAgentStore((state) => (spawn ? state.byId(spawn.agentId) : undefined));
   const subtreeIds = spawnSubtreeIds(events, spawnId);
   const spawnedEvent = events.find(
     (ev): ev is SessionEvent & { type: 'agent.spawned' } =>

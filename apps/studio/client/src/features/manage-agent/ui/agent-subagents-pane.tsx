@@ -131,7 +131,7 @@ function SubagentRow({
       chips={
         <span
           aria-hidden
-          className={cn('size-2 self-center rounded-full', agentColorClass(agent.color))}
+          className={cn('size-2 shrink-0 self-center rounded-full', agentColorClass(agent.color))}
         />
       }
       chevron="open"

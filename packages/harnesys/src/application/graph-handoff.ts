@@ -79,6 +79,13 @@ export function prepareHandoff(
     throw codedRunError('handoff_in_sandbox', 'handoff is not allowed in a sandboxed run');
   }
   const agentId = resolveAgentId(node.agentId, slots);
+  // Handoff is top-level-only: a delegate lacks the parent-run rights model.
+  // No roster entry (or no roster) → allow: a host without roster gives no
+  // ownership info (same caveat as spawn target resolution).
+  const entry = parent.agents.list?.().find((e) => e.id === agentId);
+  if (entry?.parentId != null) {
+    throw codedRunError('handoff_target', `handoff onto a delegate is not allowed: ${agentId}`);
+  }
   const def = parent.agents.resolve(agentId);
   if (!def) {
     throw codedRunError('handoff_target', `handoff target "${agentId}" not found`);

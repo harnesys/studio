@@ -1,4 +1,4 @@
-import { type AgentMode, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
+import { type AgentMode, DEFAULT_MODE, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 
 export type ComposerMode = string;
 
@@ -9,11 +9,14 @@ export type ComposerModeItem = {
 };
 
 export function composerModeItems(modes: AgentMode[]): ComposerModeItem[] {
-  return modes.map((mode) => ({
-    value: mode.id,
-    label: mode.name,
-    detail: mode.description ?? '',
-  }));
+  return [
+    { value: DEFAULT_MODE_ID, label: DEFAULT_MODE.name, detail: 'Agent permission base' },
+    ...modes.map((mode) => ({
+      value: mode.id,
+      label: mode.name,
+      detail: mode.description ?? '',
+    })),
+  ];
 }
 
 export function knownMode(modes: AgentMode[], id: string | null | undefined): boolean {

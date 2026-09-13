@@ -1,4 +1,4 @@
-import { type AgentMode, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
+import { type AgentMode, DEFAULT_MODE, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 import { useState } from 'react';
 import type { Agent } from '@/entities/agent';
 import { SCHEDULE_STATUSES, type Schedule, scheduleStatusLabel } from '@/entities/schedule';
@@ -54,10 +54,10 @@ export function ScheduleConfigDialog({
   });
   const agent = agents.find((item) => item.id === draft.targetAgentId);
   const agentModes = agent !== undefined && hasAgentModes(agent) ? (agent.modes ?? []) : [];
-  const modeItems =
-    agentModes.length > 0
-      ? agentModes.map((mode) => ({ value: mode.id, label: mode.name }))
-      : [{ value: DEFAULT_MODE_ID, label: DEFAULT_MODE_ID }];
+  const modeItems = [
+    { value: DEFAULT_MODE_ID, label: DEFAULT_MODE.name },
+    ...agentModes.map((mode) => ({ value: mode.id, label: mode.name })),
+  ];
   const canSave = draft.name.trim().length > 0 && draft.cron.trim().length > 0 && agents.length > 0;
 
   return (

@@ -1,4 +1,5 @@
-import type { ModeOpGate } from '@harnesys/studio-shared';
+import type { ModeOp, ModeOpGate } from '@harnesys/studio-shared';
+import type { PermissionGate, PermissionMap } from 'harnesys';
 import { Controller, type UseFormReturn, useWatch } from 'react-hook-form';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Field, FieldLabel } from '@/shared/ui/field';
@@ -18,14 +19,32 @@ type AgentModeEditorProps = {
   packNames: string[];
   isDefault: boolean;
   onSetDefault: (next: boolean) => void;
+  base: PermissionMap | null;
 };
 
-const GATES: { name: 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp'; label: string }[] = [
-  { name: 'permWrite', label: 'File writes' },
-  { name: 'permProcess', label: 'Shell' },
-  { name: 'permNetwork', label: 'Network' },
-  { name: 'permMcp', label: 'MCP' },
+const GATES: {
+  name: 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp';
+  label: string;
+  op: ModeOp;
+}[] = [
+  { name: 'permWrite', label: 'File writes', op: 'fs.write' },
+  { name: 'permProcess', label: 'Shell', op: 'process' },
+  { name: 'permNetwork', label: 'Network', op: 'network' },
+  { name: 'permMcp', label: 'MCP', op: 'mcp' },
 ];
+
+const GATE_SEVERITY: Record<PermissionGate, number> = { allow: 0, ask: 1, deny: 2 };
+const GATE_VALUES: PermissionGate[] = ['allow', 'ask', 'deny'];
+
+/** A mode gate may only match or exceed the agent base gate, never loosen it. */
+function allowedGates(baseGate: PermissionGate): PermissionGate[] {
+  return GATE_VALUES.filter((gate) => GATE_SEVERITY[gate] >= GATE_SEVERITY[baseGate]);
+}
+
+/** Absent base op follows DEFAULT_PERMISSIONS: every gated mode op defaults to 'ask'. */
+function baseGateFor(base: PermissionMap | null, op: ModeOp): PermissionGate {
+  return base?.[op] ?? 'ask';
+}
 
 export function AgentModeEditor({
   form,
@@ -35,6 +54,7 @@ export function AgentModeEditor({
   packNames,
   isDefault,
   onSetDefault,
+  base,
 }: AgentModeEditorProps) {
   const mode = useWatch({ control: form.control, name: `modes.${index}` });
   const selectedSkills = mode?.skills ?? [];
@@ -124,32 +144,43 @@ export function AgentModeEditor({
         Empty selection keeps every agent pack in context.
       </p>
       <div className="grid grid-cols-2 gap-3">
-        {GATES.map((gate) => (
-          <Controller
-            key={gate.name}
-            control={form.control}
-            name={`modes.${index}.${gate.name}`}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>{gate.label}</FieldLabel>
-                <ToggleGroup
-                  variant="segment"
-                  value={[field.value]}
-                  onValueChange={(value) => {
-                    const next = value[0];
-                    if (isGate(next)) {
-                      field.onChange(next);
-                    }
-                  }}
-                >
-                  <ToggleGroupItem value="allow">Allow</ToggleGroupItem>
-                  <ToggleGroupItem value="ask">Ask</ToggleGroupItem>
-                  <ToggleGroupItem value="deny">Deny</ToggleGroupItem>
-                </ToggleGroup>
-              </Field>
-            )}
-          />
-        ))}
+        {GATES.map((gate) => {
+          const baseGate = baseGateFor(base, gate.op);
+          const allowed = allowedGates(baseGate);
+          return (
+            <Controller
+              key={gate.name}
+              control={form.control}
+              name={`modes.${index}.${gate.name}`}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>{gate.label}</FieldLabel>
+                  <ToggleGroup
+                    variant="segment"
+                    value={[field.value]}
+                    onValueChange={(value) => {
+                      const next = value[0];
+                      if (isGate(next) && allowed.includes(next)) {
+                        field.onChange(next);
+                      }
+                    }}
+                  >
+                    <ToggleGroupItem value="allow" disabled={!allowed.includes('allow')}>
+                      Allow
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="ask" disabled={!allowed.includes('ask')}>
+                      Ask
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="deny" disabled={!allowed.includes('deny')}>
+                      Deny
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                  <p className="text-[11px] text-muted-foreground">Max: {baseGate} (agent base)</p>
+                </Field>
+              )}
+            />
+          );
+        })}
       </div>
     </div>
   );

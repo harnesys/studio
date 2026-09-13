@@ -28,6 +28,7 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
   const modes = useFieldArray({ control: form.control, name: 'modes' });
   const rows = useWatch({ control: form.control, name: 'modes' }) ?? [];
   const defaultModeId = useWatch({ control: form.control, name: 'defaultModeId' });
+  const permissionsBase = useWatch({ control: form.control, name: 'permissions' }) ?? null;
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const skillsQuery = useQuery({
     ...workspaceSkillsQuery(workspaceId),
@@ -172,6 +173,7 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
                     packNames={packNames}
                     isDefault={isDefaultOf(index)}
                     onSetDefault={(next) => setDefaultOf(index, next)}
+                    base={permissionsBase}
                   />
                 ) : null}
               </Row>

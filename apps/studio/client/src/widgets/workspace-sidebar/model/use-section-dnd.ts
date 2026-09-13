@@ -5,11 +5,11 @@ type DropHint = { id: string; before: boolean };
 
 type SectionDragProps = {
   draggable: boolean;
-  onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
-  onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
-  onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
-  onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
-  onDragEnd: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragStart: (event: React.DragEvent<HTMLButtonElement>) => void;
+  onDragOver: (event: React.DragEvent<HTMLButtonElement>) => void;
+  onDragLeave: (event: React.DragEvent<HTMLButtonElement>) => void;
+  onDrop: (event: React.DragEvent<HTMLButtonElement>) => void;
+  onDragEnd: (event: React.DragEvent<HTMLButtonElement>) => void;
 };
 
 export function useSectionDnd(): {

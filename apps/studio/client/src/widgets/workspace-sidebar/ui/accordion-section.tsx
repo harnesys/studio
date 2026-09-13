@@ -12,7 +12,7 @@ type AccordionSectionProps = {
   actions?: ReactNode;
   size: number;
   children: ReactNode;
-  headerDragProps?: HTMLAttributes<HTMLDivElement>;
+  headerDragProps?: HTMLAttributes<HTMLButtonElement>;
   dragging?: boolean;
   dropHint?: 'before' | 'after' | null;
 };
@@ -38,12 +38,10 @@ export function AccordionSection({
   return (
     <>
       <div
-        {...headerDragProps}
         className={cn(
           'group/head flex h-7 shrink-0 items-center gap-0.5 rounded-md px-1 transition-colors group-data-[collapsible=icon]:hidden',
           'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
           'opacity-70 hover:opacity-100',
-          headerDragProps && 'cursor-grab select-none',
           dragging && 'cursor-grabbing opacity-50!',
           dropHint === 'before' && 'shadow-[inset_0_2px_0_0_var(--color-live)]',
           dropHint === 'after' && 'shadow-[inset_0_-2px_0_0_var(--color-live)]',
@@ -51,9 +49,13 @@ export function AccordionSection({
       >
         <button
           type="button"
+          {...headerDragProps}
           onClick={() => toggle(id)}
           aria-expanded={shown}
-          className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left font-semibold text-sm outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          className={cn(
+            'flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left font-semibold text-sm outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+            headerDragProps && 'cursor-grab select-none',
+          )}
         >
           <span className="flex size-3.5 shrink-0 items-center justify-center">{icon}</span>
           <span className="truncate">{title}</span>

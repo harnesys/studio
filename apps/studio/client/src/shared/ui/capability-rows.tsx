@@ -153,6 +153,8 @@ type RowProps = {
   chevron?: 'expand' | 'open';
   /** Row actions (edit/delete/…). Revealed on hover/focus; kept visible when expanded. */
   actions?: ReactNode;
+  /** Keep actions visible instead of revealing them on hover/focus. */
+  alwaysShowActions?: boolean;
   testId?: string;
   /** Expanded content, aligned under the title. */
   children?: ReactNode;
@@ -170,6 +172,7 @@ export function Row({
   expanded = false,
   chevron = 'expand',
   actions,
+  alwaysShowActions = false,
   testId,
   children,
 }: RowProps) {
@@ -234,7 +237,7 @@ export function Row({
         <div
           className={cn(
             'flex shrink-0 items-center gap-1 transition-opacity duration-150',
-            expanded || !actions
+            expanded || !actions || alwaysShowActions
               ? ''
               : 'opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100',
           )}

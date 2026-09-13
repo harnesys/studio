@@ -82,6 +82,7 @@ function PluginRow({
       actions={
         <Switch size="sm" checked={enabled} onCheckedChange={(next) => onToggle(Boolean(next))} />
       }
+      alwaysShowActions
     />
   );
 }

@@ -124,6 +124,7 @@ function PackRow({
           onCheckedChange={(next) => onToggle(pack.name, Boolean(next))}
         />
       }
+      alwaysShowActions
     >
       {settingsOpen ? (
         <RowSection label="Settings">

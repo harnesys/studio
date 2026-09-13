@@ -111,6 +111,7 @@ export function DraftCapabilities({
                         onCheckedChange={(value) => toggleSkill(skill.name, Boolean(value))}
                       />
                     }
+                    alwaysShowActions
                   >
                     {skill.description ? (
                       <RowSection label="Description">
@@ -169,6 +170,7 @@ export function DraftCapabilities({
                         onCheckedChange={(value) => toggleServer(server.serverId, Boolean(value))}
                       />
                     }
+                    alwaysShowActions
                   >
                     <McpToolsList
                       tools={server.tools}

@@ -1,4 +1,10 @@
-import type { AgentCatalogSummary, AgentDefinition, AgentModelRef, PluginIr } from 'harnesys';
+import type {
+  AgentCatalogSummary,
+  AgentDefinition,
+  AgentModelRef,
+  BindDiagnosticSink,
+  PluginIr,
+} from 'harnesys';
 import { bindAgentComponents } from 'harnesys';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import type { PluginInstallRecord } from '../../domain/plugin.port.ts';
@@ -29,6 +35,7 @@ export function pluginAgentCatalog(
   entries: PluginAgentSource[],
   models?: LlmModelRepository,
   providers?: LlmProviderRepository,
+  onDiagnostic?: BindDiagnosticSink,
 ): PluginAgentCatalog {
   const all = new Map<string, AgentDefinition>();
   for (const entry of entries) {
@@ -36,7 +43,7 @@ export function pluginAgentCatalog(
     const bound = bindAgentComponents(
       entry.ir,
       (ref) => resolveModelRef(ref, models, providers),
-      undefined,
+      onDiagnostic,
       userConfig,
     );
     for (const agent of bound) {

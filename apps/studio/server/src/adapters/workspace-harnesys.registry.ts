@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import type {
   AgentDefinition,
   AgentRosterEntry,
+  BindDiagnosticSink,
   CursorMcpJson,
   McpServerSpec,
   ModelsPort,
@@ -144,8 +145,17 @@ export class WorkspaceHarnesysRegistry {
       await this.loadEnabledPlugins(workspaceId),
       this.repos.modelRepo,
       this.repos.providerRepo,
+      this.pluginBindDiagnostic,
     );
   }
+
+  /**
+   * Диагностики биндинга агентов (`unresolved_model` и frontmatter-предупреждения)
+   * идут в runtime-логер, тот же формат, что у load-диагностик плагинов.
+   */
+  private readonly pluginBindDiagnostic: BindDiagnosticSink = (diagnostic) => {
+    this.runtime?.logger?.warn(`[plugins] ${diagnostic.code}: ${diagnostic.message}`);
+  };
 
   private async loadIr(record: PluginInstallRecord): Promise<PluginIr | undefined> {
     const key = irCacheKey(record);
@@ -246,7 +256,11 @@ export class WorkspaceHarnesysRegistry {
   }
 
   listAgentRoster(): AgentRosterEntry[] {
-    return (this.repos.agents?.listAll() ?? []).map((a) => ({ id: a.id, name: a.name }));
+    return (this.repos.agents?.listAll() ?? []).map((a) => ({
+      id: a.id,
+      name: a.name,
+      parentId: a.parentId,
+    }));
   }
 
   private resolveAgent(id: string): AgentDefinition | undefined {
@@ -275,6 +289,7 @@ export class WorkspaceHarnesysRegistry {
         this.cachedLoaded(workspaceId),
         this.repos.modelRepo,
         this.repos.providerRepo,
+        this.pluginBindDiagnostic,
       );
       const found = catalog.get(id);
       if (found !== null) {

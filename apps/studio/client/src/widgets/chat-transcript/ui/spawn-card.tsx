@@ -1,4 +1,4 @@
-import { useAgentStore } from '@/entities/agent';
+import { agentColorClass, useAgentStore } from '@/entities/agent';
 import { formatDuration, formatTokenCount } from '@/entities/session';
 import { cn } from '@/shared/lib/utils';
 import { StatusDot } from '@/shared/ui/status-dot';
@@ -101,6 +101,10 @@ export function SpawnCard({
     <>
       <span className="flex min-w-0 items-center gap-2">
         <StatusDot tone={DOT_TONE[spawn.status]} />
+        <span
+          aria-hidden
+          className={cn('size-2 shrink-0 rounded-full', agentColorClass(agent?.color ?? null))}
+        />
         <span className="shrink-0 font-medium" title={name}>
           {name}
         </span>

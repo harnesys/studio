@@ -1,6 +1,6 @@
 import { MoreHorizontalIcon } from 'lucide-react';
 import type { Agent, AgentStatus } from '@/entities/agent';
-import { statusLabel } from '@/entities/agent';
+import { agentColorClass, statusLabel } from '@/entities/agent';
 import { useAgentHasUnread, useAgentLiveStatus } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
@@ -68,12 +68,16 @@ export function AgentCard({ agent, selected, onSelect, onSettings, onDelete }: A
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <div
               className={cn(
-                'block truncate text-sm leading-4',
+                'flex min-w-0 items-center gap-1.5 text-sm leading-4',
                 status === 'offline' && 'text-muted-foreground',
                 hasUnread && 'font-medium',
               )}
             >
-              {agent.name}
+              <span
+                aria-hidden
+                className={cn('size-2 shrink-0 rounded-full', agentColorClass(agent.color))}
+              />
+              <span className="truncate">{agent.name}</span>
             </div>
             <div className="mt-0.5 flex items-baseline justify-between gap-2">
               <div className="min-w-0 truncate text-[11px] text-muted-foreground leading-3">

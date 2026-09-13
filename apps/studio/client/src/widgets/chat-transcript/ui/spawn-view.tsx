@@ -1,10 +1,11 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { useEffect, useState } from 'react';
-import { useAgentStore } from '@/entities/agent';
+import { agentColorClass, useAgentStore } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import { refreshThread, useDeskStore, useThreadEvents } from '@/features/desk';
 import type { IdeTab } from '@/features/ide';
 import { useOpenSpawnTab } from '@/features/ide';
+import { cn } from '@/shared/lib/utils';
 import { StatusDot } from '@/shared/ui/status-dot';
 
 import { splitRuns } from '../model/run-groups';
@@ -101,6 +102,10 @@ export function SpawnView({
     <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-spawn">
       <div className="flex h-9 shrink-0 items-center gap-2 border-border/60 border-b px-3">
         <StatusDot tone={DOT_TONE[spawn.status]} />
+        <span
+          aria-hidden
+          className={cn('size-2 shrink-0 rounded-full', agentColorClass(agent?.color ?? null))}
+        />
         <span
           className="truncate font-medium text-[12px] text-foreground leading-none"
           title={spawn.agentId}

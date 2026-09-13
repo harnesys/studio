@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
-import { useAgentStore } from '@/entities/agent';
+import { agentColorClass, useAgentStore } from '@/entities/agent';
 import { listAgentPresets } from '@/shared/api';
+import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Pane, Row, RowList } from '@/shared/ui/capability-rows';
 import {
@@ -127,6 +128,12 @@ function SubagentRow({
       mono={false}
       meta={agent.role}
       summary={agent.instructions.trim() || 'No instructions yet.'}
+      chips={
+        <span
+          aria-hidden
+          className={cn('size-2 self-center rounded-full', agentColorClass(agent.color))}
+        />
+      }
       chevron="open"
       onToggle={onOpen}
       actions={

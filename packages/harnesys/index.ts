@@ -55,6 +55,7 @@ export {
 } from './src/application/packs/registry.ts';
 export type { PackCatalogEntry } from './src/application/packs/tool-names.ts';
 export { packCatalog, packTools } from './src/application/packs/tool-names.ts';
+export { intersectPermissions } from './src/application/permissions.ts';
 export {
   type BindDiagnosticSink,
   bindAgentComponents,

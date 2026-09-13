@@ -27,6 +27,7 @@ import type { CustomNodeImpl, ToolCatalogEntry, ToolDefinition } from './tools.t
 export type AgentRosterEntry = {
   id: string;
   name: string;
+  parentId?: string | null;
 };
 
 export type AgentsResolve = {

@@ -5,12 +5,14 @@ import type {
   AgentModelRef,
 } from '../domain/agent-definition.ts';
 import type { CapabilityScope, PackConfig } from '../domain/pack.ts';
+import type { PermissionMap } from './permissions.ts';
 
 export type AgentCatalogSummary = {
   id: string;
   name: string;
   role: string;
   instructions: string;
+  parentId?: string | null;
 };
 
 export type AgentCatalogCreateInput = {
@@ -24,6 +26,9 @@ export type AgentCatalogCreateInput = {
   packs?: Record<string, PackConfig | null>;
   graph?: AgentGraph;
   model?: AgentModelRef;
+  /** When set, creates a delegate under that agent. */
+  parentId?: string;
+  permissions?: PermissionMap;
 };
 
 export type AgentsCatalogPort = {

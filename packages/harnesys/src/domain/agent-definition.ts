@@ -1,4 +1,5 @@
 import { validateStructural } from '../application/validate.ts';
+import type { PermissionMap } from '../ports/permissions.ts';
 import { ValidationError } from './errors.ts';
 import type { Expr } from './expr.ts';
 import type { HooksBinding } from './hook.ts';
@@ -73,6 +74,8 @@ export type AgentDefinition = {
   graph: AgentGraph;
   budget?: AgentBudget;
   packs?: AgentPacks;
+  /** Base permission map: host uses it as mode ceiling, engine as spawn base. Absent = DEFAULT_PERMISSIONS. */
+  permissions?: PermissionMap;
   capabilities?: Record<string, PackConfig | null>;
   /** Декларативные hook-биндинги агента: события и обработчики этого агента. */
   hooks?: HooksBinding[];

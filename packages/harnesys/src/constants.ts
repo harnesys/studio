@@ -255,6 +255,7 @@ export const DEFAULT_PERMISSIONS: PermissionMap = {
   process: 'ask',
   network: 'ask',
   mcp: 'ask',
+  agents: 'ask',
 };
 
 // Compaction prompts

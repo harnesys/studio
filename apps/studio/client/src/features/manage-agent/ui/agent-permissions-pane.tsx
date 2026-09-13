@@ -1,3 +1,4 @@
+import type { ModeOp } from '@harnesys/studio-shared';
 import type { PermissionGate, PermissionMap } from 'harnesys';
 
 import { Pane, RowList } from '@/shared/ui/capability-rows';
@@ -5,7 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
 import { PERM_OPS } from '../model/agent-permissions';
 
-type PermissionRowSpec = { op: string; label: string; description: string };
+type PermissionRowSpec = { op: ModeOp; label: string; description: string };
 
 const PERMISSION_ROWS: PermissionRowSpec[] = [
   { op: 'fs.write', label: 'File writes', description: 'Create and edit files in the workspace' },
@@ -27,9 +28,9 @@ type AgentPermissionsPaneProps = {
 
 export function AgentPermissionsPane({ value, onChange, isDelegate }: AgentPermissionsPaneProps) {
   const rows = isDelegate
-    ? PERMISSION_ROWS.filter((row) => (PERM_OPS as readonly string[]).includes(row.op))
+    ? PERMISSION_ROWS.filter((row) => PERM_OPS.includes(row.op))
     : PERMISSION_ROWS;
-  const current = (op: string): PermissionGate => value?.[op] ?? 'ask';
+  const current = (op: ModeOp): PermissionGate => value?.[op] ?? 'ask';
   return (
     <Pane
       testId="agent-permissions-pane"

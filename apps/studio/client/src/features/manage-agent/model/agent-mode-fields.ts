@@ -1,4 +1,9 @@
-import { type AgentMode, MODE_ID_RE, type ModeOpGate } from '@harnesys/studio-shared';
+import {
+  type AgentMode,
+  DEFAULT_MODE_ID,
+  MODE_ID_RE,
+  type ModeOpGate,
+} from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 export const MODE_INSTRUCTIONS_MAX = 6000;
@@ -14,6 +19,7 @@ export const agentModeSchema = z.object({
   permProcess: z.enum(['allow', 'ask', 'deny']),
   permNetwork: z.enum(['allow', 'ask', 'deny']),
   permMcp: z.enum(['allow', 'ask', 'deny']),
+  permAgents: z.enum(['allow', 'ask', 'deny']),
 });
 
 export type AgentModeFields = z.infer<typeof agentModeSchema>;
@@ -21,6 +27,9 @@ export type AgentModeFields = z.infer<typeof agentModeSchema>;
 export const agentModesSchema = z.array(agentModeSchema).superRefine((modes, ctx) => {
   const seen = new Set<string>();
   modes.forEach((mode, index) => {
+    if (mode.id === DEFAULT_MODE_ID) {
+      ctx.addIssue({ code: 'custom', path: [index, 'id'], message: 'id "default" is reserved' });
+    }
     if (seen.has(mode.id)) {
       ctx.addIssue({ code: 'custom', path: [index, 'id'], message: 'Duplicate mode id' });
     }
@@ -42,6 +51,7 @@ export function modeToFields(mode: AgentMode): AgentModeFields {
     permProcess: mode.permissions?.process ?? FALLBACK_GATE,
     permNetwork: mode.permissions?.network ?? FALLBACK_GATE,
     permMcp: mode.permissions?.mcp ?? FALLBACK_GATE,
+    permAgents: mode.permissions?.agents ?? FALLBACK_GATE,
   };
 }
 
@@ -58,6 +68,7 @@ export function fieldsToMode(fields: AgentModeFields): AgentMode {
       process: fields.permProcess,
       network: fields.permNetwork,
       mcp: fields.permMcp,
+      agents: fields.permAgents,
     },
   };
 }

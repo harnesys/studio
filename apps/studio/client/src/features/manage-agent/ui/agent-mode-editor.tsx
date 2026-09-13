@@ -23,14 +23,15 @@ type AgentModeEditorProps = {
 };
 
 const GATES: {
-  name: 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp';
+  name: 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp' | 'permAgents';
   label: string;
   op: ModeOp;
 }[] = [
   { name: 'permWrite', label: 'File writes', op: 'fs.write' },
   { name: 'permProcess', label: 'Shell', op: 'process' },
   { name: 'permNetwork', label: 'Network', op: 'network' },
-  { name: 'permMcp', label: 'MCP', op: 'mcp' },
+  { name: 'permMcp', label: 'MCP tools', op: 'mcp' },
+  { name: 'permAgents', label: 'Create agents', op: 'agents' },
 ];
 
 const GATE_SEVERITY: Record<PermissionGate, number> = { allow: 0, ask: 1, deny: 2 };

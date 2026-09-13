@@ -18,6 +18,9 @@ export function requireAgent(agents: AgentRepository, workspaceId: string, agent
 export function validateModeIds(modes: AgentMode[]): void {
   const ids = new Set<string>();
   for (const mode of modes) {
+    if (mode.id === DEFAULT_MODE_ID) {
+      throw new ValidationError('mode id "default" is reserved');
+    }
     if (ids.has(mode.id)) {
       throw new ValidationError(`duplicate mode id: ${mode.id}`);
     }

@@ -13,16 +13,12 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { toast } from '@/shared/ui/toast';
-import type { AgentConfigResult } from '../model/agent-config';
-import { createAgent } from '../model/create-agent';
-import { agentDraftFromPreset } from '../model/create-agent-from-preset';
+import { createAgentFromPreset } from '../model/create-agent-from-preset';
 import { deleteAgent } from '../model/delete-agent';
-import { updateAgentCapabilities } from '../model/update-agent';
 
 type AgentSubagentsPaneProps = {
   workspaceId: string;
   parentId: string;
-  openAgentDialog: (agent: Agent | null, workspaceId: string) => Promise<AgentConfigResult | null>;
   onConfigure: (agent: Agent) => void;
   onConfirmDelete: (agent: Agent) => Promise<boolean>;
 };
@@ -30,7 +26,6 @@ type AgentSubagentsPaneProps = {
 export function AgentSubagentsPane({
   workspaceId,
   parentId,
-  openAgentDialog,
   onConfigure,
   onConfirmDelete,
 }: AgentSubagentsPaneProps) {
@@ -44,27 +39,17 @@ export function AgentSubagentsPane({
   });
   const presets = presetsQuery.data ?? [];
 
-  const addFromPreset = (presetId: string) => {
-    const preset = presets.find((item) => item.id === presetId);
-    if (!preset) {
-      return;
+  const addFromPreset = async (presetId: string) => {
+    try {
+      const result = await createAgentFromPreset(workspaceId, presetId, { parentId });
+      if (result) {
+        toast.add({ title: 'Subagent added' });
+      }
+    } catch (error) {
+      toast.add({
+        title: error instanceof Error ? error.message : 'Could not add subagent',
+      });
     }
-    void openAgentDialog(agentDraftFromPreset(preset), workspaceId).then(async (result) => {
-      if (!result) {
-        return;
-      }
-      try {
-        const created = await createAgent(workspaceId, { ...result.fields, parentId });
-        if (created) {
-          await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
-          toast.add({ title: 'Subagent added' });
-        }
-      } catch (error) {
-        toast.add({
-          title: error instanceof Error ? error.message : 'Could not add subagent',
-        });
-      }
-    });
   };
 
   return (
@@ -86,7 +71,12 @@ export function AgentSubagentsPane({
               </DropdownMenuItem>
             ) : (
               presets.map((preset) => (
-                <DropdownMenuItem key={preset.id} onClick={() => addFromPreset(preset.id)}>
+                <DropdownMenuItem
+                  key={preset.id}
+                  onClick={() => {
+                    void addFromPreset(preset.id);
+                  }}
+                >
                   <SparklesIcon className="size-3" />
                   {preset.name}
                 </DropdownMenuItem>

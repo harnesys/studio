@@ -9,6 +9,7 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
+import type { PermissionMap } from 'harnesys';
 import { apiJson } from './client';
 
 export type CreateAgentInput = {
@@ -27,6 +28,8 @@ export type CreateAgentInput = {
   tools?: string[];
   graph?: AgentGraph;
   capabilities?: Record<string, PackConfig | null>;
+  permissions?: PermissionMap | null;
+  color?: string | null;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
@@ -48,6 +51,8 @@ export type UpdateAgentInput = {
   tools?: string[];
   graph?: AgentGraph;
   capabilities?: Record<string, PackConfig | null>;
+  permissions?: PermissionMap | null;
+  color?: string | null;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
@@ -64,6 +69,7 @@ export type AgentPresetRecord = {
   mcpServers?: string[];
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  permissions?: PermissionMap | null;
   graph?: AgentGraph;
 };
 

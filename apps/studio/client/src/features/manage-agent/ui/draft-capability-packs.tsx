@@ -9,10 +9,13 @@ import { PackSettingsFields, packHasSettings } from './pack-settings';
 
 export function DraftCapabilityPacks({
   workspaceId,
+  isDelegate,
   value,
   onChange,
 }: {
   workspaceId: string;
+  /** Delegates cannot spawn: hide the `agents` pack. */
+  isDelegate: boolean;
   value: Record<string, PackConfig | null>;
   onChange: (next: Record<string, PackConfig | null>) => void;
 }) {
@@ -22,7 +25,9 @@ export function DraftCapabilityPacks({
     ...workspaceCapabilitiesQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
-  const catalog = (query.data?.capabilities ?? []).filter((pack) => !pack.name.endsWith('-memory'));
+  const catalog = (query.data?.capabilities ?? [])
+    .filter((pack) => !pack.name.endsWith('-memory'))
+    .filter((pack) => !(isDelegate && pack.name === 'agents'));
 
   function commit(next: Record<string, PackConfig | null>) {
     setPacks(next);

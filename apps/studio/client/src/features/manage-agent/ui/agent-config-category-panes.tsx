@@ -1,11 +1,11 @@
 import type { MutableRefObject } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
+import { Controller, type UseFormReturn } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { cn } from '@/shared/lib/utils';
 import { alert } from '@/shared/services/overlay';
 import { Pane } from '@/shared/ui/capability-rows';
 
-import type { AgentCapabilitiesDraft, AgentConfigResult } from '../model/agent-config';
+import type { AgentCapabilitiesDraft } from '../model/agent-config';
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 import type { StudioGraphDocument } from '../model/agent-graph-document';
 import type { AgentConfigCategory } from './agent-config-nav';
@@ -13,6 +13,7 @@ import { AgentIdentityPane, AgentLimitsPane, AgentModelPane } from './agent-conf
 import { AgentGraphPane } from './agent-graph-pane';
 import { AgentHooksPane } from './agent-hooks-pane';
 import { AgentModesPane } from './agent-modes-pane';
+import { AgentPermissionsPane } from './agent-permissions-pane';
 import { AgentSubagentsPane } from './agent-subagents-pane';
 import { DraftCapabilities, type DraftCapabilitiesSection } from './draft-capabilities';
 import { DraftCapabilityPacks } from './draft-capability-packs';
@@ -29,12 +30,12 @@ type AgentConfigCategoryPanesProps = {
   workspaceId: string;
   activeAgent: Agent | null;
   showSubagents: boolean;
+  isDelegate: boolean;
   graphDoc: StudioGraphDocument;
   graphDocRef: MutableRefObject<StudioGraphDocument>;
   graphTouchedRef: MutableRefObject<boolean>;
   setGraphDoc: (next: StudioGraphDocument) => void;
   capabilitiesRef: MutableRefObject<AgentCapabilitiesDraft>;
-  openAgentDialog: (agent: Agent | null, workspaceId: string) => Promise<AgentConfigResult | null>;
   onOpenSubagent: (agent: Agent) => void;
 };
 
@@ -44,12 +45,12 @@ export function AgentConfigCategoryPanes({
   workspaceId,
   activeAgent,
   showSubagents,
+  isDelegate,
   graphDoc,
   graphDocRef,
   graphTouchedRef,
   setGraphDoc,
   capabilitiesRef,
-  openAgentDialog,
   onOpenSubagent,
 }: AgentConfigCategoryPanesProps) {
   return (
@@ -76,6 +77,19 @@ export function AgentConfigCategoryPanes({
       >
         <AgentModelPane form={form} />
       </Pane>
+      <div className={cn(category !== 'permissions' && 'hidden')}>
+        <Controller
+          control={form.control}
+          name="permissions"
+          render={({ field }) => (
+            <AgentPermissionsPane
+              value={field.value ?? null}
+              isDelegate={isDelegate}
+              onChange={(next) => field.onChange(next)}
+            />
+          )}
+        />
+      </div>
       <div className={cn(category !== 'modes' && 'hidden')}>
         <AgentModesPane
           form={form}
@@ -90,6 +104,7 @@ export function AgentConfigCategoryPanes({
             <DraftCapabilityPacks
               key={`packs-${activeAgent?.id ?? 'new'}`}
               workspaceId={workspaceId}
+              isDelegate={isDelegate}
               value={activeAgent?.capabilities ?? {}}
               onChange={(capabilities) => {
                 capabilitiesRef.current = { ...capabilitiesRef.current, capabilities };
@@ -153,7 +168,6 @@ export function AgentConfigCategoryPanes({
           <AgentSubagentsPane
             workspaceId={workspaceId}
             parentId={activeAgent.id}
-            openAgentDialog={openAgentDialog}
             onConfigure={onOpenSubagent}
             onConfirmDelete={(delegate) =>
               alert.confirm({

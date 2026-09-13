@@ -41,6 +41,8 @@ export async function updateAgent(workspaceId: string, agentId: string, draft: A
     defaultModeId: draft.defaultModeId ?? null,
     ...(draft.compaction !== undefined ? { compaction: draft.compaction } : {}),
     ...(draft.capabilities !== undefined ? { capabilities: draft.capabilities } : {}),
+    ...(draft.permissions !== undefined ? { permissions: draft.permissions } : {}),
+    ...(draft.color !== undefined ? { color: draft.color } : {}),
     ...(draft.graph !== undefined ? { graph: draft.graph } : {}),
   });
   const next = toClientAgent(record);

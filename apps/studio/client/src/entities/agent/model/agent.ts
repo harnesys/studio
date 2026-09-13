@@ -8,6 +8,7 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
+import type { PermissionMap } from 'harnesys';
 
 export const AGENT_STATUSES = ['idle', 'running', 'waiting', 'error', 'offline'] as const;
 
@@ -32,6 +33,10 @@ export type Agent = {
   tools: string[];
   graph: AgentGraph;
   capabilities: Record<string, PackConfig | null>;
+  /** Base permission map (mode ceiling / spawn base); null = DEFAULT_PERMISSIONS. */
+  permissions: PermissionMap | null;
+  /** Card color (CC palette); null = host default. */
+  color: string | null;
   /** Declarative hook bindings for this agent; empty = none. */
   hooks: HooksBinding[];
   /** Per-agent plugin enable overrides; full map when set (sparse map disables the rest). */
@@ -59,6 +64,8 @@ export type AgentDraft = {
   compaction?: PortRef;
   capabilities?: Record<string, PackConfig | null>;
   graph?: AgentGraph;
+  permissions?: PermissionMap | null;
+  color?: string | null;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;

@@ -9,6 +9,7 @@ import type {
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
 import { filterGenerationSettings, withChatGenerationParameters } from '@harnesys/studio-shared';
+import type { PermissionMap } from 'harnesys';
 import { z } from 'zod';
 
 import { agentModesSchema, fieldsToMode, modeToFields } from './agent-mode-fields';
@@ -50,6 +51,11 @@ export const agentFieldsSchema = z.object({
   budgetPolicy: z.enum(['ask', 'error']),
   defaultModeId: z.string().nullable(),
   modes: agentModesSchema,
+  permissions: z
+    .record(z.string(), z.enum(['allow', 'ask', 'deny']))
+    .nullable()
+    .optional(),
+  color: z.string().nullable().optional(),
 });
 
 export type AgentFieldsInput = z.input<typeof agentFieldsSchema>;
@@ -97,6 +103,8 @@ export function emptyAgentFields(): AgentFieldsInput {
     budgetPolicy: 'ask',
     defaultModeId: null,
     modes: [],
+    permissions: null,
+    color: null,
   };
 }
 
@@ -111,6 +119,8 @@ export function agentFieldsFrom(agent: {
   budget?: AgentBudget | null;
   defaultModeId?: string | null;
   modes?: AgentMode[];
+  permissions?: PermissionMap | null;
+  color?: string | null;
 }): AgentFieldsInput {
   return {
     name: agent.name,
@@ -120,6 +130,8 @@ export function agentFieldsFrom(agent: {
     effort: agent.effort ?? null,
     defaultModeId: agent.defaultModeId ?? null,
     modes: (agent.modes ?? []).map(modeToFields),
+    permissions: agent.permissions ?? null,
+    color: agent.color ?? null,
     temperature: stringify(agent.generation?.temperature),
     topP: stringify(agent.generation?.topP),
     topK: stringify(agent.generation?.topK),
@@ -155,6 +167,8 @@ export function toAgentDraft(
   capabilities?: Record<string, PackConfig | null>;
   defaultModeId: string | null;
   modes: AgentMode[];
+  permissions: PermissionMap | null;
+  color: string | null;
 } {
   const generation = compactGeneration({
     temperature: values.temperature,
@@ -199,6 +213,8 @@ export function toAgentDraft(
     }),
     budget,
     capabilities,
+    permissions: values.permissions ?? null,
+    color: values.color ?? null,
   };
 }
 

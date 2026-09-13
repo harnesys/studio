@@ -96,9 +96,12 @@ export function AgentConfigDialog({
   const returnParent =
     storeReturnParent ?? (returnParentId && returnParentId === rootAgent?.id ? rootAgent : null);
   const showSubagents = Boolean(activeAgent && !activeAgent.parentId && activeAgent.id !== '');
-  const navCategories = showSubagents
-    ? AGENT_CONFIG_CATEGORIES
-    : AGENT_CONFIG_CATEGORIES.filter((item) => item.id !== 'subagents');
+  const isDelegate = Boolean(activeAgent?.parentId);
+  const navCategories = AGENT_CONFIG_CATEGORIES.filter(
+    (item) =>
+      !(isDelegate && (item.id === 'modes' || item.id === 'hooks' || item.id === 'subagents')) &&
+      !(item.id === 'subagents' && !showSubagents),
+  );
 
   useEffect(() => {
     patchOverlayOptions({
@@ -264,12 +267,12 @@ export function AgentConfigDialog({
             workspaceId={workspaceId}
             activeAgent={activeAgent}
             showSubagents={showSubagents}
+            isDelegate={isDelegate}
             graphDoc={graphDoc}
             graphDocRef={graphDocRef}
             graphTouchedRef={graphTouchedRef}
             setGraphDoc={setGraphDoc}
             capabilitiesRef={capabilitiesRef}
-            openAgentDialog={openAgentConfigDialog}
             onOpenSubagent={(delegate) => {
               void openSubagent(delegate);
             }}

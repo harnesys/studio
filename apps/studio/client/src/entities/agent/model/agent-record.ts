@@ -27,6 +27,8 @@ export function toClientAgent(record: AgentRecord): Agent {
     tools: record.tools ?? [],
     graph: record.graph ?? { nodes: {}, edges: [] },
     capabilities: record.capabilities ?? {},
+    permissions: record.permissions ?? null,
+    color: record.color ?? null,
     hooks: record.hooks ?? [],
     enabledPlugins: record.enabledPlugins ?? {},
     defaultModeId: record.defaultModeId ?? null,

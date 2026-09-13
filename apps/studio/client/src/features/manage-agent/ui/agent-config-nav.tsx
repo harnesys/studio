@@ -10,6 +10,7 @@ import {
   type LucideIcon,
   PuzzleIcon,
   ServerIcon,
+  ShieldCheckIcon,
   SlidersHorizontalIcon,
   UserRoundIcon,
   WebhookIcon,
@@ -20,6 +21,7 @@ import { cn } from '@/shared/lib/utils';
 export type AgentConfigCategory =
   | 'identity'
   | 'model'
+  | 'permissions'
   | 'modes'
   | 'capabilities'
   | 'compaction'
@@ -39,6 +41,7 @@ export type AgentConfigNavItem = {
 export const AGENT_CONFIG_CATEGORIES: AgentConfigNavItem[] = [
   { id: 'identity', label: 'Identity', icon: UserRoundIcon },
   { id: 'model', label: 'Model', icon: CpuIcon },
+  { id: 'permissions', label: 'Permissions', icon: ShieldCheckIcon },
   { id: 'modes', label: 'Modes', icon: SlidersHorizontalIcon },
   { id: 'graph', label: 'Graph', icon: WorkflowIcon },
   { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },

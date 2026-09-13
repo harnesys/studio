@@ -13,4 +13,5 @@ export {
   statusTone,
 } from './model/agent';
 export { useAgentStore } from './model/agent.store';
+export { AGENT_COLOR_CLASSES, agentColorClass } from './model/agent-colors';
 export { toClientAgent } from './model/agent-record';

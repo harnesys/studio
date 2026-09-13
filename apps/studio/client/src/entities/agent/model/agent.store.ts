@@ -45,6 +45,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       tools: [],
       graph: draft.graph ?? { nodes: {}, edges: [] },
       capabilities: draft.capabilities ?? {},
+      permissions: draft.permissions ?? null,
+      color: draft.color ?? null,
       hooks: draft.hooks ?? [],
       enabledPlugins: draft.enabledPlugins ?? {},
       defaultModeId: draft.defaultModeId ?? null,

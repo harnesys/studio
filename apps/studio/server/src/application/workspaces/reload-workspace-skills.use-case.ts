@@ -2,6 +2,7 @@ import type { WorkspaceSkill } from '@harnesys/studio-shared';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
+import { collectWorkspaceSkills } from './list-workspace-skills.use-case.ts';
 
 export type ReloadWorkspaceSkillsRequest = {
   workspaceId: string;
@@ -28,12 +29,7 @@ export class ReloadWorkspaceSkillsUseCase implements ReloadWorkspaceSkillsInput 
     }
     await this.workspaceHarnesys.invalidate(workspace.id);
     const hx = await this.workspaceHarnesys.get(workspace);
-    return {
-      skills: (await hx.skills.list()).map((skill) => ({
-        name: skill.name,
-        description: skill.description,
-        whenToUse: skill.whenToUse,
-      })),
-    };
+    const plugins = await this.workspaceHarnesys.loadEnabledPlugins(workspace.id);
+    return { skills: await collectWorkspaceSkills(hx, plugins) };
   }
 }

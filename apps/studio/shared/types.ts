@@ -30,11 +30,7 @@ export {
   MODEL_FEATURES,
 } from './src/catalog.ts';
 
-import type {
-  ScheduleHistory,
-  McpResourceInfo as WorkspaceMcpResource,
-  ToolCatalogEntry as WorkspaceTool,
-} from 'harnesys';
+import type { ScheduleHistory } from 'harnesys';
 import { SCHEDULE_HISTORIES } from 'harnesys/domain';
 import type { ThreadPlanRecord } from './src/plan-types.ts';
 import type { ThreadRecord as ThreadRecordType } from './src/thread.ts';
@@ -111,6 +107,7 @@ export type {
   AddPluginRegistryRequest,
   ApprovePluginServerRequest,
   CatalogInstallSource,
+  ComponentOrigin,
   ComponentSource,
   ComponentStatus,
   EnableWorkspacePluginRequest,
@@ -169,6 +166,14 @@ export { THREAD_KINDS, threadsForAgent } from './src/thread.ts';
 export type { TranscriptItem } from './src/transcript.ts';
 export { toTranscript } from './src/transcript.ts';
 export { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from './src/webhook-prompt.ts';
+export type {
+  CreateWorkspaceSkillRequest,
+  UpsertWorkspaceMcpServerRequest,
+  WorkspaceMcpConfigServer,
+  WorkspaceMcpServer,
+  WorkspaceMcpTransport,
+  WorkspaceSkill,
+} from './src/workspace-config.ts';
 
 export type AttachmentKind = 'image' | 'audio' | 'video' | 'file';
 
@@ -241,53 +246,6 @@ export type WebhookRecord = {
 export type CreateWebhookResponse = {
   webhook: WebhookRecord;
   thread: ThreadRecordType;
-};
-export type WorkspaceSkill = {
-  name: string;
-  description: string;
-  whenToUse?: string;
-};
-
-export type CreateWorkspaceSkillRequest = {
-  name: string;
-  description: string;
-  whenToUse?: string;
-  instructions: string;
-};
-
-export type WorkspaceMcpTransport = 'stdio' | 'http' | 'sse';
-
-export type WorkspaceMcpServer = {
-  serverId: string;
-  transport: WorkspaceMcpTransport;
-  connected: boolean;
-  toolCount: number;
-  tools: WorkspaceTool[];
-  resources: WorkspaceMcpResource[];
-};
-
-/** Editable `.harnesys/mcp.json` entry merged with live connection status. */
-export type WorkspaceMcpConfigServer = {
-  serverId: string;
-  enabled: boolean;
-  transport: WorkspaceMcpTransport;
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  url?: string;
-  headers?: Record<string, string>;
-  connected: boolean;
-  toolCount: number;
-};
-
-export type UpsertWorkspaceMcpServerRequest = {
-  enabled?: boolean;
-  transport: WorkspaceMcpTransport;
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  url?: string;
-  headers?: Record<string, string>;
 };
 
 export type WorkspaceRecord = {

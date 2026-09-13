@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+
 import { groupTools } from '@/entities/tool-catalog';
-import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
 import {
   type WorkspaceTool,
   workspaceCapabilitiesQuery,
@@ -9,6 +9,8 @@ import {
   workspaceToolsQuery,
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
+
+import { Row, RowHeader, RowItem, RowList, RowSection } from './capability-rows';
 
 export function ToolsPane() {
   const { workspaceId } = useStudioLocation();
@@ -34,93 +36,81 @@ export function ToolsPane() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const loading = query.isPending || mcpConfigQuery.isPending || capabilitiesQuery.isPending;
+  const total = packs.length + groups.length;
 
   function toggle(id: string) {
     setExpandedId((current) => (current === id ? null : id));
   }
 
   return (
-    <div className="flex flex-col gap-4" data-testid="tools-pane">
+    <div className="flex flex-col gap-2" data-testid="tools-pane">
       {loading && <p className="text-muted-foreground text-sm">Loading packages…</p>}
       {!loading &&
-        (packs.length === 0 && groups.length === 0 ? (
+        (total === 0 ? (
           <p className="text-muted-foreground text-sm">No packages available.</p>
         ) : (
-          <div className="flex flex-col gap-1">
-            {packs.map((pack) => {
-              const id = `pack:${pack.name}`;
-              return (
-                <ConfigEntityCard
-                  key={id}
-                  title={pack.name}
-                  badge="pack"
-                  description={pack.description}
-                  initials={initialsFromLabel(pack.name)}
-                  expanded={expandedId === id}
-                  onClick={() => toggle(id)}
-                >
-                  <div className="flex flex-col gap-2" data-testid={`package-${pack.name}`}>
-                    <ToolRows label={`${pack.tools.length} tools`} tools={pack.tools} />
-                    {pack.skills.length > 0 ? <SkillRows skills={pack.skills} /> : null}
-                  </div>
-                </ConfigEntityCard>
-              );
-            })}
-            {groups.map((group) => {
-              const id = `group:${group.id}`;
-              return (
-                <ConfigEntityCard
-                  key={id}
-                  title={group.label}
-                  badge={`${group.tools.length} tools`}
-                  description={group.hint ?? group.tools.map((tool) => tool.name).join(', ')}
-                  initials={initialsFromLabel(group.label)}
-                  expanded={expandedId === id}
-                  onClick={() => toggle(id)}
-                >
-                  <div className="flex flex-col gap-2" data-testid={`package-${group.id}`}>
-                    <ToolRows label={`${group.tools.length} tools`} tools={group.tools} />
-                  </div>
-                </ConfigEntityCard>
-              );
-            })}
-          </div>
+          <>
+            <RowHeader label="Packages" count={total} />
+            <RowList>
+              {packs.map((pack) => {
+                const id = `pack:${pack.name}`;
+                return (
+                  <Row
+                    key={id}
+                    testId={`package-${pack.name}`}
+                    title={pack.name}
+                    meta="pack"
+                    summary={pack.description}
+                    onToggle={() => toggle(id)}
+                    expanded={expandedId === id}
+                  >
+                    <RowSection label="Tools" count={pack.tools.length}>
+                      {pack.tools.map((tool) => (
+                        <ToolItem key={tool.name} tool={tool} />
+                      ))}
+                    </RowSection>
+                    {pack.skills.length > 0 ? (
+                      <RowSection label="Skills" count={pack.skills.length}>
+                        {pack.skills.map((skill) => (
+                          <p
+                            key={skill}
+                            className="truncate px-1 font-mono text-[12px] leading-snug"
+                          >
+                            {skill}
+                          </p>
+                        ))}
+                      </RowSection>
+                    ) : null}
+                  </Row>
+                );
+              })}
+              {groups.map((group) => {
+                const id = `group:${group.id}`;
+                return (
+                  <Row
+                    key={id}
+                    testId={`package-${group.id}`}
+                    title={group.label}
+                    meta={`${group.tools.length} tools`}
+                    summary={group.hint ?? group.tools.map((tool) => tool.name).join(', ')}
+                    onToggle={() => toggle(id)}
+                    expanded={expandedId === id}
+                  >
+                    <RowSection label="Tools" count={group.tools.length}>
+                      {group.tools.map((tool) => (
+                        <ToolItem key={tool.name} tool={tool} />
+                      ))}
+                    </RowSection>
+                  </Row>
+                );
+              })}
+            </RowList>
+          </>
         ))}
     </div>
   );
 }
 
-function ToolRows({ label, tools }: { label: string; tools: WorkspaceTool[] }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-        {label}
-      </p>
-      {tools.map((tool) => (
-        <div key={tool.name} className="min-w-0 px-1 py-0.5" data-testid={`tool-${tool.name}`}>
-          <p className="truncate font-mono text-[12px] leading-snug">{tool.name}</p>
-          {tool.description ? (
-            <p className="line-clamp-2 text-[11px] text-muted-foreground leading-snug">
-              {tool.description}
-            </p>
-          ) : null}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SkillRows({ skills }: { skills: string[] }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-        Skills
-      </p>
-      {skills.map((skill) => (
-        <p key={skill} className="truncate px-1 font-mono text-[12px] leading-snug">
-          {skill}
-        </p>
-      ))}
-    </div>
-  );
+function ToolItem({ tool }: { tool: WorkspaceTool }) {
+  return <RowItem testId={`tool-${tool.name}`} title={tool.name} description={tool.description} />;
 }

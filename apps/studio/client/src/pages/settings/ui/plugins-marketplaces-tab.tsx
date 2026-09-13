@@ -2,7 +2,6 @@ import type { PluginRegistrySummary } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 
-import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
 import { confirmRemoveRegistry, openAddRegistryDialog } from '@/features/manage-plugins';
 import {
   pluginCatalogQueryKey,
@@ -14,6 +13,8 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
+
+import { Row, RowChip, RowHeader, RowList } from './capability-rows';
 
 export function PluginsMarketplacesTab() {
   const queryClient = useQueryClient();
@@ -48,29 +49,29 @@ export function PluginsMarketplacesTab() {
   });
 
   return (
-    <div className="flex flex-col gap-4" data-testid="plugins-marketplaces-tab">
-      <div className="flex h-8 items-center gap-1">
-        <p className="font-medium text-sm">Marketplaces</p>
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            onClick={() => {
-              void openAddRegistryDialog().then(async (registry) => {
-                if (!registry) {
-                  return;
-                }
-                await invalidate();
-                toast.add({ title: 'Marketplace added', description: registry.name });
-              });
-            }}
-          >
-            <PlusIcon />
-            Add
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-2" data-testid="plugins-marketplaces-tab">
+      <RowHeader
+        label="Marketplaces"
+        count={registriesQuery.isPending ? undefined : items.length}
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={() => {
+            void openAddRegistryDialog().then(async (registry) => {
+              if (!registry) {
+                return;
+              }
+              await invalidate();
+              toast.add({ title: 'Marketplace added', description: registry.name });
+            });
+          }}
+        >
+          <PlusIcon />
+          Add
+        </Button>
+      </RowHeader>
 
       {registriesQuery.isPending && (
         <p className="text-muted-foreground text-sm">Loading marketplaces…</p>
@@ -87,7 +88,7 @@ export function PluginsMarketplacesTab() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-1">
+          <RowList>
             {items.map((item) => (
               <RegistryRow
                 key={item.id}
@@ -103,20 +104,22 @@ export function PluginsMarketplacesTab() {
                 }}
               />
             ))}
-          </div>
+          </RowList>
         ))}
     </div>
   );
 }
 
-function registryStatus(item: PluginRegistrySummary): string {
+function registryStatus(item: PluginRegistrySummary): {
+  chip: { label: string; tone: 'neutral' | 'accent' | 'danger' };
+} {
   if (item.lastError) {
-    return 'error';
+    return { chip: { label: 'error', tone: 'danger' } };
   }
   if (item.lastSyncAt) {
-    return 'synced';
+    return { chip: { label: 'synced', tone: 'neutral' } };
   }
-  return 'pending';
+  return { chip: { label: 'pending', tone: 'neutral' } };
 }
 
 function RegistryRow({
@@ -130,41 +133,37 @@ function RegistryRow({
   onRefresh: () => void;
   onRemove: () => void;
 }) {
-  const description = item.lastError ? `${item.source} · ${item.lastError}` : item.source;
+  const { chip } = registryStatus(item);
   return (
-    <div data-testid={`registry-${item.id}`}>
-      <ConfigEntityCard
-        title={item.name}
-        badge={item.kind}
-        statusBadge={registryStatus(item)}
-        description={description}
-        initials={initialsFromLabel(item.name)}
-        monoTitle
-        trailing={
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground"
-              disabled={busy}
-              onClick={onRefresh}
-            >
-              <RefreshCwIcon />
-              Refresh
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="opacity-70"
-              aria-label={`Remove ${item.name}`}
-              disabled={busy}
-              onClick={onRemove}
-            >
-              <Trash2Icon />
-            </Button>
-          </>
-        }
-      />
-    </div>
+    <Row
+      testId={`registry-${item.id}`}
+      title={item.name}
+      meta={item.kind}
+      summary={item.lastError ? `${item.source} — ${item.lastError}` : item.source}
+      chips={<RowChip tone={chip.tone}>{chip.label}</RowChip>}
+      actions={
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            disabled={busy}
+            onClick={onRefresh}
+          >
+            <RefreshCwIcon />
+            Refresh
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label={`Remove ${item.name}`}
+            disabled={busy}
+            onClick={onRemove}
+          >
+            <Trash2Icon />
+          </Button>
+        </>
+      }
+    />
   );
 }

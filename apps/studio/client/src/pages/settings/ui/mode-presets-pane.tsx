@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
-import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
 import {
   createModePreset,
   deleteModePreset,
@@ -20,6 +19,7 @@ import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
 
+import { Row, RowChip, RowHeader, RowList } from './capability-rows';
 import type { ModePresetDraft } from './mode-preset-draft';
 import { ModePresetEditor } from './mode-preset-editor';
 
@@ -131,25 +131,24 @@ export function ModePresetsPane() {
   const draft = editing?.kind === 'draft' ? editing : null;
 
   return (
-    <div className="flex flex-col gap-4" data-testid="mode-presets-pane">
-      <div className="flex h-8 items-center gap-1">
-        <p className="font-medium text-sm">Catalog</p>
-        <div className="ml-auto">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            disabled={create.isPending}
-            onClick={() => setEditing({ kind: 'draft', preset: null })}
-            data-testid="mode-presets-create"
-          >
-            <PlusIcon />
-            New preset
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-2" data-testid="mode-presets-pane">
+      <RowHeader label="Presets" count={presetsQuery.isPending ? undefined : presets.length}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={create.isPending}
+          onClick={() => setEditing({ kind: 'draft', preset: null })}
+          data-testid="mode-presets-create"
+        >
+          <PlusIcon />
+          New preset
+        </Button>
+      </RowHeader>
 
-      {presetsQuery.isPending && <p className="text-muted-foreground text-sm">Loading presets…</p>}
+      {presetsQuery.isPending && (
+        <p className="text-muted-foreground text-sm">Loading presets…</p>
+      )}
       {!presetsQuery.isPending &&
         (presets.length === 0 && !draft ? (
           <Empty className="min-h-0 border-0 py-8">
@@ -161,54 +160,68 @@ export function ModePresetsPane() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-1">
+          <RowList>
             {presets.map((preset) => {
               const expanded = editing?.kind === 'edit' && editing.preset.id === preset.id;
+              const counts = [
+                (preset.skills?.length ?? 0) > 0 ? `${preset.skills?.length} skills` : null,
+                (preset.packs?.length ?? 0) > 0 ? `${preset.packs?.length} packs` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ');
               return (
                 <div key={preset.id} data-testid={`mode-preset-${preset.id}`}>
-                  <ConfigEntityCard
+                  <Row
                     title={preset.name}
-                    badge={preset.builtin ? 'built-in' : 'preset'}
-                    statusBadge={preset.installedByDefault ? 'By default' : undefined}
-                    description={preset.description || preset.id}
-                    initials={initialsFromLabel(preset.name || preset.id)}
+                    mono={false}
+                    meta={preset.builtin ? 'built-in' : undefined}
+                    chips={
+                      preset.installedByDefault ? (
+                        <RowChip tone="accent">default</RowChip>
+                      ) : null
+                    }
+                    summary={
+                      expanded
+                        ? undefined
+                        : [preset.description || preset.id, counts].filter(Boolean).join(' · ')
+                    }
+                    onToggle={() => toggleEdit(preset)}
                     expanded={expanded}
-                    onClick={() => toggleEdit(preset)}
-                    trailing={
-                      <>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          className="opacity-70"
-                          aria-label={`Duplicate ${preset.name}`}
-                          onClick={() =>
-                            setEditing({
-                              kind: 'draft',
-                              preset: {
-                                ...preset,
-                                id: `${preset.id}-copy`,
-                                builtin: false,
-                              },
-                            })
-                          }
-                          data-testid={`mode-preset-duplicate-${preset.id}`}
-                        >
-                          <CopyIcon />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          className="opacity-70"
-                          aria-label={`Delete ${preset.name}`}
-                          disabled={preset.builtin}
-                          onClick={() => confirmRemove(preset)}
-                          data-testid={`mode-preset-remove-${preset.id}`}
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      </>
+                    actions={
+                      expanded ? undefined : (
+                        <>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label={`Duplicate ${preset.name}`}
+                            onClick={() =>
+                              setEditing({
+                                kind: 'draft',
+                                preset: {
+                                  ...preset,
+                                  id: `${preset.id}-copy`,
+                                  builtin: false,
+                                },
+                              })
+                            }
+                            data-testid={`mode-preset-duplicate-${preset.id}`}
+                          >
+                            <CopyIcon />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label={`Delete ${preset.name}`}
+                            disabled={preset.builtin}
+                            onClick={() => confirmRemove(preset)}
+                            data-testid={`mode-preset-remove-${preset.id}`}
+                          >
+                            <Trash2Icon />
+                          </Button>
+                        </>
+                      )
                     }
                   >
                     {expanded ? (
@@ -226,19 +239,19 @@ export function ModePresetsPane() {
                         onCancel={() => setEditing(null)}
                       />
                     ) : null}
-                  </ConfigEntityCard>
+                  </Row>
                 </div>
               );
             })}
             {draft ? (
               <div data-testid="mode-preset-new">
-                <ConfigEntityCard
+                <Row
                   title={draft.preset ? `Copy of ${draft.preset.name}` : 'New preset'}
-                  badge="preset"
-                  description={draft.preset?.description}
-                  initials={initialsFromLabel(draft.preset?.name ?? 'new preset')}
+                  mono={false}
+                  meta="preset"
+                  summary={draft.preset?.description}
+                  onToggle={() => setEditing(null)}
                   expanded
-                  onClick={() => setEditing(null)}
                 >
                   <ModePresetEditor
                     preset={draft.preset}
@@ -250,10 +263,10 @@ export function ModePresetsPane() {
                     }
                     onCancel={() => setEditing(null)}
                   />
-                </ConfigEntityCard>
+                </Row>
               </div>
             ) : null}
-          </div>
+          </RowList>
         ))}
     </div>
   );

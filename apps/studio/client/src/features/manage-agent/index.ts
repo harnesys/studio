@@ -24,6 +24,7 @@ export {
   harnesysGraphOf,
   toFlow,
 } from './model/agent-graph-document';
+export { pluginStatusBadge, pluginStatusText } from './model/component-origin';
 export {
   type CreateAgentResult,
   createAgent,

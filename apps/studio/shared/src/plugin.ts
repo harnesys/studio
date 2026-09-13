@@ -18,6 +18,15 @@ export type {
 
 export type GrantClass = 'content' | 'process' | 'network';
 
+/**
+ * Владелец элемента конфигурации воркспейса: файл воркспейса или компонент
+ * включённого плагина. `status`/`inertReason` — статус компонента в IR-представлении
+ * с учётом grant-гейтинга; `needs_server_approval` приходит в `inertReason`.
+ */
+export type ComponentOrigin =
+  | { kind: 'workspace' }
+  | { kind: 'plugin'; pluginName: PluginName; status: ComponentStatus; inertReason?: string };
+
 export type PluginGrantSelection = Partial<Record<GrantClass, boolean>>;
 
 /** Granted classes per workspace id, as stored on the plugin record. */

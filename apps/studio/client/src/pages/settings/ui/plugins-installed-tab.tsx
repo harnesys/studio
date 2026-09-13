@@ -1,31 +1,52 @@
-import type { PluginDiagnostic, PluginListItem } from '@harnesys/studio-shared';
+import type {
+  GrantClass,
+  PluginDiagnostic,
+  PluginListItem,
+  PluginOptionValue,
+} from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronRightIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
+import { PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
+import { useState } from 'react';
 
 import {
+  changedOptionValues,
   confirmRemovePlugin,
+  grantedClasses,
   openEnablePluginDialog,
+  optionDrafts,
+  type PluginOptionDraft,
+  patchOptionDraft,
   openInstallPluginDialog,
-  openPluginDetailDrawer,
+  PluginComponentMatrix,
+  PluginGrantCheckboxes,
+  PluginOptionsFields,
 } from '@/features/manage-plugins';
 import {
+  approvePluginServer,
   listPlugins,
   pluginsQuery,
   pluginsQueryKey,
   removePlugin,
+  setPluginGrants,
+  setPluginOption,
   updatePlugin,
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
+
+import { Row, RowChip, RowField, RowHeader, RowList, RowSection } from './capability-rows';
+
+const SERVER_APPROVAL_REASON = 'needs_server_approval';
+const MCP_SERVER_KIND = 'mcp-server';
 
 export function PluginsInstalledTab() {
   const { workspaceId } = useStudioLocation();
   const queryClient = useQueryClient();
   const pluginsListQuery = useQuery(pluginsQuery());
   const items = pluginsListQuery.data ?? [];
+  const [expandedName, setExpandedName] = useState<string | null>(null);
 
   async function invalidatePlugins() {
     await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
@@ -64,39 +85,36 @@ export function PluginsInstalledTab() {
   const busy = update.isPending || remove.isPending;
 
   return (
-    <div className="flex flex-col gap-4" data-testid="plugins-installed-tab">
-      <div className="flex h-8 items-center gap-1">
-        <p className="font-medium text-sm">Installed</p>
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            disabled={reload.isPending}
-            onClick={() => reload.mutate()}
-          >
-            <RefreshCwIcon />
-            Reload
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            onClick={() => {
-              void openInstallPluginDialog().then(async (result) => {
-                if (!result) {
-                  return;
-                }
-                await invalidatePlugins();
-                toast.add({ title: 'Plugin installed', description: result.plugin.name });
-              });
-            }}
-          >
-            <PlusIcon />
-            Install from git
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-2" data-testid="plugins-installed-tab">
+      <RowHeader label="Installed" count={pluginsListQuery.isPending ? undefined : items.length}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={reload.isPending}
+          onClick={() => reload.mutate()}
+        >
+          <RefreshCwIcon />
+          Reload
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={() => {
+            void openInstallPluginDialog().then(async (result) => {
+              if (!result) {
+                return;
+              }
+              await invalidatePlugins();
+              toast.add({ title: 'Plugin installed', description: result.plugin.name });
+            });
+          }}
+        >
+          <PlusIcon />
+          Install from git
+        </Button>
+      </RowHeader>
 
       {pluginsListQuery.isPending && (
         <p className="text-muted-foreground text-sm">Loading plugins…</p>
@@ -113,148 +131,255 @@ export function PluginsInstalledTab() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-1">
-            {items.map((item) => (
-              <PluginRow
-                key={item.plugin.name}
-                item={item}
-                busy={busy}
-                canManage={Boolean(workspaceId)}
-                enabledHere={
-                  Boolean(workspaceId) &&
-                  item.plugin.enabledWorkspaceIds.includes(workspaceId ?? '')
-                }
-                onDetails={() => openPluginDetailDrawer(item, workspaceId ?? '')}
-                onEnable={() => {
-                  void openEnablePluginDialog(item.plugin, workspaceId ?? '').then(
-                    async (result) => {
-                      if (!result) {
-                        return;
-                      }
-                      await invalidatePlugins();
-                      toast.add({ title: 'Plugin enabled', description: result.name });
-                    },
-                  );
-                }}
-                onUpdate={() => update.mutate(item.plugin.name)}
-                onRemove={() => {
-                  void confirmRemovePlugin(item.plugin.name).then((confirmed) => {
-                    if (confirmed) {
-                      remove.mutate(item.plugin.name);
-                    }
-                  });
-                }}
-              />
-            ))}
-          </div>
+          <RowList>
+            {items.map((item) => {
+              const plugin = item.plugin;
+              const expanded = expandedName === plugin.name;
+              const enabledHere =
+                Boolean(workspaceId) && plugin.enabledWorkspaceIds.includes(workspaceId ?? '');
+              const inventory = `${plugin.skillCount} skills · ${plugin.hookCount} hooks · ${plugin.mcpServerCount} mcp · ${plugin.agentCount} agents · ${plugin.commandCount} commands`;
+              return (
+                <Row
+                  key={plugin.name}
+                  testId={`plugin-${plugin.name}`}
+                  title={plugin.name}
+                  meta={plugin.version}
+                  muted={!enabledHere}
+                  summary={inventory}
+                  chips={
+                    <>
+                      {enabledHere ? <RowChip tone="accent">here</RowChip> : null}
+                      <RowChip>{plugin.format === 'unknown' ? 'unattested' : plugin.format}</RowChip>
+                      <DiagnosticChip diagnostics={item.diagnostics} />
+                    </>
+                  }
+                  onToggle={() =>
+                    setExpandedName((current) => (current === plugin.name ? null : plugin.name))
+                  }
+                  expanded={expanded}
+                  actions={
+                    <>
+                      {workspaceId ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground"
+                          disabled={busy}
+                          onClick={() => {
+                            void openEnablePluginDialog(plugin, workspaceId).then(
+                              async (result) => {
+                                if (!result) {
+                                  return;
+                                }
+                                await invalidatePlugins();
+                                toast.add({ title: 'Plugin enabled', description: result.name });
+                              },
+                            );
+                          }}
+                        >
+                          {enabledHere ? 'Reconfigure' : 'Enable'}
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-muted-foreground"
+                        aria-label={`Update ${plugin.name}`}
+                        title={`Update ${plugin.name}`}
+                        disabled={busy}
+                        onClick={() => update.mutate(plugin.name)}
+                      >
+                        <RefreshCwIcon />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Remove ${plugin.name}`}
+                        disabled={busy}
+                        onClick={() => {
+                          void confirmRemovePlugin(plugin.name).then((confirmed) => {
+                            if (confirmed) {
+                              remove.mutate(plugin.name);
+                            }
+                          });
+                        }}
+                      >
+                        <Trash2Icon />
+                      </Button>
+                    </>
+                  }
+                >
+                  {expanded ? <PluginDetail item={item} workspaceId={workspaceId ?? ''} /> : null}
+                </Row>
+              );
+            })}
+          </RowList>
         ))}
     </div>
   );
 }
 
-function PluginRow({
-  item,
-  busy,
-  canManage,
-  enabledHere,
-  onDetails,
-  onEnable,
-  onUpdate,
-  onRemove,
-}: {
-  item: PluginListItem;
-  busy: boolean;
-  canManage: boolean;
-  enabledHere: boolean;
-  onDetails: () => void;
-  onEnable: () => void;
-  onUpdate: () => void;
-  onRemove: () => void;
-}) {
+/** Everything the drawer showed, now inline: source, components, grants, settings, diagnostics. */
+function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId: string }) {
   const plugin = item.plugin;
-  const diagnosticHint = diagnosticSummary(item.diagnostics);
+  const queryClient = useQueryClient();
+  const [grants, setGrants] = useState(() => plugin.grants[workspaceId] ?? {});
+  const [drafts, setDrafts] = useState<PluginOptionDraft[]>(() => optionDrafts(plugin));
+
+  const grantsMutation = useMutation({
+    mutationFn: (classes: GrantClass[]) => {
+      if (!workspaceId) {
+        throw new Error('No workspace');
+      }
+      return setPluginGrants(workspaceId, plugin.name, { classes });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (serverId: string) => approvePluginServer(plugin.name, { serverId }),
+    onSuccess: async (_result, serverId) => {
+      await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+      toast.add({ title: 'Server approved', description: serverId });
+    },
+  });
+
+  const optionsMutation = useMutation({
+    mutationFn: (changes: { key: string; value: PluginOptionValue }[]) => {
+      if (!workspaceId) {
+        throw new Error('No workspace');
+      }
+      return Promise.all(changes.map((change) => setPluginOption(workspaceId, plugin.name, change)));
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+      setDrafts((current) =>
+        current.map((draft) =>
+          draft.sensitive ? { ...draft, value: '' } : { ...draft, current: draft.value },
+        ),
+      );
+      toast.add({ title: 'Options saved' });
+    },
+  });
+
+  const busy = grantsMutation.isPending || approveMutation.isPending || optionsMutation.isPending;
+  const grantList = grantedClasses(grants);
+  const optionChanges = changedOptionValues(drafts);
 
   return (
-    <div
-      className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
-      data-testid={`plugin-${plugin.name}`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-sm">{plugin.name}</span>
-          {plugin.version ? (
-            <Badge variant="secondary" className="font-mono">
-              {plugin.version}
-            </Badge>
-          ) : null}
-          {plugin.format !== 'unknown' ? (
-            <Badge
-              variant="outline"
-              className="font-mono"
-              data-testid={`plugin-format-${plugin.name}`}
-            >
-              {plugin.format}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="font-mono">
-              unattested
-            </Badge>
-          )}
-        </div>
-        <p className="text-muted-foreground text-xs">
-          {plugin.skillCount} skills · {plugin.hookCount} hooks · {plugin.agentCount} agents ·{' '}
-          {plugin.commandCount} commands
-          {diagnosticHint ? ` · ${diagnosticHint}` : null}
+    <div className="flex flex-col pb-1" data-testid={`plugin-detail-${plugin.name}`}>
+      {plugin.description ? (
+        <p className="wrap-anywhere px-1 pt-1 text-muted-foreground text-xs leading-4">
+          {plugin.description}
         </p>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`Show details for ${plugin.name}`}
-        onClick={onDetails}
-      >
-        <ChevronRightIcon />
-      </Button>
-      {canManage ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
-          disabled={busy}
-          onClick={onEnable}
-        >
-          {enabledHere ? 'Reconfigure' : 'Enable'}
-        </Button>
       ) : null}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground"
-        disabled={busy}
-        onClick={onUpdate}
-      >
-        <RefreshCwIcon />
-        Update
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`Remove ${plugin.name}`}
-        disabled={busy}
-        onClick={onRemove}
-      >
-        <Trash2Icon />
-      </Button>
+
+      <RowSection label="Source">
+        <RowField label="git" value={plugin.source} />
+        <RowField
+          label="revision"
+          value={plugin.revision ? plugin.revision.slice(0, 12) : 'unknown'}
+        />
+        {plugin.registryId ? <RowField label="registry" value={plugin.registryId} /> : null}
+        <RowField
+          label="enabled"
+          value={
+            plugin.enabledWorkspaceIds.length > 0
+              ? plugin.enabledWorkspaceIds.join(', ')
+              : 'no workspace yet'
+          }
+        />
+      </RowSection>
+
+      <RowSection label="Components" count={plugin.components.length}>
+        <div className="px-1">
+          <PluginComponentMatrix
+            components={plugin.components}
+            renderAction={(component) =>
+              component.kind === MCP_SERVER_KIND &&
+              component.status === 'blocked_by_grant' &&
+              component.inertReason === SERVER_APPROVAL_REASON ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  disabled={busy}
+                  onClick={() => approveMutation.mutate(component.source.pointer)}
+                >
+                  Approve
+                </Button>
+              ) : null
+            }
+          />
+        </div>
+      </RowSection>
+
+      {workspaceId ? (
+        <RowSection label="Grants">
+          <div className="px-1">
+            <PluginGrantCheckboxes
+              selection={grants}
+              disabled={busy}
+              onChange={(next) => {
+                setGrants(next);
+                grantsMutation.mutate(grantedClasses(next));
+              }}
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {grantList.length > 0
+                ? `Allowed: ${grantList.join(', ')}. Blocked components go live once their class is granted.`
+                : 'Nothing allowed — content this plugin contributes stays inactive in this workspace.'}
+            </p>
+          </div>
+        </RowSection>
+      ) : null}
+
+      {drafts.length > 0 ? (
+        <RowSection label="Settings">
+          <div className="px-1">
+            <PluginOptionsFields
+              drafts={drafts}
+              onChange={(key, value) =>
+                setDrafts((current) => patchOptionDraft(current, key, value))
+              }
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2 self-start"
+              disabled={busy || optionChanges.length === 0}
+              onClick={() => optionsMutation.mutate(optionChanges)}
+            >
+              Save options
+            </Button>
+          </div>
+        </RowSection>
+      ) : null}
+
+      {item.diagnostics.length > 0 ? (
+        <RowSection label="Diagnostics" count={item.diagnostics.length}>
+          {item.diagnostics.map((diagnostic, index) => (
+            <DiagnosticLine
+              // biome-ignore lint/suspicious/noArrayIndexKey: display-only lines may repeat codes
+              key={`${diagnostic.level}:${diagnostic.code}:${index}`}
+              diagnostic={diagnostic}
+            />
+          ))}
+        </RowSection>
+      ) : null}
     </div>
   );
 }
 
-function diagnosticSummary(diagnostics: PluginDiagnostic[]): string | undefined {
-  if (diagnostics.length === 0) {
-    return undefined;
+function DiagnosticChip({ diagnostics }: { diagnostics: PluginDiagnostic[] }) {
+  const errors = diagnostics.filter((diagnostic) => diagnostic.level === 'error').length;
+  const warnings = diagnostics.length - errors;
+  if (errors === 0 && warnings === 0) {
+    return null;
   }
-  const errors = diagnostics.filter((item) => item.level === 'error').length;
-  const warnings = diagnostics.filter((item) => item.level === 'warning').length;
   const parts: string[] = [];
   if (errors > 0) {
     parts.push(`${errors} error${errors === 1 ? '' : 's'}`);
@@ -262,5 +387,27 @@ function diagnosticSummary(diagnostics: PluginDiagnostic[]): string | undefined 
   if (warnings > 0) {
     parts.push(`${warnings} warning${warnings === 1 ? '' : 's'}`);
   }
-  return parts.join(', ');
+  return <RowChip tone={errors > 0 ? 'danger' : 'accent'}>{parts.join(', ')}</RowChip>;
+}
+
+function DiagnosticLine({ diagnostic }: { diagnostic: PluginDiagnostic }) {
+  return (
+    <div className="flex min-w-0 gap-2 px-1 py-0.5">
+      <span
+        className={
+          diagnostic.level === 'error'
+            ? 'w-16 shrink-0 pt-px font-mono text-[11px] text-destructive'
+            : 'w-16 shrink-0 pt-px font-mono text-[11px] text-muted-foreground'
+        }
+      >
+        {diagnostic.level}
+      </span>
+      <span className="wrap-anywhere min-w-0 text-[12px] leading-snug">
+        {diagnostic.code} — {diagnostic.message}
+        {diagnostic.path ? (
+          <span className="text-muted-foreground"> · {diagnostic.path}</span>
+        ) : null}
+      </span>
+    </div>
+  );
 }

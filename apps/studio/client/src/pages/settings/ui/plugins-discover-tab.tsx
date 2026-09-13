@@ -9,12 +9,13 @@ import {
   pluginRegistriesQuery,
   pluginsQueryKey,
 } from '@/shared/api';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { toast } from '@/shared/ui/toast';
+
+import { Row, RowChip, RowList } from './capability-rows';
 
 const FORMAT_ALL = 'all';
 
@@ -131,7 +132,7 @@ function CatalogList({
     return <p className="text-muted-foreground text-sm">No entries for this format.</p>;
   }
   return (
-    <div className="flex flex-col gap-1">
+    <RowList>
       {entries.map((entry) => (
         <CatalogRow
           key={`${entry.registryId}:${entry.pluginName}`}
@@ -140,7 +141,7 @@ function CatalogList({
           onInstalled={onInstalled}
         />
       ))}
-    </div>
+    </RowList>
   );
 }
 
@@ -173,57 +174,44 @@ function CatalogRow({
   registryName: string;
   onInstalled: (name: string) => Promise<void>;
 }) {
+  const unsupportedDetail = entry.installable
+    ? null
+    : (entry.unsupportedReason ?? 'This marketplace entry cannot be installed.');
   return (
-    <div
-      className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
-      data-testid={`catalog-${entry.pluginName}`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-sm">
-            {entry.displayName ?? entry.pluginName}
-          </span>
-          <Badge
-            variant="outline"
-            className="font-mono"
-            data-testid={`catalog-format-${entry.pluginName}`}
-          >
-            {entry.format ?? 'unknown'}
-          </Badge>
-          <Badge variant="outline" className="font-mono">
-            {registryName}
-          </Badge>
-          {entry.category ? (
-            <Badge variant="secondary" className="font-mono">
-              {entry.category}
-            </Badge>
-          ) : null}
-          {!entry.installable ? (
-            <Badge variant="outline" className="font-mono">
-              unsupported
-            </Badge>
-          ) : null}
-        </div>
-        <p className="line-clamp-2 text-muted-foreground text-xs">{catalogDescription(entry)}</p>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground"
-        disabled={!entry.installable}
-        onClick={() => {
-          void openInstallCatalogPluginDialog({
-            registryId: entry.registryId,
-            pluginName: entry.pluginName,
-          }).then(async (result) => {
-            if (result) {
-              await onInstalled(result.plugin.name);
-            }
-          });
-        }}
-      >
-        Install
-      </Button>
-    </div>
+    <Row
+      testId={`catalog-${entry.pluginName}`}
+      title={entry.displayName ?? entry.pluginName}
+      meta={entry.version}
+      muted={!entry.installable}
+      summary={unsupportedDetail ?? catalogDescription(entry)}
+      chips={
+        <>
+          <RowChip>{entry.format ?? 'unknown'}</RowChip>
+          <RowChip>{registryName}</RowChip>
+          {entry.category ? <RowChip tone="accent">{entry.category}</RowChip> : null}
+          {!entry.installable ? <RowChip tone="danger">unsupported</RowChip> : null}
+        </>
+      }
+      actions={
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={!entry.installable}
+          onClick={() => {
+            void openInstallCatalogPluginDialog({
+              registryId: entry.registryId,
+              pluginName: entry.pluginName,
+            }).then(async (result) => {
+              if (result) {
+                await onInstalled(result.plugin.name);
+              }
+            });
+          }}
+        >
+          Install
+        </Button>
+      }
+    />
   );
 }

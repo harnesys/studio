@@ -49,6 +49,7 @@ export class CreateWorkspaceSkillUseCase implements CreateWorkspaceSkillInput {
         name: skill.name,
         description: skill.description,
         ...(skill.whenToUse !== undefined ? { whenToUse: skill.whenToUse } : {}),
+        origin: { kind: 'workspace' },
       },
     };
   }

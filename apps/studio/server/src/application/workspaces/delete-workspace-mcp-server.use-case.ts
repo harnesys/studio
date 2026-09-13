@@ -1,6 +1,10 @@
-import { readWorkspaceMcpJson, writeWorkspaceMcpJson } from '../../adapters/mcp-json.adapter.ts';
+import {
+  isPluginServerKey,
+  readWorkspaceMcpJson,
+  writeWorkspaceMcpJson,
+} from '../../adapters/mcp-json.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
-import { NotFoundError } from '../../domain/studio.error.ts';
+import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
 export type DeleteWorkspaceMcpServerRequest = {
@@ -22,6 +26,9 @@ export class DeleteWorkspaceMcpServerUseCase implements DeleteWorkspaceMcpServer
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {
       throw new NotFoundError('workspace not found');
+    }
+    if (isPluginServerKey(request.serverId)) {
+      throw new ValidationError(`mcp server ${request.serverId} belongs to a plugin`);
     }
 
     const map = readWorkspaceMcpJson(workspace.path);

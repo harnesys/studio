@@ -1,9 +1,9 @@
 import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PlusIcon, RefreshCwIcon } from 'lucide-react';
+import { PlusIcon, PuzzleIcon, RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
+import { pluginStatusBadge, pluginStatusText } from '@/features/manage-agent';
 import { openCreateSkillDialog } from '@/features/manage-workspace-skills';
 import {
   createWorkspaceSkill,
@@ -15,6 +15,8 @@ import { useStudioLocation } from '@/shared/config/location';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
+
+import { Row, RowChip, RowHeader, RowList, RowSection } from './capability-rows';
 
 export function SkillsPane() {
   const { workspaceId } = useStudioLocation();
@@ -59,39 +61,36 @@ export function SkillsPane() {
   });
 
   return (
-    <div className="flex flex-col gap-4" data-testid="skills-pane">
-      <div className="flex h-8 items-center gap-1">
-        <p className="font-medium text-sm">Catalog</p>
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            disabled={!workspaceId || reload.isPending}
-            onClick={() => reload.mutate()}
-          >
-            <RefreshCwIcon />
-            Reload
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            disabled={!workspaceId || create.isPending}
-            onClick={() => {
-              void openCreateSkillDialog().then((draft) => {
-                if (!draft) {
-                  return;
-                }
-                create.mutate(draft);
-              });
-            }}
-          >
-            <PlusIcon />
-            New skill
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-2" data-testid="skills-pane">
+      <RowHeader label="Skills" count={skillsQuery.isPending ? undefined : skills.length}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={!workspaceId || reload.isPending}
+          onClick={() => reload.mutate()}
+        >
+          <RefreshCwIcon />
+          Reload
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={!workspaceId || create.isPending}
+          onClick={() => {
+            void openCreateSkillDialog().then((draft) => {
+              if (!draft) {
+                return;
+              }
+              create.mutate(draft);
+            });
+          }}
+        >
+          <PlusIcon />
+          New skill
+        </Button>
+      </RowHeader>
 
       {skillsQuery.isPending && <p className="text-muted-foreground text-sm">Loading skills…</p>}
       {!skillsQuery.isPending &&
@@ -105,44 +104,70 @@ export function SkillsPane() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-1">
+          <RowList>
             {skills.map((skill) => {
+              const { origin } = skill;
+              const plugin = origin.kind === 'plugin';
+              const statusChip =
+                plugin && origin.status !== 'native' ? pluginStatusBadge(origin) : undefined;
+              const hasDetail = Boolean(skill.description || skill.whenToUse);
               const expanded = expandedName === skill.name;
               return (
-                <ConfigEntityCard
+                <Row
                   key={skill.name}
-                  title={skill.name}
-                  description={skill.description}
-                  initials={initialsFromLabel(skill.name)}
-                  monoTitle
-                  expanded={expanded}
-                  onClick={() => setExpandedName(expanded ? null : skill.name)}
+                  testId={`skill-${skill.name}`}
+                  title={plugin ? pluginSkillTitle(skill.name, origin.pluginName) : skill.name}
+                  summary={
+                    plugin && statusChip
+                      ? pluginStatusText(origin)
+                      : skill.description || skill.whenToUse
+                  }
+                  chips={
+                    <>
+                      {plugin ? (
+                        <RowChip testId="skill-origin-chip">
+                          <PuzzleIcon className="size-2.5" />
+                          {origin.pluginName}
+                        </RowChip>
+                      ) : null}
+                      {statusChip ? (
+                        <RowChip tone={statusChip === 'invalid' ? 'danger' : 'accent'}>
+                          {statusChip}
+                        </RowChip>
+                      ) : null}
+                    </>
+                  }
+                  onToggle={
+                    hasDetail
+                      ? () => setExpandedName((current) => (current === skill.name ? null : skill.name))
+                      : undefined
+                  }
+                  expanded={expanded && hasDetail}
                 >
-                  <div className="flex flex-col gap-2" data-testid={`skill-${skill.name}`}>
-                    <div className="flex flex-col gap-0.5">
-                      <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-                        Description
-                      </p>
-                      <p className="wrap-anywhere text-muted-foreground text-xs leading-4">
+                  {skill.description ? (
+                    <RowSection label="Description">
+                      <p className="wrap-anywhere px-1 text-muted-foreground text-xs leading-4">
                         {skill.description}
                       </p>
-                    </div>
-                    {skill.whenToUse ? (
-                      <div className="flex flex-col gap-0.5">
-                        <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-                          When to use
-                        </p>
-                        <p className="wrap-anywhere text-muted-foreground text-xs leading-4">
-                          {skill.whenToUse}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                </ConfigEntityCard>
+                    </RowSection>
+                  ) : null}
+                  {skill.whenToUse ? (
+                    <RowSection label="When to use">
+                      <p className="wrap-anywhere px-1 text-muted-foreground text-xs leading-4">
+                        {skill.whenToUse}
+                      </p>
+                    </RowSection>
+                  ) : null}
+                </Row>
               );
             })}
-          </div>
+          </RowList>
         ))}
     </div>
   );
+}
+
+function pluginSkillTitle(name: string, pluginName: string): string {
+  const prefix = `${pluginName}:`;
+  return name.startsWith(prefix) ? name.slice(prefix.length) : name;
 }

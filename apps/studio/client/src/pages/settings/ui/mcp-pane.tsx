@@ -1,12 +1,9 @@
-import type {
-  UpsertWorkspaceMcpServerRequest,
-  WorkspaceMcpConfigServer,
-} from '@harnesys/studio-shared';
+import type { UpsertWorkspaceMcpServerRequest } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
+import { PencilIcon, PlusIcon, PuzzleIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
-import { ConfigEntityCard, initialsFromLabel } from '@/features/manage-agent';
+import { pluginStatusBadge, pluginStatusText } from '@/features/manage-agent';
 import {
   confirmDeleteMcpServer,
   openAddMcpServerDialog,
@@ -25,6 +22,16 @@ import { useStudioLocation } from '@/shared/config/location';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
+
+import {
+  Row,
+  RowChip,
+  RowField,
+  RowHeader,
+  RowItem,
+  RowList,
+  RowSection,
+} from './capability-rows';
 
 export function McpPane() {
   const { workspaceId } = useStudioLocation();
@@ -97,39 +104,36 @@ export function McpPane() {
   });
 
   return (
-    <div className="flex flex-col gap-4" data-testid="mcp-pane">
-      <div className="flex h-8 items-center gap-1">
-        <p className="font-medium text-sm">Servers</p>
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            disabled={!workspaceId || reload.isPending}
-            onClick={() => reload.mutate()}
-          >
-            <RefreshCwIcon />
-            Reload
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            disabled={!workspaceId || upsert.isPending}
-            onClick={() => {
-              void openAddMcpServerDialog().then((draft) => {
-                if (!draft) {
-                  return;
-                }
-                upsert.mutate(draft);
-              });
-            }}
-          >
-            <PlusIcon />
-            Add server
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-2" data-testid="mcp-pane">
+      <RowHeader label="Servers" count={configQuery.isPending ? undefined : servers.length}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={!workspaceId || reload.isPending}
+          onClick={() => reload.mutate()}
+        >
+          <RefreshCwIcon />
+          Reload
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={!workspaceId || upsert.isPending}
+          onClick={() => {
+            void openAddMcpServerDialog().then((draft) => {
+              if (!draft) {
+                return;
+              }
+              upsert.mutate(draft);
+            });
+          }}
+        >
+          <PlusIcon />
+          Add server
+        </Button>
+      </RowHeader>
 
       {configQuery.isPending && (
         <p className="text-muted-foreground text-sm">Loading MCP config…</p>
@@ -145,35 +149,64 @@ export function McpPane() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-1">
+          <RowList>
             {servers.map((server) => {
               const live = liveServers.get(server.serverId);
-              const expandable = Boolean(live);
-              const expanded = expandable && expandedId === server.serverId;
+              const { origin } = server;
+              const plugin = origin.kind === 'plugin';
+              const statusChip =
+                plugin && origin.status !== 'native' ? pluginStatusBadge(origin) : undefined;
+              const expanded = expandedId === server.serverId;
               return (
-                <div key={server.serverId} data-testid={`mcp-server-${server.serverId}`}>
-                  <ConfigEntityCard
-                    title={server.serverId}
-                    badge={server.transport}
-                    statusBadge={server.enabled ? undefined : 'off'}
-                    description={serverSummary(server)}
-                    initials={initialsFromLabel(server.serverId)}
-                    monoTitle
-                    expanded={expanded}
-                    onClick={
-                      expandable
-                        ? () =>
-                            setExpandedId((current) =>
-                              current === server.serverId ? null : server.serverId,
-                            )
-                        : undefined
-                    }
-                    trailing={
+                <Row
+                  key={server.serverId}
+                  testId={`mcp-server-${server.serverId}`}
+                  title={
+                    plugin ? pluginServerTitle(server.serverId, origin.pluginName) : server.serverId
+                  }
+                  muted={!server.enabled}
+                  meta={server.transport}
+                  status={
+                    !server.enabled
+                      ? { tone: 'off', label: 'Disabled' }
+                      : live
+                        ? live.connected
+                          ? { tone: 'live', label: 'Connected' }
+                          : { tone: 'danger', label: 'Offline' }
+                        : { tone: 'idle', label: 'Not connected' }
+                  }
+                  chips={
+                    <>
+                      {plugin ? (
+                        <RowChip testId="mcp-origin-chip">
+                          <PuzzleIcon className="size-2.5" />
+                          {origin.pluginName}
+                        </RowChip>
+                      ) : null}
+                      {statusChip ? (
+                        <RowChip tone={statusChip === 'invalid' ? 'danger' : 'accent'}>
+                          {statusChip}
+                        </RowChip>
+                      ) : null}
+                    </>
+                  }
+                  summary={
+                    plugin && statusChip
+                      ? pluginStatusText(origin)
+                      : `${server.toolCount} ${server.toolCount === 1 ? 'tool' : 'tools'}${
+                          live?.resources.length ? ` · ${live.resources.length} resources` : ''
+                        }${!server.enabled ? ' · disabled in .harnesys/mcp.json' : ''}`
+                  }
+                  onToggle={() =>
+                    setExpandedId((current) => (current === server.serverId ? null : server.serverId))
+                  }
+                  expanded={expanded}
+                  actions={
+                    plugin ? undefined : (
                       <>
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          className="opacity-70"
                           aria-label={`Edit ${server.serverId}`}
                           disabled={upsert.isPending || remove.isPending}
                           onClick={() => {
@@ -190,7 +223,6 @@ export function McpPane() {
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          className="opacity-70"
                           aria-label={`Delete ${server.serverId}`}
                           disabled={upsert.isPending || remove.isPending}
                           onClick={() => {
@@ -204,77 +236,86 @@ export function McpPane() {
                           <Trash2Icon />
                         </Button>
                       </>
-                    }
-                  >
-                    {live ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-                            Tools
+                    )
+                  }
+                >
+                  {!plugin ? (
+                    <RowSection label="Connection">
+                      {server.transport === 'stdio' ? (
+                        <RowField
+                          label="Command"
+                          value={[server.command, ...(server.args ?? [])].filter(Boolean).join(' ')}
+                        />
+                      ) : (
+                        <RowField label="URL" value={server.url} />
+                      )}
+                      {server.env && Object.keys(server.env).length > 0 ? (
+                        <RowField label="Env" value={Object.keys(server.env).join(', ')} />
+                      ) : null}
+                      {server.headers && Object.keys(server.headers).length > 0 ? (
+                        <RowField label="Headers" value={Object.keys(server.headers).join(', ')} />
+                      ) : null}
+                    </RowSection>
+                  ) : null}
+                  {live ? (
+                    <>
+                      <RowSection label="Tools" count={live.tools.length}>
+                        {live.tools.length === 0 ? (
+                          <p className="px-1 text-muted-foreground text-xs">
+                            No tools on this server.
                           </p>
-                          {live.tools.length === 0 ? (
-                            <p className="text-muted-foreground text-xs">
-                              No tools on this server.
-                            </p>
-                          ) : (
-                            live.tools.map((tool) => (
-                              <div
-                                key={tool.name}
-                                className="min-w-0 px-1 py-0.5"
-                                data-testid={`mcp-tool-${tool.name}`}
-                              >
-                                <p className="truncate font-mono text-[12px] leading-snug">
-                                  {shortToolName(tool.name)}
-                                </p>
-                                {tool.description ? (
-                                  <p className="line-clamp-2 text-[11px] text-muted-foreground leading-snug">
-                                    {tool.description}
-                                  </p>
-                                ) : null}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-                            Resources
+                        ) : (
+                          live.tools.map((tool) => (
+                            <RowItem
+                              key={tool.name}
+                              testId={`mcp-tool-${tool.name}`}
+                              title={shortToolName(tool.name)}
+                              description={tool.description}
+                            />
+                          ))
+                        )}
+                      </RowSection>
+                      <RowSection label="Resources" count={live.resources.length}>
+                        {live.resources.length === 0 ? (
+                          <p className="px-1 text-muted-foreground text-xs">
+                            No resources exposed.
                           </p>
-                          {live.resources.length === 0 ? (
-                            <p className="text-muted-foreground text-xs">No resources exposed.</p>
-                          ) : (
-                            live.resources.map((resource) => (
-                              <div
-                                key={resource.uri}
-                                className="min-w-0 px-1 py-0.5"
-                                data-testid={`mcp-resource-${resource.uri}`}
-                              >
-                                <p className="truncate font-mono text-[12px] leading-snug">
-                                  {resource.name}
-                                </p>
-                                <p className="wrap-anywhere text-[11px] text-muted-foreground leading-snug">
-                                  {[resource.mimeType, resource.uri].filter(Boolean).join(' · ')}
-                                </p>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
-                  </ConfigEntityCard>
-                </div>
+                        ) : (
+                          live.resources.map((resource) => (
+                            <RowItem
+                              key={resource.uri}
+                              testId={`mcp-resource-${resource.uri}`}
+                              title={resource.name}
+                              description={[resource.mimeType, resource.uri]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            />
+                          ))
+                        )}
+                      </RowSection>
+                    </>
+                  ) : null}
+                  {!live && !plugin ? (
+                    <RowSection label="Live status">
+                      <p className="px-1 text-muted-foreground text-xs">
+                        {server.enabled
+                          ? 'Not loaded in this session — reload to connect.'
+                          : 'Disabled — enable it to load tools.'}
+                      </p>
+                    </RowSection>
+                  ) : null}
+                </Row>
               );
             })}
-          </div>
+          </RowList>
         ))}
     </div>
   );
 }
 
-function serverSummary(server: WorkspaceMcpConfigServer): string {
-  if (!server.enabled) {
-    return `disabled · ${server.toolCount} tools`;
-  }
-  return `${server.toolCount} tools · ${server.connected ? 'connected' : 'offline'}`;
+function pluginServerTitle(serverId: string, pluginName: string): string {
+  const prefix = `plugin:${pluginName}:`;
+  return serverId.startsWith(prefix) ? serverId.slice(prefix.length) : serverId;
 }
 
 function shortToolName(name: string): string {

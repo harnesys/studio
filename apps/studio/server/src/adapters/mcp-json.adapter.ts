@@ -31,6 +31,13 @@ function mcpJsonPath(workspacePath: string): string {
   return join(studioDir(workspacePath), 'mcp.json');
 }
 
+/** Ключ плагинного сервера в runtime-реестре: `plugin:<name>:<id>` (merge-plugin-runtime). */
+export const PLUGIN_SERVER_KEY_PREFIX = 'plugin:';
+
+export function isPluginServerKey(serverId: string): boolean {
+  return serverId.startsWith(PLUGIN_SERVER_KEY_PREFIX);
+}
+
 /** Read `<workspace>/.harnesys/mcp.json` including disabled entries. */
 export function readWorkspaceMcpJson(workspacePath: string): Record<string, StdioEntry | UrlEntry> {
   const path = mcpJsonPath(workspacePath);

@@ -4,12 +4,13 @@ import type {
 } from '@harnesys/studio-shared';
 import {
   fieldsToMcpEntry,
+  isPluginServerKey,
   mcpEntryToFields,
   readWorkspaceMcpJson,
   writeWorkspaceMcpJson,
 } from '../../adapters/mcp-json.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
-import { NotFoundError } from '../../domain/studio.error.ts';
+import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
 export type UpsertWorkspaceMcpServerUseCaseRequest = UpsertWorkspaceMcpServerRequest & {
@@ -40,6 +41,9 @@ export class UpsertWorkspaceMcpServerUseCase implements UpsertWorkspaceMcpServer
     if (!workspace) {
       throw new NotFoundError('workspace not found');
     }
+    if (isPluginServerKey(request.serverId)) {
+      throw new ValidationError(`mcp server ${request.serverId} belongs to a plugin`);
+    }
 
     const map = readWorkspaceMcpJson(workspace.path);
     const entry = fieldsToMcpEntry({
@@ -65,6 +69,7 @@ export class UpsertWorkspaceMcpServerUseCase implements UpsertWorkspaceMcpServer
         ...fields,
         connected: fields.enabled && (snap?.connected ?? false),
         toolCount: fields.enabled ? (snap?.tools.length ?? 0) : 0,
+        origin: { kind: 'workspace' },
       },
     };
   }

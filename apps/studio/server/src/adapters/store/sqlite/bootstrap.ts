@@ -2,6 +2,7 @@ import { ASK_MODE, DEFAULT_MODE_ID, modeFromPreset } from '@harnesys/studio-shar
 import { eq, sql } from 'drizzle-orm';
 import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
+import { cleanupReservedModeIds } from './bootstrap-modes-cleanup.ts';
 import type { StudioDb } from './connection.ts';
 import { migratePluginGrantsSchema } from './plugins-migration.ts';
 import { SqliteModePresetRepo } from './repos/sqlite-mode-preset.repo.ts';
@@ -393,6 +394,8 @@ export function bootstrap(db: StudioDb): void {
       .onConflictDoNothing()
       .run();
   }
+
+  cleanupReservedModeIds(db);
 
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN default_mode_id text;'));

@@ -13,10 +13,11 @@
 4. Вложенность запрещена на движке, конвенцией в SKILL ограничиваться нельзя.
 5. Операция `agents` входит в права, дефолт `ask`.
 6. Подход 1: делегирование и права ребёнка при спавне реализуются в библиотеке `packages/harnesys`.
+7. Дефолтные права агента (`permissions` в модели) — база: режимы переопределяют отдельные операции не выше базы, пункт `Default` в композере выбирает базу без режимного переопределения.
 
 ## `AgentDefinition.permissions` и `parentId` (библиотека)
 
-`AgentDefinition` получает опциональное поле `permissions?: PermissionMap` (`packages/harnesys/src/domain/agent-definition.ts`). Операции те же, что в `DEFAULT_PERMISSIONS` (`constants.ts:252`), плюс новая `agents`. Поле универсальное: любой агент может нести карту, применение на уровне спавна определяет движок.
+`AgentDefinition` получает опциональное поле `permissions?: PermissionMap` (`packages/harnesys/src/domain/agent-definition.ts`). Операции те же, что в `DEFAULT_PERMISSIONS` (`constants.ts:252`), плюс новая `agents`. Поле — база прав агента: потолок для режимов у хоста и база ребёнка при спавне у движка. `null`/отсутствие поля означает `DEFAULT_PERMISSIONS`.
 
 `AgentCatalogCreateInput` получает опциональный `parentId?: string` (`packages/harnesys/src/ports/agents-catalog.ts:16`). Каталог, получивший `parentId`, создаёт делегата под этим агентом.
 
@@ -27,10 +28,10 @@
 При сборке `childOpts` вместо прямого наследования `parent.permissions` вычисляется пересечение:
 
 ```
-childPermissions = intersect(childDef.permissions ?? parent.permissions, parent.permissions)
+childPermissions = intersect(childDef.permissions ?? DEFAULT_PERMISSIONS, parentRunPermissions)
 ```
 
-Порядок жёсткости `deny > ask > allow`: deny любой из сторон даёт deny, иначе берётся более строгий gate. Полей нет у ребёнка, берётся карта родителя (текущее поведение сохраняется для существующих делегатов).
+`parentRunPermissions` — карта рана родителя после резолва базы и режима (см. «Дефолтные права агента и режимы»). Порядок жёсткости `deny > ask > allow`: deny любой из сторон даёт deny, иначе берётся более строгий gate. У карты ребёнка единое правило отсутствия поля: `DEFAULT_PERMISSIONS`, как у любого агента. Существующие делегаты без карты становятся read-only (fs.read allow, остальное упирается в sandbox); пресеты обновляются картами в этой же правке, автосев `PRESET_DELEGATES` сеет уже с картами.
 
 `sandbox: true` у ребёнка остаётся (`graph-spawn.ts:178`): `ask` в спавне исполняется как deny, `ask_user` недоступен. Права enforced на движке: игнорирование моделью инструкций не расширяет права ребёнка.
 
@@ -48,7 +49,7 @@ childPermissions = intersect(childDef.permissions ?? parent.permissions, parent.
 
 `DEFAULT_PERMISSIONS` получает `agents: 'ask'` (`packages/harnesys/src/constants.ts:252`). Тулы создания агентов объявляют `operations: ['agents']`; существующий механизм `checkPermission` → `applyPermissionGate` паркует ран ask-запросом к человеку в ask-режиме.
 
-Studio: `MODE_OPS` получает `'agents'` (`apps/studio/shared/src/modes.ts:1`), `permissionMapForMode` передаёт его без изменений. Сиды режимов (`apps/studio/server/src/config/mode-preset-seed.ts`):
+Studio: `MODE_OPS` получает `'agents'` (`apps/studio/shared/src/modes.ts:1`); попадание операции в карту рана описано в следующей секции. Сиды режимов (`apps/studio/server/src/config/mode-preset-seed.ts`):
 
 | режим | `agents` |
 |---|---|
@@ -59,6 +60,25 @@ Studio: `MODE_OPS` получает `'agents'` (`apps/studio/shared/src/modes.ts
 | bypass | allow |
 
 У делегатов sandbox превращает `ask` в deny, а движковый запрет пака `agents` вырезает тулы группы целиком.
+
+## Дефолтные права агента и режимы (Studio)
+
+Режим наслаивается на базу и переопределяет только указанные операции. Резолв прав рана (`studio-run-targets.adapter.ts:105-152`):
+
+```
+base = agent.permissions ?? DEFAULT_PERMISSIONS
+if (modeId == 'default') runPermissions = base
+else runPermissions = { op: mode.permissions[op] ? min(mode.permissions[op], base[op]) : base[op] }
+```
+
+Порядок жёсткости `deny > ask > allow`. Операция не указана в режиме = база агента; пустой режим эквивалентен `Default`. Правило «режим не может ослабить пропусками» из `permissionMapForMode` заменяется этим резолвом: `allow` в режиме выше базы (`ask`) даёт `ask`, `deny` остаётся абсолютным.
+
+Точки правки:
+
+- `resolveModeId` (`apps/studio/shared/src/modes.ts:42`): `DEFAULT_MODE_ID` меняется с `'ask'` на `'default'`; `'default'` валиден для любого агента без записи в `modes`. Существующие `defaultModeId` продолжают резолвиться, сид `ask` остаётся установленным пресетом.
+- Композер (`widgets/chat-composer/ui/chat-composer.tsx:107-122`): список режимов = `Default` + режимы агента; выбор по умолчанию = `defaultModeId` агента, иначе `Default`.
+- Редактор режимов (`agent-modes-pane.tsx`, `agent-mode-editor.tsx`): для каждой операции максимальный доступный gate = база агента (`allow` недоступен, если база `ask` или `deny`). Рантайм-пересечение остаётся второй линией: данные режимов могут содержать что угодно, исполнение не выйдет за базу.
+- Сиды режимов (`mode-preset-seed.ts`) без изменений: их карты уже явные, сужающие режимы (`plan`) прописывают `deny` напрямую.
 
 ## Запрет вложенности
 
@@ -85,10 +105,28 @@ Studio: `MODE_OPS` получает `'agents'` (`apps/studio/shared/src/modes.ts
 - «Add from preset» во вкладке Subagents вызывает `POST .../agents/from-preset` с `parentId` немедленно, конфиг-диалог драфта не открывается. Карточка-строка делегата появляется в списке сразу после ответа.
 - Клик по карточке открывает редактирование существующего делегата по механизму `openSubagent` (PATCH, «Subagent saved»).
 - Коллизия имён в рамках родителя разрешается суффиксом (`Explorer 2`).
-- В карточке делегата добавляется панель Permissions: `fs.write`, `process`, `network`, `mcp` × `allow|ask|deny`, подпись «ask в спавне исполняется как deny». `fs.read` не отображается (всегда allow), `agents` не отображается (пак запрещён у делегата, операция не применяется).
-- У топ-агентов панель Permissions не показывается: их права задаются режимами.
+- Вкладка Permissions в модалке доступна всем агентам, топ-уровневым и делегатам: операции `fs.write`, `process`, `network`, `mcp`, `agents` × `allow|ask|deny`. У делегатов вкладка дополнена подписью «ask в спавне исполняется как deny», операция `agents` не отображается (пак запрещён у делегата), `fs.read` не отображается у всех (всегда allow).
 
-Пресеты делегатов получают явные карты: `explorer` все операции deny (read-only), `general` `fs.write` и `process` allow при бюджете `policy: "error"`. Топ-уровневые пресеты без изменений.
+Навигация настроек делегата (`AGENT_CONFIG_CATEGORIES`, `agent-config-nav.tsx:39`) урезана до применяемого при спавне: `identity`, `model`, `permissions`, `graph`, `capabilities`, `compaction`, `skills`, `mcp`, `limits`. Исключены:
+
+- `modes`: режим рана делегата определяет родитель, права делегата задаются вкладкой Permissions.
+- `subagents`: уже скрыто (`showSubagents`), вложенность запрещена.
+- `hooks`: `childOpts` не получает `hooks` (`graph-spawn.ts:155-179`), хуки делегата не исполняются, вкладка не влияет на поведение.
+
+Во вкладке `capabilities` делегата пак `agents` не отображается в списке доступных паков.
+
+Пресеты получают `permissions` в JSON. Предлагаемые карты (содержимое правится при ревью):
+
+| пресет | `fs.write` | `process` | `network` | `mcp` | `agents` |
+|---|---|---|---|---|---|
+| assistant, orchestrator | ask | ask | ask | ask | ask |
+| coder | allow | allow | ask | ask | ask |
+| researcher | ask | ask | allow | ask | ask |
+| planner, reviewer, tester, writer | ask | ask | ask | ask | ask |
+| explorer (делегат) | deny | deny | deny | deny | — |
+| general (делегат) | allow | allow | deny | deny | — |
+
+`general` сохраняет бюджет `policy: "error"` как ограничитель вместо прав.
 
 ## Ownership ростера
 
@@ -110,12 +148,15 @@ Studio: `MODE_OPS` получает `'agents'` (`apps/studio/shared/src/modes.ts
 Тесты в репо запрещены (`AGENTS.md`). Ручная проверка через agent-browser по портам хозяина (3000 API, 5173 Vite):
 
 1. «Add from preset» создаёт карточку сразу, клик открывает редактирование.
-2. Панель прав делегата сохраняет карту, `fs.read` скрыт.
-3. Спавн в ask-режиме: делегат с `fs.write: allow` получает deny (пересечение + sandbox).
-4. Спавн в bypass: делегат с `fs.write: allow` исполняет запись.
-5. `agents_create_subagent` из рана: делегат появился в карточке родителя, карточка видна в UI.
-6. `agents_create` в ask-режиме паркует ран ask-запросом.
-7. Кастомный граф с `agentId` чужого делегата: `spawn_target_missing`.
-8. Сохранение делегата с паком `agents`: `ValidationError` в UI и в результате тула.
+2. Вкладка Permissions: сохранение карты, `fs.read` скрыт, у делегата скрыт `agents`.
+3. Навигация делегата: вкладки Modes, Hooks, Subagents отсутствуют, пак `agents` не предлагается в Capabilities.
+3. Композер: `Default` присутствует в списке режимов всегда; выбор `Default` даёт руну базу агента.
+4. Режим `auto` у агента с базой `fs.write: ask` исполняет запись через ask-подтверждение; с базой `allow` — без подтверждения.
+5. Редактор режимов не предлагает gate выше базы агента.
+6. Спавн: делегат с `fs.write: allow` у родителя в ask-базе получает deny (пересечение + sandbox); в bypass-базе исполняет запись.
+7. `agents_create_subagent` из рана: делегат появился в карточке родителя, карточка видна в UI.
+8. `agents_create` при `agents: ask` паркует ран ask-запросом.
+9. Кастомный граф с `agentId` чужого делегата: `spawn_target_missing`.
+10. Сохранение делегата с паком `agents`: `ValidationError` в UI и в результате тула.
 
 `bun run lint` в корне, typecheck пакетов после правок.

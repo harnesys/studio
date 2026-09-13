@@ -21,7 +21,7 @@ export type MapInfo = {
   nodeId: string;
   /** Parent run that owns map.started / map.completed. */
   parentRunId?: string;
-  /** graph_map toolCallId paired by order within the parent run. */
+  /** map toolCallId paired by order within the parent run. */
   toolCallId?: string;
   count: number;
   concurrency?: string;
@@ -96,7 +96,7 @@ function isMapStructural(ev: SessionEvent): ev is SessionEvent & {
 function pairToolCallIds(events: SessionEvent[], maps: MapInfo[]): void {
   const pendingByRun = new Map<string, string[]>();
   for (const ev of events) {
-    if (ev.type !== 'tool' || ev.name !== 'graph_map' || ev.phase !== 'completed') {
+    if (ev.type !== 'tool' || ev.name !== 'map' || ev.phase !== 'completed') {
       continue;
     }
     if (ev.runId === undefined || !ev.toolCallId) {

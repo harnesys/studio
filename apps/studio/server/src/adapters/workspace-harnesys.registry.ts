@@ -19,8 +19,8 @@ import {
   bindSkillComponents,
   composeSkillRegistries,
   createRuntime,
-  graphMap,
   type Logger,
+  mapTool,
   mergePluginMcpFragments,
   type PluginMcpBinding,
   wait,
@@ -222,8 +222,8 @@ export class WorkspaceHarnesysRegistry {
     return createRuntime({
       models: this.models,
       // files/shell/fetch come from the base packs in packRegistrations;
-      // ask_user / graph_map / wait have no pack. Per-agent gating in run targets.
-      tools: [askUser(), graphMap(), wait()],
+      // ask_user / map / wait have no pack. Per-agent gating in run targets.
+      tools: [askUser(), mapTool(), wait()],
       packs: [...this.packRegistrations],
       agents: {
         resolve: (id: string) => this.resolveAgent(id),

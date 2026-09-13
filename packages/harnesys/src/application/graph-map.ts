@@ -159,7 +159,7 @@ const WORKER_STATE_DROP_KEYS = [
 const mapWorkerNote: LlmNoteProvider = () => [
   {
     tag: 'map_worker',
-    text: 'You are a map worker handling one item of a fan-out. Tools are not available in this run: never emit a tool call (graph_map included). Answer with plain text for the current Map item only.',
+    text: 'You are a map worker handling one item of a fan-out. Tools are not available in this run: never emit a tool call (map included). Answer with plain text for the current Map item only.',
   },
 ];
 

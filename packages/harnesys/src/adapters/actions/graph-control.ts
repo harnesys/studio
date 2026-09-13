@@ -1,13 +1,13 @@
 import { sandboxDenyText } from '../../application/tool-permission.ts';
-import { GRAPH_MAP_TOOL, MAP_ITEM_LIMIT, WAIT_DELAY_MS_MAX, WAIT_TOOL } from '../../constants.ts';
+import { MAP_ITEM_LIMIT, MAP_TOOL, WAIT_DELAY_MS_MAX, WAIT_TOOL } from '../../constants.ts';
 import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 
-export { GRAPH_MAP_TOOL, WAIT_TOOL };
+export { MAP_TOOL, WAIT_TOOL };
 
 /** Queue items for control:map (ReAct → $state.mapItems). */
-export function graphMap(): ToolDefinition {
-  return tool(GRAPH_MAP_TOOL, {
+export function mapTool(): ToolDefinition {
+  return tool(MAP_TOOL, {
     description:
       'Queue a fan-out over items for the graph control:map node. items is a JSON array (max 32). Each item is processed in the map body with $item/$index; results return as Map results in context. Prefer this for parallel same-graph work; use agents_spawn when you need another agent definition.',
     group: 'control',
@@ -17,6 +17,9 @@ export function graphMap(): ToolDefinition {
         items: {
           type: 'array',
           description: 'Items to map (strings or objects). Max 32.',
+          items: {
+            description: 'Single item to process in the map body: string or object.',
+          },
           maxItems: MAP_ITEM_LIMIT,
         },
       },
@@ -25,7 +28,7 @@ export function graphMap(): ToolDefinition {
     },
     execute(input, ctx: ToolContext) {
       if (ctx.sandbox) {
-        return sandboxDenyText(GRAPH_MAP_TOOL, 'user input');
+        return sandboxDenyText(MAP_TOOL, 'user input');
       }
       const rec = input as { items?: unknown };
       if (!Array.isArray(rec.items)) {

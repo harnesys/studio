@@ -2,7 +2,7 @@ export {
   askUser,
   fetch,
   files,
-  graphMap,
+  mapTool,
   shell,
   wait,
 } from './src/adapters/actions/index.ts';

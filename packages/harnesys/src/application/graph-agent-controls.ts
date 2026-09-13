@@ -1,7 +1,7 @@
 import {
   AGENTS_HANDOFF_TOOL,
   AGENTS_SPAWN_TOOL,
-  GRAPH_MAP_TOOL,
+  MAP_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
   STATE_SPAWNS_KEY,
@@ -13,7 +13,7 @@ import { stateKeyOf } from './graph-helpers.ts';
 export {
   AGENTS_HANDOFF_TOOL,
   AGENTS_SPAWN_TOOL,
-  GRAPH_MAP_TOOL,
+  MAP_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
   STATE_SPAWNS_KEY,
@@ -90,7 +90,7 @@ export function applyAgentControlToolResults(
       if (id) {
         handoffAgentId = id;
       }
-    } else if (row.name === GRAPH_MAP_TOOL) {
+    } else if (row.name === MAP_TOOL) {
       const rec = asRecord(row.result);
       if (rec && Array.isArray(rec.items)) {
         mapItems = rec.items;

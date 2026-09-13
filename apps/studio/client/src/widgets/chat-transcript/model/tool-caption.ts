@@ -72,11 +72,11 @@ export function toolCaption(
   if (name === 'load_skill') {
     return { kind: 'file', title: 'Skill', hint: fields.name ?? firstLine(inputStr, outputStr) };
   }
-  if (name === 'graph_map') {
+  if (name === 'map') {
     const count = mapItemCount(inputStr, outputStr);
     return {
       kind: 'search',
-      title: 'Graph Map',
+      title: 'Map',
       hint:
         count !== undefined
           ? `${count} item${count === 1 ? '' : 's'}`

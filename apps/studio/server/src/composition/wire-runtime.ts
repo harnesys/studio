@@ -7,8 +7,8 @@ import {
   createToolRegistry,
   fetch,
   files,
-  graphMap,
   type ModelsPort,
+  mapTool,
   type RunClaimer,
   type RunEngine,
   type RunEventFeed,
@@ -80,7 +80,7 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     shell(),
     fetch(),
     askUser(),
-    graphMap(),
+    mapTool(),
     wait(),
   ]);
   const agentsRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };

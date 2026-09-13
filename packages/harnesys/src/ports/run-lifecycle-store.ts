@@ -63,7 +63,7 @@ export interface RunLifecycleStore {
   transition(runId: string, expectedEpoch: number, patch: RunTransitionPatch): Promise<RunRecord>;
   /** Продление: только владелец с текущим epoch; иначе false. */
   renewLease(runId: string, instanceId: string, ttlMs: number): Promise<boolean>;
-  /** Клеймер: queued-раны, limit + курсор createdAt. */
+  /** Клеймер: корневые queued-раны (parentRunId IS NULL), limit + курсор createdAt. */
   listClaimable(opts?: { limit?: number; before?: string }): Promise<RunRecord[]>;
   /** GC: needs_input старше TTL (сравнение делает стор). */
   listExpiredAsks(opts?: {

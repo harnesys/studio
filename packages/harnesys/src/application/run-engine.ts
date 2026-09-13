@@ -2,6 +2,7 @@ import { DEFAULT_LEASE_RENEW_MS, DEFAULT_LEASE_TTL_MS, RUN_NON_TERMINAL } from '
 import { codedRunError } from '../domain/errors.ts';
 import type { Event } from '../domain/snapshot.ts';
 import { CONSOLE_LOGGER } from '../ports/logger.ts';
+import type { RunLifecycleStatus } from '../ports/run-lifecycle-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
 import type { GraphOpts } from './graph.ts';
 import { emitHook, type HookEmitCtx } from './hooks/emit-hook.ts';
@@ -18,6 +19,20 @@ type RunRuntime = {
   abort: AbortController;
   renewTimer: ReturnType<typeof setInterval> | null;
   leaseLost: boolean;
+};
+
+/** Терминальные graph-события дочернего рана → статус его runs-строки. */
+const CHILD_TERMINAL_STATUS: Record<string, RunLifecycleStatus> = {
+  'run.completed': 'completed',
+  'run.cancelled': 'cancelled',
+  'run.failed': 'failed',
+};
+
+/** Последовательная цепочка журнала одного дочернего рана. */
+type ChildRunJournal = {
+  tail: Promise<void>;
+  epoch: number;
+  closed: boolean;
 };
 
 export function createRunEngine(deps: RunEngineDeps): RunEngine {
@@ -96,17 +111,53 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
       }
       // Журнал дочерних спавнов: события ребёнка пишутся в тред под runId = spawnId.
       // Проглатывание ошибки — сознательно: журнал ребёнка не должен ронять
-      // родительский ран; потеря стрима не влияет на snapshot.
+      // родительский ран; потеря стрима не влияет на snapshot. Цепочка на spawnId
+      // сначала регистрирует runs-строку ребёнка (FK run_events.run_id → runs),
+      // затем пишет события по порядку и закрывает ран на терминальном событии.
+      const childRuns = new Map<string, ChildRunJournal>();
       const childJournal = (spawnId: string, ev: Event): void => {
-        const mapped = eventToSessionEvent(ev);
-        if (mapped === null) {
-          return;
+        let entry = childRuns.get(spawnId);
+        if (entry === undefined) {
+          entry = { tail: Promise.resolve(), epoch: 0, closed: false };
+          childRuns.set(spawnId, entry);
+          const born = entry;
+          entry.tail = deps.lifecycle
+            .create({ runId: spawnId, threadId: record.threadId, parentRunId: runId })
+            .then((rec) =>
+              deps.lifecycle.transition(rec.runId, rec.leaseEpoch, {
+                from: 'queued',
+                to: 'running',
+              }),
+            )
+            .then((rec) => {
+              born.epoch = rec.leaseEpoch;
+            })
+            .catch(() => {});
         }
-        const withRun = { ...mapped, runId: spawnId } as SessionEvent;
-        const seq = deps.events.next(spawnId);
-        const full = { ...withRun, seq } as SessionEvent;
-        void Promise.resolve(deps.events.appendForThread(record.threadId, spawnId, [full]))
-          .then((stored) => deps.feed.publish(spawnId, stored))
+        const journal = entry;
+        const mapped = eventToSessionEvent(ev);
+        const terminal = CHILD_TERMINAL_STATUS[ev.type];
+        journal.tail = journal.tail
+          .then(() => {
+            if (mapped === null) {
+              return undefined;
+            }
+            const withRun = { ...mapped, runId: spawnId } as SessionEvent;
+            const seq = deps.events.next(spawnId);
+            const full = { ...withRun, seq } as SessionEvent;
+            return Promise.resolve(
+              deps.events.appendForThread(record.threadId, spawnId, [full]),
+            ).then((stored) => deps.feed.publish(spawnId, stored));
+          })
+          .then(() => {
+            if (terminal === undefined || journal.closed) {
+              return undefined;
+            }
+            journal.closed = true;
+            return deps.lifecycle
+              .transition(spawnId, journal.epoch, { from: 'running', to: terminal })
+              .then(() => {});
+          })
           .catch(() => {});
       };
       let graphOpts: GraphOpts;

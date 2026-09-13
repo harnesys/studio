@@ -264,7 +264,7 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
   }
   async listClaimable(opts?: { limit?: number; before?: string }): Promise<RunRecord[]> {
     return this.select(
-      (record) => record.status === 'queued',
+      (record) => record.status === 'queued' && record.parentRunId === undefined,
       (record) => record.createdAt,
       opts?.limit,
       opts?.before,

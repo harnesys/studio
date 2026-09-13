@@ -259,7 +259,7 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
   }
 
   async listClaimable(opts?: { limit?: number; before?: string }): Promise<RunRecord[]> {
-    const conditions = [eq(runsTable.status, 'queued')];
+    const conditions = [eq(runsTable.status, 'queued'), isNull(runsTable.parentRunId)];
     if (opts?.before !== undefined) {
       conditions.push(gt(runsTable.createdAt, opts.before));
     }

@@ -253,8 +253,9 @@ class StreamClient implements RunStreamClient {
   }
 
   private async onSilentDrop(runId: string, token: number): Promise<void> {
-    // Spawns have no lifecycle row: thread activeRun status says nothing about
-    // them, so a dropped spawn stream just reconnects until events or offline.
+    // Spawns register their lifecycle row on the first journaled child event, so an
+    // early poll can 404 until then; a dropped spawn stream reconnects until events
+    // or offline. Thread activeRun status says nothing about them.
     if (!this.rootRun) {
       this.scheduleReconnect(runId, token);
       return;

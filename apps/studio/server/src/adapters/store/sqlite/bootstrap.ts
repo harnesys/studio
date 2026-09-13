@@ -1,4 +1,4 @@
-import { ASK_MODE, modeFromPreset } from '@harnesys/studio-shared';
+import { ASK_MODE, DEFAULT_MODE_ID, modeFromPreset } from '@harnesys/studio-shared';
 import { eq, sql } from 'drizzle-orm';
 import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
@@ -403,10 +403,15 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   // Backfill: install installedByDefault presets + ask into agents without modes.
+  // The reserved `default` pseudo-mode id is excluded (a stray preset must not
+  // inject a `default` mode into agents; the composer offers it as a pseudo-mode).
   const presetRepo = new SqliteModePresetRepo(db);
   const defaults = presetRepo
     .list()
-    .filter((preset) => preset.installedByDefault || preset.id === ASK_MODE.id);
+    .filter(
+      (preset) =>
+        preset.id !== DEFAULT_MODE_ID && (preset.installedByDefault || preset.id === ASK_MODE.id),
+    );
   for (const row of db.select().from(agentsTable).all()) {
     if (row.modesJson !== '[]') {
       continue;

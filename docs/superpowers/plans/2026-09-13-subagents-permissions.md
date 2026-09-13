@@ -327,7 +327,7 @@ export function effectiveMode(modes: AgentMode[] | undefined, runModeId: string)
 
 - [ ] **Step 3: `permissionMapForRun` в `tool-confirm-policy.ts`**
 
-Оставить `permissionMapForMode` (ask-пол, используется как фолбэк базы) и добавить:
+Фолбэк базы — `DEFAULT_PERMISSIONS` (`permissionMapForMode` удалён как мёртвый код, ruled R10/F2). Добавить:
 
 ```ts
 import type { AgentMode } from '@harnesys/studio-shared';
@@ -338,7 +338,7 @@ export function permissionMapForRun(
   base: PermissionMap | null | undefined,
   mode: AgentMode | undefined,
 ): PermissionMap {
-  const b: PermissionMap = base ?? permissionMapForMode(mode?.permissions);
+  const b: PermissionMap = base ?? DEFAULT_PERMISSIONS;
   if (!mode || mode.id === 'default' || !mode.permissions) {
     return b;
   }
@@ -927,8 +927,8 @@ const modePresetBodySchema = z.object({
 
 - [ ] **Step 1: `bun run typecheck && bun run lint` в корне** — оба зелёные.
 - [ ] **Step 2: остаточные grep-проверки** (`rg`):
-  - `rg "permissionMapForMode\(" apps/studio/server/src` — только внутри `permissionMapForRun` (фолбэк) и старые точки устранены.
+  - `rg "permissionMapForMode" apps/studio` — symbol removed entirely (F2); only `permissionMapForRun` resolves run permissions.
   - `rg "agents_create_subagent|agents_create\b" packages/harnesys/src` — описания различают уровни.
   - `rg "DEFAULT_MODE_ID" apps/studio` — нет захардкоженного `'ask'` как дефолта композера.
 - [ ] **Step 3: ручные сценарии по чек-листу спеки (13 пунктов)** — через agent-browser по портам хозяина (3000/5173), по согласованию с хозяином стенда: создание из пресета, вкладка Permissions, `Default` в композере, режим `auto` при разных базах, потолок в редакторе режимов, спавн с пересечением прав, `agents_create_subagent` из рана, ask-парковка `agents_create`, `spawn_target_missing`, `ValidationError` пака, плагин `feature-dev` (агенты в списке, `color` без warning, `sonnet` резолвится, тул-цикл `Read/Glob/Grep`), `unsupported_tool` диагностики.
-- [ ] **Step 4: финальный коммит** (если были правки): `git add -A && git commit -m "fix: subagent permissions follow-up"`.
+- [ ] **Step 4: финальный коммит** (если были правки) — только явные пути, не `-A` (в дереве параллельные работы хоста): `git commit -m "fix: subagent permissions follow-up" -- <пути>`.

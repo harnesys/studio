@@ -1,9 +1,9 @@
-import { MODE_ID_RE, MODE_OPS } from '@harnesys/studio-shared';
+import { DEFAULT_MODE_ID, MODE_ID_RE, MODE_OPS } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 const gates = z.enum(['allow', 'ask', 'deny']);
 
-export const modePresetBody = z.object({
+const modePresetShape = z.object({
   id: z.string().regex(MODE_ID_RE).max(48),
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().max(200).optional(),
@@ -14,4 +14,9 @@ export const modePresetBody = z.object({
   installedByDefault: z.boolean().optional(),
 });
 
-export const modePresetPatchBody = modePresetBody.partial().omit({ id: true });
+export const modePresetBody = modePresetShape.refine((body) => body.id !== DEFAULT_MODE_ID, {
+  message: 'id "default" is reserved',
+  path: ['id'],
+});
+
+export const modePresetPatchBody = modePresetShape.partial().omit({ id: true });

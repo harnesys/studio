@@ -1,5 +1,9 @@
-import type { ModeOpGate, ModePreset } from '@harnesys/studio-shared';
-import { MODE_ID_RE } from '@harnesys/studio-shared';
+import {
+  DEFAULT_MODE_ID,
+  MODE_ID_RE,
+  type ModeOpGate,
+  type ModePreset,
+} from '@harnesys/studio-shared';
 import { useState } from 'react';
 
 import { ModeChecklist } from '@/features/manage-agent';
@@ -12,7 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
 import type { ModePresetDraft } from './mode-preset-draft';
 
-type PresetGateName = 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp';
+type PresetGateName = 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp' | 'permAgents';
 
 type PresetFormState = {
   id: string;
@@ -25,6 +29,7 @@ type PresetFormState = {
   permProcess: ModeOpGate;
   permNetwork: ModeOpGate;
   permMcp: ModeOpGate;
+  permAgents: ModeOpGate;
   installedByDefault: boolean;
 };
 
@@ -32,7 +37,8 @@ const GATES: { name: PresetGateName; label: string }[] = [
   { name: 'permWrite', label: 'File writes' },
   { name: 'permProcess', label: 'Shell' },
   { name: 'permNetwork', label: 'Network' },
-  { name: 'permMcp', label: 'MCP' },
+  { name: 'permMcp', label: 'MCP tools' },
+  { name: 'permAgents', label: 'Create agents' },
 ];
 
 const FALLBACK_GATE: ModeOpGate = 'ask';
@@ -51,6 +57,7 @@ function presetToForm(preset: ModePreset): PresetFormState {
     permProcess: preset.permissions?.process ?? FALLBACK_GATE,
     permNetwork: preset.permissions?.network ?? FALLBACK_GATE,
     permMcp: preset.permissions?.mcp ?? FALLBACK_GATE,
+    permAgents: preset.permissions?.agents ?? FALLBACK_GATE,
     installedByDefault: preset.installedByDefault,
   };
 }
@@ -66,6 +73,7 @@ const BLANK_FORM: PresetFormState = {
   permProcess: FALLBACK_GATE,
   permNetwork: FALLBACK_GATE,
   permMcp: FALLBACK_GATE,
+  permAgents: FALLBACK_GATE,
   installedByDefault: false,
 };
 
@@ -84,6 +92,7 @@ function formToDraft(state: PresetFormState): ModePresetDraft {
       process: state.permProcess,
       network: state.permNetwork,
       mcp: state.permMcp,
+      agents: state.permAgents,
     },
     installedByDefault: state.installedByDefault,
   };
@@ -119,7 +128,8 @@ export function ModePresetEditor({
   const [state, setState] = useState<PresetFormState>(() =>
     preset ? presetToForm(preset) : BLANK_FORM,
   );
-  const idValid = MODE_ID_RE.test(state.id.trim());
+  const idTrimmed = state.id.trim();
+  const idValid = MODE_ID_RE.test(idTrimmed) && idTrimmed !== DEFAULT_MODE_ID;
   const descriptionOver = state.description.trim().length > DESCRIPTION_MAX;
   const instructionsOver = state.instructions.length > INSTRUCTIONS_MAX;
   const canSave =

@@ -199,12 +199,12 @@ export function FileRow({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/file:opacity-60 group-data-[collapsible=icon]:hidden"
+                className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/file:opacity-100 data-open:opacity-100 group-data-[collapsible=icon]:hidden"
               />
             }
             onClick={(event) => event.stopPropagation()}
           >
-            <MoreHorizontalIcon />
+            <MoreHorizontalIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
             <span className="sr-only">File actions</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>

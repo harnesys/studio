@@ -115,12 +115,12 @@ export function AgentThreadRow({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                className="absolute top-1 right-1 opacity-0 group-hover/thread:opacity-100 group-data-[collapsible=icon]:hidden"
+                className="absolute top-1 right-1 opacity-0 group-hover/thread:opacity-100 data-open:opacity-100 group-data-[collapsible=icon]:hidden"
               />
             }
             onClick={(event) => event.stopPropagation()}
           >
-            <MoreHorizontalIcon />
+            <MoreHorizontalIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
             <span className="sr-only">Thread actions</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>

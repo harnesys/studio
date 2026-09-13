@@ -10,6 +10,12 @@
   "capabilities": {
     "files": {}
   },
+  "permissions": {
+    "fs.write": "ask",
+    "process": "ask",
+    "network": "ask",
+    "mcp": "ask"
+  },
   "graph": {
     "nodes": {
       "start": {

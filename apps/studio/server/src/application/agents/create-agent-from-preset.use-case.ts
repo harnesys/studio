@@ -61,6 +61,7 @@ export class CreateAgentFromPresetUseCase implements CreateAgentFromPresetInput 
       mcpServers: preset.mcpServers,
       budget: preset.budget ?? DEFAULT_REACT_BUDGET,
       capabilities: preset.capabilities,
+      permissions: preset.permissions,
       modelId,
       ...(preset.graph !== undefined ? { graph: preset.graph as AgentGraph } : {}),
     });

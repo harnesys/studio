@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AgentBudget, PackConfig } from '@harnesys/studio-shared';
+import type { PermissionMap } from 'harnesys';
 import { z } from 'zod';
 import { PRESET_ID_RE, PRESETS_DIR } from '../config/constants.ts';
 import { NotFoundError, ValidationError } from '../domain/studio.error.ts';
@@ -19,6 +20,8 @@ const capabilitiesSchema = z
   .record(z.string(), z.object({ spec: z.record(z.string(), z.unknown()).optional() }).nullable())
   .optional();
 
+const permissionsSchema = z.record(z.string(), z.enum(['allow', 'ask', 'deny'])).optional();
+
 const graphSchema = z
   .object({
     nodes: z.record(z.string(), z.unknown()),
@@ -35,6 +38,7 @@ const agentPresetBodySchema = z.object({
   mcpServers: z.array(z.string()).optional(),
   budget: budgetSchema,
   capabilities: capabilitiesSchema,
+  permissions: permissionsSchema,
   graph: graphSchema,
 });
 
@@ -53,6 +57,7 @@ export type AgentPreset = {
   mcpServers?: string[];
   budget?: AgentBudget;
   capabilities?: Record<string, PackConfig | null>;
+  permissions?: PermissionMap;
   graph?: AgentPresetGraph;
 };
 
@@ -132,6 +137,7 @@ function parsePreset(id: string, path: string): AgentPreset {
     ...(body.mcpServers !== undefined ? { mcpServers: body.mcpServers } : {}),
     ...(body.budget !== undefined ? { budget: body.budget } : {}),
     ...(body.capabilities !== undefined ? { capabilities: body.capabilities } : {}),
+    ...(body.permissions !== undefined ? { permissions: body.permissions } : {}),
     ...(body.graph !== undefined ? { graph: body.graph } : {}),
   };
 }

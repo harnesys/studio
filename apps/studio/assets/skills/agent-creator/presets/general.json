@@ -12,6 +12,12 @@
     "shell": {},
     "plan": {}
   },
+  "permissions": {
+    "fs.write": "allow",
+    "process": "allow",
+    "network": "deny",
+    "mcp": "deny"
+  },
   "graph": {
     "nodes": {
       "start": {

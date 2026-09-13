@@ -18,6 +18,12 @@
     "semantic-memory": {},
     "pin-memory": {}
   },
+  "permissions": {
+    "fs.write": "ask",
+    "process": "ask",
+    "network": "allow",
+    "mcp": "ask"
+  },
   "graph": {
     "nodes": {
       "start": {

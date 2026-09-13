@@ -1,6 +1,6 @@
 import { MoreHorizontalIcon } from 'lucide-react';
 import type { Agent, AgentStatus } from '@/entities/agent';
-import { agentColorClass, statusLabel } from '@/entities/agent';
+import { agentColorTintClass, statusLabel } from '@/entities/agent';
 import { useAgentHasUnread, useAgentLiveStatus } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
@@ -52,7 +52,7 @@ export function AgentCard({ agent, selected, onSelect, onSettings, onDelete }: A
         >
           <div className="relative mr-0.5 inline-flex size-5 shrink-0">
             <Avatar size="sm" className="size-5 after:hidden">
-              <AvatarFallback className="bg-[color-mix(in_oklab,var(--live)_10%,transparent)]">
+              <AvatarFallback className={agentColorTintClass(agent.color)}>
                 {agent.initials}
               </AvatarFallback>
             </Avatar>
@@ -73,10 +73,6 @@ export function AgentCard({ agent, selected, onSelect, onSettings, onDelete }: A
                 hasUnread && 'font-medium',
               )}
             >
-              <span
-                aria-hidden
-                className={cn('size-2 shrink-0 rounded-full', agentColorClass(agent.color))}
-              />
               <span className="truncate">{agent.name}</span>
             </div>
             <div className="mt-0.5 flex items-baseline justify-between gap-2">

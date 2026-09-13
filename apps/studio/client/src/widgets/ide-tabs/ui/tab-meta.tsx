@@ -5,9 +5,10 @@ import {
   MessageSquareIcon,
   WorkflowIcon,
 } from 'lucide-react';
-import { useAgentStore } from '@/entities/agent';
+import { agentColorTintClass, useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import type { IdeTab } from '@/features/ide';
+import { cn } from '@/shared/lib/utils';
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
 
 /** Reactive: re-renders when the thread or agent behind the tab hydrates. */
@@ -40,7 +41,10 @@ function ThreadTabIcon({ threadId }: { threadId: string }) {
     return (
       <span
         title={agent.name}
-        className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--live)_12%,transparent)] font-medium text-[8px] text-foreground leading-none"
+        className={cn(
+          'flex size-4 shrink-0 items-center justify-center rounded-full font-medium text-[8px] leading-none',
+          agentColorTintClass(agent.color),
+        )}
       >
         {agent.initials.slice(0, 2)}
       </span>

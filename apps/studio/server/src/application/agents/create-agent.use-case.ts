@@ -6,12 +6,7 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
-import {
-  ASK_MODE,
-  DEFAULT_MODE_ID,
-  defaultAgentCompaction,
-  modeFromPreset,
-} from '@harnesys/studio-shared';
+import { ASK_MODE, defaultAgentCompaction, modeFromPreset } from '@harnesys/studio-shared';
 import type { HooksBinding } from 'harnesys';
 import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
@@ -144,7 +139,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const defaults = (this.modePresets?.list() ?? [])
       .filter((preset) => preset.installedByDefault)
       .map(modeFromPreset);
-    if (!defaults.some((mode) => mode.id === DEFAULT_MODE_ID)) {
+    if (!defaults.some((mode) => mode.id === ASK_MODE.id)) {
       defaults.push({ ...ASK_MODE });
     }
     return defaults;

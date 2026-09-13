@@ -1,11 +1,13 @@
-export const MODE_OPS = ['fs.write', 'process', 'network', 'mcp'] as const;
+export const MODE_OPS = ['fs.write', 'process', 'network', 'mcp', 'agents'] as const;
 export type ModeOp = (typeof MODE_OPS)[number];
 export type ModeOpGate = 'allow' | 'ask' | 'deny';
 export type ModeOpPermissions = Partial<Record<ModeOp, ModeOpGate>>;
 
 /** Underscore is legal: legacy system preset ids ('dont_ask') must keep resolving. */
 export const MODE_ID_RE = /^[a-z0-9][a-z0-9_-]*$/;
-export const DEFAULT_MODE_ID = 'ask';
+export const DEFAULT_MODE_ID = 'default';
+/** Pseudo-mode: the agent's permission base without mode overrides. */
+export const DEFAULT_MODE: AgentMode = { id: DEFAULT_MODE_ID, name: 'Default' };
 /** Pack id, not a mode name: plan preset preloads this pack (Capabilities key). */
 export const PLAN_PACK_ID = 'plan';
 
@@ -21,9 +23,9 @@ export type AgentMode = {
 
 /** Ultimate fallback; mirrored by the builtin 'ask' preset seed. */
 export const ASK_MODE: AgentMode = {
-  id: DEFAULT_MODE_ID,
+  id: 'ask',
   name: 'Ask before changes',
-  permissions: { 'fs.write': 'ask', process: 'ask', network: 'ask', mcp: 'ask' },
+  permissions: { 'fs.write': 'ask', process: 'ask', network: 'ask', mcp: 'ask', agents: 'ask' },
 };
 
 export type ModePreset = AgentMode & {
@@ -55,6 +57,9 @@ export function resolveModeId(input: {
 }
 
 export function effectiveMode(modes: AgentMode[] | undefined, runModeId: string): AgentMode {
+  if (runModeId === DEFAULT_MODE_ID) {
+    return DEFAULT_MODE;
+  }
   return modes?.find((m) => m.id === runModeId) ?? ASK_MODE;
 }
 

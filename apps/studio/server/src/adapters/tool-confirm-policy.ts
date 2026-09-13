@@ -1,4 +1,4 @@
-import { MODE_OPS, type ModeOpPermissions } from '@harnesys/studio-shared';
+import { type AgentMode, MODE_OPS, type ModeOpPermissions } from '@harnesys/studio-shared';
 import type { PermissionMap } from 'harnesys';
 
 // PermissionMap keys are tool operations (ToolDefinition.operations), not tool
@@ -22,4 +22,26 @@ export function permissionMapForMode(perms?: ModeOpPermissions): PermissionMap {
     }
   }
   return map;
+}
+
+/** Run permission map: agent base ceiling, mode overrides only listed ops and never above the base. */
+export function permissionMapForRun(
+  base: PermissionMap | null | undefined,
+  mode: AgentMode | undefined,
+): PermissionMap {
+  const b: PermissionMap = base ?? permissionMapForMode(mode?.permissions);
+  if (!mode || mode.id === 'default' || !mode.permissions) {
+    return b;
+  }
+  const out: PermissionMap = { ...b };
+  for (const op of MODE_OPS) {
+    const gate = mode.permissions[op];
+    if (!gate) {
+      continue;
+    }
+    const baseGate = b[op] ?? 'ask';
+    const severity = { allow: 0, ask: 1, deny: 2 } as const;
+    out[op] = severity[gate] >= severity[baseGate] ? gate : baseGate;
+  }
+  return out;
 }

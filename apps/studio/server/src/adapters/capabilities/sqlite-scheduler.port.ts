@@ -1,5 +1,5 @@
 import type { ScheduleRecord as StudioScheduleRecord } from '@harnesys/studio-shared';
-import { DEFAULT_MODE_ID, PERMISSION_MODES, type PermissionMode } from '@harnesys/studio-shared';
+import { PERMISSION_MODES, type PermissionMode } from '@harnesys/studio-shared';
 import type {
   CapabilityScope,
   ScheduleCreatedRecord,
@@ -27,7 +27,7 @@ export type SqliteSchedulerPortDeps = {
 function permissionModeFrom(modeId: string): PermissionMode {
   return (PERMISSION_MODES as readonly string[]).includes(modeId)
     ? (modeId as PermissionMode)
-    : DEFAULT_MODE_ID;
+    : 'ask';
 }
 
 function toScheduleRecord(row: StudioScheduleRecord): ScheduleRecord {

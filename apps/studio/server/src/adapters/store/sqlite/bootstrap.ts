@@ -1,4 +1,4 @@
-import { ASK_MODE, DEFAULT_MODE_ID, modeFromPreset } from '@harnesys/studio-shared';
+import { ASK_MODE, modeFromPreset } from '@harnesys/studio-shared';
 import { eq, sql } from 'drizzle-orm';
 import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
@@ -398,13 +398,13 @@ export function bootstrap(db: StudioDb): void {
   const presetRepo = new SqliteModePresetRepo(db);
   const defaults = presetRepo
     .list()
-    .filter((preset) => preset.installedByDefault || preset.id === DEFAULT_MODE_ID);
+    .filter((preset) => preset.installedByDefault || preset.id === ASK_MODE.id);
   for (const row of db.select().from(agentsTable).all()) {
     if (row.modesJson !== '[]') {
       continue;
     }
     const modes = defaults.map(modeFromPreset);
-    if (!modes.some((mode) => mode.id === DEFAULT_MODE_ID)) {
+    if (!modes.some((mode) => mode.id === ASK_MODE.id)) {
       modes.push({ ...ASK_MODE });
     }
     db.update(agentsTable)

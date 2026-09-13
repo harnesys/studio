@@ -94,6 +94,7 @@ export type {
 export type { AgentMode, ModeOp, ModeOpGate, ModeOpPermissions, ModePreset } from './src/modes.ts';
 export {
   ASK_MODE,
+  DEFAULT_MODE,
   DEFAULT_MODE_ID,
   effectiveMode,
   isModeId,

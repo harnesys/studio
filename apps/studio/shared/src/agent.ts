@@ -54,7 +54,7 @@ export type AgentRecord = {
   hooks?: HooksBinding[];
   /** Per-agent plugin enable overrides. */
   enabledPlugins?: Record<string, boolean>;
-  /** Null = DEFAULT_MODE_ID ('ask'). */
+  /** Null = DEFAULT_MODE_ID ('default'). */
   defaultModeId?: string | null;
   modes?: AgentMode[];
   createdAt: string;

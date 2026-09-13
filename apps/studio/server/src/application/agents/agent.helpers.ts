@@ -22,7 +22,7 @@ export function validateModeIds(modes: AgentMode[]): void {
 
 /** Creation-time seed: agents start with a copy of the builtin 'ask' preset. */
 export function ensureAskMode(modes: AgentMode[]): AgentMode[] {
-  return modes.some((mode) => mode.id === DEFAULT_MODE_ID) ? modes : [...modes, { ...ASK_MODE }];
+  return modes.some((mode) => mode.id === ASK_MODE.id) ? modes : [...modes, { ...ASK_MODE }];
 }
 
 export function validateDefaultModeId(defaultModeId: string | null, modes: AgentMode[]): void {

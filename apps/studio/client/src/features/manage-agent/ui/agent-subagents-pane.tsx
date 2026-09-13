@@ -38,7 +38,9 @@ export function AgentSubagentsPane({
     queryFn: listAgentPresets,
     staleTime: 60_000,
   });
-  const presets = presetsQuery.data ?? [];
+  // This pane always creates delegates: presets with the agents pack would fail
+  // the server ban, so they are not offered (explorer/general stay, coder/orchestrator do not).
+  const presets = (presetsQuery.data ?? []).filter((preset) => !preset.capabilities?.agents);
 
   const addFromPreset = async (presetId: string) => {
     try {

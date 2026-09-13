@@ -1,4 +1,4 @@
-import { type AgentMode, MODE_OPS } from '@harnesys/studio-shared';
+import { type AgentMode, DEFAULT_MODE_ID, MODE_OPS } from '@harnesys/studio-shared';
 import { DEFAULT_PERMISSIONS, type PermissionMap } from 'harnesys';
 
 // PermissionMap keys are tool operations (ToolDefinition.operations), not tool
@@ -11,8 +11,8 @@ export function permissionMapForRun(
   base: PermissionMap | null | undefined,
   mode: AgentMode | undefined,
 ): PermissionMap {
-  const b: PermissionMap = base ?? DEFAULT_PERMISSIONS;
-  if (!mode || mode.id === 'default' || !mode.permissions) {
+  const b: PermissionMap = { ...DEFAULT_PERMISSIONS, ...(base ?? {}) };
+  if (!mode || mode.id === DEFAULT_MODE_ID || !mode.permissions) {
     return b;
   }
   const out: PermissionMap = { ...b };

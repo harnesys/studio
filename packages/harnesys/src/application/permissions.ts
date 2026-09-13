@@ -21,7 +21,9 @@ export function checkPermission(
   operations: string[],
 ): { allowed: boolean; gate: PermissionGate; operation?: string } {
   for (const op of operations) {
-    const gate = permissions[op] ?? 'ask';
+    // Partial run maps (preset 4-op maps, pane drafts) may lack the op:
+    // fall back to the default gate, then 'ask' for unknown ops.
+    const gate = permissions[op] ?? DEFAULT_PERMISSIONS[op] ?? 'ask';
     if (gate === 'deny') {
       return { allowed: false, gate: 'deny', operation: op };
     }

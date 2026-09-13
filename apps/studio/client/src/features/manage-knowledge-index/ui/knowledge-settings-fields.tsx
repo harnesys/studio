@@ -7,6 +7,7 @@ import {
   watchWorkspaceFiles,
   writeWorkspaceFileContent,
 } from '@/shared/api/files';
+import { Button } from '@/shared/ui/button';
 import { Field, FieldDescription, FieldLabel } from '@/shared/ui/field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
@@ -36,57 +37,14 @@ export function KnowledgeSettingsFields({
   onPatch,
 }: KnowledgeSettingsFieldsProps) {
   const qc = useQueryClient();
-  const [pendingVector, setPendingVector] = useState(false);
+  const [draft, setDraft] = useState<KnowledgeSettings>(settings);
 
-  const hasEmbed = Boolean(settings.embedProvider?.trim()) && Boolean(settings.embedModel?.trim());
-  const bothEmbed = (n: { embedProvider: string | null; embedModel: string | null }) =>
-    Boolean(n.embedProvider?.trim()) && Boolean(n.embedModel?.trim());
+  useEffect(() => {
+    setDraft(settings);
+  }, [settings]);
 
-  const selectBackend = (next: MemorySearchBackend) => {
-    if (next === 'vector') {
-      if (hasEmbed) {
-        setPendingVector(false);
-        onPatch({ backend: 'vector' });
-      } else {
-        setPendingVector(true);
-      }
-      return;
-    }
-    if (pendingVector) {
-      setPendingVector(false);
-      if (settings.backend === 'vector') {
-        onPatch({ backend: 'fts' });
-      }
-      return;
-    }
-    if (settings.backend !== 'fts') {
-      onPatch({ backend: 'fts' });
-    }
-  };
-
-  const changeEmbed = (next: { embedProvider: string | null; embedModel: string | null }) => {
-    if (pendingVector) {
-      if (!bothEmbed(next)) {
-        return;
-      }
-      setPendingVector(false);
-      onPatch({
-        backend: 'vector',
-        embedProvider: next.embedProvider,
-        embedModel: next.embedModel,
-      });
-      return;
-    }
-    if (!bothEmbed(next)) {
-      toast.add({
-        type: 'warning',
-        title: 'Embed model required for vector',
-        description: 'Switch Backend to fts before clearing the embed model.',
-      });
-      return;
-    }
-    onPatch(next);
-  };
+  const patchDraft = (patch: Partial<KnowledgeSettings>) =>
+    setDraft((prev) => ({ ...prev, ...patch }));
 
   const rootFilesQuery = useQuery({
     queryKey: ['workspace-files', workspaceId],
@@ -122,6 +80,25 @@ export function KnowledgeSettingsFields({
     },
   });
 
+  const hasEmbed = Boolean(draft.embedProvider?.trim()) && Boolean(draft.embedModel?.trim());
+  const vectorNeedsEmbed = draft.backend === 'vector' && !hasEmbed;
+  const dirty =
+    draft.entireWorkspace !== settings.entireWorkspace ||
+    draft.backend !== settings.backend ||
+    draft.embedProvider !== settings.embedProvider ||
+    draft.embedModel !== settings.embedModel ||
+    draft.watchEnabled !== settings.watchEnabled;
+
+  const save = () => {
+    onPatch({
+      entireWorkspace: draft.entireWorkspace,
+      backend: draft.backend,
+      embedProvider: draft.embedProvider,
+      embedModel: draft.embedModel,
+      watchEnabled: draft.watchEnabled,
+    });
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <Field orientation="horizontal" className="items-center justify-between gap-3">
@@ -132,11 +109,9 @@ export function KnowledgeSettingsFields({
         <Switch
           id="knowledge-entire-workspace"
           size="sm"
-          checked={settings.entireWorkspace}
+          checked={draft.entireWorkspace}
           disabled={disabled}
-          onCheckedChange={(entireWorkspace) =>
-            onPatch({ entireWorkspace: Boolean(entireWorkspace) })
-          }
+          onCheckedChange={(entireWorkspace) => patchDraft({ entireWorkspace })}
         />
       </Field>
 
@@ -145,10 +120,10 @@ export function KnowledgeSettingsFields({
           <FieldLabel htmlFor="knowledge-backend">Backend</FieldLabel>
           <Select
             items={BACKENDS.map((value) => ({ value, label: value }))}
-            value={pendingVector ? 'vector' : settings.backend}
+            value={draft.backend}
             onValueChange={(next) => {
               if (next === 'fts' || next === 'vector') {
-                selectBackend(next);
+                patchDraft({ backend: next });
               }
             }}
             disabled={disabled}
@@ -166,19 +141,28 @@ export function KnowledgeSettingsFields({
           </Select>
         </Field>
 
-        {(settings.backend === 'vector' || pendingVector) && (
+        {draft.backend === 'vector' && (
           <Field className="gap-1.5">
-            <FieldLabel htmlFor="knowledge-embed-model">Embed model</FieldLabel>
-            {pendingVector && !hasEmbed ? (
-              <FieldDescription>Pick an embed model to save the vector backend.</FieldDescription>
+            <FieldLabel
+              htmlFor="knowledge-embed-model"
+              className={vectorNeedsEmbed ? 'text-destructive' : undefined}
+            >
+              Embed model
+            </FieldLabel>
+            {vectorNeedsEmbed ? (
+              <FieldDescription className="text-destructive">
+                Pick an embed model before saving the vector backend.
+              </FieldDescription>
             ) : null}
-            <EmbedModelSelect
-              id="knowledge-embed-model"
-              embedProvider={settings.embedProvider}
-              embedModel={settings.embedModel}
-              disabled={disabled}
-              onChange={changeEmbed}
-            />
+            <div className={vectorNeedsEmbed ? 'rounded-md ring-2 ring-destructive/60' : undefined}>
+              <EmbedModelSelect
+                id="knowledge-embed-model"
+                embedProvider={draft.embedProvider}
+                embedModel={draft.embedModel}
+                disabled={disabled}
+                onChange={(next) => patchDraft(next)}
+              />
+            </div>
           </Field>
         )}
       </div>
@@ -191,9 +175,9 @@ export function KnowledgeSettingsFields({
         <Switch
           id="knowledge-watch"
           size="sm"
-          checked={settings.watchEnabled}
+          checked={draft.watchEnabled}
           disabled={disabled}
-          onCheckedChange={(watchEnabled) => onPatch({ watchEnabled: Boolean(watchEnabled) })}
+          onCheckedChange={(watchEnabled) => patchDraft({ watchEnabled })}
         />
       </Field>
 
@@ -228,6 +212,29 @@ export function KnowledgeSettingsFields({
         )}
         .
       </p>
+
+      <div className="flex items-center justify-end gap-2">
+        {dirty ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={disabled}
+            onClick={() => setDraft(settings)}
+          >
+            Reset
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          size="sm"
+          disabled={disabled || !dirty || vectorNeedsEmbed}
+          onClick={save}
+          data-testid="knowledge-settings-save"
+        >
+          Save
+        </Button>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { type UseFormReturn, useFieldArray, useWatch } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { modePresetsQuery, workspaceCapabilitiesQuery, workspaceSkillsQuery } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
-import { Row, RowChip, RowHeader, RowList } from '@/shared/ui/capability-rows';
+import { Row, RowChip, RowHeader, RowList, STICKY_PANE_HEADER } from '@/shared/ui/capability-rows';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,7 +93,12 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
 
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid="agent-modes-pane">
-      <RowHeader label="Modes" count={rows.length}>
+      <RowHeader
+        className={STICKY_PANE_HEADER}
+        label="Modes"
+        count={rows.length}
+        description="Execution modes with their own instructions and permission gates."
+      >
         <Button type="button" variant="ghost" size="sm" onClick={addBlank}>
           <PlusIcon />
           Add

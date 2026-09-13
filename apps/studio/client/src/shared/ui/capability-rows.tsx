@@ -22,29 +22,45 @@ export function RowList({
   testId?: string;
 }) {
   return (
-    <div className={cn('flex flex-col divide-y divide-border/40', className)} data-testid={testId}>
+    <div className={cn('flex flex-col divide-y divide-border/20', className)} data-testid={testId}>
       {children}
     </div>
   );
 }
 
-/** Section header above a RowList: name + optional count + right-aligned actions. */
+/** Header pinned to the top of a settings-pane scroll area while its rows scroll under it. */
+export const STICKY_PANE_HEADER = 'sticky top-0 z-10 -mt-2 bg-popover pt-2 pb-1';
+
+/** Section header above a RowList: name + optional count/description + right-aligned actions. */
 export function RowHeader({
   label,
   count,
+  description,
+  className,
   children,
 }: {
   label: string;
   count?: number;
+  description?: ReactNode;
+  className?: string;
   children?: ReactNode;
 }) {
   return (
-    <div className="flex h-8 items-center gap-2">
-      <p className="font-medium text-sm">{label}</p>
-      {typeof count === 'number' ? (
-        <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{count}</span>
-      ) : null}
-      {children ? <div className="ml-auto flex items-center gap-1">{children}</div> : null}
+    <div className={cn('flex items-center gap-2', description ? 'py-1.5' : 'h-8', className)}>
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+        <p className="flex min-w-0 items-baseline gap-2 font-medium text-sm">
+          {label}
+          {typeof count === 'number' ? (
+            <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+              {count}
+            </span>
+          ) : null}
+        </p>
+        {description ? (
+          <p className="text-muted-foreground text-xs leading-4">{description}</p>
+        ) : null}
+      </div>
+      {children ? <div className="flex shrink-0 items-center gap-1">{children}</div> : null}
     </div>
   );
 }

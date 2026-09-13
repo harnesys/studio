@@ -4,6 +4,7 @@ import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/shared/ui/button';
+import { RowHeader, STICKY_PANE_HEADER } from '@/shared/ui/capability-rows';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 
@@ -61,7 +62,18 @@ export function AgentHooksPane({
   }
 
   return (
-    <section className="flex min-w-0 flex-col gap-2" data-testid="agent-hooks-pane">
+    <section className="flex min-w-0 flex-col gap-1" data-testid="agent-hooks-pane">
+      <RowHeader
+        className={STICKY_PANE_HEADER}
+        label="Hooks"
+        count={hooks.length}
+        description="Handlers on engine seams for every run of this agent."
+      >
+        <Button type="button" variant="ghost" size="sm" onClick={addHook}>
+          <PlusIcon />
+          Add hook
+        </Button>
+      </RowHeader>
       {hooks.length === 0 ? (
         <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
           No hooks. Hooks run at engine seams on every run of this agent.
@@ -79,10 +91,6 @@ export function AgentHooksPane({
           onRemove={() => removeHook(index)}
         />
       ))}
-      <Button type="button" variant="outline" size="sm" className="self-start" onClick={addHook}>
-        <PlusIcon />
-        Add hook
-      </Button>
     </section>
   );
 }

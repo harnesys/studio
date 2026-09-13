@@ -18,6 +18,7 @@ import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type AgentRow, agentsTable } from '../schema';
 import { parseGraph } from './agent-graph-json.ts';
+import { parsePermissionMap } from './agent-permissions-json.ts';
 
 export class SqliteAgentRepo implements AgentRepository {
   constructor(private readonly db: StudioDb) {}
@@ -62,6 +63,7 @@ export class SqliteAgentRepo implements AgentRepository {
         graph,
         budget,
         capabilities,
+        permissions,
         hooks,
         enabledPlugins,
         ...rest
@@ -80,6 +82,7 @@ export class SqliteAgentRepo implements AgentRepository {
           graphJson: JSON.stringify(graph),
           budgetJson: serializeJsonColumn(budget),
           capabilitiesJson: JSON.stringify(capabilities),
+          permissionsJson: serializeJson(permissions),
           hooksJson: JSON.stringify(hooks),
           enabledPluginsJson: JSON.stringify(enabledPlugins),
           modesJson: serializeJson(modes) ?? '[]',
@@ -105,6 +108,7 @@ export class SqliteAgentRepo implements AgentRepository {
         graph,
         budget,
         capabilities,
+        permissions,
         hooks,
         enabledPlugins,
         ...rest
@@ -121,6 +125,7 @@ export class SqliteAgentRepo implements AgentRepository {
           ...(graph !== undefined ? { graphJson: JSON.stringify(graph) } : {}),
           ...(budget !== undefined ? { budgetJson: serializeJsonColumn(budget) } : {}),
           ...(capabilities !== undefined ? { capabilitiesJson: JSON.stringify(capabilities) } : {}),
+          ...(permissions !== undefined ? { permissionsJson: serializeJson(permissions) } : {}),
           ...(hooks !== undefined ? { hooksJson: JSON.stringify(hooks) } : {}),
           ...(enabledPlugins !== undefined
             ? { enabledPluginsJson: JSON.stringify(enabledPlugins) }
@@ -168,6 +173,8 @@ function toAgent(row: AgentRow): Agent {
     graph: parseGraph(row.graphJson),
     budget: parseJsonObject(row.budgetJson),
     capabilities: parsePacks(row.capabilitiesJson),
+    permissions: parsePermissionMap(row.permissionsJson),
+    color: row.color ?? null,
     hooks: parseHooks(row.hooksJson),
     enabledPlugins: parseEnabledPlugins(row.enabledPluginsJson),
     defaultModeId: row.defaultModeId ?? null,

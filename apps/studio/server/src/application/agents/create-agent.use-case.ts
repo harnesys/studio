@@ -7,13 +7,18 @@ import type {
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
 import { ASK_MODE, defaultAgentCompaction, modeFromPreset } from '@harnesys/studio-shared';
-import type { HooksBinding } from 'harnesys';
+import type { HooksBinding, PermissionMap } from 'harnesys';
 import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import type { ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-import { ensureAskMode, validateDefaultModeId, validateModeIds } from './agent.helpers.ts';
+import {
+  ensureAskMode,
+  isAgentsPackEnabled,
+  validateDefaultModeId,
+  validateModeIds,
+} from './agent.helpers.ts';
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
@@ -39,6 +44,8 @@ export type CreateAgentRequest = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  permissions?: PermissionMap | null;
+  color?: string | null;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
@@ -85,6 +92,11 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const generation = request.generation ?? null;
     const toolOutput = request.toolOutput ?? null;
     const capabilities = request.capabilities ?? {};
+    if (parentId !== null && isAgentsPackEnabled(capabilities)) {
+      throw new ValidationError('agents pack is forbidden for delegates');
+    }
+    const permissions = request.permissions ?? null;
+    const color = request.color ?? null;
     const compaction =
       request.compaction !== undefined ? request.compaction : defaultAgentCompaction();
     const skills = request.skills ?? [];
@@ -124,6 +136,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
       graph,
       budget,
       capabilities,
+      permissions,
+      color,
       hooks,
       enabledPlugins,
       defaultModeId,

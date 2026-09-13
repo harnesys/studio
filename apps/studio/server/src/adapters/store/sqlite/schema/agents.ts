@@ -28,6 +28,8 @@ export const agentsTable = sqliteTable(
     graphJson: text('graph_json'),
     budgetJson: text('budget_json'),
     capabilitiesJson: text('capabilities_json').notNull().default('{}'),
+    permissionsJson: text('permissions_json'),
+    color: text('color'),
     hooksJson: text('hooks_json').notNull().default('[]'),
     enabledPluginsJson: text('enabled_plugins_json').notNull().default('{}'),
     createdAt: text('created_at').notNull(),

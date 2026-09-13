@@ -1,4 +1,9 @@
-import { type AgentMode, ASK_MODE, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
+import {
+  type AgentMode,
+  ASK_MODE,
+  DEFAULT_MODE_ID,
+  type PackConfig,
+} from '@harnesys/studio-shared';
 import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 
@@ -32,4 +37,9 @@ export function validateDefaultModeId(defaultModeId: string | null, modes: Agent
   if (!modes.some((mode) => mode.id === defaultModeId)) {
     throw new ValidationError(`unknown defaultModeId: ${defaultModeId}`);
   }
+}
+
+export function isAgentsPackEnabled(capabilities: Record<string, PackConfig | null>): boolean {
+  const v: unknown = capabilities.agents;
+  return v !== undefined && v !== null && v !== false;
 }

@@ -6,11 +6,16 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
-import type { HooksBinding } from 'harnesys';
+import type { HooksBinding, PermissionMap } from 'harnesys';
 import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-import { requireAgent, validateDefaultModeId, validateModeIds } from './agent.helpers.ts';
+import {
+  isAgentsPackEnabled,
+  requireAgent,
+  validateDefaultModeId,
+  validateModeIds,
+} from './agent.helpers.ts';
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
@@ -32,6 +37,8 @@ export type UpdateAgentRequest = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  permissions?: PermissionMap | null;
+  color?: string | null;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;
@@ -116,6 +123,18 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.capabilities !== undefined) {
       patch.capabilities = request.capabilities;
+    }
+    // Stored record was read before the patch: a delegate may never carry the agents pack.
+    if (agent.parentId !== null && isAgentsPackEnabled(patch.capabilities ?? agent.capabilities)) {
+      throw new ValidationError('agents pack is forbidden for delegates');
+    }
+
+    if (request.permissions !== undefined) {
+      patch.permissions = request.permissions;
+    }
+
+    if (request.color !== undefined) {
+      patch.color = request.color;
     }
 
     if (request.hooks !== undefined) {

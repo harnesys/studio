@@ -6,7 +6,7 @@ import type {
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
-import type { Edge, HooksBinding, Node } from 'harnesys';
+import type { Edge, HooksBinding, Node, PermissionMap } from 'harnesys';
 
 export type AgentGraphRankdir = 'TB' | 'LR';
 
@@ -45,6 +45,10 @@ export type Agent = {
   graph: AgentGraph;
   budget: AgentBudget | null;
   capabilities: Record<string, PackConfig | null>;
+  /** Base permission map (mode ceiling / spawn base); null = DEFAULT_PERMISSIONS. */
+  permissions: PermissionMap | null;
+  /** Card color (CC palette); null = host default. */
+  color: string | null;
   /** Declarative hook bindings for this agent; empty = none. */
   hooks: HooksBinding[];
   /** Per-agent plugin enable overrides; empty = workspace defaults. */
@@ -72,6 +76,8 @@ export type AgentPatch = {
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
+  permissions?: PermissionMap | null;
+  color?: string | null;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
   defaultModeId?: string | null;

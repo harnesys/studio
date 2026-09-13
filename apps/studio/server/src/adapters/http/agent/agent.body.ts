@@ -49,6 +49,10 @@ const capabilitiesBody = z
   .record(z.string(), z.object({ spec: z.record(z.string(), z.unknown()).optional() }).nullable())
   .optional();
 
+const permissionsBody = z.record(z.string(), modeOpGate).nullable().optional();
+
+const colorBody = z.string().trim().min(1).max(32).nullable().optional();
+
 const portRefObject = z.object({
   name: z.string().trim().min(1),
   version: z.string().optional(),
@@ -138,6 +142,8 @@ export const createAgentBody = z.object({
   toolOutput: toolOutputBody,
   budget: budgetBody,
   capabilities: capabilitiesBody,
+  permissions: permissionsBody,
+  color: colorBody,
   compaction: compactionBody,
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),
@@ -159,6 +165,8 @@ export const updateAgentBody = z.object({
   toolOutput: toolOutputBody,
   budget: budgetBody,
   capabilities: capabilitiesBody,
+  permissions: permissionsBody,
+  color: colorBody,
   compaction: compactionBody,
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),

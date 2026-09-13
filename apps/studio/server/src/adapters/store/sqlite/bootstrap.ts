@@ -361,6 +361,14 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   try {
+    db.run(sql.raw('ALTER TABLE agents ADD COLUMN permissions_json text;'));
+  } catch {}
+
+  try {
+    db.run(sql.raw('ALTER TABLE agents ADD COLUMN color text;'));
+  } catch {}
+
+  try {
     db.run(
       sql.raw(`CREATE TABLE IF NOT EXISTS mode_presets (
       id text PRIMARY KEY, name text NOT NULL, description text NOT NULL DEFAULT '',

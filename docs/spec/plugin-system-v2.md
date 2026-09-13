@@ -99,7 +99,9 @@ type PluginKind =
   `userConfig`, `dependencies`, `defaultEnabled`, `experimental.*`,
   плоские `commands/*.md`.
 - Оба адаптера понимают обе MCP-конвенции пути (`mcp.json` AP / `.mcp.json` Claude),
-  приоритет — у формат-родного. В Claude-конвенции `transport: 'socket'`
+  приоритет — у формат-родного. В Claude-конвенции карта серверов принимается в двух
+  формах: с обёрткой `mcpServers` и голой `name → config` (обёртка приоритетна;
+  inline-оверрайд манифеста — голая карта). `transport: 'socket'`
   принимается и исполняется поверх stdio (паритет Claude); AP `mcp.json`
   остаётся закрытым union'ом без socket (§7.2.1).
 - `parseClaudePluginManifestJson` больше не подставляет AP-`$schema` и не гоняет

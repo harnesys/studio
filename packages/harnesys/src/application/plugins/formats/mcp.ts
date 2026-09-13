@@ -44,7 +44,8 @@ export type DiscoverMcpResult = {
 /**
  * Обе MCP-конвенции: `mcp.json` AP со строгой `validateApMcp` + variants §7.2.1
  * (single-token command, cwd-формы, env PLUGIN_ROOT/PLUGIN_DATA запрещены) и
- * `.mcp.json` Claude с `CLAUDE_*`-плейсхолдерами; `transport: 'socket'` в Claude
+ * `.mcp.json` Claude с `CLAUDE_*`-плейсхолдерами, в обеих формах карты серверов
+ * (обёртка `mcpServers` / голая `name → config`); `transport: 'socket'` в Claude
  * принимается и исполняется поверх stdio, AP-union остаётся закрытым без socket.
  * `$schema` mismatch с манифестом → MCP-компонент невалиден, остальное живёт (§7.2.2).
  */
@@ -158,16 +159,22 @@ function parseClaudeMcp(
 ): DiscoverMcpResult {
   const diagnostics: PluginDiagnostic[] = [];
   const components: PluginComponent[] = [];
-  const servers = isPlainObject(raw) && isPlainObject(raw.mcpServers) ? raw.mcpServers : undefined;
+  const servers = claudeServersMap(raw);
   if (servers === undefined) {
     return {
       components,
-      diagnostics: [entryWarning(label, '.mcp.json must contain an "mcpServers" object')],
+      diagnostics: [
+        entryWarning(
+          label,
+          '.mcp.json must be a "name → config" map or contain an "mcpServers" object',
+        ),
+      ],
     };
   }
+  const base = wrappedServersMap(raw) ? 'mcpServers.' : '';
   for (const [key, value] of Object.entries(servers)) {
     if (!isPlainObject(value)) {
-      diagnostics.push(entryWarning(label, `mcpServers.${key} must be an object`));
+      diagnostics.push(entryWarning(label, `${base}${key} must be an object`));
       components.push(droppedServerComponent(label, key, value));
       continue;
     }
@@ -184,13 +191,32 @@ function parseClaudeMcp(
       diagnostics.push({
         level: 'warning',
         code,
-        message: `mcpServers.${key}: ${message}`,
+        message: `${base}${key}: ${message}`,
         path: label,
       });
       components.push(droppedServerComponent(label, key, value));
     }
   }
   return { components, diagnostics };
+}
+
+/**
+ * Две формы карты серверов: обёртка `{"mcpServers": {…}}` (доки Claude) и голая
+ * `{"name": {…}}` (`.mcp.json` официального маркетплейса, напр. playwright).
+ * Обёртка приоритетна; inline-оверрайд манифеста — всегда голая карта.
+ */
+function claudeServersMap(raw: unknown): Record<string, unknown> | undefined {
+  if (!isPlainObject(raw)) {
+    return undefined;
+  }
+  if (raw.mcpServers !== undefined) {
+    return isPlainObject(raw.mcpServers) ? raw.mcpServers : undefined;
+  }
+  return raw;
+}
+
+function wrappedServersMap(raw: unknown): boolean {
+  return isPlainObject(raw) && isPlainObject(raw.mcpServers);
 }
 
 function serverWarning(label: string, key: string, message: string): PluginDiagnostic {

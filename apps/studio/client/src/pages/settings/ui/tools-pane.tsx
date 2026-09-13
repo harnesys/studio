@@ -10,7 +10,7 @@ import {
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 
-import { Row, RowHeader, RowItem, RowList, RowSection } from './capability-rows';
+import { Row, RowHeader, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
 
 export function ToolsPane() {
   const { workspaceId } = useStudioLocation();

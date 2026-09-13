@@ -4,7 +4,7 @@ import type {
   PluginListItem,
   PluginOptionValue,
 } from '@harnesys/studio-shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
@@ -30,13 +30,21 @@ import {
   setPluginGrants,
   setPluginOption,
   updatePlugin,
+  workspaceMcpConfigQueryKey,
+  workspaceMcpQueryKey,
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { Button } from '@/shared/ui/button';
+import {
+  Row,
+  RowChip,
+  RowField,
+  RowHeader,
+  RowList,
+  RowSection,
+} from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-
-import { Row, RowChip, RowField, RowHeader, RowList, RowSection } from './capability-rows';
 
 const SERVER_APPROVAL_REASON = 'needs_server_approval';
 const MCP_SERVER_KIND = 'mcp-server';
@@ -44,18 +52,18 @@ const MCP_SERVER_KIND = 'mcp-server';
 export function PluginsInstalledTab() {
   const { workspaceId } = useStudioLocation();
   const queryClient = useQueryClient();
-  const pluginsListQuery = useQuery(pluginsQuery());
+  const pluginsListQuery = useQuery(pluginsQuery(workspaceId ?? undefined));
   const items = pluginsListQuery.data ?? [];
   const [expandedName, setExpandedName] = useState<string | null>(null);
 
   async function invalidatePlugins() {
-    await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+    await invalidatePluginAndMcp(queryClient, workspaceId);
   }
 
   const reload = useMutation({
-    mutationFn: () => listPlugins(),
-    onSuccess: (result) => {
-      queryClient.setQueryData(pluginsQueryKey, result);
+    mutationFn: () => listPlugins(workspaceId ?? undefined),
+    onSuccess: async () => {
+      await invalidatePlugins();
       toast.add({ title: 'Plugins reloaded' });
     },
   });
@@ -236,14 +244,14 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
       return setPluginGrants(workspaceId, plugin.name, { classes });
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+      await invalidatePluginAndMcp(queryClient, workspaceId);
     },
   });
 
   const approveMutation = useMutation({
     mutationFn: (serverId: string) => approvePluginServer(plugin.name, { serverId }),
     onSuccess: async (_result, serverId) => {
-      await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+      await invalidatePluginAndMcp(queryClient, workspaceId);
       toast.add({ title: 'Server approved', description: serverId });
     },
   });
@@ -258,7 +266,7 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
       );
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+      await invalidatePluginAndMcp(queryClient, workspaceId);
       setDrafts((current) =>
         current.map((draft) =>
           draft.sensitive ? { ...draft, value: '' } : { ...draft, current: draft.value },
@@ -378,20 +386,33 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
   );
 }
 
+async function invalidatePluginAndMcp(queryClient: QueryClient, workspaceId?: string | null) {
+  await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+  if (workspaceId) {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: workspaceMcpConfigQueryKey(workspaceId) }),
+      queryClient.invalidateQueries({ queryKey: workspaceMcpQueryKey(workspaceId) }),
+    ]);
+  }
+}
+
 function DiagnosticChip({ diagnostics }: { diagnostics: PluginDiagnostic[] }) {
   const errors = diagnostics.filter((diagnostic) => diagnostic.level === 'error').length;
   const warnings = diagnostics.length - errors;
-  if (errors === 0 && warnings === 0) {
-    return null;
-  }
-  const parts: string[] = [];
-  if (errors > 0) {
-    parts.push(`${errors} error${errors === 1 ? '' : 's'}`);
-  }
-  if (warnings > 0) {
-    parts.push(`${warnings} warning${warnings === 1 ? '' : 's'}`);
-  }
-  return <RowChip tone={errors > 0 ? 'danger' : 'accent'}>{parts.join(', ')}</RowChip>;
+  return (
+    <>
+      {errors > 0 ? (
+        <RowChip tone="danger">
+          {errors} error{errors === 1 ? '' : 's'}
+        </RowChip>
+      ) : null}
+      {warnings > 0 ? (
+        <RowChip tone="danger">
+          {warnings} warning{warnings === 1 ? '' : 's'}
+        </RowChip>
+      ) : null}
+    </>
+  );
 }
 
 function DiagnosticLine({ diagnostic }: { diagnostic: PluginDiagnostic }) {

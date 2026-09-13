@@ -12,10 +12,16 @@ import {
   removePluginRegistry,
 } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
+import {
+  Row,
+  RowChip,
+  RowField,
+  RowHeader,
+  RowList,
+  RowSection,
+} from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-
-import { Row, RowChip, RowField, RowHeader, RowList, RowSection } from './capability-rows';
 
 export function PluginsMarketplacesTab() {
   const queryClient = useQueryClient();

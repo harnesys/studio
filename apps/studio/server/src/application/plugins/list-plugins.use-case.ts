@@ -1,23 +1,35 @@
 import { existsSync } from 'node:fs';
 import type { PluginListItem, PluginSummary } from '@harnesys/studio-shared';
+import type { PluginIr } from 'harnesys';
 import { loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
+import { applyGrantGating } from './plugin-grant-gate.ts';
 import { toPluginSummary } from './plugin-summary.ts';
 
+export type ListPluginsRequest = {
+  workspaceId?: string;
+};
+
 export type ListPluginsInput = {
-  execute(): Promise<PluginListItem[]>;
+  execute(request?: ListPluginsRequest): Promise<PluginListItem[]>;
 };
 
 export class ListPluginsUseCase implements ListPluginsInput {
   constructor(private readonly plugins: PluginRepository) {}
 
-  async execute(): Promise<PluginListItem[]> {
+  async execute(request?: ListPluginsRequest): Promise<PluginListItem[]> {
     const records = this.plugins.list();
-    return await Promise.all(records.map((record) => loadListItem(record)));
+    return await Promise.all(
+      records.map((record) => loadListItem(record, request?.workspaceId, this.plugins)),
+    );
   }
 }
 
-async function loadListItem(record: PluginInstallRecord): Promise<PluginListItem> {
+async function loadListItem(
+  record: PluginInstallRecord,
+  workspaceId: string | undefined,
+  plugins: PluginRepository,
+): Promise<PluginListItem> {
   if (!existsSync(record.path)) {
     return {
       plugin: unloadedSummary(record),
@@ -37,7 +49,7 @@ async function loadListItem(record: PluginInstallRecord): Promise<PluginListItem
       pluginData: record.dataPath,
     });
     return {
-      plugin: toPluginSummary(record, loaded.ir),
+      plugin: toPluginSummary(record, gatedIr(record, loaded.ir, workspaceId, plugins)),
       diagnostics: loaded.diagnostics,
     };
   } catch (err) {
@@ -53,6 +65,25 @@ async function loadListItem(record: PluginInstallRecord): Promise<PluginListItem
       ],
     };
   }
+}
+
+/**
+ * Workspace-gated IR view: without a workspace the raw parse result is
+ * returned; with a workspace the same grant+approval gating as the runtime
+ * load applies, so Plugins and MCP tabs report one status.
+ */
+function gatedIr(
+  record: PluginInstallRecord,
+  raw: PluginIr,
+  workspaceId: string | undefined,
+  plugins: PluginRepository,
+): PluginIr {
+  if (workspaceId === undefined) {
+    return raw;
+  }
+  const grants = record.grants[workspaceId] ?? {};
+  const approved = new Set(plugins.approvals(record.name));
+  return applyGrantGating(raw, grants, approved);
 }
 
 function unloadedSummary(record: PluginInstallRecord): PluginSummary {

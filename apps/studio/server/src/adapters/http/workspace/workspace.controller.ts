@@ -23,7 +23,9 @@ import type { PullGitInput } from '../../../application/workspaces/pull-git.use-
 import type { PushGitInput } from '../../../application/workspaces/push-git.use-case.ts';
 import type { ReloadWorkspaceMcpInput } from '../../../application/workspaces/reload-workspace-mcp.use-case.ts';
 import type { ReloadWorkspaceSkillsInput } from '../../../application/workspaces/reload-workspace-skills.use-case.ts';
+import type { RestartMcpServerInput } from '../../../application/workspaces/restart-mcp-server.use-case.ts';
 import type { RevealWorkspaceInput } from '../../../application/workspaces/reveal-workspace.use-case.ts';
+import type { SetMcpServerStateInput } from '../../../application/workspaces/set-mcp-server-state.use-case.ts';
 import type { StageGitInput } from '../../../application/workspaces/stage-git.use-case.ts';
 import type { UpdateWorkspaceInput } from '../../../application/workspaces/update-workspace.use-case.ts';
 import type { UpsertWorkspaceMcpServerInput } from '../../../application/workspaces/upsert-workspace-mcp-server.use-case.ts';
@@ -49,6 +51,8 @@ export type WorkspaceControllerDeps = {
   reloadWorkspaceMcp: ReloadWorkspaceMcpInput;
   upsertWorkspaceMcpServer: UpsertWorkspaceMcpServerInput;
   deleteWorkspaceMcpServer: DeleteWorkspaceMcpServerInput;
+  setMcpServerState: SetMcpServerStateInput;
+  restartMcpServer: RestartMcpServerInput;
   revealWorkspace: RevealWorkspaceInput;
   listWorkspaceFiles: ListWorkspaceFilesInput;
   createWorkspaceFile: CreateWorkspaceFileInput;

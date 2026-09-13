@@ -202,3 +202,24 @@ export function deleteWorkspaceMcpServer(workspaceId: string, serverId: string) 
     { method: 'DELETE' },
   );
 }
+
+export function setWorkspaceMcpServerState(
+  workspaceId: string,
+  serverId: string,
+  body: { enabled: boolean },
+) {
+  return apiJson<WorkspaceMcpConfigResponse>(
+    `/api/workspaces/${workspaceId}/mcp/servers/${encodeURIComponent(serverId)}/state`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function restartWorkspaceMcpServer(workspaceId: string, serverId: string) {
+  return apiJson<WorkspaceMcpConfigResponse>(
+    `/api/workspaces/${workspaceId}/mcp/servers/${encodeURIComponent(serverId)}/restart`,
+    { method: 'POST' },
+  );
+}

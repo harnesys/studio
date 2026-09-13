@@ -56,6 +56,10 @@ export const gitStageBody = z.object({
   paths: z.array(z.string().trim().min(1)).max(500).optional().default([]),
 });
 
+export const setMcpServerStateBody = z.object({
+  enabled: z.boolean(),
+});
+
 export const upsertWorkspaceMcpServerBody = z
   .object({
     enabled: z.boolean().optional(),

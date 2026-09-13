@@ -33,7 +33,8 @@ export class PluginsController {
 
   register(app: Hono): void {
     app.get('/api/plugins', async (c) => {
-      return c.json(await this.deps.listPlugins.execute());
+      const workspaceId = c.req.query('workspaceId') || undefined;
+      return c.json(await this.deps.listPlugins.execute(workspaceId ? { workspaceId } : undefined));
     });
 
     app.post('/api/plugins/install', async (c) => {

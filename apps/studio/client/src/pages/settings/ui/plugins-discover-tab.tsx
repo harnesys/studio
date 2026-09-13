@@ -11,12 +11,11 @@ import {
   pluginsQueryKey,
 } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
+import { Row, RowChip, RowField, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { toast } from '@/shared/ui/toast';
-
-import { Row, RowChip, RowField, RowList, RowSection } from './capability-rows';
 
 const FILTER_ALL = 'all';
 

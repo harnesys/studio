@@ -1,11 +1,12 @@
 import { DEFAULT_MODE_ID, type ModePreset, modeFromPreset } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
-import { CogIcon, PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
+import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { type UseFormReturn, useFieldArray, useWatch } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { modePresetsQuery, workspaceCapabilitiesQuery, workspaceSkillsQuery } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
+import { Row, RowChip, RowHeader, RowList } from '@/shared/ui/capability-rows';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,6 @@ import {
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 import { blankModeFields, modeToFields } from '../model/agent-mode-fields';
 import { AgentModeEditor } from './agent-mode-editor';
-import { ConfigEntityCard, initialsFromLabel } from './config-entity-card';
 
 type AgentModesPaneProps = {
   form: UseFormReturn<AgentFieldsInput, unknown, AgentFieldsOutput>;
@@ -93,73 +93,15 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
 
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid="agent-modes-pane">
-      {modes.fields.map((field, index) => {
-        const row = rows[index];
-        if (!row) {
-          return null;
-        }
-        const expanded = expandedIndex === index;
-        const title = row.name || '(unnamed mode)';
-        return (
-          <ConfigEntityCard
-            key={field.id}
-            title={title}
-            badge={row.id === DEFAULT_MODE_ID ? 'built-in' : 'mode'}
-            statusBadge={isDefaultOf(index) ? 'Default Mode' : undefined}
-            description={row.description || row.id || undefined}
-            initials={initialsFromLabel(row.name || row.id || 'mode')}
-            expanded={expanded}
-            onClick={() => toggleExpanded(index)}
-            trailing={
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Mode settings: ${title}`}
-                  aria-pressed={expanded}
-                  onClick={() => toggleExpanded(index)}
-                  className="opacity-70"
-                >
-                  <CogIcon />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Remove ${title}`}
-                  onClick={() => removeMode(index)}
-                  className="opacity-70"
-                >
-                  <Trash2Icon />
-                </Button>
-              </>
-            }
-          >
-            {expanded ? (
-              <AgentModeEditor
-                key={field.id}
-                form={form}
-                index={index}
-                skillNames={skillNames}
-                agentSkills={activeAgent?.skills ?? []}
-                packNames={packNames}
-                isDefault={isDefaultOf(index)}
-                onSetDefault={(next) => setDefaultOf(index, next)}
-              />
-            ) : null}
-          </ConfigEntityCard>
-        );
-      })}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={addBlank}>
+      <RowHeader label="Modes" count={rows.length}>
+        <Button type="button" variant="ghost" size="sm" onClick={addBlank}>
           <PlusIcon />
           Add
         </Button>
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button type="button" variant="outline" size="sm" />}>
+          <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="sm" />}>
             <SparklesIcon />
-            Add from preset
+            From preset
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-44">
             {availablePresets.length === 0 ? (
@@ -176,7 +118,60 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+      </RowHeader>
+      {modes.fields.length === 0 ? (
+        <p className="py-6 text-center text-muted-foreground text-sm">
+          No modes yet. Add one, or install from a preset.
+        </p>
+      ) : (
+        <RowList>
+          {modes.fields.map((field, index) => {
+            const row = rows[index];
+            if (!row) {
+              return null;
+            }
+            const expanded = expandedIndex === index;
+            const title = row.name || '(unnamed mode)';
+            return (
+              <Row
+                key={field.id}
+                testId={`draft-mode-${field.id}`}
+                title={title}
+                mono={false}
+                meta={row.id === DEFAULT_MODE_ID ? 'built-in' : undefined}
+                chips={isDefaultOf(index) ? <RowChip tone="accent">default</RowChip> : null}
+                summary={expanded ? undefined : row.description || row.id || undefined}
+                onToggle={() => toggleExpanded(index)}
+                expanded={expanded}
+                actions={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`Remove ${title}`}
+                    onClick={() => removeMode(index)}
+                  >
+                    <Trash2Icon />
+                  </Button>
+                }
+              >
+                {expanded ? (
+                  <AgentModeEditor
+                    key={field.id}
+                    form={form}
+                    index={index}
+                    skillNames={skillNames}
+                    agentSkills={activeAgent?.skills ?? []}
+                    packNames={packNames}
+                    isDefault={isDefaultOf(index)}
+                    onSetDefault={(next) => setDefaultOf(index, next)}
+                  />
+                ) : null}
+              </Row>
+            );
+          })}
+        </RowList>
+      )}
     </div>
   );
 }

@@ -35,14 +35,15 @@ export type EnableWorkspacePluginResponse = {
 
 export const pluginsQueryKey = ['plugins'] as const;
 
-export function listPlugins() {
-  return apiJson<PluginListItem[]>('/api/plugins');
+export function listPlugins(workspaceId?: string) {
+  const suffix = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : '';
+  return apiJson<PluginListItem[]>(`/api/plugins${suffix}`);
 }
 
-export function pluginsQuery() {
+export function pluginsQuery(workspaceId?: string) {
   return queryOptions({
-    queryKey: pluginsQueryKey,
-    queryFn: listPlugins,
+    queryKey: workspaceId ? [...pluginsQueryKey, workspaceId] : pluginsQueryKey,
+    queryFn: () => listPlugins(workspaceId),
     staleTime: 20_000,
   });
 }

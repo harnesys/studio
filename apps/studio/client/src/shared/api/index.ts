@@ -173,6 +173,8 @@ export {
   pickWorkspaceFolder,
   reloadWorkspaceMcp,
   reloadWorkspaceSkills,
+  restartWorkspaceMcpServer,
+  setWorkspaceMcpServerState,
   type UpsertWorkspaceMcpServerRequest,
   type UpsertWorkspaceMcpServerResponse,
   updateWorkspace,

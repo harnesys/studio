@@ -5,6 +5,7 @@ import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
 import { listAgentPresets } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
+import { Row, RowList } from '@/shared/ui/capability-rows';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,6 @@ import { createAgent } from '../model/create-agent';
 import { agentDraftFromPreset } from '../model/create-agent-from-preset';
 import { deleteAgent } from '../model/delete-agent';
 import { updateAgentCapabilities } from '../model/update-agent';
-import { ConfigEntityCard } from './config-entity-card';
 
 type AgentSubagentsPaneProps = {
   workspaceId: string;
@@ -71,16 +71,14 @@ export function AgentSubagentsPane({
     <div className="flex flex-col gap-3">
       <p className="text-muted-foreground text-sm">
         Spawn targets for this agent. They stay out of the top-level Agents list. Model defaults to
-        the parent; open a card to change it.
+        the parent; open a row to change it.
       </p>
-      <div className="flex flex-col gap-2">
-        {delegates.length === 0 ? (
-          <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
-            No subagents yet.
-          </p>
-        ) : (
-          delegates.map((delegate) => (
-            <SubagentCard
+      {delegates.length === 0 ? (
+        <p className="py-6 text-center text-muted-foreground text-sm">No subagents yet.</p>
+      ) : (
+        <RowList>
+          {delegates.map((delegate) => (
+            <SubagentRow
               key={delegate.id}
               agent={delegate}
               onOpen={() => onConfigure(delegate)}
@@ -93,9 +91,9 @@ export function AgentSubagentsPane({
                 });
               }}
             />
-          ))
-        )}
-      </div>
+          ))}
+        </RowList>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger
           render={<Button type="button" variant="outline" size="sm" className="w-fit gap-1.5" />}
@@ -122,7 +120,7 @@ export function AgentSubagentsPane({
   );
 }
 
-function SubagentCard({
+function SubagentRow({
   agent,
   onOpen,
   onRemove,
@@ -132,26 +130,25 @@ function SubagentCard({
   onRemove: () => void;
 }) {
   return (
-    <div className="group/subagent">
-      <ConfigEntityCard
-        title={agent.name}
-        badge={agent.role}
-        description={agent.instructions.trim() || 'No instructions yet.'}
-        initials={agent.initials}
-        onClick={onOpen}
-        trailing={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover/subagent:opacity-100"
-            title="Remove subagent"
-            onClick={onRemove}
-          >
-            <Trash2Icon className="size-3.5" />
-          </Button>
-        }
-      />
-    </div>
+    <Row
+      testId={`draft-subagent-${agent.id}`}
+      title={agent.name}
+      mono={false}
+      meta={agent.role}
+      summary={agent.instructions.trim() || 'No instructions yet.'}
+      chevron="open"
+      onToggle={onOpen}
+      actions={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Remove subagent"
+          onClick={onRemove}
+        >
+          <Trash2Icon className="size-3.5" />
+        </Button>
+      }
+    />
   );
 }

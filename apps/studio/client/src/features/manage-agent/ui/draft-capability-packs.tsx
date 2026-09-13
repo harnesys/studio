@@ -1,12 +1,10 @@
 import type { PackCatalogEntry, PackConfig } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
-import { CogIcon } from 'lucide-react';
 import { useState } from 'react';
 import { workspaceCapabilitiesQuery } from '@/shared/api';
-import { Button } from '@/shared/ui/button';
+import { Row, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Switch } from '@/shared/ui/switch';
 
-import { ConfigEntityCard, initialsFromLabel } from './config-entity-card';
 import { PackSettingsFields, packHasSettings } from './pack-settings';
 
 export function DraftCapabilityPacks({
@@ -52,22 +50,20 @@ export function DraftCapabilityPacks({
   }
 
   return (
-    <section className="flex min-w-0 flex-col gap-2">
+    <section className="flex min-w-0 flex-col gap-1">
       {!query.isPending && catalog.length === 0 ? (
-        <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
-          No capability packs.
-        </p>
+        <p className="py-6 text-center text-muted-foreground text-sm">No capability packs.</p>
       ) : null}
 
-      {!query.isPending && catalog.length > 0 ? (
-        <div className="flex min-w-0 flex-col gap-2">
+      {catalog.length > 0 ? (
+        <RowList>
           {catalog.map((pack) => {
             const enabled = isPackEnabled(packs, pack.name);
             const config = enabledConfig(packs, pack.name);
             const settingsAvailable = packHasSettings(pack.name, pack.hasSettings);
             const settingsOpen = openSettings === pack.name && enabled && settingsAvailable;
             return (
-              <PackCard
+              <PackRow
                 key={pack.name}
                 pack={pack}
                 enabled={enabled}
@@ -82,13 +78,13 @@ export function DraftCapabilityPacks({
               />
             );
           })}
-        </div>
+        </RowList>
       ) : null}
     </section>
   );
 }
 
-function PackCard({
+function PackRow({
   pack,
   enabled,
   config,
@@ -108,39 +104,28 @@ function PackCard({
   onConfigChange: (next: PackConfig) => void;
 }) {
   return (
-    <ConfigEntityCard
+    <Row
+      testId={`draft-pack-${pack.name}`}
       title={pack.name}
-      badge="pack"
-      description={pack.description}
-      initials={initialsFromLabel(pack.name)}
+      meta="pack"
+      muted={!enabled}
+      summary={pack.description}
+      onToggle={settingsAvailable && enabled ? onToggleSettings : undefined}
       expanded={settingsOpen}
-      onClick={settingsAvailable && enabled ? onToggleSettings : undefined}
-      trailing={
-        <>
-          {settingsAvailable ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              disabled={!enabled}
-              aria-label={`${pack.name} settings`}
-              aria-pressed={settingsOpen}
-              onClick={onToggleSettings}
-              className="opacity-70"
-            >
-              <CogIcon />
-            </Button>
-          ) : null}
-          <Switch
-            size="sm"
-            checked={enabled}
-            onCheckedChange={(next) => onToggle(pack.name, Boolean(next))}
-          />
-        </>
+      actions={
+        <Switch
+          size="sm"
+          checked={enabled}
+          onCheckedChange={(next) => onToggle(pack.name, Boolean(next))}
+        />
       }
     >
-      <PackSettingsFields packName={pack.name} config={config} onChange={onConfigChange} />
-    </ConfigEntityCard>
+      {settingsOpen ? (
+        <RowSection label="Settings">
+          <PackSettingsFields packName={pack.name} config={config} onChange={onConfigChange} />
+        </RowSection>
+      ) : null}
+    </Row>
   );
 }
 

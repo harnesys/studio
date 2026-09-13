@@ -204,8 +204,17 @@ export class WorkspaceHarnesysRegistry {
       ),
     ]);
     // Grant gating and per-server approvals are already applied to the loaded
-    // IR views; non-native servers never reach the merge.
-    const merged = mergePluginMcpFragments(mcpJson, enabledPlugins.map(toMcpBinding));
+    // IR views; non-native servers never reach the merge. User-stopped servers
+    // stay approved but are excluded here until re-enabled.
+    const disabled = new Set(
+      (this.repos.plugins?.listDisabledServers(workspace.id) ?? []).map(
+        (entry) => `${entry.pluginName}:${entry.serverId}`,
+      ),
+    );
+    const merged = mergePluginMcpFragments(
+      mcpJson,
+      enabledPlugins.map((entry) => toMcpBinding(entry, disabled)),
+    );
     for (const diagnostic of merged.diagnostics) {
       this.runtime?.logger?.warn(`[plugins] ${diagnostic.code}: ${diagnostic.message}`);
     }
@@ -319,12 +328,18 @@ function isMcpServerComponent(component: PluginComponent): component is McpServe
   return component.kind === 'mcp-server' && component.status === 'native';
 }
 
-function toMcpBinding(entry: LoadedWorkspacePlugin): PluginMcpBinding {
+function toMcpBinding(
+  entry: LoadedWorkspacePlugin,
+  disabled: ReadonlySet<string>,
+): PluginMcpBinding {
   return {
     name: entry.record.name,
     pluginRoot: entry.record.path,
     pluginData: entry.record.dataPath,
-    servers: entry.ir.components.filter(isMcpServerComponent).map((component) => component.spec),
+    servers: entry.ir.components
+      .filter(isMcpServerComponent)
+      .map((component) => component.spec)
+      .filter((spec) => !disabled.has(`${entry.record.name}:${spec.serverId}`)),
     userConfig: pluginUserConfig(entry.ir, entry.record.options),
   };
 }

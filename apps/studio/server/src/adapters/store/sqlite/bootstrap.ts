@@ -205,6 +205,13 @@ export function bootstrap(db: StudioDb): void {
       approved_at TEXT NOT NULL,
       PRIMARY KEY (plugin_name, server_id)
     );`,
+    `CREATE TABLE IF NOT EXISTS plugin_server_state (
+      plugin_name TEXT NOT NULL REFERENCES plugins(name) ON DELETE CASCADE,
+      server_id TEXT NOT NULL,
+      workspace_id TEXT NOT NULL,
+      disabled_at TEXT NOT NULL,
+      PRIMARY KEY (plugin_name, server_id, workspace_id)
+    );`,
     `CREATE TABLE IF NOT EXISTS plugin_registries (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,

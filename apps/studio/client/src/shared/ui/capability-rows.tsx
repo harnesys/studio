@@ -12,8 +12,20 @@ import { StatusDot, type StatusDotTone } from '@/shared/ui/status-dot';
  * shared primitives and ConfigEntityCard stay untouched.
  */
 
-export function RowList({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('flex flex-col divide-y divide-border/40', className)}>{children}</div>;
+export function RowList({
+  children,
+  className,
+  testId,
+}: {
+  children: ReactNode;
+  className?: string;
+  testId?: string;
+}) {
+  return (
+    <div className={cn('flex flex-col divide-y divide-border/40', className)} data-testid={testId}>
+      {children}
+    </div>
+  );
 }
 
 /** Section header above a RowList: name + optional count + right-aligned actions. */
@@ -82,6 +94,8 @@ type RowProps = {
   /** Click toggles expansion; a chevron is drawn only when provided. */
   onToggle?: () => void;
   expanded?: boolean;
+  /** 'expand' (default): chevron rotates when open. 'open': static chevron — the click navigates. */
+  chevron?: 'expand' | 'open';
   /** Row actions (edit/delete/…). Revealed on hover/focus; kept visible when expanded. */
   actions?: ReactNode;
   testId?: string;
@@ -99,6 +113,7 @@ export function Row({
   summary,
   onToggle,
   expanded = false,
+  chevron = 'expand',
   actions,
   testId,
   children,
@@ -108,7 +123,8 @@ export function Row({
       <ChevronRightIcon
         className={cn(
           'mt-[3px] size-3.5 shrink-0 text-muted-foreground transition-transform duration-150',
-          onToggle ? expanded && 'rotate-90' : 'opacity-0',
+          !onToggle && 'opacity-0',
+          onToggle && chevron === 'expand' && expanded && 'rotate-90',
         )}
       />
       <div className="min-w-0 flex-1">
@@ -187,7 +203,7 @@ export function RowSection({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1 pt-1">
+    <div className="mt-2 flex flex-col gap-1 border-border/40 border-t pt-2 first-of-type:mt-0 first-of-type:border-t-0 first-of-type:pt-1">
       <p className="flex items-baseline gap-1.5 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
         {label}
         {typeof count === 'number' ? (

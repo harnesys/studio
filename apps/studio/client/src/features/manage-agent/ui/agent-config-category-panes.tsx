@@ -3,6 +3,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { cn } from '@/shared/lib/utils';
 import { alert } from '@/shared/services/overlay';
+import { RowHeader } from '@/shared/ui/capability-rows';
 
 import type { AgentCapabilitiesDraft, AgentConfigResult } from '../model/agent-config';
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
@@ -75,22 +76,30 @@ export function AgentConfigCategoryPanes({
         />
       </div>
       <div className={cn(category !== 'capabilities' && 'hidden')}>
-        <DraftCapabilityPacks
-          key={`packs-${activeAgent?.id ?? 'new'}`}
-          workspaceId={workspaceId}
-          value={activeAgent?.capabilities ?? {}}
-          onChange={(capabilities) => {
-            capabilitiesRef.current = { ...capabilitiesRef.current, capabilities };
-          }}
-        />
-        <DraftEnabledPlugins
-          key={`plugins-${activeAgent?.id ?? 'new'}`}
-          workspaceId={workspaceId}
-          value={activeAgent?.enabledPlugins ?? {}}
-          onChange={(enabledPlugins) => {
-            capabilitiesRef.current = { ...capabilitiesRef.current, enabledPlugins };
-          }}
-        />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <RowHeader label="Packs" />
+            <DraftCapabilityPacks
+              key={`packs-${activeAgent?.id ?? 'new'}`}
+              workspaceId={workspaceId}
+              value={activeAgent?.capabilities ?? {}}
+              onChange={(capabilities) => {
+                capabilitiesRef.current = { ...capabilitiesRef.current, capabilities };
+              }}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <RowHeader label="Plugins" />
+            <DraftEnabledPlugins
+              key={`plugins-${activeAgent?.id ?? 'new'}`}
+              workspaceId={workspaceId}
+              value={activeAgent?.enabledPlugins ?? {}}
+              onChange={(enabledPlugins) => {
+                capabilitiesRef.current = { ...capabilitiesRef.current, enabledPlugins };
+              }}
+            />
+          </div>
+        </div>
       </div>
       <div className={cn(category !== 'hooks' && 'hidden')}>
         <AgentHooksPane

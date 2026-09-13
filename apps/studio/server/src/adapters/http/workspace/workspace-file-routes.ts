@@ -5,6 +5,7 @@ import {
   createWorkspaceFileBody,
   createWorkspaceSkillBody,
   deleteWorkspaceFileBody,
+  setMcpServerStateBody,
   upsertWorkspaceMcpServerBody,
   writeWorkspaceFileContentBody,
 } from './workspace.body.ts';
@@ -65,6 +66,26 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
       serverId: c.req.param('serverId'),
     });
     return c.body(null, 204);
+  });
+
+  app.put('/api/workspaces/:id/mcp/servers/:serverId/state', async (c) => {
+    const body = setMcpServerStateBody.parse(await c.req.json());
+    return c.json(
+      await deps.setMcpServerState.execute({
+        workspaceId: c.req.param('id'),
+        serverId: c.req.param('serverId'),
+        enabled: body.enabled,
+      }),
+    );
+  });
+
+  app.post('/api/workspaces/:id/mcp/servers/:serverId/restart', async (c) => {
+    return c.json(
+      await deps.restartMcpServer.execute({
+        workspaceId: c.req.param('id'),
+        serverId: c.req.param('serverId'),
+      }),
+    );
   });
 
   app.post('/api/workspaces/:id/reveal', async (c) => {

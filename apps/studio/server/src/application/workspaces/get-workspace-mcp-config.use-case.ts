@@ -1,5 +1,6 @@
 import type {
   ComponentOrigin,
+  GrantClass,
   WorkspaceMcpConfigServer,
   WorkspaceMcpTransport,
 } from '@harnesys/studio-shared';
@@ -13,8 +14,10 @@ import type {
   LoadedWorkspacePlugin,
   WorkspaceHarnesysRegistry,
 } from '../../adapters/workspace-harnesys.registry.ts';
+import type { PluginRepository } from '../../domain/plugin.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
+import { componentGrantClass } from '../plugins/plugin-grant-gate.ts';
 
 export type GetWorkspaceMcpConfigRequest = {
   workspaceId: string;
@@ -32,6 +35,7 @@ export class GetWorkspaceMcpConfigUseCase implements GetWorkspaceMcpConfigInput 
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
+    private readonly pluginRepo?: PluginRepository,
   ) {}
 
   async execute(request: GetWorkspaceMcpConfigRequest): Promise<GetWorkspaceMcpConfigResponse> {
@@ -58,8 +62,14 @@ export class GetWorkspaceMcpConfigUseCase implements GetWorkspaceMcpConfigInput 
       });
     }
 
+    const disabled = new Set(
+      (this.pluginRepo?.listDisabledServers(workspace.id) ?? []).map(
+        (entry) => `${entry.pluginName}:${entry.serverId}`,
+      ),
+    );
+
     for (const loaded of plugins) {
-      servers.push(...pluginServers(loaded, live));
+      servers.push(...pluginServers(loaded, live, disabled));
     }
 
     return { servers };
@@ -75,6 +85,7 @@ export class GetWorkspaceMcpConfigUseCase implements GetWorkspaceMcpConfigInput 
 function pluginServers(
   loaded: LoadedWorkspacePlugin,
   live: Map<string, { connected: boolean; tools: unknown[] }>,
+  disabled: ReadonlySet<string>,
 ): WorkspaceMcpConfigServer[] {
   const originBase = { kind: 'plugin', pluginName: loaded.record.name } as const;
   const servers: WorkspaceMcpConfigServer[] = [];
@@ -84,8 +95,13 @@ function pluginServers(
     }
     const serverId = `${PLUGIN_SERVER_KEY_PREFIX}${originBase.pluginName}:${component.source.pointer}`;
     const status = component.status;
-    const native = status === 'native';
+    const specId = specServerId(component);
+    const stopped =
+      disabled.has(`${originBase.pluginName}:${specId}`) ||
+      disabled.has(`${originBase.pluginName}:${component.source.pointer}`);
+    const native = status === 'native' && !stopped;
     const snap = native ? live.get(serverId) : undefined;
+    const grantClass = componentGrantClass(component, loaded.ir);
     servers.push({
       serverId,
       enabled: native,
@@ -97,9 +113,16 @@ function pluginServers(
         status,
         ...(component.inertReason !== undefined ? { inertReason: component.inertReason } : {}),
       } satisfies ComponentOrigin,
+      ...(stopped ? { disabledByUser: true as const } : {}),
+      ...(grantClass !== undefined ? { requiredGrant: grantClass as GrantClass } : {}),
     });
   }
   return servers;
+}
+
+function specServerId(component: PluginComponent): string {
+  const spec = component.spec as Partial<McpServerSpec>;
+  return typeof spec.serverId === 'string' ? spec.serverId : '';
 }
 
 function pluginTransport(component: PluginComponent): WorkspaceMcpTransport {

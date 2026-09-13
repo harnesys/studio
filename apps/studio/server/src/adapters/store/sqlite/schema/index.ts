@@ -13,6 +13,7 @@ export * from './mode-presets.ts';
 export * from './plans.ts';
 export * from './plugin-approvals.ts';
 export * from './plugin-registries.ts';
+export * from './plugin-server-state.ts';
 export * from './plugins.ts';
 export * from './run-events.ts';
 export * from './runs.ts';

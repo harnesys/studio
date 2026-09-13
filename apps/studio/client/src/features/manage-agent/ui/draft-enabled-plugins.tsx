@@ -1,9 +1,8 @@
 import type { PluginListItem } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { pluginsQuery } from '@/shared/api';
+import { Row, RowChip, RowList } from '@/shared/ui/capability-rows';
 import { Switch } from '@/shared/ui/switch';
-
-import { ConfigEntityCard, initialsFromLabel } from './config-entity-card';
 
 /**
  * Per-agent plugin overrides. Missing key means "inherit workspace set";
@@ -32,15 +31,11 @@ export function DraftEnabledPlugins({
   }
 
   if (!query.isPending && items.length === 0) {
-    return (
-      <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
-        No plugins installed.
-      </p>
-    );
+    return <p className="py-6 text-center text-muted-foreground text-sm">No plugins installed.</p>;
   }
 
   return (
-    <section className="flex min-w-0 flex-col gap-2" data-testid="draft-enabled-plugins">
+    <RowList data-testid="draft-enabled-plugins">
       {items.map((item) => (
         <PluginRow
           key={item.plugin.name}
@@ -50,7 +45,7 @@ export function DraftEnabledPlugins({
           onToggle={(enable) => toggle(item.plugin.name, enable)}
         />
       ))}
-    </section>
+    </RowList>
   );
 }
 
@@ -67,18 +62,24 @@ function PluginRow({
 }) {
   const plugin = item.plugin;
   const workspaceEnabled = plugin.enabledWorkspaceIds.includes(workspaceId);
+  const inventory = `${plugin.skillCount} skills · ${plugin.hookCount} hooks · ${plugin.agentCount} agents · ${plugin.commandCount} commands`;
   return (
-    <ConfigEntityCard
+    <Row
+      testId={`draft-plugin-${plugin.name}`}
       title={plugin.name}
-      badge={plugin.format}
-      description={
+      muted={!enabled}
+      summary={
         workspaceEnabled
-          ? (plugin.description ?? 'Enabled in workspace')
+          ? inventory
           : 'Disabled in workspace — enable it in Settings → Plugins first'
       }
-      initials={initialsFromLabel(plugin.name)}
-      monoTitle
-      trailing={
+      chips={
+        <>
+          <RowChip>{plugin.format === 'unknown' ? 'unattested' : plugin.format}</RowChip>
+          {!workspaceEnabled ? <RowChip tone="danger">workspace off</RowChip> : null}
+        </>
+      }
+      actions={
         <Switch size="sm" checked={enabled} onCheckedChange={(next) => onToggle(Boolean(next))} />
       }
     />

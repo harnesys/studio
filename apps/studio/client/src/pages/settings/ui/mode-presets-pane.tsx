@@ -16,10 +16,9 @@ import {
 import { useStudioLocation } from '@/shared/config/location';
 import { alert } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
+import { Row, RowChip, RowHeader, RowList } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-
-import { Row, RowChip, RowHeader, RowList } from './capability-rows';
 import type { ModePresetDraft } from './mode-preset-draft';
 import { ModePresetEditor } from './mode-preset-editor';
 

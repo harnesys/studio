@@ -1,16 +1,22 @@
 import type { GrantClass, PluginName } from '@harnesys/studio-shared';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type {
   PluginGrants,
   PluginInstallFormat,
   PluginInstallRecord,
   PluginOptionValue,
   PluginRepository,
+  PluginServerDisable,
 } from '../../../../domain/plugin.port.ts';
 import { NotFoundError } from '../../../../domain/studio.error.ts';
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
-import { type PluginRow, pluginApprovalsTable, pluginsTable } from '../schema';
+import {
+  type PluginRow,
+  pluginApprovalsTable,
+  pluginServerStateTable,
+  pluginsTable,
+} from '../schema';
 
 export class SqlitePluginsAdapter implements PluginRepository {
   constructor(private readonly db: StudioDb) {}
@@ -50,6 +56,64 @@ export class SqlitePluginsAdapter implements PluginRepository {
   delete(name: PluginName): void {
     this.db.delete(pluginsTable).where(eq(pluginsTable.name, name)).run();
     this.db.delete(pluginApprovalsTable).where(eq(pluginApprovalsTable.pluginName, name)).run();
+    this.db.delete(pluginServerStateTable).where(eq(pluginServerStateTable.pluginName, name)).run();
+  }
+
+  setServerDisabled(
+    name: PluginName,
+    serverId: string,
+    workspaceId: string,
+    disabled: boolean,
+  ): void {
+    if (disabled) {
+      this.db
+        .insert(pluginServerStateTable)
+        .values({
+          pluginName: name,
+          serverId,
+          workspaceId,
+          disabledAt: new Date().toISOString(),
+        })
+        .onConflictDoNothing()
+        .run();
+      return;
+    }
+    this.db
+      .delete(pluginServerStateTable)
+      .where(
+        and(
+          eq(pluginServerStateTable.pluginName, name),
+          eq(pluginServerStateTable.serverId, serverId),
+          eq(pluginServerStateTable.workspaceId, workspaceId),
+        ),
+      )
+      .run();
+  }
+
+  isServerDisabled(name: PluginName, serverId: string, workspaceId: string): boolean {
+    const row = this.db
+      .select({ serverId: pluginServerStateTable.serverId })
+      .from(pluginServerStateTable)
+      .where(
+        and(
+          eq(pluginServerStateTable.pluginName, name),
+          eq(pluginServerStateTable.serverId, serverId),
+          eq(pluginServerStateTable.workspaceId, workspaceId),
+        ),
+      )
+      .get();
+    return row !== undefined;
+  }
+
+  listDisabledServers(workspaceId: string): PluginServerDisable[] {
+    return this.db
+      .select({
+        pluginName: pluginServerStateTable.pluginName,
+        serverId: pluginServerStateTable.serverId,
+      })
+      .from(pluginServerStateTable)
+      .where(eq(pluginServerStateTable.workspaceId, workspaceId))
+      .all();
   }
 
   setGrants(workspaceId: string, name: PluginName, classes: GrantClass[]): PluginInstallRecord {

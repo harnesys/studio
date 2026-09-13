@@ -96,7 +96,9 @@ import { PullGitUseCase } from '../application/workspaces/pull-git.use-case.ts';
 import { PushGitUseCase } from '../application/workspaces/push-git.use-case.ts';
 import { ReloadWorkspaceMcpUseCase } from '../application/workspaces/reload-workspace-mcp.use-case.ts';
 import { ReloadWorkspaceSkillsUseCase } from '../application/workspaces/reload-workspace-skills.use-case.ts';
+import { RestartMcpServerUseCase } from '../application/workspaces/restart-mcp-server.use-case.ts';
 import { RevealWorkspaceUseCase } from '../application/workspaces/reveal-workspace.use-case.ts';
+import { SetMcpServerStateUseCase } from '../application/workspaces/set-mcp-server-state.use-case.ts';
 import { StageGitUseCase } from '../application/workspaces/stage-git.use-case.ts';
 import { UpdateWorkspaceUseCase } from '../application/workspaces/update-workspace.use-case.ts';
 import { UpsertWorkspaceMcpServerUseCase } from '../application/workspaces/upsert-workspace-mcp-server.use-case.ts';
@@ -150,6 +152,7 @@ export function wireControllers(d: ControllerDeps): void {
   const getWorkspaceMcpConfig = new GetWorkspaceMcpConfigUseCase(
     d.workspaceRepo,
     d.workspaceHarnesys,
+    d.pluginRepo,
   );
 
   new WorkspaceController({
@@ -194,6 +197,17 @@ export function wireControllers(d: ControllerDeps): void {
     deleteWorkspaceMcpServer: new DeleteWorkspaceMcpServerUseCase(
       d.workspaceRepo,
       d.workspaceHarnesys,
+    ),
+    setMcpServerState: new SetMcpServerStateUseCase(
+      d.workspaceRepo,
+      d.workspaceHarnesys,
+      d.pluginRepo,
+      getWorkspaceMcpConfig,
+    ),
+    restartMcpServer: new RestartMcpServerUseCase(
+      d.workspaceRepo,
+      d.workspaceHarnesys,
+      getWorkspaceMcpConfig,
     ),
     revealWorkspace: new RevealWorkspaceUseCase(d.workspaceRepo, d.workspace),
     listWorkspaceFiles: new ListWorkspaceFilesUseCase(d.workspaceRepo, d.workspaceFiles),

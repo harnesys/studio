@@ -1,19 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { CogIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { Agent } from '@/entities/agent';
 import {
-  type WorkspaceMcpServer,
   type WorkspaceTool,
   workspaceMcpQuery,
   workspaceSkillsQuery,
   workspaceToolsQuery,
 } from '@/shared/api';
-import { Button } from '@/shared/ui/button';
+import { Row, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Switch } from '@/shared/ui/switch';
 
 import type { AgentCapabilitiesDraft } from '../model/agent-config';
-import { ConfigEntityCard, initialsFromLabel } from './config-entity-card';
 
 export type DraftCapabilitiesSection = 'skills' | 'mcp';
 
@@ -75,22 +72,22 @@ export function DraftCapabilities({
   return (
     <div className="flex flex-col gap-3">
       {section === 'skills' ? (
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-1">
           {!skillsQuery.isPending && skillNames.length === 0 ? (
-            <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
+            <p className="py-6 text-center text-muted-foreground text-sm">
               No skills in `.harnesys/skills`.
             </p>
           ) : null}
-          {!skillsQuery.isPending && skillNames.length > 0 ? (
-            <div className="flex flex-col gap-2">
+          {skillCatalog.length > 0 ? (
+            <RowList>
               {skillCatalog.map((skill) => (
-                <ConfigEntityCard
+                <Row
                   key={skill.name}
+                  testId={`draft-skill-${skill.name}`}
                   title={skill.name}
-                  badge="skill"
-                  description={skill.description || skill.whenToUse}
-                  initials={initialsFromLabel(skill.name)}
-                  trailing={
+                  meta="skill"
+                  summary={skill.description || skill.whenToUse}
+                  actions={
                     <Switch
                       size="sm"
                       checked={isChecked(skills, skill.name)}
@@ -99,107 +96,65 @@ export function DraftCapabilities({
                   }
                 />
               ))}
-            </div>
+            </RowList>
           ) : null}
         </section>
       ) : null}
 
       {section === 'mcp' ? (
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-1">
           {!mcpQuery.isPending && servers.length === 0 ? (
-            <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
+            <p className="py-6 text-center text-muted-foreground text-sm">
               No servers in `.harnesys/mcp.json`.
             </p>
           ) : null}
-          {!mcpQuery.isPending && servers.length > 0 ? (
-            <div className="flex flex-col gap-2">
+          {servers.length > 0 ? (
+            <RowList>
               {servers.map((server) => {
                 const expanded = expandedServerId === server.serverId;
                 const enabled = isChecked(mcpServers, server.serverId);
                 return (
-                  <McpServerCard
+                  <Row
                     key={server.serverId}
-                    server={server}
-                    enabled={enabled}
-                    expanded={expanded}
-                    toolsAllowlist={tools}
-                    toolsReady={Boolean(toolsQuery.data) && !toolsQuery.isPending}
-                    onToggleServer={(next) => toggleServer(server.serverId, next)}
-                    onToggleExpand={() =>
+                    testId={`draft-mcp-${server.serverId}`}
+                    title={server.serverId}
+                    meta={server.transport}
+                    status={
+                      server.connected
+                        ? { tone: 'live', label: 'Connected' }
+                        : { tone: 'danger', label: 'Offline' }
+                    }
+                    muted={!enabled}
+                    summary={`${server.toolCount} ${server.toolCount === 1 ? 'tool' : 'tools'}`}
+                    onToggle={() =>
                       setExpandedServerId((current) =>
                         current === server.serverId ? null : server.serverId,
                       )
                     }
-                    onToggleTool={toggleTool}
-                  />
+                    expanded={expanded}
+                    actions={
+                      <Switch
+                        size="sm"
+                        checked={enabled}
+                        onCheckedChange={(value) => toggleServer(server.serverId, Boolean(value))}
+                      />
+                    }
+                  >
+                    <McpToolsList
+                      tools={server.tools}
+                      enabled={enabled}
+                      allowlist={tools}
+                      toolsReady={Boolean(toolsQuery.data) && !toolsQuery.isPending}
+                      onToggleTool={toggleTool}
+                    />
+                  </Row>
                 );
               })}
-            </div>
+            </RowList>
           ) : null}
         </section>
       ) : null}
     </div>
-  );
-}
-
-function McpServerCard({
-  server,
-  enabled,
-  expanded,
-  toolsAllowlist,
-  toolsReady,
-  onToggleServer,
-  onToggleExpand,
-  onToggleTool,
-}: {
-  server: WorkspaceMcpServer;
-  enabled: boolean;
-  expanded: boolean;
-  toolsAllowlist: string[];
-  toolsReady: boolean;
-  onToggleServer: (enable: boolean) => void;
-  onToggleExpand: () => void;
-  onToggleTool: (name: string, enable: boolean) => void;
-}) {
-  const status = server.connected ? 'connected' : 'offline';
-  return (
-    <ConfigEntityCard
-      title={server.serverId}
-      badge={server.transport}
-      description={`${server.toolCount} tools · ${status}`}
-      initials={initialsFromLabel(server.serverId)}
-      monoTitle
-      expanded={expanded}
-      onClick={onToggleExpand}
-      trailing={
-        <>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`${server.serverId} tools`}
-            aria-pressed={expanded}
-            onClick={onToggleExpand}
-            className="opacity-70"
-          >
-            <CogIcon />
-          </Button>
-          <Switch
-            size="sm"
-            checked={enabled}
-            onCheckedChange={(value) => onToggleServer(Boolean(value))}
-          />
-        </>
-      }
-    >
-      <McpToolsList
-        tools={server.tools}
-        enabled={enabled}
-        allowlist={toolsAllowlist}
-        toolsReady={toolsReady}
-        onToggleTool={onToggleTool}
-      />
-    </ConfigEntityCard>
   );
 }
 
@@ -217,37 +172,45 @@ function McpToolsList({
   onToggleTool: (name: string, enable: boolean) => void;
 }) {
   if (tools.length === 0) {
-    return <p className="text-muted-foreground text-xs">No tools on this server.</p>;
+    return (
+      <RowSection label="Tools" count={0}>
+        <p className="px-1 text-muted-foreground text-xs">No tools on this server.</p>
+      </RowSection>
+    );
+  }
+  if (!toolsReady) {
+    return (
+      <RowSection label="Tools" count={tools.length}>
+        <p className="px-1 text-muted-foreground text-xs">Loading tool catalog…</p>
+      </RowSection>
+    );
   }
   return (
-    <div className="flex flex-col gap-2">
-      <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Tools</p>
-      {!toolsReady ? <p className="text-muted-foreground text-xs">Loading tool catalog…</p> : null}
+    <RowSection label="Tools" count={tools.length}>
       {tools.map((tool) => {
         const shortName = tool.name.includes('__')
           ? tool.name.split('__').slice(1).join('__')
           : tool.name;
         return (
-          <div key={tool.name} className="flex items-start gap-2 rounded-md px-1 py-1">
+          <div
+            key={tool.name}
+            className="flex items-start gap-2 rounded-md px-1 py-1"
+            data-testid={`draft-mcp-tool-${tool.name}`}
+          >
             <Switch
               size="sm"
               className="mt-0.5"
               checked={enabled && isChecked(allowlist, tool.name)}
-              disabled={!enabled || !toolsReady}
+              disabled={!enabled}
               onCheckedChange={(value) => onToggleTool(tool.name, Boolean(value))}
             />
             <div className="min-w-0 flex-1">
-              <p className="truncate font-mono text-[12px] leading-snug">{shortName}</p>
-              {tool.description ? (
-                <p className="line-clamp-2 text-[11px] text-muted-foreground leading-snug">
-                  {tool.description}
-                </p>
-              ) : null}
+              <RowItem title={shortName} description={tool.description} />
             </div>
           </div>
         );
       })}
-    </div>
+    </RowSection>
   );
 }
 

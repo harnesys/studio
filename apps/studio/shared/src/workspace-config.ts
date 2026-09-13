@@ -2,7 +2,7 @@ import type {
   McpResourceInfo as WorkspaceMcpResource,
   ToolCatalogEntry as WorkspaceTool,
 } from 'harnesys';
-import type { ComponentOrigin } from './plugin.ts';
+import type { ComponentOrigin, GrantClass } from './plugin.ts';
 
 export type WorkspaceSkill = {
   name: string;
@@ -42,6 +42,10 @@ export type WorkspaceMcpConfigServer = {
   connected: boolean;
   toolCount: number;
   origin: ComponentOrigin;
+  /** Plugin server stopped by the user in this workspace; approval/grant state is kept. */
+  disabledByUser?: boolean;
+  /** Grant class blocking a plugin server in this workspace, if any. */
+  requiredGrant?: GrantClass;
 };
 
 export type UpsertWorkspaceMcpServerRequest = {

@@ -32,4 +32,17 @@ export type PluginRepository = {
   approveServer(name: PluginName, serverId: string): void;
   approvals(name: PluginName): string[];
   setWorkspaceEnabled(name: PluginName, workspaceId: string, enabled: boolean): PluginInstallRecord;
+  setServerDisabled(
+    name: PluginName,
+    serverId: string,
+    workspaceId: string,
+    disabled: boolean,
+  ): void;
+  isServerDisabled(name: PluginName, serverId: string, workspaceId: string): boolean;
+  listDisabledServers(workspaceId: string): PluginServerDisable[];
+};
+
+export type PluginServerDisable = {
+  pluginName: PluginName;
+  serverId: string;
 };

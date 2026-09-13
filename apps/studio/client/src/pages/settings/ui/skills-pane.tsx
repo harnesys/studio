@@ -13,10 +13,9 @@ import {
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { Button } from '@/shared/ui/button';
+import { Row, RowChip, RowHeader, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-
-import { Row, RowChip, RowHeader, RowList, RowSection } from './capability-rows';
 
 export function SkillsPane() {
   const { workspaceId } = useStudioLocation();

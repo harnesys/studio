@@ -1,17 +1,21 @@
 import type { UpsertWorkspaceMcpServerRequest } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PencilIcon, PlusIcon, PuzzleIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
+import { PlusIcon, RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import { pluginStatusBadge, pluginStatusText } from '@/features/manage-agent';
 import {
   confirmDeleteMcpServer,
+  McpServerRow,
   openAddMcpServerDialog,
   openEditMcpServerDialog,
 } from '@/features/manage-workspace-mcp';
 import {
+  approvePluginServer,
   deleteWorkspaceMcpServer,
+  pluginsQueryKey,
   reloadWorkspaceMcp,
+  restartWorkspaceMcpServer,
+  setWorkspaceMcpServerState,
   upsertWorkspaceMcpServer,
   workspaceMcpConfigQuery,
   workspaceMcpConfigQueryKey,
@@ -20,10 +24,9 @@ import {
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { Button } from '@/shared/ui/button';
+import { RowHeader, RowList } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-
-import { Row, RowChip, RowField, RowHeader, RowItem, RowList, RowSection } from './capability-rows';
 
 export function McpPane() {
   const { workspaceId } = useStudioLocation();
@@ -95,6 +98,74 @@ export function McpPane() {
     },
   });
 
+  const approve = useMutation({
+    mutationFn: (input: { pluginName: string; serverId: string }) =>
+      approvePluginServer(input.pluginName, { serverId: input.serverId }),
+    onSuccess: async (_result, input) => {
+      await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+      await invalidateMcp();
+      toast.add({ title: 'Server approved', description: input.serverId });
+    },
+    onError: (error) => {
+      toast.add({
+        title: 'Approve failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    },
+  });
+
+  const setState = useMutation({
+    mutationFn: (input: { serverId: string; enabled: boolean }) => {
+      if (!workspaceId) {
+        throw new Error('No workspace');
+      }
+      return setWorkspaceMcpServerState(workspaceId, input.serverId, {
+        enabled: input.enabled,
+      });
+    },
+    onSuccess: async (result, input) => {
+      if (workspaceId) {
+        queryClient.setQueryData(workspaceMcpConfigQueryKey(workspaceId), result);
+        await queryClient.invalidateQueries({ queryKey: workspaceMcpQueryKey(workspaceId) });
+      }
+      toast.add({
+        title: input.enabled ? 'MCP server started' : 'MCP server stopped',
+        description: input.serverId,
+      });
+    },
+    onError: (error) => {
+      toast.add({
+        title: 'State change failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    },
+  });
+
+  const restart = useMutation({
+    mutationFn: (serverId: string) => {
+      if (!workspaceId) {
+        throw new Error('No workspace');
+      }
+      return restartWorkspaceMcpServer(workspaceId, serverId);
+    },
+    onSuccess: async (result, serverId) => {
+      if (workspaceId) {
+        queryClient.setQueryData(workspaceMcpConfigQueryKey(workspaceId), result);
+        await queryClient.invalidateQueries({ queryKey: workspaceMcpQueryKey(workspaceId) });
+      }
+      toast.add({ title: 'MCP server restarted', description: serverId });
+    },
+    onError: (error) => {
+      toast.add({
+        title: 'Restart failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    },
+  });
+
+  const stateBusy = setState.isPending || restart.isPending || approve.isPending;
+  const editBusy = upsert.isPending || remove.isPending;
+
   return (
     <div className="flex flex-col gap-2" data-testid="mcp-pane">
       <RowHeader label="Servers" count={configQuery.isPending ? undefined : servers.length}>
@@ -142,183 +213,41 @@ export function McpPane() {
           </Empty>
         ) : (
           <RowList>
-            {servers.map((server) => {
-              const live = liveServers.get(server.serverId);
-              const { origin } = server;
-              const plugin = origin.kind === 'plugin';
-              const statusChip =
-                plugin && origin.status !== 'native' ? pluginStatusBadge(origin) : undefined;
-              const expanded = expandedId === server.serverId;
-              return (
-                <Row
-                  key={server.serverId}
-                  testId={`mcp-server-${server.serverId}`}
-                  title={
-                    plugin ? pluginServerTitle(server.serverId, origin.pluginName) : server.serverId
-                  }
-                  muted={!server.enabled}
-                  meta={server.transport}
-                  status={serverStatus(server.enabled, live)}
-                  chips={
-                    <>
-                      {plugin ? (
-                        <RowChip testId="mcp-origin-chip">
-                          <PuzzleIcon className="size-2.5" />
-                          {origin.pluginName}
-                        </RowChip>
-                      ) : null}
-                      {statusChip ? (
-                        <RowChip tone={statusChip === 'invalid' ? 'danger' : 'accent'}>
-                          {statusChip}
-                        </RowChip>
-                      ) : null}
-                    </>
-                  }
-                  summary={
-                    plugin && statusChip
-                      ? pluginStatusText(origin)
-                      : `${server.toolCount} ${server.toolCount === 1 ? 'tool' : 'tools'}${
-                          live?.resources.length ? ` · ${live.resources.length} resources` : ''
-                        }${!server.enabled ? ' · disabled in .harnesys/mcp.json' : ''}`
-                  }
-                  onToggle={() =>
-                    setExpandedId((current) =>
-                      current === server.serverId ? null : server.serverId,
-                    )
-                  }
-                  expanded={expanded}
-                  actions={
-                    plugin ? undefined : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          aria-label={`Edit ${server.serverId}`}
-                          disabled={upsert.isPending || remove.isPending}
-                          onClick={() => {
-                            void openEditMcpServerDialog(server).then((draft) => {
-                              if (!draft) {
-                                return;
-                              }
-                              upsert.mutate(draft);
-                            });
-                          }}
-                        >
-                          <PencilIcon />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          aria-label={`Delete ${server.serverId}`}
-                          disabled={upsert.isPending || remove.isPending}
-                          onClick={() => {
-                            void confirmDeleteMcpServer(server.serverId).then((confirmed) => {
-                              if (confirmed) {
-                                remove.mutate(server.serverId);
-                              }
-                            });
-                          }}
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      </>
-                    )
-                  }
-                >
-                  {!plugin ? (
-                    <RowSection label="Connection">
-                      {server.transport === 'stdio' ? (
-                        <RowField
-                          label="Command"
-                          value={[server.command, ...(server.args ?? [])].filter(Boolean).join(' ')}
-                        />
-                      ) : (
-                        <RowField label="URL" value={server.url} />
-                      )}
-                      {server.env && Object.keys(server.env).length > 0 ? (
-                        <RowField label="Env" value={Object.keys(server.env).join(', ')} />
-                      ) : null}
-                      {server.headers && Object.keys(server.headers).length > 0 ? (
-                        <RowField label="Headers" value={Object.keys(server.headers).join(', ')} />
-                      ) : null}
-                    </RowSection>
-                  ) : null}
-                  {live ? (
-                    <>
-                      <RowSection label="Tools" count={live.tools.length}>
-                        {live.tools.length === 0 ? (
-                          <p className="px-1 text-muted-foreground text-xs">
-                            No tools on this server.
-                          </p>
-                        ) : (
-                          live.tools.map((tool) => (
-                            <RowItem
-                              key={tool.name}
-                              testId={`mcp-tool-${tool.name}`}
-                              title={shortToolName(tool.name)}
-                              description={tool.description}
-                            />
-                          ))
-                        )}
-                      </RowSection>
-                      <RowSection label="Resources" count={live.resources.length}>
-                        {live.resources.length === 0 ? (
-                          <p className="px-1 text-muted-foreground text-xs">
-                            No resources exposed.
-                          </p>
-                        ) : (
-                          live.resources.map((resource) => (
-                            <RowItem
-                              key={resource.uri}
-                              testId={`mcp-resource-${resource.uri}`}
-                              title={resource.name}
-                              description={[resource.mimeType, resource.uri]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            />
-                          ))
-                        )}
-                      </RowSection>
-                    </>
-                  ) : null}
-                  {!live && !plugin ? (
-                    <RowSection label="Live status">
-                      <p className="px-1 text-muted-foreground text-xs">
-                        {server.enabled
-                          ? 'Not loaded in this session — reload to connect.'
-                          : 'Disabled — enable it to load tools.'}
-                      </p>
-                    </RowSection>
-                  ) : null}
-                </Row>
-              );
-            })}
+            {servers.map((server) => (
+              <McpServerRow
+                key={server.serverId}
+                server={server}
+                live={liveServers.get(server.serverId)}
+                expanded={expandedId === server.serverId}
+                onToggle={() =>
+                  setExpandedId((current) => (current === server.serverId ? null : server.serverId))
+                }
+                stateBusy={stateBusy}
+                editBusy={editBusy}
+                onApprove={(pluginName, pointer) =>
+                  approve.mutate({ pluginName, serverId: pointer })
+                }
+                onSetState={(serverId, enabled) => setState.mutate({ serverId, enabled })}
+                onRestart={(serverId) => restart.mutate(serverId)}
+                onEdit={(row) => {
+                  void openEditMcpServerDialog(row).then((draft) => {
+                    if (!draft) {
+                      return;
+                    }
+                    upsert.mutate(draft);
+                  });
+                }}
+                onDelete={(serverId) => {
+                  void confirmDeleteMcpServer(serverId).then((confirmed) => {
+                    if (confirmed) {
+                      remove.mutate(serverId);
+                    }
+                  });
+                }}
+              />
+            ))}
           </RowList>
         ))}
     </div>
   );
-}
-
-function pluginServerTitle(serverId: string, pluginName: string): string {
-  const prefix = `plugin:${pluginName}:`;
-  return serverId.startsWith(prefix) ? serverId.slice(prefix.length) : serverId;
-}
-
-function serverStatus(
-  enabled: boolean,
-  live: { connected: boolean } | undefined,
-): { tone: 'off' | 'idle' | 'live' | 'danger'; label: string } {
-  if (!enabled) {
-    return { tone: 'off', label: 'Disabled' };
-  }
-  if (!live) {
-    return { tone: 'idle', label: 'Not connected' };
-  }
-  return live.connected
-    ? { tone: 'live', label: 'Connected' }
-    : { tone: 'danger', label: 'Offline' };
-}
-
-function shortToolName(name: string): string {
-  return name.includes('__') ? name.split('__').slice(1).join('__') : name;
 }

@@ -53,6 +53,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
         name: row.name,
         role: row.role,
         instructions: row.instructions,
+        parentId: row.parentId,
       }));
     return this.pluginAgentsOf(scope.workspaceId).then((pluginAgents) => [
       ...base,
@@ -88,6 +89,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     const created = await this.deps.createAgent.execute({
       workspaceId: scope.workspaceId,
       name: input.name,
+      parentId: input.parentId ?? null,
       role: input.role,
       instructions: input.instructions,
       tools: input.tools,
@@ -95,6 +97,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
       mcpServers: input.mcpServers,
       budget: input.budget ?? null,
       capabilities: input.packs,
+      permissions: input.permissions ?? null,
       graph: input.graph,
       modelId: model?.modelId,
       effort: model?.effort,

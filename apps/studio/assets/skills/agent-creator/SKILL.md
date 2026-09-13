@@ -70,7 +70,7 @@ Definition field is `packs` (Studio records and preset files carry the legacy ke
 | `shell` | `shell` (arg: `command`) |
 | `fetch` | `fetch` (arg: `url`; the old name `http` no longer exists) |
 | `plan` | `plan_save`, `plan_item_update`, `plan_get` |
-| `agents` | `agents_list`, `agents_create`, `agents_spawn`, `agents_handoff` |
+| `agents` | `agents_list`, `agents_create`, `agents_create_subagent`, `agents_spawn`, `agents_handoff` |
 | `threads` | `thread_list` |
 | `scheduler` | `schedule_list`, `schedule_peek`, `schedule_set`, `schedule_pause`, `schedule_delete` |
 | `webhook` | `webhook_list`, `webhook_set`, `webhook_delete` |
@@ -78,6 +78,8 @@ Definition field is `packs` (Studio records and preset files carry the legacy ke
 | `semantic-memory` | `memory_write`, `memory_list`, `memory_delete` |
 | `knowledge-memory` | `knowledge_search`, `knowledge_read` |
 | `pin-memory` | `pin_set`, `pin_list`, `pin_remove` |
+
+`agents_create` makes a standalone top-level agent visible to the user; `agents_create_subagent` makes a one-shot delegate under the calling agent (spawn target; `agents` pack rejected, permissions intersected with the caller's).
 
 System tools are always registered: `load_tools`, `load_skill`, `ask_user` (`prompt` + optional `options[{id,label}]`), `map` (`items` array → `$state.mapItems` → `control:map`), `wait` (`delayMs` → `$state.waitUntilMs` → `control:wait`). There is no `knowledge_upsert`, no `semantic_upsert`, no `semantic_search`. `edit_file` args are `path`, `old_string`, `new_string` (unique match required), not camelCase. ReAct presets that expose map/wait must route `act` → `map` when `exists($state.mapItems)` and `act` → `wait` when `exists($state.waitUntilMs)`, with a map body ending in `control:yield`. Prefer `wait` for mid-run sleep; `schedule_set` for recurring / next-session fires after the run ends.
 

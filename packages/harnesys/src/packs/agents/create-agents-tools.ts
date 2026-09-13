@@ -68,6 +68,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
               ? { role: input.role, name: input.name }
               : undefined;
           const rows = await deps.agents.list(scope, filter);
+          const parentNames = new Map(rows.map((row) => [row.id, row.name]));
           return await Promise.all(
             rows.map(async (row) => {
               const def = await deps.agents.get(scope, row.id);
@@ -78,6 +79,8 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
                 instructions: row.instructions,
                 tools: def?.tools ?? [],
                 ...(def?.model ? { model: `${def.model.provider}/${def.model.model}` } : {}),
+                level: row.parentId ? 'delegate' : 'top',
+                ...(row.parentId ? { parent: parentNames.get(row.parentId) ?? row.parentId } : {}),
               };
             }),
           );
@@ -85,8 +88,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
     }),
     tool('agents_create', {
       group: 'agents',
+      operations: ['agents'],
       description:
-        'Create an agent in this workspace. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
+        'Create a standalone top-level agent in this workspace (visible to the user in the sidebar, own threads). For a delegate under you use agents_create_subagent. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
       input: {
         type: 'object',
         properties: {
@@ -149,6 +153,81 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           }
           const packs = input.packs ?? input.capabilities;
           const next: AgentCatalogCreateInput & { capabilities?: unknown } = { ...input };
+          delete next.capabilities;
+          if (packs !== undefined) {
+            next.packs = packs;
+          }
+          return await deps.agents.create(scope, next);
+        }),
+    }),
+    tool('agents_create_subagent', {
+      group: 'agents',
+      operations: ['agents'],
+      description:
+        'Create a subagent delegate under YOU (the calling agent). Returns { id, name }. ' +
+        'Delegates are one-shot spawn targets: they cannot ask the user questions, their permissions ' +
+        'never exceed yours, and the "agents" pack is forbidden for them. Spawn them with agents_spawn. ' +
+        'Use agents_create instead for a standalone workspace agent visible to the user.',
+      input: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Display name' },
+          role: { type: 'string', description: 'Role label (not unique)' },
+          instructions: { type: 'string', description: 'System instructions for the subagent' },
+          tools: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Tool names available to the subagent',
+          },
+          skills: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Skill names to attach',
+          },
+          packs: {
+            type: 'object',
+            description: 'Optional pack map (name → config or null); "agents" is rejected',
+          },
+          budget: {
+            type: 'object',
+            description: 'Run budget; use policy "error" (ask is unavailable in spawn)',
+            properties: {
+              maxSteps: { type: 'integer', minimum: 1 },
+              maxTokens: { type: 'integer', minimum: 1 },
+              deadlineMs: { type: 'integer', minimum: 1 },
+              policy: { type: 'string', enum: ['ask', 'error'] },
+            },
+          },
+          permissions: {
+            type: 'object',
+            description:
+              'Permission map op → allow|ask|deny (fs.read, fs.write, process, network, mcp). Effective rights are intersected with yours; ask acts as deny in spawn.',
+          },
+          graph: {
+            type: 'object',
+            description: 'Optional custom graph; omit for host default ReAct',
+          },
+        },
+        required: ['name', 'role', 'instructions'],
+      },
+      execute: async (raw) =>
+        runGuard(async () => {
+          const scope = deps.resolveScope();
+          const input = raw as AgentCatalogCreateInput & {
+            capabilities?: Record<string, PackConfig | null>;
+          };
+          if (!input.name || !input.role || !input.instructions) {
+            return { error: 'name, role, and instructions are required' };
+          }
+          const ag = input.packs?.agents;
+          if (ag !== undefined && ag !== null) {
+            return { error: 'packs.agents is forbidden for subagents (nesting ban)' };
+          }
+          const packs = input.packs ?? input.capabilities;
+          const next: AgentCatalogCreateInput & { capabilities?: unknown } = {
+            ...input,
+            parentId: scope.agentId,
+          };
           delete next.capabilities;
           if (packs !== undefined) {
             next.packs = packs;

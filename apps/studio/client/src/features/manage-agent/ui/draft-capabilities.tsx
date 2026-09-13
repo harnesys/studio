@@ -29,6 +29,7 @@ export function DraftCapabilities({
   const [tools, setTools] = useState(() => agent?.tools ?? []);
   const [mcpServers, setMcpServers] = useState(() => agent?.mcpServers ?? []);
   const [expandedServerId, setExpandedServerId] = useState<string | null>(null);
+  const [expandedSkillName, setExpandedSkillName] = useState<string | null>(null);
   const skillsQuery = useQuery({
     ...workspaceSkillsQuery(workspaceId),
     enabled: Boolean(workspaceId) && section === 'skills',
@@ -80,22 +81,43 @@ export function DraftCapabilities({
           ) : null}
           {skillCatalog.length > 0 ? (
             <RowList>
-              {skillCatalog.map((skill) => (
-                <Row
-                  key={skill.name}
-                  testId={`draft-skill-${skill.name}`}
-                  title={skill.name}
-                  meta="skill"
-                  summary={skill.description || skill.whenToUse}
-                  actions={
-                    <Switch
-                      size="sm"
-                      checked={isChecked(skills, skill.name)}
-                      onCheckedChange={(value) => toggleSkill(skill.name, Boolean(value))}
-                    />
-                  }
-                />
-              ))}
+              {skillCatalog.map((skill) => {
+                const hasDetail = Boolean(skill.description);
+                const expanded = expandedSkillName === skill.name;
+                return (
+                  <Row
+                    key={skill.name}
+                    testId={`draft-skill-${skill.name}`}
+                    title={skill.name}
+                    meta="skill"
+                    summary={skill.description || skill.whenToUse}
+                    onToggle={
+                      hasDetail
+                        ? () =>
+                            setExpandedSkillName((current) =>
+                              current === skill.name ? null : skill.name,
+                            )
+                        : undefined
+                    }
+                    expanded={expanded && hasDetail}
+                    actions={
+                      <Switch
+                        size="sm"
+                        checked={isChecked(skills, skill.name)}
+                        onCheckedChange={(value) => toggleSkill(skill.name, Boolean(value))}
+                      />
+                    }
+                  >
+                    {skill.description ? (
+                      <RowSection label="Description">
+                        <p className="wrap-anywhere px-1 text-muted-foreground text-xs leading-4">
+                          {skill.description}
+                        </p>
+                      </RowSection>
+                    ) : null}
+                  </Row>
+                );
+              })}
             </RowList>
           ) : null}
         </section>

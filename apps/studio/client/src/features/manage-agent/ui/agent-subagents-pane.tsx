@@ -5,7 +5,7 @@ import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
 import { listAgentPresets } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
-import { Row, RowList } from '@/shared/ui/capability-rows';
+import { Row, RowHeader, RowList } from '@/shared/ui/capability-rows';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,7 +68,29 @@ export function AgentSubagentsPane({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3" data-testid="agent-subagents-pane">
+      <RowHeader label="Subagents" count={delegates.length}>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="sm" />}>
+            <PlusIcon />
+            Add from preset
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-44">
+            {presets.length === 0 ? (
+              <DropdownMenuItem disabled>
+                {presetsQuery.isLoading ? 'Loading…' : 'No presets found'}
+              </DropdownMenuItem>
+            ) : (
+              presets.map((preset) => (
+                <DropdownMenuItem key={preset.id} onClick={() => addFromPreset(preset.id)}>
+                  <SparklesIcon className="size-3" />
+                  {preset.name}
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </RowHeader>
       <p className="text-muted-foreground text-sm">
         Spawn targets for this agent. They stay out of the top-level Agents list. Model defaults to
         the parent; open a row to change it.
@@ -94,28 +116,6 @@ export function AgentSubagentsPane({
           ))}
         </RowList>
       )}
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button type="button" variant="outline" size="sm" className="w-fit gap-1.5" />}
-        >
-          <PlusIcon className="size-3.5" />
-          Add from preset
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-44">
-          {presets.length === 0 ? (
-            <DropdownMenuItem disabled>
-              {presetsQuery.isLoading ? 'Loading…' : 'No presets found'}
-            </DropdownMenuItem>
-          ) : (
-            presets.map((preset) => (
-              <DropdownMenuItem key={preset.id} onClick={() => addFromPreset(preset.id)}>
-                <SparklesIcon className="size-3" />
-                {preset.name}
-              </DropdownMenuItem>
-            ))
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
     </div>
   );
 }

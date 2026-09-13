@@ -1,6 +1,6 @@
 import type { KnowledgeSettings, MemorySearchBackend } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   listWorkspaceFiles,
@@ -36,6 +36,57 @@ export function KnowledgeSettingsFields({
   onPatch,
 }: KnowledgeSettingsFieldsProps) {
   const qc = useQueryClient();
+  const [pendingVector, setPendingVector] = useState(false);
+
+  const hasEmbed = Boolean(settings.embedProvider?.trim()) && Boolean(settings.embedModel?.trim());
+  const bothEmbed = (n: { embedProvider: string | null; embedModel: string | null }) =>
+    Boolean(n.embedProvider?.trim()) && Boolean(n.embedModel?.trim());
+
+  const selectBackend = (next: MemorySearchBackend) => {
+    if (next === 'vector') {
+      if (hasEmbed) {
+        setPendingVector(false);
+        onPatch({ backend: 'vector' });
+      } else {
+        setPendingVector(true);
+      }
+      return;
+    }
+    if (pendingVector) {
+      setPendingVector(false);
+      if (settings.backend === 'vector') {
+        onPatch({ backend: 'fts' });
+      }
+      return;
+    }
+    if (settings.backend !== 'fts') {
+      onPatch({ backend: 'fts' });
+    }
+  };
+
+  const changeEmbed = (next: { embedProvider: string | null; embedModel: string | null }) => {
+    if (pendingVector) {
+      if (!bothEmbed(next)) {
+        return;
+      }
+      setPendingVector(false);
+      onPatch({
+        backend: 'vector',
+        embedProvider: next.embedProvider,
+        embedModel: next.embedModel,
+      });
+      return;
+    }
+    if (!bothEmbed(next)) {
+      toast.add({
+        type: 'warning',
+        title: 'Embed model required for vector',
+        description: 'Switch Backend to fts before clearing the embed model.',
+      });
+      return;
+    }
+    onPatch(next);
+  };
 
   const rootFilesQuery = useQuery({
     queryKey: ['workspace-files', workspaceId],
@@ -94,10 +145,10 @@ export function KnowledgeSettingsFields({
           <FieldLabel htmlFor="knowledge-backend">Backend</FieldLabel>
           <Select
             items={BACKENDS.map((value) => ({ value, label: value }))}
-            value={settings.backend}
+            value={pendingVector ? 'vector' : settings.backend}
             onValueChange={(next) => {
               if (next === 'fts' || next === 'vector') {
-                onPatch({ backend: next });
+                selectBackend(next);
               }
             }}
             disabled={disabled}
@@ -115,16 +166,21 @@ export function KnowledgeSettingsFields({
           </Select>
         </Field>
 
-        <Field className="gap-1.5">
-          <FieldLabel htmlFor="knowledge-embed-model">Embed model</FieldLabel>
-          <EmbedModelSelect
-            id="knowledge-embed-model"
-            embedProvider={settings.embedProvider}
-            embedModel={settings.embedModel}
-            disabled={disabled}
-            onChange={(next) => onPatch(next)}
-          />
-        </Field>
+        {(settings.backend === 'vector' || pendingVector) && (
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="knowledge-embed-model">Embed model</FieldLabel>
+            {pendingVector && !hasEmbed ? (
+              <FieldDescription>Pick an embed model to save the vector backend.</FieldDescription>
+            ) : null}
+            <EmbedModelSelect
+              id="knowledge-embed-model"
+              embedProvider={settings.embedProvider}
+              embedModel={settings.embedModel}
+              disabled={disabled}
+              onChange={changeEmbed}
+            />
+          </Field>
+        )}
       </div>
 
       <Field orientation="horizontal" className="items-center justify-between gap-3">

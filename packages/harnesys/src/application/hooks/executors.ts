@@ -31,7 +31,12 @@ export type HookHandlerVars = {
   userConfig?: UserConfigContentOptions;
 };
 
-export type HookHandlerResult = { effects: HookEffect[]; diagnostics: PluginDiagnostic[] };
+export type HookHandlerResult = {
+  effects: HookEffect[];
+  diagnostics: PluginDiagnostic[];
+  /** Вывод `sessionTitle`: шина отдаёт его в `ctx.renameSession`. */
+  sessionTitle?: string;
+};
 
 const MCP_PLACEHOLDER = /^\$\{([A-Za-z0-9_.]+)\}$/;
 

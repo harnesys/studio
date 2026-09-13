@@ -10,6 +10,8 @@ export type RunHookBusesDeps = {
   lifecycle: RunLifecycleStore;
   /** Host sink for hook diagnostics (hook_failed/hook_timeout). */
   logger?: Logger;
+  /** `{"sessionTitle": ...}` from a hook: rename the thread (spec §2.1). */
+  renameThread?: (threadId: string, title: string) => void;
 };
 
 export type RunHookBusInput = {
@@ -53,6 +55,7 @@ export class RunHookBuses {
         projectDir: input.workspacePath,
         envBase: composeEnvBase(input.binDirs),
         logger: this.deps.logger,
+        renameSession: (title) => this.deps.renameThread?.(input.threadId, title),
       },
     });
     const entry: BusEntry = {

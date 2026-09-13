@@ -42,8 +42,10 @@
   с изолированным shell-исполнителем, union расширяется без ломки.
 - Поле `if` (permission-rule на хендлере) вернётся вместе с hook-типом
   `agent`; поле опциональное, парсер расширяется аддитивно.
-- `watchPaths` и `sessionTitle` игнорируются с warning. Дожатие: watch-лист
-  в `files-watcher.adapter.ts` и заголовок треда; контракт шва не меняется.
+- `sessionTitle` поддержан: кап 200, тред переименовывается через
+  `HookRuntimeCtx.renameSession` (хост пишет title). `watchPaths` игнорируется с
+  warning; watch-лист вне workspace в `files-watcher.adapter.ts` — дожатие,
+  контракт шва не меняется.
 - `updatedInput`/`updatedToolOutput` заменяют объект целиком — сразу паритетно.
 - HTTP allowlists Claude (`allowedHttpHookUrls`, `httpHookAllowedEnvVars`) —
   enterprise-механика; при появлении это настройка хоста, типы не затрагиваются.

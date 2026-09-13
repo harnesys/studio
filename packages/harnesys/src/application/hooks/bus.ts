@@ -16,6 +16,8 @@ export type HookRuntimeCtx = {
   envBase: Record<string, string>;
   mcpToolCall?: (server: string, tool: string, input: Record<string, unknown>) => Promise<unknown>;
   promptModel?: (prompt: string, model?: string) => Promise<string>;
+  /** Вывод хука `{"sessionTitle": ...}`: хост переименовывает тред (спека §2.1). */
+  renameSession?: (title: string) => void;
   /** Точка логов диагностик хуков: `hook_failed`/`hook_timeout` не молчат. */
   logger?: Logger;
 };
@@ -66,6 +68,9 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
           deferred.push(...res.effects);
           pendingDiagnostics.push(...res.diagnostics);
           logDiagnostics(payload.event, res.diagnostics);
+          if (res.sessionTitle !== undefined) {
+            ctx.renameSession?.(res.sessionTitle);
+          }
         })
         .catch(() => {})
         .finally(() => asyncRuns.delete(tracked));
@@ -84,6 +89,11 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
           return res;
         }),
     );
+    for (const res of results) {
+      if (res.sessionTitle !== undefined) {
+        ctx.renameSession?.(res.sessionTitle);
+      }
+    }
     return foldOutcome(event, results, diagnostics);
   }
 

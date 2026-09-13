@@ -126,7 +126,9 @@ stdout-JSON читается на любом exit code. Поля вывода: `
 `systemMessage`, `decision: "block"` + `reason`, `hookSpecificOutput` с обязательным
 `hookEventName`: `permissionDecision` (`allow`/`deny`/`ask`; `defer` игнорируется),
 `updatedInput` (заменяет объект целиком), `additionalContext`, `updatedToolOutput`.
-`watchPaths` и `sessionTitle` игнорируются с warning-диагностикой;
+`sessionTitle` (кап 200 символов) переименовывает тред: шина отдаёт его в
+`HookRuntimeCtx.renameSession`, хост пишет заголовок; пустая строка — warning,
+без rename. `watchPaths` игнорируется с warning-диагностикой;
 `initialUserMessage` не поддерживается. Строковые значения вывода обрезаются
 до 10 000 символов. Exit 2 = `block`: причина из JSON-decision, иначе текст stderr.
 Прочие коды: при валидном JSON исход решает только JSON, без JSON — non-fatal
@@ -409,7 +411,7 @@ Handler `agent` и поле `if` у handler'ов; `isolation: worktree`; `comman
 `headersHelper`; исполнение themes/workflows/channels/output-styles; глобальные
 scopes (user/project) сверх workspace; live-watch каталога плагинов; plugin evals;
 OAuth-конфиг remote MCP (client-managed, как в AP); динамический watch-лист
-FileChanged (`watchPaths`), `sessionTitle`, `initialUserMessage`. Осознанные
+FileChanged (`watchPaths`), `initialUserMessage`. Осознанные
 упрощения и путь дожатия до полного паритета — `PLUGIN-V2-GAPS.md` в корне.
 
 ## 8. Проверка

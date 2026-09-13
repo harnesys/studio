@@ -6,7 +6,7 @@ export const HOOK_STRING_MAX = 10_000;
 
 const DIAG_OUTPUT_MAX = 2000;
 
-/** Поля вывода command/http/mcp_tool-хука в контракте Claude (спека §2.1). */
+/** Строковые значения вывода command/http/mcp_tool-хука в контракте Claude (спека §2.1). */
 export type ClaudeHookJson = {
   continue?: unknown;
   stopReason?: unknown;
@@ -19,7 +19,14 @@ export type ClaudeHookJson = {
   initialUserMessage?: unknown;
 };
 
-export type ClaudeOutputMapping = { effects: HookEffect[]; diagnostics: PluginDiagnostic[] };
+/** sessionTitle переименовывает тред через `HookRuntimeCtx.renameSession`; кап по контракту Claude. */
+export const HOOK_TITLE_MAX = 200;
+
+export type ClaudeOutputMapping = {
+  effects: HookEffect[];
+  diagnostics: PluginDiagnostic[];
+  sessionTitle?: string;
+};
 
 export type CommandExitInput = {
   event: HookEventName;
@@ -49,10 +56,12 @@ export function parseClaudeJsonObject(text: string): ClaudeHookJson | undefined 
 export function mapClaudeJsonFields(out: ClaudeHookJson): ClaudeOutputMapping {
   const effects: HookEffect[] = [];
   const diagnostics: PluginDiagnostic[] = [];
-  if (out.watchPaths !== undefined || out.sessionTitle !== undefined) {
-    diagnostics.push(
-      warning('hook_invalid_output', 'watchPaths/sessionTitle в выводе хука игнорируются'),
-    );
+  if (out.watchPaths !== undefined) {
+    diagnostics.push(warning('hook_invalid_output', 'watchPaths в выводе хука игнорируется'));
+  }
+  const sessionTitle = strValue(out.sessionTitle)?.trim();
+  if (out.sessionTitle !== undefined && sessionTitle === '') {
+    diagnostics.push(warning('hook_invalid_output', 'sessionTitle пустая — тред не переименован'));
   }
   if (out.initialUserMessage !== undefined) {
     diagnostics.push(
@@ -72,15 +81,17 @@ export function mapClaudeJsonFields(out: ClaudeHookJson): ClaudeOutputMapping {
   }
   // systemMessage принимается без эффекта: пользовательского канала в модели эффектов нет
   const hso = out.hookSpecificOutput;
-  if (hso === undefined) {
+  if (hso !== undefined) {
+    if (typeof hso !== 'object' || hso === null || Array.isArray(hso)) {
+      diagnostics.push(warning('hook_invalid_output', 'hookSpecificOutput не является объектом'));
+    } else {
+      mapHookSpecific(hso as Record<string, unknown>, out, effects, diagnostics);
+    }
+  }
+  if (sessionTitle === undefined || sessionTitle === '') {
     return { effects, diagnostics };
   }
-  if (typeof hso !== 'object' || hso === null || Array.isArray(hso)) {
-    diagnostics.push(warning('hook_invalid_output', 'hookSpecificOutput не является объектом'));
-    return { effects, diagnostics };
-  }
-  mapHookSpecific(hso as Record<string, unknown>, out, effects, diagnostics);
-  return { effects, diagnostics };
+  return { effects, diagnostics, sessionTitle: sessionTitle.slice(0, HOOK_TITLE_MAX) };
 }
 
 /** Маппинг exit code команды на исход: exit 2 = block, валидный JSON решает на любом коде,

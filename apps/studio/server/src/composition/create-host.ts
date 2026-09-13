@@ -179,6 +179,18 @@ export function createStudioHost(args: {
     filesWatcher: platform.filesWatcher,
     lifecycle: runtime.runLifecycle,
     logger: toRuntimeLogger('hooks'),
+    renameThread: (threadId, title) => {
+      const trimmed = title.trim();
+      if (trimmed.length === 0) {
+        return;
+      }
+      // Async hook может дожить до rename уже удалённого треда — не роняем emit.
+      try {
+        store.threadRepo.updateTitle(threadId, trimmed);
+      } catch {
+        // thread gone
+      }
+    },
   });
   const monitorJobs = new MonitorJobRegistrarAdapter({
     notify: (threadId, text, type) => runHookBuses.emitNotification(threadId, text, type),

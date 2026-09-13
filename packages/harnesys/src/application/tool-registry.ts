@@ -1,5 +1,6 @@
 import Ajv from 'ajv';
 import type { ToolDefinition } from '../ports/tools.ts';
+import { resolveToolAlias } from './tool-aliases.ts';
 
 const ajv = new Ajv({ strict: false, allErrors: true });
 
@@ -30,24 +31,41 @@ export function mergeTools(
 
 export function filterToolsForAgent(
   registry: Map<string, ToolDefinition>,
-  agent: { mcpServers?: string[]; disallowedTools?: string[] },
+  agent: { tools?: string[]; mcpServers?: string[]; disallowedTools?: string[] },
 ): Map<string, ToolDefinition> {
   const disallowed = agent.disallowedTools;
-  if (agent.mcpServers === undefined && (disallowed === undefined || disallowed.length === 0)) {
+  const hasAllowList = agent.tools !== undefined && agent.tools.length > 0;
+  if (
+    agent.mcpServers === undefined &&
+    (disallowed === undefined || disallowed.length === 0) &&
+    !hasAllowList
+  ) {
     return registry;
   }
-  const allowed = new Set(agent.mcpServers ?? []);
-  const blocked = new Set(disallowed ?? []);
+  const allowedServers = new Set(agent.mcpServers ?? []);
+  const blocked = new Set((disallowed ?? []).map(resolveToolAlias));
+  // Requested names keep their alias spelling in the child registry so
+  // CC-authored prompts ("use the Glob tool") call tools verbatim.
+  const requested = new Map<string, string>();
+  if (hasAllowList) {
+    for (const name of agent.tools ?? []) {
+      requested.set(resolveToolAlias(name), name);
+    }
+  }
   const out = new Map<string, ToolDefinition>();
   for (const [name, def] of registry) {
+    if (requested.size > 0 && !requested.has(name)) {
+      continue;
+    }
     const isMcp = def.operations?.includes('mcp') ?? false;
-    if (isMcp && def.group !== undefined && !allowed.has(def.group)) {
+    if (isMcp && def.group !== undefined && !allowedServers.has(def.group)) {
       continue;
     }
     if (blocked.has(name)) {
       continue;
     }
-    out.set(name, def);
+    const alias = requested.get(name);
+    out.set(alias ?? name, alias !== undefined && alias !== name ? { ...def, name: alias } : def);
   }
   return out;
 }

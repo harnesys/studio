@@ -99,6 +99,11 @@ export { composeSkillRegistries } from './src/application/skills/compose-skill-r
 export { createLoadSkillTool } from './src/application/skills/create-load-skill-tool.ts';
 export { parseSkillFile } from './src/application/skills/parse-skill-file.ts';
 export { filterSkills, formatSkillsCatalog } from './src/application/skills/skills-catalog.ts';
+export {
+  CC_TOOL_ALIASES,
+  PLANNED_CC_TOOLS,
+  resolveToolAlias,
+} from './src/application/tool-aliases.ts';
 export { createToolRegistry, validateToolInput } from './src/application/tool-registry.ts';
 export { validateStructural } from './src/application/validate.ts';
 export type {

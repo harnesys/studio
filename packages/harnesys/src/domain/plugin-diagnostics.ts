@@ -19,6 +19,7 @@ export type PluginDiagnosticCode =
   | 'unsupported_isolation'
   | 'unsupported_transport'
   | 'unsupported_frontmatter_field'
+  | 'unsupported_tool'
   | 'unresolved_model'
   | 'server_config_invalid'
   | 'dependency_unsatisfied'

@@ -54,6 +54,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
         role: row.role,
         instructions: row.instructions,
         parentId: row.parentId,
+        ...(row.color !== null ? { color: row.color } : {}),
       }));
     return this.pluginAgentsOf(scope.workspaceId).then((pluginAgents) => [
       ...base,

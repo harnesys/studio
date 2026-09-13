@@ -3,6 +3,7 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import type { PluginDiagnostic } from '../../../domain/plugin-diagnostics.ts';
 import type { AgentSpec, CommandSpec, PluginComponent } from '../../../domain/plugin-ir.ts';
+import { PLANNED_CC_TOOLS } from '../../tool-aliases.ts';
 import {
   type DiscoverContext,
   isDirectory,
@@ -24,6 +25,7 @@ const AGENT_FRONTMATTER_KEYS: ReadonlySet<string> = new Set([
   'skills',
   'memory',
   'background',
+  'color',
 ]);
 
 /** Frontmatter plugin-агента, у которого в v2 нет носителя: компонент теряет статус native. */
@@ -202,6 +204,17 @@ function readAgentFile(
   if (tools !== undefined) {
     spec.tools = tools;
   }
+  for (const name of spec.tools ?? []) {
+    const note = PLANNED_CC_TOOLS[name];
+    if (note !== undefined) {
+      diagnosticsLocal.push({
+        level: 'warning',
+        code: 'unsupported_tool',
+        message: `agent frontmatter tool "${name}" has no carrier yet (${note}); ignored`,
+        path: source.file,
+      });
+    }
+  }
   const disallowedTools = optionalStringList(raw.disallowedTools);
   if (disallowedTools !== undefined) {
     spec.disallowedTools = disallowedTools;
@@ -216,6 +229,10 @@ function readAgentFile(
   }
   if (raw.background === true) {
     spec.background = true;
+  }
+  const color = optionalNonEmptyString(raw.color);
+  if (color !== undefined) {
+    spec.color = color;
   }
 
   diagnostics.push(...diagnosticsLocal);

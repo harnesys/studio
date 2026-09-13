@@ -13,6 +13,7 @@ export type AgentCatalogSummary = {
   role: string;
   instructions: string;
   parentId?: string | null;
+  color?: string;
 };
 
 export type AgentCatalogCreateInput = {

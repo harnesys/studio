@@ -86,6 +86,7 @@ export type AgentSpec = {
   skills?: string[];
   memory?: string;
   background?: boolean;
+  color?: string;
 };
 
 /** Хук: event/matcher уже в binding (HookMatcher). */

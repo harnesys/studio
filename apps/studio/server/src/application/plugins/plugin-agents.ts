@@ -37,7 +37,7 @@ export function pluginAgentCatalog(
   providers?: LlmProviderRepository,
   onDiagnostic?: BindDiagnosticSink,
 ): PluginAgentCatalog {
-  const all = new Map<string, AgentDefinition>();
+  const all = new Map<string, { definition: AgentDefinition; color?: string }>();
   for (const entry of entries) {
     const userConfig = pluginUserConfig(entry.ir, entry.record.options);
     const bound = bindAgentComponents(
@@ -47,20 +47,24 @@ export function pluginAgentCatalog(
       userConfig,
     );
     for (const agent of bound) {
-      all.set(agent.id, agent.definition);
+      all.set(agent.id, {
+        definition: agent.definition,
+        ...(agent.color !== undefined ? { color: agent.color } : {}),
+      });
     }
   }
   return {
     list(): AgentCatalogSummary[] {
-      return [...all.entries()].map(([id, definition]) => ({
+      return [...all.entries()].map(([id, entry]) => ({
         id,
         name: pluginAgentName(id),
         role: 'plugin',
-        instructions: definition.prompts.main?.instructions ?? '',
+        instructions: entry.definition.prompts.main?.instructions ?? '',
+        ...(entry.color !== undefined ? { color: entry.color } : {}),
       }));
     },
     get(id: string): AgentDefinition | null {
-      return all.get(id) ?? null;
+      return all.get(id)?.definition ?? null;
     },
   };
 }

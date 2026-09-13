@@ -1,0 +1,13 @@
+{
+  "id": "bypass",
+  "name": "Bypass",
+  "description": "Run everything without confirmations.",
+  "permissions": {
+    "fs.write": "allow",
+    "process": "allow",
+    "network": "allow",
+    "mcp": "allow",
+    "agents": "allow"
+  },
+  "installedByDefault": false
+}

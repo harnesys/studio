@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import type { AgentBudget, PackConfig } from '@harnesys/studio-shared';
 import type { PermissionMap } from 'harnesys';
 import { z } from 'zod';
-import { PRESET_ID_RE, PRESETS_DIR } from '../config/constants.ts';
+import { PRESET_ID_RE } from '../config/constants.ts';
 import { NotFoundError, ValidationError } from '../domain/studio.error.ts';
-import { bundledSkillsPath, systemSkillsPath } from './store/studio-layout.ts';
+import { bundledPresetsPath, systemPresetsPath } from './store/studio-layout.ts';
 
 const budgetSchema = z
   .object({
@@ -61,14 +61,9 @@ export type AgentPreset = {
   graph?: AgentPresetGraph;
 };
 
-/** Presets dir under a given skills root. */
-export function agentPresetsDir(skillsRoot: string): string {
-  return join(skillsRoot, PRESETS_DIR);
-}
-
-/** Skills roots that may carry presets, ascending precedence (home overrides bundle). */
+/** Preset roots, ascending precedence (home shadows bundle). */
 function presetRoots(): string[] {
-  return [bundledSkillsPath(), systemSkillsPath()];
+  return [bundledPresetsPath('agents'), systemPresetsPath('agents')];
 }
 
 function presetIdsIn(dir: string): string[] {
@@ -82,13 +77,12 @@ function presetIdsIn(dir: string): string[] {
 }
 
 /**
- * List presets from bundled app assets and `~/.harnesys/skills/agent-creator/presets`
- * (id = filename stem). A same-id preset in home shadows the bundled one.
+ * List presets from bundled app assets (`apps/studio/assets/presets/agents`) and
+ * `~/.harnesys/presets/agents` (id = filename stem). A same-id preset in home shadows the bundled one.
  */
 export function listAgentPresets(): AgentPreset[] {
   const byId = new Map<string, { id: string; dir: string }>();
-  for (const root of presetRoots()) {
-    const dir = agentPresetsDir(root);
+  for (const dir of presetRoots()) {
     for (const id of presetIdsIn(dir)) {
       byId.set(id, { id, dir });
     }
@@ -105,7 +99,7 @@ export function readAgentPreset(id: string): AgentPreset {
   }
   const roots = presetRoots();
   for (let i = roots.length - 1; i >= 0; i -= 1) {
-    const path = join(agentPresetsDir(roots[i]), `${id}.json`);
+    const path = join(roots[i], `${id}.json`);
     if (existsSync(path)) {
       return parsePreset(id, path);
     }

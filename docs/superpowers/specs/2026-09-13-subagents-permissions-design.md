@@ -80,7 +80,7 @@ else runPermissions = { op: mode.permissions[op] ? min(mode.permissions[op], bas
 - `resolveModeId` (`apps/studio/shared/src/modes.ts:42`): `DEFAULT_MODE_ID` меняется с `'ask'` на `'default'`; `'default'` валиден для любого агента без записи в `modes`. Существующие `defaultModeId` продолжают резолвиться, сид `ask` остаётся установленным пресетом.
 - Композер (`widgets/chat-composer/ui/chat-composer.tsx:107-122`): список режимов = `Default` + режимы агента; выбор по умолчанию = `defaultModeId` агента, иначе `Default`.
 - Редактор режимов (`agent-modes-pane.tsx`, `agent-mode-editor.tsx`): для каждой операции максимальный доступный gate = база агента (`allow` недоступен, если база `ask` или `deny`). Рантайм-пересечение остаётся второй линией: данные режимов могут содержать что угодно, исполнение не выйдет за базу.
-- Сиды режимов (`mode-preset-seed.ts`) без изменений: их карты уже явные, сужающие режимы (`plan`) прописывают `deny` напрямую.
+- Сиды режимов (`mode-preset-seed.ts` читает `apps/studio/assets/presets/modes/*.json`) без изменений по картам: они уже явные, сужающие режимы (`plan`) прописывают `deny` напрямую.
 
 ## Запрет вложенности
 

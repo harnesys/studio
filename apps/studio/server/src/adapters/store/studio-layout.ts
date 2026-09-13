@@ -36,7 +36,7 @@ export function systemSkillsPath(home: string = defaultHomePath()): string {
 }
 
 /**
- * Skills and agent presets shipped with the app (repo: `apps/studio/assets/skills`).
+ * Skills shipped with the app (repo: `apps/studio/assets/skills`).
  * Lowest-precedence root: home overrides it, workspace overrides home.
  * `HARNESYS_BUNDLED_SKILLS` points elsewhere for packaged builds;
  * a missing directory simply contributes nothing.
@@ -45,9 +45,26 @@ export function bundledSkillsPath(): string {
   return env.bundledSkills ?? join(import.meta.dir, '..', '..', '..', '..', 'assets', SKILLS_DIR);
 }
 
-/** Plan-mode contract text prepended when run mode is `plan` (`apps/studio/assets/plan-mode.md`). */
-export function planModePromptPath(): string {
-  return join(import.meta.dir, '..', '..', '..', '..', 'assets', 'plan-mode.md');
+/** Root of the bundled app assets shipped with Studio (`apps/studio/assets`). */
+export function bundledAssetsPath(): string {
+  return join(import.meta.dir, '..', '..', '..', '..', 'assets');
+}
+
+/**
+ * Bundled agent/mode preset roots under `apps/studio/assets/presets`.
+ * `HARNESYS_BUNDLED_PRESETS` points elsewhere for packaged builds;
+ * a missing directory simply contributes nothing.
+ */
+export function bundledPresetsPath(sub: 'agents' | 'modes'): string {
+  return join(env.bundledPresets ?? join(bundledAssetsPath(), 'presets'), sub);
+}
+
+/** User preset root, shadows bundled: `~/.harnesys/presets/<sub>`. */
+export function systemPresetsPath(
+  sub: 'agents' | 'modes',
+  home: string = defaultHomePath(),
+): string {
+  return join(home, 'presets', sub);
 }
 
 /**

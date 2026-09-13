@@ -1,0 +1,13 @@
+{
+  "id": "dont_ask",
+  "name": "Don't ask",
+  "description": "Writes auto-run; network and MCP denied.",
+  "permissions": {
+    "fs.write": "allow",
+    "process": "deny",
+    "network": "deny",
+    "mcp": "deny",
+    "agents": "deny"
+  },
+  "installedByDefault": false
+}

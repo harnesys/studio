@@ -25,6 +25,7 @@ export const env = {
   port: readPort(process.env.PORT, DEFAULT_PORT),
   harnesysHome: process.env.HARNESYS_HOME?.trim() || undefined,
   bundledSkills: process.env.HARNESYS_BUNDLED_SKILLS?.trim() || undefined,
+  bundledPresets: process.env.HARNESYS_BUNDLED_PRESETS?.trim() || undefined,
   STUDIO_INSTANCE_ID: process.env.STUDIO_INSTANCE_ID?.trim() || undefined,
   /** Console verbosity switch: dev shows trace-level by default, SERVER_TRACE=0 quiets it. */
   trace: readBool(process.env.SERVER_TRACE, true),

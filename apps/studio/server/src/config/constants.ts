@@ -120,7 +120,6 @@ export const RESEARCH_OPS = ['network', 'mcp'] as const;
 export const EXTERNAL_OPS = [...PROCESS_OPS, ...RESEARCH_OPS] as const;
 
 /** Naming */
-export const PRESETS_DIR = 'agent-creator/presets';
 export const SKILL_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 export const PRESET_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 

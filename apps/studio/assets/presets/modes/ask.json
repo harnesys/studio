@@ -1,0 +1,13 @@
+{
+  "id": "ask",
+  "name": "Ask before changes",
+  "description": "Confirm every write or command.",
+  "permissions": {
+    "fs.write": "ask",
+    "process": "ask",
+    "network": "ask",
+    "mcp": "ask",
+    "agents": "ask"
+  },
+  "installedByDefault": true
+}

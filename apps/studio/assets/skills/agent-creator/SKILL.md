@@ -14,7 +14,7 @@ Reference for authoring `AgentDefinition`s and Studio presets. The engine execut
 - Any later `llm:generate` in the same run converts those messages and throws `AI_MissingToolResultsError`; the run fails. One unhandled tool call is enough.
 - Therefore: every `llm:generate` that can see tools must either route `when: '$output.finishReason = "tool-calls"'` to a batch `tool:call` over `calls: "$output.toolCalls"`, or loop back to itself after that node, or declare `"tools": []`.
 - Pure decision/report nodes get `"tools": []` and instruct the model to answer in text.
-- Canonical loop (copy this shape; see `../../../server/src/application` and the shipped presets in `apps/studio/assets/skills/agent-creator/presets/`):
+- Canonical loop (copy this shape; see `../../../server/src/application` and the shipped presets in `apps/studio/assets/presets/agents/`):
 
 ```json
 "start": { "type": "core:start" },
@@ -89,7 +89,7 @@ Three roots, ascending precedence: shipped bundle (`apps/studio/assets/skills/<n
 
 ## Presets
 
-`<skills-root>/agent-creator/presets/<id>.json`, id pattern `^[a-z0-9][a-z0-9-]*$` from the filename. Shipped presets live in the bundle; a same-id file in home or workspace shadows it. Recognized keys: `name`, `role`, `instructions` (required), `tools`, `skills`, `mcpServers`, `budget`, `capabilities`, `graph`. Unknown keys (including `model`, `compaction`, `packs`) are silently stripped; model and compaction come from Studio defaults. Without `graph` the host builds the default ReAct loop. The loader zod-checks shape but not the tool-calls invariant; validate the graph yourself. One unparseable file breaks the entire preset listing.
+`apps/studio/assets/presets/agents/<id>.json` (bundle) and `~/.harnesys/presets/agents/<id>.json` (home), id pattern `^[a-z0-9][a-z0-9-]*$` from the filename. A same-id file in home shadows the bundle. Recognized keys: `name`, `role`, `instructions` (required), `tools`, `skills`, `mcpServers`, `budget`, `capabilities`, `graph`. Unknown keys (including `model`, `compaction`, `packs`) are silently stripped; model and compaction come from Studio defaults. Without `graph` the host builds the default ReAct loop. The loader zod-checks shape but not the tool-calls invariant; validate the graph yourself. One unparseable file breaks the entire preset listing.
 
 ## Before saving (checklist)
 

@@ -1,0 +1,13 @@
+{
+  "id": "auto",
+  "name": "Edit",
+  "description": "File edits run without confirmation.",
+  "permissions": {
+    "fs.write": "allow",
+    "process": "ask",
+    "network": "ask",
+    "mcp": "ask",
+    "agents": "ask"
+  },
+  "installedByDefault": true
+}

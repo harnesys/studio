@@ -16,7 +16,7 @@ export type CatalogAgentEntry = {
   disallowedTools?: string[];
 };
 
-/** Резолв model-строки против моделей хоста; null → компонент отбрасывается. */
+/** Резолв model-строки против моделей хоста; null → компонент живёт без model. */
 export type ResolveAgentModel = (ref: string) => AgentModelRef | null;
 
 /** Колбэки и опции одного прогона биндинга агентов. */
@@ -66,9 +66,6 @@ function buildEntry(
 ): CatalogAgentEntry | undefined {
   warnUnsupportedField(spec, sourceFile, bind.onDiagnostic);
   const model = resolveSpecModel(spec, sourceFile, bind);
-  if (model === null) {
-    return undefined;
-  }
   const instructions = readAgentBody(spec, sourceFile, bind);
   if (instructions === null) {
     return undefined;
@@ -128,12 +125,12 @@ function warnUnsupportedField(
   }
 }
 
-/** `undefined` — model не задан; `null` — не резолвится, компонент отбрасывается. */
+/** `undefined` — model не задан или не резолвится: компонент без `model`, наследует модель родителя при спавне. */
 function resolveSpecModel(
   spec: AgentSpec,
   sourceFile: string,
   bind: AgentBindContext,
-): AgentModelRef | null | undefined {
+): AgentModelRef | undefined {
   if (spec.model === undefined) {
     return undefined;
   }
@@ -142,10 +139,10 @@ function resolveSpecModel(
     bind.onDiagnostic?.({
       level: 'warning',
       code: 'unresolved_model',
-      message: `agent model "${spec.model}" does not resolve against host models; component dropped`,
+      message: `agent model "${spec.model}" does not resolve; inheriting parent model on spawn`,
       path: sourceFile,
     });
-    return null;
+    return undefined;
   }
   return spec.effort !== undefined ? { ...resolved, effort: spec.effort } : resolved;
 }

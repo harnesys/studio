@@ -23,7 +23,7 @@ import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
 import type { Workspace, WorkspaceRepository } from '../domain/workspace.port.ts';
 import type { RunHookBuses } from './run-hook-buses.adapter.ts';
-import { permissionMapForMode } from './tool-confirm-policy.ts';
+import { permissionMapForRun } from './tool-confirm-policy.ts';
 import type {
   LoadedWorkspacePlugin,
   WorkspaceHarnesysRegistry,
@@ -149,7 +149,7 @@ export class StudioRunTargets implements RunTargets {
     return {
       state,
       agent,
-      permissions: permissionMapForMode(mode.permissions),
+      permissions: permissionMapForRun(agentRow.permissions, mode),
       paths: { allow: [workspace.path], cwd: workspace.path },
       packs: registrations,
       deferredPacks: deferredPackNames(agent.packs, registrations, mode.packs),

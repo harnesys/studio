@@ -30,6 +30,7 @@ export function dbAgentDefinition(agent: Agent, repos: AgentModelRepos): AgentDe
     enabledPlugins: Object.keys(agent.enabledPlugins).length ? agent.enabledPlugins : undefined,
     graph: agent.graph,
     budget: agent.budget ?? undefined,
+    ...(agent.permissions ? { permissions: agent.permissions } : {}),
   };
 }
 

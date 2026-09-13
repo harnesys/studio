@@ -152,6 +152,7 @@ function toAgentDefinition(agent: Agent, deps: SqliteAgentsCatalogPortDeps): Age
     capabilities: agent.capabilities,
     graph: agent.graph,
     budget: agent.budget ?? undefined,
+    ...(agent.permissions ? { permissions: agent.permissions } : {}),
   };
 }
 

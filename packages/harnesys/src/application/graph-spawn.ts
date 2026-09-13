@@ -156,8 +156,13 @@ async function runOneChild(
   const stopEvent = (): Promise<unknown> =>
     emitHook(parent.hooks, 'SubagentStop', { agent_type: target.call.agentId });
   const childState: RuntimeState = parent.state.child(target.spawnId);
-  const plan = compileOrThrow(target.def);
-  const runRegistry = new Map(filterToolsForAgent(parent.toolRegistry, target.def));
+  // У ребёнка нет модели — наследуем модель рана родителя (плагин-агенты с нерезолвной алиас-моделью).
+  const childDef =
+    target.def.model === undefined && parent.agent.model !== undefined
+      ? { ...target.def, model: parent.agent.model }
+      : target.def;
+  const plan = compileOrThrow(childDef);
+  const runRegistry = new Map(filterToolsForAgent(parent.toolRegistry, childDef));
   // Запрет вложенности на уровне движка: ребёнок не получает тулы пака agents.
   for (const [name, def] of runRegistry) {
     if (def.group === 'agents') {
@@ -168,7 +173,7 @@ async function runOneChild(
   // События ребёнка на шину родителя не идут: жизнь сабагента покрывают
   // SubagentStart/SubagentStop.
   const childOpts: GraphOpts = {
-    agent: target.def,
+    agent: childDef,
     input: childInput,
     state: childState,
     permissions: intersectPermissions(

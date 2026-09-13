@@ -231,6 +231,7 @@ export class WorkspaceHarnesysRegistry {
           (this.repos.agents?.listByWorkspace(workspace.id) ?? []).map((a) => ({
             id: a.id,
             name: a.name,
+            parentId: a.parentId,
           })),
       },
       mcp,

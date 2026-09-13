@@ -43,6 +43,8 @@ export const modelFieldsSchema = z
     }),
     features: z.array(z.enum(MODEL_FEATURES)),
     effort: z.array(z.enum(EFFORTS)),
+    defaultEffort: z.enum(EFFORTS).optional(),
+    reasoningMandatory: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
     const hasCost =
@@ -79,6 +81,8 @@ export type ModelFieldsDraft = {
   top_provider?: ModelTopProvider;
   supported_parameters?: string[];
   effort?: Effort[];
+  defaultEffort?: Effort;
+  reasoningMandatory?: boolean;
 };
 
 export function emptyModelFields(): ModelFieldsInput {
@@ -92,6 +96,8 @@ export function emptyModelFields(): ModelFieldsInput {
     modalities: { input: [], output: [] },
     features: [],
     effort: [],
+    defaultEffort: undefined,
+    reasoningMandatory: undefined,
   };
 }
 
@@ -114,6 +120,10 @@ export function modelFieldsFrom(row: {
   const storedFields = metadataFromModel(row.stored);
   const fields = mergeFields(row.found, storedFields);
   const features = featuresFrom(fields);
+  const defaultEffort =
+    fields.defaultEffort !== undefined && fields.effort?.includes(fields.defaultEffort)
+      ? fields.defaultEffort
+      : undefined;
   return {
     description: fields.description ?? '',
     context_length: stringify(fields.context_length ?? fields.top_provider?.context_length),
@@ -127,6 +137,8 @@ export function modelFieldsFrom(row: {
     },
     features,
     effort: fields.effort ?? [],
+    defaultEffort,
+    reasoningMandatory: fields.reasoningMandatory,
   };
 }
 
@@ -141,6 +153,8 @@ export function mergeFields(base?: ModelFieldsDraft, extra?: ModelFieldsDraft): 
     top_provider: extra?.top_provider ?? base?.top_provider,
     supported_parameters: extra?.supported_parameters ?? base?.supported_parameters,
     effort: extra?.effort ?? base?.effort,
+    defaultEffort: extra?.defaultEffort ?? base?.defaultEffort,
+    reasoningMandatory: extra?.reasoningMandatory ?? base?.reasoningMandatory,
   };
 }
 
@@ -192,6 +206,13 @@ export function toModelDraft(values: ModelFieldsOutput): ModelFieldsDraft {
     pricing,
     supported_parameters,
     effort: hasReasoning && values.effort.length > 0 ? values.effort : undefined,
+    defaultEffort:
+      hasReasoning &&
+      values.defaultEffort !== undefined &&
+      values.effort.includes(values.defaultEffort)
+        ? values.defaultEffort
+        : undefined,
+    reasoningMandatory: hasReasoning ? values.reasoningMandatory : undefined,
   };
 }
 

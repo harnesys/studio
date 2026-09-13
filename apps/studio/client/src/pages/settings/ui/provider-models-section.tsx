@@ -1,7 +1,6 @@
 import type { DiscoveredModelView, ProviderPublic } from '@harnesys/studio-shared';
 import { PlusIcon, RefreshCwIcon, SearchIcon, XIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
-
 import { openAddModelDialog } from '@/features/manage-model';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -46,13 +45,10 @@ export function ProviderModelsSection({
     <div className="mt-8">
       <div className="flex h-8 items-center gap-1">
         <p className="font-medium text-sm">Models</p>
-        <span className="font-mono text-[10px] text-muted-foreground">
-          {selected.models.length} attached
-        </span>
         <div className="ml-auto flex items-center gap-1">
           <Button
             variant="ghost"
-            size="icon-xs"
+            size="icon-sm"
             className="text-muted-foreground"
             aria-label="Search models"
             aria-pressed={searchOpen}

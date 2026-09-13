@@ -6,7 +6,7 @@ import type {
   ModelPricing,
   ModelTopProvider,
 } from '@harnesys/studio-shared';
-import { withChatGenerationParameters } from '@harnesys/studio-shared';
+import { EFFORTS, isEffort, withChatGenerationParameters } from '@harnesys/studio-shared';
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models?output_modalities=all';
 
@@ -31,15 +31,21 @@ export async function fetchOpenRouterCatalog(): Promise<DiscoveredModel[]> {
 
 export async function syncModelFromOpenRouter(
   modelName: string,
-): Promise<DiscoveredModel | undefined> {
+): Promise<OpenRouterMatch | undefined> {
   const catalog = await fetchOpenRouterCatalog();
   return findMatchingOpenRouterModel(catalog, modelName);
 }
 
+export type OpenRouterMatch = {
+  model: DiscoveredModel;
+  /** True when several catalog entries fit the query or only a prefix matched. */
+  ambiguous: boolean;
+};
+
 export function findMatchingOpenRouterModel(
   catalog: DiscoveredModel[],
   query: string,
-): DiscoveredModel | undefined {
+): OpenRouterMatch | undefined {
   const normalizedQuery = normalizeName(query);
   if (!normalizedQuery) {
     return undefined;
@@ -48,19 +54,19 @@ export function findMatchingOpenRouterModel(
   // 1. Exact full name match (e.g. "openai/gpt-4o" === "openai/gpt-4o")
   const exact = catalog.find((item) => item.name.toLowerCase() === normalizedQuery);
   if (exact) {
-    return exact;
+    return { model: exact, ambiguous: false };
   }
 
   // 2. Query matches the model part after vendor slash (e.g. "gpt-4o" matches "openai/gpt-4o")
   const querySuffix = suffixOf(normalizedQuery);
   const suffixMatches = catalog.filter((item) => suffixOf(item.name.toLowerCase()) === querySuffix);
   if (suffixMatches.length === 1) {
-    return suffixMatches[0];
+    return { model: suffixMatches[0], ambiguous: false };
   }
   if (suffixMatches.length > 1) {
     // Prefer base version over variants like :free or :exact
     const baseMatch = suffixMatches.find((item) => !item.name.includes(':'));
-    return baseMatch ?? suffixMatches[0];
+    return { model: baseMatch ?? suffixMatches[0], ambiguous: true };
   }
 
   // 3. Match without date/snapshot suffix (e.g. "claude-3-7-sonnet-20250219" matches "anthropic/claude-3-7-sonnet")
@@ -68,7 +74,7 @@ export function findMatchingOpenRouterModel(
   for (const item of catalog) {
     const itemStripped = stripDateAndVariant(suffixOf(item.name.toLowerCase()));
     if (itemStripped === strippedQuery) {
-      return item;
+      return { model: item, ambiguous: true };
     }
   }
 
@@ -76,7 +82,7 @@ export function findMatchingOpenRouterModel(
   for (const item of catalog) {
     const itemSuffix = suffixOf(item.name.toLowerCase());
     if (itemSuffix.startsWith(strippedQuery) || strippedQuery.startsWith(itemSuffix)) {
-      return item;
+      return { model: item, ambiguous: true };
     }
   }
 
@@ -161,12 +167,14 @@ function mapOpenRouterItem(record: unknown): DiscoveredModel | undefined {
     };
   }
 
-  const hasReasoning =
+  const reasoningInfo = readReasoningInfo(item.reasoning);
+  const hasReasoningParams =
     params.includes('reasoning') ||
     params.includes('reasoning_effort') ||
-    params.includes('include_reasoning');
+    params.includes('include_reasoning') ||
+    reasoningInfo !== undefined;
 
-  const effort = hasReasoning ? resolveEffortLevels(name) : undefined;
+  const effort = hasReasoningParams ? resolveEffortLevels(name, reasoningInfo) : undefined;
   const modelArchitecture: ModelArchitecture | undefined =
     inputModalities.length > 0 || outputModalities.length > 0
       ? { input_modalities: inputModalities, output_modalities: outputModalities }
@@ -188,6 +196,8 @@ function mapOpenRouterItem(record: unknown): DiscoveredModel | undefined {
     top_provider: modelTopProvider,
     supported_parameters: withChatGenerationParameters(params.length > 0 ? params : undefined),
     effort,
+    defaultEffort: reasoningInfo?.defaultEffort,
+    reasoningMandatory: reasoningInfo?.mandatory,
   };
 }
 
@@ -197,7 +207,68 @@ const OPENAI_EFFORT: Effort[] = ['none', 'minimal', 'low', 'medium', 'high', 'xh
 const QWEN_EFFORT: Effort[] = ['none', 'low', 'medium', 'xhigh'];
 const MISTRAL_EFFORT: Effort[] = ['none', 'high'];
 
-function resolveEffortLevels(modelId: string): Effort[] {
+type ReasoningInfo = {
+  efforts: Effort[] | undefined;
+  defaultEffort: Effort | undefined;
+  mandatory: boolean | undefined;
+};
+
+/**
+ * Vendor `reasoning` object from `GET /api/v1/models`. `supported_efforts`
+ * is the only per-model source of gradations; an empty list means on/off
+ * reasoning without effort control.
+ */
+function readReasoningInfo(raw: unknown): ReasoningInfo | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+  const record = raw as Record<string, unknown>;
+  const supported = Array.isArray(record.supported_efforts)
+    ? record.supported_efforts.filter(isEffortValue)
+    : undefined;
+  const efforts = supported === undefined ? undefined : sortEfforts(unique(supported));
+  const defaultRaw = typeof record.default_effort === 'string' ? record.default_effort : undefined;
+  const defaultEffort =
+    defaultRaw !== undefined && isEffortValue(defaultRaw) ? defaultRaw : undefined;
+  const mandatory = typeof record.mandatory === 'boolean' ? record.mandatory : undefined;
+  return { efforts, defaultEffort, mandatory };
+}
+
+function isEffortValue(value: unknown): value is Effort {
+  return typeof value === 'string' && isEffort(value);
+}
+
+function unique(values: Effort[]): Effort[] {
+  return [...new Set(values)];
+}
+
+function sortEfforts(values: Effort[]): Effort[] {
+  const order = new Map(EFFORTS.map((item, index) => [item, index]));
+  return [...values].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+}
+
+/**
+ * Vendor levels win. An explicit empty `supported_efforts` means no gradation
+ * (effort control hidden), not the prefix guess. The prefix table is only a
+ * fallback when OpenRouter carries no `reasoning` object.
+ */
+function resolveEffortLevels(
+  modelId: string,
+  info: ReasoningInfo | undefined,
+): Effort[] | undefined {
+  if (info !== undefined) {
+    if (info.efforts === undefined) {
+      return fallbackEffortLevels(modelId);
+    }
+    if (info.efforts.length === 0) {
+      return undefined;
+    }
+    return info.mandatory === true ? info.efforts.filter((item) => item !== 'none') : info.efforts;
+  }
+  return fallbackEffortLevels(modelId);
+}
+
+function fallbackEffortLevels(modelId: string): Effort[] {
   const prefix = modelId.split('/')[0] ?? '';
   switch (prefix) {
     case 'openai':

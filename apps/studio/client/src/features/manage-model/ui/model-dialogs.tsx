@@ -26,6 +26,33 @@ import {
 import { syncModelFromOpenRouter } from '../model/openrouter-sync';
 import { ModelFields } from './model-fields';
 
+/**
+ * OpenRouter wins; manual edits survive only where the catalog has no data
+ * (empty strings, empty lists). Prevents sync from wiping hand-filled costs.
+ */
+function mergeSyncedFields(current: ModelFieldsInput, synced: ModelFieldsInput): ModelFieldsInput {
+  const keepCurrent = (syncedValue: string, currentValue: string): string =>
+    syncedValue === '' && currentValue !== '' ? currentValue : syncedValue;
+  const keepList = <T,>(syncedValue: T[], currentValue: T[]): T[] =>
+    syncedValue.length > 0 ? syncedValue : currentValue;
+  return {
+    description: keepCurrent(synced.description ?? '', current.description ?? ''),
+    context_length: keepCurrent(synced.context_length ?? '', current.context_length ?? ''),
+    maxOutput: keepCurrent(synced.maxOutput ?? '', current.maxOutput ?? ''),
+    cacheRead: keepCurrent(synced.cacheRead ?? '', current.cacheRead ?? ''),
+    input: keepCurrent(synced.input ?? '', current.input ?? ''),
+    output: keepCurrent(synced.output ?? '', current.output ?? ''),
+    modalities:
+      synced.modalities.input.length > 0 || synced.modalities.output.length > 0
+        ? synced.modalities
+        : current.modalities,
+    features: keepList(synced.features, current.features),
+    effort: keepList(synced.effort, current.effort),
+    defaultEffort: synced.defaultEffort ?? current.defaultEffort,
+    reasoningMandatory: synced.reasoningMandatory ?? current.reasoningMandatory,
+  };
+}
+
 export function EditModelDialog({
   onResolve,
   data,
@@ -47,19 +74,21 @@ export function EditModelDialog({
     }
     setSyncing(true);
     try {
-      const found = await syncModelFromOpenRouter(query);
-      if (!found) {
+      const match = await syncModelFromOpenRouter(query);
+      if (!match) {
         toast.add({
           title: 'Model not found in OpenRouter catalog',
           description: query,
         });
         return;
       }
-      const syncedFields = modelFieldsFrom({ found });
-      form.reset(syncedFields);
+      const syncedFields = modelFieldsFrom({ found: match.model });
+      form.reset(mergeSyncedFields(form.getValues(), syncedFields));
       toast.add({
-        title: 'Metadata synced from OpenRouter',
-        description: found.name,
+        title: match.ambiguous
+          ? 'Metadata synced (check the model id)'
+          : 'Metadata synced from OpenRouter',
+        description: match.model.name,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -123,22 +152,24 @@ export function AddModelDialog({
     }
     setSyncing(true);
     try {
-      const found = await syncModelFromOpenRouter(query);
-      if (!found) {
+      const match = await syncModelFromOpenRouter(query);
+      if (!match) {
         toast.add({
           title: 'Model not found in OpenRouter catalog',
           description: query,
         });
         return;
       }
-      const syncedFields = modelFieldsFrom({ found });
+      const syncedFields = modelFieldsFrom({ found: match.model });
       form.reset({
         name: query,
-        ...syncedFields,
+        ...mergeSyncedFields(form.getValues(), syncedFields),
       });
       toast.add({
-        title: 'Metadata synced from OpenRouter',
-        description: found.name,
+        title: match.ambiguous
+          ? 'Metadata synced (check the model id)'
+          : 'Metadata synced from OpenRouter',
+        description: match.model.name,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

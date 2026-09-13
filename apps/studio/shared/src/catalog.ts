@@ -68,6 +68,10 @@ export type ModelFields = {
   top_provider?: ModelTopProvider;
   supported_parameters?: string[];
   effort?: Effort[];
+  /** Vendor default level (OpenRouter `reasoning.default_effort`); composer initial value. */
+  defaultEffort?: Effort;
+  /** Vendor forbids disabling reasoning (OpenRouter `reasoning.mandatory`); `none` is invalid. */
+  reasoningMandatory?: boolean;
 };
 
 export type ModelRecord = ModelFields & {

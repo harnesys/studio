@@ -13,6 +13,7 @@ import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import type { ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { assertModelEffortSupported } from '../providers/provider.helpers.ts';
 import {
   ensureAskMode,
   isAgentsPackEnabled,
@@ -89,6 +90,12 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const role = request.role?.trim() || 'Operator';
     const instructions = request.instructions?.trim() || '';
     const effort = request.effort?.trim() || null;
+    if (effort !== null && request.modelId && this.models) {
+      const effortModel = this.models.findById(request.modelId);
+      if (effortModel) {
+        assertModelEffortSupported(effortModel, effort);
+      }
+    }
     const generation = request.generation ?? null;
     const toolOutput = request.toolOutput ?? null;
     const capabilities = request.capabilities ?? {};

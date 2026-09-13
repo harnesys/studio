@@ -132,17 +132,17 @@ export function AgentThreadsPanel({
 
   return (
     <div className="flex flex-col gap-0.5" data-testid="agent-threads-panel">
-      <div className="flex items-center gap-0.5 px-0.5 pb-1 group-data-[collapsible=icon]:hidden">
+      <div className="mb-1 flex items-center gap-1 group-data-[collapsible=icon]:hidden">
         <Button
           type="button"
           variant="ghost"
           size="xs"
-          className="min-w-0 flex-1 justify-start px-1 text-muted-foreground"
+          className="px-2 text-muted-foreground"
           data-testid="agent-threads-back"
           title="Back to agents"
           onClick={() => back()}
         >
-          <ChevronLeftIcon className="shrink-0" />
+          <ChevronLeftIcon className="-ml-px" />
           <span className="min-w-0 truncate">Back to agents</span>
           <span className="sr-only">Back to agents</span>
         </Button>
@@ -150,7 +150,7 @@ export function AgentThreadsPanel({
           type="button"
           variant="ghost"
           size="xs"
-          className="shrink-0 px-1.5 text-xs"
+          className="ml-auto shrink-0 px-2 text-muted-foreground text-xs"
           data-testid="agent-threads-new"
           onClick={handleNewThread}
         >

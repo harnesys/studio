@@ -19,6 +19,66 @@ import {
 } from '../constants.ts';
 import type { ModelBinding } from '../ports/models.ts';
 
+const REASONING_LEVELS = new Set([
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'provider-default',
+]);
+
+/** Drivers built on `createOpenAICompatible` below. */
+const OPENAI_COMPATIBLE_DRIVERS = new Set([
+  'openai-compatible',
+  'xiaomi',
+  'openrouter',
+  'groq',
+  'together',
+  'cerebras',
+  'nvidia',
+  'zai',
+  'ollama',
+  'ollama-cloud',
+]);
+
+export type EffortStreamOptions = {
+  reasoning?: string;
+  providerOptions?: Record<string, unknown>;
+};
+
+function reasoningOf(effort: string | undefined): string | undefined {
+  if (!effort) {
+    return undefined;
+  }
+  if (effort === 'max') {
+    return 'xhigh';
+  }
+  return REASONING_LEVELS.has(effort) ? effort : undefined;
+}
+
+/**
+ * Maps a stored effort to wire options. `max` is not part of top-level
+ * `reasoning`, so it rides as `xhigh` plus a native `reasoning_effort`
+ * passthrough for OpenAI-compatible endpoints (OpenRouter lists that exact
+ * parameter). Unknown endpoints ignore the passthrough.
+ */
+export function effortStreamOptions(
+  binding: ModelBinding,
+  effort: string | undefined,
+): EffortStreamOptions {
+  const out: EffortStreamOptions = {};
+  const reasoning = reasoningOf(effort);
+  if (reasoning !== undefined) {
+    out.reasoning = reasoning;
+  }
+  if (effort === 'max' && OPENAI_COMPATIBLE_DRIVERS.has(binding.driver as string)) {
+    out.providerOptions = { [binding.name]: { reasoning_effort: 'max' } };
+  }
+  return out;
+}
+
 export function buildProvider(binding: ModelBinding): (modelId: string) => unknown {
   const opts = {
     apiKey: binding.apiKey,

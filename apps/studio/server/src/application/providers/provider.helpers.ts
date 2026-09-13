@@ -7,7 +7,7 @@ import {
 } from '@harnesys/studio-shared';
 import { resolveModel } from 'harnesys';
 import type { LlmModel, LlmProvider } from '../../domain/llm-provider.port.ts';
-import { NotFoundError } from '../../domain/studio.error.ts';
+import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 
 export function requireProvider(
   providers: { findById(id: string): LlmProvider | undefined },
@@ -30,6 +30,25 @@ export function requireModel(
     throw new NotFoundError('model not found');
   }
   return model;
+}
+
+/**
+ * Rejects an effort the model cannot run instead of silently dropping it in
+ * the LLM adapter. Models without gradation (`effort` empty) reject any
+ * value; mandatory-reasoning models reject `none`.
+ */
+export function assertModelEffortSupported(model: LlmModel, effort: string): void {
+  const resolved = resolveModel(toModelRecord(model));
+  if (effort === 'none' && resolved.reasoningMandatory === true) {
+    throw new ValidationError('model does not allow disabling reasoning');
+  }
+  const levels = resolved.effort ?? [];
+  if (levels.length === 0) {
+    throw new ValidationError('model does not support effort');
+  }
+  if (!levels.includes(effort)) {
+    throw new ValidationError(`effort ${effort} is not supported by model`);
+  }
 }
 
 export function toModelPublic(model: LlmModel, _driver: string): ProviderModelPublic {

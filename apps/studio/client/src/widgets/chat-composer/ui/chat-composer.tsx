@@ -13,7 +13,12 @@ import { findModelLabel } from '@/shared/lib/model-label';
 import { Button } from '@/shared/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from '@/shared/ui/input-group';
 import { addComposerFiles } from '../model/add-composer-files';
-import { agentEfforts, agentModelVerified, selectedEffort } from '../model/agent-effort';
+import {
+  agentDefaultEffort,
+  agentEfforts,
+  agentModelVerified,
+  selectedEffort,
+} from '../model/agent-effort';
 import { type ComposerMode, composerModeItems, knownMode } from '../model/composer-mode';
 import { filesFromClipboard } from '../model/composer-send';
 import { executeComposerSlash, submitComposer } from '../model/composer-submit';
@@ -67,7 +72,12 @@ export function ChatComposer() {
     return state.items.find((item) => item.threadId === thread.id)?.modeId ?? null;
   });
   const [effort, setEffort] = useState<string | undefined>(undefined);
-  const currentEffort = selectedEffort(levels, effort ?? agent?.effort ?? undefined);
+  const modelDefaultEffort = agentDefaultEffort(modelId, providers);
+  const currentEffort = selectedEffort(
+    levels,
+    effort ?? agent?.effort ?? undefined,
+    modelDefaultEffort,
+  );
   const verified = agentModelVerified(modelId, providers);
   const disabled = !agent || !thread || sending || streaming || Boolean(hitl);
   const slashOpen = slashMatches.length > 0 && pending.length === 0 && !disabled;
@@ -98,11 +108,11 @@ export function ChatComposer() {
   }
 
   useEffect(() => {
-    const next = selectedEffort(levels, effort ?? agent?.effort ?? undefined);
+    const next = selectedEffort(levels, effort ?? agent?.effort ?? undefined, modelDefaultEffort);
     if (next !== effort) {
       setEffort(next);
     }
-  }, [levels, effort, agent?.effort]);
+  }, [levels, effort, agent?.effort, modelDefaultEffort]);
 
   const agentModes = agent?.modes ?? [];
   useEffect(() => {

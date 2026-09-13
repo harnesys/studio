@@ -224,8 +224,7 @@ export function ModelsPane() {
         </div>
         <Button
           variant="ghost"
-          size="sm"
-          className="mt-2 h-11 w-full justify-start rounded-lg border border-dashed text-muted-foreground"
+          className="mt-2 w-full justify-start rounded-lg border border-dashed text-muted-foreground"
           onClick={() => {
             void dialog
               .open(ProviderForm, {
@@ -291,7 +290,7 @@ export function ModelsPane() {
             />
             <section className="mt-8 flex flex-col gap-2" data-testid="provider-danger">
               <h2 className="font-medium text-destructive text-sm">Danger</h2>
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 px-3 py-3">
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/20 bg-destructive/3 px-3 py-3">
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="text-sm">Delete provider</span>
                   <span className="text-muted-foreground text-xs">

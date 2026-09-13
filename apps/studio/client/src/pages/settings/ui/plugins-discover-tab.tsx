@@ -105,7 +105,7 @@ export function PluginsDiscoverTab() {
           }}
         >
           <SelectTrigger
-            className="h-8 w-40 text-xs"
+            className="h-8 w-40"
             data-testid="plugin-category-filter"
             aria-label="Filter by category"
           >
@@ -135,7 +135,7 @@ export function PluginsDiscoverTab() {
           }}
         >
           <SelectTrigger
-            className="h-8 w-36 text-xs"
+            className="h-8 w-36"
             data-testid="plugin-format-filter"
             aria-label="Filter by format"
           >

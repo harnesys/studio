@@ -5,7 +5,7 @@ import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
 import { canonicalToolName, type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
 import { toModelMessages } from './ai-llm-messages.ts';
-import { buildProvider } from './ai-llm-provider.ts';
+import { buildProvider, effortStreamOptions } from './ai-llm-provider.ts';
 
 export type { CallModelResult, StreamChunk } from './ai-llm-chunks.ts';
 
@@ -13,26 +13,6 @@ export type CallModelSettings = {
   effort?: string;
   generation?: AgentGenerationSettings;
 };
-
-const REASONING_LEVELS = new Set([
-  'none',
-  'minimal',
-  'low',
-  'medium',
-  'high',
-  'xhigh',
-  'provider-default',
-]);
-
-function reasoningOf(effort: string | undefined): string | undefined {
-  if (!effort) {
-    return undefined;
-  }
-  if (effort === 'max') {
-    return 'xhigh';
-  }
-  return REASONING_LEVELS.has(effort) ? effort : undefined;
-}
 
 function applyGeneration(
   streamConfig: Record<string, unknown>,
@@ -137,9 +117,12 @@ export async function* callModel(
     abortSignal: signal,
   };
 
-  const reasoning = reasoningOf(settings?.effort);
-  if (reasoning) {
-    streamConfig.reasoning = reasoning;
+  const effortOptions = effortStreamOptions(binding, settings?.effort);
+  if (effortOptions.reasoning !== undefined) {
+    streamConfig.reasoning = effortOptions.reasoning;
+  }
+  if (effortOptions.providerOptions !== undefined) {
+    streamConfig.providerOptions = effortOptions.providerOptions;
   }
   applyGeneration(streamConfig, settings?.generation);
 

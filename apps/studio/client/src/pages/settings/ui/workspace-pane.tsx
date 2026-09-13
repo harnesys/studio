@@ -96,7 +96,7 @@ function DangerSection({ workspace }: { workspace: Workspace }) {
   return (
     <section className="flex flex-col gap-2" data-testid="workspace-danger">
       <h2 className="font-medium text-destructive text-sm">Danger</h2>
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 px-3 py-3">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/20 bg-destructive/3 px-3 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm">Delete workspace</span>
           <span className="text-muted-foreground text-xs">

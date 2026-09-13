@@ -10,6 +10,7 @@ import type { HooksBinding, PermissionMap } from 'harnesys';
 import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { assertModelEffortSupported } from '../providers/provider.helpers.ts';
 import {
   isAgentsPackEnabled,
   requireAgent,
@@ -91,6 +92,15 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.effort !== undefined) {
       patch.effort = request.effort?.trim() || null;
+      if (patch.effort !== null && this.models) {
+        const modelId = patch.modelId ?? agent.modelId;
+        if (modelId !== null) {
+          const effortModel = this.models.findById(modelId);
+          if (effortModel) {
+            assertModelEffortSupported(effortModel, patch.effort);
+          }
+        }
+      }
     }
 
     if (request.generation !== undefined) {

@@ -41,6 +41,10 @@ export type ModelFields = {
   top_provider?: ModelTopProvider;
   supported_parameters?: string[];
   effort?: string[];
+  /** Vendor default level; hosts use it as the initial effort. */
+  defaultEffort?: string;
+  /** Vendor forbids disabling reasoning; `none` is invalid. */
+  reasoningMandatory?: boolean;
 };
 
 export type ModelRecord = ModelFields & {

@@ -222,7 +222,12 @@ export function modelEfforts(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
 ): Effort[] {
-  return findModel(modelId, providers)?.efforts ?? [];
+  const model = findModel(modelId, providers);
+  const levels = model?.efforts ?? [];
+  if (model?.reasoningMandatory === true) {
+    return levels.filter((item) => item !== 'none');
+  }
+  return levels;
 }
 
 export function modelSupportedParameters(

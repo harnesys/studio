@@ -11,6 +11,7 @@ import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm
 import { NotFoundError, RunConflictError, ValidationError } from '../../domain/studio.error.ts';
 import type { Thread, ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
+import { assertModelEffortSupported } from '../providers/provider.helpers.ts';
 import { kindFromMediaType } from './attachment-kind.ts';
 import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
@@ -91,6 +92,9 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     const provider = this.providers.findById(model.providerId);
     if (!provider) {
       throw new NotFoundError('provider not found');
+    }
+    if (request.effort !== undefined) {
+      assertModelEffortSupported(model, request.effort);
     }
 
     const workspace = this.workspaces.findById(thread.workspaceId);

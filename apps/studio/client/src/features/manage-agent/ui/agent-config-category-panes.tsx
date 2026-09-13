@@ -2,7 +2,6 @@ import type { MutableRefObject } from 'react';
 import { Controller, type UseFormReturn } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { cn } from '@/shared/lib/utils';
-import { alert } from '@/shared/services/overlay';
 import { Pane } from '@/shared/ui/capability-rows';
 
 import type { AgentCapabilitiesDraft } from '../model/agent-config';
@@ -169,16 +168,6 @@ export function AgentConfigCategoryPanes({
             workspaceId={workspaceId}
             parentId={activeAgent.id}
             onConfigure={onOpenSubagent}
-            onConfirmDelete={(delegate) =>
-              alert.confirm({
-                title: `Delete ${delegate.name}?`,
-                description:
-                  'This subagent is removed from the parent. Spawn history on threads is kept.',
-                confirmText: 'Delete subagent',
-                variant: 'destructive',
-                testId: 'delete-subagent-dialog',
-              })
-            }
           />
         ) : null}
       </div>

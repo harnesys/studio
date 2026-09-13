@@ -1,11 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { agentColorClass, useAgentStore } from '@/entities/agent';
 import { listAgentPresets } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/shared/ui/alert-dialog';
 import { Button } from '@/shared/ui/button';
 import { Pane, Row, RowList } from '@/shared/ui/capability-rows';
 import {
@@ -22,14 +32,12 @@ type AgentSubagentsPaneProps = {
   workspaceId: string;
   parentId: string;
   onConfigure: (agent: Agent) => void;
-  onConfirmDelete: (agent: Agent) => Promise<boolean>;
 };
 
 export function AgentSubagentsPane({
   workspaceId,
   parentId,
   onConfigure,
-  onConfirmDelete,
 }: AgentSubagentsPaneProps) {
   const delegates = useAgentStore(
     useShallow((state) => state.items.filter((item) => item.parentId === parentId)),
@@ -43,6 +51,22 @@ export function AgentSubagentsPane({
   // the server ban, so they are not offered (explorer/general stay, coder/orchestrator do not).
   const presets = (presetsQuery.data ?? []).filter((preset) => !preset.capabilities?.agents);
   const [creating, setCreating] = useState(false);
+  // Local confirm: the global overlay store is single-slot, an alert there would
+  // unmount the config dialog that hosts this pane.
+  const [pendingDelete, setPendingDelete] = useState<Agent | null>(null);
+  const deleteResolver = useRef<((confirmed: boolean) => void) | null>(null);
+
+  const confirmDelete = (delegate: Agent): Promise<boolean> =>
+    new Promise((resolve) => {
+      deleteResolver.current = resolve;
+      setPendingDelete(delegate);
+    });
+
+  const settleDelete = (confirmed: boolean): void => {
+    deleteResolver.current?.(confirmed);
+    deleteResolver.current = null;
+    setPendingDelete(null);
+  };
 
   const addFromPreset = async (presetId: string) => {
     setCreating(true);
@@ -61,64 +85,89 @@ export function AgentSubagentsPane({
   };
 
   return (
-    <Pane
-      testId="agent-subagents-pane"
-      label="Subagents"
-      count={delegates.length}
-      description="Spawn targets for this agent."
-      extra={
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            disabled={creating}
-            render={<Button type="button" variant="ghost" size="sm" />}
-          >
-            <PlusIcon />
-            Add from preset
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-44">
-            {presets.length === 0 ? (
-              <DropdownMenuItem disabled>
-                {presetsQuery.isLoading ? 'Loading…' : 'No presets found'}
-              </DropdownMenuItem>
-            ) : (
-              presets.map((preset) => (
-                <DropdownMenuItem
-                  key={preset.id}
-                  onClick={() => {
-                    void addFromPreset(preset.id);
-                  }}
-                >
-                  <SparklesIcon className="size-3" />
-                  {preset.name}
+    <>
+      <Pane
+        testId="agent-subagents-pane"
+        label="Subagents"
+        count={delegates.length}
+        description="Spawn targets for this agent."
+        extra={
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              disabled={creating}
+              render={<Button type="button" variant="ghost" size="sm" />}
+            >
+              <PlusIcon />
+              Add from preset
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-44">
+              {presets.length === 0 ? (
+                <DropdownMenuItem disabled>
+                  {presetsQuery.isLoading ? 'Loading…' : 'No presets found'}
                 </DropdownMenuItem>
-              ))
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      }
-    >
-      {delegates.length === 0 ? (
-        <p className="py-6 text-center text-muted-foreground text-sm">No subagents yet.</p>
-      ) : (
-        <RowList>
-          {delegates.map((delegate) => (
-            <SubagentRow
-              key={delegate.id}
-              agent={delegate}
-              onOpen={() => onConfigure(delegate)}
-              onRemove={() => {
-                void onConfirmDelete(delegate).then(async (confirmed) => {
-                  if (!confirmed) {
-                    return;
-                  }
-                  await deleteAgent(workspaceId, delegate.id);
-                });
-              }}
-            />
-          ))}
-        </RowList>
-      )}
-    </Pane>
+              ) : (
+                presets.map((preset) => (
+                  <DropdownMenuItem
+                    key={preset.id}
+                    onClick={() => {
+                      void addFromPreset(preset.id);
+                    }}
+                  >
+                    <SparklesIcon className="size-3" />
+                    {preset.name}
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      >
+        {delegates.length === 0 ? (
+          <p className="py-6 text-center text-muted-foreground text-sm">No subagents yet.</p>
+        ) : (
+          <RowList>
+            {delegates.map((delegate) => (
+              <SubagentRow
+                key={delegate.id}
+                agent={delegate}
+                onOpen={() => onConfigure(delegate)}
+                onRemove={() => {
+                  void confirmDelete(delegate).then(async (confirmed) => {
+                    if (!confirmed) {
+                      return;
+                    }
+                    await deleteAgent(workspaceId, delegate.id);
+                  });
+                }}
+              />
+            ))}
+          </RowList>
+        )}
+      </Pane>
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            settleDelete(false);
+          }
+        }}
+      >
+        <AlertDialogContent size="sm" data-testid="delete-subagent-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {pendingDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This subagent is removed from the parent. Spawn history on threads is kept.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => settleDelete(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => settleDelete(true)}>
+              Delete subagent
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

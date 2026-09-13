@@ -1,13 +1,6 @@
 import { type Control, Controller } from 'react-hook-form';
 
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from '@/shared/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel, FieldSet } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
@@ -34,11 +27,6 @@ export function AgentBudgetFields({
 }) {
   return (
     <FieldSet className="gap-2" data-testid={`${idPrefix}-budget-fields`}>
-      <FieldLegend className="font-medium text-muted-foreground text-xs">Limits</FieldLegend>
-      <p className="text-[11px] text-muted-foreground leading-snug">
-        Hard stop for looping graphs. On limit the run pauses for confirmation (ask) or fails
-        (error).
-      </p>
       <FieldGroup className="grid grid-cols-3 gap-2">
         {FIELDS.map((item) => (
           <Controller

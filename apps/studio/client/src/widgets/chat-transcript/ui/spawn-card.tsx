@@ -3,6 +3,7 @@ import { formatDuration, formatTokenCount } from '@/entities/session';
 import { cn } from '@/shared/lib/utils';
 import { StatusDot } from '@/shared/ui/status-dot';
 
+import { agentFallbackName } from '../model/agent-label';
 import type { SpawnInfo, SpawnStatus, SpawnToolPhase } from '../model/spawn-groups';
 import { useNow } from '../model/use-now';
 import { useSpawnStream } from '../model/use-spawn-stream';
@@ -69,7 +70,7 @@ export function SpawnCard({
 }) {
   useSpawnStream(threadId, spawnId, spawn.status === 'running');
   const agent = useAgentStore((state) => state.byId(spawn.agentId));
-  const name = agent?.name ?? spawn.agentId.slice(0, 8);
+  const name = agent?.name ?? agentFallbackName(spawn.agentId);
   const now = useNow(spawn.status === 'running' ? LIVE_TICK_MS : 0);
 
   const elapsed =

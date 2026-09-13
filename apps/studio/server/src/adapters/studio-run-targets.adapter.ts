@@ -115,7 +115,7 @@ export class StudioRunTargets implements RunTargets {
       // runtime creation failed (e.g. bad workspace mcp json): target unavailable
       return null;
     }
-    // After get(): the registry IR cache is warm, so `plugin:` agent ids resolve.
+    // After get(): the registry IR cache is warm, so `pluginName:agentName` ids resolve.
     const agent = this.deps.workspaceHarnesys.resolveAgentDefinition(agentRow.id);
     if (!agent) {
       return null;

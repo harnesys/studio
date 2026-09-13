@@ -6,7 +6,7 @@ import type { AgentSpec, PluginIr } from '../../domain/plugin-ir.ts';
 import type { UserConfigContentOptions } from './user-config.ts';
 import { substituteUserConfigContent } from './user-config.ts';
 
-/** Каталогная запись плагинного агента; id `plugin:agent` глобально уникален. */
+/** Каталогная запись плагинного агента; id `pluginName:agentName` глобально уникален. */
 export type CatalogAgentEntry = {
   id: string;
   /** frontmatter `description` — описание каталога агентов. */

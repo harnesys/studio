@@ -13,7 +13,7 @@ import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 
-/** Late-wired resolver for `plugin:agent` catalog ids (set in create-host). */
+/** Late-wired resolver for `pluginName:agentName` catalog ids (set in create-host). */
 export type PluginAgentsRef = {
   current: ((workspaceId: string) => Promise<PluginAgentCatalog>) | null;
 };
@@ -63,15 +63,16 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
   }
 
   async get(scope: CapabilityScope, id: string): Promise<AgentDefinition | null> {
-    if (id.startsWith('plugin:')) {
-      const pluginAgents = await this.pluginAgentsOf(scope.workspaceId);
-      return pluginAgents.get(id);
-    }
     const agent = this.deps.agents.findById(id);
-    if (!agent || agent.workspaceId !== scope.workspaceId) {
-      return Promise.resolve(null);
+    if (agent !== undefined && agent.workspaceId === scope.workspaceId) {
+      return toAgentDefinition(agent, this.deps);
     }
-    return Promise.resolve(toAgentDefinition(agent, this.deps));
+    // DB ids are UUIDs without `:`; a colon marks a plugin catalog id.
+    if (!id.includes(':')) {
+      return null;
+    }
+    const pluginAgents = await this.pluginAgentsOf(scope.workspaceId);
+    return pluginAgents.get(id);
   }
 
   private pluginAgentsOf(workspaceId: string): Promise<PluginAgentCatalog> {

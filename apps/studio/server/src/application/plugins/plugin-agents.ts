@@ -6,8 +6,10 @@ import type {
   PluginIr,
 } from 'harnesys';
 import { bindAgentComponents } from 'harnesys';
+import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import type { PluginInstallRecord } from '../../domain/plugin.port.ts';
+import { buildReactGraph } from '../agents/react-preset.ts';
 import { pluginUserConfig } from './plugin-user-config.ts';
 
 /** Catalog of agents bound from the workspace's enabled plugins (spec §3 agent). */
@@ -29,7 +31,9 @@ export type PluginAgentSource = {
  * case-insensitive substring match across all providers (alias style:
  * `sonnet`/`opus`/`haiku`). An unresolved model keeps the component without
  * `model`: the engine inherits the parent run model on spawn. Entries rebuild
- * per call; the IRs come from the registry cache.
+ * per call; the IRs come from the registry cache. Studio swaps the library's
+ * one-shot `start → llm:generate → end` for the host ReAct preset so plugin
+ * agents keep working after a tool call.
  */
 export function pluginAgentCatalog(
   entries: PluginAgentSource[],
@@ -48,7 +52,13 @@ export function pluginAgentCatalog(
     );
     for (const agent of bound) {
       all.set(agent.id, {
-        definition: agent.definition,
+        definition: {
+          ...agent.definition,
+          graph: buildReactGraph(agent.definition.tools ?? []),
+          // Цикл think↔act без лимита ловит cycle_budget; как у сток-реакт
+          // DB-агентов: maxTurns из frontmatter, иначе DEFAULT_REACT_BUDGET.
+          budget: agent.definition.budget ?? DEFAULT_REACT_BUDGET,
+        },
         ...(agent.color !== undefined ? { color: agent.color } : {}),
       });
     }
@@ -69,7 +79,7 @@ export function pluginAgentCatalog(
   };
 }
 
-/** Catalog display name: `plugin:agent` → `agent` (plugin namespace prefix). */
+/** Catalog display name: `pluginName:agentName` → `agentName` (plugin namespace prefix). */
 function pluginAgentName(id: string): string {
   return id.split(':').at(-1) ?? id;
 }

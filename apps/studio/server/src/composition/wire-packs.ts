@@ -77,7 +77,7 @@ export type PackRegistrationsDeps = {
   memory: Pick<StudioMemoryPorts, 'pin' | 'semantic' | 'episodic' | 'knowledge'>;
   /** Shared LSP adapter (tools pack + editor WS bridge). Created in create-host. */
   lsp: StudioLspAdapter;
-  /** Late-wired `plugin:agent` catalog resolver (registry lands after packs). */
+  /** Late-wired `pluginName:agentName` catalog resolver (registry lands after packs). */
   pluginAgentsRef: PluginAgentsRef;
 };
 

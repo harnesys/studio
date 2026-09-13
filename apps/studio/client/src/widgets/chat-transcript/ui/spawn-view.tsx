@@ -8,6 +8,7 @@ import { useOpenSpawnTab } from '@/features/ide';
 import { cn } from '@/shared/lib/utils';
 import { StatusDot } from '@/shared/ui/status-dot';
 
+import { agentFallbackName } from '../model/agent-label';
 import { splitRuns } from '../model/run-groups';
 import type { SpawnStatus } from '../model/spawn-groups';
 import { extractSpawns, spawnSubtreeIds, spawnTaskText } from '../model/spawn-groups';
@@ -108,7 +109,7 @@ export function SpawnView({
           className="truncate font-medium text-[12px] text-foreground leading-none"
           title={spawn.agentId}
         >
-          {agent?.name ?? spawn.agentId.slice(0, 8)}
+          {agent?.name ?? agentFallbackName(spawn.agentId)}
         </span>
         <span className="text-[11px] text-muted-foreground leading-none">
           {STATUS_LABEL[spawn.status]}

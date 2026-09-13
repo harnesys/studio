@@ -122,7 +122,7 @@ export function createStudioHost(args: {
   });
 
   // Late wiring: the agents catalog port (pack registrations) resolves
-  // `plugin:agent` ids through the registry once it exists.
+  // `pluginName:agentName` ids through the registry once it exists.
   const pluginAgentsRef: {
     current: ((workspaceId: string) => Promise<PluginAgentCatalog>) | null;
   } = { current: null };

@@ -139,10 +139,20 @@ export class WorkspaceHarnesysRegistry {
     return loaded;
   }
 
-  /** Plugin agents of this workspace (`plugin:agent` catalog ids). */
+  /** Plugin agents of this workspace (`pluginName:agentName` catalog ids). */
   async pluginAgents(workspaceId: string): Promise<PluginAgentCatalog> {
     return pluginAgentCatalog(
       await this.loadEnabledPlugins(workspaceId),
+      this.repos.modelRepo,
+      this.repos.providerRepo,
+      this.pluginBindDiagnostic,
+    );
+  }
+
+  /** Sync catalog from the warm (memoized) IR cache; same contract as resolvePluginAgent. */
+  private warmPluginAgents(workspaceId: string): PluginAgentCatalog {
+    return pluginAgentCatalog(
+      this.cachedLoaded(workspaceId),
       this.repos.modelRepo,
       this.repos.providerRepo,
       this.pluginBindDiagnostic,
@@ -237,12 +247,16 @@ export class WorkspaceHarnesysRegistry {
       packs: [...this.packRegistrations],
       agents: {
         resolve: (id: string) => this.resolveAgent(id),
-        list: () =>
-          (this.repos.agents?.listByWorkspace(workspace.id) ?? []).map((a) => ({
+        list: () => [
+          ...(this.repos.agents?.listByWorkspace(workspace.id) ?? []).map((a) => ({
             id: a.id,
             name: a.name,
             parentId: a.parentId,
           })),
+          ...this.warmPluginAgents(workspace.id)
+            .list()
+            .map((a) => ({ id: a.id, name: a.name })),
+        ],
       },
       mcp,
       paths: { allow: [workspace.path], cwd: workspace.path },
@@ -264,18 +278,15 @@ export class WorkspaceHarnesysRegistry {
   }
 
   private resolveAgent(id: string): AgentDefinition | undefined {
-    if (id.startsWith('plugin:')) {
-      return this.resolvePluginAgent(id);
-    }
     const agent = this.repos.agents?.findById(id);
-    if (!agent) {
-      return undefined;
+    if (agent) {
+      return dbAgentDefinition(agent, this.repos);
     }
-    return dbAgentDefinition(agent, this.repos);
+    return id.includes(':') ? this.resolvePluginAgent(id) : undefined;
   }
 
   /**
-   * `plugin:<agent>` via bindAgentComponents over the cached (warm) IRs.
+   * `pluginName:agentName` via bindAgentComponents over the cached (warm) IRs.
    * Sync contract of `agents.resolve`: only memoized IRs contribute, so the
    * first resolve must follow `get(workspace)` / `loadEnabledPlugins`.
    */
@@ -285,13 +296,7 @@ export class WorkspaceHarnesysRegistry {
       return undefined;
     }
     for (const workspaceId of workspaceIdsWithPlugins(plugins)) {
-      const catalog = pluginAgentCatalog(
-        this.cachedLoaded(workspaceId),
-        this.repos.modelRepo,
-        this.repos.providerRepo,
-        this.pluginBindDiagnostic,
-      );
-      const found = catalog.get(id);
+      const found = this.warmPluginAgents(workspaceId).get(id);
       if (found !== null) {
         return found;
       }

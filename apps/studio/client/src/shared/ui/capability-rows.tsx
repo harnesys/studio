@@ -29,7 +29,46 @@ export function RowList({
 }
 
 /** Header pinned to the top of a settings-pane scroll area while its rows scroll under it. */
-export const STICKY_PANE_HEADER = 'sticky top-0 z-10 -mt-2 bg-popover pt-2 pb-1';
+export const STICKY_PANE_HEADER = 'sticky top-0 z-10 bg-popover pt-2 pb-1';
+
+/**
+ * Pane layer every settings tab shares: a RowHeader (name + description, actions
+ * as `extra`) and the rows below it at gap-2. `sticky` pins the header while the
+ * pane scrolls; panes with their own scroll region pass sticky={false}.
+ */
+export function Pane({
+  label,
+  count,
+  description,
+  extra,
+  sticky = true,
+  className,
+  testId,
+  children,
+}: {
+  label: string;
+  count?: number;
+  description?: ReactNode;
+  extra?: ReactNode;
+  sticky?: boolean;
+  className?: string;
+  testId?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn('flex min-w-0 flex-col gap-2', className)} data-testid={testId}>
+      <RowHeader
+        className={sticky ? STICKY_PANE_HEADER : undefined}
+        label={label}
+        count={count}
+        description={description}
+      >
+        {extra}
+      </RowHeader>
+      {children}
+    </div>
+  );
+}
 
 /** Section header above a RowList: name + optional count/description + right-aligned actions. */
 export function RowHeader({
@@ -46,7 +85,7 @@ export function RowHeader({
   children?: ReactNode;
 }) {
   return (
-    <div className={cn('flex items-center gap-2', description ? 'py-1.5' : 'h-8', className)}>
+    <div className={cn('flex gap-2', description ? 'py-1.5' : 'h-8', className)}>
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
         <p className="flex min-w-0 items-baseline gap-2 font-medium text-sm">
           {label}
@@ -60,7 +99,7 @@ export function RowHeader({
           <p className="text-muted-foreground text-xs leading-4">{description}</p>
         ) : null}
       </div>
-      {children ? <div className="flex shrink-0 items-center gap-1">{children}</div> : null}
+      {children ? <div className="flex shrink-0 gap-1">{children}</div> : null}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { cn } from '@/shared/lib/utils';
 import { alert } from '@/shared/services/overlay';
-import { RowHeader, STICKY_PANE_HEADER } from '@/shared/ui/capability-rows';
+import { Pane } from '@/shared/ui/capability-rows';
 
 import type { AgentCapabilitiesDraft, AgentConfigResult } from '../model/agent-config';
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
@@ -58,31 +58,24 @@ export function AgentConfigCategoryPanes({
         'flex min-h-0 min-w-0 flex-1 flex-col',
         category === 'graph' || category === 'identity'
           ? 'overflow-hidden'
-          : 'overflow-y-auto pt-2 pr-1',
+          : 'overflow-y-auto pr-1',
       )}
     >
-      <div
-        className={cn(
-          category === 'identity' ? 'flex min-h-0 flex-1 flex-col gap-2 pr-1' : 'hidden',
-        )}
+      <Pane
+        sticky={false}
+        className={cn(category === 'identity' ? 'min-h-0 flex-1 pr-1' : 'hidden')}
+        label="Identity"
+        description="Name, role and system prompt of this agent."
       >
-        <RowHeader
-          className="shrink-0"
-          label="Identity"
-          description="Name, role and system prompt of this agent."
-        />
         <AgentIdentityPane form={form} />
-      </div>
-      <div className={cn(category !== 'model' && 'hidden')}>
-        <div className="flex flex-col gap-2">
-          <RowHeader
-            className={STICKY_PANE_HEADER}
-            label="Model"
-            description="Model, effort and generation parameters."
-          />
-          <AgentModelPane form={form} />
-        </div>
-      </div>
+      </Pane>
+      <Pane
+        className={cn(category !== 'model' && 'hidden')}
+        label="Model"
+        description="Model, effort and generation parameters."
+      >
+        <AgentModelPane form={form} />
+      </Pane>
       <div className={cn(category !== 'modes' && 'hidden')}>
         <AgentModesPane
           form={form}
@@ -93,12 +86,7 @@ export function AgentConfigCategoryPanes({
       </div>
       <div className={cn(category !== 'capabilities' && 'hidden')}>
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <RowHeader
-              className={STICKY_PANE_HEADER}
-              label="Packs"
-              description="Capability packs loaded into this agent."
-            />
+          <Pane label="Packs" description="Capability packs loaded into this agent.">
             <DraftCapabilityPacks
               key={`packs-${activeAgent?.id ?? 'new'}`}
               workspaceId={workspaceId}
@@ -107,13 +95,8 @@ export function AgentConfigCategoryPanes({
                 capabilitiesRef.current = { ...capabilitiesRef.current, capabilities };
               }}
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <RowHeader
-              className={STICKY_PANE_HEADER}
-              label="Plugins"
-              description="Plugins enabled for this agent."
-            />
+          </Pane>
+          <Pane label="Plugins" description="Plugins enabled for this agent.">
             <DraftEnabledPlugins
               key={`plugins-${activeAgent?.id ?? 'new'}`}
               workspaceId={workspaceId}
@@ -122,7 +105,7 @@ export function AgentConfigCategoryPanes({
                 capabilitiesRef.current = { ...capabilitiesRef.current, enabledPlugins };
               }}
             />
-          </div>
+          </Pane>
         </div>
       </div>
       <div className={cn(category !== 'hooks' && 'hidden')}>
@@ -134,22 +117,19 @@ export function AgentConfigCategoryPanes({
           }}
         />
       </div>
-      <div className={cn(category !== 'compaction' && 'hidden')}>
-        <div className="flex flex-col gap-2">
-          <RowHeader
-            className={STICKY_PANE_HEADER}
-            label="Compaction"
-            description="Context compaction policy for this agent."
-          />
-          <DraftCompaction
-            key={`compaction-${activeAgent?.id ?? 'new'}`}
-            agent={activeAgent}
-            onChange={(compaction) => {
-              capabilitiesRef.current = { ...capabilitiesRef.current, compaction };
-            }}
-          />
-        </div>
-      </div>
+      <Pane
+        className={cn(category !== 'compaction' && 'hidden')}
+        label="Compaction"
+        description="Context compaction policy for this agent."
+      >
+        <DraftCompaction
+          key={`compaction-${activeAgent?.id ?? 'new'}`}
+          agent={activeAgent}
+          onChange={(compaction) => {
+            capabilitiesRef.current = { ...capabilitiesRef.current, compaction };
+          }}
+        />
+      </Pane>
       <div className={cn(category !== 'skills' && category !== 'mcp' && 'hidden')}>
         <DraftCapabilities
           key={`caps-${activeAgent?.id ?? 'new'}`}
@@ -161,16 +141,13 @@ export function AgentConfigCategoryPanes({
           }}
         />
       </div>
-      <div className={cn(category !== 'limits' && 'hidden')}>
-        <div className="flex flex-col gap-2">
-          <RowHeader
-            className={STICKY_PANE_HEADER}
-            label="Limits"
-            description="Budget limits for a single run."
-          />
-          <AgentLimitsPane form={form} />
-        </div>
-      </div>
+      <Pane
+        className={cn(category !== 'limits' && 'hidden')}
+        label="Limits"
+        description="Budget limits for a single run."
+      >
+        <AgentLimitsPane form={form} />
+      </Pane>
       <div className={cn(category !== 'subagents' && 'hidden')}>
         {activeAgent && showSubagents ? (
           <AgentSubagentsPane
@@ -192,8 +169,12 @@ export function AgentConfigCategoryPanes({
         ) : null}
       </div>
       {category === 'graph' ? (
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-          <RowHeader className="shrink-0" label="Graph" description="ReAct graph of this agent." />
+        <Pane
+          sticky={false}
+          className="min-h-0 flex-1"
+          label="Graph"
+          description="ReAct graph of this agent."
+        >
           <AgentGraphPane
             value={graphDoc}
             onChange={(next) => {
@@ -202,7 +183,7 @@ export function AgentConfigCategoryPanes({
               setGraphDoc(next);
             }}
           />
-        </div>
+        </Pane>
       ) : null}
     </div>
   );

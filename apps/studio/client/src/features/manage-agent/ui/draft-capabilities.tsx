@@ -7,14 +7,7 @@ import {
   workspaceSkillsQuery,
   workspaceToolsQuery,
 } from '@/shared/api';
-import {
-  Row,
-  RowHeader,
-  RowItem,
-  RowList,
-  RowSection,
-  STICKY_PANE_HEADER,
-} from '@/shared/ui/capability-rows';
+import { Pane, Row, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Switch } from '@/shared/ui/switch';
 
 import type { AgentCapabilitiesDraft } from '../model/agent-config';
@@ -80,13 +73,11 @@ export function DraftCapabilities({
   return (
     <div className="flex flex-col gap-3">
       {section === 'skills' ? (
-        <section className="flex flex-col gap-1">
-          <RowHeader
-            className={STICKY_PANE_HEADER}
-            label="Skills"
-            count={skillsQuery.isPending ? undefined : skillCatalog.length}
-            description="Workspace skills this agent may load."
-          />
+        <Pane
+          label="Skills"
+          count={skillsQuery.isPending ? undefined : skillCatalog.length}
+          description="Workspace skills this agent may load."
+        >
           {!skillsQuery.isPending && skillNames.length === 0 ? (
             <p className="py-6 text-center text-muted-foreground text-sm">
               No skills in `.harnesys/skills`.
@@ -133,17 +124,15 @@ export function DraftCapabilities({
               })}
             </RowList>
           ) : null}
-        </section>
+        </Pane>
       ) : null}
 
       {section === 'mcp' ? (
-        <section className="flex flex-col gap-1">
-          <RowHeader
-            className={STICKY_PANE_HEADER}
-            label="MCP"
-            count={mcpQuery.isPending ? undefined : servers.length}
-            description="MCP servers this agent may use."
-          />
+        <Pane
+          label="MCP"
+          count={mcpQuery.isPending ? undefined : servers.length}
+          description="MCP servers this agent may use."
+        >
           {!mcpQuery.isPending && servers.length === 0 ? (
             <p className="py-6 text-center text-muted-foreground text-sm">
               No servers in `.harnesys/mcp.json`.
@@ -193,7 +182,7 @@ export function DraftCapabilities({
               })}
             </RowList>
           ) : null}
-        </section>
+        </Pane>
       ) : null}
     </div>
   );

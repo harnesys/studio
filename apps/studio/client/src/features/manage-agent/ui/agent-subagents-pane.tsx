@@ -5,7 +5,7 @@ import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
 import { listAgentPresets } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
-import { Row, RowHeader, RowList, STICKY_PANE_HEADER } from '@/shared/ui/capability-rows';
+import { Pane, Row, RowList } from '@/shared/ui/capability-rows';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,15 +68,12 @@ export function AgentSubagentsPane({
   };
 
   return (
-    <div className="flex flex-col gap-3" data-testid="agent-subagents-pane">
-      <RowHeader
-        className={STICKY_PANE_HEADER}
-        label="Subagents"
-        count={delegates.length}
-        description={
-          'Spawn targets for this agent. They stay out of the top-level Agents list. Model defaults to the parent; open a row to change it.'
-        }
-      >
+    <Pane
+      testId="agent-subagents-pane"
+      label="Subagents"
+      count={delegates.length}
+      description="Spawn targets for this agent."
+      extra={
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="sm" />}>
             <PlusIcon />
@@ -97,7 +94,8 @@ export function AgentSubagentsPane({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      </RowHeader>
+      }
+    >
       {delegates.length === 0 ? (
         <p className="py-6 text-center text-muted-foreground text-sm">No subagents yet.</p>
       ) : (
@@ -119,7 +117,7 @@ export function AgentSubagentsPane({
           ))}
         </RowList>
       )}
-    </div>
+    </Pane>
   );
 }
 

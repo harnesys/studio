@@ -6,7 +6,7 @@ import { type UseFormReturn, useFieldArray, useWatch } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { modePresetsQuery, workspaceCapabilitiesQuery, workspaceSkillsQuery } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
-import { Row, RowChip, RowHeader, RowList, STICKY_PANE_HEADER } from '@/shared/ui/capability-rows';
+import { Pane, Row, RowChip, RowList } from '@/shared/ui/capability-rows';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,38 +92,40 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-2" data-testid="agent-modes-pane">
-      <RowHeader
-        className={STICKY_PANE_HEADER}
-        label="Modes"
-        count={rows.length}
-        description="Execution modes with their own instructions and permission gates."
-      >
-        <Button type="button" variant="ghost" size="sm" onClick={addBlank}>
-          <PlusIcon />
-          Add
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="sm" />}>
-            <SparklesIcon />
-            From preset
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-44">
-            {availablePresets.length === 0 ? (
-              <DropdownMenuItem disabled>
-                {presetsQuery.isLoading ? 'Loading…' : 'All presets installed'}
-              </DropdownMenuItem>
-            ) : (
-              availablePresets.map((preset) => (
-                <DropdownMenuItem key={preset.id} onClick={() => addFromPreset(preset)}>
-                  <SparklesIcon className="size-3" />
-                  {preset.name}
+    <Pane
+      testId="agent-modes-pane"
+      label="Modes"
+      count={rows.length}
+      description="Execution modes with their own instructions and permission gates."
+      extra={
+        <>
+          <Button type="button" variant="ghost" size="sm" onClick={addBlank}>
+            <PlusIcon />
+            Add
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="sm" />}>
+              <SparklesIcon />
+              From preset
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-44">
+              {availablePresets.length === 0 ? (
+                <DropdownMenuItem disabled>
+                  {presetsQuery.isLoading ? 'Loading…' : 'All presets installed'}
                 </DropdownMenuItem>
-              ))
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </RowHeader>
+              ) : (
+                availablePresets.map((preset) => (
+                  <DropdownMenuItem key={preset.id} onClick={() => addFromPreset(preset)}>
+                    <SparklesIcon className="size-3" />
+                    {preset.name}
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      }
+    >
       {modes.fields.length === 0 ? (
         <p className="py-6 text-center text-muted-foreground text-sm">
           No modes yet. Add one, or install from a preset.
@@ -177,7 +179,7 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
           })}
         </RowList>
       )}
-    </div>
+    </Pane>
   );
 }
 

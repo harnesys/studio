@@ -7,6 +7,16 @@ import { createMoonshotAI } from '@ai-sdk/moonshotai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createXai } from '@ai-sdk/xai';
+import {
+  CEREBRAS_DEFAULT_URL,
+  GROQ_DEFAULT_URL,
+  NVIDIA_DEFAULT_URL,
+  OLLAMA_CLOUD_DEFAULT_URL,
+  OLLAMA_DEFAULT_URL,
+  OPENROUTER_DEFAULT_URL,
+  TOGETHER_DEFAULT_URL,
+  ZAI_DEFAULT_URL,
+} from '../constants.ts';
 import type { ModelBinding } from '../ports/models.ts';
 
 export function buildProvider(binding: ModelBinding): (modelId: string) => unknown {
@@ -52,9 +62,78 @@ export function buildProvider(binding: ModelBinding): (modelId: string) => unkno
           headers: binding.headers,
           name: binding.name,
         } as never)(m);
+    case 'openrouter':
+      return (m: string) =>
+        createOpenAICompatible({
+          baseURL: binding.apiUrl ?? OPENROUTER_DEFAULT_URL,
+          apiKey: binding.apiKey,
+          headers: binding.headers,
+          name: binding.name,
+        } as never)(m);
+    case 'groq':
+      return (m: string) =>
+        createOpenAICompatible({
+          baseURL: binding.apiUrl ?? GROQ_DEFAULT_URL,
+          apiKey: binding.apiKey,
+          headers: binding.headers,
+          name: binding.name,
+        } as never)(m);
+    case 'together':
+      return (m: string) =>
+        createOpenAICompatible({
+          baseURL: binding.apiUrl ?? TOGETHER_DEFAULT_URL,
+          apiKey: binding.apiKey,
+          headers: binding.headers,
+          name: binding.name,
+        } as never)(m);
+    case 'cerebras':
+      return (m: string) =>
+        createOpenAICompatible({
+          baseURL: binding.apiUrl ?? CEREBRAS_DEFAULT_URL,
+          apiKey: binding.apiKey,
+          headers: binding.headers,
+          name: binding.name,
+        } as never)(m);
+    case 'nvidia':
+      return (m: string) =>
+        createOpenAICompatible({
+          baseURL: binding.apiUrl ?? NVIDIA_DEFAULT_URL,
+          apiKey: binding.apiKey,
+          headers: binding.headers,
+          name: binding.name,
+        } as never)(m);
+    case 'zai':
+      return (m: string) =>
+        createOpenAICompatible({
+          baseURL: binding.apiUrl ?? ZAI_DEFAULT_URL,
+          apiKey: binding.apiKey,
+          headers: binding.headers,
+          name: binding.name,
+        } as never)(m);
+    case 'ollama':
+      return (m: string) =>
+        createOpenAICompatible({
+          baseURL: ollamaChatBase(binding.apiUrl, OLLAMA_DEFAULT_URL),
+          apiKey: binding.apiKey,
+          headers: binding.headers,
+          name: binding.name,
+        } as never)(m);
+    case 'ollama-cloud':
+      return (m: string) =>
+        createOpenAICompatible({
+          baseURL: ollamaChatBase(binding.apiUrl, OLLAMA_CLOUD_DEFAULT_URL),
+          apiKey: binding.apiKey,
+          headers: binding.headers,
+          name: binding.name,
+        } as never)(m);
     default:
       throw Object.assign(new Error(`unsupported driver ${driver}`), {
         code: 'model_unresolved',
       });
   }
+}
+
+function ollamaChatBase(apiUrl: string | undefined, fallback: string): string {
+  const base = (apiUrl ?? fallback).replace(/\/+$/, '');
+  return base.endsWith('/v1') ? base : `${base}/v1`;
 }

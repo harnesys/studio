@@ -14,6 +14,8 @@
 5. Операция `agents` входит в права, дефолт `ask`.
 6. Подход 1: делегирование и права ребёнка при спавне реализуются в библиотеке `packages/harnesys`.
 7. Дефолтные права агента (`permissions` в модели) — база: режимы переопределяют отдельные операции не выше базы, пункт `Default` в композере выбирает базу без режимного переопределения.
+8. Единый инвариант: любой сабагент (persist-делегат, плагин-агент, план-воркер) исполняется одним механизмом спавна и одной моделью прав. Persist-делегаты остаются в БД, переезд в md-файлы не делается (вариант 1).
+9. Существующие тузы не переименовываются в CC-имена: алиасы per-agent. Новые тузы берут CC-имена при совпадающей семантике (`WebSearch`, `KillShell`, `BashOutput`).
 
 ## `AgentDefinition.permissions` и `parentId` (библиотека)
 
@@ -128,6 +130,22 @@ else runPermissions = { op: mode.permissions[op] ? min(mode.permissions[op], bas
 
 `general` сохраняет бюджет `policy: "error"` как ограничитель вместо прав.
 
+## CC-паритет плагин-агентов
+
+Плагин-агенты (`agents/*.md` плагинов claude-compat) уже биндятся как спавн-таргеты `plugin:<plugin>:<agent>`. Разрывы с форматом сабагентов Claude Code закрываются в библиотеке (`formats/agents-commands.ts`, `bind-agents.ts`) и Studio (`plugin-agents.ts`).
+
+**Алиасы тулов.** Таблица алиасов CC → наши в библиотеке; резолв per-agent при сборке реестра рана: `tools` агента с CC-именами резолвится в наши имена, в реестр ребёнка деф кладётся под запрошенным именем. Промпты CC-агентов («use the Glob tool») работают дословно, глобальный реестр не раздувается. `load_tools` резолвит алиасы по той же таблице. Таблица: `Read→read_file`, `Write→write_file`, `Edit→edit_file`, `Glob→glob`, `Grep→grep`, `LS→list_dir`, `Bash→shell`, `WebFetch→fetch`. Нераспознанные имена (`TodoWrite`, `WebSearch`, `NotebookRead`, `NotebookEdit`, `KillShell`, `BashOutput`, `Task`) → diagnostic `unsupported_tool` («analog planned» для запланированных), имя отбрасывается, остальной frontmatter работает.
+
+**`tools` как allow-list.** `filterToolsForAgent` (`application/tool-registry.ts:31`) учитывает `tools`: список задан → агенту доступны только эти тузы после резолва алиасов, не задан → весь реестр (текущее поведение). Правило для всех агентов: делегатов, плагин-агентов, топ-уровневых. При включении проверяются существующие записи с неполными `tools` (сейчас поле на ране игнорируется, данные могут быть частичными): пресеты и стенд правятся в той же итерации.
+
+**Алиасы моделей.** `resolveModelRef` (`apps/studio/server/src/application/plugins/plugin-agents.ts:65`): bare-имя (`sonnet`) сначала матчится точно, затем substring-поиском по именам моделей всех провайдеров. Нерезолв → warning `unresolved_model`, компонент живёт без `model` и наследует модель родителя при спавне (политика «дропать компонент» отменяется).
+
+**Цвет.** Носители: `AgentSpec.color` (frontmatter плагин-агентов, поле признаётся валидным, warning снимается) → `CatalogAgentEntry.color`; `Agent.color` в Studio (колонка БД, редактируемое поле во вкладке Identity всех агентов и делегатов, палитра CC: red, orange, yellow, green, blue, purple, magenta, cyan, pink). Рендер: `agent-card`, строка делегата, `SpawnCard`.
+
+**Граф плагин-агента.** `standardAgentGraph()` (`bind-agents.ts:168`) не пробрасывает `tools` в ноду `llm:generate`: при реализации проверить, исполняется ли тул-цикл с подмножеством тулов, и пробросить резолв алиасов.
+
+Права плагин-агентов: карты нет → `DEFAULT_PERMISSIONS`, спавн ограничивает пересечением с правами рана родителя и sandbox (фактически read-only у read-oriented CC-агентов). Вложенность не нарушается: плагин-агент не имеет пака `agents`.
+
 ## Ownership ростера
 
 `resolveTargets` (`graph-spawn.ts:105`) пропускает делегатов, у которых `parentId` не равен `agentId` исполняемого агента: цель недоступна с ошибкой `spawn_target_missing`. Закрывает возможность таргетировать чужих делегатов через кастомный граф с явным `agentId`. `agents_list` и `agents_spawn` фильтруются каталогом по тому же правилу (уже действует, `sqlite-agents-catalog.port.ts:40`).
@@ -158,5 +176,8 @@ else runPermissions = { op: mode.permissions[op] ? min(mode.permissions[op], bas
 8. `agents_create` при `agents: ask` паркует ран ask-запросом.
 9. Кастомный граф с `agentId` чужого делегата: `spawn_target_missing`.
 10. Сохранение делегата с паком `agents`: `ValidationError` в UI и в результате тула.
+11. Плагин `feature-dev`: три агента в `agents_list`, `color` без warning, модель `sonnet` резолвится substring-матчем.
+12. Спавн `plugin:feature-dev:code-architect`: тул-цикл с `Read/Glob/Grep` (алиасы), write/shell отсечены allow-list'ом и правами.
+13. Frontmatter с `TodoWrite`/`WebSearch`: diagnostic `unsupported_tool`, агент работает.
 
 `bun run lint` в корне, typecheck пакетов после правок.

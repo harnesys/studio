@@ -86,8 +86,8 @@ export function KnowledgeIndexStatus({
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
-          <span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-xs">
+          <span className="tabular-nums">
             {processed}/{total} processed
           </span>
           {stats ? (
@@ -99,7 +99,7 @@ export function KnowledgeIndexStatus({
             </Badge>
           ) : null}
           {state?.phase ? <span className="font-mono">{state.phase}</span> : null}
-          {elapsed ? <span>{elapsed.label}</span> : null}
+          {elapsed ? <span className="tabular-nums">{elapsed.label}</span> : null}
         </div>
         <Progress value={progress} className="w-full" />
         {running && state?.currentUri ? (
@@ -120,9 +120,9 @@ export function KnowledgeIndexStatus({
           <p className="break-all text-destructive text-xs leading-snug">{state.lastError}</p>
         ) : null}
         {!running && state?.finishedAt && state?.startedAt ? (
-          <p className="text-muted-foreground text-xs">
-            finished {new Date(state.finishedAt).toLocaleTimeString()} · started{' '}
-            {new Date(state.startedAt).toLocaleTimeString()}
+          <p className="text-muted-foreground text-xs tabular-nums">
+            started {new Date(state.startedAt).toLocaleTimeString()} · finished{' '}
+            {new Date(state.finishedAt).toLocaleTimeString()}
           </p>
         ) : null}
       </CardContent>

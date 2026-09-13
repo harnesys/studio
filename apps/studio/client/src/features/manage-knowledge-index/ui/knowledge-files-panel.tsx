@@ -6,6 +6,7 @@ import type {
 
 import { Badge } from '@/shared/ui/badge';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
+import { FieldLabel, FieldSet } from '@/shared/ui/field';
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
@@ -39,9 +40,9 @@ export function KnowledgeFilesPanel({
   loading,
 }: KnowledgeFilesPanelProps) {
   return (
-    <div className="flex flex-col gap-3" data-testid="knowledge-files-panel">
+    <FieldSet data-testid="knowledge-files-panel">
       <div className="flex h-8 items-center gap-2">
-        <p className="font-medium text-sm">Files</p>
+        <FieldLabel>Files</FieldLabel>
         <ToggleGroup
           className="ml-auto"
           variant="segment"
@@ -72,11 +73,11 @@ export function KnowledgeFilesPanel({
         </Empty>
       ) : null}
       {!loading && files.length > 0 ? (
-        <div className="flex max-h-56 flex-col gap-0.5 overflow-y-auto">
+        <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
           {files.map((file) => (
             <div
               key={file.uri}
-              className="flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-muted/50"
+              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-muted/60"
               data-testid={`knowledge-file-${file.uri}`}
               title={file.lastError ?? file.skipReason ?? undefined}
             >
@@ -98,7 +99,7 @@ export function KnowledgeFilesPanel({
           ))}
         </div>
       ) : null}
-    </div>
+    </FieldSet>
   );
 }
 

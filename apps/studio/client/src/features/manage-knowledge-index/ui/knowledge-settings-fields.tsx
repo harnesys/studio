@@ -1,4 +1,8 @@
-import type { KnowledgeSettings, MemorySearchBackend } from '@harnesys/studio-shared';
+import type {
+  KnowledgeRootRecord,
+  KnowledgeSettings,
+  MemorySearchBackend,
+} from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
@@ -8,19 +12,34 @@ import {
   writeWorkspaceFileContent,
 } from '@/shared/api/files';
 import { Button } from '@/shared/ui/button';
-import { Field, FieldDescription, FieldLabel } from '@/shared/ui/field';
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
 import { toast } from '@/shared/ui/toast';
 
 import { EmbedModelSelect } from './embed-model-select';
+import { KnowledgeRootsList } from './knowledge-roots-list';
 
 const BACKENDS: MemorySearchBackend[] = ['fts', 'vector'];
+
+const BACKEND_LABELS: Record<MemorySearchBackend, string> = {
+  fts: 'FTS',
+  vector: 'Vector',
+};
+
+type KnowledgeRootUpsert = {
+  path: string;
+  enabled: boolean;
+};
 
 type KnowledgeSettingsFieldsProps = {
   workspaceId?: string;
   settings: KnowledgeSettings;
   disabled?: boolean;
+  roots: KnowledgeRootRecord[];
+  rootsLoading?: boolean;
+  onUpsertRoot: (body: KnowledgeRootUpsert) => void;
+  onRemoveRoot: (path: string) => void;
   onPatch: (patch: {
     entireWorkspace?: boolean;
     backend?: MemorySearchBackend;
@@ -34,6 +53,10 @@ export function KnowledgeSettingsFields({
   workspaceId,
   settings,
   disabled,
+  roots,
+  rootsLoading,
+  onUpsertRoot,
+  onRemoveRoot,
   onPatch,
 }: KnowledgeSettingsFieldsProps) {
   const qc = useQueryClient();
@@ -100,88 +123,101 @@ export function KnowledgeSettingsFields({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <Field orientation="horizontal" className="items-center justify-between gap-3">
-        <div className="min-w-0">
-          <FieldLabel htmlFor="knowledge-entire-workspace">Entire workspace</FieldLabel>
+    <FieldGroup className="gap-1">
+      <Field orientation="horizontal" className="rounded-md px-2 py-2 hover:bg-muted/60">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <FieldLabel htmlFor="knowledge-entire-workspace" className="font-normal">
+            Entire workspace
+          </FieldLabel>
           <FieldDescription>Index every text file under the workspace root.</FieldDescription>
         </div>
         <Switch
           id="knowledge-entire-workspace"
-          size="sm"
           checked={draft.entireWorkspace}
           disabled={disabled}
           onCheckedChange={(entireWorkspace) => patchDraft({ entireWorkspace })}
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field className="gap-1.5">
-          <FieldLabel htmlFor="knowledge-backend">Backend</FieldLabel>
-          <Select
-            items={BACKENDS.map((value) => ({ value, label: value }))}
-            value={draft.backend}
-            onValueChange={(next) => {
-              if (next === 'fts' || next === 'vector') {
-                patchDraft({ backend: next });
-              }
-            }}
-            disabled={disabled}
-          >
-            <SelectTrigger id="knowledge-backend" size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="start">
-              {BACKENDS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+      {!draft.entireWorkspace ? (
+        <KnowledgeRootsList
+          roots={roots}
+          loading={rootsLoading}
+          busy={false}
+          disabled={disabled}
+          onUpsert={onUpsertRoot}
+          onRemove={onRemoveRoot}
+        />
+      ) : null}
 
-        {draft.backend === 'vector' && (
-          <Field className="gap-1.5">
-            <FieldLabel
-              htmlFor="knowledge-embed-model"
-              className={vectorNeedsEmbed ? 'text-destructive' : undefined}
-            >
-              Embed model
-            </FieldLabel>
-            {vectorNeedsEmbed ? (
-              <FieldDescription className="text-destructive">
-                Pick an embed model before saving the vector backend.
-              </FieldDescription>
-            ) : null}
-            <div className={vectorNeedsEmbed ? 'rounded-md ring-2 ring-destructive/60' : undefined}>
-              <EmbedModelSelect
-                id="knowledge-embed-model"
-                embedProvider={draft.embedProvider}
-                embedModel={draft.embedModel}
-                disabled={disabled}
-                onChange={(next) => patchDraft(next)}
-              />
-            </div>
-          </Field>
-        )}
-      </div>
-
-      <Field orientation="horizontal" className="items-center justify-between gap-3">
-        <div className="min-w-0">
-          <FieldLabel htmlFor="knowledge-watch">Watch</FieldLabel>
+      <Field orientation="horizontal" className="rounded-md px-2 py-2 hover:bg-muted/60">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <FieldLabel htmlFor="knowledge-watch" className="font-normal">
+            Watch
+          </FieldLabel>
           <FieldDescription>Reindex when watched files change.</FieldDescription>
         </div>
         <Switch
           id="knowledge-watch"
-          size="sm"
           checked={draft.watchEnabled}
           disabled={disabled}
           onCheckedChange={(watchEnabled) => patchDraft({ watchEnabled })}
         />
       </Field>
 
-      <p className="text-muted-foreground text-xs leading-snug">
+      <Field className="gap-1.5 rounded-md px-2 py-2">
+        <FieldLabel htmlFor="knowledge-backend">Backend</FieldLabel>
+        <FieldDescription>Full-text or vector recall.</FieldDescription>
+        <Select
+          items={BACKENDS.map((value) => ({ value, label: BACKEND_LABELS[value] }))}
+          value={draft.backend}
+          onValueChange={(next) => {
+            if (next === 'fts' || next === 'vector') {
+              patchDraft({ backend: next });
+            }
+          }}
+          disabled={disabled}
+        >
+          <SelectTrigger id="knowledge-backend" size="sm" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            {BACKENDS.map((value) => (
+              <SelectItem key={value} value={value}>
+                {BACKEND_LABELS[value]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+
+      {draft.backend === 'vector' && (
+        <Field className="gap-1.5 rounded-md px-2 py-2">
+          <FieldLabel
+            htmlFor="knowledge-embed-model"
+            className={vectorNeedsEmbed ? 'text-destructive' : undefined}
+          >
+            Embed model
+          </FieldLabel>
+          <FieldDescription>Model for vector chunks.</FieldDescription>
+          {vectorNeedsEmbed ? (
+            <FieldDescription className="text-destructive">
+              Pick an embed model before saving the vector backend.
+            </FieldDescription>
+          ) : null}
+          <div className={vectorNeedsEmbed ? 'rounded-md ring-2 ring-destructive/60' : undefined}>
+            <EmbedModelSelect
+              id="knowledge-embed-model"
+              embedProvider={draft.embedProvider}
+              embedModel={draft.embedModel}
+              disabled={disabled}
+              onChange={(next) => patchDraft(next)}
+            />
+          </div>
+        </Field>
+      )}
+
+      <FieldDescription className="px-2 py-1">
         Indexing respects{' '}
         {showGitLink ? (
           <button
@@ -211,20 +247,18 @@ export function KnowledgeSettingsFields({
           <span className="font-mono">.harnesysignore</span>
         )}
         .
-      </p>
+      </FieldDescription>
 
-      <div className="flex items-center justify-end gap-2">
-        {dirty ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            disabled={disabled}
-            onClick={() => setDraft(settings)}
-          >
-            Reset
-          </Button>
-        ) : null}
+      <div className="flex items-center justify-end gap-2 px-2 pt-1">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={disabled || !dirty}
+          onClick={() => setDraft(settings)}
+        >
+          Reset
+        </Button>
         <Button
           type="button"
           size="sm"
@@ -235,6 +269,6 @@ export function KnowledgeSettingsFields({
           Save
         </Button>
       </div>
-    </div>
+    </FieldGroup>
   );
 }

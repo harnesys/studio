@@ -58,7 +58,7 @@ export function EmbedModelSelect({
       }}
       disabled={disabled}
     >
-      <SelectTrigger id={id} size="sm" data-testid="embed-model-select">
+      <SelectTrigger id={id} size="sm" className="w-full" data-testid="embed-model-select">
         {selected ? (
           <span className="min-w-0 flex-1 truncate text-left font-mono">{selected.name}</span>
         ) : (

@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { ApiError, searchKnowledge } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
-import { Field, FieldDescription, FieldLabel } from '@/shared/ui/field';
+import { FieldDescription, FieldLabel, FieldSet } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { toast } from '@/shared/ui/toast';
 
@@ -35,7 +35,7 @@ export function KnowledgeSearchSmoke({ workspaceId }: KnowledgeSearchSmokeProps)
   });
 
   return (
-    <Field className="gap-2">
+    <FieldSet>
       <FieldLabel htmlFor="knowledge-search">Search smoke</FieldLabel>
       <div className="flex gap-2">
         <Input
@@ -51,7 +51,6 @@ export function KnowledgeSearchSmoke({ workspaceId }: KnowledgeSearchSmokeProps)
         />
         <Button
           variant="outline"
-          size="sm"
           disabled={!workspaceId || !searchQuery.trim() || search.isPending}
           onClick={() => search.mutate(searchQuery.trim())}
         >
@@ -69,6 +68,6 @@ export function KnowledgeSearchSmoke({ workspaceId }: KnowledgeSearchSmokeProps)
           ))}
         </div>
       ) : null}
-    </Field>
+    </FieldSet>
   );
 }

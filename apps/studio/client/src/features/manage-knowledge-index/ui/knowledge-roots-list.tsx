@@ -7,6 +7,7 @@ import {
 } from '@/features/manage-knowledge-roots';
 import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
+import { FieldLabel } from '@/shared/ui/field';
 import { Switch } from '@/shared/ui/switch';
 
 type KnowledgeRootsListProps = {
@@ -27,9 +28,9 @@ export function KnowledgeRootsList({
   onRemove,
 }: KnowledgeRootsListProps) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-1 px-2">
       <div className="flex h-8 items-center gap-1">
-        <p className="font-medium text-sm">Roots</p>
+        <FieldLabel>Roots</FieldLabel>
         <div className="ml-auto">
           <Button
             variant="ghost"
@@ -67,7 +68,7 @@ export function KnowledgeRootsList({
           {roots.map((root) => (
             <div
               key={root.path}
-              className="flex min-h-9 items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/50"
+              className="flex min-h-9 items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/60"
               data-testid={`knowledge-root-${root.path}`}
             >
               <span className="min-w-0 flex-1 truncate font-mono text-sm">{root.path}</span>

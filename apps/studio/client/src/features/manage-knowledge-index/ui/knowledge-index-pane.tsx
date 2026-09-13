@@ -7,11 +7,11 @@ import {
   watchKnowledgeIndexState,
 } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
+import { FieldGroup, FieldLabel, FieldSet } from '@/shared/ui/field';
 import { toast } from '@/shared/ui/toast';
 import { useKnowledgeIndex } from '../model/use-knowledge-index';
 import { KnowledgeFilesPanel } from './knowledge-files-panel';
 import { KnowledgeIndexStatus } from './knowledge-index-status';
-import { KnowledgeRootsList } from './knowledge-roots-list';
 import { KnowledgeSearchSmoke } from './knowledge-search-smoke';
 import { KnowledgeSettingsFields } from './knowledge-settings-fields';
 
@@ -72,9 +72,9 @@ export function KnowledgeIndexPane() {
   }, [workspaceId, qc, fileStatus]);
 
   return (
-    <div className="flex flex-col gap-8" data-testid="memory-pane">
-      <div className="flex flex-col gap-4">
-        <p className="font-medium text-sm">Knowledge index</p>
+    <FieldGroup className="gap-6" data-testid="memory-pane">
+      <FieldSet>
+        <FieldLabel>Knowledge index</FieldLabel>
         {settingsQuery.isPending || !settings ? (
           <p className="text-muted-foreground text-sm">Loading settings…</p>
         ) : (
@@ -82,31 +82,27 @@ export function KnowledgeIndexPane() {
             workspaceId={workspaceId ?? undefined}
             settings={settings}
             disabled={!workspaceId || busy}
+            roots={rootsQuery.data ?? []}
+            rootsLoading={rootsQuery.isPending}
+            onUpsertRoot={(body) => upsertRoot.mutate(body)}
+            onRemoveRoot={(path) => removeRoot.mutate(path)}
             onPatch={(patch) => saveSettings.mutate(patch)}
           />
         )}
-      </div>
+      </FieldSet>
 
-      {settings && !settings.entireWorkspace ? (
-        <KnowledgeRootsList
-          roots={rootsQuery.data ?? []}
-          loading={rootsQuery.isPending}
-          busy={busy}
+      <FieldSet>
+        <FieldLabel>Status</FieldLabel>
+        <KnowledgeIndexStatus
+          state={indexStateQuery.data}
+          stats={statsQuery.data}
           disabled={!workspaceId}
-          onUpsert={(body) => upsertRoot.mutate(body)}
-          onRemove={(path) => removeRoot.mutate(path)}
+          reindexPending={reindex.isPending}
+          cancelPending={cancel.isPending}
+          onReindex={() => reindex.mutate()}
+          onCancel={() => cancel.mutate()}
         />
-      ) : null}
-
-      <KnowledgeIndexStatus
-        state={indexStateQuery.data}
-        stats={statsQuery.data}
-        disabled={!workspaceId}
-        reindexPending={reindex.isPending}
-        cancelPending={cancel.isPending}
-        onReindex={() => reindex.mutate()}
-        onCancel={() => cancel.mutate()}
-      />
+      </FieldSet>
 
       <KnowledgeFilesPanel
         status={fileStatus}
@@ -117,6 +113,6 @@ export function KnowledgeIndexPane() {
       />
 
       <KnowledgeSearchSmoke workspaceId={workspaceId ?? undefined} />
-    </div>
+    </FieldGroup>
   );
 }

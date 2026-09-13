@@ -4,8 +4,12 @@ import { SIDEBAR_ACCORDION_STORAGE_KEY } from '@/shared/config/constants';
 export type AccordionState = {
   collapsed: Record<string, boolean>;
   sizes: Record<string, number>;
+  order: string[];
+  hidden: Record<string, boolean>;
   toggle: (id: string) => void;
   setSizes: (sizes: Record<string, number>) => void;
+  setOrder: (order: string[]) => void;
+  setVisibility: (id: string, visible: boolean) => void;
 };
 
 const DEFAULT_SIZES: Record<string, number> = {
@@ -21,6 +25,8 @@ const DEFAULT_COLLAPSED: Record<string, boolean> = {
   automations: true,
   git: true,
 };
+
+const DEFAULT_ORDER: string[] = ['agents', 'explorer', 'automations', 'git'];
 
 function isValidSize(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -59,26 +65,71 @@ export function normalizeShares(
   return Object.fromEntries(expanded.map((id, index) => [id, weights[index] / total]));
 }
 
-function load(): { collapsed: Record<string, boolean>; sizes: Record<string, number> } {
+function sanitizeOrder(input: string[] | undefined): string[] {
+  const next: string[] = [];
+  const seen = new Set<string>();
+  for (const id of input ?? []) {
+    if (DEFAULT_ORDER.includes(id) && !seen.has(id)) {
+      next.push(id);
+      seen.add(id);
+    }
+  }
+  for (const id of DEFAULT_ORDER) {
+    if (!seen.has(id)) {
+      next.push(id);
+      seen.add(id);
+    }
+  }
+  return next;
+}
+
+function sanitizeHidden(input: Record<string, boolean> | undefined): Record<string, boolean> {
+  const next: Record<string, boolean> = {};
+  for (const id of DEFAULT_ORDER) {
+    next[id] = Boolean(input?.[id]);
+  }
+  return next;
+}
+
+function load(): {
+  collapsed: Record<string, boolean>;
+  sizes: Record<string, number>;
+  order: string[];
+  hidden: Record<string, boolean>;
+} {
   try {
     const raw = localStorage.getItem(SIDEBAR_ACCORDION_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as {
         collapsed?: Record<string, boolean>;
         sizes?: Record<string, number>;
+        order?: string[];
+        hidden?: Record<string, boolean>;
       };
       return {
         collapsed: { ...DEFAULT_COLLAPSED, ...parsed.collapsed },
         sizes: sanitizeSizes(parsed.sizes),
+        order: sanitizeOrder(parsed.order),
+        hidden: sanitizeHidden(parsed.hidden),
       };
     }
   } catch {}
-  return { collapsed: { ...DEFAULT_COLLAPSED }, sizes: { ...DEFAULT_SIZES } };
+  return {
+    collapsed: { ...DEFAULT_COLLAPSED },
+    sizes: { ...DEFAULT_SIZES },
+    order: [...DEFAULT_ORDER],
+    hidden: sanitizeHidden(undefined),
+  };
 }
 
-function persist(collapsed: Record<string, boolean>, sizes: Record<string, number>): void {
+function persist(state: {
+  collapsed: Record<string, boolean>;
+  sizes: Record<string, number>;
+  order: string[];
+  hidden: Record<string, boolean>;
+}): void {
   try {
-    localStorage.setItem(SIDEBAR_ACCORDION_STORAGE_KEY, JSON.stringify({ collapsed, sizes }));
+    localStorage.setItem(SIDEBAR_ACCORDION_STORAGE_KEY, JSON.stringify(state));
   } catch {}
 }
 
@@ -101,19 +152,44 @@ export const useAccordionStore = create<AccordionState>((set) => {
             : 1;
         sizes = { ...sizes, [id]: average };
       }
-      persist(collapsed, sizes);
+      persist({ collapsed, sizes, order: state.order, hidden: state.hidden });
       set({ collapsed, sizes });
     },
     setSizes: (sizes) => {
-      const current = useAccordionStore.getState().sizes;
-      const next = { ...current };
+      const state = useAccordionStore.getState();
+      const next = { ...state.sizes };
       for (const [key, value] of Object.entries(sizes)) {
         if (isValidSize(value)) {
           next[key] = value;
         }
       }
-      persist(useAccordionStore.getState().collapsed, next);
+      persist({
+        collapsed: state.collapsed,
+        sizes: next,
+        order: state.order,
+        hidden: state.hidden,
+      });
       set({ sizes: next });
+    },
+    setOrder: (order) => {
+      const state = useAccordionStore.getState();
+      const next = sanitizeOrder(order);
+      persist({
+        collapsed: state.collapsed,
+        sizes: state.sizes,
+        order: next,
+        hidden: state.hidden,
+      });
+      set({ order: next });
+    },
+    setVisibility: (id, visible) => {
+      const state = useAccordionStore.getState();
+      if (!DEFAULT_ORDER.includes(id)) {
+        return;
+      }
+      const hidden = { ...state.hidden, [id]: !visible };
+      persist({ collapsed: state.collapsed, sizes: state.sizes, order: state.order, hidden });
+      set({ hidden });
     },
   };
 });

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useSidebar } from '@/shared/ui/sidebar';
@@ -12,6 +12,9 @@ type AccordionSectionProps = {
   actions?: ReactNode;
   size: number;
   children: ReactNode;
+  headerDragProps?: HTMLAttributes<HTMLDivElement>;
+  dragging?: boolean;
+  dropHint?: 'before' | 'after' | null;
 };
 
 export function AccordionSection({
@@ -22,6 +25,9 @@ export function AccordionSection({
   actions,
   size,
   children,
+  headerDragProps,
+  dragging = false,
+  dropHint = null,
 }: AccordionSectionProps) {
   const collapsed = useAccordionStore((state) => state.collapsed[id] ?? false);
   const toggle = useAccordionStore((state) => state.toggle);
@@ -32,10 +38,15 @@ export function AccordionSection({
   return (
     <>
       <div
+        {...headerDragProps}
         className={cn(
           'group/head flex h-7 shrink-0 items-center gap-0.5 rounded-md px-1 transition-colors group-data-[collapsible=icon]:hidden',
           'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
           'opacity-70 hover:opacity-100',
+          headerDragProps && 'cursor-grab select-none',
+          dragging && 'cursor-grabbing opacity-50!',
+          dropHint === 'before' && 'shadow-[inset_0_2px_0_0_var(--color-live)]',
+          dropHint === 'after' && 'shadow-[inset_0_-2px_0_0_var(--color-live)]',
         )}
       >
         <button

@@ -1,13 +1,5 @@
-import {
-  ChevronsUpDownIcon,
-  CpuIcon,
-  FolderIcon,
-  GitBranchIcon,
-  PlusIcon,
-  SettingsIcon,
-  ZapIcon,
-} from 'lucide-react';
-import { type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
+import { ChevronsUpDownIcon, PlusIcon, SettingsIcon } from 'lucide-react';
+import { Fragment, type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useThreadStore } from '@/entities/thread';
 import { useWorkspaces } from '@/entities/workspace';
 import { openCreateWorkspaceDialog } from '@/features/create-workspace';
@@ -43,16 +35,15 @@ import {
   useSidebar,
 } from '@/shared/ui/sidebar';
 import { normalizeShares, useAccordionStore } from '../model/accordion.store';
+import { useSectionDnd } from '../model/use-section-dnd';
 import { AccordionSection } from './accordion-section';
 import { AgentsSection, AgentsSectionActions } from './agents-section';
 import { AutomationsAddMenu, AutomationsSection } from './automations-section';
 import { ExplorerActions, ExplorerContent, ExplorerTitle } from './files-section';
 import { GitSectionMenu, GitTitle } from './git-menu';
 import { GitSection } from './git-section';
-
-type SidebarSectionId = 'agents' | 'explorer' | 'automations' | 'git';
-
-const SECTION_ORDER: SidebarSectionId[] = ['agents', 'explorer', 'automations', 'git'];
+import { SECTION_META, type SidebarSectionId } from './sections-meta';
+import { SidebarSectionsConfig } from './sidebar-sections-config';
 
 export function WorkspaceSidebar() {
   const { workspaceId, threadId, threadOrigin, originEntityId } = useStudioLocation();
@@ -83,10 +74,14 @@ export function WorkspaceSidebar() {
   const activeWebhookId = threadOrigin === 'webhook' ? originEntityId : null;
   const collapsed = useAccordionStore((state) => state.collapsed);
   const sizes = useAccordionStore((state) => state.sizes);
+  const order = useAccordionStore((state) => state.order);
+  const hidden = useAccordionStore((state) => state.hidden);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragPair, setDragPair] = useState<string | null>(null);
+  const { draggingId, dropHintFor, headerProps } = useSectionDnd();
 
-  const expanded = SECTION_ORDER.filter((id) => !(collapsed[id] ?? false));
+  const visibleSections = order.filter((id): id is SidebarSectionId => !hidden[id]);
+  const expanded = visibleSections.filter((id) => !(collapsed[id] ?? false));
   const shares = normalizeShares(expanded, sizes);
 
   const resizePairs: { upper: SidebarSectionId; lower: SidebarSectionId }[] = [];
@@ -152,6 +147,94 @@ export function WorkspaceSidebar() {
       window.addEventListener('mouseup', onUp);
     };
 
+  const renderSection = (id: SidebarSectionId) => {
+    const Icon = SECTION_META[id].icon;
+    const drag = {
+      headerDragProps: headerProps(id),
+      dragging: draggingId === id,
+      dropHint: dropHintFor(id),
+    };
+    switch (id) {
+      case 'agents':
+        return (
+          <AccordionSection
+            id="agents"
+            icon={<Icon />}
+            title={slideAgent ? `Threads · ${slideAgent.name}` : 'Agents'}
+            count={
+              slideAgent ? slideThreads.length : agents.filter((agent) => !agent.parentId).length
+            }
+            size={shares[id] ?? 1}
+            actions={<AgentsSectionActions workspaceId={workspaceId} />}
+            {...drag}
+          >
+            <AgentsSection
+              workspaceId={workspaceId}
+              agents={agents}
+              activeAgentId={activeAgentId}
+              activeThreadId={activeThreadId}
+              onSelectDone={() => setOpenMobile(false)}
+            />
+          </AccordionSection>
+        );
+      case 'explorer':
+        return (
+          <AccordionSection
+            id="explorer"
+            icon={<Icon />}
+            title={workspaceId ? <ExplorerTitle workspaceId={workspaceId} /> : 'Explorer'}
+            size={shares[id] ?? 1}
+            actions={workspaceId ? <ExplorerActions /> : undefined}
+            {...drag}
+          >
+            {workspaceId ? <ExplorerContent workspaceId={workspaceId} /> : null}
+          </AccordionSection>
+        );
+      case 'automations':
+        return (
+          <AccordionSection
+            id="automations"
+            icon={<Icon />}
+            title="Automations"
+            count={schedules.length + webhooks.length}
+            size={shares[id] ?? 1}
+            actions={
+              <AutomationsAddMenu
+                workspaceId={workspaceId}
+                agents={agents}
+                onDone={() => setOpenMobile(false)}
+              />
+            }
+            {...drag}
+          >
+            <AutomationsSection
+              workspaceId={workspaceId}
+              agents={agents}
+              schedules={schedules}
+              webhooks={webhooks}
+              activeScheduleId={activeScheduleId}
+              activeWebhookId={activeWebhookId}
+              activeThreadId={activeThreadId}
+              onSelectDone={() => setOpenMobile(false)}
+            />
+          </AccordionSection>
+        );
+      case 'git':
+        return (
+          <AccordionSection
+            id="git"
+            icon={<Icon />}
+            title={workspaceId ? <GitTitle workspaceId={workspaceId} /> : 'Git'}
+            size={shares[id] ?? 1}
+            actions={workspaceId ? <GitSectionMenu workspaceId={workspaceId} /> : undefined}
+            {...drag}
+          >
+            {workspaceId ? <GitSection workspaceId={workspaceId} /> : null}
+          </AccordionSection>
+        );
+    }
+  };
+
   return (
     <Sidebar collapsible="icon" data-testid="workspace-sidebar">
       <SidebarHeader className="p-2 group-data-[collapsible=icon]:items-center">
@@ -201,80 +284,20 @@ export function WorkspaceSidebar() {
 
       <SidebarContent className="gap-1 group-data-[collapsible=icon]:overflow-y-auto">
         <div ref={containerRef} className="flex min-h-0 flex-auto flex-col gap-1 px-2 pb-2">
-          <AccordionSection
-            id="agents"
-            icon={<CpuIcon />}
-            title={slideAgent ? `Threads · ${slideAgent.name}` : 'Agents'}
-            count={
-              slideAgent ? slideThreads.length : agents.filter((agent) => !agent.parentId).length
-            }
-            size={shares.agents ?? 1}
-            actions={<AgentsSectionActions workspaceId={workspaceId} />}
-          >
-            <AgentsSection
-              workspaceId={workspaceId}
-              agents={agents}
-              activeAgentId={activeAgentId}
-              activeThreadId={activeThreadId}
-              onSelectDone={() => setOpenMobile(false)}
-            />
-          </AccordionSection>
-
-          {resizeNode('explorer')}
-          <AccordionSection
-            id="explorer"
-            icon={<FolderIcon />}
-            title={workspaceId ? <ExplorerTitle workspaceId={workspaceId} /> : 'Explorer'}
-            size={shares.explorer ?? 1}
-            actions={workspaceId ? <ExplorerActions /> : undefined}
-          >
-            {workspaceId ? <ExplorerContent workspaceId={workspaceId} /> : null}
-          </AccordionSection>
-
-          {resizeNode('automations')}
-          <AccordionSection
-            id="automations"
-            icon={<ZapIcon />}
-            title="Automations"
-            count={schedules.length + webhooks.length}
-            size={shares.automations ?? 1}
-            actions={
-              <AutomationsAddMenu
-                workspaceId={workspaceId}
-                agents={agents}
-                onDone={() => setOpenMobile(false)}
-              />
-            }
-          >
-            <AutomationsSection
-              workspaceId={workspaceId}
-              agents={agents}
-              schedules={schedules}
-              webhooks={webhooks}
-              activeScheduleId={activeScheduleId}
-              activeWebhookId={activeWebhookId}
-              activeThreadId={activeThreadId}
-              onSelectDone={() => setOpenMobile(false)}
-            />
-          </AccordionSection>
-
-          {resizeNode('git')}
-          <AccordionSection
-            id="git"
-            icon={<GitBranchIcon />}
-            title={workspaceId ? <GitTitle workspaceId={workspaceId} /> : 'Git'}
-            size={shares.git ?? 1}
-            actions={workspaceId ? <GitSectionMenu workspaceId={workspaceId} /> : undefined}
-          >
-            {workspaceId ? <GitSection workspaceId={workspaceId} /> : null}
-          </AccordionSection>
+          {visibleSections.map((id, index) => (
+            <Fragment key={id}>
+              {index > 0 ? resizeNode(id) : null}
+              {renderSection(id)}
+            </Fragment>
+          ))}
         </div>
       </SidebarContent>
 
       <SidebarFooter className="border-t">
         <SidebarMenu>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="flex flex-row items-center gap-1 group-data-[collapsible=icon]:flex-col">
             <SidebarMenuButton
+              className="flex-1"
               onClick={() => {
                 openSettings();
                 setOpenMobile(false);
@@ -285,6 +308,7 @@ export function WorkspaceSidebar() {
               <SettingsIcon />
               <span>Settings</span>
             </SidebarMenuButton>
+            <SidebarSectionsConfig />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

@@ -101,13 +101,13 @@
       },
       {
         "from": "act",
-        "to": "handoff",
-        "when": "exists($state.handoffAgentId)"
+        "to": "spawn",
+        "when": "exists($state.spawns) && length($state.spawns) > 0"
       },
       {
         "from": "act",
-        "to": "spawn",
-        "when": "exists($state.spawns) && length($state.spawns) > 0"
+        "to": "handoff",
+        "when": "exists($state.handoffAgentId)"
       },
       {
         "from": "act",

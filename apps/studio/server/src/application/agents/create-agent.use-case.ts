@@ -19,6 +19,8 @@ import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import type { ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { assertModelEffortSupported } from '../providers/provider.helpers.ts';
+import type { GetWorkspaceMcpInput } from '../workspaces/get-workspace-mcp.use-case.ts';
+import type { ListWorkspaceSkillsInput } from '../workspaces/list-workspace-skills.use-case.ts';
 import {
   ensureAskMode,
   isAgentsPackEnabled,
@@ -67,6 +69,10 @@ export class CreateAgentUseCase implements CreateAgentInput {
     private readonly agents: AgentRepository,
     private readonly models?: LlmModelRepository,
     private readonly modePresets?: ModePresetRepository,
+    private readonly workspaceCatalog?: {
+      listSkills: ListWorkspaceSkillsInput;
+      listMcp: GetWorkspaceMcpInput;
+    },
   ) {}
 
   async execute(request: CreateAgentRequest): Promise<Agent> {
@@ -114,6 +120,22 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const skills = request.skills ?? [];
     const mcpServers = request.mcpServers ?? [];
     const tools = request.tools ?? [];
+    if (skills.length > 0 && this.workspaceCatalog) {
+      const listed = await this.workspaceCatalog.listSkills.execute({
+        workspaceId: request.workspaceId,
+      });
+      const known = new Set(listed.skills.map((skill) => skill.name));
+      const unknown = skills.filter((skill) => !known.has(skill));
+      assertAllKnown(unknown, 'skill');
+    }
+    if (mcpServers.length > 0 && this.workspaceCatalog) {
+      const listed = await this.workspaceCatalog.listMcp.execute({
+        workspaceId: request.workspaceId,
+      });
+      const known = new Set(listed.servers.map((server) => server.serverId));
+      const unknown = mcpServers.filter((server) => !known.has(server));
+      assertAllKnown(unknown, 'mcp server');
+    }
     const graph = request.graph !== undefined ? request.graph : buildReactGraph(tools);
     const budget =
       request.budget ??
@@ -188,4 +210,15 @@ function resolveParentId(
     throw new ValidationError('delegates cannot own delegates');
   }
   return parent.id;
+}
+
+/** Single unknown → singular message; several → one plural list. */
+function assertAllKnown(unknown: string[], noun: string): void {
+  if (unknown.length === 0) {
+    return;
+  }
+  const names = unknown.join(', ');
+  throw new ValidationError(
+    unknown.length === 1 ? `unknown ${noun}: ${names}` : `unknown ${noun}s: ${names}`,
+  );
 }

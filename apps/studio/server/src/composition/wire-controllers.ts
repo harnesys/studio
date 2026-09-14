@@ -2,7 +2,6 @@ import type { ModelsPort, RunClaimer, RunEventFeed, RunLifecycleStore } from 'ha
 import type { Hono } from 'hono';
 import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import type { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
-import { AgentController } from '../adapters/http/agent/agent.controller.ts';
 import { CatalogController } from '../adapters/http/catalog/catalog.controller.ts';
 import { ModePresetController } from '../adapters/http/mode-preset/mode-preset.controller.ts';
 import { ProviderController } from '../adapters/http/provider/provider.controller.ts';
@@ -29,12 +28,6 @@ import type { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.
 import { ThreadSessionsAdapter } from '../adapters/thread-sessions.adapter.ts';
 import type { FilesWatcherAdapter } from '../adapters/workspace/files-watcher.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
-import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
-import { CreateAgentFromPresetUseCase } from '../application/agents/create-agent-from-preset.use-case.ts';
-import { DeleteAgentUseCase } from '../application/agents/delete-agent.use-case.ts';
-import { ListAgentPresetsUseCase } from '../application/agents/list-agent-presets.use-case.ts';
-import { ListAgentsUseCase } from '../application/agents/list-agents.use-case.ts';
-import { UpdateAgentUseCase } from '../application/agents/update-agent.use-case.ts';
 import { GetCatalogUseCase } from '../application/catalog/get-catalog.use-case.ts';
 import { CreateModePresetUseCase } from '../application/mode-presets/create-mode-preset.use-case.ts';
 import { DeleteModePresetUseCase } from '../application/mode-presets/delete-mode-preset.use-case.ts';
@@ -107,6 +100,7 @@ import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { SecretStore } from '../domain/secret-store.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
+import { wireAgentControllers } from './wire-agent-controllers.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
 import { wirePluginControllers } from './wire-plugin-controllers.ts';
 
@@ -262,15 +256,14 @@ export function wireControllers(d: ControllerDeps): void {
     deleteProviderModel: new DeleteProviderModelUseCase(d.llmProviderRepo, d.llmModelRepo),
   }).register(d.app);
 
-  const createAgent = new CreateAgentUseCase(d.agentRepo, undefined, d.modePresetRepo);
-  new AgentController({
-    listAgents: new ListAgentsUseCase(d.agentRepo),
-    listAgentPresets: new ListAgentPresetsUseCase(),
-    createAgent,
-    createAgentFromPreset: new CreateAgentFromPresetUseCase(d.agentRepo, createAgent),
-    updateAgent: new UpdateAgentUseCase(d.agentRepo),
-    deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo),
-  }).register(d.app);
+  wireAgentControllers({
+    app: d.app,
+    agentRepo: d.agentRepo,
+    threadRepo: d.threadRepo,
+    modePresetRepo: d.modePresetRepo,
+    workspaceRepo: d.workspaceRepo,
+    workspaceHarnesys: d.workspaceHarnesys,
+  });
 
   new ModePresetController({
     listModePresets: new ListModePresetsUseCase(d.modePresetRepo),

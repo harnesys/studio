@@ -1,5 +1,5 @@
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
-import type { ToolDefinition } from '../ports/tools.ts';
+import type { ToolDefinition, ToolExposure } from '../ports/tools.ts';
 import type { JsonSchema } from './json-schema.ts';
 
 export type CapabilityScope = {
@@ -26,7 +26,13 @@ export type PackMeta = {
 };
 
 export type PackConfig = { spec?: Record<string, unknown> };
-export type PackAssignment = boolean | PackConfig;
+/** Точечное вычитание/экспозиция внутри включённого источника; отличается от PackConfig формой. */
+export type PackOverride = {
+  spec?: PackConfig;
+  disabledTools?: string[];
+  exposure?: Record<string, ToolExposure>;
+};
+export type PackAssignment = boolean | PackConfig | PackOverride;
 export type PackName = string;
 export type AgentPacks = Record<PackName, PackAssignment>;
 
@@ -73,7 +79,7 @@ export function registerPack<Ports>(
   return { pack, ports: opts?.ports, resolveScope: opts?.resolveScope };
 }
 
-export function normalizePackAssignment(value: PackAssignment): PackConfig {
+export function normalizePackAssignment(value: PackAssignment): PackOverride {
   if (typeof value === 'boolean') {
     return {};
   }

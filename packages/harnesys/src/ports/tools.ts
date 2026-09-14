@@ -32,6 +32,9 @@ export type ToolCallGate =
   | { decision: 'ask' }
   | { decision: 'deny'; reason: string };
 
+/** Экспозиция тула в ходу: прямой показ модели или отложение до `load_tools`. */
+export type ToolExposure = 'direct' | 'deferred';
+
 export type ToolDefinition = {
   name: string;
   description: string;
@@ -40,7 +43,7 @@ export type ToolDefinition = {
   input: JsonSchema;
   execute: ToolExecute;
   sideEffect?: SideEffect;
-  exposure?: 'always' | 'deferred';
+  exposure?: ToolExposure;
   revealsTools?: boolean;
   gate?: (input: unknown) => ToolCallGate | undefined;
 };
@@ -64,7 +67,7 @@ export function tool(
     input: JsonSchema;
     execute: ToolExecute;
     sideEffect?: SideEffect;
-    exposure?: 'always' | 'deferred';
+    exposure?: ToolExposure;
     revealsTools?: boolean;
     gate?: (input: unknown) => ToolCallGate | undefined;
   },

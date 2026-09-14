@@ -16,7 +16,8 @@ export function resolveHandoffTarget(
   rows: AgentCatalogSummary[],
   currentAgentId: string,
 ): HandoffTargetResult {
-  const hit = resolveAgentTarget(id, rows);
+  const roster = rows.map((row) => ({ id: row.id, name: row.name }));
+  const hit = resolveAgentTarget(id, roster);
   if (!('error' in hit) && hit.id === currentAgentId) {
     return {
       error: 'you are already the speaker of this thread; handoff to yourself is not allowed',
@@ -31,7 +32,10 @@ export function resolveHandoffTarget(
     };
   }
   if ('error' in hit && !hit.error.startsWith('ambiguous')) {
-    const tops = formatAgentTargets(rows.filter((r) => r.parentId == null)) || '(none)';
+    const tops =
+      formatAgentTargets(
+        rows.filter((r) => r.parentId == null).map((row) => ({ id: row.id, name: row.name })),
+      ) || '(none)';
     return { error: `unknown handoff target "${id}". Available top-level agents: ${tops}` };
   }
   return 'error' in hit ? hit : { agentId: hit.id };

@@ -28,6 +28,8 @@ export type AgentRosterEntry = {
   id: string;
   name: string;
   parentId?: string | null;
+  /** Плагин-владелец записи; absent = host-агент. Резолвер гейтит plugin-строки по `enabledPlugins`. */
+  plugin?: string;
 };
 
 export type AgentsResolve = {

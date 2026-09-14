@@ -33,15 +33,13 @@ function resolveOwnedDelegate(
   currentAgentId: string,
   verb: 'updated' | 'removed',
 ): OwnedDelegate {
-  const hit = resolveAgentTarget(
-    query,
-    rows.map((row) => ({ id: row.id, name: row.name })),
-  );
+  const roster = rows.map((row) => ({ id: row.id, name: row.name }));
+  const hit = resolveAgentTarget(query, roster);
   if ('error' in hit) {
     if (hit.error.startsWith('ambiguous')) {
       return hit;
     }
-    const available = formatAgentTargets(rows) || '(none)';
+    const available = formatAgentTargets(roster) || '(none)';
     return { error: `unknown target "${query}". Available agents: ${available}` };
   }
   const row = rows.find((r) => r.id === hit.id);

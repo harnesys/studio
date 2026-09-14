@@ -27,6 +27,18 @@ export {
   type ResolveAgentIdentityCtx,
   resolveAgentIdentity,
 } from './src/application/agent-identity.ts';
+export type {
+  CapabilitySet,
+  CapabilitySource,
+  CapabilityUniverse,
+  ExplainEntry,
+  ExplainKind,
+  ExplainStatus,
+  ModeCapabilityFields,
+  RunRegistry,
+  RunToolEntry,
+} from './src/application/capability-set.ts';
+export { CORE_SERVICE_TOOLS, resolveCapabilitySet } from './src/application/capability-set.ts';
 export type { CheckOptions } from './src/application/check.ts';
 export { check } from './src/application/check.ts';
 export { estimateTokens } from './src/application/compaction/estimate.ts';
@@ -188,6 +200,7 @@ export type {
   PackConfig,
   PackCtx,
   PackMeta,
+  PackOverride,
   PackRegistration,
   PackSkill,
 } from './src/domain/pack.ts';
@@ -386,6 +399,7 @@ export type {
   ToolCatalogEntry,
   ToolContext,
   ToolDefinition,
+  ToolExposure,
 } from './src/ports/tools.ts';
 export { tool } from './src/ports/tools.ts';
 export type {

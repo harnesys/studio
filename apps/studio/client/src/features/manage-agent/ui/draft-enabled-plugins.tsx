@@ -9,6 +9,9 @@ import { Switch } from '@/shared/ui/switch';
  * the agent may use; a missing key is off and an empty map means no plugins.
  * A saved map should be complete over the installed catalog (registry
  * semantics: a sparse map disables every plugin missing from it).
+ *
+ * Controlled by the dialog's capabilities draft; the dialog turns a disabled
+ * plugin's skills/servers/tools off in the same patch.
  */
 export function DraftEnabledPlugins({
   workspaceId,

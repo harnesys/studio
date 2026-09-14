@@ -34,7 +34,8 @@ type AgentConfigCategoryPanesProps = {
   graphDocRef: MutableRefObject<StudioGraphDocument>;
   graphTouchedRef: MutableRefObject<boolean>;
   setGraphDoc: (next: StudioGraphDocument) => void;
-  capabilitiesRef: MutableRefObject<AgentCapabilitiesDraft>;
+  capabilities: AgentCapabilitiesDraft;
+  onCapabilitiesPatch: (patch: Partial<AgentCapabilitiesDraft>) => void;
   onOpenSubagent: (agent: Agent) => void;
 };
 
@@ -49,7 +50,8 @@ export function AgentConfigCategoryPanes({
   graphDocRef,
   graphTouchedRef,
   setGraphDoc,
-  capabilitiesRef,
+  capabilities,
+  onCapabilitiesPatch,
   onOpenSubagent,
 }: AgentConfigCategoryPanesProps) {
   return (
@@ -104,9 +106,9 @@ export function AgentConfigCategoryPanes({
               key={`packs-${activeAgent?.id ?? 'new'}`}
               workspaceId={workspaceId}
               isDelegate={isDelegate}
-              value={activeAgent?.capabilities ?? {}}
-              onChange={(capabilities) => {
-                capabilitiesRef.current = { ...capabilitiesRef.current, capabilities };
+              value={capabilities.capabilities ?? {}}
+              onChange={(nextCapabilities) => {
+                onCapabilitiesPatch({ capabilities: nextCapabilities });
               }}
             />
           </Pane>
@@ -117,9 +119,9 @@ export function AgentConfigCategoryPanes({
             <DraftEnabledPlugins
               key={`plugins-${activeAgent?.id ?? 'new'}`}
               workspaceId={workspaceId}
-              value={activeAgent?.enabledPlugins ?? {}}
+              value={capabilities.enabledPlugins ?? {}}
               onChange={(enabledPlugins) => {
-                capabilitiesRef.current = { ...capabilitiesRef.current, enabledPlugins };
+                onCapabilitiesPatch({ enabledPlugins });
               }}
             />
           </Pane>
@@ -128,9 +130,9 @@ export function AgentConfigCategoryPanes({
       <div className={cn(category !== 'hooks' && 'hidden')}>
         <AgentHooksPane
           key={`hooks-${activeAgent?.id ?? 'new'}`}
-          value={activeAgent?.hooks ?? []}
+          value={capabilities.hooks ?? []}
           onChange={(hooks) => {
-            capabilitiesRef.current = { ...capabilitiesRef.current, hooks };
+            onCapabilitiesPatch({ hooks });
           }}
         />
       </div>
@@ -143,19 +145,17 @@ export function AgentConfigCategoryPanes({
           key={`compaction-${activeAgent?.id ?? 'new'}`}
           agent={activeAgent}
           onChange={(compaction) => {
-            capabilitiesRef.current = { ...capabilitiesRef.current, compaction };
+            onCapabilitiesPatch({ compaction });
           }}
         />
       </Pane>
       <div className={cn(category !== 'skills' && category !== 'mcp' && 'hidden')}>
         <DraftCapabilities
           key={`caps-${activeAgent?.id ?? 'new'}`}
-          agent={activeAgent}
           workspaceId={workspaceId}
           section={capabilitiesSection(category)}
-          onChange={(snapshot) => {
-            capabilitiesRef.current = { ...capabilitiesRef.current, ...snapshot };
-          }}
+          capabilities={capabilities}
+          onPatch={onCapabilitiesPatch}
         />
       </div>
       <Pane
@@ -170,6 +170,7 @@ export function AgentConfigCategoryPanes({
           <AgentSubagentsPane
             workspaceId={workspaceId}
             parentId={activeAgent.id}
+            enabledPlugins={capabilities.enabledPlugins ?? {}}
             onConfigure={onOpenSubagent}
           />
         ) : null}

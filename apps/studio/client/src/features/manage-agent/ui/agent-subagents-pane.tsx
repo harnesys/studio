@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { agentColorClass, useAgentStore } from '@/entities/agent';
-import { listAgentPresets } from '@/shared/api';
+import { listAgentPresets, pluginsQuery } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
 import {
   AlertDialog,
@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/shared/ui/alert-dialog';
 import { Button } from '@/shared/ui/button';
-import { Pane, Row, RowList } from '@/shared/ui/capability-rows';
+import { Pane, Row, RowChip, RowList, RowSection } from '@/shared/ui/capability-rows';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,17 +31,34 @@ import { deleteAgent } from '../model/delete-agent';
 type AgentSubagentsPaneProps = {
   workspaceId: string;
   parentId: string;
+  /** Draft plugin map: only enabled plugins contribute visible agent sections. */
+  enabledPlugins: Record<string, boolean>;
   onConfigure: (agent: Agent) => void;
 };
 
 export function AgentSubagentsPane({
   workspaceId,
   parentId,
+  enabledPlugins,
   onConfigure,
 }: AgentSubagentsPaneProps) {
   const delegates = useAgentStore(
     useShallow((state) => state.items.filter((item) => item.parentId === parentId)),
   );
+  const pluginsListQuery = useQuery({
+    ...pluginsQuery(workspaceId),
+    enabled: Boolean(workspaceId),
+  });
+  const pluginSections = (pluginsListQuery.data ?? [])
+    .filter((item) => enabledPlugins[item.plugin.name] === true)
+    .map((item) => ({
+      plugin: item.plugin.name,
+      agents: item.plugin.components.filter(
+        (component) => component.kind === 'agent' && component.status === 'native',
+      ),
+    }))
+    .filter((section) => section.agents.length > 0)
+    .sort((a, b) => a.plugin.localeCompare(b.plugin));
   const presetsQuery = useQuery({
     queryKey: ['agent-presets'],
     queryFn: listAgentPresets,
@@ -89,7 +106,7 @@ export function AgentSubagentsPane({
       <Pane
         testId="agent-subagents-pane"
         label="Subagents"
-        count={delegates.length}
+        count={delegates.length + pluginSections.reduce((n, s) => n + s.agents.length, 0)}
         description="Spawn targets for this agent."
         extra={
           <DropdownMenu>
@@ -122,27 +139,39 @@ export function AgentSubagentsPane({
           </DropdownMenu>
         }
       >
-        {delegates.length === 0 ? (
+        {delegates.length === 0 && pluginSections.length === 0 ? (
           <p className="py-6 text-center text-muted-foreground text-sm">No subagents yet.</p>
-        ) : (
-          <RowList>
-            {delegates.map((delegate) => (
-              <SubagentRow
-                key={delegate.id}
-                agent={delegate}
-                onOpen={() => onConfigure(delegate)}
-                onRemove={() => {
-                  void confirmDelete(delegate).then(async (confirmed) => {
-                    if (!confirmed) {
-                      return;
-                    }
-                    await deleteAgent(workspaceId, delegate.id);
-                  });
-                }}
-              />
-            ))}
-          </RowList>
-        )}
+        ) : null}
+        {delegates.length > 0 ? (
+          <RowSection label="Direct" count={delegates.length}>
+            <RowList>
+              {delegates.map((delegate) => (
+                <SubagentRow
+                  key={delegate.id}
+                  agent={delegate}
+                  onOpen={() => onConfigure(delegate)}
+                  onRemove={() => {
+                    void confirmDelete(delegate).then(async (confirmed) => {
+                      if (!confirmed) {
+                        return;
+                      }
+                      await deleteAgent(workspaceId, delegate.id);
+                    });
+                  }}
+                />
+              ))}
+            </RowList>
+          </RowSection>
+        ) : null}
+        {pluginSections.map((section) => (
+          <RowSection key={section.plugin} label={section.plugin} count={section.agents.length}>
+            <RowList>
+              {section.agents.map((agent) => (
+                <PluginAgentRow key={agent.source.file} name={agentFileName(agent.source.file)} />
+              ))}
+            </RowList>
+          </RowSection>
+        ))}
       </Pane>
       <AlertDialog
         open={pendingDelete !== null}
@@ -168,6 +197,25 @@ export function AgentSubagentsPane({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+/** Plugin agent display name: the `.md` file stem (catalog uses id/role = that name). */
+function agentFileName(file: string): string {
+  const base = file.slice(file.lastIndexOf('/') + 1);
+  return base.replace(/\.md$/, '') || file;
+}
+
+/** Read-only: plugin agents are owned by the plugin, not editable here. */
+function PluginAgentRow({ name }: { name: string }) {
+  return (
+    <Row
+      testId={`draft-plugin-agent-${name}`}
+      title={name}
+      mono={false}
+      chips={<RowChip>plugin</RowChip>}
+      summary="Provided by the plugin; configured in the plugin itself."
+    />
   );
 }
 

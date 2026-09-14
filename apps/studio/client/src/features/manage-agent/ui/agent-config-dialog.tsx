@@ -22,6 +22,7 @@ import {
   toAgentDraft,
 } from '../model/agent-fields';
 import { defaultReactGraph, type StudioGraphDocument } from '../model/agent-graph-document';
+import { mcpServerPluginOf, skillPluginOf } from '../model/capability-allowlist';
 import { updateAgent, updateAgentCapabilities } from '../model/update-agent';
 import { AgentConfigCategoryPanes } from './agent-config-category-panes';
 import {
@@ -40,7 +41,7 @@ const DEFAULT_DIALOG_CLASS =
   'flex min-h-0 h-[min(78vh,48rem)] w-full max-w-3xl sm:max-w-3xl overflow-hidden';
 
 function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
-  return {
+  const draft: AgentCapabilitiesDraft = {
     skills: agent?.skills ?? [],
     tools: agent?.tools ?? [],
     mcpServers: agent?.mcpServers ?? [],
@@ -48,6 +49,41 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
     capabilities: agent?.capabilities ?? {},
     hooks: agent?.hooks ?? [],
     enabledPlugins: agent?.enabledPlugins ?? {},
+  };
+  // Legacy records may still name plugin items of plugins the agent has off
+  // (the flip only backfilled from workspace-wide effective sets); normalize on
+  // open so hidden == unusable, matching the closed-world plugin contract.
+  const owners = new Set<string>();
+  for (const name of draft.skills ?? []) {
+    const plugin = skillPluginOf(name);
+    if (plugin) {
+      owners.add(plugin);
+    }
+  }
+  for (const name of [...(draft.mcpServers ?? []), ...(draft.tools ?? [])]) {
+    const plugin = mcpServerPluginOf(name);
+    if (plugin) {
+      owners.add(plugin);
+    }
+  }
+  const off = [...owners].filter((plugin) => draft.enabledPlugins?.[plugin] !== true);
+  return off.length > 0 ? stripPlugins(off, draft) : draft;
+}
+
+/**
+ * Turning a plugin off must drop everything it provided: the runtime gates
+ * plugin skills/servers through the allowlists (`pluginName:skill`,
+ * `plugin:<name>:<server>`, tool names inherit the server prefix), while
+ * `enabledPlugins` alone only gates hooks/bin/monitors.
+ */
+function stripPlugins(plugins: string[], draft: AgentCapabilitiesDraft): AgentCapabilitiesDraft {
+  const offSkill = (name: string) => plugins.some((p) => name.startsWith(`${p}:`));
+  const offMcp = (name: string) => plugins.some((p) => name.startsWith(`plugin:${p}:`));
+  return {
+    ...draft,
+    skills: (draft.skills ?? []).filter((name) => !offSkill(name)),
+    mcpServers: (draft.mcpServers ?? []).filter((name) => !offMcp(name)),
+    tools: (draft.tools ?? []).filter((name) => !offMcp(name)),
   };
 }
 
@@ -77,7 +113,11 @@ export function AgentConfigDialog({
   graphDocRef.current = graphDoc;
   const graphTouchedRef = useRef(false);
   const providers = useQuery(providersQuery).data ?? [];
-  const capabilitiesRef = useRef<AgentCapabilitiesDraft>(initialCapabilities(rootAgent));
+  const [capabilities, setCapabilities] = useState<AgentCapabilitiesDraft>(() =>
+    initialCapabilities(rootAgent),
+  );
+  const capabilitiesRef = useRef(capabilities);
+  capabilitiesRef.current = capabilities;
   const form = useForm<AgentFieldsInput, unknown, AgentFieldsOutput>({
     resolver: zodResolver(agentFieldsSchema),
     defaultValues: rootAgent ? agentFieldsFrom(rootAgent) : emptyAgentFields(),
@@ -135,11 +175,24 @@ export function AgentConfigDialog({
 
   function loadAgentEditors(target: Agent) {
     form.reset(agentFieldsFrom(target));
-    capabilitiesRef.current = initialCapabilities(target);
+    setCapabilities(initialCapabilities(target));
     const nextGraph = target.graph ?? defaultReactGraph();
     graphTouchedRef.current = false;
     graphDocRef.current = nextGraph;
     setGraphDoc(nextGraph);
+  }
+
+  function patchCapabilities(patch: Partial<AgentCapabilitiesDraft>) {
+    setCapabilities((prev) => {
+      const merged = { ...prev, ...patch };
+      if (patch.enabledPlugins === undefined) {
+        return merged;
+      }
+      const off = Object.entries(prev.enabledPlugins ?? {})
+        .filter(([name, on]) => on && patch.enabledPlugins?.[name] !== true)
+        .map(([name]) => name);
+      return off.length > 0 ? stripPlugins(off, merged) : merged;
+    });
   }
 
   function buildResult(values: AgentFieldsOutput): AgentConfigResult {
@@ -272,7 +325,8 @@ export function AgentConfigDialog({
             graphDocRef={graphDocRef}
             graphTouchedRef={graphTouchedRef}
             setGraphDoc={setGraphDoc}
-            capabilitiesRef={capabilitiesRef}
+            capabilities={capabilities}
+            onCapabilitiesPatch={patchCapabilities}
             onOpenSubagent={(delegate) => {
               void openSubagent(delegate);
             }}

@@ -335,8 +335,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           if (typeof id !== 'string' || !id) {
             return { error: 'agentId must be a non-empty string' };
           }
-          const rows = await deps.agents.list(deps.resolveScope());
-          return resolveHandoffTarget(id, rows);
+          const scope = deps.resolveScope();
+          const rows = await deps.agents.list(scope);
+          return resolveHandoffTarget(id, rows, scope.agentId);
         }),
     }),
   ];

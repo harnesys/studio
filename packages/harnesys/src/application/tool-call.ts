@@ -52,6 +52,8 @@ export type ToolCallContext = {
   resumeInterruptId?: string;
   /** Дочерний ран: гейты отвечают deny вместо AskUserInterrupt. */
   sandbox?: boolean;
+  /** Node types of the active agent's compiled plan; control intents without a matching node are not queued. */
+  planNodeTypes?: ReadonlySet<string>;
   toolOutput?: ToolOutputSettings | null;
   /** Шина хуков рана: PostToolBatch в конце batch-ветки. */
   hooks?: HookEmitCtx;

@@ -79,6 +79,10 @@ export function prepareHandoff(
     throw codedRunError('handoff_in_sandbox', 'handoff is not allowed in a sandboxed run');
   }
   const agentId = resolveAgentId(node.agentId, slots);
+  // Last line of defense: the tool gate can be bypassed by a parked handoffAgentId.
+  if (agentId === parent.agent.id) {
+    throw codedRunError('handoff_self', 'handoff onto the current speaker is not allowed');
+  }
   // Handoff is top-level-only: a delegate lacks the parent-run rights model.
   // No roster entry (or no roster) → allow: a host without roster gives no
   // ownership info (same caveat as spawn target resolution).

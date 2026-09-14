@@ -6,8 +6,17 @@ import type { AgentCatalogSummary } from '../../ports/agents-catalog.ts';
 
 export type HandoffTargetResult = { agentId: string } | { error: string };
 
-export function resolveHandoffTarget(id: string, rows: AgentCatalogSummary[]): HandoffTargetResult {
+export function resolveHandoffTarget(
+  id: string,
+  rows: AgentCatalogSummary[],
+  currentAgentId: string,
+): HandoffTargetResult {
   const hit = resolveAgentTarget(id, rows);
+  if (!('error' in hit) && hit.id === currentAgentId) {
+    return {
+      error: 'you are already the speaker of this thread; handoff to yourself is not allowed',
+    };
+  }
   const delegate =
     'error' in hit ? undefined : rows.find((r) => r.id === hit.id && r.parentId != null);
   if (delegate) {

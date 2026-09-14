@@ -188,6 +188,17 @@ export const STATE_WAIT_UNTIL_MS_KEY = 'waitUntilMs';
 export const NODE_CHECKPOINT_KEY = '$nodeCheckpoint_';
 export const DENIED_TOOLS_KEY = '$deniedTools';
 export const SANDBOX_DENY_PREFIX = 'denied in subagent context: ';
+export const SANDBOX_DENIED_STATE_TOOLS: readonly string[] = [
+  'plan_save',
+  'plan_item_update',
+  'pin_set',
+  'pin_remove',
+  'schedule_set',
+  'schedule_pause',
+  'schedule_delete',
+  'webhook_set',
+  'webhook_delete',
+];
 export const CHAT_GENERATION_PARAMETERS = [
   'temperature',
   'top_p',

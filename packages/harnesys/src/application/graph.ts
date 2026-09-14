@@ -31,6 +31,7 @@ import {
   clearQueuedMap,
   clearQueuedSpawns,
   clearQueuedWait,
+  collectPlanNodeTypes,
 } from './graph-agent-controls.ts';
 import { isSkippedEntry, matchOutgoing } from './graph-edges.ts';
 import { type HandoffNodeSpec, prepareHandoff } from './graph-handoff.ts';
@@ -918,6 +919,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
     } else if (node.type === 'tool:call') {
       const tn = node as ToolCallFixed | ToolCallBatch;
+      // Управляющие интенты живут только при узле-исполнителе в плане этого агента.
+      const planNodeTypes = collectPlanNodeTypes(plan.nodes);
       const needsIntent = (() => {
         const names: string[] = 'name' in tn && tn.name ? [tn.name] : [];
         return names.some((n) => {
@@ -960,6 +963,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           resumePayload: opts.resumePayload,
           resumeInterruptId: opts.resumeInterruptId,
           sandbox: opts.sandbox,
+          planNodeTypes,
           toolOutput: agent.toolOutput,
           hooks,
           env: opts.env,

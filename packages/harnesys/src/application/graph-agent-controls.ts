@@ -8,6 +8,7 @@ import {
   STATE_WAIT_UNTIL_MS_KEY,
   WAIT_TOOL,
 } from '../constants.ts';
+import type { AgentNodes } from '../domain/agent-definition.ts';
 import { stateKeyOf } from './graph-helpers.ts';
 
 export {
@@ -73,6 +74,53 @@ function handoffAgentIdOf(result: unknown): string | undefined {
     return undefined;
   }
   return rec.agentId;
+}
+
+/** Control-intent tool name → the control node that must exist in this agent's plan. */
+const CONTROL_INTENTS: Record<string, { nodeType: string; hint: string }> = {
+  [AGENTS_SPAWN_TOOL]: {
+    nodeType: 'control:spawn',
+    hint: 'Run the work inline or add a control:spawn node via the agent form.',
+  },
+  [AGENTS_HANDOFF_TOOL]: {
+    nodeType: 'control:handoff',
+    hint: 'Keep the thread and do the work yourself, or add a control:handoff node via the agent form.',
+  },
+  [MAP_TOOL]: {
+    nodeType: 'control:map',
+    hint: 'Process the items inline or add a control:map node via the agent form.',
+  },
+  [WAIT_TOOL]: {
+    nodeType: 'control:wait',
+    hint: 'Continue without pausing or add a control:wait node via the agent form.',
+  },
+};
+
+export function collectPlanNodeTypes(nodes: AgentNodes): Set<string> {
+  const out = new Set<string>();
+  for (const n of Object.values(nodes)) {
+    out.add(n.type);
+  }
+  return out;
+}
+
+/**
+ * Denial text when a control-intent tool ran fine but this agent's plan has no
+ * node to honor it; the intent must not be parked into state. Null planNodeTypes
+ * (no graph context) disables the check.
+ */
+export function unsupportedControlIntentText(
+  name: string,
+  planNodeTypes: ReadonlySet<string> | undefined,
+): string | null {
+  if (planNodeTypes === undefined) {
+    return null;
+  }
+  const intent = CONTROL_INTENTS[name];
+  if (!intent || planNodeTypes.has(intent.nodeType)) {
+    return null;
+  }
+  return `no ${intent.nodeType} node in this agent's graph; the intent is not queued. ${intent.hint}`;
 }
 
 /** After tool:call: queue spawn/handoff/map/wait intents onto run state for control nodes. */

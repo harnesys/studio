@@ -1,6 +1,8 @@
+import { SANDBOX_DENIED_STATE_TOOLS } from '../constants.ts';
 import { AskUserInterrupt } from '../domain/errors.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import { presentCallOutput, serializeToolOutput } from './clip-tool-output.ts';
+import { unsupportedControlIntentText } from './graph-agent-controls.ts';
 import {
   emitHook,
   hookBlockedReason,
@@ -22,6 +24,7 @@ import {
   applyPermissionGate,
   isForeignPermissionResume,
   sandboxDenyText,
+  sandboxSharedStateDenyText,
   skippedGateResult,
 } from './tool-permission.ts';
 import { runBatchWorkerPool } from './tool-pool.ts';
@@ -63,6 +66,14 @@ export async function runSingleToolCall(
 ): Promise<SingleToolCallDone> {
   const message = (content: string): ToolMessage =>
     buildToolMessage({ toolCallId: call.id, name: call.name, content });
+  // Песочница: родителем разделяемое состояние пишет только сам родитель — deny до реестра и пермишенов.
+  if (ctx.sandbox && SANDBOX_DENIED_STATE_TOOLS.includes(call.name)) {
+    const content = sandboxSharedStateDenyText(call.name);
+    return {
+      result: { id: call.id, name: call.name, result: content, isError: true },
+      message: message(content),
+    };
+  }
   const def = ctx.toolRegistry.get(call.name);
   if (!def) {
     const content = `tool not found ${call.name}`;
@@ -199,6 +210,13 @@ export async function runSingleToolCall(
           ...new Set([...prev, ...names.filter((n) => ctx.toolRegistry.has(n))]),
         ];
       }
+    }
+    const notQueued = unsupportedControlIntentText(call.name, ctx.planNodeTypes);
+    if (notQueued !== null) {
+      return {
+        result: { id: call.id, name: call.name, result: notQueued, isError: true },
+        message: message(notQueued),
+      };
     }
     return {
       result: { id: call.id, name: call.name, result: out, isError: false },

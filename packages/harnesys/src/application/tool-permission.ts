@@ -72,6 +72,11 @@ export function sandboxDenyText(tool: string, what: SandboxDenyKind): string {
   return `${SANDBOX_DENY_PREFIX}${tool} requires ${what}, no interactive user here; parent must provide, pre-approve, or do it itself`;
 }
 
+/** Sandbox denial for tools writing parent-shared state; not a permission ask, so no kind. */
+export function sandboxSharedStateDenyText(tool: string): string {
+  return `${SANDBOX_DENY_PREFIX}${tool} writes state shared with the parent thread or workspace; the parent must do it itself`;
+}
+
 export function throwPermissionAsk(
   call: PermissionGateCall,
   ctx: PermissionGateContext,

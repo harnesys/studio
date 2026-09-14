@@ -3,6 +3,7 @@ import type {
   AgentDefinition,
   AgentModelRef,
   BindDiagnosticSink,
+  PackRegistration,
   PluginIr,
 } from 'harnesys';
 import { bindAgentComponents } from 'harnesys';
@@ -34,12 +35,19 @@ export type PluginAgentSource = {
  * one-shot `start → llm:generate → end` for the host ReAct preset so plugin
  * agents keep working after a tool call.
  */
+// biome-ignore lint/complexity/useMaxParams: registrations is the optional 5th param for pack-index wiring; existing callers unaffected
 export function pluginAgentCatalog(
   entries: PluginAgentSource[],
   models?: LlmModelRepository,
   providers?: LlmProviderRepository,
   onDiagnostic?: BindDiagnosticSink,
+  registrations?: PackRegistration[],
 ): PluginAgentCatalog {
+  const packIndex = new Map(
+    (registrations ?? []).flatMap((r) =>
+      r.pack.meta.tools.map((t) => [t.name, r.pack.name] as const),
+    ),
+  );
   const all = new Map<string, { definition: AgentDefinition; color?: string }>();
   for (const entry of entries) {
     const userConfig = pluginUserConfig(entry.ir, entry.record.options);
@@ -48,6 +56,7 @@ export function pluginAgentCatalog(
       (ref) => resolveModelRef(ref, models, providers),
       onDiagnostic,
       userConfig,
+      packIndex,
     );
     for (const agent of bound) {
       all.set(agent.id, {
@@ -63,14 +72,18 @@ export function pluginAgentCatalog(
   }
   return {
     list(): AgentCatalogSummary[] {
-      return [...all.entries()].map(([id, entry]) => ({
-        id,
-        name: pluginAgentName(id),
-        role: 'plugin',
-        plugin: true,
-        instructions: entry.definition.prompts.main?.instructions ?? '',
-        ...(entry.color !== undefined ? { color: entry.color } : {}),
-      }));
+      return [...all.entries()].map(([id, entry]) => {
+        const agentName = pluginAgentName(id);
+        return {
+          id,
+          name: agentName,
+          // Роль каталожной строки — имя из документа; `plugin: true` до смены level-модели.
+          role: agentName,
+          plugin: true,
+          instructions: entry.definition.prompts.main?.instructions ?? '',
+          ...(entry.color !== undefined ? { color: entry.color } : {}),
+        };
+      });
     },
     get(id: string): AgentDefinition | null {
       return all.get(id)?.definition ?? null;

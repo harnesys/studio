@@ -141,21 +141,21 @@ export class WorkspaceHarnesysRegistry {
 
   /** Plugin agents of this workspace (`pluginName:agentName` catalog ids). */
   async pluginAgents(workspaceId: string): Promise<PluginAgentCatalog> {
-    return pluginAgentCatalog(
-      await this.loadEnabledPlugins(workspaceId),
-      this.repos.modelRepo,
-      this.repos.providerRepo,
-      this.pluginBindDiagnostic,
-    );
+    return this.pluginCatalog(await this.loadEnabledPlugins(workspaceId));
   }
 
   /** Sync catalog from the warm (memoized) IR cache; same contract as resolvePluginAgent. */
   private warmPluginAgents(workspaceId: string): PluginAgentCatalog {
+    return this.pluginCatalog(this.cachedLoaded(workspaceId));
+  }
+
+  private pluginCatalog(entries: LoadedWorkspacePlugin[]): PluginAgentCatalog {
     return pluginAgentCatalog(
-      this.cachedLoaded(workspaceId),
+      entries,
       this.repos.modelRepo,
       this.repos.providerRepo,
       this.pluginBindDiagnostic,
+      this.packRegistrations,
     );
   }
 

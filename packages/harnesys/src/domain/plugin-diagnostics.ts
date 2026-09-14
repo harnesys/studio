@@ -20,6 +20,7 @@ export type PluginDiagnosticCode =
   | 'unsupported_transport'
   | 'unsupported_frontmatter_field'
   | 'unsupported_tool'
+  | 'claude_tool_unmapped'
   | 'unresolved_model'
   | 'server_config_invalid'
   | 'dependency_unsatisfied'

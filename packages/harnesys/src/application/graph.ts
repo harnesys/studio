@@ -23,6 +23,7 @@ import type { Plan } from './compile.ts';
 import type { Slots } from './expr-eval.ts';
 import { evalExpr } from './expr-eval.ts';
 import {
+  appendAssistantNote,
   appendMapResultsMessage,
   appendSpawnResultsMessage,
   applyAgentControlToolResults,
@@ -1176,6 +1177,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             ? (err as { code: string }).code
             : 'handoff_target';
         const message = err instanceof Error && err.message ? err.message : 'handoff failed';
+        clearQueuedHandoff(st);
         const e = await commit('failed', 'run.failed', 'recorded', { code, message });
         yield e;
         throw Object.assign(new Error(message), { code });
@@ -1192,6 +1194,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       orderJson = JSON.stringify(plan.order);
       output = { agentId: prepared.agent.id };
       clearQueuedHandoff(st);
+      appendAssistantNote(
+        st,
+        lastMsg,
+        'Thread handed off to you. You own the conversation from here.',
+      );
       yield await commit('running', 'node.completed');
       cur = prepared.startNodeId;
       nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);

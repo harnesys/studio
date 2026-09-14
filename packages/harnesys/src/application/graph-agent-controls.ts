@@ -139,7 +139,7 @@ export function clearQueuedWait(state: Record<string, unknown>): void {
   delete state[STATE_WAIT_UNTIL_MS_KEY];
 }
 
-function appendAssistantNote(
+export function appendAssistantNote(
   state: Record<string, unknown>,
   messagesExpr: string | undefined,
   text: string,

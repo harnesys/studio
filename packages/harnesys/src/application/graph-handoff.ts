@@ -94,6 +94,14 @@ export function prepareHandoff(
   if (!def) {
     throw codedRunError('handoff_target', `handoff target "${agentId}" not found`);
   }
+  // Target without a model would strand the thread on the next llm:generate
+  // (model_unresolved) with the rebind already committed.
+  if (!def.model && !def.models) {
+    throw codedRunError(
+      'handoff_model_unresolved',
+      `"${agentId}" has no model configured; handoff would strand the thread. Set its model in the workspace UI first.`,
+    );
+  }
   const plan = compileOrThrow(def);
   const startNodeId = Object.entries(plan.nodes).find(([, n]) => n.type === 'core:start')?.[0];
   if (!startNodeId) {

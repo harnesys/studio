@@ -4,7 +4,6 @@ import type { CapabilityScope, PackConfig } from '../../domain/pack.ts';
 import type { AgentCatalogCreateInput, AgentsCatalogPort } from '../../ports/agents-catalog.ts';
 import type { AgentRosterEntry } from '../../ports/create-runtime.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
-import { resolveHandoffTarget } from './handoff-target.ts';
 
 export type CreateAgentsToolsParams = {
   agents: AgentsCatalogPort;
@@ -17,6 +16,23 @@ async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }>
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+/**
+ * Наследование модели создателя: если в create-инпуте нет model, подставляем одиночный
+ * `model` создающего агента. Явный выбор модели при создании — отдельная будущая фича,
+ * поэтому `models`-запись (несколько привязок) не наследуем и не синтезируем model из неё.
+ */
+async function withInheritedModel(
+  agents: AgentsCatalogPort,
+  scope: CapabilityScope,
+  input: AgentCatalogCreateInput,
+): Promise<AgentCatalogCreateInput> {
+  if (input.model !== undefined) {
+    return input;
+  }
+  const creator = await agents.get(scope, scope.agentId);
+  return creator?.model ? { ...input, model: creator.model } : input;
 }
 
 type AgentsListInput = {
@@ -164,7 +180,10 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           if (packs !== undefined) {
             next.packs = packs;
           }
-          return await deps.agents.create(scope, next);
+          return await deps.agents.create(
+            scope,
+            await withInheritedModel(deps.agents, scope, next),
+          );
         }),
     }),
     tool('agents_create_subagent', {
@@ -240,7 +259,10 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           if (packs !== undefined) {
             next.packs = packs;
           }
-          return await deps.agents.create(scope, next);
+          return await deps.agents.create(
+            scope,
+            await withInheritedModel(deps.agents, scope, next),
+          );
         }),
     }),
     tool('agents_spawn', {
@@ -315,29 +337,6 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
             return { error: targetError };
           }
           return { calls: rec.calls };
-        }),
-    }),
-    tool('agents_handoff', {
-      group: 'agents',
-      sideEffect: 'write',
-      description:
-        'Pass this thread to another agent (current speaker changes, origin stays). The graph then runs control:handoff. agentId from agents_list or agents_create. This is not the tool name control:handoff. Top-level agents only; delegates must be run via agents_spawn.',
-      input: {
-        type: 'object',
-        properties: {
-          agentId: { type: 'string', description: 'Target agent id' },
-        },
-        required: ['agentId'],
-      },
-      execute: async (raw) =>
-        runGuard(async () => {
-          const id = ((raw ?? {}) as { agentId?: unknown }).agentId;
-          if (typeof id !== 'string' || !id) {
-            return { error: 'agentId must be a non-empty string' };
-          }
-          const scope = deps.resolveScope();
-          const rows = await deps.agents.list(scope);
-          return resolveHandoffTarget(id, rows, scope.agentId);
         }),
     }),
   ];

@@ -387,7 +387,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
 
   async function budgetStop(over: BudgetOver): Promise<Event> {
-    if ((agent.budget?.policy ?? 'error') === 'ask') {
+    // Прерывания в песочничном ребёнке невозможны: ask для него = error.
+    const policy = opts.sandbox === true ? 'error' : (agent.budget?.policy ?? 'error');
+    if (policy === 'ask') {
       const interruptId = `budget/${runId}/${cur}/${steps}`;
       delete (st as Record<string, unknown>).$resume;
       const resumeSchema = {

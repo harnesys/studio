@@ -135,6 +135,11 @@
       },
       {
         "from": "spawn",
+        "to": "handoff",
+        "when": "exists($state.handoffAgentId)"
+      },
+      {
+        "from": "spawn",
         "to": "think"
       },
       {

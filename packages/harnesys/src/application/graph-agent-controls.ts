@@ -30,6 +30,7 @@ export type AgentControlToolResult = {
 export type QueuedSpawnCall = {
   agentId: string;
   input: unknown;
+  budget?: unknown;
 };
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -57,7 +58,11 @@ function spawnCallsOf(result: unknown): QueuedSpawnCall[] {
     if (!row || typeof row.agentId !== 'string' || !row.agentId) {
       continue;
     }
-    out.push({ agentId: row.agentId, input: spawnInputOf(row.input) });
+    out.push({
+      agentId: row.agentId,
+      input: spawnInputOf(row.input),
+      ...(row.budget !== undefined ? { budget: row.budget } : {}),
+    });
   }
   return out;
 }

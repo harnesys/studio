@@ -410,6 +410,35 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     });
   }
 
+  // Песочничный ребёнок: бюджет — условие сдачи, а не отказа. Оверран не валит
+  // ран, а вооружает единственный закрывающий generate без тулов; штатный путь
+  // — снимок тулов на последнем шаге (wrapDue) и отчёт вместо нового вызова.
+  let closingArmed = false;
+  // Две супрессии: арминг (оверран до/между узлов) и чек после закрывающего
+  // generate. Третья — не графовый путь к отчёту, а петля: прежнее поведение.
+  let wrapSuppressions = 0;
+  function isSandboxWrap(): boolean {
+    if (opts.sandbox !== true || wrapSuppressions >= 2) {
+      return false;
+    }
+    if (Object.values(plan.nodes).every((n) => n.type !== 'llm:generate')) {
+      return false;
+    }
+    wrapSuppressions += 1;
+    closingArmed = true;
+    return true;
+  }
+  function wrapDue(): boolean {
+    if (opts.sandbox !== true || agent.budget === undefined) {
+      return false;
+    }
+    if (closingArmed) {
+      return true;
+    }
+    const b = agent.budget;
+    return b.maxSteps !== undefined && b.maxSteps - steps <= 1;
+  }
+
   function budgetLeftForPrompt(): BudgetLeft | undefined {
     const b = agent.budget;
     if (!b) {
@@ -498,7 +527,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
         steps += 1;
         const over = budgetOver();
-        if (over) {
+        if (over && !isSandboxWrap()) {
           yield await budgetStop(over);
           break;
         }
@@ -718,9 +747,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           usedModel = currentBinding.model.name;
           startedAt = Date.now();
           const notes: LlmNote[] = [];
+          const wrap = wrapDue();
           const left = budgetLeftForPrompt();
           if (left) {
-            notes.push(budgetNote(left));
+            notes.push(budgetNote(left, wrap));
+          } else if (wrap) {
+            notes.push(budgetNote({}, true));
           }
           // Deferred-эффекты асинхронных хуков дренируются перед обращением
           // к модели; hookNotes (SessionStart + deferred context) — sticky.
@@ -764,7 +796,8 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               type: 'llm:generate',
               prompt: ln.prompt,
               messages: ln.messages,
-              tools: ln.tools,
+              // песочничная обёртка: последний шаг без тулов — только отчёт
+              tools: wrap ? [] : ln.tools,
               model: ln.model as never,
               output: ln.output,
             },
@@ -1047,7 +1080,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
       steps += 1;
       const over = budgetOver();
-      if (over) {
+      if (over && !isSandboxWrap()) {
         yield await budgetStop(over);
         break;
       }
@@ -1164,7 +1197,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       nodeSteps.set(cur, (nodeSteps.get(cur) ?? 0) + 1);
       steps += 1;
       const overHandoff = budgetOver();
-      if (overHandoff) {
+      if (overHandoff && !isSandboxWrap()) {
         yield await budgetStop(overHandoff);
         break;
       }
@@ -1294,7 +1327,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     steps += 1;
     await emitHook(hooks, 'NodeEnd', { node: { id: cur, type: node.type } });
     const over = budgetOver();
-    if (over) {
+    if (over && !isSandboxWrap()) {
       const e = await budgetStop(over);
       yield e;
       break;

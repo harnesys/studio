@@ -1,4 +1,5 @@
 import { resolveAgentTarget } from '../../application/agent-target-resolve.ts';
+import { parseSpawnBudget } from '../../application/graph-spawn.ts';
 
 import type { CapabilityScope, PackConfig } from '../../domain/pack.ts';
 import type { AgentCatalogCreateInput, AgentsCatalogPort } from '../../ports/agents-catalog.ts';
@@ -26,10 +27,15 @@ type AgentsListInput = {
 function spawnCallsShapeError(calls: unknown[]): string | null {
   for (let idx = 0; idx < calls.length; idx += 1) {
     const item = calls[idx];
-    const agentId =
-      item && typeof item === 'object' ? (item as { agentId?: unknown }).agentId : undefined;
+    const rec =
+      item && typeof item === 'object' ? (item as { agentId?: unknown; budget?: unknown }) : null;
+    const agentId = rec?.agentId;
     if (typeof agentId !== 'string' || !agentId) {
       return `calls[${idx}].agentId must be a non-empty string`;
+    }
+    const parsed = parseSpawnBudget(rec?.budget);
+    if (parsed.error !== undefined) {
+      return `calls[${idx}].${parsed.error}`;
     }
   }
   return null;
@@ -240,7 +246,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       group: 'agents',
       sideEffect: 'write',
       description:
-        'Queue one-shot subcontracts: the graph then runs control:spawn. calls is [{ agentId, input }]. input is usually { messages: [{ role: "user", content: "<task>" }] }. Children cannot ask questions back (permission/approval/input tools are denied in child context); provide everything upfront. agentId accepts an exact id, a unique id prefix (8+ chars), or a name — unknown/ambiguous targets fail here with the agent list. Prefer agents_list (reuse) before agents_create. This is not the tool name control:spawn.',
+        'Queue one-shot subcontracts: the graph then runs control:spawn. calls is [{ agentId, input, budget? }] — budget {maxSteps?, maxTokens?, deadlineMs?} caps this child only; omit to inherit your own budget. input is usually { messages: [{ role: "user", content: "<task>" }] }. Children cannot ask questions back (permission/approval/input tools are denied in child context); provide everything upfront. On budget exhaustion a child never fails: it closes with a report and the result carries "budget". agentId accepts an exact id, a unique id prefix (8+ chars), or a name — unknown/ambiguous targets fail here with the agent list. Prefer agents_list (reuse) before agents_create. This is not the tool name control:spawn.',
       input: {
         type: 'object',
         properties: {
@@ -257,6 +263,20 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
                 input: {
                   description:
                     'Child run input. Typical: { "messages": [{ "role": "user", "content": "<task>" }] }',
+                },
+                budget: {
+                  type: 'object',
+                  description:
+                    'Optional child quota (maxSteps, maxTokens, deadlineMs >= 0), replaces the child budget entirely; defaults to inheriting yours. policy is ignored: a sandboxed child never asks and always closes with a report.',
+                  properties: {
+                    maxSteps: {
+                      type: 'number',
+                      description: 'Node executions allowed for the child',
+                    },
+                    maxTokens: { type: 'number' },
+                    deadlineMs: { type: 'number' },
+                  },
+                  additionalProperties: false,
                 },
               },
               required: ['agentId'],

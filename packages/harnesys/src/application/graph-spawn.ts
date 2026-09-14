@@ -1,8 +1,8 @@
 import { DEFAULT_PERMISSIONS } from '../constants.ts';
-import type { AgentDefinition } from '../domain/agent-definition.ts';
+import type { AgentBudget, AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Expr } from '../domain/expr.ts';
-import type { Event } from '../domain/snapshot.ts';
+import type { Event, Snapshot } from '../domain/snapshot.ts';
 import type { AgentRosterEntry, AgentsResolve } from '../ports/create-runtime.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import { formatAgentTargets, resolveAgentTarget } from './agent-target-resolve.ts';
@@ -19,7 +19,12 @@ import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
 export type SpawnCall = {
   agentId: string;
   input: unknown;
+  /** Квота ребёнка: полная замена, только лимиты; policy движком не используется. */
+  budget?: AgentBudget;
 };
+
+/** Бюджет исчерпан на границе лимита; отчёт ребёнка — закрывающий, не «задача сделана». */
+export type SpawnBudgetHit = { kind: 'steps' | 'tokens' | 'deadline'; limit: number; used: number };
 
 export type SpawnResultItem = {
   agentId: string;
@@ -27,6 +32,7 @@ export type SpawnResultItem = {
   output: unknown;
   error?: { code: string; message: string };
   blocked?: DeniedToolEntry[];
+  budget?: SpawnBudgetHit;
 };
 
 export type SpawnEmission = {
@@ -88,6 +94,34 @@ function resolveConcurrency(
   throw codedRunError('concurrency_invalid', `invalid concurrency ${String(c)}`);
 }
 
+/** `budget` в элементе spawn-вызова: только лимиты, числа >=0, хотя бы один. */
+export function parseSpawnBudget(raw: unknown): { budget?: AgentBudget; error?: string } {
+  if (raw === undefined || raw === null) {
+    return {};
+  }
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    return { error: 'budget must be an object' };
+  }
+  const rec = raw as Record<string, unknown>;
+  const out: AgentBudget = {};
+  let any = false;
+  for (const key of ['maxSteps', 'maxTokens', 'deadlineMs'] as const) {
+    const v = rec[key];
+    if (v === undefined) {
+      continue;
+    }
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) {
+      return { error: `budget.${key} must be a non-negative number` };
+    }
+    (out as Record<string, unknown>)[key] = v;
+    any = true;
+  }
+  if (!any) {
+    return { error: 'budget must set at least one limit' };
+  }
+  return { budget: out };
+}
+
 function parseCalls(raw: unknown): SpawnCall[] {
   if (!Array.isArray(raw)) {
     throw codedRunError('spawn_calls_shape', 'calls must be array');
@@ -100,7 +134,15 @@ function parseCalls(raw: unknown): SpawnCall[] {
     if (typeof rec.agentId !== 'string' || !rec.agentId) {
       throw codedRunError('spawn_calls_shape', `calls[${idx}].agentId must be string`);
     }
-    return { agentId: rec.agentId, input: rec.input };
+    const parsed = parseSpawnBudget(rec.budget);
+    if (parsed.error !== undefined) {
+      throw codedRunError('spawn_calls_shape', `calls[${idx}].${parsed.error}`);
+    }
+    return {
+      agentId: rec.agentId,
+      input: rec.input,
+      ...(parsed.budget !== undefined ? { budget: parsed.budget } : {}),
+    };
   });
 }
 
@@ -144,6 +186,30 @@ function resolveTargets(
   return out;
 }
 
+/** Завершение на границе бюджета: отчёт закрывающий. Порядок видов — как в движка budgetOver. */
+function spawnBudgetHit(
+  snap: Snapshot | null | undefined,
+  b: AgentBudget | undefined,
+): SpawnBudgetHit | undefined {
+  const cb = snap?.cursor.budget;
+  if (b === undefined || cb === undefined) {
+    return undefined;
+  }
+  if (b.maxSteps !== undefined && cb.steps >= b.maxSteps) {
+    return { kind: 'steps', limit: b.maxSteps, used: cb.steps };
+  }
+  if (b.maxTokens !== undefined && cb.tokens >= b.maxTokens) {
+    return { kind: 'tokens', limit: b.maxTokens, used: cb.tokens };
+  }
+  if (b.deadlineMs !== undefined) {
+    const used = Date.now() - cb.startedAt;
+    if (used >= b.deadlineMs) {
+      return { kind: 'deadline', limit: b.deadlineMs, used };
+    }
+  }
+  return undefined;
+}
+
 function childOutputFromState(state: Record<string, unknown>): unknown {
   const msgs = state.messages;
   if (Array.isArray(msgs) && msgs.length > 0) {
@@ -166,10 +232,17 @@ async function runOneChild(
     emitHook(parent.hooks, 'SubagentStop', { agent_type: target.call.agentId });
   const childState: RuntimeState = parent.state.child(target.spawnId);
   // У ребёнка нет модели — наследуем модель рана родителя (плагин-агенты с нерезолвной алиас-моделью).
-  const childDef =
+  const modelInherited =
     target.def.model === undefined && parent.agent.model !== undefined
       ? { ...target.def, model: parent.agent.model }
       : target.def;
+  // Бюджет: квота оркестратора > бюджет определения ребёнка > лимиты родителя
+  // (счётчики свои; policy родителя не наследуется — песочница не спрашивает).
+  const childBudget = target.call.budget ?? modelInherited.budget ?? parent.agent.budget;
+  const childDef =
+    childBudget === modelInherited.budget
+      ? modelInherited
+      : { ...modelInherited, budget: childBudget };
   const plan = compileOrThrow(childDef);
   const runRegistry = new Map(filterToolsForAgent(parent.toolRegistry, childDef));
   // Запрет вложенности на уровне движка: ребёнок не получает тулы пака agents.
@@ -246,10 +319,12 @@ async function runOneChild(
   blocked = deniedToolsList(rec);
   if (status === 'completed') {
     await stopEvent();
+    const over = spawnBudgetHit(snap, childBudget);
     return {
       agentId: target.call.agentId,
       spawnId: target.spawnId,
       output: childOutputFromState(rec),
+      ...(over !== undefined ? { budget: over } : {}),
       ...blockedProp(),
     };
   }

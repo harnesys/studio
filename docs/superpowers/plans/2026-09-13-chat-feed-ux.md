@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-13-chat-feed-ux-design.md`
 
+> **Сверка с кодом — 2026-09-14, `HEAD 6fa58ec`.** План перечитан против текущего дерева. Подтверждено: реальный API `ActivityLine` = `{icon:LucideIcon, label, hint, badges, tail, active, failed, defaultOpen, hasContent, indentContent, children}` (без `state`/`onOpen`/`data-testid`) — задачи 3–6 это используют корректно; `SpawnInfo.toolStats`/`SpawnToolStat` и поля `MapInfo` (`concurrency,count,ok,failed,status,items[].{index,workerId,preview,message,status}`) существуют; `@shadcn/react@0.3.0` провайдер принимает `autoScroll, defaultScrollPosition:'start'|'end'|'last-anchor', scrollEdgeThreshold, scrollPreviousItemPeek, scrollMargin`, `useMessageScrollerScrollable()` → `{start,end}`. Исправлено: (1) `tool-run.tsx` мёртв — удалён из Task 4 и перенесён на удаление в Task 1, где переименовывается `TOOL_RUN_COLLAPSE_AT`; (2) резолв имени агента — через новый `agentFallbackName` (`model/agent-label.ts`), не `id.slice(0,8)`; (3) `end` в провайдере = «можно скроллить вниз», живой край это `!end` — в `ThreadReadSync`/`LiveEdgeControls` так и записано; (4) импорт-хвосты после удаления comfort/StickOnSend (`useState`,`useLayoutEffect`,`useRef`,`useMessageScroller` из `thread-panel`; `sliderValue`/`Slider` из `chat-pane`) — добавлены в шаги; (5) `paddingBottom:'50vh'` в `anchor` может столкнуться со встроенным spacer примитива — помечено как проверять на живой сверке, не додумывать.
+
 ## Global Constraints
 
 - Тесты запрещены (AGENTS.md): не создавать `*.test.ts`/`*.spec.ts`, не ставить vitest/RTL/playwright. Ворота каждой задачи: `bun run typecheck && bun run lint` в `apps/studio/client` + ручная проверка agent-browser.
@@ -30,10 +32,11 @@
 - Modify: `shared/lib/chat-preferences.ts` (переписать)
 - Modify: `pages/settings/ui/chat-pane.tsx` (переписать)
 - Modify: `widgets/chat-transcript/ui/thread-panel.tsx`
-- Modify: `widgets/chat-transcript/model/comfort-scroll.ts` (удалить)
+- Delete: `widgets/chat-transcript/model/comfort-scroll.ts`
+- Delete: `widgets/chat-transcript/ui/tool-run.tsx` (мёртв: внешних импортов `ToolRun`/`tool-run` нет, `rg` подтвердит)
 - Modify: `widgets/chat-transcript/index.ts:1` (убрать comfort-экспорт)
 - Modify: `shared/config/constants.ts:17` (`TOOL_RUN_COLLAPSE_AT` → `ACTIVITY_COLLAPSE_MIN = 2`)
-- Modify: `widgets/chat-transcript/ui/thinking-line.tsx`, `tool-line.tsx`, `tool-group.tsx`, `tool-run.tsx` (переезд на `feedDetail`)
+- Modify: `widgets/chat-transcript/ui/thinking-line.tsx`, `tool-line.tsx`, `tool-group.tsx` (переезд на `feedDetail`)
 - Create: `widgets/chat-transcript/model/use-unseen-count.ts`
 
 **Interfaces:**
@@ -136,7 +139,7 @@ export function useUnseenCount(total: number, atEnd: boolean): number {
 
 - [ ] **Step 4: Переписать скролл-часть `thread-panel.tsx`**
 
-Удалить: импорт `useComfortFollow`, `useState<HTMLDivElement | null>` для viewport, `comfortFollow/Anchor/Threshold/Duration`-селекторы, `useComfortFollow(...)`-вызов, `comfortSpacer`/`followPinned`, компонент `StickOnSend` и его импорт-использование, `{!followPinned ? ... : null}`-обёртку кнопки, `ref={setViewport}` у Viewport, `style={{ paddingBottom }}` по comfort.
+Удалить: импорт `useComfortFollow`, `useState<HTMLDivElement | null>` для viewport, `comfortFollow/Anchor/Threshold/Duration`-селекторы, `useComfortFollow(...)`-вызов, `comfortSpacer`/`comfortPinned`/`followPinned`, компонент `StickOnSend` и его использование, `{!followPinned ? ... : null}`-обёртку кнопки, `ref={setViewport}` у Viewport, `style={{ paddingBottom }}` по comfort, param `followPinned` у `ThreadReadSync`. Почистить шапку импортов `thread-panel.tsx`: из `react` убрать `useLayoutEffect`, `useRef`, `useState` (останутся `useCallback`, `useEffect`); из `@/shared/ui/message-scroller` убрать `useMessageScroller` (его держал только `StickOnSend`; `useMessageScrollerScrollable` остаётся).
 
 Добавить:
 
@@ -184,18 +187,13 @@ function LiveEdgeControls({ threadId }: { threadId: string }) {
     <MessageScrollerViewport>
       <MessageScrollerContent
         className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]"
-        style={spacerRef.current ? { paddingBottom: '50vh' } : undefined}
+        style={feedFollow === 'anchor' ? { paddingBottom: '50vh' } : undefined}
       >
 ```
 
-Монотонный резерв низа (latch-реф, никогда не снимается):
+Резерв низа нужен только в `anchor`: чтобы последний (возможно короткий) терн докрутился к якорю у верха. В `pin` край и так у низа — запас не добавляем. Монотонный latch-реф не нужен: режим читается из `feedFollow` на каждый render.
 
-```tsx
-const spacerRef = useRef(false);
-if (!spacerRef.current && events.some((ev) => ev.type === 'user')) {
-  spacerRef.current = true;
-}
-```
+> ⚠️ Проверить на ручной сверке: у `MessageScrollerContent` есть собственный встроенный spacer (`spacerClassName`/внутренний элемент примитива). Если в `anchor` он плюс наш `paddingBottom:'50vh'` дадут двойной зазор, либо `!end` в `ThreadReadSync`/`LiveEdgeControls` перестанет «видеть» живой край (кнопка «вниз» не исчезает, unseen не обнуляется, тред не помечается прочитанным при пинне) — снять ручной `paddingBottom` и оставить только spacer примитива + `scrollPreviousItemPeek`. Это решение по факту наблюдаемого поведения, не додумывать заранее.
 
 `scrollAnchor` на item-строках `ownRuns`:
 
@@ -222,7 +220,7 @@ function ThreadReadSync({ threadId }: { threadId: string }) {
 
 - [ ] **Step 5: Переписать `pages/settings/ui/chat-pane.tsx`**
 
-Четыре поля: Font size (существующий ToggleGroup), Follow (ToggleGroup по `FEED_FOLLOW_MODES`/labels, `aria-label="Feed follow"`, описание: «Anchor parks the new turn near the top with a peek of the previous one; Pin holds the live edge at the bottom»), Detail (ToggleGroup по `FEED_DETAIL_MODES`, описание: «Quiet collapses finished activity groups; Full keeps them open»), Detailed statistics (Switch без изменений). Удалить: три Slider-поля, `Switch comfort-follow`, `expandThinking`, `expandTools`, `liveExpand`-секции, импорты `Slider`, `FieldSet`-обёртки «Follow & Autoscroll»/«Live element», импорты `COMFORT_*`/`LIVE_EXPAND_*`/`isLiveExpandMode`.
+Четыре поля: Font size (существующий ToggleGroup), Follow (ToggleGroup по `FEED_FOLLOW_MODES`/labels, `aria-label="Feed follow"`, описание: «Anchor parks the new turn near the top with a peek of the previous one; Pin holds the live edge at the bottom»), Detail (ToggleGroup по `FEED_DETAIL_MODES`, описание: «Quiet collapses finished activity groups; Full keeps them open»), Detailed statistics (Switch без изменений). Удалить: три Slider-поля, `Switch comfort-follow`, `expandThinking`, `expandTools`, `liveExpand`-секции, импорты `Slider`, `FieldSet`-обёртки «Follow & Autoscroll»/«Live element» (если FieldSet больше не нужен — убрать и его импорт), импорты `COMFORT_*`/`LIVE_EXPAND_*`/`isLiveExpandMode`, хелпер `sliderValue` (станет мёртвым после удаления слайдеров).
 
 - [ ] **Step 6: Переезд потребителей на `feedDetail`**
 
@@ -232,7 +230,7 @@ function ThreadReadSync({ threadId }: { threadId: string }) {
 const feedDetail = useChatPreferences((state) => state.feedDetail);
 // defaultOpen={live || feedDetail === 'full'}
 // follow={live}
-// previewClassName="max-h-28" (убеждены ветки expanded), fullClassName="max-h-[min(70vh,24rem)]"
+// previewClassName="max-h-28" (снять liveExpand-ветку expanded), fullClassName="max-h-[min(70vh,24rem)]"
 ```
 
 `tool-line.tsx`: убрать `expandTools`/`liveExpand`:
@@ -242,18 +240,18 @@ const feedDetail = useChatPreferences((state) => state.feedDetail);
 // defaultOpen={live || feedDetail === 'full' || Boolean(map)}
 ```
 
-`tool-group.tsx`: удалить `TOOL_GROUP_MIN`, `expandTools`, `liveExpand`:
+`tool-group.tsx`: удалить `TOOL_GROUP_MIN`, `expandTools`, `liveExpand`; добавить импорт `ACTIVITY_COLLAPSE_MIN` из `@/shared/config/constants`:
 
 ```tsx
 const feedDetail = useChatPreferences((state) => state.feedDetail);
 const collapse = feedDetail === 'quiet' && !runLive && pairs.length >= ACTIVITY_COLLAPSE_MIN;
 ```
 
-`tool-run.tsx`: аналогично `collapse = feedDetail === 'quiet' && !live && pairs.length >= ACTIVITY_COLLAPSE_MIN` (импорт `TOOL_RUN_COLLAPSE_AT` → `ACTIVITY_COLLAPSE_MIN` из `@/shared/config/constants`).
+(`tool-run.tsx` в этом шаге не правим — он мёртв и удаляется целиком на шаге 7 вместе с последним потребителем `TOOL_RUN_COLLAPSE_AT`.)
 
 - [ ] **Step 7: Удалить `comfort-scroll.ts` и экспорт**
 
-`rm widgets/chat-transcript/model/comfort-scroll.ts`; в `widgets/chat-transcript/index.ts` удалить строку `export { type ComfortScrollOptions, useComfortFollow } from './model/comfort-scroll';`.
+`rm widgets/chat-transcript/model/comfort-scroll.ts`; в `widgets/chat-transcript/index.ts` удалить строку `export { type ComfortScrollOptions, useComfortFollow } from './model/comfort-scroll';`. Удалить мёртвый `widgets/chat-transcript/ui/tool-run.tsx` (внешних импортов `ToolRun`/`tool-run` нет — подтвердит шаг 8). С этого момента `TOOL_RUN_COLLAPSE_AT` не нужен: в шаге 2 переименован в `ACTIVITY_COLLAPSE_MIN`, единственный прежний потребитель удалён.
 
 - [ ] **Step 8: Проверить отсутствие остатков**
 
@@ -341,7 +339,7 @@ function streamCode({ className, children }: { className?: string; children?: Re
 const STREAM_COMPONENTS: Components = { code: streamCode, pre: components.pre };
 ```
 
-(тип `code`-пропа взять из `Components['code']`, если биом/TS ругнется на подпись — объявить `const STREAM_COMPONENTS = { code: streamCode, pre: components.pre } as Components`.)
+(тип `code`-пропа взять из `Components['code']`, если биом/TS ругнется на подпись — объявить `const STREAM_COMPONENTS = { code: streamCode, pre: components.pre } as Components`.) `STREAM_COMPONENTS`/`streamCode` объявлять ПОСЛЕ `const components` (файл `markdown.tsx`: `components` на строке 32) — `components.pre` читается в момент объявления константы. `escapeHtml` — существующий хелпер файла (строка 71), повтор not.
 
 - [ ] **Step 2: `LiveMarkdown` в `agent-turn.tsx`**
 
@@ -448,6 +446,7 @@ import { formatDuration, formatTokenCount } from '@/entities/session';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { Button } from '@/shared/ui/button';
 import { ExpandableScroll } from '@/shared/ui/expandable-scroll';
+import { agentFallbackName } from '../model/agent-label';
 import type { SpawnInfo, SpawnToolStat } from '../model/spawn-groups';
 import { useNow } from '../model/use-now';
 import { useSpawnStream } from '../model/use-spawn-stream';
@@ -472,7 +471,7 @@ export function SpawnLine({
   useSpawnStream(threadId, spawnId, spawn.status === 'running');
   const feedDetail = useChatPreferences((state) => state.feedDetail);
   const agent = useAgentStore((state) => state.byId(spawn.agentId));
-  const name = agent?.name ?? spawn.agentId.slice(0, 8);
+  const name = agent?.name ?? agentFallbackName(spawn.agentId);
   const running = spawn.status === 'running';
   const now = useNow(running && live ? LIVE_TICK_MS : 0);
   const elapsed =
@@ -609,7 +608,6 @@ git commit -m "refactor: spawn card becomes activity line with stats and open ac
 - Modify: `widgets/chat-transcript/ui/activity-items.tsx`
 - Modify: `widgets/chat-transcript/ui/tool-group.tsx`
 - Modify: `widgets/chat-transcript/ui/agent-turn.tsx`
-- Delete: `widgets/chat-transcript/ui/tool-run.tsx`
 - Modify: `widgets/chat-transcript/ui/run-turn.tsx` (не меняется логика spawns-prop; проверить импорты)
 
 **Interfaces:**
@@ -708,9 +706,9 @@ if (chunk.type === 'spawn') {
 
 `TurnSegmentView` больше не рендерит `spawn`-сегмент (типа удалён в шаге 1). Удалить ветку `if (segment.type === 'spawn') { ... }` (это тот `ActivityRail` + `SpawnLine`, что добавили в Task 3 Step 2) и импорт `SpawnLine`/`ActivityRail`, если они больше не нужны здесь. В `activity`-ветку (`ActivityItems`) добавить прокид `spawns={spawns} onOpenSpawn={onOpenSpawn}`. `AssistantMessageView` собирает `spawns` из prop в `ActivityItems`; `hasInFlight` (строка ~133) остаётся (спавны не tool-события). `segmentSpacing` уже не ссылается на `spawn` (шаг 1).
 
-- [ ] **Step 6: Удалить `tool-run.tsx`**
+- [ ] **Step 6: `tool-run.tsx` уже удалён**
 
-`rg "tool-run'|ToolRun\b" apps/studio/client/src` перед удалением: ожидаем только сам файл (внешних импортов нет). `rm widgets/chat-transcript/ui/tool-run.tsx`.
+`rg "tool-run'|ToolRun\b" apps/studio/client/src` — пусто (файл удалён в Task 1, шаг 7). Если что-то осталось — это забытый импорт, допилить каскадом (RULE D1/D4), заглушку не ставить.
 
 - [ ] **Step 7: Ворота**
 
@@ -720,7 +718,7 @@ if (chunk.type === 'spawn') {
 
 ```bash
 git add apps/studio/client/src
-git commit -m "refactor: spawns join activity groups, type-aware collapsed summary; drop dead ToolRun"
+git commit -m "refactor: spawns join activity groups, type-aware collapsed summary"
 ```
 
 ---
@@ -843,23 +841,23 @@ git commit -m "refactor: map workers as nested activity lines, summary on parent
 ```tsx
 import { ArrowRightLeftIcon } from 'lucide-react';
 import { useAgentStore } from '@/entities/agent';
+import { agentFallbackName } from '../model/agent-label';
 import { ActivityLine } from './activity-line';
-import { ActivityRail } from './activity-rail';
 
 export function HandoffLine({ agentId }: { agentId: string }) {
-  const agent = useAgentStore((state) => state.items.find((item) => item.id === agentId));
-  const name = agent?.name ?? agentId.slice(0, 8);
+  const agent = useAgentStore((state) => state.byId(agentId));
+  const name = agent?.name ?? agentFallbackName(agentId);
   return (
-    <ActivityRail>
-      <ActivityLine icon={ArrowRightLeftIcon} label="Handoff" hint={name} hasContent={false} />
-    </ActivityRail>
+    <ActivityLine icon={ArrowRightLeftIcon} label="Handoff" hint={name} hasContent={false} />
   );
 }
 ```
 
+`byId` (не `items.find`), как в `SpawnLine`/`spawn-card.tsx`. `agentFallbackName` уже реальный экспорт `model/agent-label.ts:5`. `ActivityRail` не оборачиваем — сегмент рендерится внутри общего rail `ActivityItems`-пути; handoff-сегмент — отдельный, поэтому `ActivityRail` нужен на call-site в `agent-turn.tsx` (шаг 2), а не внутри строки.
+
 - [ ] **Step 2: Каскад удаления `handoff-card.tsx`**
 
-`agent-turn.tsx`: импорт `HandoffCard` → `HandoffLine` from `./handoff-line`; handoff-ветка `TurnSegmentView`: `return <HandoffLine agentId={segment.agentId} />;`. `widgets/chat-transcript/index.ts`: удалить `export { HandoffCard } from './ui/handoff-card';`. `rm ui/handoff-card.tsx`. `rg "HandoffCard|handoff-card|handoff-message" apps/studio/client/src` — пусто. `FeedNotice` остаётся (system/error/schedule/compaction).
+`agent-turn.tsx`: импорт `HandoffCard` → `HandoffLine` from `./handoff-line`; handoff-ветка `TurnSegmentView`: `return <ActivityRail><HandoffLine agentId={segment.agentId} /></ActivityRail>;` (`ActivityRail` уже импортирован в файле, строка 28 — как в spawn-ветке Task 3). `widgets/chat-transcript/index.ts`: удалить `export { HandoffCard } from './ui/handoff-card';`. `rm ui/handoff-card.tsx`. `rg "HandoffCard|handoff-card|handoff-message" apps/studio/client/src` — пусто. `FeedNotice` остаётся (system/error/schedule/compaction).
 
 - [ ] **Step 3: Ворота**
 

@@ -6,7 +6,6 @@ import type {
   PluginIr,
 } from 'harnesys';
 import { bindAgentComponents } from 'harnesys';
-import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import type { PluginInstallRecord } from '../../domain/plugin.port.ts';
 import { buildReactGraph } from '../agents/react-preset.ts';
@@ -54,10 +53,9 @@ export function pluginAgentCatalog(
       all.set(agent.id, {
         definition: {
           ...agent.definition,
+          // Движок добирает бюджет по цепочке spawn-call > def > родитель;
+          // константа здесь перекрыла бы наследование.
           graph: buildReactGraph(agent.definition.tools ?? []),
-          // Цикл think↔act без лимита ловит cycle_budget; как у сток-реакт
-          // DB-агентов: maxTurns из frontmatter, иначе DEFAULT_REACT_BUDGET.
-          budget: agent.definition.budget ?? DEFAULT_REACT_BUDGET,
         },
         ...(agent.color !== undefined ? { color: agent.color } : {}),
       });

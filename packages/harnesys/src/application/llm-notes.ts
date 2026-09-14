@@ -27,7 +27,7 @@ export function assembleNotes(notes: LlmNote[]): string {
   return `Runtime notes (refreshed before this step):\n${blocks}`;
 }
 
-export function budgetNote(left: BudgetLeft): LlmNote {
+export function budgetNote(left: BudgetLeft, closing = false): LlmNote {
   const parts: string[] = [];
   if (left.stepsLeft !== undefined) {
     parts.push(
@@ -39,6 +39,16 @@ export function budgetNote(left: BudgetLeft): LlmNote {
   }
   if (left.msLeft !== undefined) {
     parts.push(`time remaining: ~${Math.max(1, Math.ceil(left.msLeft / 60_000))} min`);
+  }
+  if (closing) {
+    const counter = parts.length > 0 ? `${parts.join(' · ')}. ` : '';
+    return {
+      tag: 'budget',
+      text:
+        `${counter}This is your last step and no tools are available. ` +
+        'Do not attempt tool calls. Write your final report now: what you did, ' +
+        'what you found, and what is left unfinished.',
+    };
   }
   return {
     tag: 'budget',

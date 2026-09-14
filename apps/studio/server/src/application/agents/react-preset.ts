@@ -45,12 +45,7 @@ const REACT_EDGES: Edge[] = [
 ];
 
 export function buildReactGraph(tools: string[]): AgentGraph {
-  // Пустой список = «все тулы реестра» (llm.ts берёт registry при undefined);
-  // tools: [] означало бы «явно никаких» и рвало вызов тулов.
-  const thinkNode: Node = {
-    ...THINK_NODE,
-    ...(tools.length > 0 ? { tools } : {}),
-  };
+  const thinkNode: Node = { ...THINK_NODE, tools };
 
   return {
     nodes: { ...REACT_NODES, think: thinkNode },

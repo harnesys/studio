@@ -65,18 +65,19 @@ export async function runClosedWorldMaterialization(
           }),
       );
       const names = [...identity.toolRegistry.keys()];
-      const mcpServers = names
-        .map((name) => identity.toolRegistry.get(name)?.group)
-        .filter(
-          (group, idx, all): group is string =>
-            group !== undefined &&
-            (identity.toolRegistry.get(names[idx])?.operations ?? []).includes('mcp') &&
-            all.indexOf(group) === idx,
-        );
+      const mcpServers: string[] = [];
+      for (const name of names) {
+        const tool = identity.toolRegistry.get(name);
+        if ((tool?.operations ?? []).includes('mcp') === false) {
+          continue;
+        }
+        if (tool?.group !== undefined && !mcpServers.includes(tool.group)) {
+          mcpServers.push(tool.group);
+        }
+      }
       const graph = materializeGraphNodes(row.graph, names);
       // Заполняем только пустые поля: непустой сохранённый allowlist — явный выбор,
-      // он остаётся как есть (старый read-path для tools всё равно отдаёт [], то есть
-      // «пусто = не задано»).
+      // он остаётся как есть.
       deps.agents.update(row.id, {
         ...(row.tools.length === 0
           ? { tools: names.filter((name) => !SERVICE_TOOLS.has(name)) }
@@ -84,7 +85,7 @@ export async function runClosedWorldMaterialization(
         ...(row.skills.length === 0
           ? { skills: await skillNames(skillCatalog, identity.packOutputs) }
           : {}),
-        ...(row.mcpServers.length === 0 ? { mcpServers: [...new Set(mcpServers)] } : {}),
+        ...(row.mcpServers.length === 0 ? { mcpServers } : {}),
         ...(Object.keys(row.enabledPlugins).length === 0
           ? { enabledPlugins: Object.fromEntries(pluginNames.map((name) => [name, true])) }
           : {}),

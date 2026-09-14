@@ -23,8 +23,7 @@ export function McpInspector({ agent }: { agent: Agent }) {
         ) : (
           <div className="flex flex-col gap-1.5">
             {catalog.map((server) => {
-              const enabled =
-                agent.mcpServers.length === 0 || agent.mcpServers.includes(server.serverId);
+              const enabled = agent.mcpServers.includes(server.serverId);
               const status = mcpStatus(enabled, server.connected);
               return (
                 <div key={server.serverId} className="flex items-center gap-2">

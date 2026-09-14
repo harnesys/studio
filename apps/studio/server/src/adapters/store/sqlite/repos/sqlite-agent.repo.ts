@@ -56,7 +56,7 @@ export class SqliteAgentRepo implements AgentRepository {
         skills,
         mcpServers,
         modes,
-        tools: _tools,
+        tools,
         generation,
         toolOutput,
         compaction,
@@ -68,14 +68,13 @@ export class SqliteAgentRepo implements AgentRepository {
         enabledPlugins,
         ...rest
       } = rec;
-      // `tools` stays on the record type for Task 8 consumers but
-      // is no longer persisted; the columns keep their stored data on disk.
       const row = this.db
         .insert(agentsTable)
         .values({
           ...rest,
           skills: JSON.stringify(skills),
           mcpServers: JSON.stringify(mcpServers),
+          tools: JSON.stringify(tools),
           generation: serializeJson(generation),
           toolOutput: serializeJson(toolOutput),
           compactionJson: serializeJsonColumn(compaction),
@@ -167,10 +166,9 @@ function toAgent(row: AgentRow): Agent {
     generation: parseJsonObject(row.generation),
     toolOutput: parseJsonObject(row.toolOutput),
     compaction: coalesceCompaction(parseJsonColumn<PortRef>(row.compactionJson)),
-    // `tools` no longer read from column (Task 8 removes the consumers); empty tools means all workspace tools.
     skills: parseStringList(row.skills),
     mcpServers: parseStringList(row.mcpServers),
-    tools: [],
+    tools: parseStringList(row.tools),
     graph: parseGraph(row.graphJson),
     budget: parseJsonObject(row.budgetJson),
     capabilities: parsePacks(row.capabilitiesJson),

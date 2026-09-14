@@ -120,7 +120,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       group: 'agents',
       operations: ['agents'],
       description:
-        'Create a standalone top-level agent in this workspace (visible to the user in the sidebar, own threads). For a delegate under you use agents_create_subagent. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
+        'Create a standalone top-level agent in this workspace (visible to the user in the sidebar, own threads). For a delegate under you use agents_create_subagent. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. tools/skills/mcpServers/packs/enabledPlugins: omitted or [] means none; list every capability explicitly. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
       input: {
         type: 'object',
         properties: {
@@ -182,10 +182,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
             return { error: 'name, role, and instructions are required' };
           }
           const packsRaw = input.packs ?? input.capabilities ?? {};
-          const packs = 'agents' in packsRaw ? packsRaw : { ...packsRaw, agents: {} };
           const next: AgentCatalogCreateInput & { capabilities?: unknown } = { ...input };
           delete next.capabilities;
-          next.packs = packs;
+          next.packs = packsRaw;
           return await deps.agents.create(
             scope,
             await withInheritedModel(deps.agents, scope, next),

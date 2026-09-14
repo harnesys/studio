@@ -41,11 +41,11 @@ export type AgentRecord = {
   generation?: AgentGenerationSettings | null;
   toolOutput?: ToolOutputSettings | null;
   compaction?: PortRef;
-  /** Empty = all workspace skills (omit allowlist). */
+  /** Skill allowlist; omitted/empty means none. */
   skills?: string[];
-  /** Empty = all configured MCP servers (omit allowlist). */
+  /** MCP server allowlist; omitted/empty means none. */
   mcpServers?: string[];
-  /** Tool name allowlist; empty = all workspace tools. */
+  /** Tool name allowlist; omitted/empty means none. */
   tools?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;

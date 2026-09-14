@@ -9,7 +9,7 @@ Reference for authoring `AgentDefinition`s and Studio presets. The engine execut
 
 ## The tool-calls invariant (the one that kills runs)
 
-- A `llm:generate` node WITHOUT `tools` sees the entire run registry (all enabled packs). `"tools": []` means explicitly no tools. Omitting the key is not "no tools".
+- `"tools"` omitted, null or [] means no tools — at node and at agent level alike. A node sees only the names in its `tools`.
 - When the model answers with tool calls, the assistant message (with `toolCalls`) is appended to `$state.messages` even if no edge executes them.
 - Any later `llm:generate` in the same run converts those messages and throws `AI_MissingToolResultsError`; the run fails. One unhandled tool call is enough.
 - Therefore: every `llm:generate` that can see tools must either route `when: '$output.finishReason = "tool-calls"'` to a batch `tool:call` over `calls: "$output.toolCalls"`, or loop back to itself after that node, or declare `"tools": []`.
@@ -18,7 +18,7 @@ Reference for authoring `AgentDefinition`s and Studio presets. The engine execut
 
 ```json
 "start": { "type": "core:start" },
-"think": { "type": "llm:generate", "prompt": "main", "messages": "$state.messages" },
+"think": { "type": "llm:generate", "prompt": "main", "messages": "$state.messages", "tools": ["read_file", "write_file", "shell"] },
 "act":   { "type": "tool:call", "calls": "$output.toolCalls", "concurrency": "parallel", "barrier": { "policy": "all" } },
 "end":   { "type": "core:end" }
 ```
@@ -28,6 +28,7 @@ Reference for authoring `AgentDefinition`s and Studio presets. The engine execut
  { "from": "think", "to": "end" },
  { "from": "act", "to": "think" }]
 ```
+The `think` `tools` list is the agent's full tool set; the resolver adds `load_tools`/`load_skill`/`Skill` on top.
 
 ## Graph structure
 
@@ -37,7 +38,7 @@ Exactly one `core:start`; at least one `core:end`. Every node except `core:end` 
 
 - `core:start`: no fields. Appends the user message to `$state.messages`.
 - `core:end`: omit `output` to finish with the last message. Do not write `"$state.messages[-1]"`: negative indexes are not supported, the end node falls back to the literal string as output.
-- `llm:generate`: `prompt` (key in `agent.prompts`; Studio maps `main` = agent instructions, so per-node prompts are not available in presets), `messages: "$state.<key>"` (must be a `$state.*` path; this node is the only history writer), `tools?: string[]` (see invariant), `output?: JsonSchema` (structured: keys merge into `$output`; reserved `finishReason`/`text`/`toolCalls` win; avoid combining `output` with tools in one node).
+- `llm:generate`: `prompt` (key in `agent.prompts`; Studio maps `main` = agent instructions, so per-node prompts are not available in presets), `messages: "$state.<key>"` (must be a `$state.*` path; this node is the only history writer), `tools: string[]` — only listed names are visible (omitted/empty = none, see invariant), `output?: JsonSchema` (structured: keys merge into `$output`; reserved `finishReason`/`text`/`toolCalls` win; avoid combining `output` with tools in one node).
 - `tool:call`: fixed form `name` + `args` (args values may be `$…` expressions) OR batch form `calls` (array expr) + `concurrency` + `barrier: { policy: 'all' }` + optional `approve: { tools, reason, resumeSchema }`. Max 32 calls (`tool_call_limit`). Results append to the messages path of the most recent `llm:generate`, in `calls` order; `$output = { results: [{ id, name, result, isError, skipped?, cancelled? }] }`. Reading `$output.results` before the barrier throws `output_not_ready`.
 - `control:assign`: `patch: { key: Expr | literal | "text {$...}" }`. Writes go through reducers: default strategy is merge (arrays concat, objects deep-merge), `"replace"` only via `state.reducers`.
 - `control:goto`: `target` evaluates to a node id; no `$output` written.
@@ -62,7 +63,7 @@ Gates resolve per operation through `PermissionMap` keyed by OPERATIONS, not too
 
 ## Packs
 
-Definition field is `packs` (Studio records and preset files carry the legacy key `capabilities`; the bridge maps it). Value shapes: `{}` = enabled with defaults, `{ spec: {...} }` = enabled with settings, absent/null = off; booleans are rejected by preset/tool input schemas, do not use them. Exact names, wrong ones silently warn `pack_unknown` and load nothing:
+Definition field is `packs` (Studio records and preset files carry the legacy key `capabilities`; the bridge maps it). Value shapes: `{}` = enabled with defaults, `{ spec: {...} }` = enabled with settings, absent/null = off; booleans are rejected by preset/tool input schemas, do not use them. Closed world: enabling a pack never widens the tool list; every tool the agent may call is also named in `tools`, and creation stores the given pack map as-is. Exact names, wrong ones silently warn `pack_unknown` and load nothing:
 
 | pack | tools |
 |---|---|
@@ -89,7 +90,7 @@ Three roots, ascending precedence: shipped bundle (`apps/studio/assets/skills/<n
 
 ## Presets
 
-`apps/studio/assets/presets/agents/<id>.json` (bundle) and `~/.harnesys/presets/agents/<id>.json` (home), id pattern `^[a-z0-9][a-z0-9-]*$` from the filename. A same-id file in home shadows the bundle. Recognized keys: `name`, `role`, `instructions` (required), `tools`, `skills`, `mcpServers`, `budget`, `capabilities`, `permissions`, `graph`. Unknown keys (including `model`, `compaction`, `packs`) are silently stripped; model and compaction come from Studio defaults. Without `graph` the host builds the default ReAct loop. The loader zod-checks shape but not the tool-calls invariant; validate the graph yourself. One unparseable file breaks the entire preset listing. Subagents: presets without the `agents` pack (explorer, general) are delegate-safe; agents-pack presets (assistant, coder, orchestrator, researcher) create top-level agents only.
+`apps/studio/assets/presets/agents/<id>.json` (bundle) and `~/.harnesys/presets/agents/<id>.json` (home), id pattern `^[a-z0-9][a-z0-9-]*$` from the filename. A same-id file in home shadows the bundle. Recognized keys: `name`, `role`, `instructions` (required), `tools`, `skills`, `mcpServers`, `budget`, `capabilities`, `permissions`, `graph`. Unknown keys (including `model`, `compaction`, `packs`) are silently stripped; model and compaction come from Studio defaults. Empty or missing `tools` = no tools. Without `graph` the host builds the default ReAct loop. The loader zod-checks shape but not the tool-calls invariant; validate the graph yourself. One unparseable file breaks the entire preset listing. Subagents: presets without the `agents` pack (explorer, general) are delegate-safe; agents-pack presets (assistant, coder, orchestrator, researcher) create top-level agents only.
 
 ## Before saving (checklist)
 

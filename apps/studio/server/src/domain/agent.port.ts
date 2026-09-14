@@ -36,11 +36,11 @@ export type Agent = {
   generation: AgentGenerationSettings | null;
   toolOutput: ToolOutputSettings | null;
   compaction: PortRef;
-  /** Empty = all workspace skills (omit allowlist). */
+  /** Skill allowlist; empty = no skills. */
   skills: string[];
-  /** Empty = all configured MCP servers (omit allowlist). */
+  /** MCP server allowlist; empty = no servers. */
   mcpServers: string[];
-  /** Tool name allowlist; empty = all workspace tools. */
+  /** Tool name allowlist; empty = no tools. */
   tools: string[];
   graph: AgentGraph;
   budget: AgentBudget | null;
@@ -51,7 +51,7 @@ export type Agent = {
   color: string | null;
   /** Declarative hook bindings for this agent; empty = none. */
   hooks: HooksBinding[];
-  /** Per-agent plugin enable overrides; empty = workspace defaults. */
+  /** Per-agent plugin allowlist (name → on/off); empty means no plugins. */
   enabledPlugins: Record<string, boolean>;
   defaultModeId: string | null;
   modes: AgentMode[];

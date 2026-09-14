@@ -13,13 +13,10 @@ export function SkillsInspector({ agent }: { agent: Agent }) {
     enabled: Boolean(workspaceId),
   });
   const catalog = query.data?.skills ?? [];
-  const all = agent.skills.length === 0;
-  const names = catalog
-    .map((skill) => skill.name)
-    .filter((name) => all || agent.skills.includes(name));
+  const names = catalog.map((skill) => skill.name).filter((name) => agent.skills.includes(name));
   let hint: string | undefined;
   if (!(query.isPending || catalog.length === 0)) {
-    hint = all ? 'all' : String(names.length);
+    hint = String(names.length);
   }
 
   return (

@@ -180,8 +180,8 @@ export class StudioRunTargets implements RunTargets {
 
 /**
  * Effective plugin set (spec §4 per-agent): workspace enabled ∩ agent
- * enabled. `undefined` / empty agent map inherits the workspace set; a
- * non-empty map intersects it literally.
+ * enabled. Closed world: an `undefined` / empty agent map names no plugins
+ * and yields none; a non-empty map intersects the workspace set literally.
  */
 function effectivePlugins(
   loaded: LoadedWorkspacePlugin[],
@@ -189,7 +189,7 @@ function effectivePlugins(
 ): LoadedWorkspacePlugin[] {
   const overrides = agent.enabledPlugins;
   if (overrides === undefined || Object.keys(overrides).length === 0) {
-    return loaded;
+    return [];
   }
   return loaded.filter((entry) => overrides[entry.record.name] === true);
 }

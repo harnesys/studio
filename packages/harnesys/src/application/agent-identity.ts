@@ -1,6 +1,6 @@
 /** Идентичность агента: единственная сборка «definition → реестр+паки+диагностики».
  *  Консюмеры: run-engine (эта версия), spawn-дети/handoff/discovery (планы 2-3).
- *  Порядок сборки пока старый (filter до attach); закрытие мира — отдельный шаг. */
+ *  Порядок closed-world: attach → filter → services; служебные тулы поверх фильтра. */
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { PackRegistration } from '../domain/pack.ts';
 import type { Logger } from '../ports/logger.ts';
@@ -14,6 +14,7 @@ import {
   registerPackSkillTool,
 } from './packs/pack-run.ts';
 import type { PackDiagnostic } from './packs/registry.ts';
+import { resolveToolAlias } from './tool-aliases.ts';
 import { filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
@@ -36,11 +37,22 @@ export function resolveAgentIdentity(
   def: AgentDefinition,
   ctx: ResolveAgentIdentityCtx,
 ): AgentIdentity {
-  const runRegistry = new Map(filterToolsForAgent(ctx.baseRegistry, def));
-  runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
+  const merged = new Map(ctx.baseRegistry);
   const { outputs, enabled, diagnostics } = buildPackRun(def, ctx.registrations);
+  attachPackTools(merged, enabled, ctx.deferredPacks, ctx.logger);
+  const filtered = filterToolsForAgent(merged, def);
+  for (const name of def.tools ?? []) {
+    if (!merged.has(resolveToolAlias(name))) {
+      diagnostics.push({
+        severity: 'warning',
+        code: 'tool_unreachable',
+        message: `tool "${name}" is not provided by any enabled pack/server`,
+      });
+    }
+  }
   printPackDiagnostics(diagnostics, ctx.logger);
-  attachPackTools(runRegistry, enabled, ctx.deferredPacks, ctx.logger);
+  const runRegistry = new Map(filtered);
   registerPackSkillTool(runRegistry, enabled, def, ctx.fsSkills);
+  runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
   return { toolRegistry: runRegistry, packOutputs: outputs, diagnostics };
 }

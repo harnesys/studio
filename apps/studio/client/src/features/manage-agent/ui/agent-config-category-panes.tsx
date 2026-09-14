@@ -110,7 +110,10 @@ export function AgentConfigCategoryPanes({
               }}
             />
           </Pane>
-          <Pane label="Plugins" description="Plugins enabled for this agent.">
+          <Pane
+            label="Plugins"
+            description="Plugins this agent may use; empty selection means none."
+          >
             <DraftEnabledPlugins
               key={`plugins-${activeAgent?.id ?? 'new'}`}
               workspaceId={workspaceId}

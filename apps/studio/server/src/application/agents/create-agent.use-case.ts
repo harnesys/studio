@@ -144,9 +144,15 @@ export class CreateAgentUseCase implements CreateAgentInput {
       assertAllKnown(unknown, 'mcp server');
     }
     const graph = request.graph !== undefined ? request.graph : buildReactGraph(tools);
-    const budget =
-      request.budget ??
-      (request.graph === undefined || isStockReactGraph(graph) ? DEFAULT_REACT_BUDGET : null);
+    let defaultBudget: AgentBudget | null;
+    if (parentId !== null) {
+      defaultBudget = { maxSteps: 25, policy: 'error' };
+    } else if (request.graph === undefined || isStockReactGraph(graph)) {
+      defaultBudget = DEFAULT_REACT_BUDGET;
+    } else {
+      defaultBudget = null;
+    }
+    const budget = request.budget ?? defaultBudget;
     const modes = ensureAskMode(request.modes ?? this.seedDefaultModes());
     const defaultModeId = request.defaultModeId ?? null;
     const hooks = request.hooks ?? [];

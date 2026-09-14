@@ -33,28 +33,18 @@ export function filterToolsForAgent(
   registry: Map<string, ToolDefinition>,
   agent: { tools?: string[]; mcpServers?: string[]; disallowedTools?: string[] },
 ): Map<string, ToolDefinition> {
-  const disallowed = agent.disallowedTools;
-  const hasAllowList = agent.tools !== undefined && agent.tools.length > 0;
-  if (
-    agent.mcpServers === undefined &&
-    (disallowed === undefined || disallowed.length === 0) &&
-    !hasAllowList
-  ) {
-    return registry;
-  }
+  // Closed-world: неназванный инструмент недоступен; раннего «вернуть весь реестр» больше нет.
+  const blocked = new Set((agent.disallowedTools ?? []).map(resolveToolAlias));
   const allowedServers = new Set(agent.mcpServers ?? []);
-  const blocked = new Set((disallowed ?? []).map(resolveToolAlias));
   // Requested names keep their alias spelling in the child registry so
   // CC-authored prompts ("use the Glob tool") call tools verbatim.
   const requested = new Map<string, string>();
-  if (hasAllowList) {
-    for (const name of agent.tools ?? []) {
-      requested.set(resolveToolAlias(name), name);
-    }
+  for (const name of agent.tools ?? []) {
+    requested.set(resolveToolAlias(name), name);
   }
   const out = new Map<string, ToolDefinition>();
   for (const [name, def] of registry) {
-    if (requested.size > 0 && !requested.has(name)) {
+    if (!requested.has(name)) {
       continue;
     }
     const isMcp = def.operations?.includes('mcp') ?? false;

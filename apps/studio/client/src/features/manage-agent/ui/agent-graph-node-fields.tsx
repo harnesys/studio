@@ -92,7 +92,7 @@ function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node)
             <GraphInput
               id="graph-llm-tools"
               value={(node.tools ?? []).join(', ')}
-              placeholder="empty = registry default"
+              placeholder="empty = no tools"
               onChange={(event) => {
                 const tools = event.target.value
                   .split(',')

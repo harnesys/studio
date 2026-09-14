@@ -76,7 +76,7 @@ export function DraftCapabilities({
         <Pane
           label="Skills"
           count={skillsQuery.isPending ? undefined : skillCatalog.length}
-          description="Workspace skills this agent may load."
+          description="Workspace skills this agent may load; empty selection means none."
         >
           {!skillsQuery.isPending && skillNames.length === 0 ? (
             <p className="py-6 text-center text-muted-foreground text-sm">
@@ -132,7 +132,7 @@ export function DraftCapabilities({
         <Pane
           label="MCP"
           count={mcpQuery.isPending ? undefined : servers.length}
-          description="MCP servers this agent may use."
+          description="MCP servers this agent may use; empty selection means none."
         >
           {!mcpQuery.isPending && servers.length === 0 ? (
             <p className="py-6 text-center text-muted-foreground text-sm">
@@ -247,7 +247,7 @@ function McpToolsList({
 }
 
 function isChecked(allowlist: string[], name: string): boolean {
-  return allowlist.length === 0 || allowlist.includes(name);
+  return allowlist.includes(name);
 }
 
 function nextAllowlist(
@@ -256,12 +256,11 @@ function nextAllowlist(
   name: string,
   enable: boolean,
 ): string[] {
-  const enabled = new Set(current.length === 0 ? catalogNames : current);
+  const enabled = new Set(current);
   if (enable) {
     enabled.add(name);
   } else {
     enabled.delete(name);
   }
-  const next = catalogNames.filter((item) => enabled.has(item));
-  return next.length === catalogNames.length ? [] : next;
+  return catalogNames.filter((item) => enabled.has(item));
 }

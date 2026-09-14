@@ -61,8 +61,11 @@ export type AgentDefinition = {
   model?: AgentModelRef;
   models?: Record<string, AgentModelRef>;
   fallback?: AgentModelRef[];
+  /** Skill allowlist; omitted/null/[] means none. */
   skills?: string[];
+  /** Tool allowlist; omitted/null/[] means none (closed world). */
   tools?: string[];
+  /** MCP server allowlist; omitted/null/[] means none. */
   mcpServers?: string[];
   toolOutput?: ToolOutputSettings;
   compaction?: PortRef;

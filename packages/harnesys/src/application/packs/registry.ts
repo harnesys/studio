@@ -17,7 +17,8 @@ export type PackDiagnosticCode =
   | 'pack_tools_empty'
   | 'pack_tool_collision'
   | 'skill_name_collision'
-  | 'spec_invalid';
+  | 'spec_invalid'
+  | 'tool_unreachable';
 
 export type PackDiagnostic = {
   severity: 'warning';

@@ -5,9 +5,10 @@ import { Row, RowChip, RowList } from '@/shared/ui/capability-rows';
 import { Switch } from '@/shared/ui/switch';
 
 /**
- * Per-agent plugin overrides. Missing key means "inherit workspace set";
- * a saved map must be complete over the installed catalog — a sparse map
- * disables every plugin missing from it (registry semantics).
+ * Per-agent plugin allowlist (closed world): the saved map names the plugins
+ * the agent may use; a missing key is off and an empty map means no plugins.
+ * A saved map should be complete over the installed catalog (registry
+ * semantics: a sparse map disables every plugin missing from it).
  */
 export function DraftEnabledPlugins({
   workspaceId,
@@ -24,7 +25,7 @@ export function DraftEnabledPlugins({
   function toggle(name: string, enable: boolean) {
     const next: Record<string, boolean> = {};
     for (const item of items) {
-      next[item.plugin.name] = value[item.plugin.name] ?? true;
+      next[item.plugin.name] = value[item.plugin.name] ?? false;
     }
     next[name] = enable;
     onChange(next);
@@ -41,7 +42,7 @@ export function DraftEnabledPlugins({
           key={item.plugin.name}
           item={item}
           workspaceId={workspaceId}
-          enabled={value[item.plugin.name] ?? true}
+          enabled={value[item.plugin.name] ?? false}
           onToggle={(enable) => toggle(item.plugin.name, enable)}
         />
       ))}

@@ -6,12 +6,12 @@
 
 | # | дефект | где |
 |---|---|---|
-| B1 | `control:spawn` бросает `codedRunError('spawn_target_missing')` и валит ран (`run.failed`) вместо результата модели | `packages/harnesys/src/application/graph-spawn.ts:170`, catch ветки в `graph.ts:~1082` |
+| B1 | `control:spawn` бросает `codedRunError('spawn_target_missing')` и валит ран (`run.failed`) вместо результата модели | `packages/harnesys/src/application/graph-spawn.ts:169,175` (третий throw, shape, в `parseCalls:122` не целевой), catch ветки в `graph.ts:1220-1228` |
 | B2 | тул `agents_spawn` валидирует цели по каталогу с plugin-агентами, нода резолвит по ростеру без них: «тул пропустил → нода упала» структурно гарантировано | `sqlite-agents-catalog.port.ts:66-68` vs `workspace-harnesys.registry.ts:272` (`listAgentRoster`) |
 | B3 | plugin-агенты утекают в `agents_list` и в цели спавна агенту, у которого плагин выключен (`enabled_plugins_json={}`) | каталог-порт подмешивает `pluginAgents.list()` без пересечения с агентом; пер-агент `effectivePlugins` есть только для хуков (`studio-run-targets.adapter.ts:186`) |
 | B4 | `agents_list` показывает `packs: []` агентам с включёнными capabilities | `toAgentDefinition` каталог-порта кладёт маппинг в поле `capabilities`, инструмент читает `def.packs` (`create-agents-tools.ts:~110`); в `dbAgentDefinition` (`workspace-agent-definitions.ts:29`) маппинг `packs` есть |
 | B5 | `agents_create`/`update-agent` хранят имена тулов, не покрытые ни одним включённым паком; на ране они молча вырезаются с warning-диагностикой | серверная валидация отсутствует; `client-only` синхронизация allowlist'а (`capability-allowlist.ts`, 833ccdb) |
-| B6 | колонка `tools` у живых агентов это материализованный снимок старого open-world реестра (Assistant: 6 имён при 13 включённых паках); сервер не синхронит `tools` при смене capabilities | `closed-world-materialization.ts` + `update-agent.use-case.ts:128-137` (независимые поля) |
+| B6 | колонка `tools` у живых агентов это материализованный снимок старого open-world реестра (Assistant: колонка `agents.tools` живой БД = 6 имён при 13 включённых паках; в пресете `assistant.json` свои снимки: 42 имени `tools` и 45 `think.tools`, это отдельные данные), сервер не синхронит `tools` при смене capabilities | `closed-world-materialization.ts` + `update-agent.use-case.ts:128-137` (независимые поля) |
 
 Цель: одна модель, в которой «выключено в настройках агента = недоступно ни под какими соусами», «включён источник = доступен весь его функционал», а наследование и сужение прослеживаются по построению. Ограничение рантайма: движение агента не роняет ран, запрет возвращается модели как результат операции.
 
@@ -42,7 +42,7 @@ universe(host)  —  всё, что хост зарегистрировал в �
 
 Пак и плагин оба дают агенту связку: инструменты, скилы, MCP-серверы, хуки, сабагенты, notes, path entries. Разница только в способе доставки в процесс (скомпилирован в библиотеке vs загружен из IR с grant-гейтингом). На сборке источник «растворяется»: каждый элемент размечается провенансом (`source: 'pack:files' | 'plugin:feature-dev' | 'mcp:sequential-thinking' | 'host'`). Провенанс метаданные, движок на него не ветвится.
 
-**Core pack.** `ask_user`, `map`, `wait`, `load_skill`, `load_tools` оформляются обычным паком `core` (`packages/harnesys/src/packs/core/`) без магии в движке: ни один из этих тулов не добавляется в набор автоматически. Обязательность пока правило верхнего уровня: валидация хоста (Studio server) отказывает агенту/режиму без `core`; UI показывает чекбокс `core` включённым и неактивным. Снятие флага отключается позже без изменения модели (п.8 Non-goals). `load_tools` остаётся инструментом с движковым хуком: promote пишет в `state` рана (`loadedToolsOf`), но исполняется как обычный тул из набора.
+**Core pack.** `ask_user`, `map`, `wait` оформляются обычным паком `core` (`packages/harnesys/src/packs/core/`) с честным `meta.tools` ровно из этих трёх: `packCatalog`/`packTools` (`application/packs/tool-names.ts:36-46`) читают meta, declaring-двойка `load_tools`/`load_skill` разошлась бы с валидацией `disabledTools`. `load_tools`, `load_skill` и CC-алиас `Skill` (`create-runtime.ts:101-107` сегодня добавляет их автоматически) — `CORE_SERVICE_TOOLS`: резолвер добавляет их в набор только при включённом `core` (source `pack:core`), авто-регистрация в движке удаляется. Обязательность пока правило верхнего уровня: валидация хоста (Studio server) отказывает агенту/режиму без `core`; UI показывает чекбокс `core` включённым и неактивным. Снятие флага отключается позже без изменения модели (п.8 Non-goals). `load_tools` остаётся инструментом с движковым хуком: promote пишет в `state` рана (`loadedToolsOf`), но исполняется как обычный тул из набора.
 
 ## 3. Данные: смерть allowlist'а (D1-каскад)
 
@@ -56,23 +56,38 @@ universe(host)  —  всё, что хост зарегистрировал в �
 Формат assignment расширяется overrides'ами:
 
 ```
-type PackAssignment = true | PackConfig | PackOverrideSpec
-type PackOverrideSpec = { spec?: PackConfig; disabledTools?: string[]; exposure?: Record<tool, 'direct'|'deferred'> }
+type PackAssignment = true | PackConfig | PackOverride
+type PackOverride = { spec?: PackConfig; disabledTools?: string[]; exposure?: Record<tool, 'direct'|'deferred'> }
 ```
 
-`disabledTools` валидируются против выходного множества источника (вычесть нельзя то, чего источник не даёт, ошибка валидации на запись). `exposure` override: по умолчанию значение берётся из объявления тула (`ToolDefinition.exposure`); агент/режим могут перевести `direct ↔ deferred` в обе стороны только внутри эффективного набора. Плагины несут тот же override-механизм по префиксу источника (plugin tools размечаются `plugin:<name>` группой).
+Единую литеральную семантику assignment держим одну для всех слоёв: `true | {} | {spec} | PackOverride` = включено, `false | null | отсутствие` = выключено (`packs/registry.ts:77-83` уже так); HTTP-body (`agent.body.ts:48-50` сегодня `{spec}` без `true`), лоадер пресетов (`agent-presets-fs.adapter.ts`, сегодня отвергает булеаны) и текст `agent-creator/SKILL.md:66-68` подгоняются под неё же.
+
+Контракт видимости в графах: `node.tools` на `llm:generate` остаётся, но меняет статус с гранта на сужение: `undefined` = весь набор рана, `[]` = нет тулов (pure decision-ноды, контракт `agent-creator/SKILL.md:12,15`), непустой = подмножество (валидация ⊆ набора рана уже есть, `check.ts:33-46`). Пустые `[]` из пресетов не удаляются.
+
+`disabledTools` валидируются против выходного множества источника (вычесть нельзя то, чего источник не даёт, ошибка валидации на запись). `exposure` override: по умолчанию значение берётся из объявления тула (`ToolDefinition.exposure`); агент/режим могут перевести `direct ↔ deferred` в обе стороны только внутри эффективного набора. Для плагинов per-tool overrides нет: plugin-агент сам по себе источник-целиком, его «инструменты» это алиасы хост-паков (`bind-agents.ts:40-41,94`), отдельной группы `plugin:<name>` в тул-реестре не существует; гейтинг плагина работает на уровне источника (subagents, hooks, skills, plugin MCP серверы как `mcp:`-группы в `def.mcpServers`).
 
 ## 4. Единый резолвер и единственный шов в хосте
 
-Библиотека экспортирует чистую функцию (расширение `resolveAgentIdentity`, `packages/harnesys/src/application/agent-identity.ts`):
+Библиотека экспортирует чистую относительно аргументов функцию (расширение `resolveAgentIdentity`, `packages/harnesys/src/application/agent-identity.ts`). Порты/scope паков уже внутри `registrations: PackRegistration[]`; `pack.create()` в хост-контексте без рана вызывается под `runInHostToolScope` (прецедент `closed-world-materialization.ts:60`), HTTP-пути валидации идут под существующим `requireHostToolScope`:
 
 ```
-resolveCapabilitySet(def: AgentDefinition, universe: CapabilityUniverse): {
-  registry: RunRegistry,          // Map<name, {def, exposure, source}> — то, что кладётся в RunTarget
+resolveCapabilitySet(def: AgentDefinition, universe: CapabilityUniverse): CapabilitySet
+
+type CapabilityUniverse = {
+  registrations: PackRegistration[]   // порты/scope внутри
+  baseRegistry: Map<string, ToolDefinition>  // host-инструменты; минус CORE_SERVICE_TOOLS
+  roster: AgentRosterEntry[]          // записи с plugin?: string (один источник subagents)
+  fsSkills?: SkillRegistry
+  makeLoadTools / makeLoadSkill       // фабрики сервисов для core-гранта
+  mode?: ModeCapabilityFields         // map-форма packs + disabledTools/exposure
+}
+type CapabilitySet = {
+  registry: RunRegistry,              // Map<name, {def, exposure, source}> — кладётся в RunTarget.capabilitySet
+  packOutputs: PackRunMap,            // выходы create() без второго вызова
   skills, mcpServers, hooks, notes, pathEntries,
-  subagents: SubagentEntry[],     // делегаты, топы (по правилам видимости), агенты включённых плагинов
-  explain: ExplainEntry[],        // по каждому элементу: кем дан, кем срезан, почему deferred
-  fatal: string[]                 // ошибки конфигурации (невалидные assignment) — ответ хосту, не throw
+  subagents: AgentRosterEntry[],      // делегаты, топы, агенты включённых плагинов
+  explain: ExplainEntry[],            // кем дан, кем срезан, почему deferred
+  fatal: string[]                     // ошибки конфигурации — ответ хосту, не throw
 }
 ```
 
@@ -88,7 +103,7 @@ resolveCapabilitySet(def: AgentDefinition, universe: CapabilityUniverse): {
 
 ## 5. Движок: контракт минимальный
 
-Движок (`run-engine`, `graph`) видит: набор рана (`RunTarget.toolRegistry` с exposure-флагами), модель, граф, journal. Понятий «пак», «плагин», «delegate» у движка нет; `deferredPacks`-опция (`CreateRuntimeOptions.deferredPacks`, `RunTarget.deferredPacks`) удалена: экспозиция прилетает флагами в наборе, `resolveProgressiveTools` (`application/tools/exposure.ts`) читает флаги. Замок `load_tools`: promote разрешён только для имён из набора рана с `exposure:'deferred'`; список в запросе модели (deferred catalog) строится из того же набора (сейчас каталог идёт из `packOutputs`, п.1 B-история). `createLoadToolsTool` принимает набор рана.
+Движок (`run-engine`, `graph`) видит: набор рана (`RunTarget.toolRegistry` с exposure-флагами) и новый `RunTarget.capabilitySet` (prebuilt-выход резолвера: `toolRegistry` собирается из него, `packOutputs`/universe едут с ним; `run-engine-prepare` при наличии `capabilitySet` пропускает legacy-сборку через `resolveAgentIdentity`), модель, граф, journal. Понятий «пак», «плагин», «delegate» у движка нет; `deferredPacks`-опция (`CreateRuntimeOptions.deferredPacks`, `RunTarget.deferredPacks`, `RunTargetOpts`, `RunEngineDeps`, `session.ts`, `pack-run.ts`, `create-runtime.ts`, `agent-identity.ts`, `run-engine-prepare.ts`) удалена: экспозиция прилетает флагами в наборе, `resolveProgressiveTools` (`application/tools/exposure.ts`) читает флаги. Замок `load_tools` фактически уже есть (каталог и promote читают реестр рана, `llm.ts:137-144`, `create-load-tools-tool.ts` `registry.get`), после перехода реестра на `RunToolEntry` замок остаётся по построению; поведение `load_tools` для direct-имён сохраняется (`{loaded, unknown}`), описание не врёт. `createLoadToolsTool` принимает набор рана. Реестры детей (`graph-spawn.ts:244`, `graph-handoff.ts:110`, oneshot `create-runtime.ts:173,216`, сегменты `run-engine-prepare.ts:120,126`) = `resolveCapabilitySet(childDef, sandbox(universe))`, `filterToolsForAgent(parent.toolRegistry, childDef)` уходит; песочница (запрет `agents`-пака и интерактива) — отдельный слой той же функции (п.7.4).
 
 Сценарии контракта (проверка сценариями):
 

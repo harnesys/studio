@@ -4,6 +4,7 @@ import type { CapabilityScope, PackConfig } from '../../domain/pack.ts';
 import type { AgentCatalogCreateInput, AgentsCatalogPort } from '../../ports/agents-catalog.ts';
 import type { AgentRosterEntry } from '../../ports/create-runtime.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
+import { scopeFor } from './scope-for.ts';
 
 export type CreateAgentsToolsParams = {
   agents: AgentsCatalogPort;
@@ -17,7 +18,6 @@ async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }>
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
-
 /**
  * Наследование модели создателя: если в create-инпуте нет model, подставляем одиночный
  * `model` создающего агента. Явный выбор модели при создании — отдельная будущая фича,
@@ -39,6 +39,13 @@ type AgentsListInput = {
   role?: string;
   name?: string;
 };
+
+function rowLevel(row: { plugin?: boolean; parentId?: string | null }) {
+  if (row.plugin) {
+    return 'plugin';
+  }
+  return row.parentId ? 'delegate' : 'top';
+}
 
 function spawnCallsShapeError(calls: unknown[]): string | null {
   for (let idx = 0; idx < calls.length; idx += 1) {
@@ -73,7 +80,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
     tool('agents_list', {
       group: 'agents',
       description:
-        'List agents in this workspace (id, name, role, instructions, tools, model, level, parent?). Optional role/name filters; role is not unique. tools lists declared names; the effective set adds default host/pack tools and may also shrink (host/MCP filtering). Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
+        'List agents in this workspace (id, name, role, instructions, tools, model, level top|delegate|plugin, parent?). Optional role/name filters; role is not unique. tools lists declared names; the effective set adds default host/pack tools and may also shrink (host/MCP filtering). Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
       input: {
         type: 'object',
         properties: {
@@ -81,9 +88,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           name: { type: 'string', description: 'Filter by name (exact match)' },
         },
       },
-      execute: async (raw) =>
+      execute: async (raw, execCtx) =>
         runGuard(async () => {
-          const scope = deps.resolveScope();
+          const scope = scopeFor(deps, execCtx);
           const input = (raw ?? {}) as AgentsListInput;
           const filter =
             input.role !== undefined || input.name !== undefined
@@ -102,7 +109,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
                 tools: def?.tools ?? [],
                 packs: Object.keys(def?.packs ?? {}).filter((name) => def?.packs?.[name]),
                 ...(def?.model ? { model: `${def.model.provider}/${def.model.model}` } : {}),
-                level: row.parentId ? 'delegate' : 'top',
+                level: rowLevel(row),
                 ...(row.parentId ? { parent: parentNames.get(row.parentId) ?? row.parentId } : {}),
               };
             }),
@@ -165,21 +172,20 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
         },
         required: ['name', 'role', 'instructions'],
       },
-      execute: async (raw) =>
+      execute: async (raw, execCtx) =>
         runGuard(async () => {
-          const scope = deps.resolveScope();
+          const scope = scopeFor(deps, execCtx);
           const input = raw as AgentCatalogCreateInput & {
             capabilities?: Record<string, PackConfig | null>;
           };
           if (!input.name || !input.role || !input.instructions) {
             return { error: 'name, role, and instructions are required' };
           }
-          const packs = input.packs ?? input.capabilities;
+          const packsRaw = input.packs ?? input.capabilities ?? {};
+          const packs = 'agents' in packsRaw ? packsRaw : { ...packsRaw, agents: {} };
           const next: AgentCatalogCreateInput & { capabilities?: unknown } = { ...input };
           delete next.capabilities;
-          if (packs !== undefined) {
-            next.packs = packs;
-          }
+          next.packs = packs;
           return await deps.agents.create(
             scope,
             await withInheritedModel(deps.agents, scope, next),
@@ -236,9 +242,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
         },
         required: ['name', 'role', 'instructions'],
       },
-      execute: async (raw) =>
+      execute: async (raw, execCtx) =>
         runGuard(async () => {
-          const scope = deps.resolveScope();
+          const scope = scopeFor(deps, execCtx);
           const input = raw as AgentCatalogCreateInput & {
             capabilities?: Record<string, PackConfig | null>;
           };
@@ -314,7 +320,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
         },
         required: ['calls'],
       },
-      execute: async (raw) =>
+      execute: async (raw, execCtx) =>
         runGuard(async () => {
           const rec = (raw ?? {}) as { calls?: unknown };
           if (!Array.isArray(rec.calls)) {
@@ -327,7 +333,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           if (shapeError) {
             return { error: shapeError };
           }
-          const scope = deps.resolveScope();
+          const scope = scopeFor(deps, execCtx);
           const rows = await deps.agents.list(scope);
           const targetError = spawnCallsTargetError(
             rec.calls,

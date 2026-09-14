@@ -2,7 +2,9 @@
  *  unknown ids come back as tool-level errors, never as a failed run.
  *  Delegates are not excluded from ownership: the lifecycle tools
  *  (`agents_update`/`agents_delete`) act on them via the same catalog rows,
- *  gated on `parentId === scope.agentId`. */
+ *  gated on `parentId === scope.agentId`. Plugin agents are spawn-only
+ *  workers and never handoff targets: the caller filters plugin rows out of
+ *  the roster before resolving. */
 import { formatAgentTargets, resolveAgentTarget } from '../../application/agent-target-resolve.ts';
 
 import type { AgentCatalogSummary } from '../../ports/agents-catalog.ts';

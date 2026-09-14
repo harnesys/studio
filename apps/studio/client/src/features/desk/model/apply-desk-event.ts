@@ -1,12 +1,23 @@
 import type { DeskEvent } from '@harnesys/studio-shared';
+import { toClientAgent, useAgentStore } from '@/entities/agent';
 import { usePlanStore } from '@/entities/plan';
 import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { toClientWebhook, useWebhookStore } from '@/entities/webhook';
+import { useAgentsSlideStore } from './agents-slide.store';
+import { useDeskStore } from './desk.store';
 
 export function applyDeskEvent(event: DeskEvent): void {
   switch (event.type) {
+    case 'agent': {
+      useAgentStore.getState().upsert(toClientAgent(event.agent));
+      return;
+    }
+    case 'agent-deleted': {
+      dropAgent(event.id);
+      return;
+    }
     case 'thread': {
       useThreadStore.getState().upsert(toClientThread(event.thread));
       if (!useSessionStore.getState().activeRuns[event.thread.id]) {
@@ -64,6 +75,26 @@ function dropSchedule(id: string): void {
   useScheduleStore.getState().remove(id);
   if (current) {
     dropOwnedTriggerThread(current.threadId);
+  }
+}
+
+function dropAgent(agentId: string): void {
+  const threadIds = useThreadStore
+    .getState()
+    .items.filter((item) => item.agentId === agentId)
+    .map((item) => item.id);
+  useSessionStore.getState().removeForThreads(threadIds);
+  for (const threadId of threadIds) {
+    usePlanStore.getState().removeForThread(threadId);
+    useThreadStore.getState().remove(threadId);
+  }
+  useAgentStore.getState().remove(agentId);
+  const desk = useDeskStore.getState();
+  if (desk.focusedThreadId && threadIds.includes(desk.focusedThreadId)) {
+    desk.setFocusedThreadId(null);
+  }
+  if (useAgentsSlideStore.getState().agentId === agentId) {
+    useAgentsSlideStore.getState().reset();
   }
 }
 

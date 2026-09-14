@@ -14,6 +14,8 @@ export type AgentCatalogSummary = {
   instructions: string;
   parentId?: string | null;
   color?: string;
+  /** Catalog rows contributed by plugins are spawn-only workers, not team members. */
+  plugin?: boolean;
 };
 
 export type AgentCatalogCreateInput = {

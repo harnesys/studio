@@ -67,6 +67,7 @@ export function pluginAgentCatalog(
         id,
         name: pluginAgentName(id),
         role: 'plugin',
+        plugin: true,
         instructions: entry.definition.prompts.main?.instructions ?? '',
         ...(entry.color !== undefined ? { color: entry.color } : {}),
       }));

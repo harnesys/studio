@@ -15,6 +15,7 @@ import {
 import type { HooksBinding, PermissionMap } from 'harnesys';
 import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
 import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
+import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import type { ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
@@ -64,15 +65,21 @@ export type CreateAgentInput = {
   execute(request: CreateAgentRequest): Promise<Agent>;
 };
 
+export type CreateAgentUseCaseDeps = {
+  models?: LlmModelRepository;
+  modePresets?: ModePresetRepository;
+  workspaceCatalog?: {
+    listSkills: ListWorkspaceSkillsInput;
+    listMcp: GetWorkspaceMcpInput;
+  };
+  /** Omitted on the catalog-port instance: that port emits desk events itself. */
+  deskEvents?: DeskEventsPort;
+};
+
 export class CreateAgentUseCase implements CreateAgentInput {
   constructor(
     private readonly agents: AgentRepository,
-    private readonly models?: LlmModelRepository,
-    private readonly modePresets?: ModePresetRepository,
-    private readonly workspaceCatalog?: {
-      listSkills: ListWorkspaceSkillsInput;
-      listMcp: GetWorkspaceMcpInput;
-    },
+    private readonly deps: CreateAgentUseCaseDeps = {},
   ) {}
 
   async execute(request: CreateAgentRequest): Promise<Agent> {
@@ -89,8 +96,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
 
     let modelId: string | null = null;
     if (request.modelId) {
-      if (this.models) {
-        const foundModel = this.models.findById(request.modelId);
+      if (this.deps.models) {
+        const foundModel = this.deps.models.findById(request.modelId);
         if (!foundModel) {
           throw new NotFoundError('model not found');
         }
@@ -101,8 +108,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const role = request.role?.trim() || 'Operator';
     const instructions = request.instructions?.trim() || '';
     const effort = request.effort?.trim() || null;
-    if (effort !== null && request.modelId && this.models) {
-      const effortModel = this.models.findById(request.modelId);
+    if (effort !== null && request.modelId && this.deps.models) {
+      const effortModel = this.deps.models.findById(request.modelId);
       if (effortModel) {
         assertModelEffortSupported(effortModel, effort);
       }
@@ -120,16 +127,16 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const skills = request.skills ?? [];
     const mcpServers = request.mcpServers ?? [];
     const tools = request.tools ?? [];
-    if (skills.length > 0 && this.workspaceCatalog) {
-      const listed = await this.workspaceCatalog.listSkills.execute({
+    if (skills.length > 0 && this.deps.workspaceCatalog) {
+      const listed = await this.deps.workspaceCatalog.listSkills.execute({
         workspaceId: request.workspaceId,
       });
       const known = new Set(listed.skills.map((skill) => skill.name));
       const unknown = skills.filter((skill) => !known.has(skill));
       assertAllKnown(unknown, 'skill');
     }
-    if (mcpServers.length > 0 && this.workspaceCatalog) {
-      const listed = await this.workspaceCatalog.listMcp.execute({
+    if (mcpServers.length > 0 && this.deps.workspaceCatalog) {
+      const listed = await this.deps.workspaceCatalog.listMcp.execute({
         workspaceId: request.workspaceId,
       });
       const known = new Set(listed.servers.map((server) => server.serverId));
@@ -180,11 +187,13 @@ export class CreateAgentUseCase implements CreateAgentInput {
       updatedAt: now,
     });
 
+    this.deps.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: created });
+
     return await Promise.resolve(created);
   }
 
   private seedDefaultModes(): AgentMode[] {
-    const defaults = (this.modePresets?.list() ?? [])
+    const defaults = (this.deps.modePresets?.list() ?? [])
       .filter((preset) => preset.installedByDefault && preset.id !== DEFAULT_MODE_ID)
       .map(modeFromPreset);
     if (!defaults.some((mode) => mode.id === ASK_MODE.id)) {

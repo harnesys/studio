@@ -15,6 +15,7 @@ import { ListAgentsUseCase } from '../application/agents/list-agents.use-case.ts
 import { UpdateAgentUseCase } from '../application/agents/update-agent.use-case.ts';
 import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-mcp.use-case.ts';
 import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
+import type { DeskEventsPort } from '../domain/desk-events.port.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
 
 export type WireAgentControllersDeps = {
@@ -27,14 +28,19 @@ export type WireAgentControllersDeps = {
   modePresetRepo: SqliteModePresetRepo;
   workspaceRepo: SqliteWorkspaceRepo;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
+  deskEvents: DeskEventsPort;
 };
 
 export function wireAgentControllers(d: WireAgentControllersDeps): void {
   // create rejects unknown skills/mcpServers against the same workspace sources
   // the agent form pickers list from (`/workspaces/:id/skills`, `/workspaces/:id/mcp`).
-  const createAgent = new CreateAgentUseCase(d.agentRepo, undefined, d.modePresetRepo, {
-    listSkills: new ListWorkspaceSkillsUseCase(d.workspaceRepo, d.workspaceHarnesys),
-    listMcp: new GetWorkspaceMcpUseCase(d.workspaceRepo, d.workspaceHarnesys),
+  const createAgent = new CreateAgentUseCase(d.agentRepo, {
+    modePresets: d.modePresetRepo,
+    workspaceCatalog: {
+      listSkills: new ListWorkspaceSkillsUseCase(d.workspaceRepo, d.workspaceHarnesys),
+      listMcp: new GetWorkspaceMcpUseCase(d.workspaceRepo, d.workspaceHarnesys),
+    },
+    deskEvents: d.deskEvents,
   });
 
   new AgentController({
@@ -42,12 +48,13 @@ export function wireAgentControllers(d: WireAgentControllersDeps): void {
     listAgentPresets: new ListAgentPresetsUseCase(),
     createAgent,
     createAgentFromPreset: new CreateAgentFromPresetUseCase(d.agentRepo, createAgent),
-    updateAgent: new UpdateAgentUseCase(d.agentRepo),
+    updateAgent: new UpdateAgentUseCase(d.agentRepo, undefined, d.deskEvents),
     deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo, {
       schedules: d.scheduleRepo,
       webhooks: d.webhookRepo,
       semantic: d.memory.semantic,
       pins: d.memory.pin,
+      deskEvents: d.deskEvents,
     }),
   }).register(d.app);
 }

@@ -59,6 +59,8 @@ export type ToolCallContext = {
   hooks?: HookEmitCtx;
   /** Готовый env рана для процессов тулов; отсутствие — process env. */
   env?: Record<string, string>;
+  /** Текущий спикер рана; после handoff-ребайнда отличается от стартового агента. */
+  agentId?: string;
 };
 
 function codeError(code: string, message: string): never {

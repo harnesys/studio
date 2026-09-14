@@ -18,8 +18,10 @@ export type ToolContext = {
   resume?: unknown;
   /** Дочерний ран: интерактива нет, ask_user отвечает deny-текстом вместо throw. */
   sandbox?: boolean;
-  /** Готовый env рана (PATH = RunTarget.binDirs ++ process PATH); absent → inherit process env. */
+  /** Готовый env рана (PATH = RunTarget.binDirs ++ process env); absent → inherit process env. */
   env?: Record<string, string>;
+  /** Спикер рана на момент вызова: handoff меняет агента посреди рана, паки резолвят скоуп по нему. */
+  agentId?: string;
 };
 
 export type ToolExecute = (input: unknown, ctx: ToolContext) => Promise<unknown> | unknown;

@@ -266,6 +266,7 @@ export function wireControllers(d: ControllerDeps): void {
     modePresetRepo: d.modePresetRepo,
     workspaceRepo: d.workspaceRepo,
     workspaceHarnesys: d.workspaceHarnesys,
+    deskEvents: d.deskEvents,
   });
 
   new ModePresetController({

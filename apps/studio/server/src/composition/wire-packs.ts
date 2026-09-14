@@ -100,7 +100,12 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
   );
   const listSchedules = new ListSchedulesUseCase(deps.schedules, deps.workspaces);
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
-  const createAgent = new CreateAgentUseCase(deps.agents, deps.models, deps.modePresets);
+  // Emitter-free: SqliteAgentsCatalogPort publishes desk events for tool-path writes,
+  // so the delegated create must stay silent to avoid double-publishing.
+  const createAgent = new CreateAgentUseCase(deps.agents, {
+    models: deps.models,
+    modePresets: deps.modePresets,
+  });
 
   return [
     registerPack(filesCapability, { resolveScope: stubScope }),
@@ -115,6 +120,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
         agents: new SqliteAgentsCatalogPort({
           agents: deps.agents,
           createAgent,
+          deskEvents: deps.deskEvents,
           threads: deps.threads,
           models: deps.models,
           providers: deps.providers,

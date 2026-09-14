@@ -1,4 +1,5 @@
 import type { AgentRepository } from '../../domain/agent.port.ts';
+import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { ScheduleRepository } from '../../domain/schedule.port.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WebhookRepository } from '../../domain/webhook.port.ts';
@@ -23,6 +24,7 @@ export type DeleteAgentCascade = {
   webhooks: WebhookRepository;
   semantic?: AgentNameCleanup;
   pins?: AgentNameCleanup;
+  deskEvents?: DeskEventsPort;
 };
 
 export class DeleteAgentUseCase implements DeleteAgentInput {
@@ -53,6 +55,8 @@ export class DeleteAgentUseCase implements DeleteAgentInput {
     for (const target of targets) {
       this.threads.deleteByAgent(target.id);
       this.agents.delete(target.id);
+      // Row is gone after this point: the desk event carries the id only.
+      this.cascade.deskEvents?.emit(request.workspaceId, { type: 'agent-deleted', id: target.id });
     }
     this.dropOrphanedNameData(
       request.workspaceId,

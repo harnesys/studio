@@ -11,6 +11,7 @@ import type {
 import type { CreateAgentInput } from '../../application/agents/create-agent.use-case.ts';
 import type { PluginAgentCatalog } from '../../application/plugins/plugin-agents.ts';
 import type { Agent, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
+import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
@@ -23,6 +24,8 @@ export type PluginAgentsRef = {
 export type SqliteAgentsCatalogPortDeps = {
   agents: AgentRepository;
   createAgent: CreateAgentInput;
+  /** Desk bus: tool-path writes must reach the UI without a page reload. */
+  deskEvents: DeskEventsPort;
   /** Thread ownership guard for `remove`; omitted = no threads exist for the host. */
   threads?: ThreadRepository;
   models?: LlmModelRepository;
@@ -92,6 +95,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     input: AgentCatalogCreateInput,
   ): Promise<{ id: string; name: string }> {
     const model = resolveModelFields(input.model, this.deps);
+    // This port owns tool-path desk emissions; the wired CreateAgentUseCase has no emitter.
     const created = await this.deps.createAgent.execute({
       workspaceId: scope.workspaceId,
       name: input.name,
@@ -109,6 +113,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
       effort: model?.effort,
       generation: model?.generation,
     });
+    this.deps.deskEvents.emit(scope.workspaceId, { type: 'agent', agent: created });
     return { id: created.id, name: created.name };
   }
 
@@ -144,7 +149,8 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     if (patch.budget !== undefined) {
       update.budget = patch.budget;
     }
-    this.deps.agents.update(id, update);
+    const updated = this.deps.agents.update(id, update);
+    this.deps.deskEvents.emit(scope.workspaceId, { type: 'agent', agent: updated });
     return Promise.resolve();
   }
 
@@ -165,6 +171,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
       return Promise.resolve({ error: 'agent still owns threads; delete them first' });
     }
     this.deps.agents.delete(id);
+    this.deps.deskEvents.emit(scope.workspaceId, { type: 'agent-deleted', id });
     return Promise.resolve({ ok: true });
   }
 }

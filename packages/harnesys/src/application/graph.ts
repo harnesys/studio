@@ -974,6 +974,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           toolOutput: agent.toolOutput,
           hooks,
           env: opts.env,
+          agentId: agent.id,
         });
       } catch (e) {
         if (e instanceof AskUserInterrupt) {

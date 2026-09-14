@@ -9,6 +9,7 @@ import type { AgentBudget, BudgetPolicy } from '../../domain/agent-definition.ts
 import type { AgentCatalogPatch, AgentCatalogSummary } from '../../ports/agents-catalog.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
 import type { CreateAgentsToolsParams } from './create-agents-tools.ts';
+import { scopeFor } from './scope-for.ts';
 
 async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
   try {
@@ -117,6 +118,7 @@ function collectPatch(input: AgentsUpdateInput): { patch: AgentCatalogPatch } | 
 async function applyUpdate(
   deps: CreateAgentsToolsParams,
   raw: unknown,
+  ctx: { agentId?: string },
 ): Promise<{ agentId: string } | { error: string }> {
   const patchFn = deps.agents.patch;
   if (!patchFn) {
@@ -126,7 +128,7 @@ async function applyUpdate(
   if (typeof input.agentId !== 'string' || !input.agentId) {
     return { error: 'agentId must be a non-empty string' };
   }
-  const scope = deps.resolveScope();
+  const scope = scopeFor(deps, ctx);
   const rows = await deps.agents.list(scope);
   const target = resolveOwnedDelegate(input.agentId, rows, scope.agentId, 'updated');
   if ('error' in target) {
@@ -146,6 +148,7 @@ async function applyUpdate(
 async function applyDelete(
   deps: CreateAgentsToolsParams,
   raw: unknown,
+  ctx: { agentId?: string },
 ): Promise<{ removed: string; name: string } | { error: string }> {
   const removeFn = deps.agents.remove;
   if (!removeFn) {
@@ -155,7 +158,7 @@ async function applyDelete(
   if (typeof input.agentId !== 'string' || !input.agentId) {
     return { error: 'agentId must be a non-empty string' };
   }
-  const scope = deps.resolveScope();
+  const scope = scopeFor(deps, ctx);
   const rows = await deps.agents.list(scope);
   const target = resolveOwnedDelegate(input.agentId, rows, scope.agentId, 'removed');
   if ('error' in target) {
@@ -214,7 +217,7 @@ export function createAgentLifecycleTools(deps: CreateAgentsToolsParams): ToolDe
           },
           required: ['agentId'],
         },
-        execute: (raw) => runGuard(() => applyUpdate(deps, raw)),
+        execute: (raw, ctx) => runGuard(() => applyUpdate(deps, raw, ctx)),
       }),
     );
   }
@@ -233,7 +236,7 @@ export function createAgentLifecycleTools(deps: CreateAgentsToolsParams): ToolDe
           properties: { ...AGENT_ID_INPUT },
           required: ['agentId'],
         },
-        execute: (raw) => runGuard(() => applyDelete(deps, raw)),
+        execute: (raw, ctx) => runGuard(() => applyDelete(deps, raw, ctx)),
       }),
     );
   }

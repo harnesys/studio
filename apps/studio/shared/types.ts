@@ -32,6 +32,7 @@ export {
 
 import type { ScheduleHistory } from 'harnesys';
 import { SCHEDULE_HISTORIES } from 'harnesys/domain';
+import type { AgentRecord as AgentRecordType } from './src/agent.ts';
 import type { ThreadPlanRecord } from './src/plan-types.ts';
 import type { ThreadRecord as ThreadRecordType } from './src/thread.ts';
 
@@ -305,4 +306,6 @@ export type DeskEvent =
   | { type: 'plan'; plan: ThreadPlanRecord }
   | { type: 'webhook'; webhook: WebhookRecord }
   | { type: 'webhook-deleted'; id: string }
+  | { type: 'agent'; agent: AgentRecordType }
+  | { type: 'agent-deleted'; id: string }
   | { type: 'run-finish'; threadId: string };

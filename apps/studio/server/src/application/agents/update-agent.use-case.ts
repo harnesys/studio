@@ -8,6 +8,7 @@ import type {
 } from '@harnesys/studio-shared';
 import type { HooksBinding, PermissionMap } from 'harnesys';
 import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
+import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { assertModelEffortSupported } from '../providers/provider.helpers.ts';
@@ -54,6 +55,7 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
   constructor(
     private readonly agents: AgentRepository,
     private readonly models?: LlmModelRepository,
+    private readonly deskEvents?: DeskEventsPort,
   ) {}
 
   async execute(request: UpdateAgentRequest): Promise<Agent> {
@@ -185,6 +187,7 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     const previousModelId = agent.modelId;
     const updated = this.agents.update(request.id, patch);
+    this.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: updated });
 
     if (
       request.modelId !== undefined &&
@@ -199,7 +202,11 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
         if (child.modelId !== null && child.modelId !== previousModelId) {
           continue;
         }
-        this.agents.update(child.id, { modelId: request.modelId, updatedAt: now });
+        const updatedChild = this.agents.update(child.id, {
+          modelId: request.modelId,
+          updatedAt: now,
+        });
+        this.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: updatedChild });
       }
     }
 

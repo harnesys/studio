@@ -5,6 +5,7 @@
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
 import type { CreateAgentsToolsParams } from './create-agents-tools.ts';
 import { resolveHandoffTarget } from './handoff-target.ts';
+import { scopeFor } from './scope-for.ts';
 
 async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
   try {
@@ -27,14 +28,14 @@ export function createAgentsHandoffTool(deps: CreateAgentsToolsParams): ToolDefi
       },
       required: ['agentId'],
     },
-    execute: async (raw) =>
+    execute: async (raw, execCtx) =>
       runGuard(async () => {
         const id = ((raw ?? {}) as { agentId?: unknown }).agentId;
         if (typeof id !== 'string' || !id) {
           return { error: 'agentId must be a non-empty string' };
         }
-        const scope = deps.resolveScope();
-        const rows = await deps.agents.list(scope);
+        const scope = scopeFor(deps, execCtx);
+        const rows = (await deps.agents.list(scope)).filter((row) => !row.plugin);
         const target = resolveHandoffTarget(id, rows, scope.agentId);
         if ('error' in target) {
           return target;

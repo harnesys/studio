@@ -311,7 +311,7 @@ function IdeTabView({
         moveTab(workspaceId, drag.tabId, groupId, tab.id);
       }}
       className={cn(
-        'group/tab relative flex max-w-52 shrink-0 animate-tab-enter items-center rounded-md p-0.5 pl-2 text-[0.75rem] transition-colors duration-150',
+        'group/tab relative flex max-w-52 shrink-0 animate-tab-enter items-center rounded-md p-0.5 pl-2 text-[0.74rem] transition-colors duration-150',
         selected
           ? 'bg-muted text-foreground'
           : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',

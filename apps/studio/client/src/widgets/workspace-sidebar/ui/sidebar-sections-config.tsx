@@ -1,4 +1,4 @@
-import { LayoutPanelLeftIcon } from 'lucide-react';
+import { EllipsisVerticalIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -19,6 +19,7 @@ export function SidebarSectionsConfig() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
+        className="text-muted-foreground"
         render={
           <SidebarMenuButton
             tooltip="Sections"
@@ -28,7 +29,7 @@ export function SidebarSectionsConfig() {
           />
         }
       >
-        <LayoutPanelLeftIcon />
+        <EllipsisVerticalIcon />
         <span className="sr-only">Sections</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="top" className="min-w-44">

@@ -256,6 +256,13 @@ function optionalNumber(value: unknown): number | undefined {
 }
 
 function optionalStringList(value: unknown): string[] | undefined {
+  if (typeof value === 'string') {
+    // Фронтматтер CC-доков пишет список одной запятой-строкой: "Glob, Grep, Read".
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
   if (!Array.isArray(value)) {
     return undefined;
   }

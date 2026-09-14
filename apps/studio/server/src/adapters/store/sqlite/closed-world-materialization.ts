@@ -5,6 +5,7 @@ import { type Node, resolveAgentIdentity, type SkillRegistry } from 'harnesys';
 import { logger } from '../../../config/logger.ts';
 import type { AgentGraph, AgentRepository } from '../../../domain/agent.port.ts';
 import type { WorkspaceRepository } from '../../../domain/workspace.port.ts';
+import { runInHostToolScope } from '../../host-tool-scope.ts';
 import type { WorkspaceHarnesysRegistry } from '../../workspace-harnesys.registry.ts';
 import type { StudioDb } from './connection.ts';
 
@@ -50,12 +51,19 @@ export async function runClosedWorldMaterialization(
         );
         continue;
       }
-      const identity = resolveAgentIdentity(def, {
-        baseRegistry,
-        registrations,
-        fsSkills: skillCatalog,
-        deferredPacks: undefined, // имена от exposure не зависят: материализуем весь реестр
-      });
+      // create() паков тянет host-scope через requireHostToolScope (ALS); ранна
+      // во время миграции нет. threadId инертен: тулы не исполняются, ключи
+      // memory-спеков не затрагиваются.
+      const identity = runInHostToolScope(
+        { workspaceId: workspace.id, agentId: row.id, threadId: 'migration' },
+        () =>
+          resolveAgentIdentity(def, {
+            baseRegistry,
+            registrations,
+            fsSkills: skillCatalog,
+            deferredPacks: undefined, // имена от exposure не зависят: материализуем весь реестр
+          }),
+      );
       const names = [...identity.toolRegistry.keys()];
       const mcpServers = names
         .map((name) => identity.toolRegistry.get(name)?.group)
@@ -66,11 +74,20 @@ export async function runClosedWorldMaterialization(
             all.indexOf(group) === idx,
         );
       const graph = materializeGraphNodes(row.graph, names);
+      // Заполняем только пустые поля: непустой сохранённый allowlist — явный выбор,
+      // он остаётся как есть (старый read-path для tools всё равно отдаёт [], то есть
+      // «пусто = не задано»).
       deps.agents.update(row.id, {
-        tools: names.filter((name) => !SERVICE_TOOLS.has(name)),
-        skills: await skillNames(skillCatalog, identity.packOutputs),
-        mcpServers: [...new Set(mcpServers)],
-        enabledPlugins: Object.fromEntries(pluginNames.map((name) => [name, true])),
+        ...(row.tools.length === 0
+          ? { tools: names.filter((name) => !SERVICE_TOOLS.has(name)) }
+          : {}),
+        ...(row.skills.length === 0
+          ? { skills: await skillNames(skillCatalog, identity.packOutputs) }
+          : {}),
+        ...(row.mcpServers.length === 0 ? { mcpServers: [...new Set(mcpServers)] } : {}),
+        ...(Object.keys(row.enabledPlugins).length === 0
+          ? { enabledPlugins: Object.fromEntries(pluginNames.map((name) => [name, true])) }
+          : {}),
         ...(row.budget === null ? { budget: { maxSteps: 50, policy: 'ask' as const } } : {}),
         ...(graph !== undefined ? { graph } : {}),
       });

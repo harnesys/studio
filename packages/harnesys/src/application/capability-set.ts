@@ -2,7 +2,7 @@
  *  Единственное решение о доступности (spec `docs/superpowers/specs/2026-09-15-capability-set-design.md`);
  *  чиста относительно `def` и `universe`. `pack.create()` вызывается тем же контрактом, что
  *  `buildPackRun` (порты/scope внутри регистраций), поэтому вызов вне рана оборачивается
- *  `runInHostToolScope` на стороне хоста. */
+ *  `runInHostToolScope` на стороне хоста. Словарь провенанса и explain-журнал — в `capability-explain.ts`. */
 
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { HookBinding } from '../domain/hook.ts';
@@ -11,39 +11,33 @@ import type { PathEntrySpec } from '../domain/plugin-ir.ts';
 import type { AgentRosterEntry } from '../ports/create-runtime.ts';
 import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition, ToolExposure } from '../ports/tools.ts';
+import type {
+  CapabilitySource,
+  ExplainEntry,
+  ExplainLog,
+  RunRegistry,
+} from './capability-explain.ts';
+import {
+  createExplainLog,
+  isOn,
+  overrideOf,
+  PACK_PREFIX,
+  packNameOf,
+} from './capability-explain.ts';
+import { collectPackOutputs, collectSubagents, explainMcpGrants } from './capability-outputs.ts';
 import type { LlmNoteProvider } from './llm-notes.ts';
 import type { PackRunMap, PackRunOutput } from './packs/pack-run.ts';
 import { buildPackRun } from './packs/pack-run.ts';
 import { resolveToolAlias } from './tool-aliases.ts';
 
-/** Составная провенанс-строка: `'pack:<name>' | 'plugin:<name>' | 'mcp:<server>' | 'host'`. */
-export type CapabilitySource = string;
-
-export type RunToolEntry = {
-  def: ToolDefinition;
-  exposure: ToolExposure;
-  source: CapabilitySource;
-};
-
-export type RunRegistry = Map<string, RunToolEntry>;
-
-export type ExplainKind = 'tool' | 'skill' | 'mcp' | 'hook' | 'subagent' | 'note' | 'path';
-
-export type ExplainStatus =
-  | 'granted'
-  | 'deferred'
-  | 'disabled'
-  | 'dropped-by-mode'
-  | 'denied-by-universe'
-  | 'overrode-host';
-
-export type ExplainEntry = {
-  item: string;
-  kind: ExplainKind;
-  source: CapabilitySource;
-  status: ExplainStatus;
-  reason: string;
-};
+export type {
+  CapabilitySource,
+  ExplainEntry,
+  ExplainKind,
+  ExplainStatus,
+  RunRegistry,
+  RunToolEntry,
+} from './capability-explain.ts';
 
 export type ModeCapabilityFields = {
   id: string;
@@ -78,12 +72,11 @@ export type CapabilitySet = {
 /** Сервисы, грантимые только через `pack:core`; такие имена из baseRegistry — не грант хоста. */
 export const CORE_SERVICE_TOOLS = ['load_tools', 'load_skill', 'Skill'];
 
-const PACK_PREFIX = 'pack:';
 const CORE_PACK = 'core';
 
 type Assembly = {
   registry: RunRegistry;
-  explain: ExplainEntry[];
+  ex: ExplainLog;
   fatal: string[];
 };
 
@@ -98,7 +91,8 @@ export function resolveCapabilitySet(
   def: AgentDefinition,
   universe: CapabilityUniverse,
 ): CapabilitySet {
-  const asm: Assembly = { registry: new Map(), explain: [], fatal: [] };
+  const ex = createExplainLog();
+  const asm: Assembly = { registry: new Map(), ex, fatal: [] };
   const layer = buildPackLayer(def, universe);
   grantHostTools(asm, def, universe);
   reportAssignments(asm, def, layer);
@@ -108,10 +102,10 @@ export function resolveCapabilitySet(
   applyMode(asm, def, universe.mode);
   applyLegacyAllowlist(asm, def);
   grantCoreServices(asm, def, universe);
-  const collected = collectPackOutputs(asm, def, layer);
+  const collected = collectPackOutputs(asm.ex, def, layer.enabled);
   const mcpServers = [...new Set(def.mcpServers ?? [])];
-  explainMcpGrants(asm, mcpServers);
-  const subagents = collectSubagents(asm, def, universe);
+  explainMcpGrants(asm.ex, mcpServers);
+  const subagents = collectSubagents(asm.ex, def, universe.roster);
   return {
     registry: asm.registry,
     packOutputs: layer.outputs,
@@ -123,7 +117,7 @@ export function resolveCapabilitySet(
     subagents,
     notes: collected.notes,
     pathEntries: [],
-    explain: asm.explain,
+    explain: ex.entries,
     fatal: asm.fatal,
   };
 }
@@ -146,24 +140,13 @@ function grantHostTools(asm: Assembly, def: AgentDefinition, universe: Capabilit
     }
     const server = tool.operations?.includes('mcp') === true ? tool.group : undefined;
     if (server !== undefined && !allowedServers.has(server)) {
-      asm.explain.push({
-        item: name,
-        kind: 'tool',
-        source: `mcp:${server}`,
-        status: 'denied-by-universe',
-        reason: 'server not in agent mcpServers',
-      });
+      asm.ex.deniedByUniverse(name, 'tool', `mcp:${server}`, 'server not in agent mcpServers');
       continue;
     }
     const source: CapabilitySource = server !== undefined ? `mcp:${server}` : 'host';
     asm.registry.set(name, { def: tool, exposure: tool.exposure ?? 'direct', source });
-    asm.explain.push({
-      item: name,
-      kind: 'tool',
-      source,
-      status: 'granted',
-      reason: server !== undefined ? 'mcp server grant' : 'host baseRegistry',
-    });
+    const reason = server !== undefined ? 'mcp server grant' : 'host baseRegistry';
+    asm.ex.granted(name, 'tool', source, reason);
   }
 }
 
@@ -179,15 +162,10 @@ function reportAssignments(asm: Assembly, def: AgentDefinition, layer: PackLayer
     if (layer.outputs.has(name)) {
       continue;
     }
-    asm.explain.push({
-      item: name,
-      kind: 'tool',
-      source: `${PACK_PREFIX}${name}`,
-      status: 'denied-by-universe',
-      reason: layer.excluded.has(name)
-        ? 'create threw without ports'
-        : 'dropped by registry validation (ports/scope or spec)',
-    });
+    const reason = layer.excluded.has(name)
+      ? 'create threw without ports'
+      : 'dropped by registry validation (ports/scope or spec)';
+    asm.ex.deniedByUniverse(name, 'tool', `${PACK_PREFIX}${name}`, reason);
     if ((overrideOf(assignment).disabledTools?.length ?? 0) > 0) {
       asm.fatal.push(`pack "${name}" carries disabledTools but the source is not active`);
     }
@@ -200,23 +178,15 @@ function grantPackTools(asm: Assembly, layer: PackLayer): void {
     for (const tool of out.tools) {
       const prev = asm.registry.get(tool.name);
       if (prev?.source.startsWith(PACK_PREFIX)) {
-        asm.explain.push({
-          item: tool.name,
-          kind: 'tool',
-          source,
-          status: 'denied-by-universe',
-          reason: `collides with ${prev.source}`,
-        });
+        asm.ex.deniedByUniverse(tool.name, 'tool', source, `collides with ${prev.source}`);
         continue;
       }
       asm.registry.set(tool.name, { def: tool, exposure: tool.exposure ?? 'direct', source });
-      asm.explain.push({
-        item: tool.name,
-        kind: 'tool',
-        source,
-        status: prev !== undefined ? 'overrode-host' : 'granted',
-        reason: prev !== undefined ? source : 'pack create',
-      });
+      if (prev !== undefined) {
+        asm.ex.overrodeHost(tool.name, 'tool', source, source);
+      } else {
+        asm.ex.granted(tool.name, 'tool', source, 'pack create');
+      }
     }
   }
 }
@@ -238,13 +208,7 @@ function subtractSourceDisabled(asm: Assembly, out: PackRunOutput, ovr: PackOver
       continue;
     }
     asm.registry.delete(name);
-    asm.explain.push({
-      item: name,
-      kind: 'tool',
-      source,
-      status: 'disabled',
-      reason: `${source} disabledTools override`,
-    });
+    asm.ex.disabled(name, 'tool', source, `${source} disabledTools override`);
   }
 }
 
@@ -257,13 +221,12 @@ function applySourceExposure(asm: Assembly, out: PackRunOutput, ovr: PackOverrid
       continue;
     }
     entry.exposure = exposure;
-    asm.explain.push({
-      item: name,
-      kind: 'tool',
-      source,
-      status: exposure === 'deferred' ? 'deferred' : 'granted',
-      reason: `${source} exposure override`,
-    });
+    const reason = `${source} exposure override`;
+    if (exposure === 'deferred') {
+      asm.ex.deferred(name, 'tool', source, reason);
+    } else {
+      asm.ex.granted(name, 'tool', source, reason);
+    }
   }
 }
 
@@ -274,13 +237,7 @@ function subtractDisallowed(asm: Assembly, def: AgentDefinition): void {
       continue;
     }
     asm.registry.delete(name);
-    asm.explain.push({
-      item: name,
-      kind: 'tool',
-      source: entry.source,
-      status: 'disabled',
-      reason: 'agent disallowedTools',
-    });
+    asm.ex.disabled(name, 'tool', entry.source, 'agent disallowedTools');
   }
 }
 
@@ -313,13 +270,7 @@ function markModePreload(asm: Assembly, mode: ModeCapabilityFields): void {
       continue;
     }
     entry.exposure = 'deferred';
-    asm.explain.push({
-      item: name,
-      kind: 'tool',
-      source: entry.source,
-      status: 'dropped-by-mode',
-      reason: `mode:${mode.id} preload`,
-    });
+    asm.ex.droppedByMode(name, 'tool', entry.source, `mode:${mode.id} preload`);
   }
 }
 
@@ -330,13 +281,7 @@ function subtractModeLists(asm: Assembly, mode: ModeCapabilityFields): void {
       continue;
     }
     asm.registry.delete(name);
-    asm.explain.push({
-      item: name,
-      kind: 'tool',
-      source: entry.source,
-      status: 'disabled',
-      reason: `mode:${mode.id} disabledTools`,
-    });
+    asm.ex.disabled(name, 'tool', entry.source, `mode:${mode.id} disabledTools`);
   }
   for (const [name, exposure] of Object.entries(mode.exposure ?? {})) {
     const entry = asm.registry.get(name);
@@ -358,13 +303,7 @@ function applyLegacyAllowlist(asm: Assembly, def: AgentDefinition): void {
       continue;
     }
     asm.registry.delete(name);
-    asm.explain.push({
-      item: name,
-      kind: 'tool',
-      source: entry.source,
-      status: 'denied-by-universe',
-      reason: 'legacy tools allowlist',
-    });
+    asm.ex.deniedByUniverse(name, 'tool', entry.source, 'legacy tools allowlist');
   }
 }
 
@@ -388,121 +327,6 @@ function grantCoreServices(
       exposure: service.exposure ?? 'direct',
       source,
     });
-    asm.explain.push({
-      item: service.name,
-      kind: 'tool',
-      source,
-      status: 'granted',
-      reason: 'core services',
-    });
+    asm.ex.granted(service.name, 'tool', source, 'core services');
   }
-}
-
-function collectPackOutputs(
-  asm: Assembly,
-  def: AgentDefinition,
-  layer: PackLayer,
-): { skills: string[]; notes: LlmNoteProvider[] } {
-  const skills: string[] = [];
-  const notes: LlmNoteProvider[] = [];
-  const seen = new Set<string>();
-  const allowedSkills = new Set(def.skills ?? []);
-  for (const out of layer.enabled) {
-    const source: CapabilitySource = `${PACK_PREFIX}${out.reg.pack.name}`;
-    for (const skill of out.skills) {
-      if (seen.has(skill.name)) {
-        asm.explain.push({
-          item: skill.name,
-          kind: 'skill',
-          source,
-          status: 'denied-by-universe',
-          reason: 'skill name collides with an earlier pack output',
-        });
-        continue;
-      }
-      seen.add(skill.name);
-      if (!allowedSkills.has(skill.name)) {
-        asm.explain.push({
-          item: skill.name,
-          kind: 'skill',
-          source,
-          status: 'denied-by-universe',
-          reason: 'not in agent skills allowlist',
-        });
-        continue;
-      }
-      skills.push(skill.name);
-      asm.explain.push({
-        item: skill.name,
-        kind: 'skill',
-        source,
-        status: 'granted',
-        reason: 'pack output',
-      });
-    }
-    for (const note of out.notes) {
-      notes.push(note);
-      const item = `${out.reg.pack.name}#note${notes.length}`;
-      asm.explain.push({ item, kind: 'note', source, status: 'granted', reason: 'pack output' });
-    }
-  }
-  return { skills, notes };
-}
-
-function explainMcpGrants(asm: Assembly, mcpServers: string[]): void {
-  for (const server of mcpServers) {
-    asm.explain.push({
-      item: server,
-      kind: 'mcp',
-      source: `mcp:${server}`,
-      status: 'granted',
-      reason: 'agent mcpServers',
-    });
-  }
-}
-
-function collectSubagents(
-  asm: Assembly,
-  def: AgentDefinition,
-  universe: CapabilityUniverse,
-): AgentRosterEntry[] {
-  const subagents: AgentRosterEntry[] = [];
-  for (const entry of universe.roster) {
-    const plugin = entry.plugin;
-    if (plugin !== undefined && def.enabledPlugins?.[plugin] !== true) {
-      asm.explain.push({
-        item: entry.name,
-        kind: 'subagent',
-        source: `plugin:${plugin}`,
-        status: 'disabled',
-        reason: 'plugin not enabled for agent',
-      });
-      continue;
-    }
-    const source: CapabilitySource = plugin === undefined ? 'host' : `plugin:${plugin}`;
-    subagents.push(entry);
-    asm.explain.push({
-      item: entry.name,
-      kind: 'subagent',
-      source,
-      status: 'granted',
-      reason: 'host roster',
-    });
-  }
-  return subagents;
-}
-
-function isOn(assignment: PackAssignment | undefined): boolean {
-  return assignment !== undefined && assignment !== null && assignment !== false;
-}
-
-function overrideOf(assignment: PackAssignment | undefined): PackOverride {
-  if (typeof assignment === 'object' && assignment !== null) {
-    return assignment;
-  }
-  return {};
-}
-
-function packNameOf(source: CapabilitySource): string | undefined {
-  return source.startsWith(PACK_PREFIX) ? source.slice(PACK_PREFIX.length) : undefined;
 }

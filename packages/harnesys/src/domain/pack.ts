@@ -26,9 +26,10 @@ export type PackMeta = {
 };
 
 export type PackConfig = { spec?: Record<string, unknown> };
-/** Точечное вычитание/экспозиция внутри включённого источника; отличается от PackConfig формой. */
+/** Точечное вычитание/экспозиция внутри включённого источника; `spec` — payload для `create()`,
+ *  того же типа, что `PackConfig.spec`: `{spec: R}` доходит до пака как `R` и в bare, и в override-форме. */
 export type PackOverride = {
-  spec?: PackConfig;
+  spec?: Record<string, unknown>;
   disabledTools?: string[];
   exposure?: Record<string, ToolExposure>;
 };

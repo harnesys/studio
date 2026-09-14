@@ -1,10 +1,10 @@
 import { resolveAgentTarget } from '../../application/agent-target-resolve.ts';
 import { parseSpawnBudget } from '../../application/graph-spawn.ts';
-
 import type { CapabilityScope, PackConfig } from '../../domain/pack.ts';
 import type { AgentCatalogCreateInput, AgentsCatalogPort } from '../../ports/agents-catalog.ts';
 import type { AgentRosterEntry } from '../../ports/create-runtime.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
+import { resolveHandoffTarget } from './handoff-target.ts';
 
 export type CreateAgentsToolsParams = {
   agents: AgentsCatalogPort;
@@ -57,7 +57,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
     tool('agents_list', {
       group: 'agents',
       description:
-        'List agents in this workspace (id, name, role, instructions, tools, model, level, parent?). Optional role/name filters; role is not unique. tools lists declared names; the effective set at run time may be smaller (host/MCP filtering). Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
+        'List agents in this workspace (id, name, role, instructions, tools, model, level, parent?). Optional role/name filters; role is not unique. tools lists declared names; the effective set adds default host/pack tools and may also shrink (host/MCP filtering). Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
       input: {
         type: 'object',
         properties: {
@@ -84,6 +84,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
                 role: row.role,
                 instructions: row.instructions,
                 tools: def?.tools ?? [],
+                packs: Object.keys(def?.packs ?? {}).filter((name) => def?.packs?.[name]),
                 ...(def?.model ? { model: `${def.model.provider}/${def.model.model}` } : {}),
                 level: row.parentId ? 'delegate' : 'top',
                 ...(row.parentId ? { parent: parentNames.get(row.parentId) ?? row.parentId } : {}),
@@ -275,6 +276,12 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
                     },
                     maxTokens: { type: 'number' },
                     deadlineMs: { type: 'number' },
+                    policy: {
+                      type: 'string',
+                      enum: ['ask', 'error'],
+                      description:
+                        'Accepted and ignored: a sandboxed child never asks and always closes with a report.',
+                    },
                   },
                   additionalProperties: false,
                 },
@@ -290,6 +297,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           const rec = (raw ?? {}) as { calls?: unknown };
           if (!Array.isArray(rec.calls)) {
             return { error: 'calls must be an array' };
+          }
+          if (rec.calls.length === 0) {
+            return { error: 'no spawn calls provided' };
           }
           const shapeError = spawnCallsShapeError(rec.calls);
           if (shapeError) {
@@ -311,7 +321,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       group: 'agents',
       sideEffect: 'write',
       description:
-        'Pass this thread to another agent (current speaker changes, origin stays). The graph then runs control:handoff. agentId from agents_list or agents_create. This is not the tool name control:handoff.',
+        'Pass this thread to another agent (current speaker changes, origin stays). The graph then runs control:handoff. agentId from agents_list or agents_create. This is not the tool name control:handoff. Top-level agents only; delegates must be run via agents_spawn.',
       input: {
         type: 'object',
         properties: {
@@ -319,13 +329,15 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
         },
         required: ['agentId'],
       },
-      execute: (raw) => {
-        const rec = (raw ?? {}) as { agentId?: unknown };
-        if (typeof rec.agentId !== 'string' || !rec.agentId) {
-          return { error: 'agentId must be a non-empty string' };
-        }
-        return { agentId: rec.agentId };
-      },
+      execute: async (raw) =>
+        runGuard(async () => {
+          const id = ((raw ?? {}) as { agentId?: unknown }).agentId;
+          if (typeof id !== 'string' || !id) {
+            return { error: 'agentId must be a non-empty string' };
+          }
+          const rows = await deps.agents.list(deps.resolveScope());
+          return resolveHandoffTarget(id, rows);
+        }),
     }),
   ];
 }

@@ -400,6 +400,8 @@ export function filterToolsForAgent(
 
 В `resolveAgentIdentity` собрать `const merged = new Map(ctx.baseRegistry);` → `buildPackRun`/`attachPackTools(merged, ...)` → `const filtered = filterToolsForAgent(merged, def)` → `runRegistry = new Map(filtered)` → `registerPackSkillTool(runRegistry, ...)` → `runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry))`. Служебные поверх фильтра; collisions/diagnostics — как в T1.
 
+Там же — `tool_unreachable` (spec §1): после фильтра `for (const name of def.tools ?? []) if (!merged.has(resolveToolAlias(name))) diagnostics.push({ severity: 'warning', code: 'tool_unreachable', message: \`tool "${name}" is not provided by any enabled pack/server\` })`; массив возвращается в `AgentIdentity.diagnostics` (поле есть с T1) и печатается `printPackDiagnostics`.
+
 - [ ] **Step 3: `llm.ts` — узел без ключа = без инструментов**
 
 `const resolved = node.tools === undefined ? [...ctx.toolRegistry.keys()] : (node.tools ?? []);` → `const resolved = node.tools ?? [];`

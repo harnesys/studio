@@ -226,7 +226,7 @@ export function effectiveSkillRegistry(
   return def.skills !== undefined ? filterSkills(merged, def.skills) : merged;
 }
 
-function registerPackSkillTool(
+export function registerPackSkillTool(
   runRegistry: Map<string, ToolDefinition>,
   enabled: PackRunOutput[],
   def: AgentDefinition,

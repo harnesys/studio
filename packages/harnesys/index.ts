@@ -22,6 +22,11 @@ export {
   toBinding,
 } from './src/adapters/models/binding.ts';
 export { discoverModels } from './src/adapters/models/discover.ts';
+export {
+  type AgentIdentity,
+  type ResolveAgentIdentityCtx,
+  resolveAgentIdentity,
+} from './src/application/agent-identity.ts';
 export type { CheckOptions } from './src/application/check.ts';
 export { check } from './src/application/check.ts';
 export { estimateTokens } from './src/application/compaction/estimate.ts';

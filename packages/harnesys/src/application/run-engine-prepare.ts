@@ -2,13 +2,15 @@ import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { Attachment } from '../domain/attachment.ts';
 import type { Event } from '../domain/snapshot.ts';
 import type { Logger } from '../ports/logger.ts';
+import type { ToolDefinition } from '../ports/tools.ts';
+import { resolveAgentIdentity } from './agent-identity.ts';
 import { compileOrThrow } from './compile.ts';
 import type { GraphOpts } from './graph.ts';
 import { abandonForeignSnapshot } from './graph-snap.ts';
 import { createHookBus } from './hooks/bus.ts';
 import type { HookEmitCtx } from './hooks/emit-hook.ts';
 import type { PackRunMap } from './packs/pack-run.ts';
-import { attachPackRun, reusePackRun } from './packs/pack-run.ts';
+import { reusePackRun } from './packs/pack-run.ts';
 import type { RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
 import { filterToolsForAgent } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
@@ -111,15 +113,18 @@ export async function prepareExecuteGraphOpts(
   const agent = withMessageEffort(opts.agent, firstUser?.effort);
   const plan = compileOrThrow(agent);
   const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
-  const runRegistry = new Map(filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, agent));
-  runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
+  let runRegistry: Map<string, ToolDefinition>;
   let packOutputs = opts.packOutputs;
   if (packOutputs !== undefined) {
     // Prebuilt map (oneshot path): tools are attached upstream.
+    runRegistry = new Map(filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, agent));
+    runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
     packCache.set(runId, packOutputs);
   } else {
     const cached = packCache.get(runId);
     if (cached !== undefined) {
+      runRegistry = new Map(filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, agent));
+      runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
       packOutputs = reusePackRun({
         def: agent,
         cached,
@@ -129,14 +134,15 @@ export async function prepareExecuteGraphOpts(
         logger: runLogger,
       });
     } else {
-      packOutputs = attachPackRun({
-        def: agent,
+      const identity = resolveAgentIdentity(agent, {
+        baseRegistry: opts.toolRegistry ?? deps.toolRegistry,
         registrations: opts.packs ?? deps.packRegistrations ?? [],
-        runRegistry,
         fsSkills: opts.skills ?? deps.skills,
         deferredPacks: opts.deferredPacks ?? deps.deferredPacks,
         logger: runLogger,
       });
+      runRegistry = identity.toolRegistry;
+      packOutputs = identity.packOutputs;
       packCache.set(runId, packOutputs);
     }
   }

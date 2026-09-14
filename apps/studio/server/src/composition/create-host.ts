@@ -3,6 +3,7 @@ import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import { MonitorJobRegistrarAdapter } from '../adapters/monitor-job-registrar.adapter.ts';
 import { RunHookBuses } from '../adapters/run-hook-buses.adapter.ts';
 import { MacosSecretStoreAdapter } from '../adapters/secret-store-macos.adapter.ts';
+import { runClosedWorldMaterialization } from '../adapters/store/sqlite/closed-world-materialization.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
@@ -40,13 +41,13 @@ export type StudioHost = {
   secretStore?: SecretStore;
 };
 
-export function createStudioHost(args: {
+export async function createStudioHost(args: {
   store: StudioStore;
   platform: StudioPlatform;
   runtime: StudioRuntime;
   memory: StudioMemoryPorts;
   options: StudioHostOptions;
-}): StudioHost {
+}): Promise<StudioHost> {
   const { store, platform, runtime, memory, options } = args;
 
   const runtimeStateRepo = new SqliteRuntimeStateRepo(store.db, (threadId, events) => {
@@ -171,6 +172,15 @@ export function createStudioHost(args: {
     );
   runtime.agentsRef.current = workspaceHarnesys;
   pluginAgentsRef.current = (workspaceId) => workspaceHarnesys.pluginAgents(workspaceId);
+
+  // Одноразовая материализация «неявное → явное» до флипа closed-world;
+  // маркер в schema_meta делает повторный старт no-op. Ошибка валит старт.
+  await runClosedWorldMaterialization({
+    db: store.db,
+    workspaces: store.workspaceRepo,
+    agents: store.agentRepo,
+    workspaceHarnesys,
+  });
 
   // Host-driven hook emissions (FileChanged from the workspace watcher,
   // Notification from monitor stdout) share the run's hook bus: the bus is

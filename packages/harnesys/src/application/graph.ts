@@ -1,4 +1,4 @@
-import { PASSTHROUGH_MODEL_EVENTS } from '../constants.ts';
+import { PASSTHROUGH_MODEL_EVENTS, STATE_SPAWN_RESULTS_KEY } from '../constants.ts';
 import type {
   AgentDefinition,
   Node,
@@ -45,7 +45,12 @@ import {
 } from './graph-helpers.ts';
 import { executeMap, type MapNodeSpec, prepareMap } from './graph-map.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
-import { executeSpawn, prepareSpawn, type SpawnNodeSpec } from './graph-spawn.ts';
+import {
+  executeSpawn,
+  prepareSpawn,
+  type SpawnNodeSpec,
+  type SpawnResultItem,
+} from './graph-spawn.ts';
 import { prepareWait, type WaitNodeSpec } from './graph-wait.ts';
 import { emitHook, type HookEmitCtx, hookContextText, resolveHookCtx } from './hooks/emit-hook.ts';
 import { type LlmResult, runLlmGenerate } from './llm.ts';
@@ -1128,12 +1133,17 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       yield ev;
       break;
     } else if (node.type === 'control:spawn') {
+      const cpRaw = st[STATE_SPAWN_RESULTS_KEY];
+      const checkpoint: SpawnResultItem[] = Array.isArray(cpRaw)
+        ? (cpRaw as SpawnResultItem[])
+        : [];
       let spawnOutcome: Awaited<ReturnType<typeof executeSpawn>>;
       try {
         const prepared = prepareSpawn(
           node as SpawnNodeSpec,
           { ...opts, agent, plan, input, toolRegistry },
           slots,
+          checkpoint,
         );
         for (const t of prepared.targets) {
           const e = await commit('running', 'agent.spawned', 'recorded', {
@@ -1143,11 +1153,67 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           });
           yield e;
         }
-        spawnOutcome = await executeSpawn(
+        // Пер-рёберный чекпоинт: генератор не может yield из коллбэка —
+        // события идут через очередь с wake-проомисом.
+        const carried = prepared.carried.slice();
+        const pending: Event[] = [];
+        let wake: () => void = () => {};
+        let commitTail: Promise<void> = Promise.resolve();
+        const note = (ev: Event): void => {
+          pending.push(ev);
+          wake();
+        };
+        const spawnPromise = executeSpawn(
           prepared,
           { ...opts, agent, plan, input, toolRegistry, hooks },
           startGraph,
+          (item) => {
+            // Коммиты сериализованы хвостом: параллельный пул зовёт коллбэк конкурентно.
+            commitTail = commitTail.then(async () => {
+              carried.push(item);
+              st[STATE_SPAWN_RESULTS_KEY] = carried.slice();
+              const ev = await commit(
+                'running',
+                item.error ? 'agent.failed' : 'agent.completed',
+                'recorded',
+                {
+                  agentId: item.agentId,
+                  spawnId: item.spawnId,
+                  ...(item.error ? { code: item.error.code, message: item.error.message } : {}),
+                },
+              );
+              note(ev);
+            });
+            return commitTail;
+          },
         );
+        let spawnSettled = false;
+        let spawnError: unknown;
+        void spawnPromise.then(
+          () => {
+            spawnSettled = true;
+            wake();
+          },
+          (err) => {
+            spawnSettled = true;
+            spawnError = err;
+            wake();
+          },
+        );
+        while (!spawnSettled || pending.length > 0) {
+          while (pending.length > 0) {
+            yield pending.shift() as Event;
+          }
+          if (!spawnSettled) {
+            await new Promise<void>((r) => {
+              wake = r;
+            });
+          }
+        }
+        if (spawnError !== undefined) {
+          throw spawnError;
+        }
+        spawnOutcome = await spawnPromise;
       } catch (err) {
         const code =
           err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
@@ -1158,13 +1224,10 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         yield e;
         throw Object.assign(new Error(message), { code });
       }
-      for (const emission of spawnOutcome.emissions) {
-        const e = await commit('running', emission.type, 'recorded', emission.metadata);
-        yield e;
-      }
-      output = spawnOutcome.results;
-      appendSpawnResultsMessage(st, lastMsg, spawnOutcome.results);
+      output = [...spawnOutcome.carried, ...spawnOutcome.results];
+      appendSpawnResultsMessage(st, lastMsg, output);
       clearQueuedSpawns(st);
+      delete st[STATE_SPAWN_RESULTS_KEY];
       const e = await commit('running', 'node.completed');
       yield e;
     } else if (node.type === 'control:handoff') {

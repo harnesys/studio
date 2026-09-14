@@ -38,6 +38,7 @@ export type SchedulePatch = Partial<{
 }>;
 export type ScheduleRepository = {
   listByWorkspace(workspaceId: string): Schedule[];
+  listByTargetAgent(workspaceId: string, agentId: string): Schedule[];
   listDue(nowIso: string): Schedule[];
   findById(id: string): Schedule | undefined;
   findByThreadId(threadId: string): Schedule | undefined;

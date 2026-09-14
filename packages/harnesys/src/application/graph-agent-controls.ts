@@ -32,6 +32,8 @@ export type QueuedSpawnCall = {
   agentId: string;
   input: unknown;
   budget?: unknown;
+  /** Frozen at queue time so retries reuse the same child run lineage. */
+  spawnId: string;
 };
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -63,6 +65,7 @@ function spawnCallsOf(result: unknown): QueuedSpawnCall[] {
       agentId: row.agentId,
       input: spawnInputOf(row.input),
       ...(row.budget !== undefined ? { budget: row.budget } : {}),
+      spawnId: crypto.randomUUID(),
     });
   }
   return out;

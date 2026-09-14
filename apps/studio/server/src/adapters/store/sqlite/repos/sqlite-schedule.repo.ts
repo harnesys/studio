@@ -23,6 +23,17 @@ export class SqliteScheduleRepo implements ScheduleRepository {
       .map(toSchedule);
   }
 
+  listByTargetAgent(workspaceId: string, agentId: string): Schedule[] {
+    return this.db
+      .select()
+      .from(schedulesTable)
+      .where(
+        and(eq(schedulesTable.workspaceId, workspaceId), eq(schedulesTable.targetAgentId, agentId)),
+      )
+      .all()
+      .map(toSchedule);
+  }
+
   listDue(nowIso: string): Schedule[] {
     return this.db
       .select()

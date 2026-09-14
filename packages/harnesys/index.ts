@@ -275,6 +275,7 @@ export type { WebhookCapabilityPorts } from './src/packs/webhook/index.ts';
 export { webhookCapability } from './src/packs/webhook/index.ts';
 export type {
   AgentCatalogCreateInput,
+  AgentCatalogPatch,
   AgentCatalogSummary,
   AgentsCatalogPort,
 } from './src/ports/agents-catalog.ts';

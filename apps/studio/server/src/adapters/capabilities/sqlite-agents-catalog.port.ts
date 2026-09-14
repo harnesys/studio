@@ -1,5 +1,6 @@
 import type {
   AgentCatalogCreateInput,
+  AgentCatalogPatch,
   AgentCatalogSummary,
   AgentDefinition,
   AgentGenerationSettings,
@@ -9,9 +10,10 @@ import type {
 } from 'harnesys';
 import type { CreateAgentInput } from '../../application/agents/create-agent.use-case.ts';
 import type { PluginAgentCatalog } from '../../application/plugins/plugin-agents.ts';
-import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
+import type { Agent, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
-import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import type { ThreadRepository } from '../../domain/thread.port.ts';
 
 /** Late-wired resolver for `pluginName:agentName` catalog ids (set in create-host). */
 export type PluginAgentsRef = {
@@ -21,6 +23,8 @@ export type PluginAgentsRef = {
 export type SqliteAgentsCatalogPortDeps = {
   agents: AgentRepository;
   createAgent: CreateAgentInput;
+  /** Thread ownership guard for `remove`; omitted = no threads exist for the host. */
+  threads?: ThreadRepository;
   models?: LlmModelRepository;
   providers?: LlmProviderRepository;
   pluginAgents?: PluginAgentsRef;
@@ -106,6 +110,62 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
       generation: model?.generation,
     });
     return { id: created.id, name: created.name };
+  }
+
+  patch(scope: CapabilityScope, id: string, patch: AgentCatalogPatch): Promise<void> {
+    const agent = this.deps.agents.findById(id);
+    if (!agent || agent.workspaceId !== scope.workspaceId) {
+      throw new NotFoundError(`agent "${id}" not found`);
+    }
+    // Host-side repeat of the tool's ownership rule: delegates created by this agent only.
+    if (agent.parentId !== scope.agentId) {
+      throw new ValidationError('not your delegate');
+    }
+    // Same field handling as UpdateAgentUseCase: only provided keys reach the row,
+    // budget replaces the stored object whole (undefined members serialize away).
+    const update: AgentPatch = { updatedAt: new Date().toISOString() };
+    if (patch.name !== undefined) {
+      const name = patch.name.trim();
+      if (!name) {
+        throw new ValidationError('agent name cannot be empty');
+      }
+      const existing = this.deps.agents.findByName(scope.workspaceId, name);
+      if (existing && existing.id !== id) {
+        throw new ConflictError('agent name taken in workspace');
+      }
+      update.name = name;
+    }
+    if (patch.role !== undefined) {
+      update.role = patch.role.trim() || 'Operator';
+    }
+    if (patch.instructions !== undefined) {
+      update.instructions = patch.instructions.trim();
+    }
+    if (patch.budget !== undefined) {
+      update.budget = patch.budget;
+    }
+    this.deps.agents.update(id, update);
+    return Promise.resolve();
+  }
+
+  remove(scope: CapabilityScope, id: string): Promise<{ ok: true } | { error: string }> {
+    const agent = this.deps.agents.findById(id);
+    if (!agent || agent.workspaceId !== scope.workspaceId) {
+      return Promise.resolve({ error: 'agent not found' });
+    }
+    // Host-side repeat of the tool's ownership rule: delegates created by this agent only.
+    if (agent.parentId !== scope.agentId) {
+      return Promise.resolve({ error: 'not your delegate' });
+    }
+    const ownsThreads =
+      this.deps.threads
+        ?.listByWorkspace(scope.workspaceId)
+        .some((thread) => thread.agentId === id || thread.originAgentId === id) ?? false;
+    if (ownsThreads) {
+      return Promise.resolve({ error: 'agent still owns threads; delete them first' });
+    }
+    this.deps.agents.delete(id);
+    return Promise.resolve({ ok: true });
   }
 }
 

@@ -72,6 +72,19 @@ export class SqlitePinPort implements PinPort {
     return Promise.resolve();
   }
 
+  /** Wipe all pins kept under an agent name (agent deleted, name orphaned). */
+  deleteByAgentName(input: { workspaceId: string; agentName: string }): void {
+    this.db
+      .delete(agentPinsTable)
+      .where(
+        and(
+          eq(agentPinsTable.workspaceId, input.workspaceId),
+          eq(agentPinsTable.agentName, input.agentName),
+        ),
+      )
+      .run();
+  }
+
   async projectForWindow(scope: MemoryScopeId, budgetTokens: number): Promise<string> {
     const pins = await this.list(scope);
     const lines = pins.map((pin) => `${pin.key}: ${pin.text}`);

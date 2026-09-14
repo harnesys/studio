@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { NotFoundError } from '../../../../domain/studio.error.ts';
 import type {
   Webhook,
@@ -18,6 +18,17 @@ export class SqliteWebhookRepo implements WebhookRepository {
       .select()
       .from(webhooksTable)
       .where(eq(webhooksTable.workspaceId, workspaceId))
+      .all()
+      .map(toWebhook);
+  }
+
+  listByTargetAgent(workspaceId: string, agentId: string): Webhook[] {
+    return this.db
+      .select()
+      .from(webhooksTable)
+      .where(
+        and(eq(webhooksTable.workspaceId, workspaceId), eq(webhooksTable.targetAgentId, agentId)),
+      )
       .all()
       .map(toWebhook);
   }

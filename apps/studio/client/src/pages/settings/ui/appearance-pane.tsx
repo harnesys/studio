@@ -5,8 +5,18 @@ import {
   UI_SCALE_LABELS,
   UI_SCALES,
 } from '@/shared/lib/appearance';
+import {
+  DEFAULT_GIT_STATUS_COLORS,
+  GIT_STATUS_SETTINGS_ROWS,
+  GIT_STATUS_STATUSES,
+  type GitStatusSettingsRow,
+  gitStatusColorClass,
+  useGitStatusColors,
+} from '@/shared/lib/git-status-colors';
 import { cn } from '@/shared/lib/utils';
-import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
+import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { useTheme } from '@/shared/ui/theme-provider';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
@@ -30,6 +40,8 @@ const SCALE_OPTIONS: SegmentOption[] = UI_SCALES.map((item) => ({
 
 export function AppearancePane() {
   const { theme, setTheme, scale, setScale, accent, setAccent } = useTheme();
+  const colors = useGitStatusColors((state) => state.colors);
+  const resetColors = useGitStatusColors((state) => state.resetColors);
 
   return (
     <FieldGroup className="gap-6">
@@ -114,7 +126,82 @@ export function AppearancePane() {
           }}
         />
       </Field>
+      <Field>
+        <div className="flex items-center justify-between gap-2">
+          <FieldLabel id="git-colors-label">Git status colors</FieldLabel>
+          <Button
+            variant="ghost"
+            size="xs"
+            disabled={GIT_STATUS_STATUSES.every(
+              (status) => colors[status] === DEFAULT_GIT_STATUS_COLORS[status],
+            )}
+            onClick={resetColors}
+            data-testid="git-colors-reset"
+          >
+            Reset to defaults
+          </Button>
+        </div>
+        <FieldDescription>
+          File name colors in the sidebar explorer and the changes list.
+        </FieldDescription>
+        <div className="grid max-w-2xl grid-cols-1 gap-x-8 sm:grid-cols-2">
+          {GIT_STATUS_SETTINGS_ROWS.map((row) => (
+            <GitStatusColorRow key={row.label} row={row} />
+          ))}
+        </div>
+      </Field>
     </FieldGroup>
+  );
+}
+
+function GitStatusColorRow({ row }: { row: GitStatusSettingsRow }) {
+  const colors = useGitStatusColors((state) => state.colors);
+  const setColor = useGitStatusColors((state) => state.setColor);
+
+  if (!row.status) {
+    return (
+      <div className="flex items-center gap-2.5 rounded-md px-1 py-1">
+        <span
+          className="size-6 shrink-0 rounded border border-border opacity-40"
+          style={{ backgroundColor: row.hex }}
+          aria-hidden
+        />
+        <span
+          className="min-w-0 flex-1 truncate text-muted-foreground/70 text-sm"
+          title={row.label}
+        >
+          {row.label}
+        </span>
+        <Badge variant="outline" className="shrink-0 text-[10px]">
+          Coming soon
+        </Badge>
+      </div>
+    );
+  }
+
+  const status = row.status;
+  const value = colors[status];
+  return (
+    <label
+      className="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-accent/50"
+      title={row.label}
+    >
+      <input
+        type="color"
+        value={value}
+        onChange={(event) => setColor(status, event.target.value)}
+        data-testid={`git-color-${status}`}
+        className="size-6 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0.5"
+        aria-label={`${row.label} color`}
+      />
+      <span
+        className={cn('min-w-0 flex-1 truncate text-sm', gitStatusColorClass(row.status))}
+        style={{ color: value }}
+      >
+        {row.label}
+      </span>
+      <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{value}</span>
+    </label>
   );
 }
 

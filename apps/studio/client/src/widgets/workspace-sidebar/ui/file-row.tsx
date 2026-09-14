@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { listWorkspaceFiles } from '@/shared/api/files';
 import { getGitFileStatus } from '@/shared/api/git';
+import { gitStatusColorClass, useGitStatusColors } from '@/shared/lib/git-status-colors';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
@@ -24,7 +25,7 @@ import { FileTypeIcon } from '@/shared/ui/file-type-icon';
 import { Spinner } from '@/shared/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 import type { ExplorerCreateDraft } from '../model/explorer-draft.store';
-import { getDirAggregatedStatus, gitStatusColor } from './git-file-decorations';
+import { getDirAggregatedStatus } from './git-file-decorations';
 import { InlineCreateInput } from './inline-create-input';
 
 export function FileRow({
@@ -93,7 +94,9 @@ export function FileRow({
     ? getDirAggregatedStatus(fullPath, effectiveMap ?? gitMap)
     : undefined;
   const gitStatus: GitFileStatus | undefined = isDir ? dirAggregated : fileGitStatus;
-  const gitColor = gitStatus ? gitStatusColor(gitStatus) : undefined;
+  const gitColors = useGitStatusColors((state) => state.colors);
+  const gitColor = gitStatus ? gitColors[gitStatus] : undefined;
+  const gitDecorationClass = gitStatus ? gitStatusColorClass(gitStatus) : undefined;
 
   const childrenQuery = useQuery({
     queryKey: ['workspace-files', workspaceId, fullPath],
@@ -178,14 +181,12 @@ export function FileRow({
               className={cn(
                 'min-w-0 truncate text-sm leading-4 group-data-[collapsible=icon]:hidden',
                 selected ? 'text-sidebar-foreground/90' : 'text-sidebar-foreground/70',
-                gitColor,
+                gitDecorationClass,
               )}
+              style={gitColor ? { color: gitColor } : undefined}
               title={gitStatus ? `git: ${gitStatus}` : undefined}
             >
               {entry.name}
-              {gitStatus ? (
-                <span className="ml-1 text-[11px] opacity-70">• {gitStatus[0]?.toUpperCase()}</span>
-              ) : null}
             </span>
           </TooltipTrigger>
           <TooltipContent side="right" hidden={!iconMode}>

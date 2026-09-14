@@ -1,4 +1,3 @@
-import type { PinPort } from 'harnesys';
 import type { Hono } from 'hono';
 import { KnowledgeController } from '../adapters/http/memory/knowledge.controller.ts';
 import { MemoryController } from '../adapters/http/memory/memory.controller.ts';
@@ -36,7 +35,7 @@ import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-pr
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
 
 export type StudioMemoryPorts = {
-  pin: PinPort;
+  pin: SqlitePinPort;
   semantic: SqliteSemanticPort;
   episodic: SqliteEpisodicPort;
   knowledge: SqliteKnowledgePort;

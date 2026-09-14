@@ -18,6 +18,8 @@ import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
 
 export type SpawnCall = {
   agentId: string;
+  /** Замораживается при очередировании; retry переиспользует тот же id, чекпоинт матчится по нему. */
+  spawnId?: string;
   input: unknown;
   /** Квота ребёнка: полная замена, только лимиты; policy движком не используется. */
   budget?: AgentBudget;
@@ -33,16 +35,6 @@ export type SpawnResultItem = {
   error?: { code: string; message: string };
   blocked?: DeniedToolEntry[];
   budget?: SpawnBudgetHit;
-};
-
-export type SpawnEmission = {
-  type: 'agent.completed' | 'agent.failed';
-  metadata: {
-    agentId: string;
-    spawnId: string;
-    code?: string;
-    message?: string;
-  };
 };
 
 export type SpawnNodeSpec = {
@@ -61,7 +53,8 @@ export type SpawnSlots = {
 
 export type SpawnNodeOutcome = {
   results: SpawnResultItem[];
-  emissions: SpawnEmission[];
+  /** Уже готовые из чекпоинта: не переигрываются, не эмитятся повторно. */
+  carried: SpawnResultItem[];
 };
 
 export type SpawnTarget = {
@@ -72,6 +65,8 @@ export type SpawnTarget = {
 
 export type PreparedSpawn = {
   targets: SpawnTarget[];
+  /** Результат детей из чекпоинта: их цели исключены из targets. */
+  carried: SpawnResultItem[];
   concurrency: 'parallel' | 'sequential';
 };
 
@@ -140,6 +135,7 @@ function parseCalls(raw: unknown): SpawnCall[] {
     }
     return {
       agentId: rec.agentId,
+      ...(typeof rec.spawnId === 'string' && rec.spawnId ? { spawnId: rec.spawnId } : {}),
       input: rec.input,
       ...(parsed.budget !== undefined ? { budget: parsed.budget } : {}),
     };
@@ -181,7 +177,8 @@ function resolveTargets(
         `spawn target "${call.agentId}" not found${suffix}`,
       );
     }
-    out.push({ call, def, spawnId: crypto.randomUUID() });
+    const spawnId = call.spawnId ?? crypto.randomUUID();
+    out.push({ call, def, spawnId });
   }
   return out;
 }
@@ -359,6 +356,7 @@ export function prepareSpawn(
   node: SpawnNodeSpec,
   parent: GraphOpts,
   slots: SpawnSlots,
+  done?: SpawnResultItem[],
 ): PreparedSpawn {
   // Песочница: тулы пака agents вырезаны, но узлы control:spawn исполняются
   // и в кастомном графе ребёнка. Вложенный спавн запрещён на уровне движка.
@@ -370,52 +368,43 @@ export function prepareSpawn(
   }
   const rawCalls = evalExpr(node.calls, slots);
   const calls = parseCalls(rawCalls);
+  // Повторный вход (retry после падения): цели из чекпоинта не переигрываются,
+  // их результаты доносятся carried.
+  const doneResults = (done ?? []).filter((r) => calls.some((c) => c.spawnId === r.spawnId));
+  const pendingCalls =
+    doneResults.length > 0
+      ? calls.filter((c) => !doneResults.some((r) => r.spawnId === c.spawnId))
+      : calls;
   const concurrency = resolveConcurrency(node.concurrency, slots);
-  const targets = resolveTargets(calls, parent.agents, parent.agent.id);
-  return { targets, concurrency };
+  const targets = resolveTargets(pendingCalls, parent.agents, parent.agent.id);
+  return { targets, carried: doneResults, concurrency };
 }
 
 export async function executeSpawn(
   prepared: PreparedSpawn,
   parent: GraphOpts,
   runChild: ChildRunner,
+  onChildDone?: (result: SpawnResultItem) => Promise<void> | void,
 ): Promise<SpawnNodeOutcome> {
-  const { targets, concurrency } = prepared;
-  const emissions: SpawnEmission[] = [];
+  const { targets, concurrency, carried } = prepared;
   const results: SpawnResultItem[] = new Array(targets.length);
+  const settleOne = async (i: number, t: SpawnTarget): Promise<void> => {
+    const item = await runOneChild(parent, t, runChild);
+    results[i] = item;
+    // Чекпоинт ребёнка должен попасть в состояние до продолжения барьера.
+    await onChildDone?.(item);
+  };
   if (concurrency === 'sequential') {
     for (let i = 0; i < targets.length; i += 1) {
       const t = targets[i];
       if (!t) {
         continue;
       }
-      results[i] = await runOneChild(parent, t, runChild);
+      await settleOne(i, t);
     }
   } else {
-    const settled = await Promise.all(targets.map((t) => runOneChild(parent, t, runChild)));
-    for (let i = 0; i < settled.length; i += 1) {
-      results[i] = settled[i] as SpawnResultItem;
-    }
+    await Promise.all(targets.map((t, i) => settleOne(i, t)));
   }
 
-  for (const item of results) {
-    if (item.error) {
-      emissions.push({
-        type: 'agent.failed',
-        metadata: {
-          agentId: item.agentId,
-          spawnId: item.spawnId,
-          code: item.error.code,
-          message: item.error.message,
-        },
-      });
-    } else {
-      emissions.push({
-        type: 'agent.completed',
-        metadata: { agentId: item.agentId, spawnId: item.spawnId },
-      });
-    }
-  }
-
-  return { results, emissions };
+  return { results, carried };
 }

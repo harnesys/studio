@@ -1,5 +1,8 @@
 /** Handoff-target resolution for the `agents_handoff` tool: delegates and
- *  unknown ids come back as tool-level errors, never as a failed run. */
+ *  unknown ids come back as tool-level errors, never as a failed run.
+ *  Delegates are not excluded from ownership: the lifecycle tools
+ *  (`agents_update`/`agents_delete`) act on them via the same catalog rows,
+ *  gated on `parentId === scope.agentId`. */
 import { formatAgentTargets, resolveAgentTarget } from '../../application/agent-target-resolve.ts';
 
 import type { AgentCatalogSummary } from '../../ports/agents-catalog.ts';

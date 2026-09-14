@@ -1,27 +1,5 @@
 import type { GitFileStatus, GitFileStatusMap } from '@harnesys/studio-shared';
 
-export function gitStatusColor(status: GitFileStatus): string {
-  switch (status) {
-    case 'conflicted':
-      return 'text-destructive';
-    case 'modified':
-      return 'text-amber-500 dark:text-amber-400';
-    case 'staged':
-    case 'added':
-      return 'text-emerald-500 dark:text-emerald-400';
-    case 'renamed':
-      return 'text-sky-500 dark:text-sky-400';
-    case 'deleted':
-      return 'text-muted-foreground line-through';
-    case 'untracked':
-      return 'text-red-500 dark:text-red-400';
-    case 'ignored':
-      return 'text-muted-foreground opacity-80';
-    default:
-      return '';
-  }
-}
-
 export function gitFileStatusLabel(status: GitFileStatus): string {
   switch (status) {
     case 'untracked':

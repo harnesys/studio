@@ -1,5 +1,6 @@
 import { definePack } from '../../domain/pack.ts';
 import type { AgentsCatalogPort } from '../../ports/agents-catalog.ts';
+import { createAgentLifecycleTools } from './create-agent-lifecycle-tools.ts';
 import { createAgentsTools } from './create-agents-tools.ts';
 
 export type AgentsCapabilityPorts = { agents: AgentsCatalogPort };
@@ -7,7 +8,8 @@ export type AgentsCapabilityPorts = { agents: AgentsCatalogPort };
 export const agentsCapability = definePack<AgentsCapabilityPorts, Record<string, unknown>>({
   name: 'agents',
   version: '1.0.0',
-  description: 'Agent catalog: agents_list / agents_create / agents_spawn / agents_handoff',
+  description:
+    'Agent catalog: agents_list / agents_create / agents_spawn / agents_handoff / agents_update / agents_delete',
   icon: 'agents',
   meta: {
     tools: [
@@ -31,11 +33,24 @@ export const agentsCapability = definePack<AgentsCapabilityPorts, Record<string,
         description:
           'Pass this thread to another agent (current speaker changes, origin stays). The graph then runs control:handoff. agentId from agents_list or agents_create. This is not the tool name control:handoff. Top-level agents only; delegates must be run via agents_spawn.',
       },
+      {
+        name: 'agents_update',
+        description:
+          'Patch name/role/instructions/budget of your own delegate; graph, tools and packs are owner-only. Returns { agentId }. agentId accepts an exact id, a unique id prefix (8+ chars), or a name.',
+      },
+      {
+        name: 'agents_delete',
+        description:
+          'Remove your own delegate that is not running anywhere; workspace UI manages top-level agents. Returns { removed, name }. agentId accepts an exact id, a unique id prefix (8+ chars), or a name.',
+      },
     ],
     skills: [],
     hasSettings: false,
   },
   create: (ctx) => ({
-    tools: createAgentsTools({ agents: ctx.ports.agents, resolveScope: () => ctx.scope }),
+    tools: [
+      ...createAgentsTools({ agents: ctx.ports.agents, resolveScope: () => ctx.scope }),
+      ...createAgentLifecycleTools({ agents: ctx.ports.agents, resolveScope: () => ctx.scope }),
+    ],
   }),
 });

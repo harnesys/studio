@@ -29,6 +29,7 @@ export type WebhookPatch = Partial<{
 
 export type WebhookRepository = {
   listByWorkspace(workspaceId: string): Webhook[];
+  listByTargetAgent(workspaceId: string, agentId: string): Webhook[];
   findById(id: string): Webhook | undefined;
   findByThreadId(threadId: string): Webhook | undefined;
   insert(rec: WebhookInsert): Webhook;

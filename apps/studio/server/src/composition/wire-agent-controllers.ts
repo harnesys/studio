@@ -2,7 +2,9 @@ import type { Hono } from 'hono';
 import { AgentController } from '../adapters/http/agent/agent.controller.ts';
 import type { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
 import type { SqliteModePresetRepo } from '../adapters/store/sqlite/repos/sqlite-mode-preset.repo.ts';
+import type { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedule.repo.ts';
 import type { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
+import type { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import type { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
 import type { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
 import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
@@ -13,11 +15,15 @@ import { ListAgentsUseCase } from '../application/agents/list-agents.use-case.ts
 import { UpdateAgentUseCase } from '../application/agents/update-agent.use-case.ts';
 import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-mcp.use-case.ts';
 import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
+import type { StudioMemoryPorts } from './wire-memory.ts';
 
 export type WireAgentControllersDeps = {
   app: Hono;
   agentRepo: SqliteAgentRepo;
   threadRepo: SqliteThreadRepo;
+  scheduleRepo: SqliteScheduleRepo;
+  webhookRepo: SqliteWebhookRepo;
+  memory: StudioMemoryPorts;
   modePresetRepo: SqliteModePresetRepo;
   workspaceRepo: SqliteWorkspaceRepo;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
@@ -37,6 +43,11 @@ export function wireAgentControllers(d: WireAgentControllersDeps): void {
     createAgent,
     createAgentFromPreset: new CreateAgentFromPresetUseCase(d.agentRepo, createAgent),
     updateAgent: new UpdateAgentUseCase(d.agentRepo),
-    deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo),
+    deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo, {
+      schedules: d.scheduleRepo,
+      webhooks: d.webhookRepo,
+      semantic: d.memory.semantic,
+      pins: d.memory.pin,
+    }),
   }).register(d.app);
 }

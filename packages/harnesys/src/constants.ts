@@ -182,6 +182,8 @@ export const AGENTS_HANDOFF_TOOL = 'agents_handoff';
 export const MAP_TOOL = 'map';
 export const WAIT_TOOL = 'wait';
 export const STATE_SPAWNS_KEY = 'spawns';
+/** Checkpoint of finished spawn children inside the control:spawn node state; cleared on node.completed. */
+export const STATE_SPAWN_RESULTS_KEY = 'spawnResults';
 export const STATE_HANDOFF_AGENT_ID_KEY = 'handoffAgentId';
 export const STATE_MAP_ITEMS_KEY = 'mapItems';
 export const STATE_WAIT_UNTIL_MS_KEY = 'waitUntilMs';

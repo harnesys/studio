@@ -37,6 +37,19 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       .run();
   }
 
+  /** Wipe all rows kept under an agent name (agent deleted, name orphaned). */
+  deleteByAgentName(input: { workspaceId: string; agentName: string }): void {
+    this.db
+      .delete(semanticMemoriesTable)
+      .where(
+        and(
+          eq(semanticMemoriesTable.workspaceId, input.workspaceId),
+          eq(semanticMemoriesTable.agentName, input.agentName),
+        ),
+      )
+      .run();
+  }
+
   upsert(scopeId: MemoryScopeId, input: SemanticUpsertInput): Promise<MemoryRecord> {
     const now = new Date().toISOString();
     const threadId = resolveStoredThreadId(scopeId, input);

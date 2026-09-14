@@ -2,6 +2,7 @@ import {
   MAP_ITEM_LIMIT,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
+  STATE_SPAWN_RESULTS_KEY,
   STATE_SPAWNS_KEY,
   STATE_WAIT_UNTIL_MS_KEY,
 } from '../constants.ts';
@@ -150,6 +151,7 @@ type SeedWorkerArgs = {
 /** Parent-run control queues and resume payload must not leak into a worker. */
 const WORKER_STATE_DROP_KEYS = [
   STATE_SPAWNS_KEY,
+  STATE_SPAWN_RESULTS_KEY,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
   STATE_WAIT_UNTIL_MS_KEY,

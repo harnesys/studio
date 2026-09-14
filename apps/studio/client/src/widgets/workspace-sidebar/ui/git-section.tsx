@@ -3,13 +3,15 @@ import { useEffect } from 'react';
 import { openCommitDialog } from '@/features/git-commit';
 import { watchWorkspaceFiles } from '@/shared/api/files';
 import { getGitFileStatus, gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
+import { gitStatusColorClass, useGitStatusColors } from '@/shared/lib/git-status-colors';
 import { cn } from '@/shared/lib/utils';
-import { gitFileStatusLabel, gitStatusColor } from './git-file-decorations';
+import { gitFileStatusLabel } from './git-file-decorations';
 import { useGitStatus } from './git-menu';
 
 export function GitSection({ workspaceId }: { workspaceId: string }) {
   const qc = useQueryClient();
   const gitStatus = useGitStatus(workspaceId);
+  const gitColors = useGitStatusColors((state) => state.colors);
 
   const fileStatusQuery = useQuery({
     queryKey: gitFileStatusQueryKey(workspaceId),
@@ -69,8 +71,9 @@ export function GitSection({ workspaceId }: { workspaceId: string }) {
           <span
             className={cn(
               'w-3 shrink-0 text-center font-mono text-[10px] uppercase',
-              gitStatusColor(file.status),
+              gitStatusColorClass(file.status),
             )}
+            style={{ color: gitColors[file.status] }}
           >
             {gitFileStatusLabel(file.status)}
           </span>

@@ -32,6 +32,13 @@ export type AgentCatalogCreateInput = {
   permissions?: PermissionMap;
 };
 
+export type AgentCatalogPatch = {
+  name?: string;
+  role?: string;
+  instructions?: string;
+  budget?: AgentBudget;
+};
+
 export type AgentsCatalogPort = {
   list(
     scope: CapabilityScope,
@@ -42,4 +49,8 @@ export type AgentsCatalogPort = {
     scope: CapabilityScope,
     input: AgentCatalogCreateInput,
   ): Promise<{ id: string; name: string }>;
+  /** Apply a partial update to an existing agent definition. */
+  patch?(scope: CapabilityScope, id: string, patch: AgentCatalogPatch): Promise<void>;
+  /** Remove an agent by id. */
+  remove?(scope: CapabilityScope, id: string): Promise<{ ok: true } | { error: string }>;
 };

@@ -115,6 +115,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
         agents: new SqliteAgentsCatalogPort({
           agents: deps.agents,
           createAgent,
+          threads: deps.threads,
           models: deps.models,
           providers: deps.providers,
           pluginAgents: deps.pluginAgentsRef,

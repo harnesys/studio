@@ -213,7 +213,9 @@ export function attachPackRun(input: AttachPackRunInput): PackRunMap {
   return outputs;
 }
 
-/** FS + pack skills merged, narrowed to the agent allowlist (`def.skills`). */
+/** FS + pack skills merged, narrowed to the agent allowlist (`def.skills`;
+ *  omitted/null/[] = none, closed world). `filterSkills` itself keeps its
+ *  undefined = passthrough branch for other callers. */
 export function effectiveSkillRegistry(
   def: AgentDefinition,
   fsSkills: SkillRegistry | undefined,
@@ -223,7 +225,7 @@ export function effectiveSkillRegistry(
     fsSkills,
     outputs.flatMap((o) => o.skills),
   );
-  return def.skills !== undefined ? filterSkills(merged, def.skills) : merged;
+  return filterSkills(merged, def.skills ?? []);
 }
 
 export function registerPackSkillTool(

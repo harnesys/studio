@@ -92,7 +92,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
       throw new ConflictError('agent name taken in workspace');
     }
 
-    const parentId = resolveParentId(this.agents, request.workspaceId, request.parentId);
+    const parent = resolveParent(this.agents, request.workspaceId, request.parentId);
+    const parentId = parent?.id ?? null;
 
     let modelId: string | null = null;
     if (request.modelId) {
@@ -156,7 +157,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const modes = ensureAskMode(request.modes ?? this.seedDefaultModes());
     const defaultModeId = request.defaultModeId ?? null;
     const hooks = request.hooks ?? [];
-    const enabledPlugins = request.enabledPlugins ?? {};
+    // Spec §3 orphan: a delegate can only carry plugins the parent already has.
+    const enabledPlugins = intersectDelegatePlugins(request.enabledPlugins ?? {}, parent);
     validateModeIds(modes);
     validateDefaultModeId(defaultModeId, modes);
 
@@ -209,11 +211,12 @@ export class CreateAgentUseCase implements CreateAgentInput {
   }
 }
 
-function resolveParentId(
+/** Родительская строка делегата (валидация та же, что раньше); null — top-level. */
+function resolveParent(
   agents: AgentRepository,
   workspaceId: string,
   parentId: string | null | undefined,
-): string | null {
+): Agent | null {
   if (parentId === undefined || parentId === null || parentId === '') {
     return null;
   }
@@ -224,7 +227,21 @@ function resolveParentId(
   if (parent.parentId !== null) {
     throw new ValidationError('delegates cannot own delegates');
   }
-  return parent.id;
+  return parent;
+}
+
+/** Делегат: сохраняем только ключи `true`, у которых родитель включён; остальные — в nowhere.
+ *  Top-level не трогаем: runtime `effectivePlugins` фильтрует по workspace-loaded набору. */
+function intersectDelegatePlugins(
+  enabled: Record<string, boolean>,
+  parent: Agent | null,
+): Record<string, boolean> {
+  if (parent === null) {
+    return enabled;
+  }
+  return Object.fromEntries(
+    Object.entries(enabled).filter(([name]) => parent.enabledPlugins[name] === true),
+  );
 }
 
 /** Single unknown → singular message; several → one plural list. */

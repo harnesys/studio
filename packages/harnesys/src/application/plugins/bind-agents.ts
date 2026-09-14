@@ -93,6 +93,10 @@ function buildEntry(
   if (mappedTools.length > 0) {
     definition.tools = mappedTools;
   }
+  const disallowed = mapSpecDisallowedTools(spec);
+  if (disallowed.length > 0) {
+    definition.disallowedTools = disallowed;
+  }
   const packs = packsForTools(mappedTools, bind.packIndex);
   if (packs !== undefined) {
     definition.packs = packs;
@@ -139,6 +143,19 @@ function mapSpecTools(spec: AgentSpec, sourceFile: string, bind: AgentBindContex
     mappedTools.push(name); // нативное имя из cc-дока без префиксов
   }
   return mappedTools;
+}
+
+/** `disallowedTools`: тот же alias-маппинг, что и для `tools`; planned-имена молча
+ *  отбрасываются — вычесть несуществующий инструмент невозможно. */
+function mapSpecDisallowedTools(spec: AgentSpec): string[] {
+  const out: string[] = [];
+  for (const name of spec.disallowedTools ?? []) {
+    if (PLANNED_CC_TOOLS[name] !== undefined) {
+      continue;
+    }
+    out.push(CC_TOOL_ALIASES[name] ?? name);
+  }
+  return out;
 }
 
 /** Уникальные паки по инструментам; undefined — паков нет или индекс не передан. */

@@ -65,6 +65,8 @@ export type AgentDefinition = {
   skills?: string[];
   /** Tool allowlist; omitted/null/[] means none (closed world). */
   tools?: string[];
+  /** Имена, вычитаемые из реестра после `tools`-фильтра; omitted/[] = no-op. */
+  disallowedTools?: string[];
   /** MCP server allowlist; omitted/null/[] means none. */
   mcpServers?: string[];
   toolOutput?: ToolOutputSettings;

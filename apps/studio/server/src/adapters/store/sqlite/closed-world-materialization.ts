@@ -1,5 +1,8 @@
 /** Одна дозапись «неявное → явное» перед закрытием мира (spec §2). Идемпотентна
- *  по маркеру schema_meta; считает old-effective через resolveAgentIdentity. */
+ *  по маркеру schema_meta; считает old-effective через resolveAgentIdentity.
+ *  Исторично: tools-blank guard был вакуумным на единственном живом прогоне —
+ *  read-path toAgent вернули позже (review Minor 8); повторный прогон на
+ *  post-flip базе теперь падает ниже по SERVICE_TOOLS-проверке, а не обнуляет. */
 import { sql } from 'drizzle-orm';
 import { type Node, resolveAgentIdentity, type SkillRegistry } from 'harnesys';
 import { logger } from '../../../config/logger.ts';
@@ -65,6 +68,13 @@ export async function runClosedWorldMaterialization(
           }),
       );
       const names = [...identity.toolRegistry.keys()];
+      // Post-flip база (откат бэкапа, второй хост на ~/.harnesys): def.tools=[] значит
+      // «ничего», names = services-only, и blank-guard ниже молча обнулил бы capabilities.
+      if (names.every((name) => SERVICE_TOOLS.has(name))) {
+        throw new Error(
+          'closed-world materialization: resolver returned only service tools — library semantics already flipped; restore the pre-flip backup',
+        );
+      }
       const mcpServers: string[] = [];
       for (const name of names) {
         const tool = identity.toolRegistry.get(name);

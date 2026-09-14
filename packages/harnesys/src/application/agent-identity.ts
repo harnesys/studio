@@ -41,8 +41,11 @@ export function resolveAgentIdentity(
   const { outputs, enabled, diagnostics } = buildPackRun(def, ctx.registrations);
   attachPackTools(merged, enabled, ctx.deferredPacks, ctx.logger);
   const filtered = filterToolsForAgent(merged, def);
-  for (const name of def.tools ?? []) {
-    if (!merged.has(resolveToolAlias(name))) {
+  // Diagnostics against the POST-filter registry: a tool dropped by the
+  // mcpServers/disallowedTools gate must warn too. Alias spelling survives
+  // the filter (requested keys keep their name), so accept both spellings.
+  for (const name of [...new Set(def.tools ?? [])]) {
+    if (!filtered.has(name) && !filtered.has(resolveToolAlias(name))) {
       diagnostics.push({
         severity: 'warning',
         code: 'tool_unreachable',

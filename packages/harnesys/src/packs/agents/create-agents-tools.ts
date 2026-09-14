@@ -196,6 +196,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       operations: ['agents'],
       description:
         'Create a subagent delegate under YOU (the calling agent). Returns { id, name }. ' +
+        'tools/skills/mcpServers/packs/enabledPlugins: omitted or [] means none; list every capability explicitly. ' +
         'Delegates are one-shot spawn targets: they cannot ask the user questions, their permissions ' +
         'never exceed yours, and the "agents" pack is forbidden for them. Spawn them with agents_spawn. ' +
         'Use agents_create instead for a standalone workspace agent visible to the user.',

@@ -116,9 +116,9 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
       defaultModeId: agentRow.defaultModeId ?? null,
       modes: agentRow.modes,
     });
-    this.threads.setRunMode(thread.id, runModeId);
     // Requested skills are deduped first-occurrence-first and must exist in the
     // workspace catalog and the agent allowlist (closed world: empty = none).
+    // Checked before setRunMode so a rejected request persists nothing.
     const skills = [...new Set(request.skills ?? [])];
     if (skills.length > 0) {
       const listed = await this.listSkills.execute({ workspaceId: thread.workspaceId });
@@ -129,6 +129,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
         throw new ValidationError(`skills not available to this agent: ${unavailable.join(', ')}`);
       }
     }
+    this.threads.setRunMode(thread.id, runModeId);
     // The instructions block rides only when the resolved mode differs from the
     // previous run's mode; otherwise the user message would repeat it verbatim.
     const modeBlock = modeInstructionsBlock(effectiveMode(agentRow.modes, runModeId));

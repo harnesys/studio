@@ -9,5 +9,9 @@ export function commandItems(query: string): SlashCommand[] {
 
 export function pickerItems(query: string, options: SkillOption[]): SkillOption[] {
   const normalized = query.toLowerCase();
-  return options.filter((option) => option.name.toLowerCase().startsWith(normalized));
+  return options.filter(
+    (option) =>
+      option.name.toLowerCase().includes(normalized) ||
+      option.description.toLowerCase().includes(normalized),
+  );
 }

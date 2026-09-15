@@ -212,21 +212,19 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         if (next.length === current.length) {
           return base;
         }
-        const threadSeen = base.seenAt[threadId];
-        if (threadSeen?.[key] === undefined) {
-          return {
-            ...base,
-            events: { ...base.events, [threadId]: next },
-            contentEpoch: { ...base.contentEpoch, [threadId]: Date.now() },
-          };
-        }
-        const { [key]: _removed, ...restSeen } = threadSeen;
-        return {
+        const { [key]: _gone, ...sentSkills } = base.sentSkills;
+        const stripped = {
           ...base,
           events: { ...base.events, [threadId]: next },
-          seenAt: { ...base.seenAt, [threadId]: restSeen },
+          sentSkills,
           contentEpoch: { ...base.contentEpoch, [threadId]: Date.now() },
         };
+        const threadSeen = base.seenAt[threadId];
+        if (threadSeen?.[key] === undefined) {
+          return stripped;
+        }
+        const { [key]: _removed, ...restSeen } = threadSeen;
+        return { ...stripped, seenAt: { ...base.seenAt, [threadId]: restSeen } };
       });
     },
 

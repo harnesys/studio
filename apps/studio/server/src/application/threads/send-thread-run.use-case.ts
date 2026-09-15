@@ -1,5 +1,5 @@
-import type { AcceptedRunResponse } from '@harnesys/studio-shared';
-import { type AgentMode, effectiveMode, resolveModeId } from '@harnesys/studio-shared';
+import type { AcceptedRunResponse, AgentMode, WorkspaceSkill } from '@harnesys/studio-shared';
+import { effectiveMode, resolveModeId } from '@harnesys/studio-shared';
 import type { Attachment, SendFile, SendInput } from 'harnesys';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
@@ -122,7 +122,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     const skills = [...new Set(request.skills ?? [])];
     if (skills.length > 0) {
       const listed = await this.listSkills.execute({ workspaceId: thread.workspaceId });
-      const known = new Set(listed.skills.map((skill) => skill.name));
+      const known = new Set(listed.skills.filter(isLoadableSkill).map((skill) => skill.name));
       const allowed = new Set(agentRow.skills);
       const unavailable = skills.filter((skill) => !known.has(skill) || !allowed.has(skill));
       if (unavailable.length > 0) {
@@ -200,6 +200,16 @@ function modeInstructionsBlock(mode: AgentMode): string | undefined {
 function requestedSkillsBlock(skills: string[]): string {
   const names = skills.map(escapeXml).join(', ');
   return `<requested-skills names="${names}">For this request, call load_skill for each listed skill before working.</requested-skills>`;
+}
+
+// Closed world for requested skills: only workspace skills and native plugin
+// cards can actually be loaded by `load_skill`; inert/blocked_by_grant/dropped
+// plugin components have no loadable body. Mirrors the composer picker filter.
+function isLoadableSkill(skill: WorkspaceSkill): boolean {
+  return (
+    skill.origin.kind === 'workspace' ||
+    (skill.origin.kind === 'plugin' && skill.origin.status === 'native')
+  );
 }
 
 function escapeXml(value: string): string {

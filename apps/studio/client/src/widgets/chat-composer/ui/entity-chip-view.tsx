@@ -1,9 +1,13 @@
 import type { NodeViewProps } from '@tiptap/core';
 import { NodeViewWrapper } from '@tiptap/react';
 import { ZapIcon } from 'lucide-react';
+import { isValidEntityRef } from '../model/entity-kinds';
 
 export function EntityChipView(props: NodeViewProps) {
   const { ref } = props.node.attrs;
+  if (!isValidEntityRef('skill', ref)) {
+    return null;
+  }
   return (
     <NodeViewWrapper
       as="span"

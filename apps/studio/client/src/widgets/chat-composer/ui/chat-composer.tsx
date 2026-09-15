@@ -280,7 +280,6 @@ export function ChatComposer() {
       threadId: thread.id,
       disabled,
       setSending,
-      clear: () => editorRef.current?.clear(),
     });
   }
 

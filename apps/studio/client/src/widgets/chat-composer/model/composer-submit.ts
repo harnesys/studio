@@ -47,13 +47,12 @@ export function submitComposer(options: ComposerSubmitOptions): void {
 
 export async function executeComposerSlash(
   command: SlashCommand,
-  options: Pick<ComposerSubmitOptions, 'threadId' | 'disabled' | 'setSending' | 'clear'>,
+  options: Pick<ComposerSubmitOptions, 'threadId' | 'disabled' | 'setSending'>,
 ): Promise<void> {
   if (options.disabled) {
     return;
   }
   options.setSending(true);
-  options.clear();
   try {
     const message = await runSlashCommand(command, options.threadId);
     if (message) {

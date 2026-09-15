@@ -10,15 +10,23 @@ export type SkillPickerProps = {
   anchor: PickerAnchor;
   onPick(option: SkillOption): void;
   onClose(): void;
+  onEsc(): void;
 };
 
-export function SkillPicker({ options, loading, anchor, onPick, onClose }: SkillPickerProps) {
+export function SkillPicker({
+  options,
+  loading,
+  anchor,
+  onPick,
+  onClose,
+  onEsc,
+}: SkillPickerProps) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const items = pickerItems(query, options);
   const safeActive = active < items.length ? active : 0;
-  const latest = useRef({ items, safeActive, query, onPick, onClose });
-  latest.current = { items, safeActive, query, onPick, onClose };
+  const latest = useRef({ items, safeActive, query, onPick, onClose, onEsc });
+  latest.current = { items, safeActive, query, onPick, onClose, onEsc };
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -28,7 +36,7 @@ export function SkillPicker({ options, loading, anchor, onPick, onClose }: Skill
       const state = latest.current;
       if (event.key === 'Escape') {
         consume(event);
-        state.onClose();
+        state.onEsc();
         return;
       }
       if (event.key === 'ArrowDown' && state.items.length > 0) {

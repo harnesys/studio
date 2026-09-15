@@ -21,7 +21,7 @@ export function exitSlashSuggestion(view: EditorView): void {
 export type SlashSuggestionOptions = {
   isDisabled(): boolean;
   onExecute(command: SlashCommand): void;
-  onPicker(command: SlashCommand, at: number, editor: Editor): void;
+  onPicker(command: SlashCommand, at: number, editor: Editor, consumed: string): void;
 };
 
 export type SuggestionMenuHandle = {
@@ -50,9 +50,10 @@ export function createSlashSuggestion(options: SlashSuggestionOptions) {
           shouldShow: ({ query }) => !options.isDisabled() && commandItems(query).length > 0,
           items: ({ query }) => commandItems(query),
           command: ({ editor, range, props }) => {
+            const consumed = editor.state.doc.textBetween(range.from, range.to, '\n', ' ');
             editor.chain().focus().deleteRange(range).run();
             if (props.outcome.type === 'picker') {
-              options.onPicker(props, range.from, editor);
+              options.onPicker(props, range.from, editor, consumed);
             } else {
               options.onExecute(props);
             }

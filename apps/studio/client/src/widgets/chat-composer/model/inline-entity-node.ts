@@ -28,6 +28,7 @@ export const InlineEntityNode = Node.create<InlineEntityAttrs>({
         rendered: false,
       },
       ref: {
+        default: '',
         parseHTML: (element) => element.getAttribute('data-entity-ref'),
         validate: (value): void => {
           if (typeof value !== 'string' || !isValidEntityRef('skill', value)) {

@@ -40,9 +40,11 @@ export function splitDirectiveTags(text: string): { text: string; badges: Direct
     return '';
   });
   const body = afterMode.replace(SKILLS_TAG_RE, (_match, names: string) => {
+    const seen = new Set<string>();
     for (const raw of names.split(',').map(unescapeXml)) {
       const name = raw.trim();
-      if (name) {
+      if (name && !seen.has(name)) {
+        seen.add(name);
         badges.push({ kind: 'skill', name });
       }
     }

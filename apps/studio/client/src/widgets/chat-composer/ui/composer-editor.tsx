@@ -50,6 +50,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
     const placeholderRef = useRef(props.placeholder);
     const [picker, setPicker] = useState<PickerAnchor | null>(null);
     const pickerAt = useRef(0);
+    const pickerToken = useRef('');
     const skills = useComposerSkillOptions();
 
     const closePicker = useCallback(() => setPicker(null), []);
@@ -80,8 +81,9 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
                     ? latest.current.shouldConsumePaste(event.clipboardData)
                     : false;
                 },
-                handleDrop() {
-                  return true;
+                handleDrop(_view, event) {
+                  // Files stay with the InputGroup drop handler; text/link drops go to ProseMirror.
+                  return event.dataTransfer?.types.includes('Files') ?? false;
                 },
               },
             }),
@@ -103,9 +105,10 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
         createSlashSuggestion({
           isDisabled: () => latest.current.disabled,
           onExecute: (command) => latest.current.onSlashCommand(command),
-          onPicker: (_command, at, editor) => {
+          onPicker: (_command, at, editor, consumed) => {
             const box = editor.view.coordsAtPos(at);
             pickerAt.current = at;
+            pickerToken.current = consumed;
             setPicker({
               left: Math.max(8, Math.min(box.left, window.innerWidth - PICKER_WIDTH - 8)),
               bottom: Math.max(8, window.innerHeight - box.top + 8),
@@ -162,6 +165,15 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       [editor, closePicker],
     );
 
+    // Spec §3: Esc closes the picker and restores the token text it consumed.
+    const escPicker = useCallback(() => {
+      const token = pickerToken.current;
+      if (token) {
+        editor.chain().focus().insertContentAt(pickerAt.current, token).run();
+      }
+      closePicker();
+    }, [editor, closePicker]);
+
     useImperativeHandle(
       ref,
       () => ({
@@ -186,6 +198,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
                 anchor={picker}
                 onPick={pickSkill}
                 onClose={closePicker}
+                onEsc={escPicker}
               />,
               document.body,
             )

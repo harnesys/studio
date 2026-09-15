@@ -2,7 +2,7 @@ import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 
 import { cn } from '@/shared/lib/utils';
 
-const PREVIEW = 'max-h-32';
+const PREVIEW = 'max-h-28';
 const FULL = 'max-h-[min(70vh,28rem)]';
 
 export function ExpandableScroll({
@@ -69,7 +69,7 @@ export function ExpandableScroll({
       <div
         ref={ref}
         className={cn(
-          'select-text',
+          'select-text overscroll-contain',
           follow ? 'overflow-hidden' : 'overflow-auto',
           expanded && !follow ? fullClassName : previewClassName,
         )}

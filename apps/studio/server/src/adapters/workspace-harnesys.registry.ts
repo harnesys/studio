@@ -4,10 +4,8 @@ import type {
   AgentRosterEntry,
   BindDiagnosticSink,
   CursorMcpJson,
-  McpServerSpec,
   ModelsPort,
   PackRegistration,
-  PluginComponent,
   PluginIr,
   RunClaimer,
   RunEventFeed,
@@ -23,7 +21,6 @@ import {
   type Logger,
   mapTool,
   mergePluginMcpFragments,
-  type PluginMcpBinding,
   wait,
 } from 'harnesys';
 import { FsSkillRegistry, loadPluginIrFromDirectory } from 'harnesys/adapters/node';
@@ -32,6 +29,8 @@ import {
   type PluginAgentCatalog,
   pluginAgentCatalog,
   scopedAgentRoster,
+  toMcpBinding,
+  workspaceIdsWithPlugins,
 } from '../application/plugins/plugin-agents.ts';
 import { applyGrantGating } from '../application/plugins/plugin-grant-gate.ts';
 import { pluginUserConfig } from '../application/plugins/plugin-user-config.ts';
@@ -272,6 +271,30 @@ export class WorkspaceHarnesysRegistry {
   }
 
   /**
+   * `AgentsResolve.resolve`: delegate-строка видна только её родителю,
+   * plugin-таргет — только при `enabledPlugins[owner] === true` у parent;
+   * без parent те же строки не резолвятся (better empty, как в ростере).
+   * Top-level host-строки резолвятся как прежде.
+   */
+  resolveAgentForRun(id: string, parent?: AgentDefinition): AgentDefinition | undefined {
+    const row = this.repos.agents?.findById(id);
+    if (row !== undefined) {
+      if (row.parentId === null) {
+        return dbAgentDefinition(row, this.repos);
+      }
+      return row.parentId === parent?.id ? dbAgentDefinition(row, this.repos) : undefined;
+    }
+    if (!id.includes(':')) {
+      return undefined;
+    }
+    const owner = id.slice(0, id.indexOf(':'));
+    if (parent?.enabledPlugins?.[owner] !== true) {
+      return undefined;
+    }
+    return this.resolvePluginAgent(id);
+  }
+
+  /**
    * Ростер, видимый `parent`: host-агенты его workspace + plugin-агенты
    * плагинов, включённых у parent; без parent/строки в БД — пустой список
    * (B3: cross-workspace утечка закрыта). Cold-cache: plugin-строк может не
@@ -331,39 +354,7 @@ function irCacheKey(record: PluginInstallRecord): string {
   return `${record.name}@${record.revision}`;
 }
 
-function workspaceIdsWithPlugins(repo: PluginRepository): string[] {
-  const ids = new Set<string>();
-  for (const record of repo.list()) {
-    for (const workspaceId of record.enabledWorkspaceIds) {
-      ids.add(workspaceId);
-    }
-  }
-  return [...ids];
-}
-
 /** Reader for bindSkillComponents: flat command md files live on disk. */
 function readPluginSkillFile(file: string): string {
   return readFileSync(file, 'utf8');
-}
-
-type McpServerComponent = PluginComponent & { spec: McpServerSpec };
-
-function isMcpServerComponent(component: PluginComponent): component is McpServerComponent {
-  return component.kind === 'mcp-server' && component.status === 'native';
-}
-
-function toMcpBinding(
-  entry: LoadedWorkspacePlugin,
-  disabled: ReadonlySet<string>,
-): PluginMcpBinding {
-  return {
-    name: entry.record.name,
-    pluginRoot: entry.record.path,
-    pluginData: entry.record.dataPath,
-    servers: entry.ir.components
-      .filter(isMcpServerComponent)
-      .map((component) => component.spec)
-      .filter((spec) => !disabled.has(`${entry.record.name}:${spec.serverId}`)),
-    userConfig: pluginUserConfig(entry.ir, entry.record.options),
-  };
 }

@@ -4,8 +4,11 @@ import type {
   AgentModelRef,
   AgentRosterEntry,
   BindDiagnosticSink,
+  McpServerSpec,
   PackRegistration,
+  PluginComponent,
   PluginIr,
+  PluginMcpBinding,
 } from 'harnesys';
 import { bindAgentComponents } from 'harnesys';
 import type { AgentRepository } from '../../domain/agent.port.ts';
@@ -90,6 +93,40 @@ export function pluginAgentCatalog(
     get(id: string): AgentDefinition | null {
       return all.get(id)?.definition ?? null;
     },
+  };
+}
+
+/** All workspace ids that have at least one enabled plugin record. */
+export function workspaceIdsWithPlugins(repo: PluginRepository): string[] {
+  const ids = new Set<string>();
+  for (const record of repo.list()) {
+    for (const workspaceId of record.enabledWorkspaceIds) {
+      ids.add(workspaceId);
+    }
+  }
+  return [...ids];
+}
+
+type McpServerComponent = PluginComponent & { spec: McpServerSpec };
+
+function isMcpServerComponent(component: PluginComponent): component is McpServerComponent {
+  return component.kind === 'mcp-server' && component.status === 'native';
+}
+
+/** One loaded plugin → its fragment for `mergePluginMcpFragments`. */
+export function toMcpBinding(
+  entry: PluginAgentSource,
+  disabled: ReadonlySet<string>,
+): PluginMcpBinding {
+  return {
+    name: entry.record.name,
+    pluginRoot: entry.record.path,
+    pluginData: entry.record.dataPath,
+    servers: entry.ir.components
+      .filter(isMcpServerComponent)
+      .map((component) => component.spec)
+      .filter((spec) => !disabled.has(`${entry.record.name}:${spec.serverId}`)),
+    userConfig: pluginUserConfig(entry.ir, entry.record.options),
   };
 }
 

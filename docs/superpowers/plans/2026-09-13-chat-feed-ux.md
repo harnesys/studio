@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-13-chat-feed-ux-design.md`
 
-> **Сверка с кодом — 2026-09-14, `HEAD 6fa58ec`.** План перечитан против текущего дерева. Подтверждено: реальный API `ActivityLine` = `{icon:LucideIcon, label, hint, badges, tail, active, failed, defaultOpen, hasContent, indentContent, children}` (без `state`/`onOpen`/`data-testid`) — задачи 3–6 это используют корректно; `SpawnInfo.toolStats`/`SpawnToolStat` и поля `MapInfo` (`concurrency,count,ok,failed,status,items[].{index,workerId,preview,message,status}`) существуют; `@shadcn/react@0.3.0` провайдер принимает `autoScroll, defaultScrollPosition:'start'|'end'|'last-anchor', scrollEdgeThreshold, scrollPreviousItemPeek, scrollMargin`, `useMessageScrollerScrollable()` → `{start,end}`. Исправлено: (1) `tool-run.tsx` мёртв — удалён из Task 4 и перенесён на удаление в Task 1, где переименовывается `TOOL_RUN_COLLAPSE_AT`; (2) резолв имени агента — через новый `agentFallbackName` (`model/agent-label.ts`), не `id.slice(0,8)`; (3) `end` в провайдере = «можно скроллить вниз», живой край это `!end` — в `ThreadReadSync`/`LiveEdgeControls` так и записано; (4) импорт-хвосты после удаления comfort/StickOnSend (`useState`,`useLayoutEffect`,`useRef`,`useMessageScroller` из `thread-panel`; `sliderValue`/`Slider` из `chat-pane`) — добавлены в шаги; (5) `paddingBottom:'50vh'` в `anchor` может столкнуться со встроенным spacer примитива — помечено как проверять на живой сверке, не додумывать.
+> **Сверка с кодом — 2026-09-14, `HEAD 6fa58ec`.** План перечитан против текущего дерева. Подтверждено: реальный API `ActivityLine` = `{icon:LucideIcon, label, hint, badges, tail, active, failed, defaultOpen, hasContent, indentContent, children}` (без `state`/`onOpen`/`data-testid`) — задачи 3–6 это используют корректно; `SpawnInfo.toolStats`/`SpawnToolStat` и поля `MapInfo` (`concurrency,count,ok,failed,status,items[].{index,workerId,preview,message,status}`) существуют; `@shadcn/react@0.3.0` провайдер принимает `autoScroll, defaultScrollPosition:'start'|'end'|'last-anchor', scrollEdgeThreshold, scrollPreviousItemPeek, scrollMargin`, `useMessageScrollerScrollable()` → `{start,end}`. Исправлено: (1) `tool-run.tsx` мёртв — удалён из Task 4 и перенесён на удаление в Task 1, где переименовывается `TOOL_RUN_COLLAPSE_AT`; (2) резолв имени агента — через существующий `agentFallbackName` (`model/agent-label.ts:5`, не `id.slice(0,8)`); (3) `end` в провайдере = «можно скроллить вниз», живой край это `!end` — в `ThreadReadSync`/`LiveEdgeControls` так и записано; (4) импорт-хвосты после удаления comfort/StickOnSend (`useState`,`useLayoutEffect`,`useRef`,`useMessageScroller` из `thread-panel`; `sliderValue`/`Slider` из `chat-pane`) — добавлены в шаги; (5) ручной `paddingBottom:'50vh'` из плана убран по исходникам примитива: встроенный spacer (`[data-message-scroller-spacer]`) исключён из расчёта `end`, а padding контента — входит (`We`/`Se` в dist); ручной padding в `anchor` зашкалил бы «низ» на 50vh ниже последнего сообщения — кнопка возврата не гаснет, unseen растёт, `ThreadReadSync` никогда не помечает тред прочитанным. Резерв под якорь примитив доливает сам (`scrollToElement` с `keepPreviousItemPeek` выставляет высоту spacer'а).
 
 ## Global Constraints
 
@@ -162,7 +162,7 @@ function LiveEdgeControls({ threadId }: { threadId: string }) {
     <MessageScrollerButton>
       <ArrowDownIcon />
       <span className="sr-only">
-        {unseen > 0 ? `${unseen} new messages, scroll to end` : 'Scroll to end'}
+        {unseen > 0 ? `${unseen} new updates, scroll to end` : 'Scroll to end'}
       </span>
       {unseen > 0 ? (
         <span className="absolute -top-1 -end-1 min-w-4 rounded-full bg-live px-1 font-medium text-[10px] text-white tabular-nums">
@@ -173,6 +173,8 @@ function LiveEdgeControls({ threadId }: { threadId: string }) {
   );
 }
 ```
+
+Счётчик считает журнальные записи, а не токены и не «сообщения» в бытовом смысле: merged-дельты не увеличивают длину массива (стор склеивает их в хвостовой событие), но каждый открытый text/thought-блок, tool, `agent.spawned`, source — это +1. Один длинный ответ в откреплённом вьюпорте даст «3–10 updates», это ожидаемое поведение из спеки («число SessionEvent»).
 
 `ThreadPanel` (`MessageScrollerProvider` → внутри `<LiveEdgeControls threadId={threadId} />` вместо условной кнопки):
 
@@ -187,13 +189,14 @@ function LiveEdgeControls({ threadId }: { threadId: string }) {
     <MessageScrollerViewport>
       <MessageScrollerContent
         className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]"
-        style={feedFollow === 'anchor' ? { paddingBottom: '50vh' } : undefined}
       >
 ```
 
-Резерв низа нужен только в `anchor`: чтобы последний (возможно короткий) терн докрутился к якорю у верха. В `pin` край и так у низа — запас не добавляем. Монотонный latch-реф не нужен: режим читается из `feedFollow` на каждый render.
+`runKey` в `ownRuns` сделать стабильным с первого рендера: `const first = run.events[0]; const runKey = run.id ?? (first?.type === 'user' ? first.clientEventId : undefined) ?? `run-${index}`` (у user-события есть `clientEventId`, как в `segmentKey`; нужен type-narrowing, в общем union поля нет). Сейчас у живого рана ключ меняется с `run-N` на toolCallId при первом туле: `MessageScrollerItem` перемонтируется, примитив видит «необработанный anchor» (`Ge` по WeakSet) и безусловно паркует вьюпорт к якорю — это вырывает читателя из истории, если он успел открутить вверх за эти секунды.
 
-> ⚠️ Проверить на ручной сверке: у `MessageScrollerContent` есть собственный встроенный spacer (`spacerClassName`/внутренний элемент примитива). Если в `anchor` он плюс наш `paddingBottom:'50vh'` дадут двойной зазор, либо `!end` в `ThreadReadSync`/`LiveEdgeControls` перестанет «видеть» живой край (кнопка «вниз» не исчезает, unseen не обнуляется, тред не помечается прочитанным при пинне) — снять ручной `paddingBottom` и оставить только spacer примитива + `scrollPreviousItemPeek`. Это решение по факту наблюдаемого поведения, не додумывать заранее.
+Резерв низа в `anchor` не нужен вообще: при парковке якоря `scrollToElement(keepPreviousItemPeek)` сам выставляет высоту встроенного spacer'а, а spacer исключён из расчёта `end` — то есть «припаркован к якорю с пустотой снизу» корректно читается как живой край (`!end`), кнопка не показывается, unseen не капает. В `pin` резерва нет по той же причине. Никакого ручного `paddingBottom`/`spacerClassName` не добавляем; если при ручной сверке захочется видимый отступ — только `spacerClassName`, не padding.
+
+Поведение `anchor` по исходникам примитива (зафиксировать в ожиданиях ручной проверки): после отправки вопрос паркуется к верху с peek, и режим `anchored-to-message` держит его там на каждом росте контента (`reanchorToAnchoredMessage` на ResizeObserver). Автоматического «догона хвоста», когда стрим заполнил вьюпорт, в примитиве нет: переход в `following-bottom` происходит только когда пользователь сам доскроллил до края (`!end`) или нажал кнопку (`scrollToEnd` при `autoScroll` включает `following-bottom`). Колесо/тач/клавиши выше края — detach, счётчик unseen капает.
 
 `scrollAnchor` на item-строках `ownRuns`:
 
@@ -215,6 +218,8 @@ function ThreadReadSync({ threadId }: { threadId: string }) {
   // эффекты без изменений
 }
 ```
+
+Смена `end || followPinned` на `!end` — это фикс, а не регресс: `end` у примитива означает «вниз ещё есть что скроллить», сегодняшнее условие помечает тред прочитанным как раз когда читатель ушёл в историю. Побочный эффект фикса: в `anchor` во время длинного стрима (хвост ушёл за фолд) тред не помечается прочитанным, пока пользователь не вернётся к краю, — это ожидаемо и совпадает со сценарием 2 спеки.
 
 Удалить `StickOnSend`-компонент целиком и его использование; `useLayoutEffect`-импорт убрать, если больше не нужен.
 
@@ -255,14 +260,16 @@ const collapse = feedDetail === 'quiet' && !runLive && pairs.length >= ACTIVITY_
 
 - [ ] **Step 8: Проверить отсутствие остатков**
 
-Run: `rg "comfort|liveExpand|expandTools|expandThinking|TOOL_RUN_COLLAPSE_AT|StickOnSend" apps/studio/client/src` и `bun run typecheck && bun run lint` (в `apps/studio/client`).
+Run: `rg "comfort|liveExpand|expandTools|expandThinking|TOOL_RUN_COLLAPSE_AT|TOOL_GROUP_MIN|StickOnSend" apps/studio/client/src` и `bun run typecheck && bun run lint` (в `apps/studio/client`).
 Expected: rg пустой (кроме несвязанных слов в чужих доменах, если совпадут — проверить вручную), typecheck/lint без ошибок.
 
 - [ ] **Step 9: Ручная проверка (agent-browser, стенд 5173)**
 
 1. Settings → Chat: видны 4 ручки; покрутить Follow/Detail — лента меняется после перезахода в тред.
-2. Запустить длинный промпт («расскажи что-нибудь длинное»): во время стрима открутить вверх — вьюпорт стоит, кнопка со счетчиком появилась; клик по кнопке — вернулись к краю, счетчик обнулился, follow продолжил.
-3. Отправить сообщение в `pin` и `anchor` — в `anchor` вопрос паркуется к верху с.peek предыдущего терна.
+2. Запустить длинный промпт («расскажи что-нибудь длинное»): во время стрима открутить вверх — вьюпорт стоит, кнопка со счетчиком появилась; клик по кнопке — вернулись к краю, счетчик обнулился, follow продолжил (режим `following-bottom`, хвост догоняется сам).
+3. Отправить сообщение в `pin` и `anchor` — в `anchor` вопрос паркуется к верху с peek предыдущего терна; дальше стрим растёт под фолдом, вьюпорт удерживается на якоре, автоматического догона хвоста нет (ожидание из исходников примитива, см. шаг 4).
+4. Приход первого tool-события в новый ран не должен дёргать вьюпорт: читатель, ушедший вверх в первые секунды рана, остаётся на месте (стабильный `runKey`, шаг 4).
+5. Кнопка возврата на стенде с `prefers-reduced-motion: reduce`: примитив зовёт `scrollTo({behavior:'smooth'})`; если браузер не перебивает smooth при reduced motion — добавить `behavior="auto"` в `LiveEdgeControls` (wrapper прокидывает пропсы в `Primitive.Button`).
 
 - [ ] **Step 10: Commit**
 
@@ -557,7 +564,7 @@ function formatToolStat(stat: SpawnToolStat): string {
 }
 ```
 
-`hint` родительской строки — одна фраза задачи/активности, обрезает `truncate` в `ActivityLine` (`activity-line.tsx:68`). `ActivityLine` не принимает `data-testid` — старые `spawn-card`/`spawn-row-*` не переносим, внешних ссылок на них нет (проверено grep). `toolEntries` ключуется по имени — коллизии `name:phase` из старого файла больше нет (Spec §2).
+`hint` родительской строки — одна фраза задачи/активности, обрезает `truncate` в `ActivityLine` (`activity-line.tsx:68`). `ActivityLine` не принимает `data-testid` — старые `spawn-card`/`spawn-row-*` не переносим, внешних ссылок на них нет (проверено grep). `toolEntries` ключуется по имени — коллизии `name:phase` из старого файла больше нет (Spec §2). Осознанные потери карточки: цветная точка агента (`agentColorClass`) не переносится — статус несёт иконка/бейджи; русские счётчики «шаг/токен» и «нет активности Ns» заменяются общими англоязычными бейджами (`N steps`, `idle Ns`) в тон остальной ленте.
 
 - [ ] **Step 2: Подключение в `agent-turn.tsx`**
 
@@ -611,7 +618,7 @@ git commit -m "refactor: spawn card becomes activity line with stats and open ac
 - Modify: `widgets/chat-transcript/ui/run-turn.tsx` (не меняется логика spawns-prop; проверить импорты)
 
 **Interfaces:**
-- Produces: `ActivityChunk` с членом `{ type: 'spawn'; event: SessionEvent & { type: 'agent.spawned' } }`; `summarizeActivity(chunks: GroupActivityChunk[]): { label: string; hint: string | null; failed: number }`; `TurnSegment` без `spawn`.
+- Produces: `ActivityChunk` с членом `{ type: 'spawn'; event: SessionEvent & { type: 'agent.spawned' } }`; `summarizeActivity(chunks: GroupActivityChunk[], spawnsById: Map<string, SpawnInfo>): ActivitySummary` (`{ label, parts, failed }`); `TurnSegment` без `spawn`.
 - Consumes: `SpawnLine` (Task 3), `summarizeToolRun` (остаётся для пар), `extractSpawns` (без изменений).
 
 - [ ] **Step 1: `turn-segments.ts`**
@@ -634,20 +641,33 @@ if (ev.type === 'agent.spawned') {
 В `groupActivityChunks` условие `chunk.type === 'reasoning' || chunk.type === 'tools'` расширить `|| chunk.type === 'spawn'`. Добавить:
 
 ```ts
-export type ActivitySummary = { label: string; hint: string | null; failed: number };
+export type ActivitySummary = { label: string; parts: string[]; failed: number };
 
-export function summarizeActivity(chunks: GroupActivityChunk[]): ActivitySummary {
+export function summarizeActivity(
+  chunks: GroupActivityChunk[],
+  spawnsById: Map<string, SpawnInfo>,
+): ActivitySummary {
   const pairs = groupPairs(chunks);
-  const agents = chunks.filter((chunk) => chunk.type === 'spawn').length;
+  const spawnChunks = chunks.filter((chunk) => chunk.type === 'spawn');
+  const agentsFailed = spawnChunks.filter(
+    (chunk) => spawnsById.get(chunk.event.spawnId)?.status === 'failed',
+  ).length;
   const summary = summarizeToolRun(pairs);
   const labels: string[] = [];
   if (summary.total > 0) labels.push(`${summary.total} ${summary.total === 1 ? 'tool' : 'tools'}`);
-  if (agents > 0) labels.push(`${agents} ${agents === 1 ? 'agent' : 'agents'}`);
-  const hint = summary.parts.slice(0, 3).join(' · ') || null;
+  if (spawnChunks.length > 0) {
+    labels.push(`${spawnChunks.length} ${spawnChunks.length === 1 ? 'agent' : 'agents'}`);
+  }
   if (labels.length === 0) labels.push('activity');
-  return { label: labels.join(' · '), hint, failed: summary.failed };
+  return {
+    label: labels.join(' · '),
+    parts: summary.parts,
+    failed: summary.failed + agentsFailed,
+  };
 }
 ```
+
+`SpawnInfo` — type-импорт из `./spawn-groups` (тот же слой model). `parts`, а не готовый `hint`, чтобы вызывающий сохранил текущий overflow `+N` (`HINT_PARTS`); `failed` включает провалившихся агентов — сводка «2 tools · 1 agent» с failed-агентом обязана нести destructive-бейдж.
 
 - [ ] **Step 3: `tool-group.tsx`**
 
@@ -659,14 +679,17 @@ import { type GroupActivityChunk, groupPairs, summarizeActivity } from '../model
 // ...
 const collapse = feedDetail === 'quiet' && !runLive && chunks.length >= ACTIVITY_COLLAPSE_MIN;
 // ...
-const summary = summarizeActivity(chunks);
+const spawnsById = new Map((spawns ?? []).map((item) => [item.spawnId, item]));
+const summary = summarizeActivity(chunks, spawnsById);
+const hint = summary.parts.slice(0, HINT_PARTS).join(' · ');
+const extra = summary.parts.length > HINT_PARTS ? ` +${summary.parts.length - HINT_PARTS}` : null;
 const badges: ActivityBadge[] =
   summary.failed > 0 ? [{ text: `${summary.failed} failed`, tone: 'destructive' }] : [];
 return (
   <ActivityLine
     icon={WrenchIcon}
     label={summary.label}
-    hint={summary.hint}
+    hint={hint ? `${hint}${extra ?? ''}` : null}
     badges={badges}
     defaultOpen={false}
     hasContent
@@ -731,11 +754,21 @@ git commit -m "refactor: spawns join activity groups, type-aware collapsed summa
 
 **Interfaces:**
 - Consumes: `ActivityLine`, `MapInfo/MapItemInfo` без изменений, `useSpawnStream` без изменений.
-- Produces: `MapItems({ threadId, map })` — только список вложенных строк (шапка переехала в родителя); `mapLineHint(map: MapInfo): string` экспортируется из `map-items.tsx` для tool-line.
+- Produces: `MapItems({ threadId, map })` — только список вложенных строк (шапка переехала в родителя); `mapLineHint(map: MapInfo): string` — в `model/map-groups.ts` (чистая функция, не в ui: `tool-line` импортирует её из model, cross-ui-импортов не появляется).
 
 - [ ] **Step 1: `map-items.tsx`**
 
-Удалить `StatusDot`, `DOT_TONE`, `STATUS_LABEL`, boxed-разметку `MapItemRow`, `cn`-импорт если не нужен. Новый вид:
+Удалить `StatusDot`, `DOT_TONE`, `STATUS_LABEL`, boxed-разметку `MapItemRow`, `cn`-импорт если не нужен. В `model/map-groups.ts` добавить `mapLineHint` (единственный источник строки прогресса, её рендерит родитель):
+
+```ts
+export function mapLineHint(map: MapInfo): string {
+  const done = map.items.filter((item) => item.status !== 'running').length;
+  const mode = map.concurrency === 'sequential' ? 'sequential' : 'parallel';
+  return `${mode} · ${done}/${map.count || map.items.length}`;
+}
+```
+
+Новый вид `map-items.tsx`:
 
 ```tsx
 import { BotIcon } from 'lucide-react';
@@ -765,12 +798,6 @@ function MapItemRow({ threadId, item }: { threadId: string; item: MapItemInfo })
       ) : null}
     </ActivityLine>
   );
-}
-
-export function mapLineHint(map: MapInfo): string {
-  const done = map.items.filter((item) => item.status !== 'running').length;
-  const mode = map.concurrency === 'sequential' ? 'sequential' : 'parallel';
-  return `${mode} · ${done}/${map.count || map.items.length}`;
 }
 
 export function MapItems({ threadId, map }: { threadId: string; map: MapInfo }) {

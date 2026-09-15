@@ -51,12 +51,17 @@ export type UpdateAgentInput = {
   execute(request: UpdateAgentRequest): Promise<Agent>;
 };
 
+export type UpdateAgentUseCaseDeps = {
+  models?: LlmModelRepository;
+  deskEvents?: DeskEventsPort;
+  /** Write-path §7 validation. Required: an omitted gate silently reopens the update bypass. */
+  validateConfig: ValidateAgentConfigInput;
+};
+
 export class UpdateAgentUseCase implements UpdateAgentInput {
   constructor(
     private readonly agents: AgentRepository,
-    private readonly models?: LlmModelRepository,
-    private readonly deskEvents?: DeskEventsPort,
-    private readonly validateConfig?: ValidateAgentConfigInput,
+    private readonly deps: UpdateAgentUseCaseDeps,
   ) {}
 
   async execute(request: UpdateAgentRequest): Promise<Agent> {
@@ -76,8 +81,8 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
     }
 
     if (request.modelId !== undefined) {
-      if (request.modelId !== null && this.models) {
-        const foundModel = this.models.findById(request.modelId);
+      if (request.modelId !== null && this.deps.models) {
+        const foundModel = this.deps.models.findById(request.modelId);
         if (!foundModel) {
           throw new NotFoundError('model not found');
         }
@@ -95,10 +100,10 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.effort !== undefined) {
       patch.effort = request.effort?.trim() || null;
-      if (patch.effort !== null && this.models) {
+      if (patch.effort !== null && this.deps.models) {
         const modelId = patch.modelId ?? agent.modelId;
         if (modelId !== null) {
-          const effortModel = this.models.findById(modelId);
+          const effortModel = this.deps.models.findById(modelId);
           if (effortModel) {
             assertModelEffortSupported(effortModel, patch.effort);
           }
@@ -185,14 +190,13 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
     // §7 write-path (тот же gate, что create): источники/overrides/режимы и
     // child⊆creator закрывают update-обход; `core` provisioned в патч при записи.
     if (
-      this.validateConfig &&
-      (request.capabilities !== undefined ||
-        request.enabledPlugins !== undefined ||
-        request.skills !== undefined ||
-        request.mcpServers !== undefined ||
-        request.modes !== undefined)
+      request.capabilities !== undefined ||
+      request.enabledPlugins !== undefined ||
+      request.skills !== undefined ||
+      request.mcpServers !== undefined ||
+      request.modes !== undefined
     ) {
-      const checked = await this.validateConfig.execute({
+      const checked = await this.deps.validateConfig.execute({
         workspaceId: request.workspaceId,
         agentId: agent.id,
         parentId: agent.parentId,
@@ -217,7 +221,7 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     const previousModelId = agent.modelId;
     const updated = this.agents.update(request.id, patch);
-    this.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: updated });
+    this.deps.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: updated });
 
     if (
       request.modelId !== undefined &&
@@ -236,7 +240,7 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
           modelId: request.modelId,
           updatedAt: now,
         });
-        this.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: updatedChild });
+        this.deps.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: updatedChild });
       }
     }
 

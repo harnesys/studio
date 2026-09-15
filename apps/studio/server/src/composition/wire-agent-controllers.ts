@@ -61,7 +61,10 @@ export function wireAgentControllers(d: WireAgentControllersDeps): void {
     }),
     createAgent,
     createAgentFromPreset: new CreateAgentFromPresetUseCase(d.agentRepo, createAgent),
-    updateAgent: new UpdateAgentUseCase(d.agentRepo, undefined, d.deskEvents, validateConfig),
+    updateAgent: new UpdateAgentUseCase(d.agentRepo, {
+      deskEvents: d.deskEvents,
+      validateConfig,
+    }),
     deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo, {
       schedules: d.scheduleRepo,
       webhooks: d.webhookRepo,

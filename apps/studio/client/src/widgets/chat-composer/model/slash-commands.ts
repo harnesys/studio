@@ -27,9 +27,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
       },
     },
   },
+  {
+    name: 'skills',
+    description: 'Attach a skill to this message',
+    outcome: { type: 'picker', kind: 'skill' },
+  },
 ];
-
-export function matchCommands(query: string): SlashCommand[] {
-  const normalized = query.toLowerCase();
-  return SLASH_COMMANDS.filter((command) => command.name.startsWith(normalized));
-}

@@ -1,4 +1,4 @@
-import { Extension } from '@tiptap/core';
+import { type Editor, Extension } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import type { EditorView } from '@tiptap/pm/view';
 import { ReactRenderer } from '@tiptap/react';
@@ -9,8 +9,8 @@ import {
   type SuggestionProps,
 } from '@tiptap/suggestion';
 import { forwardRef, useImperativeHandle, useState } from 'react';
+import { commandItems } from '../model/composer-providers';
 import type { SlashCommand } from '../model/slash-commands';
-import { matchCommands } from '../model/slash-commands';
 
 export const slashSuggestionKey = new PluginKey('composer-slash');
 
@@ -21,6 +21,7 @@ export function exitSlashSuggestion(view: EditorView): void {
 export type SlashSuggestionOptions = {
   isDisabled(): boolean;
   onExecute(command: SlashCommand): void;
+  onPicker(command: SlashCommand, at: number, editor: Editor): void;
 };
 
 export type SuggestionMenuHandle = {
@@ -46,11 +47,15 @@ export function createSlashSuggestion(options: SlashSuggestionOptions) {
           offset: { mainAxis: 8 },
           floatingUi: { strategy: 'fixed' },
           allow: () => !options.isDisabled(),
-          shouldShow: ({ query }) => !options.isDisabled() && matchCommands(query).length > 0,
-          items: ({ query }) => matchCommands(query),
+          shouldShow: ({ query }) => !options.isDisabled() && commandItems(query).length > 0,
+          items: ({ query }) => commandItems(query),
           command: ({ editor, range, props }) => {
             editor.chain().focus().deleteRange(range).run();
-            options.onExecute(props);
+            if (props.outcome.type === 'picker') {
+              options.onPicker(props, range.from, editor);
+            } else {
+              options.onExecute(props);
+            }
           },
           render: () => createSlashMenuRenderer(),
         }),

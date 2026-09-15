@@ -8,10 +8,21 @@ import { Text } from '@tiptap/extension-text';
 import { Placeholder, UndoRedo } from '@tiptap/extensions';
 import { Plugin } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { type ComposerPayload, serializeComposerDoc } from '../model/composer-doc';
-import { InlineEntityNode } from '../model/inline-entity-node';
+import { $insertInlineEntity, InlineEntityNode } from '../model/inline-entity-node';
+import { type SkillOption, useComposerSkillOptions } from '../model/skill-source';
 import type { SlashCommand } from '../model/slash-commands';
+import { type PickerAnchor, SkillPicker } from './picker-menu';
 import { createSlashSuggestion, exitSlashSuggestion } from './suggestion-menu';
 
 export type ComposerEditorHandle = {
@@ -30,12 +41,18 @@ export type ComposerEditorProps = {
 };
 
 const EDITOR_CLASS = 'tiptap w-full px-3 py-3 text-[15px] leading-6 min-h-14 outline-none';
+const PICKER_WIDTH = 320;
 
 export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorProps>(
   function ComposerEditor(props, ref) {
     const latest = useRef(props);
     latest.current = props;
     const placeholderRef = useRef(props.placeholder);
+    const [picker, setPicker] = useState<PickerAnchor | null>(null);
+    const pickerAt = useRef(0);
+    const skills = useComposerSkillOptions();
+
+    const closePicker = useCallback(() => setPicker(null), []);
 
     const extensions = useMemo(() => {
       const submitKeymap = Extension.create({
@@ -86,6 +103,14 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
         createSlashSuggestion({
           isDisabled: () => latest.current.disabled,
           onExecute: (command) => latest.current.onSlashCommand(command),
+          onPicker: (_command, at, editor) => {
+            const box = editor.view.coordsAtPos(at);
+            pickerAt.current = at;
+            setPicker({
+              left: Math.max(8, Math.min(box.left, window.innerWidth - PICKER_WIDTH - 8)),
+              bottom: Math.max(8, window.innerHeight - box.top + 8),
+            });
+          },
         }),
       ];
     }, []);
@@ -104,6 +129,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       extensions,
       editable: !props.disabled,
       editorProps,
+      onBlur: () => closePicker(),
       onUpdate: ({ editor }) => {
         latest.current.onChange(serializeComposerDoc(editor.state.doc));
       },
@@ -113,13 +139,28 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       editor.setEditable(!props.disabled);
       if (props.disabled) {
         exitSlashSuggestion(editor.view);
+        closePicker();
       }
-    }, [props.disabled, editor]);
+    }, [props.disabled, editor, closePicker]);
 
     useEffect(() => {
       placeholderRef.current = props.placeholder;
       editor.view.dispatch(editor.state.tr);
     }, [props.placeholder, editor]);
+
+    const pickSkill = useCallback(
+      (option: SkillOption) => {
+        const at = pickerAt.current;
+        $insertInlineEntity(editor, at, { kind: 'skill', ref: option.name });
+        editor
+          .chain()
+          .insertContentAt(at + 1, ' ')
+          .focus()
+          .run();
+        closePicker();
+      },
+      [editor, closePicker],
+    );
 
     useImperativeHandle(
       ref,
@@ -132,10 +173,24 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
     );
 
     return (
-      <EditorContent
-        editor={editor}
-        className={props.disabled ? 'min-w-0 flex-1 opacity-50' : 'min-w-0 flex-1'}
-      />
+      <>
+        <EditorContent
+          editor={editor}
+          className={props.disabled ? 'min-w-0 flex-1 opacity-50' : 'min-w-0 flex-1'}
+        />
+        {picker
+          ? createPortal(
+              <SkillPicker
+                options={skills.options}
+                loading={skills.loading}
+                anchor={picker}
+                onPick={pickSkill}
+                onClose={closePicker}
+              />,
+              document.body,
+            )
+          : null}
+      </>
     );
   },
 );

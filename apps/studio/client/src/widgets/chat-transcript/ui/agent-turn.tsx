@@ -294,7 +294,7 @@ function LiveMarkdown({
     live && tail.kind === 'text' && tail.text && (blockId === undefined || tail.id === blockId)
       ? tail.text
       : text;
-  return <Markdown text={display} />;
+  return <Markdown text={display} streaming={live} />;
 }
 
 function isScheduleWakeEvent(event: SessionEvent & { type: 'user' }): boolean {

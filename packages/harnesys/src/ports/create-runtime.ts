@@ -33,10 +33,11 @@ export type AgentRosterEntry = {
 };
 
 export type AgentsResolve = {
-  resolve: (id: string) => AgentDefinition | undefined;
+  resolve: (id: string, parent?: AgentDefinition) => AgentDefinition | undefined;
   /** Optional roster for fuzzy spawn-target resolution (prefix/name).
-   *  Absent → exact-id resolution only. */
-  list?: () => AgentRosterEntry[];
+   *  Absent → exact-id resolution only. `parent` is the running agent's def;
+   *  hosts scope the roster to its workspace/plugin grants. */
+  list?: (parent?: AgentDefinition) => AgentRosterEntry[];
 };
 
 export type CreateRuntimeOptions = {

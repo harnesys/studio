@@ -94,7 +94,7 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     toolMessages: 'ordered',
     agents: {
       resolve: (id) => agentsRef.current?.resolveAgentDefinition(id),
-      list: () => agentsRef.current?.listAgentRoster() ?? [],
+      list: (parent) => agentsRef.current?.listScopedRoster(parent) ?? [],
     },
     logger: toRuntimeLogger('runtime'),
   });

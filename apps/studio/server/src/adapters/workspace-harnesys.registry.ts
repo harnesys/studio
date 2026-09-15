@@ -28,8 +28,10 @@ import {
 } from 'harnesys';
 import { FsSkillRegistry, loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import {
+  enabledRecords,
   type PluginAgentCatalog,
   pluginAgentCatalog,
+  scopedAgentRoster,
 } from '../application/plugins/plugin-agents.ts';
 import { applyGrantGating } from '../application/plugins/plugin-grant-gate.ts';
 import { pluginUserConfig } from '../application/plugins/plugin-user-config.ts';
@@ -269,12 +271,17 @@ export class WorkspaceHarnesysRegistry {
     return this.resolveAgent(id);
   }
 
-  listAgentRoster(): AgentRosterEntry[] {
-    return (this.repos.agents?.listAll() ?? []).map((a) => ({
-      id: a.id,
-      name: a.name,
-      parentId: a.parentId,
-    }));
+  /**
+   * Ростер, видимый `parent`: host-агенты его workspace + plugin-агенты
+   * плагинов, включённых у parent; без parent/строки в БД — пустой список
+   * (B3: cross-workspace утечка закрыта). Cold-cache: plugin-строк может не
+   * быть до первого прогрева — следующий resolve() таргета прогреет через
+   * `get(workspace)`.
+   */
+  listScopedRoster(parent?: AgentDefinition): AgentRosterEntry[] {
+    return scopedAgentRoster(this.repos.agents, parent, (workspaceId) =>
+      this.warmPluginAgents(workspaceId).list(),
+    );
   }
 
   private resolveAgent(id: string): AgentDefinition | undefined {
@@ -322,10 +329,6 @@ export class WorkspaceHarnesysRegistry {
 
 function irCacheKey(record: PluginInstallRecord): string {
   return `${record.name}@${record.revision}`;
-}
-
-function enabledRecords(repo: PluginRepository, workspaceId: string): PluginInstallRecord[] {
-  return repo.list().filter((record) => record.enabledWorkspaceIds.includes(workspaceId));
 }
 
 function workspaceIdsWithPlugins(repo: PluginRepository): string[] {

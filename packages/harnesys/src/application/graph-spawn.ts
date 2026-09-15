@@ -28,14 +28,20 @@ export type SpawnCall = {
 /** Бюджет исчерпан на границе лимита; отчёт ребёнка — закрывающий, не «задача сделана». */
 export type SpawnBudgetHit = { kind: 'steps' | 'tokens' | 'deadline'; limit: number; used: number };
 
+/** Ошибка спавн-вызова: код движка + текст для модели. */
+export type SpawnCallError = { code: string; message: string };
+
 export type SpawnResultItem = {
   agentId: string;
   spawnId: string;
   output: unknown;
-  error?: { code: string; message: string };
+  error?: SpawnCallError;
   blocked?: DeniedToolEntry[];
   budget?: SpawnBudgetHit;
 };
+
+/** Отказанная цель (resolve не прошёл): в results до старта детей, spawnId выдуманный. */
+export type SpawnDeniedItem = SpawnResultItem & { error: SpawnCallError };
 
 export type SpawnNodeSpec = {
   type: 'control:spawn';
@@ -65,6 +71,8 @@ export type SpawnTarget = {
 
 export type PreparedSpawn = {
   targets: SpawnTarget[];
+  /** Цели, не прошедшие resolve: мержатся в итоговые results до старта детей. */
+  denied: SpawnDeniedItem[];
   /** Результат детей из чекпоинта: их цели исключены из targets. */
   carried: SpawnResultItem[];
   concurrency: 'parallel' | 'sequential';
@@ -142,13 +150,25 @@ function parseCalls(raw: unknown): SpawnCall[] {
   });
 }
 
+type ResolvedTargets = { targets: SpawnTarget[]; denied: SpawnDeniedItem[] };
+
 function resolveTargets(
   calls: SpawnCall[],
   agents: AgentsResolve,
-  runAgentId: string,
-): SpawnTarget[] {
-  const out: SpawnTarget[] = [];
-  const roster: AgentRosterEntry[] = agents.list?.() ?? [];
+  parent: AgentDefinition,
+): ResolvedTargets {
+  const runAgentId = parent.id;
+  const targets: SpawnTarget[] = [];
+  const denied: SpawnDeniedItem[] = [];
+  const roster: AgentRosterEntry[] = agents.list?.(parent) ?? [];
+  const deny = (agentId: string, message: string): void => {
+    denied.push({
+      agentId,
+      spawnId: crypto.randomUUID(),
+      output: null,
+      error: { code: 'spawn_target_missing', message },
+    });
+  };
   for (const call of calls) {
     // Exact-id прямой resolve обходит фильтр видимости ростера: чужой делегат
     // (parentId задан и не равен runAgentId) трактуем как missing.
@@ -159,28 +179,27 @@ function resolveTargets(
       rosterEntry !== undefined &&
       rosterEntry.parentId != null &&
       rosterEntry.parentId !== runAgentId;
-    let def = foreign ? undefined : agents.resolve(call.agentId);
+    let def = foreign ? undefined : agents.resolve(call.agentId, parent);
     if (!def && rosterEntry === undefined && roster.length > 0) {
       const visible = roster.filter(
         (entry) => entry.parentId == null || entry.parentId === runAgentId,
       );
       const hit = resolveAgentTarget(call.agentId, visible);
       if ('error' in hit) {
-        throw codedRunError('spawn_target_missing', hit.error);
+        deny(call.agentId, hit.error);
+        continue;
       }
-      def = agents.resolve(hit.id);
+      def = agents.resolve(hit.id, parent);
     }
     if (!def) {
       const suffix = roster.length > 0 ? `. Available agents: ${formatAgentTargets(roster)}` : '';
-      throw codedRunError(
-        'spawn_target_missing',
-        `spawn target "${call.agentId}" not found${suffix}`,
-      );
+      deny(call.agentId, `spawn target "${call.agentId}" not found${suffix}`);
+      continue;
     }
     const spawnId = call.spawnId ?? crypto.randomUUID();
-    out.push({ call, def, spawnId });
+    targets.push({ call, def, spawnId });
   }
-  return out;
+  return { targets, denied };
 }
 
 /** Завершение на границе бюджета: отчёт закрывающий. Порядок видов — как в движка budgetOver. */
@@ -376,8 +395,8 @@ export function prepareSpawn(
       ? calls.filter((c) => !doneResults.some((r) => r.spawnId === c.spawnId))
       : calls;
   const concurrency = resolveConcurrency(node.concurrency, slots);
-  const targets = resolveTargets(pendingCalls, parent.agents, parent.agent.id);
-  return { targets, carried: doneResults, concurrency };
+  const { targets, denied } = resolveTargets(pendingCalls, parent.agents, parent.agent);
+  return { targets, denied, carried: doneResults, concurrency };
 }
 
 export async function executeSpawn(

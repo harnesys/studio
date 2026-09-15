@@ -47,6 +47,7 @@ import { executeMap, type MapNodeSpec, prepareMap } from './graph-map.ts';
 import { mkEv, mkSnap, type SnapCtx } from './graph-snap.ts';
 import {
   executeSpawn,
+  type PreparedSpawn,
   prepareSpawn,
   type SpawnNodeSpec,
   type SpawnResultItem,
@@ -1141,13 +1142,24 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         ? (cpRaw as SpawnResultItem[])
         : [];
       let spawnOutcome: Awaited<ReturnType<typeof executeSpawn>>;
+      let prepared: PreparedSpawn;
       try {
-        const prepared = prepareSpawn(
+        prepared = prepareSpawn(
           node as SpawnNodeSpec,
           { ...opts, agent, plan, input, toolRegistry },
           slots,
           checkpoint,
         );
+        // Отказанные цели: per-item agent.failed с выдуманным spawnId, ран продолжается.
+        for (const d of prepared.denied) {
+          const e = await commit('running', 'agent.failed', 'recorded', {
+            agentId: d.agentId,
+            spawnId: d.spawnId,
+            code: d.error.code,
+            message: d.error.message,
+          });
+          yield e;
+        }
         for (const t of prepared.targets) {
           const e = await commit('running', 'agent.spawned', 'recorded', {
             agentId: t.call.agentId,
@@ -1227,7 +1239,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         yield e;
         throw Object.assign(new Error(message), { code });
       }
-      output = [...spawnOutcome.carried, ...spawnOutcome.results];
+      output = [...prepared.denied, ...spawnOutcome.carried, ...spawnOutcome.results];
       appendSpawnResultsMessage(st, lastMsg, output);
       clearQueuedSpawns(st);
       delete st[STATE_SPAWN_RESULTS_KEY];

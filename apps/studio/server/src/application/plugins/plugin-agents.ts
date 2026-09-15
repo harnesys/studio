@@ -2,13 +2,15 @@ import type {
   AgentCatalogSummary,
   AgentDefinition,
   AgentModelRef,
+  AgentRosterEntry,
   BindDiagnosticSink,
   PackRegistration,
   PluginIr,
 } from 'harnesys';
 import { bindAgentComponents } from 'harnesys';
+import type { AgentRepository } from '../../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
-import type { PluginInstallRecord } from '../../domain/plugin.port.ts';
+import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
 import { buildReactGraph } from '../agents/react-preset.ts';
 import { pluginUserConfig } from './plugin-user-config.ts';
 
@@ -94,6 +96,42 @@ export function pluginAgentCatalog(
 /** Catalog display name: `pluginName:agentName` → `agentName` (plugin namespace prefix). */
 function pluginAgentName(id: string): string {
   return id.split(':').at(-1) ?? id;
+}
+
+/** Installed plugin records enabled for a workspace. */
+export function enabledRecords(repo: PluginRepository, workspaceId: string): PluginInstallRecord[] {
+  return repo.list().filter((record) => record.enabledWorkspaceIds.includes(workspaceId));
+}
+
+/**
+ * Roster visible to a running agent: host agents of the parent's workspace
+ * + plugin agents whose plugin is enabled on the parent
+ * (`enabledPlugins[owner] === true`). No parent or no DB row for it → empty:
+ * better empty than cross-workspace. The plugin owner is the `pluginName:`
+ * prefix of the catalog id.
+ */
+export function scopedAgentRoster(
+  agents: AgentRepository | undefined,
+  parent: AgentDefinition | undefined,
+  warmPluginRows: (workspaceId: string) => AgentCatalogSummary[],
+): AgentRosterEntry[] {
+  const row = parent === undefined ? undefined : agents?.findById(parent.id);
+  if (agents === undefined || parent === undefined || row === undefined) {
+    return [];
+  }
+  const host: AgentRosterEntry[] = agents.listByWorkspace(row.workspaceId).map((a) => ({
+    id: a.id,
+    name: a.name,
+    parentId: a.parentId,
+  }));
+  const plugin: AgentRosterEntry[] = [];
+  for (const entry of warmPluginRows(row.workspaceId)) {
+    const owner = entry.id.split(':')[0] ?? entry.id;
+    if (parent.enabledPlugins?.[owner] === true) {
+      plugin.push({ id: entry.id, name: entry.name, plugin: owner });
+    }
+  }
+  return [...host, ...plugin];
 }
 
 /** `provider/model` → AgentModelRef over Studio rows; null = model stays unset. */

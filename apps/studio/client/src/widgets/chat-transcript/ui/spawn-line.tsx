@@ -33,7 +33,7 @@ export function SpawnLine({
   const agent = useAgentStore((state) => state.byId(spawn.agentId));
   const name = agent?.name ?? agentFallbackName(spawn.agentId);
   const running = spawn.status === 'running';
-  const now = useNow(running && live ? LIVE_TICK_MS : 0);
+  const now = useNow(running ? LIVE_TICK_MS : 0);
   const elapsed =
     running && spawn.spawnedAt !== undefined
       ? formatDuration(Math.max(0, now - spawn.spawnedAt))

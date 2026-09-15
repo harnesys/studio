@@ -9,6 +9,7 @@ import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
 import { useOpenSpawnTab } from '@/features/ide';
 import { retryRun } from '@/features/send-message';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
+import { prefersReducedMotion } from '@/shared/lib/motion';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -221,7 +222,7 @@ function LiveEdgeControls({ threadId }: { threadId: string }) {
   const total = useSessionStore((state) => state.events[threadId]?.length ?? 0);
   const unseen = useUnseenCount(total, !end);
   return (
-    <MessageScrollerButton>
+    <MessageScrollerButton behavior={prefersReducedMotion() ? 'auto' : 'smooth'}>
       <ArrowDownIcon />
       <span className="sr-only">
         {unseen > 0 ? `${unseen} new updates, scroll to end` : 'Scroll to end'}

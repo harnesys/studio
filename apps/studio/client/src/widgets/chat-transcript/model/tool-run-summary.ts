@@ -137,7 +137,7 @@ export type ActivityGroup = {
 
 export type ActivityItem = { type: 'chunk'; chunk: StandaloneActivityChunk } | ActivityGroup;
 
-/** Чанки вне групп: группируются только reasoning и tools. */
+/** Чанки вне групп: группируются только reasoning, tools и spawn. */
 export type StandaloneActivityChunk = Extract<
   ActivityChunk,
   { type: 'text' | 'ask' | 'source' | 'file' }

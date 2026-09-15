@@ -7,6 +7,7 @@ import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
 import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
 import { retryRun } from '@/features/send-message';
+import { prefersReducedMotion } from '@/shared/lib/motion';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -121,7 +122,7 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
               ) : null}
             </MessageScrollerContent>
           </MessageScrollerViewport>
-          <MessageScrollerButton />
+          <MessageScrollerButton behavior={prefersReducedMotion() ? 'auto' : 'smooth'} />
           <ThreadReadSync threadId={threadId} />
         </MessageScroller>
       </MessageScrollerProvider>

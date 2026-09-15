@@ -279,7 +279,7 @@ function rowRight(status: RunStatus, thread: Thread, iconMode: boolean): ReactNo
     return null;
   }
   return (
-    <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70 leading-none transition-opacity group-hover/ithread:opacity-0 group-has/ithread/[data-open]:opacity-0">
+    <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70 leading-none transition-opacity group-hover/ithread:opacity-0 group-has-[data-popup-open]/ithread:opacity-0">
       {threadTime(thread.updatedAt)}
     </span>
   );

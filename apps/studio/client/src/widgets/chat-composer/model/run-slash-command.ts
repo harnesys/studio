@@ -4,5 +4,8 @@ export function runSlashCommand(
   command: SlashCommand,
   threadId: string,
 ): Promise<string | undefined> {
-  return command.run({ threadId });
+  if (command.outcome.type !== 'execute') {
+    return Promise.resolve(undefined);
+  }
+  return command.outcome.run({ threadId });
 }

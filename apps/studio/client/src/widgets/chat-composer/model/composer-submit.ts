@@ -1,36 +1,31 @@
 import { ApiError } from '@/shared/api';
 import { toast } from '@/shared/ui/toast';
-
+import type { ComposerPayload } from './composer-doc';
 import type { ComposerMode } from './composer-mode';
 import { uploadAndSend } from './composer-send';
 import { runSlashCommand } from './run-slash-command';
-import { exactSlashCommand, type SlashCommand } from './slash-commands';
+import type { SlashCommand } from './slash-commands';
 
 export type ComposerSubmitOptions = {
-  value: string;
+  payload: ComposerPayload;
   pending: File[];
   threadId: string;
   effort: string | undefined;
   mode: ComposerMode;
   disabled: boolean;
   setSending(value: boolean): void;
-  setValue(value: string): void;
+  clear(): void;
   setPending(update: File[] | ((list: File[]) => File[])): void;
 };
 
 export function submitComposer(options: ComposerSubmitOptions): void {
-  const content = options.value.trim();
+  const content = options.payload.text;
   if ((!content && options.pending.length === 0) || options.disabled) {
-    return;
-  }
-  const command = exactSlashCommand(content);
-  if (command && options.pending.length === 0) {
-    void executeComposerSlash(command, options);
     return;
   }
   const files = options.pending;
   options.setSending(true);
-  options.setValue('');
+  options.clear();
   options.setPending([]);
   void uploadAndSend({
     threadId: options.threadId,
@@ -38,6 +33,7 @@ export function submitComposer(options: ComposerSubmitOptions): void {
     effort: options.effort,
     files,
     mode: options.mode,
+    skills: options.payload.skills,
   })
     .catch((error) => {
       const message = error instanceof ApiError ? error.message : 'Send failed';
@@ -51,13 +47,13 @@ export function submitComposer(options: ComposerSubmitOptions): void {
 
 export async function executeComposerSlash(
   command: SlashCommand,
-  options: Pick<ComposerSubmitOptions, 'threadId' | 'disabled' | 'setSending' | 'setValue'>,
+  options: Pick<ComposerSubmitOptions, 'threadId' | 'disabled' | 'setSending' | 'clear'>,
 ): Promise<void> {
   if (options.disabled) {
     return;
   }
   options.setSending(true);
-  options.setValue('');
+  options.clear();
   try {
     const message = await runSlashCommand(command, options.threadId);
     if (message) {

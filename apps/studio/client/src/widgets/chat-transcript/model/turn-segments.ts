@@ -14,8 +14,7 @@ export type TurnSegment =
   | { type: 'user'; event: SessionEvent & { type: 'user' } }
   | { type: 'text'; text: string; id: string | undefined }
   | { type: 'compaction'; text: string; meta: CompactionSegmentMeta }
-  | { type: 'handoff'; agentId: string; seq: number | undefined }
-  | { type: 'spawn'; spawnId: string };
+  | { type: 'handoff'; agentId: string; seq: number | undefined };
 
 /**
  * Единственная проекция «лог событий → сегменты треда». Все пути (live,
@@ -83,8 +82,7 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
       continue;
     }
     if (ev.type === 'agent.spawned') {
-      flushActivity();
-      segments.push({ type: 'spawn', spawnId: ev.spawnId });
+      activity.push(ev);
       continue;
     }
     if (
@@ -118,9 +116,6 @@ export function segmentKey(segment: TurnSegment, index: number): string {
   if (segment.type === 'handoff') {
     return `handoff-${segment.seq ?? index}-${segment.agentId}`;
   }
-  if (segment.type === 'spawn') {
-    return `spawn-${segment.spawnId}`;
-  }
   const first = segment.events[0];
   if (!first) {
     return `activity-${index}`;
@@ -143,10 +138,7 @@ export function segmentSpacing(segments: TurnSegment[], index: number): string |
   }
   if (
     prev?.type === 'activity' &&
-    (curr?.type === 'text' ||
-      curr?.type === 'compaction' ||
-      curr?.type === 'handoff' ||
-      curr?.type === 'spawn')
+    (curr?.type === 'text' || curr?.type === 'compaction' || curr?.type === 'handoff')
   ) {
     return 'mt-4';
   }

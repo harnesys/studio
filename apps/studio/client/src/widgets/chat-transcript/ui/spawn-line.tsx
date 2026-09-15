@@ -52,7 +52,7 @@ export function SpawnLine({
       badges.push({ text: `${spawn.steps} steps` });
     }
     if (spawn.tokens > 0) {
-      badges.push({ text: formatTokenCount(spawn.tokens) });
+      badges.push({ text: `${formatTokenCount(spawn.tokens)} tok` });
     }
   }
   const failed = spawn.status === 'failed';
@@ -72,7 +72,7 @@ export function SpawnLine({
       active={running}
       failed={failed}
       defaultOpen={live || feedDetail === 'full'}
-      hasContent
+      hasContent={toolEntries.length > 0 || Boolean(spawn.preview)}
       tail={
         onOpen ? (
           <Button

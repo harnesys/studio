@@ -32,7 +32,6 @@ import { FeedNotice } from './feed-notice';
 import { HandoffCard } from './handoff-card';
 import { MessageActions } from './message-actions';
 import { ModeTagBadges } from './mode-tag-badge';
-import { SpawnLine } from './spawn-line';
 import { ThinkingLine } from './thinking-line';
 
 export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
@@ -251,6 +250,8 @@ function TurnSegmentView({
         runId={runId}
         threadId={threadId}
         maps={maps}
+        spawns={spawns}
+        onOpenSpawn={onOpenSpawn}
       />
     );
   }
@@ -259,23 +260,6 @@ function TurnSegmentView({
   }
   if (segment.type === 'handoff') {
     return <HandoffCard agentId={segment.agentId} />;
-  }
-  if (segment.type === 'spawn') {
-    const spawn = spawns?.find((item) => item.spawnId === segment.spawnId);
-    if (!spawn) {
-      return null;
-    }
-    return (
-      <ActivityRail live={live && spawn.status === 'running'}>
-        <SpawnLine
-          threadId={threadId ?? ''}
-          spawnId={segment.spawnId}
-          spawn={spawn}
-          live={live}
-          onOpen={onOpenSpawn}
-        />
-      </ActivityRail>
-    );
   }
 
   return <LiveMarkdown text={segment.text} live={live} threadId={threadId} blockId={segment.id} />;

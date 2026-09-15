@@ -62,7 +62,7 @@ Capability packs:
 | `knowledge-memory` | `knowledge_search`, `knowledge_read` |
 | `pin-memory` | `pin_set`, `pin_list`, `pin_remove` |
 
-Wrong pack names silently warn `pack_unknown` and load nothing.
+Wrong pack names are rejected on save (`400`) and fail the run target at start; they never load silently.
 
 ## Memory and knowledge
 

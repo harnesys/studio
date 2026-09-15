@@ -9,9 +9,9 @@ import type {
   ModelsPort,
   PendingSessionEvent,
   SessionEvent,
-  ToolDefinition,
 } from 'harnesys';
-import { compactForced, THRESHOLD_SUMMARY_NAME } from 'harnesys';
+import { compactForced, resolveCapabilitySet, THRESHOLD_SUMMARY_NAME } from 'harnesys';
+import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { logger, toRuntimeLogger } from '../../config/logger.ts';
@@ -21,6 +21,7 @@ import type { RuntimeStateRepository } from '../../domain/runtime-state.port.ts'
 import { NotFoundError, RunConflictError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
+import { buildCapabilityUniverse } from '../capabilities/universe.ts';
 import { createEpisodicOnCompacted } from '../memory/episodic-on-compacted.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
@@ -148,6 +149,30 @@ export class CompactThreadUseCase implements CompactThreadInput {
 
     let message: CompactionMessage | undefined;
     const hooks = await this.deps.runHooks.ensure(thread.id);
+    // Тот же авторитетный набор, что собирает ран (резолвер composition-root без
+    // полей режима: имена от экспозиции не зависят) — toolsJson промпта/оценки
+    // не расходится с грантом агента.
+    const universe = buildCapabilityUniverse(workspace, {
+      hx,
+      workspaceHarnesys: this.deps.workspaceHarnesys,
+    });
+    const runSet = runInHostToolScope(
+      { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
+      () =>
+        resolveCapabilitySet(def, {
+          ...universe,
+          roster: this.deps.workspaceHarnesys.listScopedRoster(def),
+        }),
+    );
+    if (runSet.fatal.length > 0) {
+      logger.warn({ scope: 'capabilities' }, `compact ${thread.id}: ${runSet.fatal.join('; ')}`);
+    }
+    const runToolRegistry = new Map(
+      [...runSet.registry].map(([name, entry]) => [
+        name,
+        { ...entry.def, exposure: entry.exposure },
+      ]),
+    );
     try {
       for await (const ev of compactForced({
         agent: def,
@@ -155,7 +180,7 @@ export class CompactThreadUseCase implements CompactThreadInput {
         sessionId: state.sessionId,
         binding,
         models: this.deps.models,
-        toolRegistry: hx.tools.registry() as Map<string, ToolDefinition>,
+        toolRegistry: runToolRegistry,
         paths: { allow: [workspace.path], cwd: workspace.path },
         signal,
         logger: toRuntimeLogger('runtime'),

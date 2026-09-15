@@ -17,7 +17,7 @@ export const agentsCapability = definePack<AgentsCapabilityPorts, Record<string,
       {
         name: 'agents_list',
         description:
-          'List agents in this workspace (id, name, role, instructions, tools, model). Optional role/name filters; role is not unique. tools lists declared names; the effective set adds default host/pack tools and may also shrink (host/MCP filtering). Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
+          'List agents in this workspace (id, name, role, instructions, packs, model). Optional role/name filters; role is not unique. packs lists enabled source assignments per agent; tool availability derives from those sources, not from a stored tool-name list. Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by packs/model before agents_spawn.',
       },
       {
         name: 'agents_create',

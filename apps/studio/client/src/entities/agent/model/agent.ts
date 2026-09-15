@@ -30,7 +30,6 @@ export type Agent = {
   compaction: PortRef;
   skills: string[];
   mcpServers: string[];
-  tools: string[];
   graph: AgentGraph;
   capabilities: Record<string, PackConfig | null>;
   /** Base permission map (mode ceiling / spawn base); null = DEFAULT_PERMISSIONS. */
@@ -86,7 +85,6 @@ export type AgentPatch = Partial<
     | 'compaction'
     | 'skills'
     | 'mcpServers'
-    | 'tools'
     | 'graph'
     | 'capabilities'
     | 'hooks'

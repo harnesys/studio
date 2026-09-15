@@ -29,24 +29,15 @@ export function mergeTools(
   return merged;
 }
 
-export function filterToolsForAgent(
+/** Deny-only subtract: agent `disallowedTools` (alias spellings) and MCP groups outside `mcpServers`. */
+export function subtractDeniedTools(
   registry: Map<string, ToolDefinition>,
-  agent: { tools?: string[]; mcpServers?: string[]; disallowedTools?: string[] },
+  agent: { mcpServers?: string[]; disallowedTools?: string[] },
 ): Map<string, ToolDefinition> {
-  // Closed-world: неназванный инструмент недоступен; раннего «вернуть весь реестр» больше нет.
   const blocked = new Set((agent.disallowedTools ?? []).map(resolveToolAlias));
   const allowedServers = new Set(agent.mcpServers ?? []);
-  // Requested names keep their alias spelling in the child registry so
-  // CC-authored prompts ("use the Glob tool") call tools verbatim.
-  const requested = new Map<string, string>();
-  for (const name of agent.tools ?? []) {
-    requested.set(resolveToolAlias(name), name);
-  }
   const out = new Map<string, ToolDefinition>();
   for (const [name, def] of registry) {
-    if (!requested.has(name)) {
-      continue;
-    }
     const isMcp = def.operations?.includes('mcp') ?? false;
     if (isMcp && def.group !== undefined && !allowedServers.has(def.group)) {
       continue;
@@ -54,8 +45,7 @@ export function filterToolsForAgent(
     if (blocked.has(name)) {
       continue;
     }
-    const alias = requested.get(name);
-    out.set(alias ?? name, alias !== undefined && alias !== name ? { ...def, name: alias } : def);
+    out.set(name, def);
   }
   return out;
 }

@@ -1,4 +1,4 @@
-/** Capability set: источники → грант → overrides → режим → legacy-мост → core-сервисы.
+/** Capability set: источники → грант → overrides → режим → песочница → core-сервисы.
  *  Единственное решение о доступности (spec `docs/superpowers/specs/2026-09-15-capability-set-design.md`);
  *  чиста относительно `def` и `universe`. `pack.create()` вызывается тем же контрактом, что
  *  `buildPackRun` (порты/scope внутри регистраций), поэтому вызов вне рана оборачивается
@@ -54,6 +54,8 @@ export type CapabilityUniverse = {
   makeLoadTools: (registry: RunRegistry) => ToolDefinition;
   makeLoadSkill?: () => ToolDefinition[];
   mode?: ModeCapabilityFields;
+  /** Слой ребёнка спавна (`sandboxUniverse`): вычесть тулы группы `agents`. */
+  sandbox?: boolean;
 };
 
 export type CapabilitySet = {
@@ -71,6 +73,11 @@ export type CapabilitySet = {
 
 /** Сервисы, грантимые только через `pack:core`; такие имена из baseRegistry — не грант хоста. */
 export const CORE_SERVICE_TOOLS = ['load_tools', 'load_skill', 'Skill'];
+
+/** Кадр вселенной ребёнка спавна: то же наполнение плюс флаг слоя песочницы (spec §7.4). */
+export function sandboxUniverse(universe: CapabilityUniverse): CapabilityUniverse {
+  return { ...universe, sandbox: true };
+}
 
 const CORE_PACK = 'core';
 
@@ -100,7 +107,7 @@ export function resolveCapabilitySet(
   applySourceOverrides(asm, def, layer);
   subtractDisallowed(asm, def);
   applyMode(asm, def, universe.mode);
-  applyLegacyAllowlist(asm, def);
+  applySandbox(asm, universe);
   grantCoreServices(asm, def, universe);
   const collected = collectPackOutputs(asm.ex, def, layer.enabled);
   const mcpServers = [...new Set(def.mcpServers ?? [])];
@@ -292,22 +299,22 @@ function subtractModeLists(asm: Assembly, mode: ModeCapabilityFields): void {
   }
 }
 
-/** Legacy-мост до T6: `def.tools` — пересечение финального реестра по allowlist. */
-function applyLegacyAllowlist(asm: Assembly, def: AgentDefinition): void {
-  if (def.tools === undefined) {
+/** Песочница ребёнка (spec §7.4): вложенный спавн запрещён — тулы пака `agents` вырезаются.
+ *  Тот же набор удалений, что до T6 считал движок в `graph-spawn.ts` (`def.group === 'agents'`). */
+function applySandbox(asm: Assembly, universe: CapabilityUniverse): void {
+  if (universe.sandbox !== true) {
     return;
   }
-  const requested = new Set((def.tools ?? []).map(resolveToolAlias));
   for (const [name, entry] of asm.registry) {
-    if (requested.has(name)) {
+    if (entry.def.group !== 'agents') {
       continue;
     }
     asm.registry.delete(name);
-    asm.ex.deniedByUniverse(name, 'tool', entry.source, 'legacy tools allowlist');
+    asm.ex.deniedByUniverse(name, 'tool', entry.source, 'spawn sandbox');
   }
 }
 
-/** Core-сервисы после legacy-моста: как сегодня `create-runtime.ts` — служебные тулы поверх фильтра. */
+/** Core-сервисы последним слоем: служебные тулы поверх всех сужений, грант — только через `core`. */
 function grantCoreServices(
   asm: Assembly,
   def: AgentDefinition,

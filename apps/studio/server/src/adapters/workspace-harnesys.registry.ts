@@ -249,23 +249,14 @@ export class WorkspaceHarnesysRegistry {
     const mcp = merged.mcp;
     const runtime = await createRuntime({
       models: this.models,
-      // Host base registry is code + auto services only. ask_user/map/wait come
-      // with the `core` pack through the capability resolver's grant (T5);
-      // per-agent gating lives in `resolveCapabilitySet`, not in this list.
+      // Host base registry is code + auto-MCP only. ask_user/map/wait and the
+      // service tools come with the `core` pack through the capability resolver's
+      // grant (T5); per-agent gating lives in `resolveCapabilitySet`, not here.
       tools: [],
       packs: [...this.packRegistrations],
       agents: {
-        resolve: (id: string) => this.resolveAgent(id),
-        list: () => [
-          ...(this.repos.agents?.listByWorkspace(workspace.id) ?? []).map((a) => ({
-            id: a.id,
-            name: a.name,
-            parentId: a.parentId,
-          })),
-          ...this.warmPluginAgents(workspace.id)
-            .list()
-            .map((a) => ({ id: a.id, name: a.name })),
-        ],
+        resolve: (id: string, parent?: AgentDefinition) => this.resolveAgentForRun(id, parent),
+        list: (parent?: AgentDefinition) => this.listScopedRoster(parent),
       },
       mcp,
       paths: { allow: [workspace.path], cwd: workspace.path },

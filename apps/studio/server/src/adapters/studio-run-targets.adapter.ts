@@ -1,6 +1,7 @@
 import { effectiveMode, normalizeModePackMap, resolveModeId } from '@harnesys/studio-shared';
 import type {
   AgentDefinition,
+  CapabilityUniverse,
   HookBinding,
   HookEmitCtx,
   PathEntrySpec,
@@ -128,20 +129,15 @@ export class StudioRunTargets implements RunTargets {
       workspaceHarnesys: this.deps.workspaceHarnesys,
     });
     // Pack `create()` runs here, outside a live run: same host-scope contract as
-    // the closed-world materialization. The legacy `tools` allowlist bridge is
-    // neutralized on the run path (the DB column is a materialized snapshot, B6;
-    // the column itself is removed in T6).
+    // the run-path resolver (the composition-root seam, spec 2026-09-15 §4).
+    const fullUniverse: CapabilityUniverse = {
+      ...universe,
+      roster: this.deps.workspaceHarnesys.listScopedRoster(agent),
+      mode: toModeFields(mode, normalizeModePackMap),
+    };
     const capabilitySet = runInHostToolScope(
       { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
-      () =>
-        resolveCapabilitySet(
-          { ...agent, tools: undefined },
-          {
-            ...universe,
-            roster: this.deps.workspaceHarnesys.listScopedRoster(agent),
-            mode: toModeFields(mode, normalizeModePackMap),
-          },
-        ),
+      () => resolveCapabilitySet(agent, fullUniverse),
     );
     if (capabilitySet.fatal.length > 0) {
       logger.warn(
@@ -176,9 +172,10 @@ export class StudioRunTargets implements RunTargets {
       paths: { allow: [workspace.path], cwd: workspace.path },
       // Single decision: the resolver assembled the run registry once; the
       // engine's `capabilitySet` branch skips `resolveAgentIdentity`/pack create.
-      // `toolRegistry` stays on the port until T6 — defs carry the entry's
-      // exposure flag (same shape the legacy path produced).
+      // `toolRegistry` carries the same entries for the graph's flat view;
+      // `universe` lets spawn children resolve their own sets (sandboxed).
       capabilitySet,
+      universe: fullUniverse,
       toolRegistry: new Map(
         [...capabilitySet.registry].map(([name, entry]) => [
           name,

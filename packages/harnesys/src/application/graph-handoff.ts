@@ -2,10 +2,11 @@ import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Expr } from '../domain/expr.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import { resolveCapabilitySet } from './capability-set.ts';
 import { compileOrThrow, type Plan } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import type { GraphOpts } from './graph.ts';
-import { filterToolsForAgent } from './tool-registry.ts';
+import { subtractDeniedTools } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
 
@@ -107,8 +108,25 @@ export function prepareHandoff(
   if (!startNodeId) {
     throw codedRunError('start_count', `handoff target "${agentId}" missing start`);
   }
-  const toolRegistry = new Map(filterToolsForAgent(parent.toolRegistry, def));
-  toolRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(toolRegistry));
+  // Новый спикер берёт собственное наделение против вселенной рана (без
+  // песочницы: handoff — top-level контроль, тред продолжает жить как обычно);
+  // хост без резолвера получает живой реестр родителя минус deny-списки цели.
+  let toolRegistry: Map<string, ToolDefinition>;
+  if (parent.universe !== undefined) {
+    const targetSet = resolveCapabilitySet(def, parent.universe);
+    if (targetSet.fatal.length > 0) {
+      parent.logger?.warn(`[capabilities] handoff ${agentId}: ${targetSet.fatal.join('; ')}`);
+    }
+    toolRegistry = new Map(
+      [...targetSet.registry].map(([name, entry]) => [
+        name,
+        { ...entry.def, exposure: entry.exposure },
+      ]),
+    );
+  } else {
+    toolRegistry = subtractDeniedTools(parent.toolRegistry, def);
+    toolRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(toolRegistry));
+  }
   return {
     agent: def,
     plan,

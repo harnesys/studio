@@ -63,9 +63,7 @@ export type AgentDefinition = {
   fallback?: AgentModelRef[];
   /** Skill allowlist; omitted/null/[] means none. */
   skills?: string[];
-  /** Tool allowlist; omitted/null/[] means none (closed world). */
-  tools?: string[];
-  /** Имена, вычитаемые из реестра после `tools`-фильтра; omitted/[] = no-op. */
+  /** Имена, вычитаемые из реестра после гранта источников; omitted/[] = no-op. */
   disallowedTools?: string[];
   /** MCP server allowlist; omitted/null/[] means none. */
   mcpServers?: string[];
@@ -121,6 +119,8 @@ export type Node =
       model?: string | AgentModelRef;
       prompt: string;
       messages?: Expr;
+      /** Narrowing of the run set (never a grant): undefined = whole set, [] = none,
+       *  non-empty = subset (validated ⊆ run registry). */
       tools?: string[];
       output?: JsonSchema;
     }

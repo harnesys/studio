@@ -11,20 +11,22 @@ import type { CreateRuntimeOptions, RuntimeHandle } from '../ports/create-runtim
 import { CONSOLE_LOGGER } from '../ports/logger.ts';
 import type { CursorMcpJson, McpRegistry } from '../ports/mcp.ts';
 import type { PathsConfig } from '../ports/paths.ts';
+import type { ToolDefinition } from '../ports/tools.ts';
+import type { CapabilityUniverse, RunRegistry } from './capability-set.ts';
+import { resolveCapabilitySet } from './capability-set.ts';
 import { check } from './check.ts';
 import { compile, compileOrThrow } from './compile.ts';
 import { startGraph } from './graph.ts';
 import { runGraph } from './graph-run.ts';
 import { createHookBus } from './hooks/bus.ts';
 import { emitHook, type HookEmitCtx } from './hooks/emit-hook.ts';
-import { attachPackRun, fallbackScope } from './packs/pack-run.ts';
+import { fallbackScope } from './packs/pack-run.ts';
 import { packCatalog } from './packs/tool-names.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createLoadSkillTool } from './skills/create-load-skill-tool.ts';
-import { createToolRegistry, filterToolsForAgent } from './tool-registry.ts';
+import { createToolRegistry } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
-import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
 import { aliasTool } from './tools/tool-alias.ts';
 
 function isMcpRegistry(value: unknown): boolean {
@@ -34,6 +36,12 @@ function isMcpRegistry(value: unknown): boolean {
     'loadJson' in value &&
     'tools' in value &&
     'closeAll' in value
+  );
+}
+
+function flatRegistry(registry: RunRegistry): Map<string, ToolDefinition> {
+  return new Map(
+    [...registry].map(([name, entry]) => [name, { ...entry.def, exposure: entry.exposure }]),
   );
 }
 
@@ -99,14 +107,40 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
   }
 
   const toolRegistry = createToolRegistry(baseTools);
-  toolRegistry.set('load_tools', createLoadToolsTool(toolRegistry));
-  if (options.skills) {
-    const loadSkill = createLoadSkillTool(options.skills);
-    toolRegistry.set('load_skill', loadSkill);
-    if (!toolRegistry.has('Skill')) {
-      toolRegistry.set('Skill', aliasTool(loadSkill, 'Skill'));
+
+  // Capability universe for oneshot `run`/`start` and their spawn children:
+  // the host registry is everything the host registered; services (`load_tools`,
+  // `load_skill`/`Skill`) are granted only through the `core` pack by the resolver.
+  const buildUniverse = (def: AgentDefinition): CapabilityUniverse => {
+    const universe: CapabilityUniverse = {
+      registrations: packRegistrations,
+      baseRegistry: toolRegistry,
+      roster: options.agents.list?.(def) ?? [],
+      fsSkills: options.skills,
+      makeLoadTools: (registry: RunRegistry) => createLoadToolsTool(flatRegistry(registry)),
+    };
+    if (options.skills !== undefined) {
+      const skills = options.skills;
+      universe.makeLoadSkill = () => {
+        const loadSkill = createLoadSkillTool(skills);
+        return [loadSkill, aliasTool(loadSkill, 'Skill')];
+      };
     }
-  }
+    return universe;
+  };
+  const assembleOneshot = (def: AgentDefinition) => {
+    const universe = buildUniverse(def);
+    const capabilitySet = resolveCapabilitySet(def, universe);
+    if (capabilitySet.fatal.length > 0) {
+      logger.warn(`[capabilities] ${capabilitySet.fatal.join('; ')}`);
+    }
+    return {
+      universe,
+      capabilitySet,
+      registry: flatRegistry(capabilitySet.registry),
+      packOutputs: capabilitySet.packOutputs,
+    };
+  };
 
   const resolveAgent = (agent: AgentDefinition | string): AgentDefinition => {
     if (typeof agent !== 'string') {
@@ -153,7 +187,6 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     hooks: options.hooks,
     notes: options.notes,
     packRegistrations,
-    deferredPacks: options.deferredPacks,
     skills: options.skills,
     toolMessages: options.toolMessages ?? 'ordered',
     mergeState: options.mergeState,
@@ -170,17 +203,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     run: async (agent, opts) => {
       const def = resolveAgent(agent);
       const plan = compileOrThrow(def);
-      const runRegistry = new Map(filterToolsForAgent(toolRegistry, def));
-      runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
-      const packOutputs = attachPackRun({
-        def,
-        registrations: packRegistrations,
-        runRegistry,
-        fsSkills: options.skills,
-        scopeFallback: stubScope,
-        deferredPacks: options.deferredPacks,
-        logger,
-      });
+      const { universe, capabilitySet, registry: runRegistry, packOutputs } = assembleOneshot(def);
       const hooks = assembleRunHooks(options, opts.paths ?? options.paths);
       if (hooks) {
         liveHooks.add(hooks);
@@ -195,6 +218,8 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
           notes: options.notes,
           skills: options.skills,
           packOutputs,
+          capabilitySet,
+          universe,
           artifacts: options.artifacts,
           models: options.models,
           toolRegistry: runRegistry,
@@ -213,17 +238,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     start: (agent, opts) => {
       const def = resolveAgent(agent);
       const plan = compileOrThrow(def);
-      const runRegistry = new Map(filterToolsForAgent(toolRegistry, def));
-      runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
-      const packOutputs = attachPackRun({
-        def,
-        registrations: packRegistrations,
-        runRegistry,
-        fsSkills: options.skills,
-        scopeFallback: stubScope,
-        deferredPacks: options.deferredPacks,
-        logger,
-      });
+      const { universe, registry: runRegistry, packOutputs } = assembleOneshot(def);
       const hooks = assembleRunHooks(options, opts.paths ?? options.paths);
       if (hooks) {
         liveHooks.add(hooks);
@@ -238,6 +253,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
           notes: options.notes,
           skills: options.skills,
           packOutputs,
+          universe,
           artifacts: options.artifacts,
           models: options.models,
           toolRegistry: runRegistry,

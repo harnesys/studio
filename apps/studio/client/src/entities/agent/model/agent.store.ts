@@ -42,7 +42,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       compaction: draft.compaction === undefined ? defaultAgentCompaction() : draft.compaction,
       skills: [],
       mcpServers: [],
-      tools: [],
       graph: draft.graph ?? { nodes: {}, edges: [] },
       capabilities: draft.capabilities ?? {},
       permissions: draft.permissions ?? null,
@@ -98,7 +97,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
               compaction: patch.compaction !== undefined ? patch.compaction : agent.compaction,
               skills: patch.skills !== undefined ? patch.skills : agent.skills,
               mcpServers: patch.mcpServers !== undefined ? patch.mcpServers : agent.mcpServers,
-              tools: patch.tools !== undefined ? patch.tools : agent.tools,
               graph: patch.graph !== undefined ? patch.graph : agent.graph,
               capabilities:
                 patch.capabilities !== undefined ? patch.capabilities : agent.capabilities,

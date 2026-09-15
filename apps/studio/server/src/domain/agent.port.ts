@@ -40,8 +40,6 @@ export type Agent = {
   skills: string[];
   /** MCP server allowlist; empty = no servers. */
   mcpServers: string[];
-  /** Tool name allowlist; empty = no tools. */
-  tools: string[];
   graph: AgentGraph;
   budget: AgentBudget | null;
   capabilities: Record<string, PackConfig | null>;
@@ -72,7 +70,6 @@ export type AgentPatch = {
   compaction?: PortRef;
   skills?: string[];
   mcpServers?: string[];
-  tools?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;

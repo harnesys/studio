@@ -29,7 +29,6 @@ export function agentDraftFromPreset(preset: AgentPresetRecord): Agent {
     compaction: defaultAgentCompaction(),
     skills: preset.skills ?? [],
     mcpServers: preset.mcpServers ?? [],
-    tools: preset.tools ?? [],
     graph: preset.graph ?? { nodes: {}, edges: [] },
     capabilities: preset.capabilities ?? {},
     permissions: preset.permissions ?? null,

@@ -52,8 +52,6 @@ export type CreateRuntimeOptions = {
   hooks?: HookBinding[];
   notes?: LlmNoteProvider[];
   packs?: PackRegistration[];
-  /** Pack names whose tools attach as exposure:'deferred' this run (host-owned context axis). */
-  deferredPacks?: readonly string[];
   artifacts?: ArtifactStore;
   nodes?: Record<string, CustomNodeImpl>;
   toolMessages?: 'barrier' | 'ordered';

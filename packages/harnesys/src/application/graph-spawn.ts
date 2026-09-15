@@ -5,14 +5,16 @@ import type { Expr } from '../domain/expr.ts';
 import type { Event, Snapshot } from '../domain/snapshot.ts';
 import type { AgentRosterEntry, AgentsResolve } from '../ports/create-runtime.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
+import type { ToolDefinition } from '../ports/tools.ts';
 import { formatAgentTargets, resolveAgentTarget } from './agent-target-resolve.ts';
+import { resolveCapabilitySet, sandboxUniverse } from './capability-set.ts';
 import { compileOrThrow } from './compile.ts';
 import { evalExpr } from './expr-eval.ts';
 import type { GraphOpts } from './graph.ts';
 import { emitHook, hookContextText, withHookContextPrefix } from './hooks/emit-hook.ts';
 import { intersectPermissions } from './permissions.ts';
 import { type DeniedToolEntry, deniedToolsList } from './tool-approve-checkpoint.ts';
-import { filterToolsForAgent } from './tool-registry.ts';
+import { subtractDeniedTools } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
 
@@ -260,14 +262,36 @@ async function runOneChild(
       ? modelInherited
       : { ...modelInherited, budget: childBudget };
   const plan = compileOrThrow(childDef);
-  const runRegistry = new Map(filterToolsForAgent(parent.toolRegistry, childDef));
-  // Запрет вложенности на уровне движка: ребёнок не получает тулы пака agents.
-  for (const [name, def] of runRegistry) {
-    if (def.group === 'agents') {
-      runRegistry.delete(name);
+  // Реестр ребёнка: собственное наделение против вселенной родителя, слой
+  // песочницы вычитает тулы пака `agents` (тот же набор, что до T6 резал движок);
+  // `load_tools` — только через core-грант резолвера.
+  let childPackOutputs = parent.packOutputs;
+  let runRegistry: Map<string, ToolDefinition>;
+  if (parent.universe !== undefined) {
+    const childSet = resolveCapabilitySet(childDef, sandboxUniverse(parent.universe));
+    if (childSet.fatal.length > 0) {
+      parent.logger?.warn(
+        `[capabilities] spawn ${target.call.agentId}: ${childSet.fatal.join('; ')}`,
+      );
     }
+    runRegistry = new Map(
+      [...childSet.registry].map(([name, entry]) => [
+        name,
+        { ...entry.def, exposure: entry.exposure },
+      ]),
+    );
+    childPackOutputs = childSet.packOutputs;
+  } else {
+    // Хост без резолвера: вселенная ребёнка — живой реестр родителя;
+    // движок режет группу `agents` и добавляет `load_tools`, как прежде.
+    runRegistry = subtractDeniedTools(parent.toolRegistry, childDef);
+    for (const [name, def] of runRegistry) {
+      if (def.group === 'agents') {
+        runRegistry.delete(name);
+      }
+    }
+    runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
   }
-  runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
   // События ребёнка на шину родителя не идут: жизнь сабагента покрывают
   // SubagentStart/SubagentStop.
   const childOpts: GraphOpts = {
@@ -287,7 +311,8 @@ async function runOneChild(
     mergeState: parent.mergeState,
     signal: parent.signal,
     notes: parent.notes,
-    packOutputs: parent.packOutputs,
+    packOutputs: childPackOutputs,
+    universe: parent.universe,
     skills: parent.skills,
     env: parent.env,
     agents: parent.agents,

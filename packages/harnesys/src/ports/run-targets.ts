@@ -1,4 +1,4 @@
-import type { CapabilitySet } from '../application/capability-set.ts';
+import type { CapabilitySet, CapabilityUniverse } from '../application/capability-set.ts';
 import type { HookEmitCtx } from '../application/hooks/emit-hook.ts';
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
@@ -19,10 +19,10 @@ export type RunTarget = {
   notes?: LlmNoteProvider[];
   /** Pack registrations for the run; host set wins, otherwise the runtime ctx set. */
   packs?: PackRegistration[];
-  /** Pack names whose tools attach as exposure:'deferred' this run (host-owned context axis). */
-  deferredPacks?: readonly string[];
   /** Pre-resolved capability set; when set the engine skips identity resolution and pack create. */
   capabilitySet?: CapabilitySet;
+  /** Host capability universe; carried into the graph so spawn/handoff children resolve their own sets. */
+  universe?: CapabilityUniverse;
   /** FS skill registry for the run; falls back to the runtime ctx set. */
   skills?: SkillRegistry;
   /** Per-run tool registry; overrides the engine default when present. */

@@ -130,10 +130,10 @@ export async function* runLlmGenerate(
   const instructions = [prompt, skillsSection, projected.prefix]
     .filter((part) => part.trim())
     .join('\n\n');
-  const resolved = node.tools ?? [];
-  // Прогрессивный набор применяется к разрешённому списку всегда: явный
-  // node.tools ограничивает видимость, но deferred-инструменты внутри него
-  // по-прежнему подменяются каталогом через load_tools.
+  const resolved = node.tools ?? [...ctx.toolRegistry.keys()];
+  // node.tools — сужение видимости (undefined = весь набор рана, [] = нет тулов),
+  // но deferred-инструменты внутри него по-прежнему подменяются каталогом
+  // через load_tools: прогрессивный набор применяется к списку всегда.
   const progressive = resolveProgressiveTools(resolved, ctx.toolRegistry, loadedToolsOf(ctx.state));
   const toolNames = progressive.toolNames;
 

@@ -6,7 +6,6 @@ import type { RunLifecycleStatus } from '../ports/run-lifecycle-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
 import type { GraphOpts } from './graph.ts';
 import { emitHook, type HookEmitCtx } from './hooks/emit-hook.ts';
-import type { PackRunMap } from './packs/pack-run.ts';
 import { eventToSessionEvent, runFailedEvent, runStartedEvent } from './run-engine-events.ts';
 import { prepareExecuteGraphOpts } from './run-engine-prepare.ts';
 import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
@@ -40,9 +39,6 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
   const renewMs = deps.renewMs ?? DEFAULT_LEASE_RENEW_MS;
   const active: Set<RunRuntime> = new Set();
   const runLogger = deps.logger ?? CONSOLE_LOGGER;
-  /** Built pack outputs per runId. First segment builds via `create`; later
-   *  segments (`respond`) reuse the map so stateful `create` runs once per run. */
-  const packCache = new Map<string, PackRunMap>();
   /** Per-run hook emit contexts; segments reuse the bus, terminal run closes it. */
   const hookCache = new Map<string, HookEmitCtx>();
 
@@ -69,7 +65,6 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
     for (const run of [...active]) {
       haltRun(run);
     }
-    packCache.clear();
     // Незавершённые хук-процессы (включая async) не переживают остановку движка.
     for (const hooks of hookCache.values()) {
       void hooks.bus.close();
@@ -167,7 +162,6 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
           opts,
           runId,
           signal,
-          packCache,
           hookCache,
           runLogger,
           childJournal,
@@ -191,7 +185,6 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         .then((rec) => rec !== null && !RUN_NON_TERMINAL.includes(rec.status))
         .catch(() => false);
       if (terminal) {
-        packCache.delete(runId);
         // Закрытие рана: групповое убийство хук-процессов (включая async),
         // drain deferred, затем emit SessionEnd (спека §2.4). Хост-собранная
         // шина (RunTarget.hooksEmit) закрывается здесь же: engine — единая

@@ -48,7 +48,6 @@ export type CreateAgentRequest = {
   compaction?: PortRef;
   skills?: string[];
   mcpServers?: string[];
-  tools?: string[];
   /** When set, stored as-is; otherwise host builds default ReAct. */
   graph?: AgentGraph;
   budget?: AgentBudget | null;
@@ -127,7 +126,6 @@ export class CreateAgentUseCase implements CreateAgentInput {
       request.compaction !== undefined ? request.compaction : defaultAgentCompaction();
     const skills = request.skills ?? [];
     const mcpServers = request.mcpServers ?? [];
-    const tools = request.tools ?? [];
     if (skills.length > 0 && this.deps.workspaceCatalog) {
       const listed = await this.deps.workspaceCatalog.listSkills.execute({
         workspaceId: request.workspaceId,
@@ -144,7 +142,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
       const unknown = mcpServers.filter((server) => !known.has(server));
       assertAllKnown(unknown, 'mcp server');
     }
-    const graph = request.graph !== undefined ? request.graph : buildReactGraph(tools);
+    const graph = request.graph !== undefined ? request.graph : buildReactGraph();
     let defaultBudget: AgentBudget | null;
     if (parentId !== null) {
       defaultBudget = { maxSteps: 25, policy: 'error' };
@@ -181,7 +179,6 @@ export class CreateAgentUseCase implements CreateAgentInput {
       compaction,
       skills,
       mcpServers,
-      tools,
       graph,
       budget,
       capabilities,

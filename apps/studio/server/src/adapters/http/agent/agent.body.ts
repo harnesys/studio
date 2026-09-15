@@ -1,4 +1,4 @@
-import { MODE_ID_RE, MODE_OPS } from '@harnesys/studio-shared';
+import { MODE_ID_RE, MODE_OPS, type PackConfig } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 const modeOpGate = z.enum(['allow', 'ask', 'deny']);
@@ -45,8 +45,34 @@ const budgetBody = z
   .nullable()
   .optional();
 
-const capabilitiesBody = z
-  .record(z.string(), z.object({ spec: z.record(z.string(), z.unknown()).optional() }).nullable())
+/** PackAssignment-литералы (спека 2026-09-15 §3, эталон `packs/registry.ts`):
+ *  `true`/объект = вкл, `false`/`null`/отсутствие = выкл. На границе нормализуется
+ *  в хранимую форму: `true` → `{}`, `false`/`null` → `null` (явный off). */
+const packAssignmentBody = z
+  .union([
+    z.literal(true),
+    z.literal(false),
+    z.object({ spec: z.record(z.string(), z.unknown()).optional() }),
+    z.null(),
+  ])
+  .transform(toStoredAssignment);
+
+function toStoredAssignment(value: true | false | PackConfig | null): PackConfig | null {
+  if (value === true) {
+    return {};
+  }
+  if (value === false || value === null) {
+    return null;
+  }
+  return value;
+}
+
+const capabilitiesBody = z.record(z.string(), packAssignmentBody).optional();
+
+/** Поле `tools` (allowlist) удалена из модели; приход имени на wire — явный отказ. */
+const removedToolsBody = z
+  .unknown()
+  .refine((value) => value === undefined, 'tools removed; use sources')
   .optional();
 
 const permissionsBody = z.record(z.string(), modeOpGate).nullable().optional();
@@ -147,7 +173,7 @@ export const createAgentBody = z.object({
   compaction: compactionBody,
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),
-  tools: z.array(z.string()).optional(),
+  tools: removedToolsBody,
   graph: agentGraphBody,
   hooks: hooksBody,
   enabledPlugins: enabledPluginsBody,
@@ -170,7 +196,7 @@ export const updateAgentBody = z.object({
   compaction: compactionBody,
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),
-  tools: z.array(z.string()).optional(),
+  tools: removedToolsBody,
   graph: agentGraphBody,
   hooks: hooksBody,
   enabledPlugins: enabledPluginsBody,

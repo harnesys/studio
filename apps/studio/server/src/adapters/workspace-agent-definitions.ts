@@ -22,7 +22,6 @@ export function dbAgentDefinition(agent: Agent, repos: AgentModelRepos): AgentDe
     prompts: { main: { instructions: agent.instructions } },
     model: resolveModelRef(agent, repos),
     skills: agent.skills,
-    tools: agent.tools,
     mcpServers: agent.mcpServers,
     toolOutput: agent.toolOutput ?? undefined,
     compaction: agent.compaction,

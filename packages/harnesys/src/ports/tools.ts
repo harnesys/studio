@@ -32,7 +32,10 @@ export type ToolCallGate =
   | { decision: 'ask' }
   | { decision: 'deny'; reason: string };
 
-/** Экспозиция тула в ходу: прямой показ модели или отложение до `load_tools`. */
+/** Экспозиция тула в ходу: прямой показ модели или отложение до `load_tools`.
+ *  Свойство показа, не грант: значение по умолчанию берётся из объявления тула,
+ *  источник/режим могут перевести `direct ↔ deferred` внутри эффективного набора
+ *  (`PackOverride.exposure`, `ModeCapabilityFields.exposure`). */
 export type ToolExposure = 'direct' | 'deferred';
 
 export type ToolDefinition = {

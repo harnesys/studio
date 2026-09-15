@@ -66,7 +66,8 @@ export async function runGraph(opts: GraphOpts): Promise<RunResult> {
     permissions: opts.permissions,
     paths: opts.paths,
     notes: opts.notes,
-    packOutputs: opts.packOutputs,
+    capabilitySet: opts.capabilitySet,
+    universe: opts.universe,
     skills: opts.skills,
     hooksEmit: opts.hooks,
   });

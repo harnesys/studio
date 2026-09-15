@@ -3,7 +3,6 @@ import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import { MonitorJobRegistrarAdapter } from '../adapters/monitor-job-registrar.adapter.ts';
 import { RunHookBuses } from '../adapters/run-hook-buses.adapter.ts';
 import { MacosSecretStoreAdapter } from '../adapters/secret-store-macos.adapter.ts';
-import { runClosedWorldMaterialization } from '../adapters/store/sqlite/closed-world-materialization.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
@@ -41,6 +40,7 @@ export type StudioHost = {
   secretStore?: SecretStore;
 };
 
+// biome-ignore lint/suspicious/useAwait: async host factory kept for the boot contract (`await` in createStudio); the only awaited step (closed-world materialization) was retired in T6.
 export async function createStudioHost(args: {
   store: StudioStore;
   platform: StudioPlatform;
@@ -172,15 +172,6 @@ export async function createStudioHost(args: {
     );
   runtime.agentsRef.current = workspaceHarnesys;
   pluginAgentsRef.current = (workspaceId) => workspaceHarnesys.pluginAgents(workspaceId);
-
-  // Одноразовая материализация «неявное → явное» до флипа closed-world;
-  // маркер в schema_meta делает повторный старт no-op. Ошибка валит старт.
-  await runClosedWorldMaterialization({
-    db: store.db,
-    workspaces: store.workspaceRepo,
-    agents: store.agentRepo,
-    workspaceHarnesys,
-  });
 
   // Host-driven hook emissions (FileChanged from the workspace watcher,
   // Notification from monitor stdout) share the run's hook bus: the bus is

@@ -18,6 +18,7 @@ import type { PermissionMap } from '../ports/permissions.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import type { CapabilitySet, CapabilityUniverse } from './capability-set.ts';
 import { runSummaryPassIfDue } from './compaction/run.ts';
 import type { Plan } from './compile.ts';
 import type { Slots } from './expr-eval.ts';
@@ -174,6 +175,13 @@ export type GraphOpts = {
   outputHint?: unknown;
   notes?: LlmNoteProvider[];
   packOutputs?: PackRunMap;
+  /** One-shot carrier: `runGraph` passes the host-resolved set to the engine's
+   *  prepare so `pack.create()` runs once per run; `startGraph` itself only
+   *  consumes the flat `toolRegistry`. */
+  capabilitySet?: CapabilitySet;
+  /** Кадр резолвера от хоста: дети спавна/handoff собирают свои наборы против него
+   *  (`resolveCapabilitySet(childDef, sandboxUniverse(universe))`). */
+  universe?: CapabilityUniverse;
   /** FS skill registry; the catalog section is rendered per agent in llm.ts. */
   skills?: SkillRegistry;
   /** Готовый env рана для tool-процессов (PATH = RunTarget.binDirs ++ process PATH);

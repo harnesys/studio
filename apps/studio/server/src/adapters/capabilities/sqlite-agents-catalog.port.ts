@@ -116,7 +116,6 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
       parentId: input.parentId ?? null,
       role: input.role,
       instructions: input.instructions,
-      tools: input.tools,
       skills: input.skills,
       mcpServers: input.mcpServers,
       budget: input.budget ?? null,

@@ -24,7 +24,6 @@ export function toClientAgent(record: AgentRecord): Agent {
     compaction: record.compaction === undefined ? defaultAgentCompaction() : record.compaction,
     skills: record.skills ?? [],
     mcpServers: record.mcpServers ?? [],
-    tools: record.tools ?? [],
     graph: record.graph ?? { nodes: {}, edges: [] },
     capabilities: record.capabilities ?? {},
     permissions: record.permissions ?? null,

@@ -80,7 +80,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
     tool('agents_list', {
       group: 'agents',
       description:
-        'List agents in this workspace (id, name, role, instructions, tools, model, level top|delegate|plugin, parent?). Optional role/name filters; role is not unique. tools lists declared names; the effective set adds default host/pack tools and may also shrink (host/MCP filtering). Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by tools/model before agents_spawn.',
+        'List agents in this workspace (id, name, role, instructions, packs, model, level top|delegate|plugin, parent?). Optional role/name filters; role is not unique. packs lists enabled source assignments per agent; tool availability derives from those sources, not from a stored tool-name list. Prefer reuse via agents_list before agents_create. Spawned children are one-shot with no interactive user: judge fit by packs/model before agents_spawn.',
       input: {
         type: 'object',
         properties: {
@@ -106,7 +106,6 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
                 name: row.name,
                 role: row.role,
                 instructions: row.instructions,
-                tools: def?.tools ?? [],
                 packs: Object.keys(def?.packs ?? {}).filter((name) => def?.packs?.[name]),
                 ...(def?.model ? { model: `${def.model.provider}/${def.model.model}` } : {}),
                 level: rowLevel(row),
@@ -120,18 +119,13 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       group: 'agents',
       operations: ['agents'],
       description:
-        'Create a standalone top-level agent in this workspace (visible to the user in the sidebar, own threads). For a delegate under you use agents_create_subagent. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. tools/skills/mcpServers/packs/enabledPlugins: omitted or [] means none; list every capability explicitly. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
+        'Create a standalone top-level agent in this workspace (visible to the user in the sidebar, own threads). For a delegate under you use agents_create_subagent. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. skills/mcpServers/packs/enabledPlugins: sources, not tool names; omitted or [] means none; list every source explicitly. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
       input: {
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Display name' },
           role: { type: 'string', description: 'Role label (not unique)' },
           instructions: { type: 'string', description: 'System instructions for the agent' },
-          tools: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Tool names available to the agent',
-          },
           skills: {
             type: 'array',
             items: { type: 'string' },
@@ -155,7 +149,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           },
           packs: {
             type: 'object',
-            description: 'Optional pack map (name → config or null)',
+            description: 'Optional pack map (name → true | config | null); sources, not tool names',
           },
           capabilities: {
             type: 'object',
@@ -196,7 +190,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       operations: ['agents'],
       description:
         'Create a subagent delegate under YOU (the calling agent). Returns { id, name }. ' +
-        'tools/skills/mcpServers/packs/enabledPlugins: omitted or [] means none; list every capability explicitly. ' +
+        'skills/mcpServers/packs/enabledPlugins: sources, not tool names; omitted or [] means none; list every source explicitly. ' +
         'Delegates are one-shot spawn targets: they cannot ask the user questions, their permissions ' +
         'never exceed yours, and the "agents" pack is forbidden for them. Spawn them with agents_spawn. ' +
         'Use agents_create instead for a standalone workspace agent visible to the user.',
@@ -206,11 +200,6 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           name: { type: 'string', description: 'Display name' },
           role: { type: 'string', description: 'Role label (not unique)' },
           instructions: { type: 'string', description: 'System instructions for the subagent' },
-          tools: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Tool names available to the subagent',
-          },
           skills: {
             type: 'array',
             items: { type: 'string' },
@@ -218,7 +207,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
           },
           packs: {
             type: 'object',
-            description: 'Optional pack map (name → config or null); "agents" is rejected',
+            description: 'Optional pack map (name → true | config | null); "agents" is rejected',
           },
           budget: {
             type: 'object',

@@ -1,14 +1,19 @@
 import type { AgentGraph } from '../../domain/agent.port.ts';
 import { buildReactGraph } from './react-preset.ts';
 
-/** True when `graph` matches the default ReAct template (tools on think may differ). */
+/** True when `graph` matches the default ReAct template; the stock think node
+ *  carries no `tools` key, stored snapshots may still name one — compared away. */
 export function isStockReactGraph(graph: AgentGraph): boolean {
+  return stableGraphKey(withoutThinkTools(graph)) === stableGraphKey(buildReactGraph());
+}
+
+function withoutThinkTools(graph: AgentGraph): AgentGraph {
   const think = graph.nodes.think;
-  const tools =
-    think !== undefined && think.type === 'llm:generate' && Array.isArray(think.tools)
-      ? think.tools
-      : [];
-  return stableGraphKey(graph) === stableGraphKey(buildReactGraph(tools));
+  if (think === undefined || think.type !== 'llm:generate' || think.tools === undefined) {
+    return graph;
+  }
+  const { tools: _snapshot, ...rest } = think;
+  return { ...graph, nodes: { ...graph.nodes, think: rest } };
 }
 
 function stableGraphKey(graph: AgentGraph): string {

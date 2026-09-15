@@ -1,35 +1,28 @@
-/** Идентичность агента: единственная сборка «definition → реестр+паки+диагностики».
- *  Консюмеры: run-engine (эта версия), spawn-дети/handoff/discovery (планы 2-3).
- *  Порядок closed-world: attach → filter → services; служебные тулы поверх фильтра. */
+/** Идентичность агента: тонкая обёртка `resolveCapabilitySet` (spec 2026-09-15 §5).
+ *  Осталась для oneshot/create-runtime и миграционных потребителей без capabilitySet-таргета;
+ *  Studio-раны идут через `RunTarget.capabilitySet` и эту сборку не зовут.
+ *  Служебные тулы (`load_tools`/`load_skill`/`Skill`) — только через core-грант резолвера. */
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { PackRegistration } from '../domain/pack.ts';
 import type { Logger } from '../ports/logger.ts';
 import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import type { CapabilityUniverse, RunRegistry } from './capability-set.ts';
+import { resolveCapabilitySet } from './capability-set.ts';
 import type { PackRunMap } from './packs/pack-run.ts';
-import {
-  attachPackTools,
-  buildPackRun,
-  printPackDiagnostics,
-  registerPackSkillTool,
-} from './packs/pack-run.ts';
-import type { PackDiagnostic } from './packs/registry.ts';
-import { resolveToolAlias } from './tool-aliases.ts';
-import { filterToolsForAgent } from './tool-registry.ts';
+import { createLoadSkillTool } from './skills/create-load-skill-tool.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
-import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
+import { aliasTool } from './tools/tool-alias.ts';
 
 export type AgentIdentity = {
   toolRegistry: Map<string, ToolDefinition>;
   packOutputs: PackRunMap;
-  diagnostics: PackDiagnostic[];
 };
 
 export type ResolveAgentIdentityCtx = {
   baseRegistry: Map<string, ToolDefinition>;
   registrations: PackRegistration[];
   fsSkills?: SkillRegistry;
-  deferredPacks?: readonly string[];
   logger?: Logger;
 };
 
@@ -37,25 +30,29 @@ export function resolveAgentIdentity(
   def: AgentDefinition,
   ctx: ResolveAgentIdentityCtx,
 ): AgentIdentity {
-  const merged = new Map(ctx.baseRegistry);
-  const { outputs, enabled, diagnostics } = buildPackRun(def, ctx.registrations);
-  attachPackTools(merged, enabled, ctx.deferredPacks, ctx.logger);
-  const filtered = filterToolsForAgent(merged, def);
-  // Diagnostics against the POST-filter registry: a tool dropped by the
-  // mcpServers/disallowedTools gate must warn too. Alias spelling survives
-  // the filter (requested keys keep their name), so accept both spellings.
-  for (const name of [...new Set(def.tools ?? [])]) {
-    if (!filtered.has(name) && !filtered.has(resolveToolAlias(name))) {
-      diagnostics.push({
-        severity: 'warning',
-        code: 'tool_unreachable',
-        message: `tool "${name}" is not provided by any enabled pack/server`,
-      });
-    }
+  const universe: CapabilityUniverse = {
+    registrations: ctx.registrations,
+    baseRegistry: ctx.baseRegistry,
+    roster: [],
+    fsSkills: ctx.fsSkills,
+    makeLoadTools: (registry: RunRegistry) => createLoadToolsTool(flatRegistry(registry)),
+  };
+  if (ctx.fsSkills !== undefined) {
+    const skills = ctx.fsSkills;
+    universe.makeLoadSkill = () => {
+      const loadSkill = createLoadSkillTool(skills);
+      return [loadSkill, aliasTool(loadSkill, 'Skill')];
+    };
   }
-  printPackDiagnostics(diagnostics, ctx.logger);
-  const runRegistry = new Map(filtered);
-  registerPackSkillTool(runRegistry, enabled, def, ctx.fsSkills);
-  runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
-  return { toolRegistry: runRegistry, packOutputs: outputs, diagnostics };
+  const set = resolveCapabilitySet(def, universe);
+  if (set.fatal.length > 0) {
+    ctx.logger?.warn(`[capabilities] ${set.fatal.join('; ')}`);
+  }
+  return { toolRegistry: flatRegistry(set.registry), packOutputs: set.packOutputs };
+}
+
+function flatRegistry(registry: RunRegistry): Map<string, ToolDefinition> {
+  return new Map(
+    [...registry].map(([name, entry]) => [name, { ...entry.def, exposure: entry.exposure }]),
+  );
 }

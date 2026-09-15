@@ -31,7 +31,6 @@ export type RuntimeContext = {
   hooks?: HookBinding[];
   notes?: LlmNoteProvider[];
   packRegistrations: PackRegistration[];
-  deferredPacks?: readonly string[];
   skills?: SkillRegistry;
   toolMessages: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
@@ -148,7 +147,6 @@ export function createSession(
         notes: ctx.notes,
         hooks: ctx.hooks,
         packs: ctx.packRegistrations,
-        deferredPacks: ctx.deferredPacks,
         skills: ctx.skills,
       });
     },

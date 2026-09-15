@@ -10,11 +10,7 @@ import { abandonForeignSnapshot } from './graph-snap.ts';
 import { createHookBus } from './hooks/bus.ts';
 import type { HookEmitCtx } from './hooks/emit-hook.ts';
 import type { PackRunMap } from './packs/pack-run.ts';
-import { reusePackRun } from './packs/pack-run.ts';
 import type { RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
-import { filterToolsForAgent } from './tool-registry.ts';
-import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
-import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
 
 type HitlAnswer = {
   interruptId: string;
@@ -91,7 +87,6 @@ export type PrepareExecuteGraphOptsArgs = {
   opts: RunTargetOpts;
   runId: string;
   signal: AbortSignal;
-  packCache: Map<string, PackRunMap>;
   /** Per-run hook buses; segments reuse the bus, terminal run closes it (run-engine). */
   hookCache: Map<string, HookEmitCtx>;
   runLogger: Logger;
@@ -102,7 +97,7 @@ export type PrepareExecuteGraphOptsArgs = {
 export async function prepareExecuteGraphOpts(
   args: PrepareExecuteGraphOptsArgs,
 ): Promise<GraphOpts> {
-  const { deps, opts, runId, signal, packCache, hookCache, runLogger, childJournal } = args;
+  const { deps, opts, runId, signal, hookCache, runLogger, childJournal } = args;
   const answer = await findLastAnswer(deps, runId);
   if (answer === null) {
     await abandonForeignSnapshot(opts.state, runId);
@@ -114,7 +109,7 @@ export async function prepareExecuteGraphOpts(
   const plan = compileOrThrow(agent);
   const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
   let runRegistry: Map<string, ToolDefinition>;
-  let packOutputs = opts.packOutputs;
+  let packOutputs: PackRunMap;
   if (opts.capabilitySet !== undefined) {
     // Prepared run: the host resolver already filtered/granted; entries carry exposure.
     runRegistry = new Map();
@@ -122,36 +117,17 @@ export async function prepareExecuteGraphOpts(
       runRegistry.set(name, { ...entry.def, exposure: entry.exposure });
     }
     packOutputs = opts.capabilitySet.packOutputs;
-  } else if (packOutputs !== undefined) {
-    // Prebuilt map (oneshot path): tools are attached upstream.
-    runRegistry = new Map(filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, agent));
-    runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
-    packCache.set(runId, packOutputs);
   } else {
-    const cached = packCache.get(runId);
-    if (cached !== undefined) {
-      runRegistry = new Map(filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, agent));
-      runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
-      packOutputs = reusePackRun({
-        def: agent,
-        cached,
-        runRegistry,
-        fsSkills: opts.skills ?? deps.skills,
-        deferredPacks: opts.deferredPacks ?? deps.deferredPacks,
-        logger: runLogger,
-      });
-    } else {
-      const identity = resolveAgentIdentity(agent, {
-        baseRegistry: opts.toolRegistry ?? deps.toolRegistry,
-        registrations: opts.packs ?? deps.packRegistrations ?? [],
-        fsSkills: opts.skills ?? deps.skills,
-        deferredPacks: opts.deferredPacks ?? deps.deferredPacks,
-        logger: runLogger,
-      });
-      runRegistry = identity.toolRegistry;
-      packOutputs = identity.packOutputs;
-      packCache.set(runId, packOutputs);
-    }
+    // Legacy host without a capabilitySet: the same resolver through the identity
+    // wrapper; segment cache no longer exists — the set is freshly assembled here.
+    const identity = resolveAgentIdentity(agent, {
+      baseRegistry: opts.toolRegistry ?? deps.toolRegistry,
+      registrations: opts.packs ?? deps.packRegistrations ?? [],
+      fsSkills: opts.skills ?? deps.skills,
+      logger: runLogger,
+    });
+    runRegistry = identity.toolRegistry;
+    packOutputs = identity.packOutputs;
   }
   const cwd = opts.paths?.cwd ?? '';
   const runEnv = composeRunEnv(opts.binDirs);
@@ -201,6 +177,7 @@ export async function prepareExecuteGraphOpts(
     notes: opts.notes,
     skills: opts.skills ?? deps.skills,
     packOutputs,
+    universe: opts.universe,
     hooks: hooksEmit,
     env: runEnv,
     agents: deps.agents,

@@ -45,8 +45,6 @@ export type AgentRecord = {
   skills?: string[];
   /** MCP server allowlist; omitted/empty means none. */
   mcpServers?: string[];
-  /** Tool name allowlist; omitted/empty means none. */
-  tools?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;

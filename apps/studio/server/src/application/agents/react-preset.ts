@@ -44,17 +44,12 @@ const REACT_EDGES: Edge[] = [
   { from: 'handoff', to: 'end' },
 ];
 
-const SERVICE_TOOLS = ['load_tools', 'load_skill', 'Skill'];
-
-export function buildReactGraph(tools: string[]): AgentGraph {
-  // Реестр ранна всегда содержит сервисные тулы (см. resolveAgentIdentity);
-  // на уровне ноды они видны, только если названы. Preset-генератор эмил
-  // think = tools ∪ services — повторяем то же здесь, иначе пересобранный
-  // после правки сток-агент теряет load_skill/Skill/load_tools у think-ноды.
-  const thinkNode: Node = { ...THINK_NODE, tools: [...new Set([...tools, ...SERVICE_TOOLS])] };
-
+export function buildReactGraph(): AgentGraph {
+  // llm-нода без ключа `tools`: think видит весь набор рана
+  // (контракт node.tools: undefined = all, [] = none, список = сужение).
+  // Сервисы `load_tools`/`load_skill`/`Skill` приходят в сам набор через core-грант.
   return {
-    nodes: { ...REACT_NODES, think: thinkNode },
+    nodes: { ...REACT_NODES },
     edges: [...REACT_EDGES],
   };
 }

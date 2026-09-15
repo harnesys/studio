@@ -35,7 +35,6 @@ export type UpdateAgentRequest = {
   compaction?: PortRef;
   skills?: string[];
   mcpServers?: string[];
-  tools?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: Record<string, PackConfig | null>;
@@ -125,10 +124,6 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       patch.mcpServers = request.mcpServers;
     }
 
-    if (request.tools !== undefined) {
-      patch.tools = request.tools;
-    }
-
     if (request.budget !== undefined) {
       patch.budget = request.budget;
     }
@@ -173,8 +168,10 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
 
     if (request.graph !== undefined) {
       patch.graph = request.graph;
-    } else if (request.tools !== undefined && isStockReactGraph(agent.graph)) {
-      patch.graph = buildReactGraph(request.tools);
+    } else if (request.capabilities !== undefined && isStockReactGraph(agent.graph)) {
+      // Смена источников на сток-графе: пересборка шаблона без снапшота
+      // `think.tools` — набор резолвится на каждый ран, нода видит весь.
+      patch.graph = buildReactGraph();
     }
 
     assertAgentGraphValid({

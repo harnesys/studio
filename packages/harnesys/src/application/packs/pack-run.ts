@@ -10,9 +10,7 @@ import type { SkillRegistry } from '../../ports/skills.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import type { LlmNoteProvider } from '../llm-notes.ts';
 import { combineSkillRegistries } from '../skills/combined-skills.ts';
-import { createLoadSkillTool } from '../skills/create-load-skill-tool.ts';
 import { filterSkills } from '../skills/skills-catalog.ts';
-import { aliasTool } from '../tools/tool-alias.ts';
 import type { PackDiagnostic } from './registry.ts';
 import { resolvePacks } from './registry.ts';
 
@@ -161,58 +159,6 @@ export function selectPackOutputs(
   return { enabled, diagnostics };
 }
 
-export function attachPackTools(
-  runRegistry: Map<string, ToolDefinition>,
-  enabled: PackRunOutput[],
-  deferredPacks?: readonly string[],
-  logger?: Logger,
-): void {
-  const deferred = deferredPacks === undefined ? undefined : new Set(deferredPacks);
-  for (const out of enabled) {
-    const markDeferred = deferred?.has(out.reg.pack.name) === true;
-    for (const t of out.tools) {
-      if (runRegistry.has(t.name)) {
-        printPackDiagnostics(
-          [
-            {
-              severity: 'warning',
-              code: 'pack_tool_collision',
-              message: `pack "${out.reg.pack.name}" tool "${t.name}" collides with an existing tool and was dropped`,
-            },
-          ],
-          logger,
-        );
-        continue;
-      }
-      runRegistry.set(t.name, markDeferred ? { ...t, exposure: 'deferred' } : t);
-    }
-  }
-}
-
-export type AttachPackRunInput = {
-  def: AgentDefinition;
-  registrations: PackRegistration[];
-  runRegistry: Map<string, ToolDefinition>;
-  fsSkills?: SkillRegistry;
-  scopeFallback?: () => CapabilityScope;
-  deferredPacks?: readonly string[];
-  logger?: Logger;
-};
-
-/** Build memoized pack outputs for a run, register their tools, and register
- *  one `load_skill` tool over the FS + pack skills catalog. Returns the map. */
-export function attachPackRun(input: AttachPackRunInput): PackRunMap {
-  const { outputs, enabled, diagnostics } = buildPackRun(
-    input.def,
-    input.registrations,
-    input.scopeFallback ?? fallbackScope,
-  );
-  printPackDiagnostics(diagnostics, input.logger);
-  attachPackTools(input.runRegistry, enabled, input.deferredPacks, input.logger);
-  registerPackSkillTool(input.runRegistry, enabled, input.def, input.fsSkills);
-  return outputs;
-}
-
 /** FS + pack skills merged, narrowed to the agent allowlist (`def.skills`;
  *  omitted/null/[] = none, closed world). `filterSkills` itself keeps its
  *  undefined = passthrough branch for other callers. */
@@ -226,41 +172,4 @@ export function effectiveSkillRegistry(
     outputs.flatMap((o) => o.skills),
   );
   return filterSkills(merged, def.skills ?? []);
-}
-
-export function registerPackSkillTool(
-  runRegistry: Map<string, ToolDefinition>,
-  enabled: PackRunOutput[],
-  def: AgentDefinition,
-  fsSkills?: SkillRegistry,
-): void {
-  const effective = effectiveSkillRegistry(def, fsSkills, enabled);
-  if (fsSkills !== undefined || enabled.some((o) => o.skills.length > 0)) {
-    const loadSkill = createLoadSkillTool(effective);
-    runRegistry.set('load_skill', loadSkill);
-    // Claude-style plugins address the loader as `Skill`; symlink when free.
-    if (!runRegistry.has('Skill')) {
-      runRegistry.set('Skill', aliasTool(loadSkill, 'Skill'));
-    }
-  }
-}
-
-export type ReusePackRunInput = {
-  def: AgentDefinition;
-  /** Cached map from the owning run's first segment; `create` is not called. */
-  cached: PackRunMap;
-  runRegistry: Map<string, ToolDefinition>;
-  fsSkills?: SkillRegistry;
-  deferredPacks?: readonly string[];
-  logger?: Logger;
-};
-
-/** Attach tools + `load_skill` for a later segment from the cached run map.
- *  Subsets via `selectPackOutputs`; never calls pack `create`. */
-export function reusePackRun(input: ReusePackRunInput): PackRunMap {
-  const { enabled, diagnostics } = selectPackOutputs(input.def, input.cached);
-  printPackDiagnostics(diagnostics, input.logger);
-  attachPackTools(input.runRegistry, enabled, input.deferredPacks, input.logger);
-  registerPackSkillTool(input.runRegistry, enabled, input.def, input.fsSkills);
-  return input.cached;
 }

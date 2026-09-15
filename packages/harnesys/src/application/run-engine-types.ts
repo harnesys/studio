@@ -12,10 +12,9 @@ import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import type { CapabilitySet } from './capability-set.ts';
+import type { CapabilitySet, CapabilityUniverse } from './capability-set.ts';
 import type { HookEmitCtx } from './hooks/emit-hook.ts';
 import type { LlmNoteProvider } from './llm-notes.ts';
-import type { PackRunMap } from './packs/pack-run.ts';
 import type { RunEventFeed } from './run-event-feed.ts';
 
 export type RunEngineDeps = {
@@ -33,8 +32,6 @@ export type RunEngineDeps = {
   artifacts?: ArtifactStore;
   /** Runtime-wide registrations (RuntimeContext); RunTargetOpts.packs wins when set. */
   packRegistrations?: PackRegistration[];
-  /** Runtime-wide deferred-pack default; RunTargetOpts.deferredPacks wins when set. */
-  deferredPacks?: readonly string[];
   /** FS skill registry; RunTargetOpts.skills wins when set. */
   skills?: SkillRegistry;
   agents: AgentsResolve;
@@ -52,13 +49,11 @@ export type RunTargetOpts = {
   notes?: LlmNoteProvider[];
   /** Per-run pack registrations; overrides RunEngineDeps.packRegistrations. */
   packs?: PackRegistration[];
-  /** Pack names whose tools attach as exposure:'deferred' this run (host-owned context axis). */
-  deferredPacks?: readonly string[];
-  /** Memoized per-run pack outputs; when present the engine skips create. */
-  packOutputs?: PackRunMap;
   /** Pre-resolved capability set (RunTarget.capabilitySet); when set the engine
    *  skips identity resolution and pack create. */
   capabilitySet?: CapabilitySet;
+  /** Host capability universe (RunTarget.universe); carried into the graph for spawn/handoff child sets. */
+  universe?: CapabilityUniverse;
   /** FS skill registry for the combined load_skill catalog. */
   skills?: SkillRegistry;
   /** Per-run hook bindings (RunTarget.hooks); merged with RunEngineDeps.hooks on the run bus. */

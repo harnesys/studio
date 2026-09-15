@@ -16,9 +16,31 @@ const budgetSchema = z
   })
   .optional();
 
+/** PackAssignment-литералы как в HTTP-body (спека 2026-09-15 §3): `true`/объект = вкл,
+ *  `false`/`null`/отсутствие = выкл; `true` нормализуется в `{}`, `false` — в `null`. */
 const capabilitiesSchema = z
-  .record(z.string(), z.object({ spec: z.record(z.string(), z.unknown()).optional() }).nullable())
+  .record(
+    z.string(),
+    z
+      .union([
+        z.literal(true),
+        z.literal(false),
+        z.object({ spec: z.record(z.string(), z.unknown()).optional() }),
+        z.null(),
+      ])
+      .transform(toStoredAssignment),
+  )
   .optional();
+
+function toStoredAssignment(value: true | false | PackConfig | null): PackConfig | null {
+  if (value === true) {
+    return {};
+  }
+  if (value === false || value === null) {
+    return null;
+  }
+  return value;
+}
 
 const permissionsSchema = z.record(z.string(), z.enum(['allow', 'ask', 'deny'])).optional();
 
@@ -33,7 +55,6 @@ const agentPresetBodySchema = z.object({
   name: z.string().trim().min(1),
   role: z.string().trim().min(1),
   instructions: z.string().trim().min(1),
-  tools: z.array(z.string()).optional(),
   skills: z.array(z.string()).optional(),
   mcpServers: z.array(z.string()).optional(),
   budget: budgetSchema,
@@ -52,7 +73,6 @@ export type AgentPreset = {
   name: string;
   role: string;
   instructions: string;
-  tools?: string[];
   skills?: string[];
   mcpServers?: string[];
   budget?: AgentBudget;
@@ -126,7 +146,6 @@ function parsePreset(id: string, path: string): AgentPreset {
     name: body.name,
     role: body.role,
     instructions: body.instructions,
-    ...(body.tools !== undefined ? { tools: body.tools } : {}),
     ...(body.skills !== undefined ? { skills: body.skills } : {}),
     ...(body.mcpServers !== undefined ? { mcpServers: body.mcpServers } : {}),
     ...(body.budget !== undefined ? { budget: body.budget } : {}),

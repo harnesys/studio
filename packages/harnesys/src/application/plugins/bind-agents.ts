@@ -14,7 +14,7 @@ export type CatalogAgentEntry = {
   /** frontmatter `description` — описание каталога агентов. */
   description?: string;
   definition: AgentDefinition;
-  /** Вычитание имён из ран-реестра инструментов (filterToolsForAgent). */
+  /** Вычитание имён из реестра рана (`subtractDeniedTools` / резолвер). */
   disallowedTools?: string[];
   /** Frontmatter `color` — цвет карточки агента (CC-палитра); носителя в AgentDefinition нет. */
   color?: string;
@@ -89,9 +89,6 @@ function buildEntry(
   };
   if (model !== undefined) {
     definition.model = model;
-  }
-  if (mappedTools.length > 0) {
-    definition.tools = mappedTools;
   }
   const disallowed = mapSpecDisallowedTools(spec);
   if (disallowed.length > 0) {

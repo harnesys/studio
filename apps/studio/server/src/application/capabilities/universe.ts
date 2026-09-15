@@ -2,8 +2,7 @@
  *  один источник для ран-таргета и каталожных перечислителей. `roster` заполняет
  *  вызывающий (`listScopedRoster` родителя) — ему нужен parent-def; здесь пустой
  *  список-заглушка до спреда. `pack.create()` внутри резолвера идёт вне рана,
- *  поэтому вызывающий оборачивает resolve в `runInHostToolScope` (тот же контракт,
- *  что у `closed-world-materialization`). */
+ *  поэтому вызывающий оборачивает resolve в `runInHostToolScope`. */
 import type { AgentMode } from '@harnesys/studio-shared';
 import type {
   CapabilityUniverse,

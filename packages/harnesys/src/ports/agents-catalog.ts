@@ -22,7 +22,6 @@ export type AgentCatalogCreateInput = {
   name: string;
   role: string;
   instructions: string;
-  tools?: string[];
   skills?: string[];
   mcpServers?: string[];
   budget?: AgentBudget;

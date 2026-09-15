@@ -69,7 +69,7 @@ export function pluginAgentCatalog(
           ...agent.definition,
           // Движок добирает бюджет по цепочке spawn-call > def > родитель;
           // константа здесь перекрыла бы наследование.
-          graph: buildReactGraph(agent.definition.tools ?? []),
+          graph: buildReactGraph(),
         },
         ...(agent.color !== undefined ? { color: agent.color } : {}),
       });

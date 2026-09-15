@@ -43,7 +43,6 @@ const DEFAULT_DIALOG_CLASS =
 function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
   const draft: AgentCapabilitiesDraft = {
     skills: agent?.skills ?? [],
-    tools: agent?.tools ?? [],
     mcpServers: agent?.mcpServers ?? [],
     compaction: agent?.compaction,
     capabilities: agent?.capabilities ?? {},
@@ -60,7 +59,7 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
       owners.add(plugin);
     }
   }
-  for (const name of [...(draft.mcpServers ?? []), ...(draft.tools ?? [])]) {
+  for (const name of draft.mcpServers ?? []) {
     const plugin = mcpServerPluginOf(name);
     if (plugin) {
       owners.add(plugin);
@@ -73,8 +72,8 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
 /**
  * Turning a plugin off must drop everything it provided: the runtime gates
  * plugin skills/servers through the allowlists (`pluginName:skill`,
- * `plugin:<name>:<server>`, tool names inherit the server prefix), while
- * `enabledPlugins` alone only gates hooks/bin/monitors.
+ * `plugin:<name>:<server>`), while `enabledPlugins` alone only gates
+ * hooks/bin/monitors.
  */
 function stripPlugins(plugins: string[], draft: AgentCapabilitiesDraft): AgentCapabilitiesDraft {
   const offSkill = (name: string) => plugins.some((p) => name.startsWith(`${p}:`));
@@ -83,7 +82,6 @@ function stripPlugins(plugins: string[], draft: AgentCapabilitiesDraft): AgentCa
     ...draft,
     skills: (draft.skills ?? []).filter((name) => !offSkill(name)),
     mcpServers: (draft.mcpServers ?? []).filter((name) => !offMcp(name)),
-    tools: (draft.tools ?? []).filter((name) => !offMcp(name)),
   };
 }
 

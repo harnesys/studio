@@ -56,7 +56,6 @@ export class CreateAgentFromPresetUseCase implements CreateAgentFromPresetInput 
       name,
       role: preset.role,
       instructions: preset.instructions,
-      tools: preset.tools,
       skills: preset.skills,
       mcpServers: preset.mcpServers,
       budget: preset.budget ?? DEFAULT_REACT_BUDGET,

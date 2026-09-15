@@ -57,7 +57,7 @@ universe(host)  —  всё, что хост зарегистрировал в �
 
 ```
 type PackAssignment = true | PackConfig | PackOverride
-type PackOverride = { spec?: PackConfig; disabledTools?: string[]; exposure?: Record<tool, 'direct'|'deferred'> }
+type PackOverride = { spec?: Record<string, unknown>; disabledTools?: string[]; exposure?: Record<tool, 'direct'|'deferred'> }
 ```
 
 Единую литеральную семантику assignment держим одну для всех слоёв: `true | {} | {spec} | PackOverride` = включено, `false | null | отсутствие` = выключено (`packs/registry.ts:77-83` уже так); HTTP-body (`agent.body.ts:48-50` сегодня `{spec}` без `true`), лоадер пресетов (`agent-presets-fs.adapter.ts`, сегодня отвергает булеаны) и текст `agent-creator/SKILL.md:66-68` подгоняются под неё же.

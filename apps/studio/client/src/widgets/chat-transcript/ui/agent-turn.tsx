@@ -32,7 +32,7 @@ import { FeedNotice } from './feed-notice';
 import { HandoffCard } from './handoff-card';
 import { MessageActions } from './message-actions';
 import { ModeTagBadges } from './mode-tag-badge';
-import { SpawnCard } from './spawn-card';
+import { SpawnLine } from './spawn-line';
 import { ThinkingLine } from './thinking-line';
 
 export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
@@ -266,12 +266,15 @@ function TurnSegmentView({
       return null;
     }
     return (
-      <SpawnCard
-        threadId={threadId ?? ''}
-        spawnId={segment.spawnId}
-        spawn={spawn}
-        onOpen={onOpenSpawn}
-      />
+      <ActivityRail live={live && spawn.status === 'running'}>
+        <SpawnLine
+          threadId={threadId ?? ''}
+          spawnId={segment.spawnId}
+          spawn={spawn}
+          live={live}
+          onOpen={onOpenSpawn}
+        />
+      </ActivityRail>
     );
   }
 

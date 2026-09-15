@@ -3,7 +3,6 @@ import type {
   AgentGenerationSettings,
   AgentMode,
   Effort,
-  PackConfig,
   ProviderModelPublic,
   ProviderPublic,
   ToolOutputSettings,
@@ -152,10 +151,7 @@ export function agentFieldsFrom(agent: {
   };
 }
 
-export function toAgentDraft(
-  values: AgentFieldsOutput,
-  capabilities?: Record<string, PackConfig | null>,
-): {
+export function toAgentDraft(values: AgentFieldsOutput): {
   name: string;
   role: string;
   instructions: string;
@@ -164,7 +160,6 @@ export function toAgentDraft(
   generation: AgentGenerationSettings | null;
   toolOutput: ToolOutputSettings | null;
   budget: AgentBudget | null;
-  capabilities?: Record<string, PackConfig | null>;
   defaultModeId: string | null;
   modes: AgentMode[];
   permissions: PermissionMap | null;
@@ -212,7 +207,6 @@ export function toAgentDraft(
       tailChars: values.toolOutputTailChars,
     }),
     budget,
-    capabilities,
     permissions: values.permissions ?? null,
     color: values.color ?? null,
   };

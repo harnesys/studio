@@ -5,8 +5,8 @@ import { apiJson } from './client';
 
 export type { AgentCapabilitiesView };
 
-export function agentCapabilitiesQueryKey(agentId: string) {
-  return ['agents', agentId, 'capabilities'] as const;
+export function agentCapabilitiesQueryKey(agentId: string, workspaceId = '') {
+  return ['agents', agentId, 'capabilities', workspaceId] as const;
 }
 
 export function getAgentCapabilities(agentId: string, workspaceId?: string) {
@@ -16,10 +16,10 @@ export function getAgentCapabilities(agentId: string, workspaceId?: string) {
   );
 }
 
-export function agentCapabilitiesQuery(agentId: string | null, workspaceId?: string) {
+export function agentCapabilitiesQuery(agentId: string | null, workspaceId = '') {
   return queryOptions({
-    queryKey: agentCapabilitiesQueryKey(agentId ?? 'new'),
-    queryFn: () => getAgentCapabilities(agentId as string, workspaceId),
+    queryKey: agentCapabilitiesQueryKey(agentId ?? 'new', workspaceId),
+    queryFn: () => getAgentCapabilities(agentId as string, workspaceId || undefined),
     enabled: Boolean(agentId),
     staleTime: 15_000,
   });

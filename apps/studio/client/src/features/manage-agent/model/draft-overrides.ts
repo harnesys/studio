@@ -4,7 +4,7 @@ import type {
   PackAssignment,
   PackOverride,
 } from '@harnesys/studio-shared';
-import type { ExplainKind, ExplainStatus, ToolExposure } from 'harnesys';
+import type { ExplainEntry, ExplainKind, ExplainStatus, ToolExposure } from 'harnesys';
 import { z } from 'zod';
 
 export const CORE_SOURCE = 'core';
@@ -137,7 +137,7 @@ export type SourceCardTool = {
   exposure: ToolExposure;
   /** Draft disable wins; otherwise the saved explain status. */
   disabled: boolean;
-  /** Draft names this tool (disabledTools or exposure) — differs from saved state. */
+  /** The assignment carries an entry for this tool (`disabledTools` or `exposure`). */
   overridden: boolean;
   provenance: string;
   status: ExplainStatus;
@@ -151,33 +151,46 @@ function registryOf(
   return view?.registry.find((entry) => entry.name === name);
 }
 
+/** Chain layers that are final for the effective set (tool got subtracted/dropped). */
+const TERMINAL_STATUSES: ExplainStatus[] = ['disabled', 'dropped-by-mode', 'denied-by-universe'];
+
+function isTerminal(entry: ExplainEntry): boolean {
+  return TERMINAL_STATUSES.includes(entry.status);
+}
+
 /**
  * Tool rows of one source: names ONLY from the explain response (saved effective
  * set), draft overrides merged on top for display. The override is the pack
  * assignment at agent level or the mode's flat `disabledTools`/`exposure` lists
  * at mode level — same shape, applied by the resolver per layer.
+ * An item appears once per chain layer; the displayed row is the terminal entry
+ * when present (a subtracted tool shows `disabled`, not the earlier `granted`),
+ * otherwise the last entry.
  */
 export function sourceToolRows(
   view: AgentCapabilitiesView | undefined,
   source: string,
   override: PackOverride,
 ): SourceCardTool[] {
-  const entries = (view?.explain ?? []).filter(
-    (entry) => entry.kind === 'tool' && entry.source === source,
-  );
-  const seen = new Set<string>();
-  const rows: SourceCardTool[] = [];
-  for (const entry of [...entries].sort((a, b) => a.item.localeCompare(b.item))) {
-    if (seen.has(entry.item)) {
-      continue;
+  const entries = (view?.explain ?? [])
+    .filter((entry) => entry.kind === 'tool' && entry.source === source)
+    .sort((a, b) => a.item.localeCompare(b.item));
+  const chosen = new Map<string, ExplainEntry>();
+  for (const entry of entries) {
+    const prev = chosen.get(entry.item);
+    // Keep the terminal entry; otherwise the later (chain-last) entry wins.
+    if (prev === undefined || !isTerminal(prev)) {
+      chosen.set(entry.item, entry);
     }
-    seen.add(entry.item);
+  }
+  const rows: SourceCardTool[] = [];
+  for (const entry of chosen.values()) {
     const draftDisabled = override.disabledTools?.includes(entry.item) ?? false;
     const draftExposure = override.exposure?.[entry.item];
     rows.push({
       name: entry.item,
       exposure: draftExposure ?? registryOf(view, entry.item)?.exposure ?? 'direct',
-      disabled: draftDisabled || entry.status === 'disabled',
+      disabled: draftDisabled || isTerminal(entry),
       overridden: draftDisabled || draftExposure !== undefined,
       provenance: entry.source,
       status: entry.status,

@@ -76,7 +76,7 @@ export function AgentModeEditor({
   // Map-форма: `mode.packs` — preload-подмножество (пустая карта = preload всего
   // агентского набора); per-tool сужение — плоские `mode.disabledTools`/`mode.exposure`
   // (тот же PackOverride-формат, который применяет резолвер).
-  const modePacks = (mode?.packs ?? {}) as PackAssignmentMap;
+  const modePacks = mode?.packs ?? {};
   const preloadEmpty = Object.keys(modePacks).length === 0;
   const modeOverride = {
     disabledTools: mode?.disabledTools ?? [],

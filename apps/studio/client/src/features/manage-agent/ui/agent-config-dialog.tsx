@@ -220,7 +220,7 @@ export function AgentConfigDialog({
             await updateAgent(workspaceId, agentId, result.fields);
             await updateAgentCapabilities(workspaceId, agentId, result.capabilities);
             await queryClient.invalidateQueries({
-              queryKey: agentCapabilitiesQueryKey(agentId),
+              queryKey: agentCapabilitiesQueryKey(agentId, workspaceId),
             });
             resolve(true);
           } catch (error) {
@@ -297,7 +297,7 @@ export function AgentConfigDialog({
             await updateAgent(workspaceId, activeAgent.id, result.fields);
             await updateAgentCapabilities(workspaceId, activeAgent.id, result.capabilities);
             await queryClient.invalidateQueries({
-              queryKey: agentCapabilitiesQueryKey(activeAgent.id),
+              queryKey: agentCapabilitiesQueryKey(activeAgent.id, workspaceId),
             });
             toast.add({ title: 'Subagent saved' });
           } catch (error) {

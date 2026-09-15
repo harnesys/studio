@@ -147,7 +147,7 @@ function SourceToolRow({
           >
             {tool.name}
           </p>
-          {tool.overridden ? <RowChip tone="accent">draft</RowChip> : null}
+          {tool.overridden ? <RowChip tone="accent">override</RowChip> : null}
         </div>
         {onExposure ? (
           <ToggleGroup

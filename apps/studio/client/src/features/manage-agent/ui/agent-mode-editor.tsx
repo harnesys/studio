@@ -1,6 +1,7 @@
-import type { ModeOp, ModeOpGate } from '@harnesys/studio-shared';
-import type { PermissionGate, PermissionMap } from 'harnesys';
+import type { AgentCapabilitiesView, ModeOp, ModeOpGate } from '@harnesys/studio-shared';
+import type { PermissionGate, PermissionMap, ToolExposure } from 'harnesys';
 import { Controller, type UseFormReturn, useWatch } from 'react-hook-form';
+import { RowList } from '@/shared/ui/capability-rows';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Field, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
@@ -10,6 +11,17 @@ import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 import { MODE_INSTRUCTIONS_MAX } from '../model/agent-mode-fields';
+import {
+  CORE_SOURCE,
+  expandEmptyPreload,
+  isSourceGranted,
+  type PackAssignmentMap,
+  setSourceGrant,
+  sourceToolRows,
+  withDisabledTool,
+  withToolExposure,
+} from '../model/draft-overrides';
+import { AgentSourceCard } from './agent-source-card';
 
 type AgentModeEditorProps = {
   form: UseFormReturn<AgentFieldsInput, unknown, AgentFieldsOutput>;
@@ -17,6 +29,7 @@ type AgentModeEditorProps = {
   skillNames: string[];
   agentSkills: string[];
   packNames: string[];
+  capabilitiesView: AgentCapabilitiesView | undefined;
   isDefault: boolean;
   onSetDefault: (next: boolean) => void;
   base: PermissionMap | null;
@@ -53,14 +66,22 @@ export function AgentModeEditor({
   skillNames,
   agentSkills,
   packNames,
+  capabilitiesView,
   isDefault,
   onSetDefault,
   base,
 }: AgentModeEditorProps) {
   const mode = useWatch({ control: form.control, name: `modes.${index}` });
   const selectedSkills = mode?.skills ?? [];
-  // Map-форма (T7): чеклист по ключам карты; дизайн пак-переключателей — T9.
-  const selectedPacks = Object.keys(mode?.packs ?? {});
+  // Map-форма: `mode.packs` — preload-подмножество (пустая карта = preload всего
+  // агентского набора); per-tool сужение — плоские `mode.disabledTools`/`mode.exposure`
+  // (тот же PackOverride-формат, который применяет резолвер).
+  const modePacks = (mode?.packs ?? {}) as PackAssignmentMap;
+  const preloadEmpty = Object.keys(modePacks).length === 0;
+  const modeOverride = {
+    disabledTools: mode?.disabledTools ?? [],
+    exposure: mode?.exposure ?? {},
+  };
   const instructions = form.watch(`modes.${index}.instructions`) ?? '';
   const instructionsError = form.formState.errors.modes?.[index]?.instructions?.message;
 
@@ -71,14 +92,22 @@ export function AgentModeEditor({
     form.setValue(`modes.${index}.skills`, next, { shouldDirty: true });
   }
 
-  function togglePacks(packName: string) {
-    const current = { ...(mode?.packs ?? {}) };
-    if (packName in current) {
-      delete current[packName];
-    } else {
-      current[packName] = {};
-    }
-    form.setValue(`modes.${index}.packs`, current, { shouldDirty: true });
+  function setModePacks(next: PackAssignmentMap) {
+    form.setValue(`modes.${index}.packs`, next, { shouldDirty: true });
+  }
+
+  function toggleModeGrant(packName: string, next: boolean) {
+    setModePacks(setSourceGrant(expandEmptyPreload(modePacks, packNames), packName, next));
+  }
+
+  function toggleModeTool(tool: string, disable: boolean) {
+    const next = withDisabledTool(modeOverride, tool, disable).disabledTools ?? [];
+    form.setValue(`modes.${index}.disabledTools`, next, { shouldDirty: true });
+  }
+
+  function setModeExposure(tool: string, exposure: ToolExposure) {
+    const next = withToolExposure(modeOverride, tool, exposure).exposure ?? {};
+    form.setValue(`modes.${index}.exposure`, next, { shouldDirty: true });
   }
 
   return (
@@ -135,16 +164,37 @@ export function AgentModeEditor({
         outsideAllowlist={(name) => agentSkills.length > 0 && !agentSkills.includes(name)}
         onToggle={toggleSkills}
       />
-      <Checklist
-        title="Packs"
-        emptyHint={
-          packNames.length === 0 ? 'No packs enabled for this agent in Capabilities.' : null
-        }
-        items={packNames}
-        selected={selectedPacks}
-        outsideAllowlist={() => false}
-        onToggle={togglePacks}
-      />
+      <section className="flex flex-col gap-1">
+        <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+          Packs
+        </p>
+        {packNames.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground">
+            No packs enabled for this agent in Capabilities.
+          </p>
+        ) : null}
+        <RowList>
+          {packNames.map((packName) => {
+            const isCore = packName === CORE_SOURCE;
+            const granted = isCore || preloadEmpty || isSourceGranted(modePacks[packName]);
+            return (
+              <AgentSourceCard
+                key={packName}
+                kind="pack"
+                name={packName}
+                granted={granted}
+                locked={isCore}
+                lockLabel={isCore ? 'обязателен' : undefined}
+                tools={sourceToolRows(capabilitiesView, `pack:${packName}`, modeOverride)}
+                toolsHint="Save the agent to tune per-tool overrides."
+                onToggleGrant={(next) => toggleModeGrant(packName, next)}
+                onToggleTool={toggleModeTool}
+                onExposure={setModeExposure}
+              />
+            );
+          })}
+        </RowList>
+      </section>
       <p className="-mt-2 text-[11px] text-muted-foreground leading-snug">
         Empty selection keeps every agent pack in context.
       </p>

@@ -26,22 +26,4 @@ export {
 };
 export type AgentProjectPaths = AgentPaths;
 
-export type AgentSpec = {
-  model: {
-    provider: string;
-    model: string;
-    effort?: string;
-    generation?: AgentGenerationSettings;
-  };
-  instructions?: {
-    system?: string;
-    project?: string[];
-  };
-  skills?: string[];
-  mcpServers?: string[];
-  tools?: string[];
-  toolOutput?: ToolOutputSettings;
-  compaction?: PortRef;
-};
-
 export type ToolPermission = PermissionGate;

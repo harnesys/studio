@@ -3,9 +3,14 @@ import {
   DEFAULT_MODE_ID,
   MODE_ID_RE,
   type ModeOpGate,
-  type PackAssignment,
 } from '@harnesys/studio-shared';
 import { z } from 'zod';
+
+import {
+  ModeDisabledToolsSchema,
+  ModeToolExposureSchema,
+  PackAssignmentSchema,
+} from './draft-overrides';
 
 export const MODE_INSTRUCTIONS_MAX = 6000;
 
@@ -15,11 +20,11 @@ export const agentModeSchema = z.object({
   description: z.string().max(200),
   instructions: z.string().max(MODE_INSTRUCTIONS_MAX, `Max ${MODE_INSTRUCTIONS_MAX} characters`),
   skills: z.array(z.string()),
-  // Map-форма (T7): дизайн пак-переключателей — T9, здесь только компилируемость.
-  packs: z.record(
-    z.string(),
-    z.custom<PackAssignment | null>(() => true),
-  ),
+  // Map-форма: значение — PackAssignment (`null` = явный off в режиме).
+  packs: z.record(z.string(), PackAssignmentSchema),
+  // Плоские списки сужения (server `agentModeBody`): резолвер читает только их.
+  disabledTools: ModeDisabledToolsSchema,
+  exposure: ModeToolExposureSchema,
   permWrite: z.enum(['allow', 'ask', 'deny']),
   permProcess: z.enum(['allow', 'ask', 'deny']),
   permNetwork: z.enum(['allow', 'ask', 'deny']),
@@ -52,6 +57,8 @@ export function modeToFields(mode: AgentMode): AgentModeFields {
     instructions: mode.instructions ?? '',
     skills: [...(mode.skills ?? [])],
     packs: { ...(mode.packs ?? {}) },
+    disabledTools: [...(mode.disabledTools ?? [])],
+    exposure: { ...(mode.exposure ?? {}) },
     permWrite: mode.permissions?.['fs.write'] ?? FALLBACK_GATE,
     permProcess: mode.permissions?.process ?? FALLBACK_GATE,
     permNetwork: mode.permissions?.network ?? FALLBACK_GATE,
@@ -68,6 +75,8 @@ export function fieldsToMode(fields: AgentModeFields): AgentMode {
     ...(fields.instructions.trim() ? { instructions: fields.instructions.trim() } : {}),
     ...(fields.skills.length ? { skills: [...fields.skills] } : {}),
     ...(Object.keys(fields.packs).length ? { packs: { ...fields.packs } } : {}),
+    ...(fields.disabledTools.length ? { disabledTools: [...fields.disabledTools] } : {}),
+    ...(Object.keys(fields.exposure).length ? { exposure: { ...fields.exposure } } : {}),
     permissions: {
       'fs.write': fields.permWrite,
       process: fields.permProcess,

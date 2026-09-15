@@ -1,13 +1,14 @@
-import type { AgentGraph, PackConfig } from '@harnesys/studio-shared';
+import type { AgentGraph } from '@harnesys/studio-shared';
 import type { HooksBinding } from 'harnesys';
 import type { AgentDraft } from '@/entities/agent';
 
+import type { PackAssignmentMap } from './draft-overrides';
+
 export type AgentCapabilitiesDraft = {
   skills?: string[];
-  tools?: string[];
   mcpServers?: string[];
   compaction?: unknown;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: PackAssignmentMap;
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
 };

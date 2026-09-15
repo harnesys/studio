@@ -1,4 +1,10 @@
 export {
+  type AgentCapabilitiesView,
+  agentCapabilitiesQuery,
+  agentCapabilitiesQueryKey,
+  getAgentCapabilities,
+} from './agent-capabilities';
+export {
   type AgentPresetRecord,
   type CreateAgentInput,
   createAgentFromPresetRecord,

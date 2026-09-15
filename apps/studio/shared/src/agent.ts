@@ -1,4 +1,4 @@
-import type { Edge, HooksBinding, Node, PackConfig, PermissionMap } from 'harnesys';
+import type { Edge, HooksBinding, Node, PackAssignment, PermissionMap } from 'harnesys';
 
 import type { AgentGenerationSettings, PortRef, ToolOutputSettings } from './harnesys-bridge.ts';
 import type { AgentMode } from './modes.ts';
@@ -47,7 +47,7 @@ export type AgentRecord = {
   mcpServers?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: Record<string, PackAssignment | null>;
   /** Base permission map (mode ceiling / spawn base); null = DEFAULT_PERMISSIONS. */
   permissions?: PermissionMap | null;
   /** Card color (CC palette); null = host default. */

@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
-import { providersQuery } from '@/shared/api';
+import { agentCapabilitiesQueryKey, providersQuery } from '@/shared/api';
 import { type DialogComponentProps, dialog, patchOverlayOptions } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
@@ -100,6 +100,7 @@ export function AgentConfigDialog({
 }: DialogComponentProps<AgentConfigResult, { agent: Agent | null; workspaceId: string }>) {
   const rootAgent = data?.agent ?? null;
   const workspaceId = data?.workspaceId ?? '';
+  const queryClient = useQueryClient();
   const [focusAgentId, setFocusAgentId] = useState<string | null>(rootAgent?.id ?? null);
   const [returnParentId, setReturnParentId] = useState<string | null>(null);
   const [category, setCategory] = useState<AgentConfigCategory>('identity');
@@ -218,6 +219,9 @@ export function AgentConfigDialog({
           try {
             await updateAgent(workspaceId, agentId, result.fields);
             await updateAgentCapabilities(workspaceId, agentId, result.capabilities);
+            await queryClient.invalidateQueries({
+              queryKey: agentCapabilitiesQueryKey(agentId),
+            });
             resolve(true);
           } catch (error) {
             toast.add({
@@ -292,6 +296,9 @@ export function AgentConfigDialog({
           try {
             await updateAgent(workspaceId, activeAgent.id, result.fields);
             await updateAgentCapabilities(workspaceId, activeAgent.id, result.capabilities);
+            await queryClient.invalidateQueries({
+              queryKey: agentCapabilitiesQueryKey(activeAgent.id),
+            });
             toast.add({ title: 'Subagent saved' });
           } catch (error) {
             toast.add({

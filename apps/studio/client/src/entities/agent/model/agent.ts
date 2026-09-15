@@ -4,7 +4,7 @@ import type {
   AgentGraph,
   AgentMode,
   HooksBinding,
-  PackConfig,
+  PackAssignment,
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
@@ -31,7 +31,7 @@ export type Agent = {
   skills: string[];
   mcpServers: string[];
   graph: AgentGraph;
-  capabilities: Record<string, PackConfig | null>;
+  capabilities: Record<string, PackAssignment | null>;
   /** Base permission map (mode ceiling / spawn base); null = DEFAULT_PERMISSIONS. */
   permissions: PermissionMap | null;
   /** Card color (CC palette); null = host default. */
@@ -61,7 +61,7 @@ export type AgentDraft = {
   toolOutput?: ToolOutputSettings | null;
   budget?: AgentBudget | null;
   compaction?: PortRef;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: Record<string, PackAssignment | null>;
   graph?: AgentGraph;
   permissions?: PermissionMap | null;
   color?: string | null;
@@ -97,7 +97,6 @@ export type AgentPatch = Partial<
 export type AgentCapabilitiesPatch = {
   skills?: string[];
   mcpServers?: string[];
-  tools?: string[];
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
 };

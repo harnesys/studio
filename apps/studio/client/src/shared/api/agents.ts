@@ -5,7 +5,7 @@ import type {
   AgentMode,
   AgentRecord,
   HooksBinding,
-  PackConfig,
+  PackAssignment,
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
@@ -25,9 +25,8 @@ export type CreateAgentInput = {
   compaction?: PortRef;
   skills?: string[];
   mcpServers?: string[];
-  tools?: string[];
   graph?: AgentGraph;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: Record<string, PackAssignment | null>;
   permissions?: PermissionMap | null;
   color?: string | null;
   hooks?: HooksBinding[];
@@ -48,9 +47,8 @@ export type UpdateAgentInput = {
   compaction?: PortRef;
   skills?: string[];
   mcpServers?: string[];
-  tools?: string[];
   graph?: AgentGraph;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: Record<string, PackAssignment | null>;
   permissions?: PermissionMap | null;
   color?: string | null;
   hooks?: HooksBinding[];
@@ -64,11 +62,10 @@ export type AgentPresetRecord = {
   name: string;
   role: string;
   instructions: string;
-  tools?: string[];
   skills?: string[];
   mcpServers?: string[];
   budget?: AgentBudget | null;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: Record<string, PackAssignment | null>;
   permissions?: PermissionMap | null;
   graph?: AgentGraph;
 };

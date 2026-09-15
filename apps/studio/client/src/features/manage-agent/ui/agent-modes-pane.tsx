@@ -4,7 +4,12 @@ import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { type UseFormReturn, useFieldArray, useWatch } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
-import { modePresetsQuery, workspaceCapabilitiesQuery, workspaceSkillsQuery } from '@/shared/api';
+import {
+  agentCapabilitiesQuery,
+  modePresetsQuery,
+  workspaceCapabilitiesQuery,
+  workspaceSkillsQuery,
+} from '@/shared/api';
 import { Button } from '@/shared/ui/button';
 import { Pane, Row, RowChip, RowList } from '@/shared/ui/capability-rows';
 import {
@@ -15,6 +20,7 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 import { blankModeFields, modeToFields } from '../model/agent-mode-fields';
+import { isSourceGranted, type PackAssignmentMap } from '../model/draft-overrides';
 import { AgentModeEditor } from './agent-mode-editor';
 
 type AgentModesPaneProps = {
@@ -39,6 +45,10 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
     enabled: active && Boolean(workspaceId),
   });
   const presetsQuery = useQuery({ ...modePresetsQuery, enabled: active });
+  const explainQuery = useQuery({
+    ...agentCapabilitiesQuery(activeAgent?.id ?? null, workspaceId),
+    enabled: active && Boolean(activeAgent?.id),
+  });
   const presets = presetsQuery.data ?? [];
   const installedIds = new Set(rows.map((row) => row.id));
   const availablePresets = presets.filter((preset) => !installedIds.has(preset.id));
@@ -171,6 +181,7 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
                     skillNames={skillNames}
                     agentSkills={activeAgent?.skills ?? []}
                     packNames={packNames}
+                    capabilitiesView={explainQuery.data}
                     isDefault={isDefaultOf(index)}
                     onSetDefault={(next) => setDefaultOf(index, next)}
                     base={permissionsBase}
@@ -185,12 +196,6 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
   );
 }
 
-function enabledPackNames(caps: Record<string, unknown>): string[] {
-  return Object.keys(caps).filter((name) => {
-    const config = caps[name];
-    if (config === undefined) {
-      return name === 'skills';
-    }
-    return config != null;
-  });
+function enabledPackNames(caps: PackAssignmentMap): string[] {
+  return Object.keys(caps).filter((name) => isSourceGranted(caps[name]));
 }

@@ -110,7 +110,7 @@ export const SuggestionMenu = forwardRef<SuggestionMenuHandle, SuggestionMenuPro
     return (
       <div
         className="w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-md"
-        data-testid="slash-menu"
+        data-testid="suggestion-menu"
       >
         <ul className="max-h-56 overflow-y-auto py-1">
           {items.map((command, index) => {

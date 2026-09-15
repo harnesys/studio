@@ -257,6 +257,7 @@ export {
 export type { AgentsCapabilityPorts } from './src/packs/agents/index.ts';
 export { agentsCapability } from './src/packs/agents/index.ts';
 export { fetchCapability, filesCapability, shellCapability } from './src/packs/base.ts';
+export { coreCapability } from './src/packs/core/index.ts';
 export {
   type CreateEpisodicToolsParams,
   createEpisodicTools,

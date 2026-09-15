@@ -5,6 +5,7 @@ export {
   filesCapability,
   shellCapability,
 } from './base.ts';
+export { coreCapability } from './core/index.ts';
 export type { LspCapabilityPorts } from './lsp/index.ts';
 export { lspCapability } from './lsp/index.ts';
 export type { EpisodicMemoryPorts } from './memory/episodic.ts';

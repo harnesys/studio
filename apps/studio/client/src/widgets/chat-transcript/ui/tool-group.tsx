@@ -1,6 +1,7 @@
 import { WrenchIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { ACTIVITY_COLLAPSE_MIN } from '@/shared/config/constants';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 
 import type { MapInfo } from '../model/map-groups';
@@ -11,13 +12,12 @@ import { ActivityLine } from './activity-line';
 import { ThinkingLine } from './thinking-line';
 import { ToolLine } from './tool-line';
 
-const TOOL_GROUP_MIN = 2;
 const HINT_PARTS = 3;
 
 /**
  * Свернувшаяся группа активности между текстом агента: тулы и мысли.
  * Свёрнутый заголовок — перечень тулов со счётчиком ошибок; живой ран
- * или expandTools показывают плоский список без сворачивания.
+ * или режим Full показывают плоский список без сворачивания.
  */
 export function ToolGroup({
   chunks,
@@ -32,11 +32,9 @@ export function ToolGroup({
   threadId?: string;
   maps?: MapInfo[];
 }) {
-  const expandTools = useChatPreferences((state) => state.expandTools);
-  const liveExpand = useChatPreferences((state) => state.liveExpand);
+  const feedDetail = useChatPreferences((state) => state.feedDetail);
   const pairs = groupPairs(chunks);
-  const collapse =
-    (!runLive || liveExpand === 'collapsed') && !expandTools && pairs.length >= TOOL_GROUP_MIN;
+  const collapse = feedDetail === 'quiet' && !runLive && pairs.length >= ACTIVITY_COLLAPSE_MIN;
 
   if (!collapse) {
     return (

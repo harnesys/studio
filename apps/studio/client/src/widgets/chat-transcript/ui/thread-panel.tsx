@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ArrowDownIcon } from 'lucide-react';
+import { useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
@@ -15,14 +16,13 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
-  useMessageScroller,
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
-import { useComfortFollow } from '../model/comfort-scroll';
 import { extractMaps } from '../model/map-groups';
 import { isCompactRun, splitRuns } from '../model/run-groups';
 import { extractSpawns } from '../model/spawn-groups';
 import { useSyncedThread } from '../model/thread-sync';
+import { useUnseenCount } from '../model/use-unseen-count';
 import { FailedMessageView } from './agent-turn';
 import type { BranchChild } from './branch-point-badge';
 import { ChatSkeleton } from './chat-skeleton';
@@ -86,17 +86,7 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     }),
   );
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
-  const comfortFollow = useChatPreferences((state) => state.comfortFollow);
-  const comfortAnchor = useChatPreferences((state) => state.comfortAnchor);
-  const comfortThreshold = useChatPreferences((state) => state.comfortThreshold);
-  const comfortDuration = useChatPreferences((state) => state.comfortDuration);
-  const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
-  const comfortPinned = useComfortFollow(viewport, {
-    enabled: comfortFollow,
-    anchorPercent: comfortAnchor,
-    thresholdPx: comfortThreshold,
-    durationMs: comfortDuration,
-  });
+  const feedFollow = useChatPreferences((state) => state.feedFollow);
   const synced = useSyncedThread(threadId, agent.workspaceId);
   const failures = useSessionStore(
     useShallow((state) => {
@@ -120,18 +110,17 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
 
   const compactLive = compacting && ownRuns.some(isCompactRun);
   const showFork = Boolean(thread?.parentThreadId) && inheritedRuns.length > 0;
-  // Резерв под живым краем: scrollToEnd ставит край на якорь, долив — по триггеру.
-  const comfortSpacer = comfortFollow && comfortPinned;
-  const followPinned = comfortFollow && comfortPinned;
 
   return (
-    <MessageScrollerProvider autoScroll={!comfortFollow}>
+    <MessageScrollerProvider
+      autoScroll={true}
+      defaultScrollPosition={feedFollow === 'anchor' ? 'last-anchor' : 'end'}
+      scrollPreviousItemPeek={48}
+      scrollEdgeThreshold={24}
+    >
       <MessageScroller>
-        <MessageScrollerViewport ref={setViewport}>
-          <MessageScrollerContent
-            className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]"
-            style={comfortSpacer ? { paddingBottom: `${100 - comfortAnchor}vh` } : undefined}
-          >
+        <MessageScrollerViewport>
+          <MessageScrollerContent className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
             {inheritedRuns.map((run, index) => {
               const runKey = `inherited-${run.id ?? `run-${index}`}`;
               const forkAt = run.runId ?? run.id ?? '';
@@ -163,10 +152,20 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
               const last = index === ownRuns.length - 1;
               const runStreaming =
                 (streaming && last && !compacting) || (compacting && last && isCompactRun(run));
-              const runKey = run.id ?? `run-${index}`;
+              const first = run.events[0];
+              // Ключ стабилен с первого рендера: иначе приход первого тула перемонтирует
+              // MessageScrollerItem и примитив паркует вьюпорт к якорю поверх истории читателя.
+              const runKey =
+                run.id ??
+                (first?.type === 'user' ? first.clientEventId : undefined) ??
+                `run-${index}`;
               const forkAt = run.runId ?? run.id ?? '';
               return (
-                <MessageScrollerItem key={runKey} messageId={runKey}>
+                <MessageScrollerItem
+                  key={runKey}
+                  messageId={runKey}
+                  scrollAnchor={feedFollow === 'anchor' && run.events[0]?.type === 'user'}
+                >
                   <RunTurn
                     events={run.events}
                     runId={forkAt}
@@ -198,9 +197,8 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
             ) : null}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        {!followPinned ? <MessageScrollerButton /> : null}
-        <StickOnSend streaming={streaming || compacting} />
-        <ThreadReadSync threadId={threadId} followPinned={followPinned} />
+        <LiveEdgeControls threadId={threadId} />
+        <ThreadReadSync threadId={threadId} />
       </MessageScroller>
     </MessageScrollerProvider>
   );
@@ -217,11 +215,31 @@ function EmptyThreadReadSync({ threadId }: { threadId: string }) {
   return null;
 }
 
+/** Кнопка живого края со счётчиком непрочитанного: пока вьюпорт отцеплен, капает unseen. */
+function LiveEdgeControls({ threadId }: { threadId: string }) {
+  const { end } = useMessageScrollerScrollable();
+  const total = useSessionStore((state) => state.events[threadId]?.length ?? 0);
+  const unseen = useUnseenCount(total, !end);
+  return (
+    <MessageScrollerButton>
+      <ArrowDownIcon />
+      <span className="sr-only">
+        {unseen > 0 ? `${unseen} new updates, scroll to end` : 'Scroll to end'}
+      </span>
+      {unseen > 0 ? (
+        <span className="absolute -end-1 -top-1 min-w-4 rounded-full bg-live px-1 font-medium text-[10px] text-white tabular-nums">
+          {unseen > 99 ? '99+' : unseen}
+        </span>
+      ) : null}
+    </MessageScrollerButton>
+  );
+}
+
 /** Track bottom-edge visibility and persist read when stuck to end. */
-function ThreadReadSync({ threadId, followPinned }: { threadId: string; followPinned: boolean }) {
+function ThreadReadSync({ threadId }: { threadId: string }) {
   const { end } = useMessageScrollerScrollable();
   const contentEpoch = useSessionStore((state) => state.contentEpoch[threadId] ?? 0);
-  const viewingAtEnd = end || followPinned;
+  const viewingAtEnd = !end;
 
   useEffect(() => {
     useThreadStore.getState().setViewingAtEnd(threadId, viewingAtEnd);
@@ -236,21 +254,6 @@ function ThreadReadSync({ threadId, followPinned }: { threadId: string; followPi
       useThreadStore.getState().setViewingAtEnd(threadId, false);
     };
   }, [threadId]);
-
-  return null;
-}
-
-/** Re-pin to the live edge when a run starts. Manual scroll up still detaches. */
-function StickOnSend({ streaming }: { streaming: boolean }) {
-  const { scrollToEnd } = useMessageScroller();
-  const wasStreaming = useRef(false);
-
-  useLayoutEffect(() => {
-    if (streaming && !wasStreaming.current) {
-      scrollToEnd({ behavior: 'auto' });
-    }
-    wasStreaming.current = streaming;
-  }, [streaming, scrollToEnd]);
 
   return null;
 }

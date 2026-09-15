@@ -15,7 +15,8 @@ export const ACCENT_STORAGE_KEY = 'ui-accent';
 
 /** UI */
 export const MOBILE_BREAKPOINT = 768;
-export const TOOL_RUN_COLLAPSE_AT = 6;
+/** Завершенная группа активности от этого числа элементов сворачивается в сводку. */
+export const ACTIVITY_COLLAPSE_MIN = 2;
 export const MAX_MOUNTED_THREADS = 8;
 export const FILE_PANE_DEFAULT_RATIO = 0.5;
 export const FILE_PANE_MIN_RATIO = 0.22;

@@ -182,7 +182,7 @@ export function createAgentLifecycleTools(deps: CreateAgentsToolsParams): ToolDe
         operations: ['agents'],
         sideEffect: 'write',
         description:
-          'Patch name/role/instructions/budget of your own delegate; graph, tools and packs are owner-only (workspace UI). ' +
+          'Patch name/role/instructions/budget of your own delegate; graph and packs are owner-only (tools removed; use sources; workspace UI). ' +
           'agentId accepts an exact id, a unique id prefix (8+ chars), or a name — unknown/ambiguous targets and agents you do not own fail here with an error. ' +
           'budget replaces the stored budget: omitted fields drop out. Same shape as agents_create: maxSteps/maxTokens/deadlineMs integers >= 1 and policy ask|error; at least one of them is required. ' +
           'At least one field besides agentId is required. Returns { agentId }.',

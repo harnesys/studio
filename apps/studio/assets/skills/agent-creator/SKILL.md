@@ -28,7 +28,7 @@ Reference for authoring `AgentDefinition`s and Studio presets. The engine execut
  { "from": "think", "to": "end" },
  { "from": "act", "to": "think" }]
 ```
-The `think` `tools` list is the agent's full tool set. Split truth: at registry level the resolver adds `load_tools` (and `load_skill`/`Skill` when the agent has skills) after the agent-level filter, so these names go in node `tools`, not in the agent `tools` list (there they warn `tool_unreachable`; no pack provides them). At node level a node sees only the names it lists, so `think` must name the services to offer them to the model. Naming a tool the run registry lacks is harmless at node level (invisible, no error).
+The `think` `tools` list is the agent's full tool set. Split truth: at registry level the resolver adds `load_tools` (and `load_skill`/`Skill` when the agent has skills) after the agent-level filter, so these names go in node `tools` only (the resolver adds them after the agent filter; no source grant names them). At node level a node sees only the names it lists, so `think` must name the services to offer them to the model. Naming a tool the run registry lacks is harmless at node level (invisible, no error).
 
 ## Graph structure
 
@@ -38,7 +38,7 @@ Exactly one `core:start`; at least one `core:end`. Every node except `core:end` 
 
 - `core:start`: no fields. Appends the user message to `$state.messages`.
 - `core:end`: omit `output` to finish with the last message. Do not write `"$state.messages[-1]"`: negative indexes are not supported, the end node falls back to the literal string as output.
-- `llm:generate`: `prompt` (key in `agent.prompts`; Studio maps `main` = agent instructions, so per-node prompts are not available in presets), `messages: "$state.<key>"` (must be a `$state.*` path; this node is the only history writer), `tools: string[]` — only listed names are visible (omitted/empty = none, see invariant), `output?: JsonSchema` (structured: keys merge into `$output`; reserved `finishReason`/`text`/`toolCalls` win; avoid combining `output` with tools in one node).
+- `llm:generate`: `prompt` (key in `agent.prompts`; Studio maps `main` = agent instructions, so per-node prompts are not available in presets), `messages: "$state.<key>"` (must be a `$state.*` path; this node is the only history writer), `tools: string[]` — only listed names are visible (omitted = full run set, `[]` = none, see invariant), `output?: JsonSchema` (structured: keys merge into `$output`; reserved `finishReason`/`text`/`toolCalls` win; avoid combining `output` with tools in one node).
 - `tool:call`: fixed form `name` + `args` (args values may be `$…` expressions) OR batch form `calls` (array expr) + `concurrency` + `barrier: { policy: 'all' }` + optional `approve: { tools, reason, resumeSchema }`. Max 32 calls (`tool_call_limit`). Results append to the messages path of the most recent `llm:generate`, in `calls` order; `$output = { results: [{ id, name, result, isError, skipped?, cancelled? }] }`. Reading `$output.results` before the barrier throws `output_not_ready`.
 - `control:assign`: `patch: { key: Expr | literal | "text {$...}" }`. Writes go through reducers: default strategy is merge (arrays concat, objects deep-merge), `"replace"` only via `state.reducers`.
 - `control:goto`: `target` evaluates to a node id; no `$output` written.

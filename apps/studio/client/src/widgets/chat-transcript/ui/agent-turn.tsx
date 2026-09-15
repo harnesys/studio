@@ -29,7 +29,7 @@ import { ActivityRail } from './activity-rail';
 import { type BranchChild, BranchPointBadge } from './branch-point-badge';
 import { CompactionMessageCard } from './compaction-card';
 import { FeedNotice } from './feed-notice';
-import { HandoffCard } from './handoff-card';
+import { HandoffLine } from './handoff-line';
 import { MessageActions } from './message-actions';
 import { ModeTagBadges } from './mode-tag-badge';
 import { ThinkingLine } from './thinking-line';
@@ -259,7 +259,11 @@ function TurnSegmentView({
     return <CompactionMessageCard text={segment.text} meta={segment.meta} />;
   }
   if (segment.type === 'handoff') {
-    return <HandoffCard agentId={segment.agentId} />;
+    return (
+      <ActivityRail>
+        <HandoffLine agentId={segment.agentId} />
+      </ActivityRail>
+    );
   }
 
   return <LiveMarkdown text={segment.text} live={live} threadId={threadId} blockId={segment.id} />;

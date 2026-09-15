@@ -31,6 +31,8 @@ import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
+import type { WorkspaceHarnesysSource } from '../application/capabilities/validate-agent-config.use-case.ts';
+import { ValidateAgentConfigUseCase } from '../application/capabilities/validate-agent-config.use-case.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { SavePlanUseCase } from '../application/plans/save-plan.use-case.ts';
 import { UpdatePlanItemUseCase } from '../application/plans/update-plan-item.use-case.ts';
@@ -80,6 +82,8 @@ export type PackRegistrationsDeps = {
   lsp: StudioLspAdapter;
   /** Late-wired `pluginName:agentName` catalog resolver (registry lands after packs). */
   pluginAgentsRef: PluginAgentsRef;
+  /** Late-wired registry for write-path §7 validation (same shape, set in create-host). */
+  workspaceHarnesysRef: WorkspaceHarnesysSource;
 };
 
 export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegistration[] {
@@ -103,9 +107,15 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
   // Emitter-free: SqliteAgentsCatalogPort publishes desk events for tool-path writes,
   // so the delegated create must stay silent to avoid double-publishing.
+  // Tool-path §7 validation runs on the same gate as HTTP (throws → `{error}` via runGuard).
   const createAgent = new CreateAgentUseCase(deps.agents, {
     models: deps.models,
     modePresets: deps.modePresets,
+    validateConfig: new ValidateAgentConfigUseCase({
+      agents: deps.agents,
+      workspaces: deps.workspaces,
+      workspaceHarnesys: deps.workspaceHarnesysRef,
+    }),
   });
 
   return [

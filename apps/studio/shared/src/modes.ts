@@ -1,4 +1,4 @@
-import type { PackAssignment } from 'harnesys';
+import type { PackAssignment, ToolExposure } from 'harnesys';
 
 export const MODE_OPS = ['fs.write', 'process', 'network', 'mcp', 'agents'] as const;
 export type ModeOp = (typeof MODE_OPS)[number];
@@ -19,7 +19,12 @@ export type AgentMode = {
   description?: string;
   instructions?: string;
   skills?: string[];
-  packs?: string[];
+  /** Preload-подмножество паков агента (map-форма; legacy массивы строк в БД
+   *  читаются через `normalizeModePackMap` до миграции T8). `null` в значении —
+   *  явный off с границы (валидация: `core: null` → 400, остальное ≡ отсутствию). */
+  packs?: Record<string, PackAssignment | null>;
+  disabledTools?: string[];
+  exposure?: Record<string, ToolExposure>;
   permissions?: ModeOpPermissions;
 };
 
@@ -30,7 +35,10 @@ export const ASK_MODE: AgentMode = {
   permissions: { 'fs.write': 'ask', process: 'ask', network: 'ask', mcp: 'ask', agents: 'ask' },
 };
 
-export type ModePreset = AgentMode & {
+/** Пресет хранит legacy-массив строк (формат данных — вотчина T8); в AgentMode
+ *  превращается через `modeFromPreset` + `normalizeModePackMap`. */
+export type ModePreset = Omit<AgentMode, 'packs'> & {
+  packs?: string[];
   builtin: boolean;
   installedByDefault: boolean;
   createdAt: string;
@@ -66,13 +74,16 @@ export function effectiveMode(modes: AgentMode[] | undefined, runModeId: string)
 }
 
 export function modeFromPreset(preset: ModePreset): AgentMode {
+  const packs = normalizeModePackMap(preset.packs);
   return {
     id: preset.id,
     name: preset.name,
     ...(preset.description ? { description: preset.description } : {}),
     ...(preset.instructions ? { instructions: preset.instructions } : {}),
     ...(preset.skills?.length ? { skills: [...preset.skills] } : {}),
-    ...(preset.packs?.length ? { packs: [...preset.packs] } : {}),
+    ...(packs !== undefined ? { packs } : {}),
+    ...(preset.disabledTools?.length ? { disabledTools: [...preset.disabledTools] } : {}),
+    ...(preset.exposure ? { exposure: { ...preset.exposure } } : {}),
     ...(preset.permissions ? { permissions: { ...preset.permissions } } : {}),
   };
 }
@@ -81,8 +92,8 @@ export function modeFromPreset(preset: ModePreset): AgentMode {
  *  the field to an assignment map and T8 deletes this together with legacy data.
  *  Array → map with `{}` values; an existing map passes through untouched. */
 export function normalizeModePackMap(
-  value: string[] | Record<string, PackAssignment> | null | undefined,
-): Record<string, PackAssignment> | undefined {
+  value: string[] | Record<string, PackAssignment | null> | null | undefined,
+): Record<string, PackAssignment | null> | undefined {
   if (value === undefined || value === null) {
     return undefined;
   }

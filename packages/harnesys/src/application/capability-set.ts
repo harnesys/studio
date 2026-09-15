@@ -38,6 +38,7 @@ export type {
   RunRegistry,
   RunToolEntry,
 } from './capability-explain.ts';
+export { projectToolRegistry } from './capability-explain.ts';
 
 export type ModeCapabilityFields = {
   id: string;

@@ -41,8 +41,10 @@ export type {
   KnowledgeHit,
   MemoryRecord,
   MemoryRecordSource,
+  PackAssignment,
   PackCatalogEntry,
   PackConfig,
+  PackOverride,
   PinRecord,
   PinSource,
   SemanticScope,
@@ -58,6 +60,10 @@ export type {
   BudgetPolicy,
 } from './src/agent.ts';
 export { defaultAgentCompaction } from './src/agent-runtime-defaults.ts';
+export type {
+  AgentCapabilitiesView,
+  AgentCapabilityRegistryEntry,
+} from './src/capabilities.ts';
 export type {
   AgentGenerationSettings,
   AgentProjectPaths,

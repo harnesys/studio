@@ -13,6 +13,8 @@ import { DeleteAgentUseCase } from '../application/agents/delete-agent.use-case.
 import { ListAgentPresetsUseCase } from '../application/agents/list-agent-presets.use-case.ts';
 import { ListAgentsUseCase } from '../application/agents/list-agents.use-case.ts';
 import { UpdateAgentUseCase } from '../application/agents/update-agent.use-case.ts';
+import { ListAgentCapabilitiesUseCase } from '../application/capabilities/list-agent-capabilities.use-case.ts';
+import { ValidateAgentConfigUseCase } from '../application/capabilities/validate-agent-config.use-case.ts';
 import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-mcp.use-case.ts';
 import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
 import type { DeskEventsPort } from '../domain/desk-events.port.ts';
@@ -34,6 +36,11 @@ export type WireAgentControllersDeps = {
 export function wireAgentControllers(d: WireAgentControllersDeps): void {
   // create rejects unknown skills/mcpServers against the same workspace sources
   // the agent form pickers list from (`/workspaces/:id/skills`, `/workspaces/:id/mcp`).
+  const validateConfig = new ValidateAgentConfigUseCase({
+    agents: d.agentRepo,
+    workspaces: d.workspaceRepo,
+    workspaceHarnesys: d.workspaceHarnesys,
+  });
   const createAgent = new CreateAgentUseCase(d.agentRepo, {
     modePresets: d.modePresetRepo,
     workspaceCatalog: {
@@ -41,14 +48,20 @@ export function wireAgentControllers(d: WireAgentControllersDeps): void {
       listMcp: new GetWorkspaceMcpUseCase(d.workspaceRepo, d.workspaceHarnesys),
     },
     deskEvents: d.deskEvents,
+    validateConfig,
   });
 
   new AgentController({
     listAgents: new ListAgentsUseCase(d.agentRepo),
     listAgentPresets: new ListAgentPresetsUseCase(),
+    listAgentCapabilities: new ListAgentCapabilitiesUseCase({
+      agents: d.agentRepo,
+      workspaces: d.workspaceRepo,
+      workspaceHarnesys: d.workspaceHarnesys,
+    }),
     createAgent,
     createAgentFromPreset: new CreateAgentFromPresetUseCase(d.agentRepo, createAgent),
-    updateAgent: new UpdateAgentUseCase(d.agentRepo, undefined, d.deskEvents),
+    updateAgent: new UpdateAgentUseCase(d.agentRepo, undefined, d.deskEvents, validateConfig),
     deleteAgent: new DeleteAgentUseCase(d.agentRepo, d.threadRepo, {
       schedules: d.scheduleRepo,
       webhooks: d.webhookRepo,

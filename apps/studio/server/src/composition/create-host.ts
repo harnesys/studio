@@ -128,6 +128,10 @@ export async function createStudioHost(args: {
     current: ((workspaceId: string) => Promise<PluginAgentCatalog>) | null;
   } = { current: null };
 
+  // Late wiring: tool-path §7 validation dereferences the registry at call time
+  // (tool calls happen post-boot, after the registry below exists).
+  const workspaceHarnesysRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
+
   const packRegistrations = createPackRegistrations({
     db: store.db,
     schedules: store.scheduleRepo,
@@ -148,6 +152,7 @@ export async function createStudioHost(args: {
     memory,
     lsp: lspAdapter,
     pluginAgentsRef,
+    workspaceHarnesysRef,
   });
 
   const workspaceHarnesys =
@@ -171,6 +176,7 @@ export async function createStudioHost(args: {
       packRegistrations,
     );
   runtime.agentsRef.current = workspaceHarnesys;
+  workspaceHarnesysRef.current = workspaceHarnesys;
   pluginAgentsRef.current = (workspaceId) => workspaceHarnesys.pluginAgents(workspaceId);
 
   // Host-driven hook emissions (FileChanged from the workspace watcher,

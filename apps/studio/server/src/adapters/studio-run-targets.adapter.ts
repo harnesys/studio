@@ -9,7 +9,7 @@ import type {
   RunTargets,
   RuntimeHandle,
 } from 'harnesys';
-import { bindMonitorComponents, resolveCapabilitySet } from 'harnesys';
+import { bindMonitorComponents, projectToolRegistry, resolveCapabilitySet } from 'harnesys';
 import { effectivePlugins } from '../application/capabilities/effective-plugins.ts';
 import { buildCapabilityUniverse, toModeFields } from '../application/capabilities/universe.ts';
 import { agentHookBindings, pluginHookBindings } from '../application/plugins/plugin-grant-gate.ts';
@@ -176,12 +176,7 @@ export class StudioRunTargets implements RunTargets {
       // `universe` lets spawn children resolve their own sets (sandboxed).
       capabilitySet,
       universe: fullUniverse,
-      toolRegistry: new Map(
-        [...capabilitySet.registry].map(([name, entry]) => [
-          name,
-          { ...entry.def, exposure: entry.exposure },
-        ]),
-      ),
+      toolRegistry: projectToolRegistry(capabilitySet.registry),
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
       hooks: hookBindings,
       hooksEmit,

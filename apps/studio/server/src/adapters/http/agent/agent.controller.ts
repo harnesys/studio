@@ -6,12 +6,14 @@ import type { DeleteAgentInput } from '../../../application/agents/delete-agent.
 import type { ListAgentPresetsInput } from '../../../application/agents/list-agent-presets.use-case.ts';
 import type { ListAgentsInput } from '../../../application/agents/list-agents.use-case.ts';
 import type { UpdateAgentInput } from '../../../application/agents/update-agent.use-case.ts';
+import type { ListAgentCapabilitiesInput } from '../../../application/capabilities/list-agent-capabilities.use-case.ts';
 import type { AgentGraph } from '../../../domain/agent.port.ts';
 import { createAgentBody, createAgentFromPresetBody, updateAgentBody } from './agent.body.ts';
 
 export type AgentControllerDeps = {
   listAgents: ListAgentsInput;
   listAgentPresets: ListAgentPresetsInput;
+  listAgentCapabilities: ListAgentCapabilitiesInput;
   createAgent: CreateAgentInput;
   createAgentFromPreset: CreateAgentFromPresetInput;
   updateAgent: UpdateAgentInput;
@@ -32,6 +34,13 @@ export class AgentController {
 
     app.get('/api/agent-presets', (c) => {
       return c.json(this.deps.listAgentPresets.execute());
+    });
+
+    app.get('/api/agents/:id/capabilities', async (c) => {
+      const workspaceId = c.req.query('workspaceId') || undefined;
+      return c.json(
+        await this.deps.listAgentCapabilities.execute({ workspaceId, agentId: c.req.param('id') }),
+      );
     });
 
     app.post('/api/workspaces/:id/agents', async (c) => {

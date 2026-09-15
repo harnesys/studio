@@ -1,7 +1,36 @@
-import { MODE_ID_RE, MODE_OPS, type PackConfig } from '@harnesys/studio-shared';
+import { MODE_ID_RE, MODE_OPS, type PackOverride } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 const modeOpGate = z.enum(['allow', 'ask', 'deny']);
+
+const toolExposureBody = z.enum(['direct', 'deferred']);
+
+/** PackAssignment-литералы (спека 2026-09-15 §3, эталон `packs/registry.ts`):
+ *  `true`/объект = вкл, `false`/`null`/отсутствие = выкл. На границе нормализуется
+ *  в хранимую форму: `true` → `{}`, `false`/`null` → `null` (явный off).
+ *  Объект несёт полный override-набор (`spec` + `disabledTools` + `exposure`). */
+const packAssignmentBody = z
+  .union([
+    z.literal(true),
+    z.literal(false),
+    z.object({
+      spec: z.record(z.string(), z.unknown()).optional(),
+      disabledTools: z.array(z.string().trim().min(1)).max(64).optional(),
+      exposure: z.record(z.string(), toolExposureBody).optional(),
+    }),
+    z.null(),
+  ])
+  .transform(toStoredAssignment);
+
+function toStoredAssignment(value: true | false | PackOverride | null): PackOverride | null {
+  if (value === true) {
+    return {};
+  }
+  if (value === false || value === null) {
+    return null;
+  }
+  return value;
+}
 
 const agentModeBody = z.object({
   id: z.string().regex(MODE_ID_RE, 'lowercase letters, digits, dash').max(48),
@@ -9,7 +38,9 @@ const agentModeBody = z.object({
   description: z.string().trim().max(200).optional(),
   instructions: z.string().max(6000).optional(),
   skills: z.array(z.string().trim().min(1)).max(32).optional(),
-  packs: z.array(z.string().trim().min(1)).max(16).optional(),
+  packs: z.record(z.string(), packAssignmentBody).optional(),
+  disabledTools: z.array(z.string().trim().min(1)).max(64).optional(),
+  exposure: z.record(z.string(), toolExposureBody).optional(),
   permissions: z.partialRecord(z.enum(MODE_OPS), modeOpGate).optional(),
 });
 
@@ -44,28 +75,6 @@ const budgetBody = z
   })
   .nullable()
   .optional();
-
-/** PackAssignment-литералы (спека 2026-09-15 §3, эталон `packs/registry.ts`):
- *  `true`/объект = вкл, `false`/`null`/отсутствие = выкл. На границе нормализуется
- *  в хранимую форму: `true` → `{}`, `false`/`null` → `null` (явный off). */
-const packAssignmentBody = z
-  .union([
-    z.literal(true),
-    z.literal(false),
-    z.object({ spec: z.record(z.string(), z.unknown()).optional() }),
-    z.null(),
-  ])
-  .transform(toStoredAssignment);
-
-function toStoredAssignment(value: true | false | PackConfig | null): PackConfig | null {
-  if (value === true) {
-    return {};
-  }
-  if (value === false || value === null) {
-    return null;
-  }
-  return value;
-}
 
 const capabilitiesBody = z.record(z.string(), packAssignmentBody).optional();
 

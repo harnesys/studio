@@ -3,6 +3,7 @@ import {
   DEFAULT_MODE_ID,
   MODE_ID_RE,
   type ModeOpGate,
+  type PackAssignment,
 } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
@@ -14,7 +15,11 @@ export const agentModeSchema = z.object({
   description: z.string().max(200),
   instructions: z.string().max(MODE_INSTRUCTIONS_MAX, `Max ${MODE_INSTRUCTIONS_MAX} characters`),
   skills: z.array(z.string()),
-  packs: z.array(z.string()),
+  // Map-форма (T7): дизайн пак-переключателей — T9, здесь только компилируемость.
+  packs: z.record(
+    z.string(),
+    z.custom<PackAssignment | null>(() => true),
+  ),
   permWrite: z.enum(['allow', 'ask', 'deny']),
   permProcess: z.enum(['allow', 'ask', 'deny']),
   permNetwork: z.enum(['allow', 'ask', 'deny']),
@@ -46,7 +51,7 @@ export function modeToFields(mode: AgentMode): AgentModeFields {
     description: mode.description ?? '',
     instructions: mode.instructions ?? '',
     skills: [...(mode.skills ?? [])],
-    packs: [...(mode.packs ?? [])],
+    packs: { ...(mode.packs ?? {}) },
     permWrite: mode.permissions?.['fs.write'] ?? FALLBACK_GATE,
     permProcess: mode.permissions?.process ?? FALLBACK_GATE,
     permNetwork: mode.permissions?.network ?? FALLBACK_GATE,
@@ -62,7 +67,7 @@ export function fieldsToMode(fields: AgentModeFields): AgentMode {
     ...(fields.description.trim() ? { description: fields.description.trim() } : {}),
     ...(fields.instructions.trim() ? { instructions: fields.instructions.trim() } : {}),
     ...(fields.skills.length ? { skills: [...fields.skills] } : {}),
-    ...(fields.packs.length ? { packs: [...fields.packs] } : {}),
+    ...(Object.keys(fields.packs).length ? { packs: { ...fields.packs } } : {}),
     permissions: {
       'fs.write': fields.permWrite,
       process: fields.permProcess,

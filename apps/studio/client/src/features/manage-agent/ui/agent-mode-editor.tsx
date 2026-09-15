@@ -59,7 +59,8 @@ export function AgentModeEditor({
 }: AgentModeEditorProps) {
   const mode = useWatch({ control: form.control, name: `modes.${index}` });
   const selectedSkills = mode?.skills ?? [];
-  const selectedPacks = mode?.packs ?? [];
+  // Map-форма (T7): чеклист по ключам карты; дизайн пак-переключателей — T9.
+  const selectedPacks = Object.keys(mode?.packs ?? {});
   const instructions = form.watch(`modes.${index}.instructions`) ?? '';
   const instructionsError = form.formState.errors.modes?.[index]?.instructions?.message;
 
@@ -71,10 +72,13 @@ export function AgentModeEditor({
   }
 
   function togglePacks(packName: string) {
-    const next = selectedPacks.includes(packName)
-      ? selectedPacks.filter((item) => item !== packName)
-      : [...selectedPacks, packName];
-    form.setValue(`modes.${index}.packs`, next, { shouldDirty: true });
+    const current = { ...(mode?.packs ?? {}) };
+    if (packName in current) {
+      delete current[packName];
+    } else {
+      current[packName] = {};
+    }
+    form.setValue(`modes.${index}.packs`, current, { shouldDirty: true });
   }
 
   return (

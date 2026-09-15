@@ -57,11 +57,33 @@ export function buildCapabilityUniverse(
   return universe;
 }
 
-/** `AgentMode` → поля резолвера режима. `disabledTools`/`exposure` у modes ещё нет
- *  (T7 заведёт); нормализатор packs transitional — см. `normalizeModePackMap`. */
+/** `AgentMode` → поля резолвера режима. Legacy массивы строк в `packs` идут через
+ *  нормализатор (transitional до миграции T8); map-форма проходит как есть.
+ *  Off-записи (`null`/`false`) в фид резолвера не попадают: для `isOn`-семантики
+ *  отсутствие ≡ выкл, поведение то же, что пас-through с null внутри. */
 export function toModeFields(
   mode: AgentMode,
-  toPackMap: (value: string[] | undefined) => Record<string, PackAssignment> | undefined,
+  toPackMap: (
+    value: string[] | Record<string, PackAssignment | null> | null | undefined,
+  ) => Record<string, PackAssignment | null> | undefined,
 ): ModeCapabilityFields {
-  return { id: mode.id, packs: toPackMap(mode.packs) };
+  const fields: ModeCapabilityFields = { id: mode.id };
+  const packMap = toPackMap(mode.packs);
+  if (packMap !== undefined) {
+    const on: Record<string, PackAssignment> = {};
+    for (const [name, assignment] of Object.entries(packMap)) {
+      if (assignment === undefined || assignment === null || assignment === false) {
+        continue;
+      }
+      on[name] = assignment;
+    }
+    fields.packs = on;
+  }
+  if (mode.disabledTools !== undefined) {
+    fields.disabledTools = mode.disabledTools;
+  }
+  if (mode.exposure !== undefined) {
+    fields.exposure = mode.exposure;
+  }
+  return fields;
 }

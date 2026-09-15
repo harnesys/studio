@@ -38,7 +38,11 @@ export type {
   RunRegistry,
   RunToolEntry,
 } from './src/application/capability-set.ts';
-export { CORE_SERVICE_TOOLS, resolveCapabilitySet } from './src/application/capability-set.ts';
+export {
+  CORE_SERVICE_TOOLS,
+  projectToolRegistry,
+  resolveCapabilitySet,
+} from './src/application/capability-set.ts';
 export type { CheckOptions } from './src/application/check.ts';
 export { check } from './src/application/check.ts';
 export { estimateTokens } from './src/application/compaction/estimate.ts';

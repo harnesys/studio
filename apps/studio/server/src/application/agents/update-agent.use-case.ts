@@ -11,6 +11,7 @@ import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domai
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import type { ValidateAgentConfigInput } from '../capabilities/validate-agent-config.use-case.ts';
 import { assertModelEffortSupported } from '../providers/provider.helpers.ts';
 import {
   isAgentsPackEnabled,
@@ -55,6 +56,7 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
     private readonly agents: AgentRepository,
     private readonly models?: LlmModelRepository,
     private readonly deskEvents?: DeskEventsPort,
+    private readonly validateConfig?: ValidateAgentConfigInput,
   ) {}
 
   async execute(request: UpdateAgentRequest): Promise<Agent> {
@@ -179,6 +181,37 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       graph: patch.graph ?? agent.graph,
       budget: patch.budget !== undefined ? patch.budget : agent.budget,
     });
+
+    // §7 write-path (тот же gate, что create): источники/overrides/режимы и
+    // child⊆creator закрывают update-обход; `core` provisioned в патч при записи.
+    if (
+      this.validateConfig &&
+      (request.capabilities !== undefined ||
+        request.enabledPlugins !== undefined ||
+        request.skills !== undefined ||
+        request.mcpServers !== undefined ||
+        request.modes !== undefined)
+    ) {
+      const checked = await this.validateConfig.execute({
+        workspaceId: request.workspaceId,
+        agentId: agent.id,
+        parentId: agent.parentId,
+        capabilities: request.capabilities ?? agent.capabilities,
+        enabledPlugins: request.enabledPlugins ?? agent.enabledPlugins,
+        skills: request.skills ?? agent.skills,
+        mcpServers: request.mcpServers ?? agent.mcpServers,
+        modes: request.modes ?? agent.modes,
+      });
+      if (request.capabilities !== undefined) {
+        patch.capabilities = checked.capabilities;
+      } else if (checked.capabilities !== agent.capabilities) {
+        // Heal без запроса: валидация provisioned `core`, строка его не имела.
+        patch.capabilities = checked.capabilities;
+      }
+      if (request.modes !== undefined) {
+        patch.modes = checked.modes ?? request.modes;
+      }
+    }
 
     patch.updatedAt = new Date().toISOString();
 

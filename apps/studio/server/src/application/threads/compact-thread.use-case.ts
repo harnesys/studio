@@ -10,7 +10,12 @@ import type {
   PendingSessionEvent,
   SessionEvent,
 } from 'harnesys';
-import { compactForced, resolveCapabilitySet, THRESHOLD_SUMMARY_NAME } from 'harnesys';
+import {
+  compactForced,
+  projectToolRegistry,
+  resolveCapabilitySet,
+  THRESHOLD_SUMMARY_NAME,
+} from 'harnesys';
 import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
 import type { ThreadRuntimeRegistry } from '../../adapters/thread-runtime.registry.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
@@ -167,12 +172,7 @@ export class CompactThreadUseCase implements CompactThreadInput {
     if (runSet.fatal.length > 0) {
       logger.warn({ scope: 'capabilities' }, `compact ${thread.id}: ${runSet.fatal.join('; ')}`);
     }
-    const runToolRegistry = new Map(
-      [...runSet.registry].map(([name, entry]) => [
-        name,
-        { ...entry.def, exposure: entry.exposure },
-      ]),
-    );
+    const runToolRegistry = projectToolRegistry(runSet.registry);
     try {
       for await (const ev of compactForced({
         agent: def,

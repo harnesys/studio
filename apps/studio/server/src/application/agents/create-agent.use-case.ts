@@ -7,10 +7,10 @@ import type {
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
 import {
-  ASK_MODE,
   DEFAULT_MODE_ID,
   defaultAgentCompaction,
   modeFromPreset,
+  normalizeModePackMap,
 } from '@harnesys/studio-shared';
 import type { HooksBinding, PermissionMap } from 'harnesys';
 import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
@@ -19,6 +19,7 @@ import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import type { ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import type { ValidateAgentConfigInput } from '../capabilities/validate-agent-config.use-case.ts';
 import { assertModelEffortSupported } from '../providers/provider.helpers.ts';
 import type { GetWorkspaceMcpInput } from '../workspaces/get-workspace-mcp.use-case.ts';
 import type { ListWorkspaceSkillsInput } from '../workspaces/list-workspace-skills.use-case.ts';
@@ -73,12 +74,14 @@ export type CreateAgentUseCaseDeps = {
   };
   /** Omitted on the catalog-port instance: that port emits desk events itself. */
   deskEvents?: DeskEventsPort;
+  /** Write-path §7 validation (ruling T7: provision core, strict остальное). */
+  validateConfig: ValidateAgentConfigInput;
 };
 
 export class CreateAgentUseCase implements CreateAgentInput {
   constructor(
     private readonly agents: AgentRepository,
-    private readonly deps: CreateAgentUseCaseDeps = {},
+    private readonly deps: CreateAgentUseCaseDeps,
   ) {}
 
   async execute(request: CreateAgentRequest): Promise<Agent> {
@@ -152,13 +155,23 @@ export class CreateAgentUseCase implements CreateAgentInput {
       defaultBudget = null;
     }
     const budget = request.budget ?? defaultBudget;
-    const modes = ensureAskMode(request.modes ?? this.seedDefaultModes());
+    const modes = ensureAskMode(request.modes ?? this.seedDefaultModes(capabilities));
     const defaultModeId = request.defaultModeId ?? null;
     const hooks = request.hooks ?? [];
-    // Spec §3 orphan: a delegate can only carry plugins the parent already has.
-    const enabledPlugins = intersectDelegatePlugins(request.enabledPlugins ?? {}, parent);
+    const enabledPlugins = request.enabledPlugins ?? {};
     validateModeIds(modes);
     validateDefaultModeId(defaultModeId, modes);
+    // §7 write-path: источники/overrides/режимы/child⊆creator; `core` provisioned,
+    // остальное — строгий отказ (HTTP 400, tool-path `{error}` через runGuard).
+    const checked = await this.deps.validateConfig.execute({
+      workspaceId: request.workspaceId,
+      parentId,
+      capabilities,
+      enabledPlugins,
+      skills,
+      mcpServers,
+      modes,
+    });
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
@@ -181,13 +194,13 @@ export class CreateAgentUseCase implements CreateAgentInput {
       mcpServers,
       graph,
       budget,
-      capabilities,
+      capabilities: checked.capabilities,
       permissions,
       color,
       hooks,
       enabledPlugins,
       defaultModeId,
-      modes,
+      modes: checked.modes ?? modes,
       createdAt: now,
       updatedAt: now,
     });
@@ -197,14 +210,31 @@ export class CreateAgentUseCase implements CreateAgentInput {
     return await Promise.resolve(created);
   }
 
-  private seedDefaultModes(): AgentMode[] {
-    const defaults = (this.deps.modePresets?.list() ?? [])
+  private seedDefaultModes(capabilities: Record<string, PackConfig | null>): AgentMode[] {
+    const granted = new Set(
+      Object.entries(capabilities)
+        .filter(([, value]) => {
+          const raw: unknown = value;
+          return raw !== undefined && raw !== null && raw !== false;
+        })
+        .map(([name]) => name),
+    );
+    // Сиды совместимые: strict-режим (`mode ⊆ agent`) требует, чтобы seeded-план
+    // не ломал создание агентов без plan-пака; ask/auto без packs проходят всегда.
+    // `core` provisioned валидацией позже и на фильтр не влияет.
+    return (this.deps.modePresets?.list() ?? [])
       .filter((preset) => preset.installedByDefault && preset.id !== DEFAULT_MODE_ID)
-      .map(modeFromPreset);
-    if (!defaults.some((mode) => mode.id === ASK_MODE.id)) {
-      defaults.push({ ...ASK_MODE });
-    }
-    return defaults;
+      .map(modeFromPreset)
+      .filter((mode) => {
+        const packMap = normalizeModePackMap(mode.packs);
+        if (packMap === undefined) {
+          return true;
+        }
+        return Object.entries(packMap).every(([name, assignment]) => {
+          const raw: unknown = assignment;
+          return raw === undefined || raw === null || raw === false || granted.has(name);
+        });
+      });
   }
 }
 
@@ -225,20 +255,6 @@ function resolveParent(
     throw new ValidationError('delegates cannot own delegates');
   }
   return parent;
-}
-
-/** Делегат: сохраняем только ключи `true`, у которых родитель включён; остальные — в nowhere.
- *  Top-level не трогаем: runtime `effectivePlugins` фильтрует по workspace-loaded набору. */
-function intersectDelegatePlugins(
-  enabled: Record<string, boolean>,
-  parent: Agent | null,
-): Record<string, boolean> {
-  if (parent === null) {
-    return enabled;
-  }
-  return Object.fromEntries(
-    Object.entries(enabled).filter(([name]) => parent.enabledPlugins[name] === true),
-  );
 }
 
 /** Single unknown → singular message; several → one plural list. */

@@ -52,7 +52,7 @@ export type CapabilityUniverse = {
   roster: AgentRosterEntry[];
   fsSkills?: SkillRegistry;
   makeLoadTools: (registry: RunRegistry) => ToolDefinition;
-  makeLoadSkill?: () => ToolDefinition;
+  makeLoadSkill?: () => ToolDefinition[];
   mode?: ModeCapabilityFields;
 };
 
@@ -319,7 +319,7 @@ function grantCoreServices(
   const source: CapabilitySource = `${PACK_PREFIX}${CORE_PACK}`;
   const services = [universe.makeLoadTools(asm.registry)];
   if (universe.fsSkills !== undefined && universe.makeLoadSkill !== undefined) {
-    services.push(universe.makeLoadSkill());
+    services.push(...universe.makeLoadSkill());
   }
   for (const service of services) {
     asm.registry.set(service.name, {

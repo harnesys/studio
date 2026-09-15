@@ -48,7 +48,12 @@ export function buildCapabilityUniverse(
       createLoadToolsTool(new Map([...registry].map(([name, entry]) => [name, entry.def]))),
   };
   if (skills !== undefined) {
-    universe.makeLoadSkill = () => aliasTool(createLoadSkillTool(skills), 'Skill');
+    // Ядро грантит обе формы: `load_skill` и CC-алиас `Skill` (spec §2; зеркалит
+    // авто-регистрацию `create-runtime.ts:101-107` — один и тот же исполняемый реестр).
+    universe.makeLoadSkill = () => {
+      const loadSkill = createLoadSkillTool(skills);
+      return [loadSkill, aliasTool(loadSkill, 'Skill')];
+    };
   }
   return universe;
 }

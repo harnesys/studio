@@ -121,7 +121,7 @@ export async function prepareExecuteGraphOpts(
     // Legacy host without a capabilitySet: the same resolver through the identity
     // wrapper; segment cache no longer exists — the set is freshly assembled here.
     const identity = resolveAgentIdentity(agent, {
-      baseRegistry: opts.toolRegistry ?? deps.toolRegistry,
+      baseRegistry: deps.toolRegistry,
       registrations: opts.packs ?? deps.packRegistrations ?? [],
       fsSkills: opts.skills ?? deps.skills,
       logger: runLogger,

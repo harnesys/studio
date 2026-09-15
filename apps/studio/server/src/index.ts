@@ -5,7 +5,7 @@ import { createStudio } from './composition/studio.ts';
 import { env } from './config/env.ts';
 import { logger } from './config/logger.ts';
 
-const app = await createStudio();
+const app = createStudio();
 const dist = join(import.meta.dir, '..', '..', 'client', 'dist');
 
 if (env.production) {

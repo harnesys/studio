@@ -2,12 +2,17 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentMode,
-  PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
 import type { HooksBinding, PermissionMap } from 'harnesys';
-import type { Agent, AgentGraph, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
+import type {
+  Agent,
+  AgentCapabilitiesMap,
+  AgentGraph,
+  AgentPatch,
+  AgentRepository,
+} from '../../domain/agent.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
@@ -38,7 +43,7 @@ export type UpdateAgentRequest = {
   mcpServers?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: AgentCapabilitiesMap;
   permissions?: PermissionMap | null;
   color?: string | null;
   hooks?: HooksBinding[];

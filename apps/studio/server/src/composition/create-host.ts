@@ -40,14 +40,13 @@ export type StudioHost = {
   secretStore?: SecretStore;
 };
 
-// biome-ignore lint/suspicious/useAwait: async host factory kept for the boot contract (`await` in createStudio); the only awaited step (closed-world materialization) was retired in T6.
-export async function createStudioHost(args: {
+export function createStudioHost(args: {
   store: StudioStore;
   platform: StudioPlatform;
   runtime: StudioRuntime;
   memory: StudioMemoryPorts;
   options: StudioHostOptions;
-}): Promise<StudioHost> {
+}): StudioHost {
   const { store, platform, runtime, memory, options } = args;
 
   const runtimeStateRepo = new SqliteRuntimeStateRepo(store.db, (threadId, events) => {

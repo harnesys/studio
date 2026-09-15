@@ -2,13 +2,13 @@ import {
   type AgentMode,
   defaultAgentCompaction,
   isModeId,
-  type PackConfig,
   type PortRef,
 } from '@harnesys/studio-shared';
 import { and, eq } from 'drizzle-orm';
-import { type HooksBinding, normalizePackAssignment, type PackAssignment } from 'harnesys';
+import { type HooksBinding, normalizePackAssignment } from 'harnesys';
 import type {
   Agent,
+  AgentCapabilitiesMap,
   AgentInsert,
   AgentPatch,
   AgentRepository,
@@ -190,14 +190,14 @@ function coalesceCompaction(value: PortRef | undefined): PortRef {
  * normalizes to `{}`; objects pass through; `false`, `null`, and
  * `undefined` drop the key.
  */
-function parsePacks(raw: string | null): Record<string, PackConfig | null> {
-  const parsed = parseJsonObject<Record<string, PackConfig | boolean | null>>(raw) ?? {};
-  const out: Record<string, PackConfig | null> = {};
+function parsePacks(raw: string | null): AgentCapabilitiesMap {
+  const parsed = parseJsonObject<AgentCapabilitiesMap>(raw) ?? {};
+  const out: AgentCapabilitiesMap = {};
   for (const [name, value] of Object.entries(parsed)) {
     if (value === undefined || value === null || value === false) {
       continue;
     }
-    out[name] = normalizePackAssignment(value as PackAssignment);
+    out[name] = normalizePackAssignment(value);
   }
   return out;
 }

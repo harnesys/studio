@@ -8,12 +8,12 @@
  *  отказ от обязательного флага → 400 `core is mandatory`. Остальные правила §7 —
  *  строгий отказ с первого дня. */
 
-import type { AgentMode, PackConfig } from '@harnesys/studio-shared';
+import type { AgentMode } from '@harnesys/studio-shared';
 import type { AgentDefinition, AgentPacks, PackAssignment, PackRegistration } from 'harnesys';
 import { normalizePackAssignment, packTools } from 'harnesys';
 import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
-import type { AgentRepository } from '../../domain/agent.port.ts';
+import type { AgentCapabilitiesMap, AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { effectivePluginNames } from './effective-plugins.ts';
@@ -35,7 +35,7 @@ export type ValidateAgentConfigRequest = {
   agentId?: string;
   /** Создатель делегата; задан — включаются проверки child ⊆ creator-effective. */
   parentId?: string | null;
-  capabilities: Record<string, PackConfig | null>;
+  capabilities: AgentCapabilitiesMap;
   enabledPlugins?: Record<string, boolean>;
   skills?: string[];
   mcpServers?: string[];
@@ -44,7 +44,7 @@ export type ValidateAgentConfigRequest = {
 
 export type ValidateAgentConfigResult = {
   /** Кандидат с provisioned `core` (остальное как пришло). */
-  capabilities: Record<string, PackConfig | null>;
+  capabilities: AgentCapabilitiesMap;
   /** Режимы с provisioned `core` в map-форме; пустой preload не трогаем. */
   modes: AgentMode[] | undefined;
 };
@@ -110,7 +110,7 @@ function isPackOn(assignment: PackAssignment | null | undefined): boolean {
 }
 
 /** Включённые паки кандидата (`false`/`null`/отсутствие = выкл, эталон `registry.ts`). */
-function toEnabledPacks(capabilities: Record<string, PackConfig | null>): AgentPacks {
+function toEnabledPacks(capabilities: AgentCapabilitiesMap): AgentPacks {
   const packs: AgentPacks = {};
   for (const [name, value] of Object.entries(capabilities)) {
     if (value === null) {
@@ -126,9 +126,7 @@ function toEnabledPacks(capabilities: Record<string, PackConfig | null>): AgentP
 }
 
 /** Ruling core: явный off → 400; отсутствие → provision `{}` (merge миграции T8). */
-function provisionCore(
-  capabilities: Record<string, PackConfig | null>,
-): Record<string, PackConfig | null> {
+function provisionCore(capabilities: AgentCapabilitiesMap): AgentCapabilitiesMap {
   const raw: unknown = capabilities.core;
   if (raw === false || raw === null) {
     throw new ValidationError('core is mandatory');

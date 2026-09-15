@@ -11,7 +11,13 @@ import type {
   RunRegistry,
   RuntimeHandle,
 } from 'harnesys';
-import { aliasTool, CORE_SERVICE_TOOLS, createLoadSkillTool, createLoadToolsTool } from 'harnesys';
+import {
+  aliasTool,
+  CORE_SERVICE_TOOLS,
+  createLoadSkillTool,
+  createLoadToolsTool,
+  projectToolRegistry,
+} from 'harnesys';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { Workspace } from '../../domain/workspace.port.ts';
 
@@ -43,8 +49,7 @@ export function buildCapabilityUniverse(
     baseRegistry,
     roster: [],
     fsSkills: skills,
-    makeLoadTools: (registry: RunRegistry) =>
-      createLoadToolsTool(new Map([...registry].map(([name, entry]) => [name, entry.def]))),
+    makeLoadTools: (registry: RunRegistry) => createLoadToolsTool(projectToolRegistry(registry)),
   };
   if (skills !== undefined) {
     // Ядро грантит обе формы: `load_skill` и CC-алиас `Skill` (spec §2; зеркалит

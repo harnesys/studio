@@ -19,7 +19,7 @@ export type RunToolEntry = {
 export type RunRegistry = Map<string, RunToolEntry>;
 
 /** Плоская проекция реестра рана в исполняемый tool-map: exposure едет копией
- *  на деф (`RunTarget.toolRegistry`-форма; движок читает флаги из дефов). */
+ *  на деф (плоский Map для deps движка; движок читает флаги из дефов). */
 export function projectToolRegistry(registry: RunRegistry): Map<string, ToolDefinition> {
   return new Map(
     [...registry].map(([name, entry]) => [name, { ...entry.def, exposure: entry.exposure }]),

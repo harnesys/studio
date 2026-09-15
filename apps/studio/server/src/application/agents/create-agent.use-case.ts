@@ -2,14 +2,19 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentMode,
-  PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
 import { DEFAULT_MODE_ID, defaultAgentCompaction, modeFromPreset } from '@harnesys/studio-shared';
 import type { HooksBinding, PermissionMap } from 'harnesys';
 import { DEFAULT_REACT_BUDGET } from '../../config/constants.ts';
-import type { Agent, AgentGraph, AgentRepository } from '../../domain/agent.port.ts';
+import type {
+  Agent,
+  AgentCapabilitiesMap,
+  AgentGraph,
+  AgentRepository,
+} from '../../domain/agent.port.ts';
+
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import type { ModePresetRepository } from '../../domain/mode-preset.port.ts';
@@ -47,7 +52,7 @@ export type CreateAgentRequest = {
   /** When set, stored as-is; otherwise host builds default ReAct. */
   graph?: AgentGraph;
   budget?: AgentBudget | null;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: AgentCapabilitiesMap;
   permissions?: PermissionMap | null;
   color?: string | null;
   hooks?: HooksBinding[];
@@ -205,7 +210,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     return await Promise.resolve(created);
   }
 
-  private seedDefaultModes(capabilities: Record<string, PackConfig | null>): AgentMode[] {
+  private seedDefaultModes(capabilities: AgentCapabilitiesMap): AgentMode[] {
     const granted = new Set(
       Object.entries(capabilities)
         .filter(([, value]) => {

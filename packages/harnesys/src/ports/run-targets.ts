@@ -9,7 +9,6 @@ import type { PathsConfig } from './paths.ts';
 import type { PermissionMap } from './permissions.ts';
 import type { RuntimeState } from './runtime-state.ts';
 import type { SkillRegistry } from './skills.ts';
-import type { ToolDefinition } from './tools.ts';
 
 export type RunTarget = {
   state: RuntimeState;
@@ -25,8 +24,6 @@ export type RunTarget = {
   universe?: CapabilityUniverse;
   /** FS skill registry for the run; falls back to the runtime ctx set. */
   skills?: SkillRegistry;
-  /** Per-run tool registry; overrides the engine default when present. */
-  toolRegistry?: Map<string, ToolDefinition>;
   /** Per-run hook bindings; merged with the runtime opts set on the run bus. */
   hooks?: HookBinding[];
   /** Host-assembled run bus (E2); wins over deps/opts binding assembly (RunTargetOpts.hooksEmit). */

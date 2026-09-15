@@ -20,7 +20,7 @@ export type StudioOptions = {
 };
 
 /** Composition root: store → platform → runtime → memory → host → http. */
-export async function createStudio(options: StudioOptions = {}): Promise<Hono> {
+export function createStudio(options: StudioOptions = {}): Hono {
   const store = createStudioStore(options);
   const platform = createStudioPlatform(options, store);
   const runtime = wireRuntime({
@@ -36,6 +36,6 @@ export async function createStudio(options: StudioOptions = {}): Promise<Hono> {
     workspaces: store.workspaceRepo,
     filesWatcher: platform.filesWatcher,
   });
-  const host = await createStudioHost({ store, platform, runtime, memory, options });
+  const host = createStudioHost({ store, platform, runtime, memory, options });
   return registerStudioHttp({ store, platform, runtime, memory, host });
 }

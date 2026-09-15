@@ -266,7 +266,8 @@ function applyMode(
   subtractModeLists(asm, mode);
 }
 
-/** Замена `deferredPackNames`: пустая/отсутствующая `mode.packs` = полный preload (не «всё отложить»). */
+/** Пустая/отсутствующая `mode.packs` = полный preload (ничего не откладывается);
+ *  при непустой карте тулы паков вне неё переходят в `deferred`. */
 function markModePreload(asm: Assembly, mode: ModeCapabilityFields): void {
   const preload = mode.packs;
   if (preload === undefined || Object.keys(preload).length === 0) {

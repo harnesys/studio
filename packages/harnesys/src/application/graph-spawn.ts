@@ -194,8 +194,8 @@ function resolveTargets(
       def = agents.resolve(hit.id, parent);
     }
     if (!def) {
-      const suffix = roster.length > 0 ? `. Available agents: ${formatAgentTargets(roster)}` : '';
-      deny(call.agentId, `spawn target "${call.agentId}" not found${suffix}`);
+      const available = roster.length > 0 ? formatAgentTargets(roster) : '(none)';
+      deny(call.agentId, `unknown spawn target "${call.agentId}". Available agents: ${available}`);
       continue;
     }
     const spawnId = call.spawnId ?? crypto.randomUUID();

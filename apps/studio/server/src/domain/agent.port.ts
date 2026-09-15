@@ -2,13 +2,17 @@ import type {
   AgentBudget,
   AgentGenerationSettings,
   AgentMode,
-  PackConfig,
   PortRef,
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
-import type { Edge, HooksBinding, Node, PermissionMap } from 'harnesys';
+import type { Edge, HooksBinding, Node, PackAssignment, PermissionMap } from 'harnesys';
 
 export type AgentGraphRankdir = 'TB' | 'LR';
+
+/** Хранимая capability-карта агента: имя источника → assignment (`null` = явный off).
+ *  Значения — полная override-форма (`spec`/`disabledTools`/`exposure`), записанная
+ *  write-path'ом после нормализации (`agent.body.ts`, `normalizePackAssignment`). */
+export type AgentCapabilitiesMap = Record<string, PackAssignment | null>;
 
 export type AgentGraphPosition = { x: number; y: number };
 
@@ -42,7 +46,7 @@ export type Agent = {
   mcpServers: string[];
   graph: AgentGraph;
   budget: AgentBudget | null;
-  capabilities: Record<string, PackConfig | null>;
+  capabilities: AgentCapabilitiesMap;
   /** Base permission map (mode ceiling / spawn base); null = DEFAULT_PERMISSIONS. */
   permissions: PermissionMap | null;
   /** Card color (CC palette); null = host default. */
@@ -72,7 +76,7 @@ export type AgentPatch = {
   mcpServers?: string[];
   graph?: AgentGraph;
   budget?: AgentBudget | null;
-  capabilities?: Record<string, PackConfig | null>;
+  capabilities?: AgentCapabilitiesMap;
   permissions?: PermissionMap | null;
   color?: string | null;
   hooks?: HooksBinding[];

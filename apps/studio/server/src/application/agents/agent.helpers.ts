@@ -1,10 +1,5 @@
-import {
-  type AgentMode,
-  ASK_MODE,
-  DEFAULT_MODE_ID,
-  type PackConfig,
-} from '@harnesys/studio-shared';
-import type { Agent, AgentRepository } from '../../domain/agent.port.ts';
+import { type AgentMode, ASK_MODE, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
+import type { Agent, AgentCapabilitiesMap, AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 
 export function requireAgent(agents: AgentRepository, workspaceId: string, agentId: string): Agent {
@@ -42,7 +37,7 @@ export function validateDefaultModeId(defaultModeId: string | null, modes: Agent
   }
 }
 
-export function isAgentsPackEnabled(capabilities: Record<string, PackConfig | null>): boolean {
+export function isAgentsPackEnabled(capabilities: AgentCapabilitiesMap): boolean {
   const v: unknown = capabilities.agents;
   return v !== undefined && v !== null && v !== false;
 }

@@ -115,7 +115,14 @@ export async function prepareExecuteGraphOpts(
   const startNodeId = answer === null ? undefined : snap?.cursor.interrupt?.nodeId;
   let runRegistry: Map<string, ToolDefinition>;
   let packOutputs = opts.packOutputs;
-  if (packOutputs !== undefined) {
+  if (opts.capabilitySet !== undefined) {
+    // Prepared run: the host resolver already filtered/granted; entries carry exposure.
+    runRegistry = new Map();
+    for (const [name, entry] of opts.capabilitySet.registry) {
+      runRegistry.set(name, { ...entry.def, exposure: entry.exposure });
+    }
+    packOutputs = opts.capabilitySet.packOutputs;
+  } else if (packOutputs !== undefined) {
     // Prebuilt map (oneshot path): tools are attached upstream.
     runRegistry = new Map(filterToolsForAgent(opts.toolRegistry ?? deps.toolRegistry, agent));
     runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));

@@ -12,6 +12,7 @@ import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import type { SkillRegistry } from '../ports/skills.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
+import type { CapabilitySet } from './capability-set.ts';
 import type { HookEmitCtx } from './hooks/emit-hook.ts';
 import type { LlmNoteProvider } from './llm-notes.ts';
 import type { PackRunMap } from './packs/pack-run.ts';
@@ -55,6 +56,9 @@ export type RunTargetOpts = {
   deferredPacks?: readonly string[];
   /** Memoized per-run pack outputs; when present the engine skips create. */
   packOutputs?: PackRunMap;
+  /** Pre-resolved capability set (RunTarget.capabilitySet); when set the engine
+   *  skips identity resolution and pack create. */
+  capabilitySet?: CapabilitySet;
   /** FS skill registry for the combined load_skill catalog. */
   skills?: SkillRegistry;
   /** Per-run hook bindings (RunTarget.hooks); merged with RunEngineDeps.hooks on the run bus. */

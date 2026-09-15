@@ -64,6 +64,7 @@ export {
   projectedForEstimate,
 } from './src/application/llm.ts';
 export type { LlmNote, LlmNoteContext, LlmNoteProvider } from './src/application/llm-notes.ts';
+export type { PackRunMap, PackRunOutput } from './src/application/packs/pack-run.ts';
 export type { ResolvedPack } from './src/application/packs/registry.ts';
 export {
   applySettingDefaults,

@@ -6,7 +6,7 @@ import {
 } from '@harnesys/studio-shared';
 import { AlertCircleIcon, CalendarClockIcon, RotateCcwIcon, TerminalIcon } from 'lucide-react';
 
-import { useLiveTail } from '@/entities/session';
+import { useLiveTail, useSessionStore } from '@/entities/session';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
 import { attachmentUrl } from '@/shared/api';
@@ -15,8 +15,8 @@ import { useStudioNavigation } from '@/shared/config/navigation';
 import { FileChip } from '@/shared/ui/file-chip';
 import { Markdown } from '@/shared/ui/markdown';
 import { toast } from '@/shared/ui/toast';
+import { splitDirectiveTags } from '../model/directive-tag';
 import type { MapInfo } from '../model/map-groups';
-import { splitModeTags } from '../model/mode-tag';
 import type { SpawnInfo } from '../model/spawn-groups';
 import {
   groupSegments,
@@ -218,7 +218,12 @@ function TurnSegmentView({
     const atts = segment.event.attachments;
     const wake = isScheduleWakeEvent(segment.event);
     const rawText = segment.event.text ?? '';
-    const { text: visibleText, badges: modeBadges } = splitModeTags(rawText);
+    const { text: visibleText, badges } = splitDirectiveTags(rawText);
+    const clientEventId = segment.event.clientEventId;
+    const sidecarSkills =
+      !badges.some((badge) => badge.kind === 'skill') && clientEventId
+        ? useSessionStore.getState().sentSkillsFor(clientEventId)
+        : undefined;
     return (
       <div className="flex flex-col items-end gap-2">
         {wake ? (
@@ -232,7 +237,7 @@ function TurnSegmentView({
                 ))}
               </div>
             ) : null}
-            <ModeTagBadges badges={modeBadges} />
+            <ModeTagBadges badges={badges} sidecarSkills={sidecarSkills} />
             {visibleText ? (
               <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3.5 py-1.5 text-secondary-foreground shadow-xs">
                 {visibleText}

@@ -1,4 +1,5 @@
 export { type ComfortScrollOptions, useComfortFollow } from './model/comfort-scroll';
+export { type DirectiveBadge, splitDirectiveTags } from './model/directive-tag';
 export {
   extractMaps,
   type MapInfo,

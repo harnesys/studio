@@ -12,6 +12,7 @@ export type SendMessageOptions = {
   effort?: string;
   attachments?: ThreadAttachment[];
   mode?: string;
+  skills?: string[];
 };
 
 type RunConflictBody = {
@@ -21,7 +22,7 @@ type RunConflictBody = {
 };
 
 export async function sendMessage(options: SendMessageOptions) {
-  const { threadId, content, effort, attachments, mode } = options;
+  const { threadId, content, effort, attachments, mode, skills } = options;
   const trimmed = content.trim();
   if (!trimmed && !attachments?.length) {
     return;
@@ -29,6 +30,9 @@ export async function sendMessage(options: SendMessageOptions) {
   trace('client', 'send start', { threadId, text: preview(trimmed) });
 
   const clientEventId = crypto.randomUUID();
+  if (skills?.length) {
+    useSessionStore.getState().setSentSkills(threadId, clientEventId, skills);
+  }
   const startedHere = !useSessionStore.getState().activeRuns[threadId];
   const optimisticController = startedHere ? new AbortController() : null;
   if (startedHere && optimisticController) {
@@ -56,6 +60,7 @@ export async function sendMessage(options: SendMessageOptions) {
       effort,
       attachmentIds: attachments?.map((item) => item.id),
       mode,
+      skills,
       clientEventId,
     });
     if (optimisticController?.signal.aborted) {

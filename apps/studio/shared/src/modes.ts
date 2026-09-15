@@ -1,3 +1,5 @@
+import type { PackAssignment } from 'harnesys';
+
 export const MODE_OPS = ['fs.write', 'process', 'network', 'mcp', 'agents'] as const;
 export type ModeOp = (typeof MODE_OPS)[number];
 export type ModeOpGate = 'allow' | 'ask' | 'deny';
@@ -73,4 +75,19 @@ export function modeFromPreset(preset: ModePreset): AgentMode {
     ...(preset.packs?.length ? { packs: [...preset.packs] } : {}),
     ...(preset.permissions ? { permissions: { ...preset.permissions } } : {}),
   };
+}
+
+/** Transitional (T5): `AgentMode.packs` still `string[]` in DB rows; T7 switches
+ *  the field to an assignment map and T8 deletes this together with legacy data.
+ *  Array → map with `{}` values; an existing map passes through untouched. */
+export function normalizeModePackMap(
+  value: string[] | Record<string, PackAssignment> | null | undefined,
+): Record<string, PackAssignment> | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return Object.fromEntries(value.map((name) => [name, {}]));
+  }
+  return value;
 }

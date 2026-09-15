@@ -1,5 +1,6 @@
 import {
   agentsCapability,
+  coreCapability,
   episodicMemoryCapability,
   fetchCapability,
   filesCapability,
@@ -108,6 +109,9 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
   });
 
   return [
+    // Core pack (ask_user/map/wait): the capability resolver grants it to every
+    // agent that carries `core` in capabilities (migration `capability_core_v1`).
+    registerPack(coreCapability, { resolveScope: stubScope }),
     registerPack(filesCapability, { resolveScope: stubScope }),
     registerPack(shellCapability, { resolveScope: stubScope }),
     registerPack(fetchCapability, { resolveScope: stubScope }),

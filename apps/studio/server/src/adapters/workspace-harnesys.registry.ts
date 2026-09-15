@@ -12,16 +12,14 @@ import type {
   RunEventStore,
   RunLifecycleStore,
   RuntimeHandle,
+  SkillRegistry,
 } from 'harnesys';
 import {
-  askUser,
   bindSkillComponents,
   composeSkillRegistries,
   createRuntime,
   type Logger,
-  mapTool,
   mergePluginMcpFragments,
-  wait,
 } from 'harnesys';
 import { FsSkillRegistry, loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import {
@@ -68,6 +66,9 @@ export class WorkspaceHarnesysRegistry {
   private readonly cache = new Map<string, Promise<RuntimeHandle>>();
   /** Immutable parse-result cache: `${name}@${revision}` → raw IR. Never mutated. */
   private readonly irCache = new Map<string, PluginIr>();
+  /** Composed FS+plugin `SkillRegistry` of the live runtimes. `RuntimeHandle.skills`
+   *  is a list()-only view; run grants build executable `load_skill` over the real one. */
+  private readonly skillsCache = new Map<string, SkillRegistry>();
 
   constructor(
     private readonly models: ModelsPort,
@@ -99,6 +100,7 @@ export class WorkspaceHarnesysRegistry {
   async forget(workspaceId: string): Promise<void> {
     const pending = this.cache.get(workspaceId);
     this.cache.delete(workspaceId);
+    this.skillsCache.delete(workspaceId);
     if (!pending) {
       return;
     }
@@ -117,6 +119,11 @@ export class WorkspaceHarnesysRegistry {
    */
   effectiveRegistrations(_workspace: Workspace): PackRegistration[] {
     return [...this.packRegistrations];
+  }
+
+  /** Реальный compose-реестр скилов workspace; `undefined` до прогрева `get(workspace)`. */
+  skillsFor(workspaceId: string): SkillRegistry | undefined {
+    return this.skillsCache.get(workspaceId);
   }
 
   /**
@@ -240,11 +247,12 @@ export class WorkspaceHarnesysRegistry {
       this.runtime?.logger?.warn(`[plugins] ${diagnostic.code}: ${diagnostic.message}`);
     }
     const mcp = merged.mcp;
-    return createRuntime({
+    const runtime = await createRuntime({
       models: this.models,
-      // files/shell/fetch come from the base packs in packRegistrations;
-      // ask_user / map / wait have no pack. Per-agent gating in run targets.
-      tools: [askUser(), mapTool(), wait()],
+      // Host base registry is code + auto services only. ask_user/map/wait come
+      // with the `core` pack through the capability resolver's grant (T5);
+      // per-agent gating lives in `resolveCapabilitySet`, not in this list.
+      tools: [],
       packs: [...this.packRegistrations],
       agents: {
         resolve: (id: string) => this.resolveAgent(id),
@@ -264,6 +272,8 @@ export class WorkspaceHarnesysRegistry {
       skills,
       ...this.runtime,
     });
+    this.skillsCache.set(workspace.id, skills);
+    return runtime;
   }
 
   resolveAgentDefinition(id: string): AgentDefinition | undefined {

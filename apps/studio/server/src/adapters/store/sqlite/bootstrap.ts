@@ -2,6 +2,7 @@ import { ASK_MODE, DEFAULT_MODE_ID, modeFromPreset } from '@harnesys/studio-shar
 import { eq, sql } from 'drizzle-orm';
 import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
 import { backfillAgentsModeGates } from './bootstrap-agents-gate-migration.ts';
+import { migrateCapabilityCore } from './bootstrap-capability-core-migration.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
 import { cleanupReservedModeIds } from './bootstrap-modes-cleanup.ts';
 import type { StudioDb } from './connection.ts';
@@ -369,6 +370,10 @@ export function bootstrap(db: StudioDb): void {
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN color text;'));
   } catch {}
+
+  // capability_core_v1: core есть у всех агентов до флипа composition-root
+  // на резолвер (иначе таргет с fatal/без ask_user). Идемпотентно по маркеру.
+  migrateCapabilityCore(db);
 
   try {
     db.run(

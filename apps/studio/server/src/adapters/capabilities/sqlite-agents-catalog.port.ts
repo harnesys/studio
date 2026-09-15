@@ -9,12 +9,14 @@ import type {
   CapabilityScope,
 } from 'harnesys';
 import type { CreateAgentInput } from '../../application/agents/create-agent.use-case.ts';
+import { effectivePluginNames } from '../../application/capabilities/effective-plugins.ts';
 import type { PluginAgentCatalog } from '../../application/plugins/plugin-agents.ts';
 import type { Agent, AgentPatch, AgentRepository } from '../../domain/agent.port.ts';
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
+import { dbAgentDefinition } from '../workspace-agent-definitions.ts';
 
 /** Late-wired resolver for `pluginName:agentName` catalog ids (set in create-host). */
 export type PluginAgentsRef = {
@@ -63,10 +65,15 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
         parentId: row.parentId,
         ...(row.color !== null ? { color: row.color } : {}),
       }));
-    return this.pluginAgentsOf(scope.workspaceId).then((pluginAgents) => [
-      ...base,
-      ...pluginAgents.list(),
-    ]);
+    // B3: plugin-агенты видит только агент, у которого их плагин включён
+    // (closed-world пересечение того же образца, что `effectivePlugins`).
+    const agentEnabled = this.deps.agents.findById(scope.agentId)?.enabledPlugins;
+    return this.pluginAgentsOf(scope.workspaceId).then((pluginAgents) => {
+      const summaries = pluginAgents.list();
+      const owners = summaries.map((entry) => pluginOwnerOf(entry.id));
+      const enabled = effectivePluginNames([...new Set(owners)], agentEnabled);
+      return [...base, ...summaries.filter((entry) => enabled.has(pluginOwnerOf(entry.id)))];
+    });
   }
 
   async get(scope: CapabilityScope, id: string): Promise<AgentDefinition | null> {
@@ -208,47 +215,13 @@ function resolveModelFields(
   return { modelId: found.id, effort, generation };
 }
 
-function toAgentDefinition(agent: Agent, deps: SqliteAgentsCatalogPortDeps): AgentDefinition {
-  return {
-    id: agent.id,
-    prompts: { main: { instructions: agent.instructions } },
-    model: resolveModelRef(agent, deps),
-    skills: agent.skills,
-    tools: agent.tools,
-    mcpServers: agent.mcpServers,
-    toolOutput: agent.toolOutput ?? undefined,
-    compaction: agent.compaction,
-    capabilities: agent.capabilities,
-    graph: agent.graph,
-    budget: agent.budget ?? undefined,
-    ...(agent.permissions ? { permissions: agent.permissions } : {}),
-  };
+/** Catalog id `pluginName:agentName` → plugin owner (`:`-префикс). */
+function pluginOwnerOf(id: string): string {
+  return id.split(':')[0] ?? id;
 }
 
-function resolveModelRef(
-  agent: Agent,
-  deps: SqliteAgentsCatalogPortDeps,
-): AgentModelRef | undefined {
-  if (!agent.modelId) {
-    return undefined;
-  }
-  const effort = agent.effort ?? undefined;
-  const generation = agent.generation ?? undefined;
-  if (!deps.models || !deps.providers) {
-    return undefined;
-  }
-  const model = deps.models.findById(agent.modelId);
-  if (!model) {
-    return undefined;
-  }
-  const provider = deps.providers.findById(model.providerId);
-  if (!provider) {
-    return undefined;
-  }
-  return {
-    provider: provider.name,
-    model: model.name,
-    effort,
-    generation,
-  };
+/** B4: одна сборка definition с registry-путём — общий `dbAgentDefinition`
+ *  (capabilities → `packs`, hooks, enabledPlugins); дубль с `capabilities`-полем удалён. */
+function toAgentDefinition(agent: Agent, deps: SqliteAgentsCatalogPortDeps): AgentDefinition {
+  return dbAgentDefinition(agent, { modelRepo: deps.models, providerRepo: deps.providers });
 }

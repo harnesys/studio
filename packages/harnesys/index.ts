@@ -123,6 +123,8 @@ export {
   resolveToolAlias,
 } from './src/application/tool-aliases.ts';
 export { createToolRegistry, validateToolInput } from './src/application/tool-registry.ts';
+export { createLoadToolsTool } from './src/application/tools/create-load-tools-tool.ts';
+export { aliasTool } from './src/application/tools/tool-alias.ts';
 export { validateStructural } from './src/application/validate.ts';
 export type {
   AgentBudget,

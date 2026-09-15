@@ -1,27 +1,29 @@
-import { effectiveMode, resolveModeId } from '@harnesys/studio-shared';
+import { effectiveMode, normalizeModePackMap, resolveModeId } from '@harnesys/studio-shared';
 import type {
   AgentDefinition,
-  AgentPacks,
   HookBinding,
   HookEmitCtx,
-  PackRegistration,
   PathEntrySpec,
   RunTarget,
   RunTargets,
   RuntimeHandle,
 } from 'harnesys';
-import { bindMonitorComponents } from 'harnesys';
+import { bindMonitorComponents, resolveCapabilitySet } from 'harnesys';
+import { effectivePlugins } from '../application/capabilities/effective-plugins.ts';
+import { buildCapabilityUniverse, toModeFields } from '../application/capabilities/universe.ts';
 import { agentHookBindings, pluginHookBindings } from '../application/plugins/plugin-grant-gate.ts';
 import { pluginUserConfig } from '../application/plugins/plugin-user-config.ts';
 import { runModeFields } from '../application/threads/thread.helpers.ts';
 import { PLUGIN_SESSION_START_HOOK_TIMEOUT_MS } from '../config/constants.ts';
+import { logger } from '../config/logger.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { BranchStateSeeder } from '../domain/branch-state-seeder.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { MonitorJobRegistrar } from '../domain/monitor-jobs.port.ts';
 import type { RuntimeStateRepository } from '../domain/runtime-state.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
-import type { Workspace, WorkspaceRepository } from '../domain/workspace.port.ts';
+import type { WorkspaceRepository } from '../domain/workspace.port.ts';
+import { runInHostToolScope } from './host-tool-scope.ts';
 import type { RunHookBuses } from './run-hook-buses.adapter.ts';
 import { permissionMapForRun } from './tool-confirm-policy.ts';
 import type {
@@ -63,7 +65,7 @@ export class StudioRunTargets implements RunTargets {
     }
     const plugins = effectivePlugins(
       await this.deps.workspaceHarnesys.loadEnabledPlugins(thread.workspaceId),
-      agent,
+      agent.enabledPlugins,
     );
     const bindings = composeHookBindings(plugins, agent, workspace.path);
     if (bindings.length === 0) {
@@ -121,15 +123,36 @@ export class StudioRunTargets implements RunTargets {
       return null;
     }
     const state = this.deps.runtimeStates.forState(threadId);
-    // Same list the runtime was built with (host packs for this workspace),
-    // or agent pack gating diverges. Pack tools are attached once by the
-    // engine (attachPackRun inside the run scope); pre-creating them here
-    // caused pack_tool_collision for every tool.
-    const registrations = this.effectiveRegistrations(workspace);
-    const registry = new Map(hx.tools.registry());
+    const universe = buildCapabilityUniverse(workspace, {
+      hx,
+      workspaceHarnesys: this.deps.workspaceHarnesys,
+    });
+    // Pack `create()` runs here, outside a live run: same host-scope contract as
+    // the closed-world materialization. The legacy `tools` allowlist bridge is
+    // neutralized on the run path (the DB column is a materialized snapshot, B6;
+    // the column itself is removed in T6).
+    const capabilitySet = runInHostToolScope(
+      { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
+      () =>
+        resolveCapabilitySet(
+          { ...agent, tools: undefined },
+          {
+            ...universe,
+            roster: this.deps.workspaceHarnesys.listScopedRoster(agent),
+            mode: toModeFields(mode, normalizeModePackMap),
+          },
+        ),
+    );
+    if (capabilitySet.fatal.length > 0) {
+      logger.warn(
+        { scope: 'capabilities' },
+        `run target ${threadId}: ${capabilitySet.fatal.join('; ')}`,
+      );
+      return null;
+    }
     const plugins = effectivePlugins(
       await this.deps.workspaceHarnesys.loadEnabledPlugins(thread.workspaceId),
-      agent,
+      agent.enabledPlugins,
     );
     const hookBindings = composeHookBindings(plugins, agent, workspace.path);
     const binDirs = collectBinDirs(plugins);
@@ -151,9 +174,17 @@ export class StudioRunTargets implements RunTargets {
       agent,
       permissions: permissionMapForRun(agentRow.permissions, mode),
       paths: { allow: [workspace.path], cwd: workspace.path },
-      packs: registrations,
-      deferredPacks: deferredPackNames(agent.packs, registrations, mode.packs),
-      toolRegistry: registry,
+      // Single decision: the resolver assembled the run registry once; the
+      // engine's `capabilitySet` branch skips `resolveAgentIdentity`/pack create.
+      // `toolRegistry` stays on the port until T6 — defs carry the entry's
+      // exposure flag (same shape the legacy path produced).
+      capabilitySet,
+      toolRegistry: new Map(
+        [...capabilitySet.registry].map(([name, entry]) => [
+          name,
+          { ...entry.def, exposure: entry.exposure },
+        ]),
+      ),
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
       hooks: hookBindings,
       hooksEmit,
@@ -172,26 +203,6 @@ export class StudioRunTargets implements RunTargets {
       }
     }
   }
-
-  private effectiveRegistrations(workspace: Workspace): PackRegistration[] {
-    return this.deps.workspaceHarnesys.effectiveRegistrations(workspace);
-  }
-}
-
-/**
- * Effective plugin set (spec §4 per-agent): workspace enabled ∩ agent
- * enabled. Closed world: an `undefined` / empty agent map names no plugins
- * and yields none; a non-empty map intersects the workspace set literally.
- */
-function effectivePlugins(
-  loaded: LoadedWorkspacePlugin[],
-  agent: AgentDefinition,
-): LoadedWorkspacePlugin[] {
-  const overrides = agent.enabledPlugins;
-  if (overrides === undefined || Object.keys(overrides).length === 0) {
-    return [];
-  }
-  return loaded.filter((entry) => overrides[entry.record.name] === true);
 }
 
 /** Plugin bindings (name order, spec §2.4) then agent bindings. */
@@ -237,17 +248,4 @@ function collectBinDirs(plugins: LoadedWorkspacePlugin[]): string[] {
     }
   }
   return dirs;
-}
-
-/** Packs enabled on the agent but not preloaded by the mode attach as deferred. */
-function deferredPackNames(
-  agentPacks: AgentPacks | undefined,
-  registrations: PackRegistration[],
-  modePacks: string[] | undefined,
-): string[] {
-  const enabled = registrations
-    .map((r) => r.pack.name)
-    .filter((name) => Boolean(agentPacks?.[name]));
-  const wanted = modePacks?.length ? new Set(modePacks) : null;
-  return wanted ? enabled.filter((name) => !wanted.has(name)) : [];
 }

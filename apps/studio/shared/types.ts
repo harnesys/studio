@@ -102,6 +102,7 @@ export {
   MODE_ID_RE,
   MODE_OPS,
   modeFromPreset,
+  normalizeModePackMap,
   PLAN_PACK_ID,
   resolveModeId,
 } from './src/modes.ts';

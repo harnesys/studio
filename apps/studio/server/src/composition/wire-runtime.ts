@@ -1,21 +1,15 @@
 import {
-  askUser,
   createRunClaimer,
   createRunEngine,
   createRunEventBus,
   createRunEventFeed,
   createToolRegistry,
-  fetch,
-  files,
   type ModelsPort,
-  mapTool,
   type RunClaimer,
   type RunEngine,
   type RunEventFeed,
   type RunRecord,
   type RunTargets,
-  shell,
-  wait,
 } from 'harnesys';
 import { startAskTicker } from '../adapters/ask-ticker.adapter.ts';
 import { type HostToolScope, runInHostToolScope } from '../adapters/host-tool-scope.ts';
@@ -75,14 +69,10 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     },
   );
   const instanceId = env.STUDIO_INSTANCE_ID ?? 'studio-local';
-  const toolRegistry = createToolRegistry([
-    ...files(),
-    shell(),
-    fetch(),
-    askUser(),
-    mapTool(),
-    wait(),
-  ]);
+  // The target's per-run registry (assembled by the capability resolver at the
+  // composition root) is authoritative; the engine default stays empty so an
+  // ungated fallback can never serve host tools.
+  const toolRegistry = createToolRegistry([]);
   const agentsRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
   const runEngine = createRunEngine({
     lifecycle: runLifecycle,

@@ -15,7 +15,7 @@
 ## Global Constraints
 
 - Тесты запрещены (AGENTS.md): не создавать `*.test.ts`/`*.spec.ts`, не ставить vitest/RTL/playwright. Ворота каждой задачи: `bun run typecheck && bun run lint` в `apps/studio/client` + ручная проверка agent-browser.
-- Ручная проверка: дев-стенд уже запущен хозяином (API `3000`, Vite `5173`). Не поднимать второй, не убивать чужие процессы. Перед первой браузерной проверкой прочитать скилл: `agent-browser skills get core`.
+- Ручная проверка: по решению хозяина на этот прогон (2026-09-15) стенд поднимается в рабочем ворктри на портах из `apps/studio/.env` ворктри (API `3100`, Vite `5183`); основной стенд хозяина (`3000`/`5173`) не трогать и не перезапускать. Перед первой браузерной проверкой прочитать скилл: `agent-browser skills get core`.
 - Пульсы/шиммер (`thinking-shimmer`, `thinking-icon-pulse`, `live-dot`) не трогать.
 - Типы: именованные unions, не писать `(typeof CONST)[number]` и `T['field']`. Слайсы FSD снаружи только через `index.ts`.
 - Удаления полные (RULE D1–D6): файл удалять вместе с ре-экспортами, импортами и dead code; без заглушек и shims.
@@ -263,7 +263,7 @@ const collapse = feedDetail === 'quiet' && !runLive && pairs.length >= ACTIVITY_
 Run: `rg "comfort|liveExpand|expandTools|expandThinking|TOOL_RUN_COLLAPSE_AT|TOOL_GROUP_MIN|StickOnSend" apps/studio/client/src` и `bun run typecheck && bun run lint` (в `apps/studio/client`).
 Expected: rg пустой (кроме несвязанных слов в чужих доменах, если совпадут — проверить вручную), typecheck/lint без ошибок.
 
-- [ ] **Step 9: Ручная проверка (agent-browser, стенд 5173)**
+- [ ] **Step 9: Ручная проверка (agent-browser, стенд ворктри: Vite 5183)**
 
 1. Settings → Chat: видны 4 ручки; покрутить Follow/Detail — лента меняется после перезахода в тред.
 2. Запустить длинный промпт («расскажи что-нибудь длинное»): во время стрима открутить вверх — вьюпорт стоит, кнопка со счетчиком появилась; клик по кнопке — вернулись к краю, счетчик обнулился, follow продолжил (режим `following-bottom`, хвост догоняется сам).
@@ -933,7 +933,37 @@ git commit -m "fix: unified collapsed preview height, wheel passthrough at inner
 
 ---
 
-### Task 8: Финальная проверка и README
+### Task 8: Thread-journal: фикс `!end` и удаление локального `StickOnSend`
+
+Скоуп расширен по решению хозяина (2026-09-15): в `widgets/thread-journal` та же ошибка семантики, что чинилась в Task 1 для чата: `ThreadReadSync` пишет `setViewingAtEnd(threadId, end)`, где `end` у примитива означает «вниз ещё есть что скроллить» — тред помечается прочитанным ровно когда читатель от края, и не помечается, когда прижат к краю. Плюс локальная копия `StickOnSend` — второй владелец скролла на рантайм-дерге `scrollToEnd`. Настройки, `scrollAnchor` и unseen-кнопка в журнал не зовём: у журнала нет `feedFollow`-конфига, одна кнопка возврата уже смонтирована постоянно.
+
+**Files:**
+- Modify: `widgets/thread-journal/ui/thread-journal.tsx`
+
+**Interfaces:** ничего не производит; `EmptyThreadReadSync` и `RunDivider` не трогать.
+
+- [ ] **Step 1: `ThreadReadSync`**
+
+`const { end } = useMessageScrollerScrollable();` оставить; `setViewingAtEnd(threadId, end)` → `setViewingAtEnd(threadId, !end)`; условие `if (end && contentEpoch >= 0)` → `if (!end && ...)`; в deps `!end` завести через локальную `const viewingAtEnd = !end` (как в чат-версии после Task 1).
+
+- [ ] **Step 2: удалить `StickOnSend`**
+
+Компонент и его использование `<StickOnSend streaming={...} />` удалить; из импортов убрать `useLayoutEffect`, `useRef` (из `react`) и `useMessageScroller` (из `@/shared/ui/message-scroller`); `useEffect` остаётся. Провайдер `autoScroll` не менять: привязка к краю при старте рана теперь только за примитивом (режим `following-bottom`).
+
+- [ ] **Step 3: Ворота**
+
+`bun run typecheck && bun run lint`. `rg "StickOnSend|useMessageScroller\b" apps/studio/client/src/widgets/thread-journal` — пусто. Ручная (агентский тред с расписания/webhook): открыть журнал, прижат к краю — тред становится прочитанным при новых событиях; открутить вверх — новые события не помечают прочитанным; старт нового рана не дёргает вьюпорт, читатель история остаётся на месте; клик по кнопке возврата возвращает к краю и дальше follow работает.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add apps/studio/client/src
+git commit -m "fix: thread journal read-sync matches scroller end semantics, drop stick-on-send"
+```
+
+---
+
+### Task 9: Финальная проверка и README
 
 **Files:**
 - Modify: `widgets/chat-transcript/README.md` (если упоминает удаленное — проверить)
@@ -942,9 +972,11 @@ git commit -m "fix: unified collapsed preview height, wheel passthrough at inner
 
 - [ ] **Step 1: Остатки**
 
-`rg "comfortFollow|comfortAnchor|comfortThreshold|comfortDuration|liveExpand|expandThinking|expandTools|TOOL_RUN_COLLAPSE_AT|SpawnCard|HandoffCard|useComfortFollow" apps/studio/client/src` — пусто. `bun run typecheck && bun run lint` в `apps/studio/client`.
+`rg "comfortFollow|comfortAnchor|comfortThreshold|comfortDuration|liveExpand|expandThinking|expandTools|TOOL_RUN_COLLAPSE_AT|TOOL_GROUP_MIN|StickOnSend|SpawnCard|HandoffCard|useComfortFollow" apps/studio/client/src` — пусто. `bun run typecheck && bun run lint` в `apps/studio/client`.
 
-- [ ] **Step 2: Прогнать сценарии секции 7 спеки через agent-browser (стенд 5173)**
+- [ ] **Step 2: Прогнать сценарии секции 7 спеки через agent-browser**
+
+Порты стенда — из `apps/studio/.env` воркспейса запуска (в этой прогонке — API 3100, Vite 5183; основной стенд 3000/5173 не трогать).
 
 1–7 из `docs/superpowers/specs/2026-09-13-chat-feed-ux-design.md`. Сценарий 6 (миграция v2→v3): в DevTools выставить в `localStorage['studio-chat-preferences']` JSON `{state:{comfortFollow:false,expandTools:true},version:2}`, reload, открыть Settings → Chat: Follow=Pin, Detail=Full, версий слайдеров нет.
 

@@ -85,6 +85,13 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     if (!id.includes(':')) {
       return null;
     }
+    // B3-паритет с `list()`: plugin-агент недоступен агенту, у которого его
+    // плагин выключен, — то же not-found, что для неизвестного id.
+    const owner = pluginOwnerOf(id);
+    const agentEnabled = this.deps.agents.findById(scope.agentId)?.enabledPlugins;
+    if (!effectivePluginNames([owner], agentEnabled).has(owner)) {
+      return null;
+    }
     const pluginAgents = await this.pluginAgentsOf(scope.workspaceId);
     return pluginAgents.get(id);
   }

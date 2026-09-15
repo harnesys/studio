@@ -1,12 +1,22 @@
 import { Extension } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
+import type { EditorView } from '@tiptap/pm/view';
 import { ReactRenderer } from '@tiptap/react';
-import { Suggestion, type SuggestionKeyDownProps, type SuggestionProps } from '@tiptap/suggestion';
+import {
+  exitSuggestion,
+  Suggestion,
+  type SuggestionKeyDownProps,
+  type SuggestionProps,
+} from '@tiptap/suggestion';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import type { SlashCommand } from '../model/slash-commands';
 import { matchCommands } from '../model/slash-commands';
 
-const slashSuggestionKey = new PluginKey('composer-slash');
+export const slashSuggestionKey = new PluginKey('composer-slash');
+
+export function exitSlashSuggestion(view: EditorView): void {
+  exitSuggestion(view, slashSuggestionKey);
+}
 
 export type SlashSuggestionOptions = {
   isDisabled(): boolean;

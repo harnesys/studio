@@ -12,7 +12,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'rea
 import { type ComposerPayload, serializeComposerDoc } from '../model/composer-doc';
 import { InlineEntityNode } from '../model/inline-entity-node';
 import type { SlashCommand } from '../model/slash-commands';
-import { createSlashSuggestion } from './suggestion-menu';
+import { createSlashSuggestion, exitSlashSuggestion } from './suggestion-menu';
 
 export type ComposerEditorHandle = {
   getPayload(): ComposerPayload;
@@ -40,6 +40,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
     const extensions = useMemo(() => {
       const submitKeymap = Extension.create({
         name: 'composer-submit-keymap',
+        priority: 90,
         addProseMirrorPlugins() {
           return [
             new Plugin({
@@ -110,6 +111,9 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
 
     useEffect(() => {
       editor.setEditable(!props.disabled);
+      if (props.disabled) {
+        exitSlashSuggestion(editor.view);
+      }
     }, [props.disabled, editor]);
 
     useEffect(() => {

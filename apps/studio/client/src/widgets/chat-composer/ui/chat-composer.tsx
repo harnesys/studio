@@ -260,7 +260,7 @@ export function ChatComposer() {
       return;
     }
     submitComposer({
-      payload,
+      payload: editorRef.current?.getPayload() ?? payload,
       pending,
       threadId: thread.id,
       effort: currentEffort,

@@ -325,3 +325,9 @@ export function extractMaps(
 export function mapForToolCall(maps: MapInfo[], toolCallId: string): MapInfo | undefined {
   return maps.find((map) => map.toolCallId === toolCallId);
 }
+
+export function mapLineHint(map: MapInfo): string {
+  const done = map.items.filter((item) => item.status !== 'running').length;
+  const mode = map.concurrency === 'sequential' ? 'sequential' : 'parallel';
+  return `${mode} · ${done}/${map.count || map.items.length}`;
+}

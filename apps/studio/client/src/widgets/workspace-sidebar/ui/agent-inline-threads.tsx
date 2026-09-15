@@ -160,7 +160,8 @@ function InlineThreadRow({
   const status = runStatus(running, waiting);
   const hasMenu = Boolean(onPinToggle || onDelete);
   const statusHint = [status, thread.unread ? 'unread' : null].filter(Boolean).join(' · ');
-  const right = rowRight(status, thread, iconMode);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const right = rowRight(status, thread, iconMode, menuOpen);
 
   return (
     <div
@@ -207,7 +208,7 @@ function InlineThreadRow({
         </TooltipContent>
       </Tooltip>
       {hasMenu ? (
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger
             render={
               <Button
@@ -253,7 +254,12 @@ function runStatus(running: boolean, waiting: boolean): 'running' | 'waiting' | 
 
 type RunStatus = ReturnType<typeof runStatus>;
 
-function rowRight(status: RunStatus, thread: Thread, iconMode: boolean): ReactNode {
+function rowRight(
+  status: RunStatus,
+  thread: Thread,
+  iconMode: boolean,
+  menuOpen: boolean,
+): ReactNode {
   if (status) {
     return (
       <span
@@ -279,7 +285,12 @@ function rowRight(status: RunStatus, thread: Thread, iconMode: boolean): ReactNo
     return null;
   }
   return (
-    <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70 leading-none transition-opacity group-hover/ithread:opacity-0 group-has-[data-popup-open]/ithread:opacity-0">
+    <span
+      className={cn(
+        'shrink-0 font-mono text-[10px] text-muted-foreground/70 leading-none transition-opacity group-hover/ithread:opacity-0',
+        menuOpen && 'opacity-0',
+      )}
+    >
       {threadTime(thread.updatedAt)}
     </span>
   );

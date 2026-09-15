@@ -1,9 +1,36 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, resolve, sep } from 'node:path';
-import { MODE_ID_RE, type ModePreset } from '@harnesys/studio-shared';
+import { MODE_ID_RE, type ModePreset, type PackAssignment } from '@harnesys/studio-shared';
 import { z } from 'zod';
 import { ValidationError } from '../domain/studio.error.ts';
 import { bundledAssetsPath, bundledPresetsPath, systemPresetsPath } from './store/studio-layout.ts';
+
+/** PackAssignment-литералы как в HTTP-body (`agent.body.ts:8-11`): `true`/объект =
+ *  вкл, `false`/`null`/отсутствие = выкл; `true` нормализуется в `{}`, `false` —
+ *  в `null`. Массивы строк больше не принимаются (миграция `capability_set_v1`). */
+const packsBody = z
+  .record(
+    z.string(),
+    z
+      .union([
+        z.literal(true),
+        z.literal(false),
+        z.object({ spec: z.record(z.string(), z.unknown()).optional() }),
+        z.null(),
+      ])
+      .transform(toStoredAssignment),
+  )
+  .optional();
+
+function toStoredAssignment(value: true | false | PackAssignment | null): PackAssignment | null {
+  if (value === true) {
+    return {};
+  }
+  if (value === false || value === null) {
+    return null;
+  }
+  return value;
+}
 
 const modePresetBodySchema = z.object({
   id: z.string().regex(MODE_ID_RE),
@@ -12,7 +39,7 @@ const modePresetBodySchema = z.object({
   instructions: z.string().optional(),
   instructionsFile: z.string().optional(),
   skills: z.array(z.string()).optional(),
-  packs: z.array(z.string()).optional(),
+  packs: packsBody,
   permissions: z.record(z.string(), z.enum(['allow', 'ask', 'deny'])).optional(),
   installedByDefault: z.boolean().default(false),
 });

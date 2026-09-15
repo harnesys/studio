@@ -37,7 +37,7 @@ export const agentsCapability = definePack<AgentsCapabilityPorts, Record<string,
       {
         name: 'agents_update',
         description:
-          'Patch name/role/instructions/budget of your own delegate; graph, tools and packs are owner-only. budget replaces the stored budget (omitted fields drop out): maxSteps/maxTokens/deadlineMs (integers >= 1) and policy ask|error, same shape as agents_create, at least one field required. Returns { agentId }. agentId accepts an exact id, a unique id prefix (8+ chars), or a name.',
+          'Patch name/role/instructions/budget of your own delegate; graph and packs are owner-only (tools removed; use sources). budget replaces the stored budget (omitted fields drop out): maxSteps/maxTokens/deadlineMs (integers >= 1) and policy ask|error, same shape as agents_create, at least one field required. Returns { agentId }. agentId accepts an exact id, a unique id prefix (8+ chars), or a name.',
       },
       {
         name: 'agents_delete',

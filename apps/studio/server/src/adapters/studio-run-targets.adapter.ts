@@ -1,4 +1,4 @@
-import { effectiveMode, normalizeModePackMap, resolveModeId } from '@harnesys/studio-shared';
+import { effectiveMode, resolveModeId } from '@harnesys/studio-shared';
 import type {
   AgentDefinition,
   CapabilityUniverse,
@@ -133,7 +133,7 @@ export class StudioRunTargets implements RunTargets {
     const fullUniverse: CapabilityUniverse = {
       ...universe,
       roster: this.deps.workspaceHarnesys.listScopedRoster(agent),
-      mode: toModeFields(mode, normalizeModePackMap),
+      mode: toModeFields(mode),
     };
     const capabilitySet = runInHostToolScope(
       { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },

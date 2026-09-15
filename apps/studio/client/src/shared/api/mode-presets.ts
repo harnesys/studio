@@ -1,4 +1,4 @@
-import type { ModeOpPermissions, ModePreset } from '@harnesys/studio-shared';
+import type { ModeOpPermissions, ModePreset, PackAssignment } from '@harnesys/studio-shared';
 import { queryOptions } from '@tanstack/react-query';
 
 import { apiJson } from './client';
@@ -11,7 +11,7 @@ export type ModePresetBody = {
   description?: string;
   instructions?: string;
   skills?: string[];
-  packs?: string[];
+  packs?: Record<string, PackAssignment | null>;
   permissions?: ModeOpPermissions;
   installedByDefault?: boolean;
 };

@@ -60,7 +60,11 @@ export function wireAgentControllers(d: WireAgentControllersDeps): void {
       workspaceHarnesys: d.workspaceHarnesys,
     }),
     createAgent,
-    createAgentFromPreset: new CreateAgentFromPresetUseCase(d.agentRepo, createAgent),
+    createAgentFromPreset: new CreateAgentFromPresetUseCase(
+      d.agentRepo,
+      createAgent,
+      validateConfig,
+    ),
     updateAgent: new UpdateAgentUseCase(d.agentRepo, {
       deskEvents: d.deskEvents,
       validateConfig,

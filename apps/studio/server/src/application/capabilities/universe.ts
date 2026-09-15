@@ -57,18 +57,12 @@ export function buildCapabilityUniverse(
   return universe;
 }
 
-/** `AgentMode` → поля резолвера режима. Legacy массивы строк в `packs` идут через
- *  нормализатор (transitional до миграции T8); map-форма проходит как есть.
- *  Off-записи (`null`/`false`) в фид резолвера не попадают: для `isOn`-семантики
- *  отсутствие ≡ выкл, поведение то же, что пас-through с null внутри. */
-export function toModeFields(
-  mode: AgentMode,
-  toPackMap: (
-    value: string[] | Record<string, PackAssignment | null> | null | undefined,
-  ) => Record<string, PackAssignment | null> | undefined,
-): ModeCapabilityFields {
+/** `AgentMode` → поля резолвера режима. Off-записи (`null`/`false`) в фид
+ *  резолвера не попадают: для `isOn`-семантики отсутствие ≡ выкл, поведение
+ *  то же, что пас-through с null внутри. */
+export function toModeFields(mode: AgentMode): ModeCapabilityFields {
   const fields: ModeCapabilityFields = { id: mode.id };
-  const packMap = toPackMap(mode.packs);
+  const packMap = mode.packs;
   if (packMap !== undefined) {
     const on: Record<string, PackAssignment> = {};
     for (const [name, assignment] of Object.entries(packMap)) {

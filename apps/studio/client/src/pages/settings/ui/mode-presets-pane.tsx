@@ -28,7 +28,7 @@ function contentPatch(draft: ModePresetDraft): ModePresetPatch {
     description: draft.description ?? '',
     instructions: draft.instructions ?? '',
     skills: draft.skills ?? [],
-    packs: draft.packs ?? [],
+    packs: draft.packs ?? {},
     permissions: draft.permissions,
     installedByDefault: draft.installedByDefault,
   };
@@ -160,9 +160,10 @@ export function ModePresetsPane() {
           <RowList>
             {presets.map((preset) => {
               const expanded = editing?.kind === 'edit' && editing.preset.id === preset.id;
+              const packCount = Object.keys(preset.packs ?? {}).length;
               const counts = [
                 (preset.skills?.length ?? 0) > 0 ? `${preset.skills?.length} skills` : null,
-                (preset.packs?.length ?? 0) > 0 ? `${preset.packs?.length} packs` : null,
+                packCount > 0 ? `${packCount} packs` : null,
               ]
                 .filter(Boolean)
                 .join(' · ');

@@ -1,4 +1,4 @@
-import type { ModeOpPermissions, ModePreset } from '@harnesys/studio-shared';
+import type { ModeOpPermissions, ModePreset, PackAssignment } from '@harnesys/studio-shared';
 import type { ModePresetPatch, ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError, NotFoundError } from '../../domain/studio.error.ts';
 
@@ -8,7 +8,7 @@ export type UpdateModePresetRequest = {
   description?: string;
   instructions?: string;
   skills?: string[];
-  packs?: string[];
+  packs?: Record<string, PackAssignment | null>;
   permissions?: ModeOpPermissions;
   installedByDefault?: boolean;
 };

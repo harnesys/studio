@@ -1,4 +1,4 @@
-import type { ModeOpPermissions } from '@harnesys/studio-shared';
+import type { ModeOpPermissions, PackAssignment } from '@harnesys/studio-shared';
 
 /** ModePresetEditor output; absent optional fields stay out of the API body. */
 export type ModePresetDraft = {
@@ -7,7 +7,7 @@ export type ModePresetDraft = {
   description?: string;
   instructions?: string;
   skills?: string[];
-  packs?: string[];
+  packs?: Record<string, PackAssignment | null>;
   permissions: ModeOpPermissions;
   installedByDefault: boolean;
 };

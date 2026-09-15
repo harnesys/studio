@@ -4,7 +4,7 @@
   "description": "Task planning with the plan pack; writes and shell denied.",
   "instructionsFile": "plan-mode.md",
   "skills": ["superpowers:writing-plans"],
-  "packs": ["plan"],
+  "packs": { "plan": {} },
   "permissions": {
     "fs.write": "deny",
     "process": "deny",

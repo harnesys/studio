@@ -1,4 +1,4 @@
-import type { ModeOpPermissions, ModePreset } from '@harnesys/studio-shared';
+import type { ModeOpPermissions, ModePreset, PackAssignment } from '@harnesys/studio-shared';
 
 export type ModePresetInsert = ModePreset;
 
@@ -7,7 +7,7 @@ export type ModePresetPatch = Partial<{
   description: string;
   instructions: string;
   skills: string[];
-  packs: string[];
+  packs: Record<string, PackAssignment | null>;
   permissions: ModeOpPermissions;
   installedByDefault: boolean;
   updatedAt: string;

@@ -8,7 +8,8 @@
     "policy": "error"
   },
   "capabilities": {
-    "files": {}
+    "files": {},
+    "core": {}
   },
   "permissions": {
     "fs.write": "deny",
@@ -24,21 +25,7 @@
       "think": {
         "type": "llm:generate",
         "prompt": "main",
-        "messages": "$state.messages",
-        "tools": [
-          "ask_user",
-          "edit_file",
-          "glob",
-          "grep",
-          "list_dir",
-          "map",
-          "read_file",
-          "wait",
-          "write_file",
-          "load_tools",
-          "load_skill",
-          "Skill"
-        ]
+        "messages": "$state.messages"
       },
       "act": {
         "type": "tool:call",
@@ -71,16 +58,5 @@
         "to": "think"
       }
     ]
-  },
-  "tools": [
-    "ask_user",
-    "edit_file",
-    "glob",
-    "grep",
-    "list_dir",
-    "map",
-    "read_file",
-    "wait",
-    "write_file"
-  ]
+  }
 }

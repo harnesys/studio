@@ -3,13 +3,31 @@ import { z } from 'zod';
 
 const gates = z.enum(['allow', 'ask', 'deny']);
 
+/** Та же литеральная семантика, что `agent.body.ts:8-11`: `true` → `{}`, off → `null`. */
+const packAssignmentBody = z
+  .union([
+    z.literal(true),
+    z.literal(false),
+    z.object({ spec: z.record(z.string(), z.unknown()).optional() }),
+    z.null(),
+  ])
+  .transform((value) => {
+    if (value === true) {
+      return {};
+    }
+    if (value === false || value === null) {
+      return null;
+    }
+    return value;
+  });
+
 const modePresetShape = z.object({
   id: z.string().regex(MODE_ID_RE).max(48),
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().max(200).optional(),
   instructions: z.string().max(6000).optional(),
   skills: z.array(z.string().trim().min(1)).max(32).optional(),
-  packs: z.array(z.string().trim().min(1)).max(16).optional(),
+  packs: z.record(z.string(), packAssignmentBody).optional(),
   permissions: z.partialRecord(z.enum(MODE_OPS), gates).optional(),
   installedByDefault: z.boolean().optional(),
 });

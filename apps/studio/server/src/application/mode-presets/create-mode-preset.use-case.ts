@@ -1,4 +1,4 @@
-import type { ModeOpPermissions, ModePreset } from '@harnesys/studio-shared';
+import type { ModeOpPermissions, ModePreset, PackAssignment } from '@harnesys/studio-shared';
 import type { ModePresetInsert, ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError } from '../../domain/studio.error.ts';
 
@@ -8,7 +8,7 @@ export type CreateModePresetRequest = {
   description?: string;
   instructions?: string;
   skills?: string[];
-  packs?: string[];
+  packs?: Record<string, PackAssignment | null>;
   permissions?: ModeOpPermissions;
   installedByDefault?: boolean;
 };
@@ -31,7 +31,7 @@ export class CreateModePresetUseCase implements CreateModePresetInput {
       description: request.description ?? '',
       instructions: request.instructions ?? '',
       skills: request.skills ?? [],
-      packs: request.packs ?? [],
+      packs: request.packs ?? {},
       permissions: request.permissions ?? {},
       builtin: false,
       installedByDefault: request.installedByDefault ?? false,

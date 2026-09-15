@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
 import { backfillAgentsModeGates } from './bootstrap-agents-gate-migration.ts';
 import { migrateCapabilityCore } from './bootstrap-capability-core-migration.ts';
+import { migrateCapabilitySet } from './bootstrap-capability-set-migration.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
 import { cleanupReservedModeIds } from './bootstrap-modes-cleanup.ts';
 import type { StudioDb } from './connection.ts';
@@ -314,10 +315,6 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   try {
-    db.run(sql.raw(`ALTER TABLE agents ADD COLUMN tools text NOT NULL DEFAULT '[]';`));
-  } catch {}
-
-  try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN effort text;'));
   } catch {}
 
@@ -392,7 +389,7 @@ export function bootstrap(db: StudioDb): void {
       .values({
         ...seed,
         skillsJson: JSON.stringify(seed.skills ?? []),
-        packsJson: JSON.stringify(seed.packs ?? []),
+        packsJson: JSON.stringify(seed.packs ?? {}),
         permissionsJson: JSON.stringify(seed.permissions ?? {}),
         createdAt: presetSeedNow,
         updatedAt: presetSeedNow,
@@ -438,6 +435,11 @@ export function bootstrap(db: StudioDb): void {
   // Rows predating the `agents` operation: preset rows and agent mode copies
   // get the spec gate; custom modes keep inheriting the agent base.
   backfillAgentsModeGates(db);
+
+  // capability_set_v1: `agents.tools` drop, modes/preset packs array→map, core
+  // merge. Runs after the mode backfill above so freshly seeded agent modes
+  // convert in the same boot; idempotent via `schema_meta`.
+  migrateCapabilitySet(db);
 
   try {
     db.run(sql.raw(`ALTER TABLE threads ADD COLUMN kind text NOT NULL DEFAULT 'chat';`));

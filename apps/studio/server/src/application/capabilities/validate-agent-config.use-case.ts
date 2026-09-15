@@ -9,7 +9,6 @@
  *  строгий отказ с первого дня. */
 
 import type { AgentMode, PackConfig } from '@harnesys/studio-shared';
-import { normalizeModePackMap } from '@harnesys/studio-shared';
 import type { AgentDefinition, AgentPacks, PackAssignment, PackRegistration } from 'harnesys';
 import { normalizePackAssignment, packTools } from 'harnesys';
 import { runInHostToolScope } from '../../adapters/host-tool-scope.ts';
@@ -46,7 +45,7 @@ export type ValidateAgentConfigRequest = {
 export type ValidateAgentConfigResult = {
   /** Кандидат с provisioned `core` (остальное как пришло). */
   capabilities: Record<string, PackConfig | null>;
-  /** Режимы с provisioned `core` в map-форме; legacy массивы и полный preload не трогаем. */
+  /** Режимы с provisioned `core` в map-форме; пустой preload не трогаем. */
   modes: AgentMode[] | undefined;
 };
 
@@ -274,7 +273,7 @@ function assertModesValid(
   }
   let changed = false;
   const next = modes.map((mode) => {
-    const packMap = normalizeModePackMap(mode.packs);
+    const packMap = mode.packs;
     if (packMap !== undefined && Object.keys(packMap).length > 0) {
       const modeCore: unknown = packMap.core;
       if (modeCore === false || modeCore === null) {
@@ -302,7 +301,7 @@ function assertModesValid(
         );
       }
     }
-    if (packMap === undefined || Object.keys(packMap).length === 0 || Array.isArray(mode.packs)) {
+    if (packMap === undefined || Object.keys(packMap).length === 0) {
       return mode;
     }
     const coreRaw: unknown = packMap.core;

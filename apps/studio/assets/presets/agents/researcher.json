@@ -16,7 +16,8 @@
     "episodic-memory": {},
     "knowledge-memory": {},
     "semantic-memory": {},
-    "pin-memory": {}
+    "pin-memory": {},
+    "core": {}
   },
   "permissions": {
     "fs.write": "ask",
@@ -32,41 +33,7 @@
       "think": {
         "type": "llm:generate",
         "prompt": "main",
-        "messages": "$state.messages",
-        "tools": [
-          "agents_create",
-          "agents_delete",
-          "agents_handoff",
-          "agents_list",
-          "agents_spawn",
-          "agents_update",
-          "ask_user",
-          "edit_file",
-          "fetch",
-          "glob",
-          "grep",
-          "knowledge_read",
-          "knowledge_search",
-          "list_dir",
-          "map",
-          "memory_delete",
-          "memory_list",
-          "memory_write",
-          "pin_list",
-          "pin_remove",
-          "pin_set",
-          "plan_get",
-          "plan_item_update",
-          "plan_save",
-          "read_file",
-          "recall_search",
-          "thread_list",
-          "wait",
-          "write_file",
-          "load_tools",
-          "load_skill",
-          "Skill"
-        ]
+        "messages": "$state.messages"
       },
       "act": {
         "type": "tool:call",
@@ -167,36 +134,5 @@
         "to": "map_done"
       }
     ]
-  },
-  "tools": [
-    "agents_create",
-    "agents_delete",
-    "agents_handoff",
-    "agents_list",
-    "agents_spawn",
-    "agents_update",
-    "ask_user",
-    "edit_file",
-    "fetch",
-    "glob",
-    "grep",
-    "knowledge_read",
-    "knowledge_search",
-    "list_dir",
-    "map",
-    "memory_delete",
-    "memory_list",
-    "memory_write",
-    "pin_list",
-    "pin_remove",
-    "pin_set",
-    "plan_get",
-    "plan_item_update",
-    "plan_save",
-    "read_file",
-    "recall_search",
-    "thread_list",
-    "wait",
-    "write_file"
-  ]
+  }
 }

@@ -52,7 +52,7 @@ function presetToForm(preset: ModePreset): PresetFormState {
     description: preset.description ?? '',
     instructions: preset.instructions ?? '',
     skills: [...(preset.skills ?? [])],
-    packs: [...(preset.packs ?? [])],
+    packs: Object.keys(preset.packs ?? {}),
     permWrite: preset.permissions?.['fs.write'] ?? FALLBACK_GATE,
     permProcess: preset.permissions?.process ?? FALLBACK_GATE,
     permNetwork: preset.permissions?.network ?? FALLBACK_GATE,
@@ -86,7 +86,9 @@ function formToDraft(state: PresetFormState): ModePresetDraft {
     ...(description ? { description } : {}),
     ...(instructions ? { instructions } : {}),
     ...(state.skills.length ? { skills: state.skills } : {}),
-    ...(state.packs.length ? { packs: state.packs } : {}),
+    ...(state.packs.length
+      ? { packs: Object.fromEntries(state.packs.map((name) => [name, {}])) }
+      : {}),
     permissions: {
       'fs.write': state.permWrite,
       process: state.permProcess,

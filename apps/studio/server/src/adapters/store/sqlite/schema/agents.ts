@@ -24,9 +24,6 @@ export const agentsTable = sqliteTable(
     defaultModeId: text('default_mode_id'),
     modesJson: text('modes_json').notNull().default('[]'),
     mcpServers: text('mcp_servers').notNull().default('[]'),
-    /** Legacy allowlist column; T6 stopped reading/writing it, T8 drops it.
-     *  NOT NULL DEFAULT keeps pre-drop raw inserts valid. */
-    tools: text('tools').notNull().default('[]'),
     graphJson: text('graph_json'),
     budgetJson: text('budget_json'),
     capabilitiesJson: text('capabilities_json').notNull().default('{}'),

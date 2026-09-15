@@ -1,4 +1,4 @@
-import type { ModeOpPermissions, ModePreset } from '@harnesys/studio-shared';
+import type { ModeOpPermissions, ModePreset, PackAssignment } from '@harnesys/studio-shared';
 import { eq } from 'drizzle-orm';
 import type {
   ModePresetInsert,
@@ -30,7 +30,7 @@ export class SqliteModePresetRepo implements ModePresetRepository {
         .values({
           ...rest,
           skillsJson: JSON.stringify(skills ?? []),
-          packsJson: JSON.stringify(packs ?? []),
+          packsJson: JSON.stringify(packs ?? {}),
           permissionsJson: JSON.stringify(permissions ?? {}),
         })
         .returning()
@@ -76,13 +76,26 @@ function toPreset(row: ModePresetRow): ModePreset {
     description: row.description,
     instructions: row.instructions,
     skills: parseStringList(row.skillsJson),
-    packs: parseStringList(row.packsJson),
+    packs: parsePackMap(row.packsJson),
     permissions: parsePermissions(row.permissionsJson),
     builtin: row.builtin,
     installedByDefault: row.installedByDefault,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+/** Map-форма (`capability_set_v1`); legacy-массив или мусор → пустая карта. */
+function parsePackMap(raw: string): Record<string, PackAssignment | null> {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed as Record<string, PackAssignment | null>;
+  } catch {
+    return {};
+  }
 }
 
 function parseStringList(raw: string): string[] {

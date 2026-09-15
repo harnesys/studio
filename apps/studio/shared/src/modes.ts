@@ -19,8 +19,7 @@ export type AgentMode = {
   description?: string;
   instructions?: string;
   skills?: string[];
-  /** Preload-подмножество паков агента (map-форма; legacy массивы строк в БД
-   *  читаются через `normalizeModePackMap` до миграции T8). `null` в значении —
+  /** Preload-подмножество паков агента (map-форма; `null` в значении —
    *  явный off с границы (валидация: `core: null` → 400, остальное ≡ отсутствию). */
   packs?: Record<string, PackAssignment | null>;
   disabledTools?: string[];
@@ -35,10 +34,10 @@ export const ASK_MODE: AgentMode = {
   permissions: { 'fs.write': 'ask', process: 'ask', network: 'ask', mcp: 'ask', agents: 'ask' },
 };
 
-/** Пресет хранит legacy-массив строк (формат данных — вотчина T8); в AgentMode
- *  превращается через `modeFromPreset` + `normalizeModePackMap`. */
+/** Пресет хранит packs в той же map-форме (`{"plan":{}}`); в AgentMode
+ *  превращается через `modeFromPreset` (копия карты). */
 export type ModePreset = Omit<AgentMode, 'packs'> & {
-  packs?: string[];
+  packs?: Record<string, PackAssignment | null>;
   builtin: boolean;
   installedByDefault: boolean;
   createdAt: string;
@@ -74,31 +73,15 @@ export function effectiveMode(modes: AgentMode[] | undefined, runModeId: string)
 }
 
 export function modeFromPreset(preset: ModePreset): AgentMode {
-  const packs = normalizeModePackMap(preset.packs);
   return {
     id: preset.id,
     name: preset.name,
     ...(preset.description ? { description: preset.description } : {}),
     ...(preset.instructions ? { instructions: preset.instructions } : {}),
     ...(preset.skills?.length ? { skills: [...preset.skills] } : {}),
-    ...(packs !== undefined ? { packs } : {}),
+    ...(preset.packs !== undefined ? { packs: { ...preset.packs } } : {}),
     ...(preset.disabledTools?.length ? { disabledTools: [...preset.disabledTools] } : {}),
     ...(preset.exposure ? { exposure: { ...preset.exposure } } : {}),
     ...(preset.permissions ? { permissions: { ...preset.permissions } } : {}),
   };
-}
-
-/** Transitional (T5): `AgentMode.packs` still `string[]` in DB rows; T7 switches
- *  the field to an assignment map and T8 deletes this together with legacy data.
- *  Array → map with `{}` values; an existing map passes through untouched. */
-export function normalizeModePackMap(
-  value: string[] | Record<string, PackAssignment | null> | null | undefined,
-): Record<string, PackAssignment | null> | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (Array.isArray(value)) {
-    return Object.fromEntries(value.map((name) => [name, {}]));
-  }
-  return value;
 }

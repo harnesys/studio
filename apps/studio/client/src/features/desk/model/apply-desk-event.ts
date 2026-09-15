@@ -5,6 +5,7 @@ import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { toClientWebhook, useWebhookStore } from '@/entities/webhook';
+import { useAgentsDisplayStore } from './agents-display.store';
 import { useAgentsSlideStore } from './agents-slide.store';
 import { useDeskStore } from './desk.store';
 
@@ -96,6 +97,7 @@ function dropAgent(agentId: string): void {
   if (useAgentsSlideStore.getState().agentId === agentId) {
     useAgentsSlideStore.getState().reset();
   }
+  useAgentsDisplayStore.getState().forget(agentId);
 }
 
 function dropOwnedTriggerThread(threadId: string): void {

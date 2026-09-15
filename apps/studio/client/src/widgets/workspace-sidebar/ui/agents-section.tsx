@@ -1,9 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { BotIcon, SparklesIcon } from 'lucide-react';
-import { useEffect } from 'react';
+import { Fragment, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
-import { useAgentsSlideStore } from '@/features/desk';
+import { useThreadStore } from '@/entities/thread';
+import {
+  AGENTS_THREAD_MODE_HINTS,
+  AGENTS_THREAD_MODE_LABELS,
+  AGENTS_THREAD_MODES,
+  isAgentsThreadMode,
+  useAgentsDisplayStore,
+  useAgentsSlideStore,
+} from '@/features/desk';
 import { useIdeStore } from '@/features/ide';
 import {
   agentDraftFromPreset,
@@ -19,6 +27,10 @@ import { studioPath } from '@/shared/config/routes';
 import {
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -26,12 +38,16 @@ import {
 import { toast } from '@/shared/ui/toast';
 import { AgentCard } from '@/widgets/agent-card';
 import { useAccordionStore } from '../model/accordion.store';
+import { useThreadActions } from '../model/thread-actions';
+import { AgentInlineThreads } from './agent-inline-threads';
 import { AgentThreadsPanel } from './agent-threads-panel';
 import { SectionMenu } from './section-menu';
 
 export function AgentsSectionActions({ workspaceId }: { workspaceId: string | null }) {
   const navigate = useNavigate();
   const slideAgentId = useAgentsSlideStore((state) => state.agentId);
+  const mode = useAgentsDisplayStore((state) => state.mode);
+  const setMode = useAgentsDisplayStore((state) => state.setMode);
   const presetsQuery = useQuery({
     queryKey: ['agent-presets'],
     queryFn: listAgentPresets,
@@ -46,7 +62,11 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
       return;
     }
     useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
-    useAgentsSlideStore.getState().open(created.agent.id);
+    if (mode === 'inline') {
+      useAgentsDisplayStore.getState().expand(created.agent.id);
+    } else {
+      useAgentsSlideStore.getState().open(created.agent.id);
+    }
     await navigate(
       studioPath.thread(workspaceId, created.thread.id, {
         kind: 'agent',
@@ -126,6 +146,27 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
           </DropdownMenuSubContent>
         </DropdownMenuSub>
       </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuLabel>Threads</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={mode}
+          onValueChange={(value) => {
+            if (isAgentsThreadMode(value)) {
+              setMode(value);
+            }
+          }}
+        >
+          {AGENTS_THREAD_MODES.map((item) => (
+            <DropdownMenuRadioItem key={item} value={item} className="flex-col items-start gap-0">
+              <span>{AGENTS_THREAD_MODE_LABELS[item]}</span>
+              <span className="text-muted-foreground text-xs leading-4">
+                {AGENTS_THREAD_MODE_HINTS[item]}
+              </span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuGroup>
     </SectionMenu>
   );
 }
@@ -146,6 +187,11 @@ export function AgentsSection({
   const slideAgentId = useAgentsSlideStore((state) => state.agentId);
   const openSlide = useAgentsSlideStore((state) => state.open);
   const resetSlide = useAgentsSlideStore((state) => state.reset);
+  const mode = useAgentsDisplayStore((state) => state.mode);
+  const expanded = useAgentsDisplayStore((state) => state.expanded);
+  const toggleExpanded = useAgentsDisplayStore((state) => state.toggle);
+  const actions = useThreadActions(workspaceId ?? '');
+  const inline = mode === 'inline';
   const roots = agents.filter((item) => !item.parentId);
   const slideAgent = agents.find((item) => item.id === slideAgentId && !item.parentId) ?? null;
 
@@ -165,7 +211,23 @@ export function AgentsSection({
     }
   }, [slideAgentId]);
 
-  if (slideAgent && workspaceId) {
+  useEffect(() => {
+    if (!inline || !activeThreadId) {
+      return;
+    }
+    const thread = useThreadStore.getState().byId(activeThreadId);
+    if (!thread) {
+      return;
+    }
+    const owner = roots.find(
+      (item) => item.id === thread.agentId || item.id === thread.originAgentId,
+    );
+    if (owner) {
+      useAgentsDisplayStore.getState().expand(owner.id);
+    }
+  }, [inline, activeThreadId, roots]);
+
+  if (!inline && slideAgent && workspaceId) {
     return (
       <AgentThreadsPanel
         agent={slideAgent}
@@ -206,29 +268,44 @@ export function AgentsSection({
   return (
     <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
       {roots.map((item) => (
-        <AgentCard
-          key={item.id}
-          agent={item}
-          selected={activeAgentId === item.id || slideAgentId === item.id}
-          onSelect={() => {
-            openSlide(item.id);
-            if (useAccordionStore.getState().collapsed.agents) {
-              useAccordionStore.getState().toggle('agents');
-            }
-          }}
-          onSettings={() => openSettings(item)}
-          onDelete={() => {
-            void confirmDeleteAgent(item).then(async (confirmed) => {
-              if (!confirmed || !workspaceId) {
+        <Fragment key={item.id}>
+          <AgentCard
+            agent={item}
+            selected={activeAgentId === item.id || slideAgentId === item.id}
+            onSelect={() => {
+              if (inline) {
+                toggleExpanded(item.id);
                 return;
               }
-              await deleteAgent(workspaceId, item.id);
-              if (useAgentsSlideStore.getState().agentId === item.id) {
-                resetSlide();
+              openSlide(item.id);
+              if (useAccordionStore.getState().collapsed.agents) {
+                useAccordionStore.getState().toggle('agents');
               }
-            });
-          }}
-        />
+            }}
+            onSettings={() => openSettings(item)}
+            onNewThread={inline && workspaceId ? () => actions.createThread(item.id) : undefined}
+            onDelete={() => {
+              void confirmDeleteAgent(item).then(async (confirmed) => {
+                if (!confirmed || !workspaceId) {
+                  return;
+                }
+                await deleteAgent(workspaceId, item.id);
+                useAgentsDisplayStore.getState().forget(item.id);
+                if (useAgentsSlideStore.getState().agentId === item.id) {
+                  resetSlide();
+                }
+              });
+            }}
+          />
+          {inline && workspaceId && expanded[item.id] ? (
+            <AgentInlineThreads
+              agent={item}
+              workspaceId={workspaceId}
+              activeThreadId={activeThreadId}
+              onDone={onSelectDone}
+            />
+          ) : null}
+        </Fragment>
       ))}
     </div>
   );

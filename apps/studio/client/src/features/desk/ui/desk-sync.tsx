@@ -8,6 +8,7 @@ import { watchDesk } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 
+import { useAgentsDisplayStore } from '../model/agents-display.store';
 import { useAgentsSlideStore } from '../model/agents-slide.store';
 import { applyDeskEvent } from '../model/apply-desk-event';
 import { useDeskStore } from '../model/desk.store';
@@ -65,7 +66,7 @@ export function DeskSync() {
       .items.filter((item) => item.workspaceId === workspaceId);
 
     if (surface === 'agent' && agentId) {
-      useAgentsSlideStore.getState().open(agentId);
+      revealAgent(agentId);
       void navigate(studioPath.workspace(workspaceId), { replace: true });
       return;
     }
@@ -75,7 +76,7 @@ export function DeskSync() {
       if (!thread) {
         const fallback = fallbackAgentId(workspaceId, threadOrigin, originEntityId);
         if (fallback) {
-          useAgentsSlideStore.getState().open(fallback);
+          revealAgent(fallback);
         }
         void navigate(studioPath.workspace(workspaceId), { replace: true });
       }
@@ -94,6 +95,14 @@ export function DeskSync() {
   ]);
 
   return null;
+}
+
+function revealAgent(agentId: string): void {
+  if (useAgentsDisplayStore.getState().mode === 'inline') {
+    useAgentsDisplayStore.getState().expand(agentId);
+  } else {
+    useAgentsSlideStore.getState().open(agentId);
+  }
 }
 
 function fallbackAgentId(

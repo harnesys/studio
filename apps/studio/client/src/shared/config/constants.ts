@@ -8,6 +8,7 @@ export const FILE_PANE_RATIO_STORAGE_KEY = 'harnesys.file-pane-ratio';
 export const INSPECTOR_WIDTH_STORAGE_KEY = 'harnesys.inspector-width';
 export const IDE_WORKSPACES_STORAGE_KEY = 'harnesys.ide-workspaces';
 export const SIDEBAR_ACCORDION_STORAGE_KEY = 'harnesys.sidebar-accordion';
+export const AGENTS_DISPLAY_STORAGE_KEY = 'harnesys.agents-display';
 export const EXPLORER_SHOW_HIDDEN_STORAGE_KEY = 'harnesys.explorer-show-hidden';
 export const SCALE_STORAGE_KEY = 'ui-scale';
 export const ACCENT_STORAGE_KEY = 'ui-accent';

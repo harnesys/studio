@@ -2,7 +2,7 @@ import { EllipsisIcon, PanelLeftIcon, PanelRightIcon, Trash2Icon, XIcon } from '
 import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { setActiveThreadId, useThreadStore } from '@/entities/thread';
-import { useAgentsSlideStore, useDeskStore } from '@/features/desk';
+import { useAgentsDisplayStore, useAgentsSlideStore, useDeskStore } from '@/features/desk';
 import { type IdeTab, useIdeGroup, useIdeStore, useIdeTabs } from '@/features/ide';
 import { studioPath } from '@/shared/config/routes';
 import { cn } from '@/shared/lib/utils';
@@ -218,7 +218,11 @@ export function IdeGroupTabs({
     const after = useIdeStore.getState().byWorkspace[workspaceId];
     if (!after) {
       if (closing?.kind === 'thread' && closing.agentId) {
-        useAgentsSlideStore.getState().open(closing.agentId);
+        if (useAgentsDisplayStore.getState().mode === 'inline') {
+          useAgentsDisplayStore.getState().expand(closing.agentId);
+        } else {
+          useAgentsSlideStore.getState().open(closing.agentId);
+        }
       }
       void navigate(studioPath.workspace(workspaceId));
       return;

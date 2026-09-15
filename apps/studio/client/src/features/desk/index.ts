@@ -1,3 +1,11 @@
+export {
+  AGENTS_THREAD_MODE_HINTS,
+  AGENTS_THREAD_MODE_LABELS,
+  AGENTS_THREAD_MODES,
+  type AgentsThreadMode,
+  isAgentsThreadMode,
+  useAgentsDisplayStore,
+} from './model/agents-display.store';
 export { useAgentsSlideStore } from './model/agents-slide.store';
 export {
   type AgentFileTab,

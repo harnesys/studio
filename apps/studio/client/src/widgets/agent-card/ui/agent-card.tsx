@@ -1,4 +1,4 @@
-import { MoreHorizontalIcon } from 'lucide-react';
+import { MoreHorizontalIcon, PlusIcon } from 'lucide-react';
 import type { Agent, AgentStatus } from '@/entities/agent';
 import { agentColorTintClass, statusLabel } from '@/entities/agent';
 import { useAgentHasUnread, useAgentLiveStatus } from '@/features/desk';
@@ -21,9 +21,17 @@ type AgentCardProps = {
   onSelect: () => void;
   onSettings: () => void;
   onDelete: () => void;
+  onNewThread?: () => void;
 };
 
-export function AgentCard({ agent, selected, onSelect, onSettings, onDelete }: AgentCardProps) {
+export function AgentCard({
+  agent,
+  selected,
+  onSelect,
+  onSettings,
+  onDelete,
+  onNewThread,
+}: AgentCardProps) {
   const { state, isMobile } = useSidebar();
   const iconMode = state === 'collapsed' && !isMobile;
   const status = useAgentLiveStatus(agent.id);
@@ -90,6 +98,23 @@ export function AgentCard({ agent, selected, onSelect, onSettings, onDelete }: A
           {hasUnread ? ' · unread' : ''}
         </TooltipContent>
       </Tooltip>
+      {onNewThread ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          title="New thread"
+          className="absolute top-1 right-[30px] opacity-0 group-hover/agent:opacity-100 group-data-[collapsible=icon]:hidden"
+          data-testid={`agent-new-thread-${agent.id}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onNewThread();
+          }}
+        >
+          <PlusIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
+          <span className="sr-only">New thread</span>
+        </Button>
+      ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger
           render={

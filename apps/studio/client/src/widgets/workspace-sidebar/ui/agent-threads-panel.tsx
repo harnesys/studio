@@ -1,48 +1,12 @@
 import { ChevronLeftIcon } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
-import { useSessionStore } from '@/entities/session';
-import { setActiveThreadId, type Thread, useThreadStore } from '@/entities/thread';
-import { useAgentsSlideStore, useAgentThreads, useDeskStore } from '@/features/desk';
-import { useIdeStore } from '@/features/ide';
-import { confirmDeleteThread, openNewThread } from '@/features/switch-thread';
-import { deleteThreadRecord, setThreadPinned } from '@/shared/api';
-import { studioPath } from '@/shared/config/routes';
+import type { Thread } from '@/entities/thread';
+import { useAgentsSlideStore, useAgentThreads } from '@/features/desk';
 import { Button } from '@/shared/ui/button';
+import { useThreadActions } from '../model/thread-actions';
+import { buildThreadTree, type ThreadTreeNode } from '../model/thread-tree';
 import { AgentThreadRow } from './agent-thread-row';
-
-type ThreadTreeNode = { thread: Thread; children: ThreadTreeNode[] };
-
-function buildThreadTree(threads: Thread[]): ThreadTreeNode[] {
-  const byId = new Map<string, ThreadTreeNode>(
-    threads.map((thread) => [thread.id, { thread, children: [] }]),
-  );
-  const roots: ThreadTreeNode[] = [];
-  for (const node of byId.values()) {
-    const parent = node.thread.parentThreadId ? byId.get(node.thread.parentThreadId) : undefined;
-    if (parent) {
-      parent.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  }
-  for (const node of byId.values()) {
-    node.children.sort((a, b) =>
-      (a.thread.createdAt ?? a.thread.updatedAt).localeCompare(
-        b.thread.createdAt ?? b.thread.updatedAt,
-      ),
-    );
-  }
-  roots.sort((a, b) => {
-    const pinDelta = Number(b.thread.pinned === true) - Number(a.thread.pinned === true);
-    if (pinDelta !== 0) {
-      return pinDelta;
-    }
-    return b.thread.updatedAt.localeCompare(a.thread.updatedAt);
-  });
-  return roots;
-}
 
 function ThreadTreeNodes({
   nodes,
@@ -78,57 +42,10 @@ export function AgentThreadsPanel({
   activeThreadId: string | null;
   onDone: () => void;
 }) {
-  const navigate = useNavigate();
   const back = useAgentsSlideStore((state) => state.back);
   const threads = useAgentThreads(agent.id);
+  const actions = useThreadActions(workspaceId);
   const sorted = buildThreadTree(threads);
-
-  const openThread = (thread: Thread) => {
-    useIdeStore.getState().openThread(workspaceId, thread.agentId, thread.id);
-    useDeskStore.getState().setFocusedThreadId(thread.id);
-    setActiveThreadId(thread.agentId, thread.id);
-    void navigate(studioPath.thread(workspaceId, thread.id, { kind: 'agent', id: thread.agentId }));
-    onDone();
-  };
-
-  const handleNewThread = () => {
-    void openNewThread(agent.id, workspaceId).then((threadId) => {
-      if (!threadId) {
-        return;
-      }
-      const thread = useThreadStore.getState().byId(threadId);
-      if (thread) {
-        openThread(thread);
-      }
-    });
-  };
-
-  const handleTogglePin = (thread: Thread) => {
-    const next = thread.pinned !== true;
-    void setThreadPinned(thread.id, next)
-      .catch(() => null)
-      .then((record) => {
-        useThreadStore.getState().setPinned(thread.id, record ? record.pinned : next);
-      });
-  };
-
-  const handleDelete = (thread: Thread) => {
-    if (thread.kind !== 'chat') {
-      return;
-    }
-    void confirmDeleteThread(thread).then((confirmed) => {
-      if (!confirmed) {
-        return;
-      }
-      void deleteThreadRecord(thread.id)
-        .catch(() => {})
-        .finally(() => {
-          useSessionStore.getState().removeForThreads([thread.id]);
-          useThreadStore.getState().remove(thread.id);
-          useIdeStore.getState().closeByEntity(workspaceId, 'thread', thread.id);
-        });
-    });
-  };
 
   return (
     <div className="flex flex-col gap-0.5" data-testid="agent-threads-panel">
@@ -152,7 +69,7 @@ export function AgentThreadsPanel({
           size="xs"
           className="ml-auto shrink-0 px-2 text-muted-foreground text-xs"
           data-testid="agent-threads-new"
-          onClick={handleNewThread}
+          onClick={() => actions.createThread(agent.id)}
         >
           New
         </Button>
@@ -168,9 +85,12 @@ export function AgentThreadsPanel({
             <AgentThreadRow
               thread={thread}
               selected={activeThreadId === thread.id}
-              onSelect={() => openThread(thread)}
-              onPinToggle={thread.kind === 'chat' ? () => handleTogglePin(thread) : undefined}
-              onDelete={thread.kind === 'chat' ? () => handleDelete(thread) : undefined}
+              onSelect={() => {
+                actions.openThread(thread);
+                onDone();
+              }}
+              onPinToggle={thread.kind === 'chat' ? () => actions.togglePin(thread) : undefined}
+              onDelete={thread.kind === 'chat' ? () => actions.removeThread(thread) : undefined}
             />
           )}
         />

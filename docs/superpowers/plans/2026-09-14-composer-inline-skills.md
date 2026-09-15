@@ -10,20 +10,20 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-14-composer-inline-skills-design.md` — аргументация, границы скоупа и удалений там; здесь только разбивка.
 
-## Факты разведки (база 2026-09-14; allowlist и скоуп перепроверены 2026-09-15)
+## Факты разведки (база 2026-09-14; allowlist, capability-set пакет и composition перепроверены 2026-09-15)
 
 - Композер: `widgets/chat-composer/ui/chat-composer.tsx` (352 строки) — `value`/`setValue` строка (:62), `slashIndex` (:65), `handleComposerKeyDown` (:196), `SlashMenu` (:146), `InputGroupTextarea` (:190), submit — `submitComposer({value,...})` (:317). Ряд addon'ов (`AttachMenu`, `ModeSelect`, `ContextRing`, `ModelSelect`, `EffortSelect`, send/stop) не меняется.
 - Команды: `model/slash-commands.ts` (`SLASH_COMMANDS`, `matchSlashCommands`, `exactSlashCommand`), `model/slash-keydown.ts`, `ui/slash-menu.tsx`, `model/composer-submit.ts:26` (exact-проверка при submit), `model/run-slash-command.ts` (исполнение, остаётся).
 - Отправка: `model/composer-send.ts` `uploadAndSend` → `features/send-message/model/send-message.ts:23` (клиентский `clientEventId`, optimistic `appendEvent`) → `shared/api/threads.ts:57` `sendThreadRun`.
-- Сервер: wire-zod `server/src/adapters/http/thread/thread.body.ts:23` (`sendThreadRunBody`); use case `application/threads/send-thread-run.use-case.ts` — mode-блок `modeInstructionsBlock` (:158-173), `escapeXml` (:175), `prependBlock` (:183), инъекция (:114-119).
-- Валидация скиллов прецедент: `application/agents/create-agent.use-case.ts:124-131` — dep `workspaceCatalog.listSkills: ListWorkspaceSkillsInput`, `execute({workspaceId})` → `listed.skills[].name`, `assertAllKnown(unknown,'skill')`. Allowlist — `agent.skills?: string[]`, closed-world: omitted/пусто = none (`shared/src/agent.ts:44`, `agent-definition.ts:64-65`); рантайм-зеркало — `filterSkills(merged, def.skills ?? [])` (`packs/pack-run.ts:228`); `dbAgentDefinition` отдаёт `agent.skills` as-is (`workspace-agent-definitions.ts:24`); легаси-пустые строки дозаполнены полным каталогом одноразовой миграцией (`closed-world-materialization.ts:95-97`, маркер `closed_world_materialization_v1`).
-- Каталог: `collectWorkspaceSkills(hx, plugins)` (`list-workspace-skills.use-case.ts:44-80`) — live-скиллы workspace + плагинные с префиксом `pluginName:` и карточки незагруженных (`inert`/`blocked_by_grant`/`dropped`, description пуст). Тип `WorkspaceSkill {name, description, whenToUse?, origin}` (`shared/src/workspace-config.ts:7-12`), `ComponentOrigin` (`shared/src/plugin.ts:26-28`), `ComponentStatus` (`plugin-ir.ts:44`). Клиентский хеллер: `shared/api/workspaces.ts:87-109` (`GET /api/workspaces/:id/skills`). `filterSkills` (`skills-catalog.ts:5-35`) при `undefined` отдаёт всё, но единственный рантайм-вызов подставляет `?? []` — фактически пусто = none.
+- Сервер: wire-zod `server/src/adapters/http/thread/thread.body.ts:23` (`sendThreadRunBody`); use case `application/threads/send-thread-run.use-case.ts` — mode-блок `modeInstructionsBlock` (:159-174), `escapeXml` (:175), `prependBlock` (:183), сборка `input.text` (:117-120: mode вставляется только при `modeChanged`; skills-блок, по спеке §5, прикладывается всегда).
+- Валидация скиллов прецедент: `application/agents/create-agent.use-case.ts:132-139` — dep `workspaceCatalog.listSkills: ListWorkspaceSkillsInput`, `execute({workspaceId})` → `listed.skills[].name`, `assertAllKnown(unknown,'skill')`; §7-валидация `validateConfig` (`capabilities/validate-agent-config.use-case.ts`) skills-каталог не проверяет, у делегатов — `skills ⊆ parent.skills` (:251-255). Allowlist — `agent.skills?: string[]`, closed-world: omitted/пусто = none (`shared/src/agent.ts:44-45`, `agent-definition.ts:64-65`); домен `Agent.skills: string[]` (`domain/agent.port.ts:43-44`); `dbAgentDefinition` отдаёт `agent.skills` as-is (`workspace-agent-definitions.ts:24`). `closed-world-materialization.ts` удалён (0b38362): миграция `capability_set_v1` skills не трогает, backfill пустых строк больше нет — у легаси-агента без skills просто нет скиллов; пресеты несут skills явно (assistant: `workspace-ops`).
+- Каталог: `collectWorkspaceSkills(hx, plugins)` (`list-workspace-skills.use-case.ts:44-80`) — live-скиллы workspace + плагинные с префиксом `pluginName:` и карточки незагруженных (`inert`/`blocked_by_grant`/`dropped`, description пуст). Тип `WorkspaceSkill {name, description, whenToUse?, origin}` (`shared/src/workspace-config.ts:7-12`), `ComponentOrigin` (`shared/src/plugin.ts:26-28`), `ComponentStatus` (`plugin-ir.ts:44`). Клиентский хеллер: `shared/api/workspaces.ts:87-109` (`GET /api/workspaces/:id/skills`). Рантайм-зеркало фильтра — `effectiveSkillRegistry` = `filterSkills(merged, def.skills ?? [])` (`pack-run.ts:165-174`), через него же каталог модели (`llm.ts:127`); pack-выходы режет тот же allowlist (`capability-outputs.ts:25`). `filterSkills` (`skills-catalog.ts:5-35`) при `undefined` отдаёт всё, но рантайм-колл-сайты подставляют `?? []` — фактически пусто = none.
 - Транскрипт: `widgets/chat-transcript/model/mode-tag.ts` (`MODE_TAG_RE`, `splitModeTags`, `ModeTagBadge`), `ui/mode-tag-badge.tsx` (`ModeTagBadges`), `ui/agent-turn.tsx:216-244` (`TurnSegmentView` user-ветка).
 - Стор: `entities/session/model/session.store.ts` — `appendEvent` (:173), `removeEventByClientEventId` (:198, ключ `ce:`), `removeForThreads` (:52 в типе).
 - Библиотечный `SessionEvent {type:'user'}` (`packages/harnesys/src/ports/session.ts:65-75`) не расширяем: sidecar живёт в сторе хоста.
 - `@tiptap/suggestion` v3 позиционирует рендер через `clientRects`; кастомный renderer — объект `{render, update, destroy}`. DOC: https://tiptap.dev/docs/examples/mentions (реализацию сверить с docs актуальной версии, API `char/allowedPrefixes/command` стабилен в v3).
 - Композер-mode: `model/composer-mode.ts` первым item кладёт `DEFAULT_MODE` (322944c) — селектор не трогаем, конфликту нет.
-- Проверено 2026-09-15, план не задет: незакоммиченное на `impr` — скоуп ростера (`listAgentRoster` → `listScopedRoster(parent)`, `plugin-agents.ts`, `wire-runtime.ts:97`, `create-runtime.ts:36-41`) и spawn/handoff (`denied` + `agent.failed`, `graph-spawn.ts`, `graph.ts`, `graph-handoff.ts`); capability-коммиты (`f75ff4a` closed-world, `833ccdb` plugin enablement, `43f540f` core pack) пересекают файлы плана только семантикой allowlist выше. Параллельный план `2026-09-15-capability-set.md` `send-thread-run`/`requested-skills` не трогает (`skills` остаётся явным источником агента).
+- Проверено 2026-09-15 (пакеты capability-set `1c6fdb3..94b3c35` + незакоммиченные пресеты/копирайт/роустер-правки): файлы плана не изменены — `chat-composer`, `chat-transcript`, `session.store`, `send-message`, `shared/api/threads|workspaces`, `list-workspace-skills.use-case`, `send-thread-run`, `thread.body` вне диффов. Ростер/спавн (`listScopedRoster`, `denied`+`agent.failed`, `parent` в `AgentsResolve`) и удаление `AgentRecord.tools` (0b38362) планом не используются. Новый `GET /api/agents/:id/capabilities` (`list-agent-capabilities.use-case.ts`, клиент `shared/api/agent-capabilities.ts`) даёт explain-строки skills без descriptions — источником picker не становится (Task 5 Step 1 остаётся каталог ∩ allowlist). Спека-ссылка `create-agent.use-case.ts:120-128` устарела: актуально `:132-139`.
 
 ## Расхождение со спекой (закрытие мира, f75ff4a)
 
@@ -80,27 +80,30 @@ export function $insertInlineEntity(editor: Editor, at: number, attrs: InlineEnt
 - Modify: `apps/studio/server/src/adapters/http/thread/thread.body.ts:23-34`
 - Modify: `apps/studio/server/src/application/threads/send-thread-run.use-case.ts`
 - Modify: `apps/studio/server/src/adapters/http/thread/thread.controller.ts` (проброс `skills` в request use case)
-- Modify: composition-файл, конструирующий `SendThreadRunUseCase` (рядом с `CreateAgentUseCase`: тот же `listSkills` инстанс)
+- Modify: `apps/studio/server/src/composition/create-host.ts:267` (deps `SendThreadRunUseCase`: добавить `listSkills: new ListWorkspaceSkillsUseCase(store.workspaceRepo, workspaceHarnesys)` — те же два аргумента, что в `wire-agent-controllers.ts:47`)
 - Modify: `apps/studio/client/src/shared/api/threads.ts` (`SendRunInput.skills?: string[]` в тело)
 
 **Interfaces:**
-- Consumes: `ListWorkspaceSkillsInput` (as `create-agent.use-case.ts:124-131`).
+- Consumes: `ListWorkspaceSkillsInput` (as `create-agent.use-case.ts:132-139`).
 - Produces: текст user-события может содержать блок `<requested-skills names="a, b">For this request, call load_skill for each listed skill before working.</requested-skills>`; wire-контракт `skills?: string[]` (regex имени `^[A-Za-z0-9:_-]{1,120}$`, ≤10, только с непустым `text`), иначе 400.
 
 - [ ] **Step 1:** zod: `skills: z.array(z.string().regex(/^[A-Za-z0-9:_-]{1,120}$/)).max(10).optional()` в `sendThreadRunBody`; в существующий `.refine` добавить условие `skills?.length ? (value.text?.length ?? 0) > 0 : true` с message `skills require text`.
-- [ ] **Step 2:** Use case: в deps добавить `listSkills: ListWorkspaceSkillsInput` (опционально, как в `CreateAgentUseCaseDeps`); в `execute` после `resolveModeId`: дедуп `const skills = [...new Set(request.skills ?? [])]`; при `skills.length` — `listed = await this.listSkills.execute({ workspaceId: thread.workspaceId })`, `known = new Set(listed.skills.map(s => s.name))`, allowlist — `agentRow.skills ?? []` (`agentRow` уже загружен в use case, closed-world: omitted/пусто = none, зеркало рантайма `filterSkills(merged, def.skills ?? [])`); запрошенное вне `known` или вне allowlist → `ValidationError('skills not available to this agent: a, b')`.
-- [ ] **Step 3:** Блок и порядок инъекции (возле строки 119):
+- [ ] **Step 2:** Use case: в `SendThreadRunDeps` добавить `listSkills: ListWorkspaceSkillsInput`; в `execute` после `resolveModeId`: дедуп `const skills = [...new Set(request.skills ?? [])]`; при `skills.length` — `listed = await this.listSkills.execute({ workspaceId: thread.workspaceId })`, `known = new Set(listed.skills.map(s => s.name))`, allowlist — `agentRow.skills` (`domain/agent.port.ts:43-44`: `skills: string[]`, closed-world пусто = none; рантайм-зеркало `effectiveSkillRegistry`), неизвестные/запрещённые → `ValidationError('skills not available to this agent: a, b')`.
+- [ ] **Step 3:** Блок и порядок инъекции (существующие строки 117-120: `modeBlock`, `modeChanged`, `input.text = modeBlock && modeChanged ? prependBlock(modeBlock, request.text) : request.text`):
 
 ```ts
 function requestedSkillsBlock(skills: string[]): string {
   const names = skills.map(escapeXml).join(', ');
   return `<requested-skills names="${names}">For this request, call load_skill for each listed skill before working.</requested-skills>`;
 }
-// input.text = skills.length ? prependBlock(requestedSkillsBlock(skills), withMode) : withMode;
+// заменить сборку input.text: skills на text всегда, затем mode поверх (gate modeChanged сохраняется)
+let text = skills.length > 0 ? prependBlock(requestedSkillsBlock(skills), request.text) : request.text;
+if (modeBlock && modeChanged) text = prependBlock(modeBlock, text);
+input.text = text;
 ```
 
-Mode-блок ближе к тексту (препендиться первым, затем skills — итог: mode → skills → текст).
-- [ ] **Step 4:** Компиляция контроллера: `skills: body.skills` в use-case request; wire в composition — туда же, где конструируется `CreateAgentUseCase` с `workspaceCatalog.listSkills`.
+Итоговый порядок: mode → skills → текст (спека §5); skills-блок per-message всегда, mode — только при смене.
+- [ ] **Step 4:** Компиляция контроллера: `skills: body.skills` в use-case request; wire: `create-host.ts:267` — `listSkills` в deps `SendThreadRunUseCase` (список Files).
 - [ ] **Step 5:** Клиент `sendThreadRun`: `skills?: string[]` в input, тело `...(skills?.length ? { skills } : {})`.
 - [ ] **Step 6:** `bun run lint && bun run typecheck`; curl-проверка на стенде хозяина: POST `/api/threads/<id>/runs` с `skills:["нет-такого"]` → 400 с именем; коммит `feat(studio): skills on the run wire and requested-skills directive block`.
 

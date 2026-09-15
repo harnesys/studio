@@ -95,7 +95,7 @@ Spawn (delegation):
 Handoff (ownership transfer):
 
 - `agentId` must resolve to a top-level agent; the host rejects handoff onto spawn delegates.
-- Input usually passes messages plus accumulated state. The run rebinds to the target definition and continues from its `core:start` with the parent's messages and budget.
+- Input usually passes messages plus accumulated state. The run rebinds to the target definition and continues from its `core:start` with the parent's messages; the limits come from the target's stored `budget` (the same run, counters keep their values).
 
 State accumulation:
 

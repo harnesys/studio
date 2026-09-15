@@ -40,16 +40,28 @@ export type AgentCatalogPatch = {
   budget?: AgentBudget;
 };
 
+/** Complete row returned by `create` so the caller can self-verify without a list call. */
+export type AgentCatalogCreated = {
+  id: string;
+  name: string;
+  role: string;
+  instructions: string;
+  parentId?: string | null;
+  /** Enabled pack assignment keys (tool sources, not a stored tool-name list). */
+  packs: string[];
+  /** `provider/model`, when the host could resolve a model for the row. */
+  model?: string;
+  budget?: AgentBudget;
+  permissions?: PermissionMap;
+};
+
 export type AgentsCatalogPort = {
   list(
     scope: CapabilityScope,
     filter?: { role?: string; name?: string },
   ): Promise<AgentCatalogSummary[]>;
   get(scope: CapabilityScope, id: string): Promise<AgentDefinition | null>;
-  create(
-    scope: CapabilityScope,
-    input: AgentCatalogCreateInput,
-  ): Promise<{ id: string; name: string }>;
+  create(scope: CapabilityScope, input: AgentCatalogCreateInput): Promise<AgentCatalogCreated>;
   /** Apply a partial update to an existing agent definition. */
   patch?(scope: CapabilityScope, id: string, patch: AgentCatalogPatch): Promise<void>;
   /** Remove an agent by id. */

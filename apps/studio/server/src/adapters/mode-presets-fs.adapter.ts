@@ -67,19 +67,31 @@ function presetIdsIn(dir: string): string[] {
 /**
  * Read mode presets from bundled app assets (`apps/studio/assets/presets/modes`) and
  * `~/.harnesys/presets/modes` (id = filename stem). A same-id preset in home shadows the
- * bundled one and loads as non-builtin. `instructionsFile` is a path relative to the
- * Studio assets root; `builtinModePresetSeed()` wraps this for bootstrap.
+ * bundled one and loads as non-builtin — only while it parses: a broken home file is
+ * skipped with a warning (the bundled copy survives), a broken bundled file still throws.
+ * `instructionsFile` is a path relative to the Studio assets root;
+ * `builtinModePresetSeed()` wraps this for bootstrap.
  */
-export function readModePresets(): Omit<ModePreset, 'createdAt' | 'updatedAt'>[] {
-  const byId = new Map<string, { id: string; path: string; builtin: boolean }>();
+export function readModePresets(
+  onSkip: (message: string) => void = (message) => console.warn(message),
+): Omit<ModePreset, 'createdAt' | 'updatedAt'>[] {
+  const byId = new Map<string, Omit<ModePreset, 'createdAt' | 'updatedAt'>>();
   for (const root of presetRoots()) {
     for (const id of presetIdsIn(root.dir)) {
-      byId.set(id, { id, path: join(root.dir, `${id}.json`), builtin: root.builtin });
+      const path = join(root.dir, `${id}.json`);
+      try {
+        byId.set(id, parsePreset(id, path, root.builtin));
+      } catch (err) {
+        if (root.builtin) {
+          throw err;
+        }
+        onSkip(
+          `[presets] mode preset "${id}" skipped (${path}): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
   }
-  return [...byId.values()]
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .map((entry) => parsePreset(entry.id, entry.path, entry.builtin));
+  return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
 
 function parsePreset(

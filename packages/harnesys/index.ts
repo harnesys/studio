@@ -300,6 +300,7 @@ export { threadsCapability } from './src/packs/threads/index.ts';
 export type { WebhookCapabilityPorts } from './src/packs/webhook/index.ts';
 export { webhookCapability } from './src/packs/webhook/index.ts';
 export type {
+  AgentCatalogCreated,
   AgentCatalogCreateInput,
   AgentCatalogPatch,
   AgentCatalogSummary,

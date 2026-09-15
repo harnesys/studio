@@ -1,4 +1,5 @@
 import type {
+  AgentCatalogCreated,
   AgentCatalogCreateInput,
   AgentCatalogPatch,
   AgentCatalogSummary,
@@ -107,7 +108,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
   async create(
     scope: CapabilityScope,
     input: AgentCatalogCreateInput,
-  ): Promise<{ id: string; name: string }> {
+  ): Promise<AgentCatalogCreated> {
     const model = resolveModelFields(input.model, this.deps);
     // This port owns tool-path desk emissions; the wired CreateAgentUseCase has no emitter.
     const created = await this.deps.createAgent.execute({
@@ -127,7 +128,18 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
       generation: model?.generation,
     });
     this.deps.deskEvents.emit(scope.workspaceId, { type: 'agent', agent: created });
-    return { id: created.id, name: created.name };
+    const def = toAgentDefinition(created, this.deps);
+    return {
+      id: created.id,
+      name: created.name,
+      role: created.role,
+      instructions: created.instructions,
+      parentId: created.parentId,
+      packs: Object.keys(def.packs ?? {}).filter((name) => def.packs?.[name]),
+      ...(def.model ? { model: `${def.model.provider}/${def.model.model}` } : {}),
+      ...(def.budget ? { budget: def.budget } : {}),
+      ...(def.permissions ? { permissions: def.permissions } : {}),
+    };
   }
 
   patch(scope: CapabilityScope, id: string, patch: AgentCatalogPatch): Promise<void> {

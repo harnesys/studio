@@ -28,7 +28,13 @@ export type SpawnCall = {
 };
 
 /** Бюджет исчерпан на границе лимита; отчёт ребёнка — закрывающий, не «задача сделана». */
-export type SpawnBudgetHit = { kind: 'steps' | 'tokens' | 'deadline'; limit: number; used: number };
+export type SpawnBudgetHit = {
+  kind: 'steps' | 'tokens' | 'deadline';
+  limit: number;
+  used: number;
+  /** `used` включает закрывающий отчётный шаг и может превышать `limit` на него. */
+  closingStep: true;
+};
 
 /** Ошибка спавн-вызова: код движка + текст для модели. */
 export type SpawnCallError = { code: string; message: string };
@@ -214,15 +220,15 @@ function spawnBudgetHit(
     return undefined;
   }
   if (b.maxSteps !== undefined && cb.steps >= b.maxSteps) {
-    return { kind: 'steps', limit: b.maxSteps, used: cb.steps };
+    return { kind: 'steps', limit: b.maxSteps, used: cb.steps, closingStep: true };
   }
   if (b.maxTokens !== undefined && cb.tokens >= b.maxTokens) {
-    return { kind: 'tokens', limit: b.maxTokens, used: cb.tokens };
+    return { kind: 'tokens', limit: b.maxTokens, used: cb.tokens, closingStep: true };
   }
   if (b.deadlineMs !== undefined) {
     const used = Date.now() - cb.startedAt;
     if (used >= b.deadlineMs) {
-      return { kind: 'deadline', limit: b.deadlineMs, used };
+      return { kind: 'deadline', limit: b.deadlineMs, used, closingStep: true };
     }
   }
   return undefined;

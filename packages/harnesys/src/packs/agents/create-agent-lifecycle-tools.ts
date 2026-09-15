@@ -39,8 +39,15 @@ function resolveOwnedDelegate(
     if (hit.error.startsWith('ambiguous')) {
       return hit;
     }
-    const available = formatAgentTargets(roster) || '(none)';
-    return { error: `unknown target "${query}". Available agents: ${available}` };
+    const mine = rows
+      .filter((row) => row.parentId === currentAgentId)
+      .map((row) => ({ id: row.id, name: row.name }));
+    const available = formatAgentTargets(mine) || '(none)';
+    return {
+      error:
+        `unknown target "${query}": no such agent in your scope — it may be a typo, already deleted, or owned by another agent ` +
+        `(top-level agents are managed in the workspace UI). Your delegates: ${available}`,
+    };
   }
   const row = rows.find((r) => r.id === hit.id);
   if (!row) {

@@ -51,10 +51,19 @@ function spawnCallsShapeError(calls: unknown[]): string | null {
   for (let idx = 0; idx < calls.length; idx += 1) {
     const item = calls[idx];
     const rec =
-      item && typeof item === 'object' ? (item as { agentId?: unknown; budget?: unknown }) : null;
+      item && typeof item === 'object'
+        ? (item as { agentId?: unknown; budget?: unknown; input?: unknown })
+        : null;
     const agentId = rec?.agentId;
     if (typeof agentId !== 'string' || !agentId) {
       return `calls[${idx}].agentId must be a non-empty string`;
+    }
+    if (
+      rec !== null &&
+      typeof rec.input !== 'string' &&
+      (typeof rec.input !== 'object' || rec.input === null)
+    ) {
+      return `calls[${idx}].input is required: { messages: [...] } or a plain string`;
     }
     const parsed = parseSpawnBudget(rec?.budget);
     if (parsed.error !== undefined) {
@@ -119,7 +128,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       group: 'agents',
       operations: ['agents'],
       description:
-        'Create a standalone top-level agent in this workspace (visible to the user in the sidebar, own threads). For a delegate under you use agents_create_subagent. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. skills/mcpServers/packs/enabledPlugins: sources, not tool names; omitted or [] means none; list every source explicitly. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
+        'Create a standalone top-level agent in this workspace (visible to the user in the sidebar, own threads). For a delegate under you use agents_create_subagent. Returns the full row: { id, name, role, instructions, parentId, packs, model?, budget?, permissions? }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. skills/mcpServers/packs/enabledPlugins: sources, not tool names; omitted or [] means none; list every source explicitly. Omit graph to let the host build a default ReAct graph and store budget { maxSteps: 50, policy: "ask" } when budget is omitted. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
       input: {
         type: 'object',
         properties: {
@@ -189,7 +198,8 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       group: 'agents',
       operations: ['agents'],
       description:
-        'Create a subagent delegate under YOU (the calling agent). Returns { id, name }. ' +
+        'Create a subagent delegate under YOU (the calling agent). ' +
+        'Returns the full row: { id, name, role, instructions, parentId, packs, model?, budget?, permissions? }. ' +
         'skills/mcpServers/packs/enabledPlugins: sources, not tool names; omitted or [] means none; list every source explicitly. ' +
         'Delegates are one-shot spawn targets: they cannot ask the user questions, their permissions ' +
         'never exceed yours, and the "agents" pack is forbidden for them. Spawn them with agents_spawn. ' +
@@ -264,7 +274,7 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       group: 'agents',
       sideEffect: 'write',
       description:
-        'Queue one-shot subcontracts: the graph then runs control:spawn. calls is [{ agentId, input, budget? }] — budget {maxSteps?, maxTokens?, deadlineMs?} caps this child only; omit to inherit your own budget. input is usually { messages: [{ role: "user", content: "<task>" }] }. Children cannot ask questions back (permission/approval/input tools are denied in child context); provide everything upfront. On budget exhaustion a child never fails: it closes with a report and the result carries "budget". agentId accepts an exact id, a unique id prefix (8+ chars), or a name — unknown/ambiguous targets fail here with the agent list. Prefer agents_list (reuse) before agents_create. This is not the tool name control:spawn.',
+        'Queue one-shot subcontracts: the graph then runs control:spawn. calls is [{ agentId, input, budget? }] — budget {maxSteps?, maxTokens?, deadlineMs?} caps this child only; omit to inherit your own budget. input is required: { messages: [{ role: "user", content: "<task>" }] } or a plain string (one user message). Children cannot ask questions back (permission/approval/input tools are denied in child context); provide everything upfront. On budget exhaustion a child never fails: it closes with a report and the result carries budget { kind, limit, used, closingStep: true } (used may exceed limit by that closing report step). agentId accepts an exact id, a unique id prefix (8+ chars), or a name — unknown/ambiguous targets fail here with the agent list. Prefer agents_list (reuse) before agents_create. This is not the tool name control:spawn.',
       input: {
         type: 'object',
         properties: {
@@ -280,7 +290,8 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
                 },
                 input: {
                   description:
-                    'Child run input. Typical: { "messages": [{ "role": "user", "content": "<task>" }] }',
+                    'Child run input (required): { "messages": [{ "role": "user", "content": "<task>" }] }, or a plain string — the engine wraps it into one user message. Arbitrary other shapes are the child graph\'s problem.',
+                  oneOf: [{ type: 'string' }, { type: 'object' }],
                 },
                 budget: {
                   type: 'object',

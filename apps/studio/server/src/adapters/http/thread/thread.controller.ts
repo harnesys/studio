@@ -142,6 +142,7 @@ export class ThreadController {
           effort: body.effort,
           attachmentIds: body.attachmentIds,
           mode: body.mode,
+          skills: body.skills,
           clientEventId: body.clientEventId,
         });
         return c.json(response, 202);

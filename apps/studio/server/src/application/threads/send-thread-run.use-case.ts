@@ -12,6 +12,7 @@ import { NotFoundError, RunConflictError, ValidationError } from '../../domain/s
 import type { Thread, ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { assertModelEffortSupported } from '../providers/provider.helpers.ts';
+import type { ListWorkspaceSkillsInput } from '../workspaces/list-workspace-skills.use-case.ts';
 import { kindFromMediaType } from './attachment-kind.ts';
 import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
@@ -27,6 +28,7 @@ export type SendThreadRunRequest = {
   origin?: string;
   foldHistory?: unknown[];
   clientEventId?: string;
+  skills?: string[];
 };
 
 export type SendThreadRunInput = {
@@ -44,6 +46,7 @@ export type SendThreadRunDeps = {
   registry: ThreadRuntimeRegistry;
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
+  listSkills: ListWorkspaceSkillsInput;
 };
 
 export class SendThreadRunUseCase implements SendThreadRunInput {
@@ -57,6 +60,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   private readonly registry: ThreadRuntimeRegistry;
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
+  private readonly listSkills: ListWorkspaceSkillsInput;
 
   constructor(deps: SendThreadRunDeps) {
     this.threads = deps.threads;
@@ -69,6 +73,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     this.registry = deps.registry;
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
+    this.listSkills = deps.listSkills;
   }
 
   async execute(request: SendThreadRunRequest): Promise<AcceptedRunResponse> {
@@ -112,11 +117,29 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
       modes: agentRow.modes,
     });
     this.threads.setRunMode(thread.id, runModeId);
+    // Requested skills are deduped first-occurrence-first and must exist in the
+    // workspace catalog and the agent allowlist (closed world: empty = none).
+    const skills = [...new Set(request.skills ?? [])];
+    if (skills.length > 0) {
+      const listed = await this.listSkills.execute({ workspaceId: thread.workspaceId });
+      const known = new Set(listed.skills.map((skill) => skill.name));
+      const allowed = new Set(agentRow.skills);
+      const unavailable = skills.filter((skill) => !known.has(skill) || !allowed.has(skill));
+      if (unavailable.length > 0) {
+        throw new ValidationError(`skills not available to this agent: ${unavailable.join(', ')}`);
+      }
+    }
     // The instructions block rides only when the resolved mode differs from the
     // previous run's mode; otherwise the user message would repeat it verbatim.
     const modeBlock = modeInstructionsBlock(effectiveMode(agentRow.modes, runModeId));
     const modeChanged = injectedRunModeField(thread) !== runModeId;
-    input.text = modeBlock && modeChanged ? prependBlock(modeBlock, request.text) : request.text;
+    // Skills ride on every message; mode goes on top when it changed.
+    let text =
+      skills.length > 0 ? prependBlock(requestedSkillsBlock(skills), request.text) : request.text;
+    if (modeBlock && modeChanged) {
+      text = prependBlock(modeBlock, text);
+    }
+    input.text = text;
 
     const hx = await this.workspaceHarnesys.get(workspace);
     const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
@@ -170,6 +193,12 @@ function modeInstructionsBlock(mode: AgentMode): string | undefined {
       : null,
   ].filter(Boolean);
   return `<mode id="${mode.id}" name="${escapeXml(mode.name)}">\n${parts.join('\n')}\n</mode>`;
+}
+
+/** Per-message directive listing the skills requested for this run. */
+function requestedSkillsBlock(skills: string[]): string {
+  const names = skills.map(escapeXml).join(', ');
+  return `<requested-skills names="${names}">For this request, call load_skill for each listed skill before working.</requested-skills>`;
 }
 
 function escapeXml(value: string): string {

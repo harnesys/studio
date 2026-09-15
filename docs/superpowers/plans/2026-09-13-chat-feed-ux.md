@@ -43,7 +43,7 @@
 - Produces: `useChatPreferences` с полями `feedFollow: 'anchor' | 'pin'`, `feedDetail: 'quiet' | 'full'`, `detailedStats`, `chatFontSize`; `ACTIVITY_COLLAPSE_MIN: number`; `useUnseenCount(total: number, atEnd: boolean): number`.
 - Consumes: `@shadcn/react/message-scroller` props `autoScroll`, `defaultScrollPosition: 'start' | 'end' | 'last-anchor'`, `scrollAnchor`, `scrollPreviousItemPeek`, `scrollEdgeThreshold`, `useMessageScrollerScrollable(): { start: boolean; end: boolean }`.
 
-- [ ] **Step 1: Переписать `shared/lib/chat-preferences.ts`**
+- [x] **Step 1: Переписать `shared/lib/chat-preferences.ts`**
 
 Оставить `ChatFontSize`-блок как есть (включая `applyChatFont`, `readStoredChatFont`, `isChatFontSize`). Удалить: `LIVE_EXPAND_*`, `isLiveExpandMode`, `COMFORT_*`, `clampComfort*`, поля/сеттеры `expandThinking`, `expandTools`, `comfort*`, `liveExpand`. Добавить:
 
@@ -108,7 +108,7 @@ export type ChatPreferences = {
 
 Внимание: `satisfies ChatPreferences` не сойдется из-за сеттеров — снять `satisfies`, вернуть объект как `ChatPreferences` через явные сеттеры в `create` (миграция трогает только data-поля). Реализация в `create`: сеттеры `set({ feedFollow })` / `set({ feedDetail })`.
 
-- [ ] **Step 2: `constants.ts`**
+- [x] **Step 2: `constants.ts`**
 
 ```ts
 // было: export const TOOL_RUN_COLLAPSE_AT = 6;
@@ -116,7 +116,7 @@ export type ChatPreferences = {
 export const ACTIVITY_COLLAPSE_MIN = 2;
 ```
 
-- [ ] **Step 3: Создать `widgets/chat-transcript/model/use-unseen-count.ts`**
+- [x] **Step 3: Создать `widgets/chat-transcript/model/use-unseen-count.ts`**
 
 ```ts
 import { useEffect, useRef, useState } from 'react';
@@ -137,7 +137,7 @@ export function useUnseenCount(total: number, atEnd: boolean): number {
 }
 ```
 
-- [ ] **Step 4: Переписать скролл-часть `thread-panel.tsx`**
+- [x] **Step 4: Переписать скролл-часть `thread-panel.tsx`**
 
 Удалить: импорт `useComfortFollow`, `useState<HTMLDivElement | null>` для viewport, `comfortFollow/Anchor/Threshold/Duration`-селекторы, `useComfortFollow(...)`-вызов, `comfortSpacer`/`comfortPinned`/`followPinned`, компонент `StickOnSend` и его использование, `{!followPinned ? ... : null}`-обёртку кнопки, `ref={setViewport}` у Viewport, `style={{ paddingBottom }}` по comfort, param `followPinned` у `ThreadReadSync`. Почистить шапку импортов `thread-panel.tsx`: из `react` убрать `useLayoutEffect`, `useRef`, `useState` (останутся `useCallback`, `useEffect`); из `@/shared/ui/message-scroller` убрать `useMessageScroller` (его держал только `StickOnSend`; `useMessageScrollerScrollable` остаётся).
 
@@ -223,11 +223,11 @@ function ThreadReadSync({ threadId }: { threadId: string }) {
 
 Удалить `StickOnSend`-компонент целиком и его использование; `useLayoutEffect`-импорт убрать, если больше не нужен.
 
-- [ ] **Step 5: Переписать `pages/settings/ui/chat-pane.tsx`**
+- [x] **Step 5: Переписать `pages/settings/ui/chat-pane.tsx`**
 
 Четыре поля: Font size (существующий ToggleGroup), Follow (ToggleGroup по `FEED_FOLLOW_MODES`/labels, `aria-label="Feed follow"`, описание: «Anchor parks the new turn near the top with a peek of the previous one; Pin holds the live edge at the bottom»), Detail (ToggleGroup по `FEED_DETAIL_MODES`, описание: «Quiet collapses finished activity groups; Full keeps them open»), Detailed statistics (Switch без изменений). Удалить: три Slider-поля, `Switch comfort-follow`, `expandThinking`, `expandTools`, `liveExpand`-секции, импорты `Slider`, `FieldSet`-обёртки «Follow & Autoscroll»/«Live element» (если FieldSet больше не нужен — убрать и его импорт), импорты `COMFORT_*`/`LIVE_EXPAND_*`/`isLiveExpandMode`, хелпер `sliderValue` (станет мёртвым после удаления слайдеров).
 
-- [ ] **Step 6: Переезд потребителей на `feedDetail`**
+- [x] **Step 6: Переезд потребителей на `feedDetail`**
 
 `thinking-line.tsx`: убрать `expandThinking`/`liveExpand`, тогда:
 
@@ -254,16 +254,16 @@ const collapse = feedDetail === 'quiet' && !runLive && pairs.length >= ACTIVITY_
 
 (`tool-run.tsx` в этом шаге не правим — он мёртв и удаляется целиком на шаге 7 вместе с последним потребителем `TOOL_RUN_COLLAPSE_AT`.)
 
-- [ ] **Step 7: Удалить `comfort-scroll.ts` и экспорт**
+- [x] **Step 7: Удалить `comfort-scroll.ts` и экспорт**
 
 `rm widgets/chat-transcript/model/comfort-scroll.ts`; в `widgets/chat-transcript/index.ts` удалить строку `export { type ComfortScrollOptions, useComfortFollow } from './model/comfort-scroll';`. Удалить мёртвый `widgets/chat-transcript/ui/tool-run.tsx` (внешних импортов `ToolRun`/`tool-run` нет — подтвердит шаг 8). С этого момента `TOOL_RUN_COLLAPSE_AT` не нужен: в шаге 2 переименован в `ACTIVITY_COLLAPSE_MIN`, единственный прежний потребитель удалён.
 
-- [ ] **Step 8: Проверить отсутствие остатков**
+- [x] **Step 8: Проверить отсутствие остатков**
 
 Run: `rg "comfort|liveExpand|expandTools|expandThinking|TOOL_RUN_COLLAPSE_AT|TOOL_GROUP_MIN|StickOnSend" apps/studio/client/src` и `bun run typecheck && bun run lint` (в `apps/studio/client`).
 Expected: rg пустой (кроме несвязанных слов в чужих доменах, если совпадут — проверить вручную), typecheck/lint без ошибок.
 
-- [ ] **Step 9: Ручная проверка (agent-browser, стенд ворктри: Vite 5183)**
+- [x] **Step 9: Ручная проверка (agent-browser, стенд ворктри: Vite 5183)**
 
 1. Settings → Chat: видны 4 ручки; покрутить Follow/Detail — лента меняется после перезахода в тред.
 2. Запустить длинный промпт («расскажи что-нибудь длинное»): во время стрима открутить вверх — вьюпорт стоит, кнопка со счетчиком появилась; клик по кнопке — вернулись к краю, счетчик обнулился, follow продолжил (режим `following-bottom`, хвост догоняется сам).
@@ -271,7 +271,7 @@ Expected: rg пустой (кроме несвязанных слов в чуж�
 4. Приход первого tool-события в новый ран не должен дёргать вьюпорт: читатель, ушедший вверх в первые секунды рана, остаётся на месте (стабильный `runKey`, шаг 4).
 5. Кнопка возврата на стенде с `prefers-reduced-motion: reduce`: примитив зовёт `scrollTo({behavior:'smooth'})`; если браузер не перебивает smooth при reduced motion — добавить `behavior="auto"` в `LiveEdgeControls` (wrapper прокидывает пропсы в `Primitive.Button`).
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add apps/studio/client/src
@@ -292,7 +292,7 @@ git commit -m "refactor: single scroll owner in chat feed, feed settings v3 (fol
 - Produces: `Markdown({ text, className, streaming })`; CSS-класс caret `data-streaming`.
 - Consumes: `useLiveTail` (без изменений), флаги `live` из Task 1.
 
-- [ ] **Step 1: `markdown.tsx` — стрим-ветка**
+- [x] **Step 1: `markdown.tsx` — стрим-ветка**
 
 ```tsx
 type MarkdownProps = {
@@ -348,7 +348,7 @@ const STREAM_COMPONENTS: Components = { code: streamCode, pre: components.pre };
 
 (тип `code`-пропа взять из `Components['code']`, если биом/TS ругнется на подпись — объявить `const STREAM_COMPONENTS = { code: streamCode, pre: components.pre } as Components`.) `STREAM_COMPONENTS`/`streamCode` объявлять ПОСЛЕ `const components` (файл `markdown.tsx`: `components` на строке 32) — `components.pre` читается в момент объявления константы. `escapeHtml` — существующий хелпер файла (строка 71), повтор not.
 
-- [ ] **Step 2: `LiveMarkdown` в `agent-turn.tsx`**
+- [x] **Step 2: `LiveMarkdown` в `agent-turn.tsx`**
 
 ```tsx
 return <Markdown text={display} streaming={live} />;
@@ -356,7 +356,7 @@ return <Markdown text={display} streaming={live} />;
 
 `pendingReply`-плейсхолдер (строка `ThinkingLine` в `ActivityRail`, `agent-turn.tsx:159`) оставить: он уже резервирует ровно одну строку высоты.
 
-- [ ] **Step 3: Компаратор `run-turn.tsx` — живой хвост рисуется подпиской**
+- [x] **Step 3: Компаратор `run-turn.tsx` — живой хвост рисуется подпиской**
 
 Добавить рядом с `sameEventList`:
 
@@ -388,7 +388,7 @@ function sameEventsIgnoringLiveTail(a: SessionEvent[], b: SessionEvent[]): boole
 
 В memo-компараторе в ветке `prev.streaming || next.streaming` заменить `sameEventList` на `sameEventsIgnoringLiveTail`. В не-streaming ветке `sameEventList` оставить.
 
-- [ ] **Step 4: Caret в `app/styles/base.css`**
+- [x] **Step 4: Caret в `app/styles/base.css`**
 
 После блока `.activity-rail-live`:
 
@@ -419,11 +419,11 @@ function sameEventsIgnoringLiveTail(a: SessionEvent[], b: SessionEvent[]): boole
 
 В существующий блок `@media (prefers-reduced-motion: reduce)` добавить `.markdown[data-streaming='true'] > :last-child::after { animation: none; }`.
 
-- [ ] **Step 5: Ворота**
+- [x] **Step 5: Ворота**
 
 `bun run typecheck && bun run lint`. Ручная проверка: тред с длинным ответом, содержащим fenced code и mermaid, — во время стрима код plain, подсветка/mermaid/katex появляются сразу после done; caret мигает только на живом блоке; при чтении истории с откруткой верстка завершенных тернов не меняется (DevTools: нет re-render Markdown-блоков, `Profiler` или `?react_perf`).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/studio/client/src
@@ -442,7 +442,7 @@ git commit -m "perf: plain markdown during streaming, full pipeline on done, str
 - Consumes: `ActivityLine`/`ActivityBadge`, `SpawnInfo` из `../model/spawn-groups` (не меняется), `useSpawnStream`, `useNow`, `formatDuration/formatTokenCount` из `@/entities/session`, `useChatPreferences(s => s.feedDetail)`.
 - Produces: `SpawnLine({ threadId, spawnId, spawn, live, onOpen }: { threadId: string; spawnId: string; spawn: SpawnInfo; live: boolean; onOpen?: (spawnId: string) => void })`.
 
-- [ ] **Step 1: Создать `spawn-line.tsx`, удалить `spawn-card.tsx`**
+- [x] **Step 1: Создать `spawn-line.tsx`, удалить `spawn-card.tsx`**
 
 Каркас (карточные константы `DOT_TONE/SURFACE/RAIL/STATUS_LABEL/TOOL_DOT` и `StatusDot` — не переносятся):
 
@@ -566,7 +566,7 @@ function formatToolStat(stat: SpawnToolStat): string {
 
 `hint` родительской строки — одна фраза задачи/активности, обрезает `truncate` в `ActivityLine` (`activity-line.tsx:68`). `ActivityLine` не принимает `data-testid` — старые `spawn-card`/`spawn-row-*` не переносим, внешних ссылок на них нет (проверено grep). `toolEntries` ключуется по имени — коллизии `name:phase` из старого файла больше нет (Spec §2). Осознанные потери карточки: цветная точка агента (`agentColorClass`) не переносится — статус несёт иконка/бейджи; русские счётчики «шаг/токен» и «нет активности Ns» заменяются общими англоязычными бейджами (`N steps`, `idle Ns`) в тон остальной ленте.
 
-- [ ] **Step 2: Подключение в `agent-turn.tsx`**
+- [x] **Step 2: Подключение в `agent-turn.tsx`**
 
 Спавн пока остается отдельным сегментом (слияние в группы — Task 4), но на рейле:
 
@@ -592,11 +592,11 @@ if (segment.type === 'spawn') {
 
 Импорт `SpawnCard` заменить на `SpawnLine` из `./spawn-line`. `data-testid="spawn-card"` больше нет — проверить, что в Studio нет селекторов на него: `rg "spawn-card" apps/studio/client/src` (ожидание: только старое определение файла).
 
-- [ ] **Step 3: Ворота**
+- [x] **Step 3: Ворота**
 
 `bun run typecheck && bun run lint`. Ручная: в тред-ленте, где агент спавнит субагента — одна строка с BotIcon, имя агента, задача в хинте, живой shimmer + `elapsed`-бейдж; chevron раскрывает счётчики тулов и preview; `open` открывает IDE-таб; после done строка плоская и сворачивается в `quiet`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/studio/client/src
@@ -621,11 +621,11 @@ git commit -m "refactor: spawn card becomes activity line with stats and open ac
 - Produces: `ActivityChunk` с членом `{ type: 'spawn'; event: SessionEvent & { type: 'agent.spawned' } }`; `summarizeActivity(chunks: GroupActivityChunk[], spawnsById: Map<string, SpawnInfo>): ActivitySummary` (`{ label, parts, failed }`); `TurnSegment` без `spawn`.
 - Consumes: `SpawnLine` (Task 3), `summarizeToolRun` (остаётся для пар), `extractSpawns` (без изменений).
 
-- [ ] **Step 1: `turn-segments.ts`**
+- [x] **Step 1: `turn-segments.ts`**
 
 Удалить `| { type: 'spawn'; spawnId: string }` из `TurnSegment`. В `groupSegments` ветку `agent.spawned` заменить на `activity.push(ev); continue;` (без `flushActivity()`). В `segmentKey` удалить spawn-ветку; в `segmentSpacing` удалить `curr?.type === 'spawn'`.
 
-- [ ] **Step 2: `tool-run-summary.ts`**
+- [x] **Step 2: `tool-run-summary.ts`**
 
 `ActivityChunk` добавить `| { type: 'spawn'; event: SessionEvent & { type: 'agent.spawned' } }`; `GroupActivityChunk = Extract<ActivityChunk, { type: 'reasoning' | 'tools' | 'spawn' }>`. В `chunkEvents` перед `if (ev.type === 'tool')`:
 
@@ -669,7 +669,7 @@ export function summarizeActivity(
 
 `SpawnInfo` — type-импорт из `./spawn-groups` (тот же слой model). `parts`, а не готовый `hint`, чтобы вызывающий сохранил текущий overflow `+N` (`HINT_PARTS`); `failed` включает провалившихся агентов — сводка «2 tools · 1 agent» с failed-агентом обязана нести destructive-бейдж.
 
-- [ ] **Step 3: `tool-group.tsx`**
+- [x] **Step 3: `tool-group.tsx`**
 
 `chunks.length >= ACTIVITY_COLLAPSE_MIN` вместо `pairs.length >= ...`; collapsed-рендер на `summarizeActivity`:
 
@@ -721,23 +721,23 @@ if (chunk.type === 'spawn') {
 
 `ToolGroup` принимает новые props `spawns?: SpawnInfo[]`, `threadId?: string` (есть), `onOpenSpawn?: (spawnId: string) => void`; добавить в сигнатуру и в вызов `renderChunk`. Импорт `SpawnLine`, тип `SpawnInfo`.
 
-- [ ] **Step 4: `activity-items.tsx`**
+- [x] **Step 4: `activity-items.tsx`**
 
 `ActivityItems` принимает `spawns?: SpawnInfo[]`, `onOpenSpawn?: (id: string) => void`, прокидывает в `ToolGroup`. Соло-чанков `spawn` не бывает (всегда в группе из 1+).
 
-- [ ] **Step 5: `agent-turn.tsx`**
+- [x] **Step 5: `agent-turn.tsx`**
 
 `TurnSegmentView` больше не рендерит `spawn`-сегмент (типа удалён в шаге 1). Удалить ветку `if (segment.type === 'spawn') { ... }` (это тот `ActivityRail` + `SpawnLine`, что добавили в Task 3 Step 2) и импорт `SpawnLine`/`ActivityRail`, если они больше не нужны здесь. В `activity`-ветку (`ActivityItems`) добавить прокид `spawns={spawns} onOpenSpawn={onOpenSpawn}`. `AssistantMessageView` собирает `spawns` из prop в `ActivityItems`; `hasInFlight` (строка ~133) остаётся (спавны не tool-события). `segmentSpacing` уже не ссылается на `spawn` (шаг 1).
 
-- [ ] **Step 6: `tool-run.tsx` уже удалён**
+- [x] **Step 6: `tool-run.tsx` уже удалён**
 
 `rg "tool-run'|ToolRun\b" apps/studio/client/src` — пусто (файл удалён в Task 1, шаг 7). Если что-то осталось — это забытый импорт, допилить каскадом (RULE D1/D4), заглушку не ставить.
 
-- [ ] **Step 7: Ворота**
+- [x] **Step 7: Ворота**
 
 `bun run typecheck && bun run lint`. Ручная: терн со спавном + несколькими тулами до/после текста — завершенная группа сворачивается в `2 tools · 1 agent`, живой хвост раскрыт, клик по сводке разворачивает строки, у спавна работают chevron-детали и `open`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/studio/client/src
@@ -756,7 +756,7 @@ git commit -m "refactor: spawns join activity groups, type-aware collapsed summa
 - Consumes: `ActivityLine`, `MapInfo/MapItemInfo` без изменений, `useSpawnStream` без изменений.
 - Produces: `MapItems({ threadId, map })` — только список вложенных строк (шапка переехала в родителя); `mapLineHint(map: MapInfo): string` — в `model/map-groups.ts` (чистая функция, не в ui: `tool-line` импортирует её из model, cross-ui-импортов не появляется).
 
-- [ ] **Step 1: `map-items.tsx`**
+- [x] **Step 1: `map-items.tsx`**
 
 Удалить `StatusDot`, `DOT_TONE`, `STATUS_LABEL`, boxed-разметку `MapItemRow`, `cn`-импорт если не нужен. В `model/map-groups.ts` добавить `mapLineHint` (единственный источник строки прогресса, её рендерит родитель):
 
@@ -820,7 +820,7 @@ export function MapItems({ threadId, map }: { threadId: string; map: MapInfo }) 
 
 `#index`: в данных `index` 0-based (`map-groups.ts:169` для legacy; `map.item.started.index` из журнала) — сверить на живой проверке и при необходимости снять `+ 1` (источник: `map-groups.ts:214-220`).
 
-- [ ] **Step 2: `tool-line.tsx` — шапка map у родителя**
+- [x] **Step 2: `tool-line.tsx` — шапка map у родителя**
 
 ```tsx
 import { mapForToolCall, mapLineHint } from '../model/map-groups';
@@ -840,11 +840,11 @@ const mapBadges: ActivityBadge[] = map
 
 Существование `mapRunning`-бейджа в текущем `badges` (`tool-line.tsx:82`) сохранить через `mapBadges`. `MapItems` рендерить в контенте строки как сейчас (`map && threadId`-ветка без изменений).
 
-- [ ] **Step 3: Ворота**
+- [x] **Step 3: Ворота**
 
 `bun run typecheck && bun run lint`. Ручная: тред с `control:map` (запустить агента с параллельной задачей) — родительская строка map показывает `parallel · 2/4`, живые воркеры shimmer-строками `#1/#2`, failed — destructive-сообщение под chevron, завершенная карта сворачивается в тихом режиме.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/studio/client/src
@@ -863,7 +863,7 @@ git commit -m "refactor: map workers as nested activity lines, summary on parent
 **Interfaces:**
 - Produces: `HandoffLine({ agentId }: { agentId: string })`.
 
-- [ ] **Step 1: `handoff-line.tsx`**
+- [x] **Step 1: `handoff-line.tsx`**
 
 ```tsx
 import { ArrowRightLeftIcon } from 'lucide-react';
@@ -882,15 +882,15 @@ export function HandoffLine({ agentId }: { agentId: string }) {
 
 `byId` (не `items.find`), как в `SpawnLine`/`spawn-card.tsx`. `agentFallbackName` уже реальный экспорт `model/agent-label.ts:5`. `ActivityRail` не оборачиваем — сегмент рендерится внутри общего rail `ActivityItems`-пути; handoff-сегмент — отдельный, поэтому `ActivityRail` нужен на call-site в `agent-turn.tsx` (шаг 2), а не внутри строки.
 
-- [ ] **Step 2: Каскад удаления `handoff-card.tsx`**
+- [x] **Step 2: Каскад удаления `handoff-card.tsx`**
 
 `agent-turn.tsx`: импорт `HandoffCard` → `HandoffLine` from `./handoff-line`; handoff-ветка `TurnSegmentView`: `return <ActivityRail><HandoffLine agentId={segment.agentId} /></ActivityRail>;` (`ActivityRail` уже импортирован в файле, строка 28 — как в spawn-ветке Task 3). `widgets/chat-transcript/index.ts`: удалить `export { HandoffCard } from './ui/handoff-card';`. `rm ui/handoff-card.tsx`. `rg "HandoffCard|handoff-card|handoff-message" apps/studio/client/src` — пусто. `FeedNotice` остаётся (system/error/schedule/compaction).
 
-- [ ] **Step 3: Ворота**
+- [x] **Step 3: Ворота**
 
 `bun run typecheck && bun run lint`. Ручная: тред с handoff (два агента в workspace, `transfer_to`/пресет с handoff) — в ленте строка `⇄ Handoff · Имя` на общем рейле, без карточки-баннера.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/studio/client/src
@@ -907,7 +907,7 @@ git commit -m "refactor: handoff notice becomes rail activity line"
 **Interfaces:**
 - Consumes/Produces: без изменения публичных props.
 
-- [ ] **Step 1: Правки**
+- [x] **Step 1: Правки**
 
 ```ts
 const PREVIEW = 'max-h-28';
@@ -920,11 +920,11 @@ const PREVIEW = 'max-h-28';
 className={cn('select-text overscroll-contain', follow ? 'overflow-hidden' : 'overflow-auto', ...)}
 ```
 
-- [ ] **Step 2: Ворота**
+- [x] **Step 2: Ворота**
 
 `bun run typecheck && bun run lint`. Ручная: открытый tool output больше 112 px — колесо на границе внутреннего скролла продолжает крутить внешний вьюпорт; превью мыслей и деталей одной высоты.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/studio/client/src
@@ -942,19 +942,19 @@ git commit -m "fix: unified collapsed preview height, wheel passthrough at inner
 
 **Interfaces:** ничего не производит; `EmptyThreadReadSync` и `RunDivider` не трогать.
 
-- [ ] **Step 1: `ThreadReadSync`**
+- [x] **Step 1: `ThreadReadSync`**
 
 `const { end } = useMessageScrollerScrollable();` оставить; `setViewingAtEnd(threadId, end)` → `setViewingAtEnd(threadId, !end)`; условие `if (end && contentEpoch >= 0)` → `if (!end && ...)`; в deps `!end` завести через локальную `const viewingAtEnd = !end` (как в чат-версии после Task 1).
 
-- [ ] **Step 2: удалить `StickOnSend`**
+- [x] **Step 2: удалить `StickOnSend`**
 
 Компонент и его использование `<StickOnSend streaming={...} />` удалить; из импортов убрать `useLayoutEffect`, `useRef` (из `react`) и `useMessageScroller` (из `@/shared/ui/message-scroller`); `useEffect` остаётся. Провайдер `autoScroll` не менять: привязка к краю при старте рана теперь только за примитивом (режим `following-bottom`).
 
-- [ ] **Step 3: Ворота**
+- [x] **Step 3: Ворота** (авто-часть; ручная проверка журнала отложена — нет trigger-тредов на стенде)
 
 `bun run typecheck && bun run lint`. `rg "StickOnSend|useMessageScroller\b" apps/studio/client/src/widgets/thread-journal` — пусто. Ручная (агентский тред с расписания/webhook): открыть журнал, прижат к краю — тред становится прочитанным при новых событиях; открутить вверх — новые события не помечают прочитанным; старт нового рана не дёргает вьюпорт, читатель история остаётся на месте; клик по кнопке возврата возвращает к краю и дальше follow работает.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/studio/client/src
@@ -970,7 +970,7 @@ git commit -m "fix: thread journal read-sync matches scroller end semantics, dro
 
 **Interfaces:** только проверка.
 
-- [ ] **Step 1: Остатки**
+- [x] **Step 1: Остатки**
 
 `rg "comfortFollow|comfortAnchor|comfortThreshold|comfortDuration|liveExpand|expandThinking|expandTools|TOOL_RUN_COLLAPSE_AT|TOOL_GROUP_MIN|StickOnSend|SpawnCard|HandoffCard|useComfortFollow" apps/studio/client/src` — пусто. `bun run typecheck && bun run lint` в `apps/studio/client`.
 
@@ -980,11 +980,11 @@ git commit -m "fix: thread journal read-sync matches scroller end semantics, dro
 
 1–7 из `docs/superpowers/specs/2026-09-13-chat-feed-ux-design.md`. Сценарий 6 (миграция v2→v3): в DevTools выставить в `localStorage['studio-chat-preferences']` JSON `{state:{comfortFollow:false,expandTools:true},version:2}`, reload, открыть Settings → Chat: Follow=Pin, Detail=Full, версий слайдеров нет.
 
-- [ ] **Step 3: README**
+- [x] **Step 3: README**
 
 Если `widgets/chat-transcript/README.md` или соседние доки упомянуты comfort-follow/Settings-слайдеры — поправить одной строкой. Иначе без изменений.
 
-- [ ] **Step 4: Commit (если есть правки)**
+- [x] **Step 4: Commit (если есть правки)**
 
 ```bash
 git add apps/studio/client/src

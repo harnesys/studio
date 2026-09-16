@@ -791,6 +791,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               nodeId: cur,
               steps,
               state: st,
+              permissions: opts.permissions,
             };
             for (const provider of opts.notes ?? []) {
               try {

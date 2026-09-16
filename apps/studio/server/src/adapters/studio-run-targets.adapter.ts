@@ -4,7 +4,6 @@ import type {
   CapabilityUniverse,
   HookBinding,
   HookEmitCtx,
-  LlmNote,
   LlmNoteProvider,
   PathEntrySpec,
   PermissionMap,
@@ -250,13 +249,16 @@ function collectBinDirs(plugins: LoadedWorkspacePlugin[]): string[] {
 }
 
 /**
- * Политика рана как volatile-нота: замыкание над claim-time значениями,
- * провайдер резолвится движком перед каждым шагом (notes tail, не system).
+ * Политика рана как volatile-нота. Карта берётся из контекста вызова —
+ * это та же карта, что проверяет гейт: у спавнов там пересечение
+ * (intersectPermissions), у handoff — карта рана. Фолбэк на claim-time
+ * карту — для хостов без карты в контексте.
  */
 function permissionPolicyNote(modeId: string, permissions: PermissionMap): LlmNoteProvider {
-  const text = `mode=${modeId}\n${formatPolicyGates(permissions)}`;
-  const note: LlmNote = { tag: 'permissions', text };
-  return () => [note];
+  return (ctx) => {
+    const map = ctx.permissions ?? permissions;
+    return [{ tag: 'permissions', text: `mode=${modeId}\n${formatPolicyGates(map)}` }];
+  };
 }
 
 /** Только управляемые режимом операции, в порядке MODE_OPS. */

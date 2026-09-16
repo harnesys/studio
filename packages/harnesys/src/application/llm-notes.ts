@@ -1,3 +1,5 @@
+import type { PermissionMap } from '../ports/permissions.ts';
+
 export type BudgetLeft = {
   stepsLeft?: number;
   stepsTotal?: number;
@@ -15,6 +17,13 @@ export type LlmNoteContext = {
   nodeId: string;
   steps: number;
   state: Readonly<Record<string, unknown>>;
+  /**
+   * Enforced permission map of this segment (the same object the tool gate
+   * checks). Hosts render policy notes from it so the model sees exactly
+   * what the gate enforces, including spawn intersections. Absent when the
+   * host runs without a permission map.
+   */
+  permissions?: PermissionMap;
 };
 
 export type LlmNoteProvider = (ctx: LlmNoteContext) => LlmNote[] | Promise<LlmNote[]>;

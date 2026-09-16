@@ -53,7 +53,7 @@ Capability packs:
 | `shell` | `shell` |
 | `fetch` | `fetch` |
 | `plan` | `plan_save`, `plan_item_update`, `plan_get` |
-| `agents` | `agents_list`, `agents_create`, `agents_spawn`, `agents_handoff` |
+| `agents` | `agents_list`, `agents_create`, `agents_create_subagent`, `agents_spawn`, `agents_handoff`, `agents_update`, `agents_delete` |
 | `threads` | `thread_list` |
 | `scheduler` | `schedule_list`, `schedule_peek`, `schedule_set`, `schedule_pause`, `schedule_delete` |
 | `webhook` | `webhook_list`, `webhook_set`, `webhook_delete` |

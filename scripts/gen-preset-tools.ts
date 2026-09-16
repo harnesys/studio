@@ -14,6 +14,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   agentsCapability,
+  coreCapability,
   episodicMemoryCapability,
   fetchCapability,
   filesCapability,
@@ -32,6 +33,7 @@ import { lspCapability } from '../packages/harnesys/lsp.ts'
 type PackEntry = { name: string; meta: PackMeta }
 
 const PACKS: PackEntry[] = [
+  coreCapability,
   filesCapability,
   shellCapability,
   fetchCapability,

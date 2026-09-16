@@ -27,7 +27,25 @@
       "think": {
         "type": "llm:generate",
         "prompt": "main",
-        "messages": "$state.messages"
+        "messages": "$state.messages",
+        "tools": [
+          "ask_user",
+          "edit_file",
+          "glob",
+          "grep",
+          "list_dir",
+          "map",
+          "plan_get",
+          "plan_item_update",
+          "plan_save",
+          "read_file",
+          "thread_list",
+          "wait",
+          "write_file",
+          "load_tools",
+          "load_skill",
+          "Skill"
+        ]
       },
       "act": {
         "type": "tool:call",
@@ -60,5 +78,20 @@
         "to": "think"
       }
     ]
-  }
+  },
+  "tools": [
+    "ask_user",
+    "edit_file",
+    "glob",
+    "grep",
+    "list_dir",
+    "map",
+    "plan_get",
+    "plan_item_update",
+    "plan_save",
+    "read_file",
+    "thread_list",
+    "wait",
+    "write_file"
+  ]
 }

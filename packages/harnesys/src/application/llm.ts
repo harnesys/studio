@@ -138,7 +138,10 @@ export async function* runLlmGenerate(
   const toolNames = progressive.toolNames;
 
   const allNotes = ctx.notes ? [...ctx.notes] : [];
-  if (progressive.deferredPending.length > 0) {
+  if (
+    progressive.deferredPending.length > 0 &&
+    !(Array.isArray(node.tools) && node.tools.length === 0)
+  ) {
     allNotes.push({
       tag: 'tools',
       text: formatDeferredCatalog(progressive.deferredPending, ctx.toolRegistry),

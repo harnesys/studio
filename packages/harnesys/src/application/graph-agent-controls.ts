@@ -232,6 +232,34 @@ export function appendAssistantNote(
   (arr as unknown[]).push({ role: 'assistant', content: text });
 }
 
+/** Worker output keys withheld from the model context; stored results keep them. */
+const RESULT_NOISE_KEYS = ['reasoning', 'usage'];
+
+function stripResultNoise(item: unknown): unknown {
+  const rec = asRecord(item);
+  const out = rec ? asRecord(rec.output) : null;
+  if (!rec || !out) {
+    return item;
+  }
+  let cleaned: Record<string, unknown> | null = null;
+  for (const key of RESULT_NOISE_KEYS) {
+    if (key in out) {
+      cleaned ??= { ...out };
+      delete cleaned[key];
+    }
+  }
+  return cleaned ? { ...rec, output: cleaned } : item;
+}
+
+export function appendMapResultsMessage(
+  state: Record<string, unknown>,
+  messagesExpr: string | undefined,
+  results: unknown,
+): void {
+  const shown = Array.isArray(results) ? results.map(stripResultNoise) : results;
+  appendAssistantNote(state, messagesExpr, `Map results:\n${JSON.stringify(shown)}`);
+}
+
 export function appendSpawnResultsMessage(
   state: Record<string, unknown>,
   messagesExpr: string | undefined,
@@ -246,7 +274,8 @@ export function appendSpawnResultsMessage(
     arr = [];
     state[key] = arr;
   }
-  const parts = [`Spawn results:\n${JSON.stringify(results)}`];
+  const shown = Array.isArray(results) ? results.map(stripResultNoise) : results;
+  const parts = [`Spawn results:\n${JSON.stringify(shown)}`];
   const blockedLines: string[] = [];
   if (Array.isArray(results)) {
     for (const item of results) {
@@ -270,32 +299,4 @@ export function appendSpawnResultsMessage(
     role: 'assistant',
     content: parts.join('\n'),
   });
-}
-
-/** Worker output keys withheld from the model context; stored results keep them. */
-const MAP_RESULT_NOISE_KEYS = ['reasoning', 'usage'];
-
-function stripMapResultNoise(item: unknown): unknown {
-  const rec = asRecord(item);
-  const out = rec ? asRecord(rec.output) : null;
-  if (!rec || !out) {
-    return item;
-  }
-  let cleaned: Record<string, unknown> | null = null;
-  for (const key of MAP_RESULT_NOISE_KEYS) {
-    if (key in out) {
-      cleaned ??= { ...out };
-      delete cleaned[key];
-    }
-  }
-  return cleaned ? { ...rec, output: cleaned } : item;
-}
-
-export function appendMapResultsMessage(
-  state: Record<string, unknown>,
-  messagesExpr: string | undefined,
-  results: unknown,
-): void {
-  const shown = Array.isArray(results) ? results.map(stripMapResultNoise) : results;
-  appendAssistantNote(state, messagesExpr, `Map results:\n${JSON.stringify(shown)}`);
 }

@@ -10,7 +10,7 @@ export const agentsCapability = definePack<AgentsCapabilityPorts, Record<string,
   name: 'agents',
   version: '1.0.0',
   description:
-    'Agent catalog: agents_list / agents_create / agents_spawn / agents_handoff / agents_update / agents_delete',
+    'Agent catalog: agents_list / agents_create / agents_create_subagent / agents_spawn / agents_handoff / agents_update / agents_delete',
   icon: 'agents',
   meta: {
     tools: [
@@ -23,6 +23,11 @@ export const agentsCapability = definePack<AgentsCapabilityPorts, Record<string,
         name: 'agents_create',
         description:
           'Create an agent in this workspace. Returns { id, name }. Before creating, load_skill("agent-creator") for graphs, packs, budget, and HITL. Omit graph to let the host build a default ReAct graph; when budget is omitted the host stores { maxSteps: 50, policy: "ask" }. budget.policy is ask|error. Call agents_list first to reuse an existing agent when possible.',
+      },
+      {
+        name: 'agents_create_subagent',
+        description:
+          'Create a one-shot delegate under the calling agent. Returns { id, name }. The delegate is a spawn target, cannot ask the user, and cannot enable the agents pack; use agents_create for a standalone workspace agent.',
       },
       {
         name: 'agents_spawn',

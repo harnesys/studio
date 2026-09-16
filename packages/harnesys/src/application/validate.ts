@@ -1,6 +1,7 @@
 import { RESERVED, SEMVER_RE } from '../constants.ts';
 import type { AgentDefinition, Edge, Node } from '../domain/agent-definition.ts';
 import type { Diagnostic, DiagnosticSeverity } from '../domain/errors.ts';
+import type { ToolExposure } from '../ports/tools.ts';
 import { type Ast, isPathExpr, parseExpr } from './expr-eval.ts';
 import { validateMapWaitNodes } from './graph-map-validate.ts';
 
@@ -65,6 +66,50 @@ function collectPaths(ast: Ast): string[] {
   };
   walk(ast);
   return paths;
+}
+
+type AddDiag = (code: string, severity: DiagnosticSeverity, message: string, path?: string) => void;
+
+/** Keys of the override form `PackOverride` (domain/pack.ts); `PackAssignment` also allows bare booleans. */
+const PACK_OVERRIDE_KEYS = new Set(['spec', 'disabledTools', 'exposure']);
+const TOOL_EXPOSURES: ToolExposure[] = ['direct', 'deferred'];
+
+function checkPackOverride(obj: Record<string, unknown>, key: string, add: AddDiag): void {
+  if (obj.spec !== undefined) {
+    const spec = obj.spec;
+    if (typeof spec !== 'object' || spec === null || Array.isArray(spec)) {
+      add('packs_spec', 'error', `packs.${key}.spec must be an object`, `packs.${key}.spec`);
+    }
+  }
+  if (obj.disabledTools !== undefined) {
+    const tools = obj.disabledTools;
+    if (!Array.isArray(tools) || !tools.every((t) => typeof t === 'string')) {
+      add(
+        'packs_disabled_tools',
+        'error',
+        `packs.${key}.disabledTools must be an array of strings`,
+        `packs.${key}.disabledTools`,
+      );
+    }
+  }
+  if (obj.exposure !== undefined) {
+    const exposure = obj.exposure;
+    const invalid =
+      typeof exposure !== 'object' ||
+      exposure === null ||
+      Array.isArray(exposure) ||
+      !Object.values(exposure as Record<string, unknown>).every((v) =>
+        TOOL_EXPOSURES.includes(v as ToolExposure),
+      );
+    if (invalid) {
+      add(
+        'packs_exposure',
+        'error',
+        `packs.${key}.exposure must be an object of tool name to "direct" | "deferred"`,
+        `packs.${key}.exposure`,
+      );
+    }
+  }
 }
 
 function checkExprPaths(
@@ -443,25 +488,22 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
         }
         if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
           const obj = val as Record<string, unknown>;
-          const valid = Object.keys(obj).every((k) => k === 'spec');
+          const valid = Object.keys(obj).every((k) => PACK_OVERRIDE_KEYS.has(k));
           if (!valid) {
             add(
               'packs_value',
               'error',
-              `packs.${key} may only have a "spec" property`,
+              `packs.${key} may only have "spec", "disabledTools", or "exposure" properties`,
               `packs.${key}`,
             );
-          } else if (
-            obj.spec !== undefined &&
-            (typeof obj.spec !== 'object' || obj.spec === null || Array.isArray(obj.spec))
-          ) {
-            add('packs_spec', 'error', `packs.${key}.spec must be an object`, `packs.${key}.spec`);
+          } else {
+            checkPackOverride(obj, key, add);
           }
         } else {
           add(
             'packs_value',
             'error',
-            `packs.${key} must be true, false, or { spec?: Record }`,
+            `packs.${key} must be true, false, or { spec?, disabledTools?, exposure? }`,
             `packs.${key}`,
           );
         }

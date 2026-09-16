@@ -1,9 +1,41 @@
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { LspBridgeStatus } from '@/features/lsp-bridge';
+import { type LspBridgeStatus, type LspSessionEntry, useLspSessions } from '@/features/lsp-bridge';
 import { cn } from '@/shared/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/ui/dropdown-menu';
 
 export type EditorCursor = { line: number; column: number };
+
+const AUTO_LANGUAGE = '__auto';
+
+const LANGUAGE_OPTIONS: { id: string; label: string }[] = [
+  { id: 'plaintext', label: 'Plain Text' },
+  { id: 'typescript', label: 'TypeScript' },
+  { id: 'javascript', label: 'JavaScript' },
+  { id: 'json', label: 'JSON' },
+  { id: 'markdown', label: 'Markdown' },
+  { id: 'css', label: 'CSS' },
+  { id: 'scss', label: 'SCSS' },
+  { id: 'html', label: 'HTML' },
+  { id: 'xml', label: 'XML' },
+  { id: 'yaml', label: 'YAML' },
+  { id: 'toml', label: 'TOML' },
+  { id: 'python', label: 'Python' },
+  { id: 'rust', label: 'Rust' },
+  { id: 'go', label: 'Go' },
+  { id: 'sql', label: 'SQL' },
+  { id: 'shell', label: 'Shell' },
+  { id: 'dockerfile', label: 'Dockerfile' },
+  { id: 'ini', label: 'INI' },
+];
 
 const LSP_DOT: Record<LspBridgeStatus, string> = {
   live: 'bg-emerald-500',
@@ -19,25 +51,46 @@ const LSP_LABEL: Record<LspBridgeStatus, string> = {
   off: 'LSP off',
 };
 
+const LSP_HINT: Record<LspBridgeStatus, string> = {
+  live: 'Connected',
+  starting: 'Connecting…',
+  error: 'Server start failed',
+  off: 'No server for this file',
+};
+
+const SEGMENT = 'flex shrink-0 items-center gap-1 px-1 hover:text-foreground';
+
 export function EditorStatusBar({
+  workspaceId,
   path,
-  language,
+  detectedLanguage,
+  languageOverride,
+  languageId,
   lspStatus,
+  lspPulse,
   dirty,
   cursor,
   content,
+  onSelectLanguage,
 }: {
+  workspaceId: string;
   path: string;
-  language: string;
+  detectedLanguage: string;
+  languageOverride: string | null;
+  languageId: string;
   lspStatus: LspBridgeStatus;
+  lspPulse: number;
   dirty: boolean;
   cursor: EditorCursor;
   content: string;
+  onSelectLanguage: (language: string | null) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const sessions = useLspSessions(workspaceId);
   const size = useMemo(() => formatBytes(new TextEncoder().encode(content).length), [content]);
   const eol = useMemo(() => (content.includes('\r\n') ? 'CRLF' : 'LF'), [content]);
   const indent = useMemo(() => detectIndent(content), [content]);
+  const orderedSessions = useMemo(() => orderSessions(sessions, path), [sessions, path]);
 
   const copyPath = async () => {
     try {
@@ -54,13 +107,6 @@ export function EditorStatusBar({
       className="flex h-6 shrink-0 select-none items-center gap-1 border-border/60 border-t bg-muted/30 px-2 text-[11px] text-muted-foreground"
       data-testid="editor-status-bar"
     >
-      <span
-        title={`Language server: ${lspStatus}`}
-        className="flex shrink-0 items-center gap-1.5 px-1"
-      >
-        <span className={cn('size-1.5 rounded-full', LSP_DOT[lspStatus])} />
-        {LSP_LABEL[lspStatus]}
-      </span>
       {dirty ? (
         <span title="Unsaved changes" className="size-1.5 shrink-0 rounded-full bg-live" />
       ) : null}
@@ -68,7 +114,8 @@ export function EditorStatusBar({
         type="button"
         onClick={copyPath}
         title={`${path} — click to copy`}
-        className="group/path flex min-w-0 items-center gap-1 truncate px-1 hover:text-foreground"
+        data-testid="editor-path-copy"
+        className="group/path flex min-w-0 flex-1 items-center gap-1 truncate px-1 hover:text-foreground"
       >
         <span className="truncate">{path}</span>
         {copied ? (
@@ -77,10 +124,90 @@ export function EditorStatusBar({
           <CopyIcon className="size-3 shrink-0 opacity-0 group-hover/path:opacity-70" />
         )}
       </button>
-      <span title="Detected language" className="shrink-0 px-1">
-        {language}
-      </span>
       <span className="ml-auto flex shrink-0 items-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            title="Language servers"
+            data-testid="lsp-popup-trigger"
+            className={SEGMENT}
+          >
+            <span className="relative flex size-1.5">
+              {lspStatus === 'live' && lspPulse > 0 ? (
+                <span
+                  key={lspPulse}
+                  className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60"
+                />
+              ) : null}
+              <span className={cn('relative size-1.5 rounded-full', LSP_DOT[lspStatus])} />
+            </span>
+            {LSP_LABEL[lspStatus]}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="top"
+            align="end"
+            sideOffset={8}
+            className="w-72"
+            data-testid="lsp-popup"
+          >
+            <DropdownMenuLabel>This file</DropdownMenuLabel>
+            <div className="flex items-center gap-1.5 px-1.5 py-1 text-xs">
+              <span className={cn('size-1.5 shrink-0 rounded-full', LSP_DOT[lspStatus])} />
+              <span className="min-w-0 flex-1 truncate">{path}</span>
+              <span className="shrink-0 text-muted-foreground">
+                {languageId} · {LSP_HINT[lspStatus]}
+              </span>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Running sessions ({orderedSessions.length})</DropdownMenuLabel>
+            {orderedSessions.length === 0 ? (
+              <div className="px-1.5 py-1 text-muted-foreground text-xs">No active sessions</div>
+            ) : (
+              orderedSessions.map((session) => (
+                <div
+                  key={session.path}
+                  className="flex items-center gap-1.5 px-1.5 py-1 text-xs"
+                  title={`${session.path} — ${session.languageId}, ${session.status}`}
+                >
+                  <span className={cn('size-1.5 shrink-0 rounded-full', LSP_DOT[session.status])} />
+                  <span className="min-w-0 flex-1 truncate">{session.path}</span>
+                  <span className="shrink-0 text-muted-foreground">{session.languageId}</span>
+                </div>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            title={languageOverride ? `Language: ${languageId} (manual)` : 'Language: auto'}
+            data-testid="language-popup-trigger"
+            className={SEGMENT}
+          >
+            {languageId}
+            {languageOverride ? <span className="text-live">•</span> : null}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="top"
+            align="end"
+            sideOffset={8}
+            className="w-52"
+            data-testid="language-popup"
+          >
+            <DropdownMenuLabel>File type</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={languageOverride ?? AUTO_LANGUAGE}
+              onValueChange={(value) => onSelectLanguage(value === AUTO_LANGUAGE ? null : value)}
+            >
+              <DropdownMenuRadioItem value={AUTO_LANGUAGE}>
+                Auto ({detectedLanguage})
+              </DropdownMenuRadioItem>
+              {LANGUAGE_OPTIONS.map((option) => (
+                <DropdownMenuRadioItem key={option.id} value={option.id}>
+                  {option.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <span title="Cursor position" className="px-1 tabular-nums">
           Ln {cursor.line}, Col {cursor.column}
         </span>
@@ -99,6 +226,18 @@ export function EditorStatusBar({
       </span>
     </footer>
   );
+}
+
+function orderSessions(sessions: LspSessionEntry[], currentPath: string): LspSessionEntry[] {
+  return [...sessions].sort((a, b) => {
+    if (a.path === currentPath) {
+      return -1;
+    }
+    if (b.path === currentPath) {
+      return 1;
+    }
+    return a.path.localeCompare(b.path);
+  });
 }
 
 function formatBytes(bytes: number): string {

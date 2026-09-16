@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { openCommitDialog } from '@/features/git-commit';
+import { useIdeStore } from '@/features/ide';
 import { watchWorkspaceFiles } from '@/shared/api/files';
 import { getGitFileStatus, gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
 import { gitStatusColorClass, useGitStatusColors } from '@/shared/lib/git-status-colors';
@@ -64,7 +64,7 @@ export function GitSection({ workspaceId }: { workspaceId: string }) {
           type="button"
           title={file.path}
           onClick={() => {
-            void openCommitDialog(workspaceId, undefined, file.path);
+            useIdeStore.getState().openDiff(workspaceId, file.path);
           }}
           className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-sidebar-accent/70"
         >

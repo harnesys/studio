@@ -1,10 +1,8 @@
 import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { create } from 'zustand';
-import { IDE_WORKSPACES_STORAGE_KEY } from '@/shared/config/constants';
 import {
   closeGroupState,
   closeTabState,
-  collapseLayout,
   createEmptyWorkspace,
   groupOfTab,
   type IdeGroup,
@@ -17,10 +15,11 @@ import {
   withActiveTabState,
 } from './ide-layout';
 import { remapWorkspacePaths } from './ide-path-remap';
+import { loadPersisted, normalizeIdeFilePath, persist, tabIdFor } from './ide-persist';
 
 export { firstGroupOfLayout, type IdeSplitNode, lastGroupOfLayout } from './ide-tree';
 
-export type IdeTabKind = 'thread' | 'file' | 'spawn';
+export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff';
 export type IdeTab = {
   id: string;
   kind: IdeTabKind;
@@ -38,6 +37,7 @@ type IdeStore = IdeState & {
   openThread: (workspaceId: string, agentId: string, threadId: string) => void;
   openSpawn: (workspaceId: string, agentId: string, threadId: string, spawnId: string) => void;
   openFile: (workspaceId: string, path: string) => void;
+  openDiff: (workspaceId: string, path: string) => void;
   closeTab: (workspaceId: string, tabId: string) => void;
   closeAll: (workspaceId: string) => void;
   setActive: (workspaceId: string, tabId: string) => void;
@@ -59,123 +59,6 @@ type IdeStore = IdeState & {
 const EMPTY_WORKSPACE: IdeWorkspaceState = createEmptyWorkspace();
 const EMPTY_IDE_TABS: IdeWorkspaceState = EMPTY_WORKSPACE;
 
-function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | null {
-  const remapped = new Map<string, string>();
-  const tabs = dedupeTabs(
-    ws.tabs.map((tab) => {
-      const normalized = normalizeIdeFileTab(tab);
-      if (normalized.id !== tab.id) {
-        remapped.set(tab.id, normalized.id);
-      }
-      return normalized;
-    }),
-  );
-  const remapId = (id: string): string => remapped.get(id) ?? id;
-  const groups = ws.groups.map((group) => ({
-    ...group,
-    tabIds: [...new Set(group.tabIds.map(remapId))],
-    activeId: group.activeId ? remapId(group.activeId) : null,
-  }));
-  const normalized: IdeWorkspaceState = {
-    ...ws,
-    tabs,
-    groups,
-    activeId: ws.activeId ? remapId(ws.activeId) : null,
-  };
-  const alive = new Set(
-    tabs
-      .filter((t) => t.kind === 'thread' || t.kind === 'file' || t.kind === 'spawn')
-      .map((t) => t.id),
-  );
-  if (alive.size === tabs.length && groups.every((g) => g.tabIds.every((id) => alive.has(id)))) {
-    return normalized;
-  }
-  let layout = normalized.layout;
-  const kept: IdeGroup[] = [];
-  for (const group of groups) {
-    const tabIds = group.tabIds.filter((id) => alive.has(id));
-    if (tabIds.length === 0) {
-      if (layout) {
-        layout = collapseLayout(layout, group.id);
-      }
-      continue;
-    }
-    kept.push({
-      ...group,
-      tabIds,
-      activeId:
-        group.activeId && alive.has(group.activeId)
-          ? group.activeId
-          : (tabIds[tabIds.length - 1] ?? null),
-    });
-  }
-  const aliveTabs = tabs.filter((t) => alive.has(t.id));
-  if (kept.length === 0) {
-    return null;
-  }
-  const activeId =
-    normalized.activeId && alive.has(normalized.activeId) ? normalized.activeId : null;
-  const activeGroupId =
-    normalized.activeGroupId && kept.some((g) => g.id === normalized.activeGroupId)
-      ? normalized.activeGroupId
-      : (kept[0]?.id ?? null);
-  return { tabs: aliveTabs, activeId, activeGroupId, groups: kept, layout };
-}
-
-function dedupeTabs(tabs: IdeTab[]): IdeTab[] {
-  const seen = new Set<string>();
-  return tabs.filter((tab) => {
-    if (seen.has(tab.id)) {
-      return false;
-    }
-    seen.add(tab.id);
-    return true;
-  });
-}
-
-function loadPersisted(): IdeState {
-  try {
-    const raw = localStorage.getItem(IDE_WORKSPACES_STORAGE_KEY);
-    if (!raw) {
-      return { byWorkspace: {} };
-    }
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || !('byWorkspace' in parsed)) {
-      return { byWorkspace: {} };
-    }
-    const byWorkspace = (parsed as { byWorkspace: Record<string, unknown> }).byWorkspace;
-    const valid: Record<string, IdeWorkspaceState> = {};
-    for (const [id, ws] of Object.entries(byWorkspace)) {
-      if (
-        ws &&
-        typeof ws === 'object' &&
-        Array.isArray((ws as IdeWorkspaceState).tabs) &&
-        Array.isArray((ws as IdeWorkspaceState).groups) &&
-        (ws as IdeWorkspaceState).layout
-      ) {
-        const sanitized = sanitizeWorkspace(ws as IdeWorkspaceState);
-        if (sanitized) {
-          valid[id] = sanitized;
-        }
-      }
-    }
-    return { byWorkspace: valid };
-  } catch {
-    return { byWorkspace: {} };
-  }
-}
-
-function persist(state: IdeState) {
-  try {
-    localStorage.setItem(
-      IDE_WORKSPACES_STORAGE_KEY,
-      JSON.stringify({ byWorkspace: state.byWorkspace }),
-    );
-  } catch {
-    // ignore quota / private mode
-  }
-}
-
 function applyWs(state: IdeState, workspaceId: string, next: IdeWorkspaceState): IdeState {
   if (next.groups.length === 0) {
     const byWorkspace = { ...state.byWorkspace };
@@ -183,22 +66,6 @@ function applyWs(state: IdeState, workspaceId: string, next: IdeWorkspaceState):
     return { byWorkspace };
   }
   return { byWorkspace: { ...state.byWorkspace, [workspaceId]: next } };
-}
-
-function tabIdFor(kind: IdeTabKind, key: string): string {
-  return `${kind}:${key}`;
-}
-
-function normalizeIdeFilePath(path: string): string {
-  return path.replace(/^\/+/, '');
-}
-
-function normalizeIdeFileTab(tab: IdeTab): IdeTab {
-  if (tab.kind !== 'file' || !tab.path) {
-    return tab;
-  }
-  const path = normalizeIdeFilePath(tab.path);
-  return { ...tab, path, id: tabIdFor('file', path) };
 }
 
 export const useIdeStore = create<IdeStore>((set) => {
@@ -209,7 +76,7 @@ export const useIdeStore = create<IdeStore>((set) => {
   ): IdeState => (next ? applyWs(state, workspaceId, next) : state);
 
   return {
-    byWorkspace: loadPersisted().byWorkspace,
+    byWorkspace: loadPersisted(),
     openThread: (workspaceId, agentId, threadId) =>
       set((state) => {
         const id = tabIdFor('thread', threadId);
@@ -227,6 +94,13 @@ export const useIdeStore = create<IdeStore>((set) => {
         const normalized = normalizeIdeFilePath(path);
         const id = tabIdFor('file', normalized);
         const tab: IdeTab = { id, kind: 'file', workspaceId, path: normalized, dirty: false };
+        return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
+      }),
+    openDiff: (workspaceId, path) =>
+      set((state) => {
+        const normalized = normalizeIdeFilePath(path);
+        const id = tabIdFor('diff', normalized);
+        const tab: IdeTab = { id, kind: 'diff', workspaceId, path: normalized };
         return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
       }),
     closeTab: (workspaceId, tabId) =>
@@ -316,7 +190,7 @@ export const useIdeStore = create<IdeStore>((set) => {
   };
 });
 
-useIdeStore.subscribe((state) => persist(state));
+useIdeStore.subscribe((state) => persist(state.byWorkspace));
 
 function pick(state: IdeState, workspaceId: string): IdeWorkspaceState {
   return state.byWorkspace[workspaceId] ?? EMPTY_WORKSPACE;

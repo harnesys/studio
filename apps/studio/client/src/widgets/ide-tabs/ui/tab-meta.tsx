@@ -1,6 +1,7 @@
 import {
   CalendarClockIcon,
   EarthIcon,
+  FileDiffIcon,
   FileIcon,
   MessageSquareIcon,
   WorkflowIcon,
@@ -21,6 +22,9 @@ export function TabIcon({ tab }: { tab: IdeTab }) {
   }
   if (tab.kind === 'spawn') {
     return <WorkflowIcon className="size-3.5 shrink-0 opacity-70" />;
+  }
+  if (tab.kind === 'diff') {
+    return <FileDiffIcon className="size-3.5 shrink-0 opacity-70" />;
   }
   return <FileIcon className="size-3.5 shrink-0 opacity-70" />;
 }
@@ -64,6 +68,10 @@ export function useTabLabel(tab: IdeTab): string {
     tab.kind === 'spawn' && tab.agentId ? (state.byId(tab.agentId) ?? undefined) : undefined,
   );
   if (tab.kind === 'file' && tab.path) {
+    const parts = tab.path.split('/');
+    return parts[parts.length - 1] || tab.path;
+  }
+  if (tab.kind === 'diff' && tab.path) {
     const parts = tab.path.split('/');
     return parts[parts.length - 1] || tab.path;
   }

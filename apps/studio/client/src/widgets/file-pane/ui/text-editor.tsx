@@ -4,15 +4,19 @@ import { Loader2Icon } from 'lucide-react';
 import type { editor } from 'monaco-editor';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
-import { attachLspBridge, type LspBridge, type LspBridgeStatus } from '@/features/lsp-bridge';
 import { markWorkspaceFileDirty } from '@/features/open-file';
 import { readWorkspaceFileText, writeWorkspaceFileContent } from '@/shared/api/files';
 import { gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
-import { monaco } from '@/shared/lib/monaco';
 import { detectLanguage } from '@/shared/lib/tool-code';
 import { useTheme } from '@/shared/ui/theme-provider';
+import {
+  editorLanguageKey,
+  loadEditorLanguages,
+  saveEditorLanguages,
+} from '../model/editor-languages';
+import { createEditorOptions, editorThemeName, toModelPath } from '../model/editor-setup';
+import { useEditorLspBridge } from '../model/use-editor-lsp-bridge';
 import { EditorStatusBar } from './editor-status-bar';
-import { LspStatusIndicator } from './lsp-status-indicator';
 import {
   bindMonacoImportLinkOpener,
   ensureMonacoImportLinkProviders,
@@ -38,7 +42,10 @@ export function TextEditor({
   const draftsRef = useRef(drafts);
   draftsRef.current = drafts;
   const [viewPath, setViewPath] = useState<string | null>(null);
-  const resolved = resolveAppTheme(theme);
+  const [langOverrides, setLangOverrides] = useState<Record<string, string>>(() =>
+    loadEditorLanguages(),
+  );
+  const resolved = editorThemeName(theme);
   const contentQuery = useQuery({
     queryKey: ['workspace-file-content', workspaceId, path],
     queryFn: () => readWorkspaceFileText(workspaceId, path),
@@ -178,6 +185,22 @@ export function TextEditor({
     saveMutation.mutate({ path, content: draft });
   }, [activePath, path, drafts, dirty, saveMutation]);
 
+  /** Manual language override per workspace file, persisted across reloads. */
+  const selectLanguage = useCallback(
+    (targetPath: string, language: string | null) => {
+      const key = editorLanguageKey(workspaceId, targetPath);
+      const next = { ...langOverrides };
+      if (language === null) {
+        delete next[key];
+      } else {
+        next[key] = language;
+      }
+      setLangOverrides(next);
+      saveEditorLanguages(next);
+    },
+    [workspaceId, langOverrides],
+  );
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
@@ -192,9 +215,18 @@ export function TextEditor({
   const importLinksDisposeRef = useRef<(() => void) | null>(null);
   const editorSubsDisposeRef = useRef<(() => void) | null>(null);
 
-  const [lspStatus, setLspStatus] = useState<LspBridgeStatus>('off');
-  const [lspPulse, setLspPulse] = useState(0);
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
+
+  const detectedLanguage = activePath ? (detectLanguage(activePath) ?? 'plaintext') : 'plaintext';
+  const languageOverride = activePath
+    ? (langOverrides[editorLanguageKey(workspaceId, activePath)] ?? null)
+    : null;
+  const language = languageOverride ?? detectedLanguage;
+  const { status: lspStatus, pulse: lspPulse } = useEditorLspBridge(
+    workspaceId,
+    activePath,
+    language,
+  );
 
   useLayoutEffect(() => {
     setMonacoImportLinkContext({
@@ -202,40 +234,6 @@ export function TextEditor({
       filePath: viewPath ?? path,
     });
   }, [workspaceId, viewPath, path]);
-
-  useEffect(() => {
-    if (!activePath) {
-      return;
-    }
-    let bridge: LspBridge | null = null;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-    let attempts = 0;
-    const tryAttach = () => {
-      attempts += 1;
-      const modelPath = toModelPath(activePath);
-      if (monaco.editor.getModel(monaco.Uri.parse(modelPath))) {
-        bridge = attachLspBridge({
-          workspaceId,
-          path: activePath,
-          monaco,
-          onStatus: setLspStatus,
-          onActivity: () => setLspPulse((n) => n + 1),
-        });
-        return;
-      }
-      if (attempts < 20) {
-        retryTimer = setTimeout(tryAttach, 100);
-      }
-    };
-    tryAttach();
-    return () => {
-      if (retryTimer) {
-        clearTimeout(retryTimer);
-      }
-      bridge?.dispose();
-      setLspStatus('off');
-    };
-  }, [workspaceId, activePath]);
 
   useEffect(() => {
     return () => {
@@ -282,69 +280,10 @@ export function TextEditor({
     // (defineAppThemes called in beforeMount, but may have been cached)
     defineAppThemes(monaco);
     ensureJsxTagSemanticTokens(monaco);
-    const nextTheme = resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light';
-    monaco.editor.setTheme(nextTheme);
+    monaco.editor.setTheme(editorThemeName(theme));
   };
 
-  const options: editor.IStandaloneEditorConstructionOptions = {
-    minimap: { enabled: false },
-    stickyScroll: {
-      enabled: false,
-    },
-    fontSize: 13,
-    fontFamily: 'Monaco, IBM Plex Mono, ui-monospace, monospace',
-    // fontLigatures: false,
-    // wordWrap: 'on' as const,
-    scrollBeyondLastLine: false,
-    automaticLayout: true,
-    padding: { top: 0, bottom: 64 },
-    // renderLineHighlight: 'line' as const,
-    //
-    // overviewRulerLanes: 0,
-    // hideCursorInOverviewRuler: true,
-    // overviewRulerBorder: false,
-    // guides: { indentation: false, bracketPairs: false },
-    // bracketPairColorization: { enabled: false },
-    // links: true,
-    // matchBrackets: 'near' as const,
-    // folding: true,
-    // glyphMargin: false,
-    // lineDecorationsWidth: 8,
-    // lineNumbersMinChars: 3,
-    // renderWhitespace: 'none' as const,
-    // contextmenu: true,
-    smoothScrolling: true,
-    fastScrollSensitivity: 5, // Ускоряет отклик на колесико
-
-    // Отключаем лишние тяжелые перерасчеты разметки на лету
-    // folding: false,                  // Отключить стрелочки сворачивания блоков (они сильно тормозят скролл)
-    links: false, // Отключить парсинг ссылок при движении
-    scrollbar: {
-      alwaysConsumeMouseWheel: true, // Захватывает скролл, не отдавая его родителю
-      verticalScrollbarSize: 8, // Единый размер со скроллбаром приложения (base.css)
-      horizontalScrollbarSize: 8,
-      useShadows: false,
-    },
-    // stopRenderingLineAfter: -1,
-    // scrollbar: {
-    //   verticalScrollbarSize: 8,
-    //   horizontalScrollbarSize: 8,
-    //   useShadows: false,
-    // },
-    // scrollbar: {
-    //   // Включаем аппаратную обработку скролла в самом редакторе
-    //   useShadows: false,
-    //   verticalHasArrows: false,
-    //   horizontalHasArrows: false,
-    //   vertical: 'visible',
-    //   horizontal: 'visible',
-    //   verticalScrollbarSize: 10,
-    //   horizontalScrollbarSize: 10
-    // }
-    // cursorBlinking: 'smooth' as const,
-    // cursorSmoothCaretAnimation: 'off' as const,
-    // wordWrapOverride1: 'off' as const,
-  };
+  const options = createEditorOptions();
 
   if (!activePath) {
     if (contentQuery.isError) {
@@ -361,17 +300,14 @@ export function TextEditor({
     );
   }
 
-  const language = detectLanguage(activePath) ?? 'plaintext';
-
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background" data-testid="text-editor">
       <div className="relative min-h-0 flex-1">
-        <LspStatusIndicator status={lspStatus} pulse={lspPulse} />
         <Editor
           height="100%"
           path={toModelPath(activePath)}
           language={language}
-          theme={resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light'}
+          theme={resolved}
           value={value}
           loading={null}
           beforeMount={handleBeforeMount}
@@ -388,31 +324,18 @@ export function TextEditor({
         />
       </div>
       <EditorStatusBar
+        workspaceId={workspaceId}
         path={activePath}
-        language={language}
+        detectedLanguage={detectedLanguage}
+        languageOverride={languageOverride}
+        languageId={language}
         lspStatus={lspStatus}
+        lspPulse={lspPulse}
         dirty={dirty}
         cursor={cursor}
         content={value}
+        onSelectLanguage={(next) => selectLanguage(activePath, next)}
       />
     </div>
   );
-}
-
-function resolveAppTheme(theme: 'dark' | 'light' | 'system'): 'dark' | 'light' {
-  if (theme === 'dark' || theme === 'light') {
-    return theme;
-  }
-  if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
-    return 'dark';
-  }
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
-  return 'light';
-}
-
-/** Monaco model URI matching the wire format of /api/lsp: file:///<relative>. */
-function toModelPath(path: string): string {
-  return `file:///${path.replace(/^\/+/, '')}`;
 }

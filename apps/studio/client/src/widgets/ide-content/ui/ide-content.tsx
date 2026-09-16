@@ -1,6 +1,7 @@
 import { useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import { useDeskStore } from '@/features/desk';
+import { GitCommitDiffView } from '@/features/git-commit';
 import type { IdeTab } from '@/features/ide';
 import { openFileKind } from '@/features/open-file';
 import { HitlPrompt } from '@/features/send-message';
@@ -66,6 +67,13 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
             Preview is not available
           </div>
         ) : null}
+      </div>
+    );
+  }
+  if (tab.kind === 'diff' && tab.path) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-diff">
+        <GitCommitDiffView workspaceId={workspaceId} path={tab.path} />
       </div>
     );
   }

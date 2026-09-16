@@ -130,7 +130,7 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     label: 'Map',
     summary: 'Fan-out over items.',
     description:
-      'Evaluates items to an array, runs enter/body for each item ($item, $index), joins with barrier all. Body must end at Yield. Optional timeoutMs + onTimeout fail|partial.',
+      'Evaluates items to an array, runs enter/body for each item ($item, $index), joins with barrier all. Body must end at Yield. Optional instruction template and maxTokensPerItem. Optional timeoutMs + onTimeout fail|partial.',
     inPalette: true,
     ports: { in: true, out: true },
     defaults: () => ({

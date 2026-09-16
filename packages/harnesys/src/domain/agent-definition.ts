@@ -54,6 +54,11 @@ export type AgentBudget = {
   policy?: BudgetPolicy;
 };
 
+/** Template with $item/$index substituted per control:map worker. */
+export type MapInstruction = string;
+/** Per-item text budget for control:map workers (tokens, truncated at maxTokens * 4 chars). */
+export type MapMaxTokensPerItem = number;
+
 export type AgentDefinition = {
   id: string;
   version?: string;
@@ -142,6 +147,8 @@ export type Node =
       barrier?: { policy: 'all' };
       timeoutMs?: number;
       onTimeout?: 'fail' | 'partial';
+      instruction?: MapInstruction;
+      maxTokensPerItem?: MapMaxTokensPerItem;
     }
   | { type: 'control:yield'; value?: Expr }
   | { type: 'control:goto'; target: Expr }

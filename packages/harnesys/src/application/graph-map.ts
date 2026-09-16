@@ -1,12 +1,21 @@
 import {
+  CHARS_PER_TOKEN_ESTIMATE,
   MAP_ITEM_LIMIT,
   STATE_HANDOFF_AGENT_ID_KEY,
+  STATE_MAP_INSTRUCTION_KEY,
   STATE_MAP_ITEMS_KEY,
+  STATE_MAP_MAX_TOKENS_KEY,
   STATE_SPAWN_RESULTS_KEY,
   STATE_SPAWNS_KEY,
   STATE_WAIT_UNTIL_MS_KEY,
 } from '../constants.ts';
-import type { AgentDefinition, AgentGraph, Node } from '../domain/agent-definition.ts';
+import type {
+  AgentDefinition,
+  AgentGraph,
+  MapInstruction,
+  MapMaxTokensPerItem,
+  Node,
+} from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { Expr } from '../domain/expr.ts';
 import type { Event, Snapshot } from '../domain/snapshot.ts';
@@ -27,6 +36,8 @@ export type MapNodeSpec = {
   barrier?: { policy: 'all' };
   timeoutMs?: number;
   onTimeout?: 'fail' | 'partial';
+  instruction?: MapInstruction;
+  maxTokensPerItem?: MapMaxTokensPerItem;
 };
 
 export type MapResultItem = {
@@ -146,6 +157,7 @@ type SeedWorkerArgs = {
   runId: string;
   item: unknown;
   index: number;
+  instruction?: MapInstruction;
 };
 
 /** Parent-run control queues and resume payload must not leak into a worker. */
@@ -154,6 +166,8 @@ const WORKER_STATE_DROP_KEYS = [
   STATE_SPAWN_RESULTS_KEY,
   STATE_HANDOFF_AGENT_ID_KEY,
   STATE_MAP_ITEMS_KEY,
+  STATE_MAP_INSTRUCTION_KEY,
+  STATE_MAP_MAX_TOKENS_KEY,
   STATE_WAIT_UNTIL_MS_KEY,
   '$resume',
 ];
@@ -165,22 +179,40 @@ const mapWorkerNote: LlmNoteProvider = () => [
   },
 ];
 
+function renderMapInstruction(template: MapInstruction, itemText: string, index: number): string {
+  return template.split('$index').join(String(index)).split('$item').join(itemText);
+}
+
 /** Worker input is the item task itself; core:start turns it into the only user message. */
-function mapItemInput(index: number, item: unknown): { text: string } {
+function mapItemInput(
+  index: number,
+  item: unknown,
+  instruction?: MapInstruction,
+): { text: string } {
   const itemText = typeof item === 'string' ? item : JSON.stringify(item, null, 2);
+  if (instruction && instruction.trim().length > 0) {
+    return {
+      text: `${renderMapInstruction(instruction, itemText, index)}\n\nMap item [${index}]:\n${itemText}`,
+    };
+  }
   return {
     text: `Map item [${index}]:\n${itemText}\n\nRespond with the result for this item only.`,
   };
 }
 
+/** Cut a worker text result to a per-item token budget (estimated via chars-per-token). */
+function truncateToMaxTokens(content: string, maxTokens: MapMaxTokensPerItem): string {
+  return content.slice(0, maxTokens * CHARS_PER_TOKEN_ESTIMATE);
+}
+
 async function seedWorkerState(args: SeedWorkerArgs): Promise<void> {
-  const { child, parentState, parentOpts, runId, item, index } = args;
+  const { child, parentState, parentOpts, runId, item, index, instruction } = args;
   const parentSnap = await parentOpts.state.load();
   const state = structuredClone(parentState) as Record<string, unknown>;
   for (const key of WORKER_STATE_DROP_KEYS) {
     delete state[key];
   }
-  const input = mapItemInput(index, item);
+  const input = mapItemInput(index, item, instruction);
   state.messages = [];
   const ctx: SnapCtx = {
     sessionId: child.sessionId,
@@ -218,17 +250,38 @@ type RunWorkerArgs = {
   parentState: Record<string, unknown>;
   runChild: ChildRunner;
   signal: AbortSignal;
+  instruction?: MapInstruction;
+  maxTokensPerItem?: MapMaxTokensPerItem;
 };
 
 async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
-  const { parent, index, item, workerId, workerDef, workerPlan, parentState, runChild, signal } =
-    args;
+  const {
+    parent,
+    index,
+    item,
+    workerId,
+    workerDef,
+    workerPlan,
+    parentState,
+    runChild,
+    signal,
+    instruction,
+    maxTokensPerItem,
+  } = args;
   const child = parent.state.child(workerId);
   const runId = crypto.randomUUID();
-  await seedWorkerState({ child, parentState, parentOpts: parent, runId, item, index });
+  await seedWorkerState({
+    child,
+    parentState,
+    parentOpts: parent,
+    runId,
+    item,
+    index,
+    instruction,
+  });
   const childOpts: GraphOpts = {
     agent: workerDef,
-    input: mapItemInput(index, item),
+    input: mapItemInput(index, item, instruction),
     inputRecorded: true,
     state: child,
     permissions: parent.permissions,
@@ -272,6 +325,15 @@ async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
     if (invalid) {
       return { index, item, output: null, error: invalid };
     }
+    if (maxTokensPerItem !== undefined) {
+      const recOut = out as Record<string, unknown>;
+      const content = recOut.content as string;
+      return {
+        index,
+        item,
+        output: { ...recOut, content: truncateToMaxTokens(content, maxTokensPerItem) },
+      };
+    }
     return { index, item, output: out };
   }
   if (status === 'cancelled' || signal.aborted) {
@@ -298,6 +360,8 @@ export type PreparedMap = {
   timeoutMs?: number;
   onTimeout: 'fail' | 'partial';
   nodeId: string;
+  instruction?: MapInstruction;
+  maxTokensPerItem?: MapMaxTokensPerItem;
 };
 
 export function prepareMap(
@@ -317,6 +381,16 @@ export function prepareMap(
     throw codedRunError('map_item_limit', `map items exceed limit ${MAP_ITEM_LIMIT}`);
   }
   const concurrency = resolveConcurrency(node.concurrency, slots);
+  const stateInstruction = slots.state[STATE_MAP_INSTRUCTION_KEY];
+  const instruction =
+    typeof stateInstruction === 'string' && stateInstruction.trim().length > 0
+      ? stateInstruction
+      : node.instruction;
+  const stateMaxTokens = slots.state[STATE_MAP_MAX_TOKENS_KEY];
+  const maxTokensPerItem =
+    typeof stateMaxTokens === 'number' && Number.isInteger(stateMaxTokens) && stateMaxTokens >= 1
+      ? stateMaxTokens
+      : node.maxTokensPerItem;
   const graph = buildWorkerGraph(parent.agent.graph, node.enter, node.body);
   const workerDef: AgentDefinition = {
     ...parent.agent,
@@ -336,6 +410,8 @@ export function prepareMap(
     timeoutMs: node.timeoutMs,
     onTimeout,
     nodeId,
+    ...(instruction !== undefined ? { instruction } : {}),
+    ...(maxTokensPerItem !== undefined ? { maxTokensPerItem } : {}),
   };
 }
 
@@ -349,7 +425,17 @@ export async function* executeMap(
   parentState: Record<string, unknown>,
   runChild: ChildRunner,
 ): AsyncGenerator<MapEmission, MapNodeOutcome, void> {
-  const { items, concurrency, workerDef, workerPlan, timeoutMs, onTimeout, nodeId } = prepared;
+  const {
+    items,
+    concurrency,
+    workerDef,
+    workerPlan,
+    timeoutMs,
+    onTimeout,
+    nodeId,
+    instruction,
+    maxTokensPerItem,
+  } = prepared;
   const results: MapResultItem[] = new Array(items.length);
   if (items.length === 0) {
     return { results: [], emissions: [], timedOut: false };
@@ -386,6 +472,8 @@ export async function* executeMap(
       parentState,
       runChild,
       signal: ac.signal,
+      ...(instruction !== undefined ? { instruction } : {}),
+      ...(maxTokensPerItem !== undefined ? { maxTokensPerItem } : {}),
     });
 
   const emissionOf = (item: MapResultItem): MapEmission => {

@@ -186,6 +186,10 @@ export const STATE_SPAWNS_KEY = 'spawns';
 export const STATE_SPAWN_RESULTS_KEY = 'spawnResults';
 export const STATE_HANDOFF_AGENT_ID_KEY = 'handoffAgentId';
 export const STATE_MAP_ITEMS_KEY = 'mapItems';
+export const STATE_MAP_INSTRUCTION_KEY = 'mapInstruction';
+export const STATE_MAP_MAX_TOKENS_KEY = 'mapMaxTokensPerItem';
+/** Max chars for a control:map instruction template (tool or node). */
+export const MAP_INSTRUCTION_MAX_CHARS = 8000;
 export const STATE_WAIT_UNTIL_MS_KEY = 'waitUntilMs';
 export const NODE_CHECKPOINT_KEY = '$nodeCheckpoint_';
 export const DENIED_TOOLS_KEY = '$deniedTools';

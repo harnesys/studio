@@ -1,4 +1,4 @@
-import { MAP_ITEM_LIMIT, WAIT_DELAY_MS_MAX } from '../constants.ts';
+import { MAP_INSTRUCTION_MAX_CHARS, MAP_ITEM_LIMIT, WAIT_DELAY_MS_MAX } from '../constants.ts';
 import type { AgentDefinition, Edge, Node } from '../domain/agent-definition.ts';
 import type { DiagnosticSeverity } from '../domain/errors.ts';
 import { isPathExpr, parseExpr } from './expr-eval.ts';
@@ -170,6 +170,37 @@ export function validateMapWaitNodes(
       }
       if (n.onTimeout !== undefined && n.timeoutMs === undefined) {
         add('map_timeout', 'error', 'onTimeout requires timeoutMs', `${base}.onTimeout`);
+      }
+      if (n.instruction !== undefined) {
+        if (typeof n.instruction !== 'string' || n.instruction.trim().length === 0) {
+          add(
+            'map_instruction',
+            'error',
+            'instruction must be a non-empty string',
+            `${base}.instruction`,
+          );
+        } else if (n.instruction.length > MAP_INSTRUCTION_MAX_CHARS) {
+          add(
+            'map_instruction',
+            'error',
+            `instruction exceeds limit ${MAP_INSTRUCTION_MAX_CHARS}`,
+            `${base}.instruction`,
+          );
+        }
+      }
+      if (n.maxTokensPerItem !== undefined) {
+        if (
+          typeof n.maxTokensPerItem !== 'number' ||
+          !Number.isInteger(n.maxTokensPerItem) ||
+          n.maxTokensPerItem < 1
+        ) {
+          add(
+            'map_max_tokens',
+            'error',
+            'maxTokensPerItem must be an integer >= 1',
+            `${base}.maxTokensPerItem`,
+          );
+        }
       }
       // edges from body must stay in body; yield has no outgoing
       if (Array.isArray(n.body)) {

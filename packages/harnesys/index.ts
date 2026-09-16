@@ -139,6 +139,8 @@ export type {
   AgentPaths,
   Edge,
   InterruptReason,
+  MapInstruction,
+  MapMaxTokensPerItem,
   Node,
   PortRef,
   ToolCallBatch,

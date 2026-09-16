@@ -16,7 +16,7 @@ export const coreCapability = definePack<Record<string, unknown>, Record<string,
       {
         name: 'map',
         description:
-          'Queue a fan-out over items for the graph control:map node. items is a JSON array (max 32). Each item is processed in the map body with $item/$index; results return as Map results in context. Prefer this for parallel same-graph work; use agents_spawn when you need another agent definition.',
+          'Queue a fan-out over items for the graph control:map node. items is a JSON array (max 32). Optional instruction is a per-item template with $item/$index; it overrides the node default. Optional maxTokensPerItem caps each worker text result. Each item is processed in the map body with $item/$index; results return as Map results in context. Prefer this for parallel same-graph work; use agents_spawn when you need another agent definition.',
       },
       {
         name: 'wait',

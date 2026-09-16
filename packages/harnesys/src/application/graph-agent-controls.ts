@@ -3,7 +3,9 @@ import {
   AGENTS_SPAWN_TOOL,
   MAP_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
+  STATE_MAP_INSTRUCTION_KEY,
   STATE_MAP_ITEMS_KEY,
+  STATE_MAP_MAX_TOKENS_KEY,
   STATE_SPAWNS_KEY,
   STATE_WAIT_UNTIL_MS_KEY,
   WAIT_TOOL,
@@ -16,7 +18,9 @@ export {
   AGENTS_SPAWN_TOOL,
   MAP_TOOL,
   STATE_HANDOFF_AGENT_ID_KEY,
+  STATE_MAP_INSTRUCTION_KEY,
   STATE_MAP_ITEMS_KEY,
+  STATE_MAP_MAX_TOKENS_KEY,
   STATE_SPAWNS_KEY,
   STATE_WAIT_UNTIL_MS_KEY,
   WAIT_TOOL,
@@ -134,6 +138,8 @@ export function applyAgentControlToolResults(
   const queued: QueuedSpawnCall[] = [];
   let handoffAgentId: string | undefined;
   let mapItems: unknown[] | undefined;
+  let mapInstruction: string | undefined;
+  let mapMaxTokensPerItem: number | undefined;
   let waitUntilMs: number | undefined;
   for (const row of results) {
     if (row.isError) {
@@ -150,6 +156,17 @@ export function applyAgentControlToolResults(
       const rec = asRecord(row.result);
       if (rec && Array.isArray(rec.items)) {
         mapItems = rec.items;
+      }
+      if (rec && typeof rec.instruction === 'string' && rec.instruction.trim().length > 0) {
+        mapInstruction = rec.instruction;
+      }
+      if (
+        rec &&
+        typeof rec.maxTokensPerItem === 'number' &&
+        Number.isInteger(rec.maxTokensPerItem) &&
+        rec.maxTokensPerItem >= 1
+      ) {
+        mapMaxTokensPerItem = rec.maxTokensPerItem;
       }
     } else if (row.name === WAIT_TOOL) {
       const rec = asRecord(row.result);
@@ -169,6 +186,12 @@ export function applyAgentControlToolResults(
   if (mapItems !== undefined) {
     state[STATE_MAP_ITEMS_KEY] = mapItems;
   }
+  if (mapInstruction !== undefined) {
+    state[STATE_MAP_INSTRUCTION_KEY] = mapInstruction;
+  }
+  if (mapMaxTokensPerItem !== undefined) {
+    state[STATE_MAP_MAX_TOKENS_KEY] = mapMaxTokensPerItem;
+  }
   if (waitUntilMs !== undefined) {
     state[STATE_WAIT_UNTIL_MS_KEY] = waitUntilMs;
   }
@@ -184,6 +207,8 @@ export function clearQueuedHandoff(state: Record<string, unknown>): void {
 
 export function clearQueuedMap(state: Record<string, unknown>): void {
   delete state[STATE_MAP_ITEMS_KEY];
+  delete state[STATE_MAP_INSTRUCTION_KEY];
+  delete state[STATE_MAP_MAX_TOKENS_KEY];
 }
 
 export function clearQueuedWait(state: Record<string, unknown>): void {
@@ -247,10 +272,30 @@ export function appendSpawnResultsMessage(
   });
 }
 
+/** Worker output keys withheld from the model context; stored results keep them. */
+const MAP_RESULT_NOISE_KEYS = ['reasoning', 'usage'];
+
+function stripMapResultNoise(item: unknown): unknown {
+  const rec = asRecord(item);
+  const out = rec ? asRecord(rec.output) : null;
+  if (!rec || !out) {
+    return item;
+  }
+  let cleaned: Record<string, unknown> | null = null;
+  for (const key of MAP_RESULT_NOISE_KEYS) {
+    if (key in out) {
+      cleaned ??= { ...out };
+      delete cleaned[key];
+    }
+  }
+  return cleaned ? { ...rec, output: cleaned } : item;
+}
+
 export function appendMapResultsMessage(
   state: Record<string, unknown>,
   messagesExpr: string | undefined,
   results: unknown,
 ): void {
-  appendAssistantNote(state, messagesExpr, `Map results:\n${JSON.stringify(results)}`);
+  const shown = Array.isArray(results) ? results.map(stripMapResultNoise) : results;
+  appendAssistantNote(state, messagesExpr, `Map results:\n${JSON.stringify(shown)}`);
 }

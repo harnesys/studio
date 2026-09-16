@@ -101,8 +101,10 @@ export function SkillPicker({
                 onMouseEnter={() => setActive(index)}
                 onClick={() => onPick(option)}
               >
-                <span className="font-medium font-mono text-xs">{option.name}</span>
-                <span className="truncate text-muted-foreground text-xs">{option.description}</span>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-medium font-mono text-xs">{option.name}</span>
+                  <span className="text-muted-foreground text-xs">{option.description}</span>
+                </div>
               </button>
             </li>
           );

@@ -173,6 +173,44 @@ export function ControlNodeFields({
             onChange={(concurrency) => onChange({ ...node, type: 'control:map', concurrency })}
           />
           <Field>
+            <FieldLabel htmlFor="graph-map-instruction">
+              Instruction (template, $item/$index, optional)
+            </FieldLabel>
+            <Textarea
+              id="graph-map-instruction"
+              className="min-h-20 font-mono text-xs"
+              value={node.instruction ?? ''}
+              onChange={(event) => {
+                const raw = event.target.value;
+                if (!raw.trim()) {
+                  const { instruction: _i, ...rest } = node;
+                  onChange({ ...rest, type: 'control:map' });
+                  return;
+                }
+                onChange({ ...node, type: 'control:map', instruction: raw });
+              }}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="graph-map-maxtokens">Max tokens per item (optional)</FieldLabel>
+            <GraphInput
+              id="graph-map-maxtokens"
+              value={node.maxTokensPerItem !== undefined ? String(node.maxTokensPerItem) : ''}
+              onChange={(event) => {
+                const raw = event.target.value.trim();
+                if (!raw) {
+                  const { maxTokensPerItem: _m, ...rest } = node;
+                  onChange({ ...rest, type: 'control:map' });
+                  return;
+                }
+                const n = Number(raw);
+                if (Number.isInteger(n) && n >= 1) {
+                  onChange({ ...node, type: 'control:map', maxTokensPerItem: n });
+                }
+              }}
+            />
+          </Field>
+          <Field>
             <FieldLabel htmlFor="graph-map-timeout">Timeout ms (optional)</FieldLabel>
             <GraphInput
               id="graph-map-timeout"

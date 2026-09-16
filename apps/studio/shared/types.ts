@@ -310,6 +310,7 @@ export type DeskEvent =
   | { type: 'schedule'; schedule: ScheduleRecord }
   | { type: 'schedule-deleted'; id: string }
   | { type: 'plan'; plan: ThreadPlanRecord }
+  | { type: 'plan-deleted'; threadId: string }
   | { type: 'webhook'; webhook: WebhookRecord }
   | { type: 'webhook-deleted'; id: string }
   | { type: 'agent'; agent: AgentRecordType }

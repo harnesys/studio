@@ -7,6 +7,7 @@ import type {
   PlanSnapshot,
   PlanStatus,
 } from 'harnesys';
+import type { DeletePlanInput } from '../../application/plans/delete-plan.use-case.ts';
 import type { GetThreadPlanInput } from '../../application/plans/get-thread-plan.use-case.ts';
 import type { SavePlanInput } from '../../application/plans/save-plan.use-case.ts';
 import type { UpdatePlanItemInput } from '../../application/plans/update-plan-item.use-case.ts';
@@ -15,6 +16,7 @@ export type SqlitePlanPortDeps = {
   savePlan: SavePlanInput;
   updatePlanItem: UpdatePlanItemInput;
   getThreadPlan: GetThreadPlanInput;
+  deletePlan: DeletePlanInput;
 };
 
 function toSnapshot(plan: ThreadPlanRecord): PlanSnapshot {
@@ -68,5 +70,9 @@ export class SqlitePlanPort implements PlanPort {
   async get(scope: CapabilityScope): Promise<PlanSnapshot | null> {
     const plan = await this.deps.getThreadPlan.execute({ threadId: scope.threadId });
     return plan ? toSnapshot(plan) : null;
+  }
+
+  delete(scope: CapabilityScope): Promise<{ deleted: boolean }> {
+    return this.deps.deletePlan.execute({ threadId: scope.threadId });
   }
 }

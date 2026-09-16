@@ -42,7 +42,8 @@ const PLAN_BODY_INPUT = {
           subagentRole: {
             type: 'string',
             enum: ['explore', 'coder', 'verifier', 'general'],
-            description: 'Optional recommended subagent role.',
+            description:
+              'Optional recommended subagent role: explore, coder, verifier, or general.',
           },
         },
         required: ['title', 'description'],
@@ -63,7 +64,9 @@ async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }>
 }
 
 function validPlanIds(items: PlanItem[]): string {
-  return items.map((i) => `${i.order}:${i.id} "${i.title}"`).join(', ');
+  const shown = items.slice(0, 10).map((i) => `${i.order}:${i.id} "${i.title}"`);
+  const rest = items.length - shown.length;
+  return rest > 0 ? `${shown.join(', ')}, and ${rest} more` : shown.join(', ');
 }
 
 /** Exact id → order number → unique id prefix (length ≥ 8), same order as agents.
@@ -160,7 +163,8 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
           },
           resultNote: {
             type: 'string',
-            description: 'Brief note or summary of what was accomplished or why it failed',
+            description:
+              'Brief note or summary of what was accomplished or why it failed. Overwrites the previous note.',
           },
         },
         required: ['itemId', 'status'],
@@ -194,6 +198,22 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
             itemId: item?.id ?? resolved.id,
             status: item?.status ?? input.status,
             planStatus: result.status,
+          };
+        }),
+    }),
+    tool('plan_delete', {
+      group: 'plan',
+      description:
+        'Delete the execution plan for this thread and clear it from the Inspector. Use when the goal is abandoned. When the goal continues with changes, prefer plan_save as the replan path.',
+      input: { type: 'object' },
+      execute: async () =>
+        runGuard(async () => {
+          const scope = deps.resolveScope();
+          const result = await deps.plan.delete(scope);
+          return {
+            ok: true,
+            deleted: result.deleted,
+            message: result.deleted ? 'Plan deleted.' : 'No active plan found for this thread.',
           };
         }),
     }),

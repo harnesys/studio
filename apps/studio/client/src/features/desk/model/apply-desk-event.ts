@@ -30,6 +30,10 @@ export function applyDeskEvent(event: DeskEvent): void {
       usePlanStore.getState().upsert(event.plan);
       return;
     }
+    case 'plan-deleted': {
+      usePlanStore.getState().removeForThread(event.threadId);
+      return;
+    }
     case 'schedule-deleted': {
       dropSchedule(event.id);
       return;

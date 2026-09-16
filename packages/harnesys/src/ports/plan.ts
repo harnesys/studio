@@ -34,4 +34,5 @@ export type PlanPort = {
     input: { planId: string; itemId: string; status: PlanItemStatus; resultNote?: string | null },
   ): Promise<PlanSnapshot>;
   get(scope: CapabilityScope): Promise<PlanSnapshot | null>;
+  delete(scope: CapabilityScope): Promise<{ deleted: boolean }>;
 };

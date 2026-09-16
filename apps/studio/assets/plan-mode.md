@@ -33,7 +33,8 @@ Once approved, in this order:
 
 - `plan_save` — create the thread plan: `overview` + `items` (each item: `title`, `description`, optional `subagentRole`). Approved plans only (Phase 2). One plan per thread: a second `plan_save` replaces it — that is the replan path: present the changed plan, get approval, then save.
 - `plan_get` — the current plan with exact item ids. Call it whenever you are not holding the ids.
-- `plan_item_update` — set an item's `status` (`pending` | `in_progress` | `completed` | `failed` | `cancelled`), optional `resultNote`. Ids are UUIDs from `plan_get` or `<active-plan>`; never invent or use order numbers. This tool is for execution runs of an applied plan, not for drafting runs.
+- `plan_item_update` — set an item's `status` (`pending` | `in_progress` | `completed` | `failed` | `cancelled`), optional `resultNote`. Each call overwrites the previous `resultNote`. Ids are UUIDs from `plan_get` or `<active-plan>`; never invent or use order numbers. This tool is for execution runs of an applied plan, not for drafting runs.
+- `plan_delete` — delete the thread plan when the goal is abandoned. When the goal continues with changes, use `plan_save` as the replan path instead.
 
 ## Tracking
 

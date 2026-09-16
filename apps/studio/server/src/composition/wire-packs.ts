@@ -33,6 +33,7 @@ import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.t
 import { CreateAgentUseCase } from '../application/agents/create-agent.use-case.ts';
 import type { WorkspaceHarnesysSource } from '../application/capabilities/validate-agent-config.use-case.ts';
 import { ValidateAgentConfigUseCase } from '../application/capabilities/validate-agent-config.use-case.ts';
+import { DeletePlanUseCase } from '../application/plans/delete-plan.use-case.ts';
 import { GetThreadPlanUseCase } from '../application/plans/get-thread-plan.use-case.ts';
 import { SavePlanUseCase } from '../application/plans/save-plan.use-case.ts';
 import { UpdatePlanItemUseCase } from '../application/plans/update-plan-item.use-case.ts';
@@ -149,6 +150,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
           savePlan: new SavePlanUseCase(uow, deps.deskEvents),
           updatePlanItem: new UpdatePlanItemUseCase(uow, deps.deskEvents),
           getThreadPlan: new GetThreadPlanUseCase(uow),
+          deletePlan: new DeletePlanUseCase(uow, deps.deskEvents),
         }),
       },
       resolveScope,

@@ -21,12 +21,15 @@ export type RunHookBusInput = {
   /** Full grant-filtered binding set (plugin + agent) for this run. */
   bindings: HookBinding[];
   binDirs: string[];
+  /** Active run mode id; refreshed on every ensure (claim), not bus creation. */
+  permissionMode?: string;
 };
 
 type BusEntry = {
   bus: HookBus;
   bindings: HookBinding[];
   workspacePath: string;
+  permissionMode: string;
   stopWatcher?: () => void;
 };
 
@@ -46,6 +49,9 @@ export class RunHookBuses {
   ensure(input: RunHookBusInput): HookEmitCtx {
     const existing = this.entries.get(input.threadId);
     if (existing) {
+      if (input.permissionMode !== undefined) {
+        existing.permissionMode = input.permissionMode;
+      }
       return this.ctx(existing, input.threadId);
     }
     const bus = createHookBus({
@@ -62,6 +68,7 @@ export class RunHookBuses {
       bus,
       bindings: input.bindings,
       workspacePath: input.workspacePath,
+      permissionMode: input.permissionMode ?? '',
     };
     if (input.bindings.some((binding) => binding.event === 'FileChanged')) {
       entry.stopWatcher = this.deps.filesWatcher.watch(
@@ -104,7 +111,7 @@ export class RunHookBuses {
       agent_id: '',
       thread_id: threadId,
       cwd: entry.workspacePath,
-      permission_mode: '',
+      permission_mode: entry.permissionMode,
       file_path: join(entry.workspacePath, event.dir, event.name),
     };
     // Сеансовые матчеры решает matchers.ts (exact/CSV/regex по file_path) —
@@ -125,7 +132,7 @@ export class RunHookBuses {
       agentId: '',
       threadId,
       cwd: entry.workspacePath,
-      permissionMode: '',
+      permissionMode: entry.permissionMode,
     };
   }
 }

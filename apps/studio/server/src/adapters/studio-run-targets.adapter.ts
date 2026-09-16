@@ -1,10 +1,13 @@
-import { effectiveMode, resolveModeId } from '@harnesys/studio-shared';
+import { effectiveMode, MODE_OPS, type ModeOp, resolveModeId } from '@harnesys/studio-shared';
 import type {
   AgentDefinition,
   CapabilityUniverse,
   HookBinding,
   HookEmitCtx,
+  LlmNote,
+  LlmNoteProvider,
   PathEntrySpec,
+  PermissionMap,
   RunTarget,
   RunTargets,
   RuntimeHandle,
@@ -153,6 +156,9 @@ export class StudioRunTargets implements RunTargets {
     const hookBindings = composeHookBindings(plugins, agent, workspace.path);
     const binDirs = collectBinDirs(plugins);
     this.registerMonitorJobs(threadId, plugins);
+    // Single enforcement source: the same map gates tools and rides to the
+    // model as a volatile <permissions> note; hooks read the mode id.
+    const permissions = permissionMapForRun(agentRow.permissions, mode);
     // Host-assembled run bus only when hooks exist; otherwise the engine
     // behaves as before (no bus, emitHook no-ops).
     const hooksEmit =
@@ -163,12 +169,14 @@ export class StudioRunTargets implements RunTargets {
             workspacePath: workspace.path,
             bindings: hookBindings,
             binDirs,
+            permissionMode: runModeId,
           })
         : undefined;
     return {
       state,
       agent,
-      permissions: permissionMapForRun(agentRow.permissions, mode),
+      permissions,
+      notes: [permissionPolicyNote(runModeId, permissions)],
       paths: { allow: [workspace.path], cwd: workspace.path },
       // Single decision: the resolver assembled the run registry once; the
       // engine's `capabilitySet` branch skips `resolveAgentIdentity`/pack create
@@ -239,4 +247,26 @@ function collectBinDirs(plugins: LoadedWorkspacePlugin[]): string[] {
     }
   }
   return dirs;
+}
+
+/**
+ * Политика рана как volatile-нота: замыкание над claim-time значениями,
+ * провайдер резолвится движком перед каждым шагом (notes tail, не system).
+ */
+function permissionPolicyNote(modeId: string, permissions: PermissionMap): LlmNoteProvider {
+  const text = `mode=${modeId}\n${formatPolicyGates(permissions)}`;
+  const note: LlmNote = { tag: 'permissions', text };
+  return () => [note];
+}
+
+/** Только управляемые режимом операции, в порядке MODE_OPS. */
+function formatPolicyGates(permissions: PermissionMap): string {
+  const hints: Record<ModeOp, string> = {
+    'fs.write': 'write_file, edit_file',
+    process: 'shell',
+    network: 'fetch',
+    mcp: 'MCP tools',
+    agents: 'agents_*',
+  };
+  return MODE_OPS.map((op) => `${op} (${hints[op]})=${permissions[op] ?? 'ask'}`).join('; ');
 }

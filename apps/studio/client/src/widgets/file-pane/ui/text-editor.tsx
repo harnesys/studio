@@ -11,6 +11,7 @@ import { gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
 import { monaco } from '@/shared/lib/monaco';
 import { detectLanguage } from '@/shared/lib/tool-code';
 import { useTheme } from '@/shared/ui/theme-provider';
+import { EditorStatusBar } from './editor-status-bar';
 import { LspStatusIndicator } from './lsp-status-indicator';
 import {
   bindMonacoImportLinkOpener,
@@ -106,6 +107,7 @@ export function TextEditor({
     const prevPath = lastActiveRef.current;
     lastActiveRef.current = path;
     if (prevPath && prevPath !== path) {
+      setCursor({ line: 1, column: 1 });
       void flushIfDirty(prevPath);
     }
   }, [path, flushIfDirty]);
@@ -188,10 +190,11 @@ export function TextEditor({
   }, [save]);
 
   const importLinksDisposeRef = useRef<(() => void) | null>(null);
-  const editorBlurDisposeRef = useRef<(() => void) | null>(null);
+  const editorSubsDisposeRef = useRef<(() => void) | null>(null);
 
   const [lspStatus, setLspStatus] = useState<LspBridgeStatus>('off');
   const [lspPulse, setLspPulse] = useState(0);
+  const [cursor, setCursor] = useState({ line: 1, column: 1 });
 
   useLayoutEffect(() => {
     setMonacoImportLinkContext({
@@ -236,8 +239,8 @@ export function TextEditor({
 
   useEffect(() => {
     return () => {
-      editorBlurDisposeRef.current?.();
-      editorBlurDisposeRef.current = null;
+      editorSubsDisposeRef.current?.();
+      editorSubsDisposeRef.current = null;
       editorRef.current = null;
       importLinksDisposeRef.current?.();
       importLinksDisposeRef.current = null;
@@ -258,12 +261,16 @@ export function TextEditor({
         void flushRef.current(active);
       }
     };
-    editorBlurDisposeRef.current?.();
+    editorSubsDisposeRef.current?.();
     const blurText = editor.onDidBlurEditorText(flushOnEditorBlur);
     const blurWidget = editor.onDidBlurEditorWidget(flushOnEditorBlur);
-    editorBlurDisposeRef.current = () => {
+    const cursorSub = editor.onDidChangeCursorPosition((event) => {
+      setCursor({ line: event.position.lineNumber, column: event.position.column });
+    });
+    editorSubsDisposeRef.current = () => {
       blurText.dispose();
       blurWidget.dispose();
+      cursorSub.dispose();
     };
     importLinksDisposeRef.current?.();
     importLinksDisposeRef.current = bindMonacoImportLinkOpener(editor, monaco);
@@ -354,27 +361,39 @@ export function TextEditor({
     );
   }
 
+  const language = detectLanguage(activePath) ?? 'plaintext';
+
   return (
-    <div className="relative min-h-0 flex-1 bg-background" data-testid="text-editor">
-      <LspStatusIndicator status={lspStatus} pulse={lspPulse} />
-      <Editor
-        height="100%"
-        path={toModelPath(activePath)}
-        language={detectLanguage(activePath) ?? 'plaintext'}
-        theme={resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light'}
-        value={value}
-        loading={null}
-        beforeMount={handleBeforeMount}
-        onMount={handleMount}
-        onChange={(next) => {
-          const text = next ?? '';
-          draftsRef.current = { ...draftsRef.current, [activePath]: text };
-          setDrafts((prev) => ({ ...prev, [activePath]: text }));
-          const dirty = text !== serverText;
-          markWorkspaceFileDirty(workspaceId, activePath, dirty);
-          useIdeStore.getState().setFileDirty(workspaceId, activePath, dirty);
-        }}
-        options={options}
+    <div className="flex min-h-0 flex-1 flex-col bg-background" data-testid="text-editor">
+      <div className="relative min-h-0 flex-1">
+        <LspStatusIndicator status={lspStatus} pulse={lspPulse} />
+        <Editor
+          height="100%"
+          path={toModelPath(activePath)}
+          language={language}
+          theme={resolved === 'dark' ? 'harnesys-dark' : 'harnesys-light'}
+          value={value}
+          loading={null}
+          beforeMount={handleBeforeMount}
+          onMount={handleMount}
+          onChange={(next) => {
+            const text = next ?? '';
+            draftsRef.current = { ...draftsRef.current, [activePath]: text };
+            setDrafts((prev) => ({ ...prev, [activePath]: text }));
+            const dirty = text !== serverText;
+            markWorkspaceFileDirty(workspaceId, activePath, dirty);
+            useIdeStore.getState().setFileDirty(workspaceId, activePath, dirty);
+          }}
+          options={options}
+        />
+      </div>
+      <EditorStatusBar
+        path={activePath}
+        language={language}
+        lspStatus={lspStatus}
+        dirty={dirty}
+        cursor={cursor}
+        content={value}
       />
     </div>
   );

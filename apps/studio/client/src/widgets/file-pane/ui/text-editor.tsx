@@ -58,6 +58,7 @@ export function TextEditor({
 
   const savingRef = useRef<Set<string>>(new Set());
   const lastActiveRef = useRef<string | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const persistFile = useCallback(
     async (targetPath: string, content: string) => {
@@ -108,6 +109,30 @@ export function TextEditor({
       void flushIfDirty(prevPath);
     }
   }, [path, flushIfDirty]);
+
+  const flushRef = useRef(flushIfDirty);
+  flushRef.current = flushIfDirty;
+
+  /** Autosave: flush the open file when the editor or window loses focus. */
+  useEffect(() => {
+    const flushActive = () => {
+      const active = lastActiveRef.current;
+      if (active) {
+        void flushRef.current(active);
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        flushActive();
+      }
+    };
+    window.addEventListener('blur', flushActive);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('blur', flushActive);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -163,6 +188,7 @@ export function TextEditor({
   }, [save]);
 
   const importLinksDisposeRef = useRef<(() => void) | null>(null);
+  const editorBlurDisposeRef = useRef<(() => void) | null>(null);
 
   const [lspStatus, setLspStatus] = useState<LspBridgeStatus>('off');
   const [lspPulse, setLspPulse] = useState(0);
@@ -210,6 +236,9 @@ export function TextEditor({
 
   useEffect(() => {
     return () => {
+      editorBlurDisposeRef.current?.();
+      editorBlurDisposeRef.current = null;
+      editorRef.current = null;
       importLinksDisposeRef.current?.();
       importLinksDisposeRef.current = null;
     };
@@ -222,6 +251,20 @@ export function TextEditor({
   };
 
   const handleMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    const flushOnEditorBlur = () => {
+      const active = lastActiveRef.current;
+      if (active) {
+        void flushRef.current(active);
+      }
+    };
+    editorBlurDisposeRef.current?.();
+    const blurText = editor.onDidBlurEditorText(flushOnEditorBlur);
+    const blurWidget = editor.onDidBlurEditorWidget(flushOnEditorBlur);
+    editorBlurDisposeRef.current = () => {
+      blurText.dispose();
+      blurWidget.dispose();
+    };
     importLinksDisposeRef.current?.();
     importLinksDisposeRef.current = bindMonacoImportLinkOpener(editor, monaco);
     editor.updateOptions({
@@ -325,6 +368,7 @@ export function TextEditor({
         onMount={handleMount}
         onChange={(next) => {
           const text = next ?? '';
+          draftsRef.current = { ...draftsRef.current, [activePath]: text };
           setDrafts((prev) => ({ ...prev, [activePath]: text }));
           const dirty = text !== serverText;
           markWorkspaceFileDirty(workspaceId, activePath, dirty);

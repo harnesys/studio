@@ -1,9 +1,9 @@
 import { DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpIcon, LoaderCircleIcon, SquareIcon, TriangleAlertIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useScheduleStore } from '@/entities/schedule';
-import { rollupUsage, useSessionStore } from '@/entities/session';
+import { useSessionStore } from '@/entities/session';
 import { useSelectedAgent, useSelectedThread, useThreadEvents } from '@/features/desk';
 import { ModelSelect } from '@/features/manage-agent';
 import { pendingHitl, useRunStreamState } from '@/features/send-message';
@@ -11,7 +11,7 @@ import { cancelRun, providersQuery } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { findModelLabel } from '@/shared/lib/model-label';
 import { Button } from '@/shared/ui/button';
-import { InputGroup, InputGroupAddon, InputGroupTextarea } from '@/shared/ui/input-group';
+import { InputGroup, InputGroupAddon } from '@/shared/ui/input-group';
 import { addComposerFiles } from '../model/add-composer-files';
 import {
   agentDefaultEffort,
@@ -19,27 +19,22 @@ import {
   agentModelVerified,
   selectedEffort,
 } from '../model/agent-effort';
+import { composerUsage } from '../model/composer-context';
+import type { ComposerPayload } from '../model/composer-doc';
 import { type ComposerMode, composerModeItems, knownMode } from '../model/composer-mode';
 import { filesFromClipboard } from '../model/composer-send';
 import { executeComposerSlash, submitComposer } from '../model/composer-submit';
-import {
-  fillUsageCost,
-  fillUsageWindow,
-  generationUsages,
-  modelContextWindow,
-  turnGenerationUsages,
-} from '../model/model-context';
+import { modelContextWindow } from '../model/model-context';
 import { allowedAttachKinds, modelInputModalities } from '../model/model-input';
 import { fileFromPastedText } from '../model/paste-as-file';
-import { matchSlashCommands } from '../model/slash-commands';
-import { handleComposerKeyDown } from '../model/slash-keydown';
+import type { SlashCommand } from '../model/slash-commands';
 import { switchComposerModel } from '../model/switch-composer-model';
 import { AttachDraft } from './attach-draft';
 import { AttachMenu } from './attach-menu';
+import { ComposerEditor, type ComposerEditorHandle } from './composer-editor';
 import { ContextRing } from './context-ring';
 import { EffortSelect } from './effort-select';
 import { ModeSelect } from './mode-select';
-import { SlashMenu } from './slash-menu';
 import { UnverifiedModelCard } from './unverified-model-card';
 
 export function ChatComposer() {
@@ -59,12 +54,11 @@ export function ChatComposer() {
     thread ? (state.activeRuns[thread.id]?.runId ?? null) : null,
   );
   const hitl = pendingHitl(events);
-  const [value, setValue] = useState('');
+  const [payload, setPayload] = useState<ComposerPayload>({ text: '', skills: [] });
   const [pending, setPending] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
-  const [slashIndex, setSlashIndex] = useState(0);
   const [mode, setMode] = useState<ComposerMode>(DEFAULT_MODE_ID);
-  const slashMatches = matchSlashCommands(value);
+  const editorRef = useRef<ComposerEditorHandle>(null);
   const scheduleMode = useScheduleStore((state) => {
     if (thread?.kind !== 'schedule') {
       return null;
@@ -80,20 +74,11 @@ export function ChatComposer() {
   );
   const verified = agentModelVerified(modelId, providers);
   const disabled = !agent || !thread || sending || streaming || Boolean(hitl);
-  const slashOpen = slashMatches.length > 0 && pending.length === 0 && !disabled;
   const contextWindow = modelContextWindow(modelId, providers);
-  const usages = generationUsages(events).map((item) => {
-    const filled = fillUsageCost(item, modelId, providers);
-    return filled ?? item;
-  });
-  const lastUsage = fillUsageWindow(usages.at(-1) ?? null, contextWindow);
-  const runUsage = rollupUsage(
-    turnGenerationUsages(events).map((item) => fillUsageCost(item, modelId, providers) ?? item),
-  );
-  const threadUsage = rollupUsage(usages);
+  const usage = composerUsage(events, modelId, providers, contextWindow);
   const inputModalities = modelInputModalities(modelId, providers);
   const allowed = allowedAttachKinds(inputModalities);
-  const canSend = value.trim().length > 0 || pending.length > 0;
+  const canSend = payload.text.trim().length > 0 || pending.length > 0;
   let placeholder = 'Select an agent to start a thread';
   if (hitl) {
     if (hitl.source === 'ask_user') {
@@ -131,10 +116,6 @@ export function ChatComposer() {
     setMode(DEFAULT_MODE_ID);
   }, [thread?.runMode, scheduleMode, agent?.defaultModeId, agentModes]);
 
-  useEffect(() => {
-    setSlashIndex(0);
-  }, []);
-
   return (
     <div className="relative mx-auto w-full max-w-3xl px-4 pb-4" data-testid="chat-composer">
       {streamLabel ? (
@@ -142,24 +123,6 @@ export function ChatComposer() {
           <LoaderCircleIcon className="size-3 animate-spin text-live" />
           <span>{streamLabel}</span>
         </div>
-      ) : null}
-      {slashOpen ? (
-        <SlashMenu
-          commands={slashMatches}
-          activeIndex={slashIndex}
-          onHover={setSlashIndex}
-          onPick={(command) => {
-            if (!thread) {
-              return;
-            }
-            void executeComposerSlash(command, {
-              threadId: thread.id,
-              disabled,
-              setSending,
-              setValue,
-            });
-          }}
-        />
       ) : null}
       <InputGroup
         className="h-auto rounded-2xl"
@@ -187,36 +150,14 @@ export function ChatComposer() {
           files={pending}
           onRemove={(index) => setPending((list) => list.filter((_, i) => i !== index))}
         />
-        <InputGroupTextarea
-          value={value}
+        <ComposerEditor
+          ref={editorRef}
           disabled={disabled}
-          rows={2}
-          className="min-h-14 py-3"
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={(event) =>
-            handleComposerKeyDown(event, {
-              open: slashOpen,
-              matches: slashMatches,
-              activeIndex: slashIndex,
-              streaming,
-              setActiveIndex: setSlashIndex,
-              clearValue: () => setValue(''),
-              fillCommand: (name) => setValue(`/${name}`),
-              runCommand: (command) => {
-                if (!thread) {
-                  return;
-                }
-                void executeComposerSlash(command, {
-                  threadId: thread.id,
-                  disabled,
-                  setSending,
-                  setValue,
-                });
-              },
-              submit,
-            })
-          }
           placeholder={placeholder}
+          onChange={setPayload}
+          onSubmit={submit}
+          onSlashCommand={runSlashCommand}
+          shouldConsumePaste={pasteIsHandled}
         />
         <InputGroupAddon align="block-end" className="justify-between gap-2 px-2 pb-2">
           <div className="flex min-w-0 items-center gap-0.5">
@@ -230,9 +171,9 @@ export function ChatComposer() {
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
             <ContextRing
-              last={lastUsage}
-              run={runUsage}
-              thread={threadUsage}
+              last={usage.last}
+              run={usage.run}
+              thread={usage.thread}
               window={contextWindow}
               disabled={!agent || !thread}
             />
@@ -319,16 +260,39 @@ export function ChatComposer() {
       return;
     }
     submitComposer({
-      value,
+      payload: editorRef.current?.getPayload() ?? payload,
       pending,
       threadId: thread.id,
       effort: currentEffort,
       mode,
       disabled,
       setSending,
-      setValue,
+      clear: () => editorRef.current?.clear(),
       setPending,
     });
+  }
+
+  function runSlashCommand(command: SlashCommand) {
+    if (!thread) {
+      return;
+    }
+    void executeComposerSlash(command, {
+      threadId: thread.id,
+      disabled,
+      setSending,
+    });
+  }
+
+  function pasteIsHandled(data: DataTransfer) {
+    return (
+      filesFromClipboard(data).length > 0 ||
+      Boolean(
+        fileFromPastedText(
+          data.getData('text/plain'),
+          pending.map((file) => file.name),
+        ),
+      )
+    );
   }
 }
 

@@ -3,7 +3,7 @@ import { create } from 'zustand';
 
 import { applyIncomingEvents } from './apply-incoming';
 import { coalesceStreamDeltas, isToolInputStream } from './coalesce-events';
-import { ceilFromEvents, eventKey, fillSeenAt, stableKeys } from './event-keys';
+import { ceilFromEvents, eventKey, fillSeenAt, stableEventKey, stableKeys } from './event-keys';
 import { clearLiveTail, clearLiveTails, ingestLiveDelta, sealLiveTail } from './live-tail';
 import {
   cancelEpochFlush,
@@ -34,6 +34,8 @@ type SessionStoreState = {
   activeRuns: Record<string, ActiveRun>;
   failures: RunFailure[];
   contentEpoch: Record<string, number>;
+  /** Оптимистичные skills отправленного user-события по ключу `ce:${clientEventId}`. */
+  sentSkills: Record<string, string[]>;
 };
 
 type SessionStoreActions = {
@@ -42,6 +44,8 @@ type SessionStoreActions = {
   reconcileEvents: (threadId: string, events: SessionEvent[]) => void;
   appendEvent: (threadId: string, event: SessionEvent) => void;
   removeEventByClientEventId: (threadId: string, clientEventId: string) => void;
+  setSentSkills: (threadId: string, clientEventId: string, skills: string[]) => void;
+  sentSkillsFor: (clientEventId: string) => string[] | undefined;
   startRun: (threadId: string, controller: AbortController, runId?: string) => void;
   finishRun: (threadId: string, runId?: string) => void;
   abortRun: (threadId: string) => void;
@@ -115,6 +119,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     activeRuns: {},
     failures: [],
     contentEpoch: {},
+    sentSkills: {},
 
     eventsOf(threadId: string) {
       return get().events[threadId] ?? EMPTY_EVENTS;
@@ -207,23 +212,26 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         if (next.length === current.length) {
           return base;
         }
-        const threadSeen = base.seenAt[threadId];
-        if (threadSeen?.[key] === undefined) {
-          return {
-            ...base,
-            events: { ...base.events, [threadId]: next },
-            contentEpoch: { ...base.contentEpoch, [threadId]: Date.now() },
-          };
-        }
-        const { [key]: _removed, ...restSeen } = threadSeen;
-        return {
+        const { [key]: _gone, ...sentSkills } = base.sentSkills;
+        const stripped = {
           ...base,
           events: { ...base.events, [threadId]: next },
-          seenAt: { ...base.seenAt, [threadId]: restSeen },
+          sentSkills,
           contentEpoch: { ...base.contentEpoch, [threadId]: Date.now() },
         };
+        const threadSeen = base.seenAt[threadId];
+        if (threadSeen?.[key] === undefined) {
+          return stripped;
+        }
+        const { [key]: _removed, ...restSeen } = threadSeen;
+        return { ...stripped, seenAt: { ...base.seenAt, [threadId]: restSeen } };
       });
     },
+
+    setSentSkills(_threadId, clientEventId, skills) {
+      set((state) => ({ sentSkills: { ...state.sentSkills, [`ce:${clientEventId}`]: skills } }));
+    },
+    sentSkillsFor: (clientEventId) => get().sentSkills[`ce:${clientEventId}`],
 
     startRun(threadId, controller, runId) {
       set((state) => ({
@@ -299,14 +307,18 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         const seqCeil = { ...base.seqCeil };
         const activeRuns = { ...base.activeRuns };
         const contentEpoch = { ...base.contentEpoch };
+        const sentSkills = { ...base.sentSkills };
         for (const id of threadIds) {
+          for (const ev of events[id] ?? []) {
+            delete sentSkills[stableEventKey(ev) ?? ''];
+          }
           delete events[id];
           delete seenAt[id];
           delete seqCeil[id];
           delete activeRuns[id];
           delete contentEpoch[id];
         }
-        return { ...base, events, seenAt, seqCeil, activeRuns, contentEpoch };
+        return { ...base, events, seenAt, seqCeil, activeRuns, contentEpoch, sentSkills };
       });
     },
 

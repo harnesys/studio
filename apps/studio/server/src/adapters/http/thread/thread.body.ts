@@ -28,9 +28,16 @@ export const sendThreadRunBody = z
     effort: z.string().trim().min(1).optional(),
     mode: z.string().trim().min(1).max(48).optional(),
     attachmentIds: z.array(z.string().uuid()).optional(),
+    skills: z
+      .array(z.string().regex(/^[A-Za-z0-9:_-]{1,120}$/))
+      .max(10)
+      .optional(),
   })
   .refine((value) => (value.text?.length ?? 0) > 0 || (value.attachmentIds?.length ?? 0) > 0, {
     message: 'text or attachments required',
+  })
+  .refine((value) => (value.skills?.length ? (value.text?.length ?? 0) > 0 : true), {
+    message: 'skills require text',
   });
 
 export const respondRunBody = z.object({

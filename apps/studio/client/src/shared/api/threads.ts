@@ -51,14 +51,22 @@ export type SendThreadRunOptions = {
   effort?: string;
   attachmentIds?: string[];
   mode?: string;
+  skills?: string[];
   clientEventId?: string;
 };
 
 export function sendThreadRun(options: SendThreadRunOptions): Promise<AcceptedRunResponse> {
-  const { id, text, effort, attachmentIds, mode, clientEventId } = options;
+  const { id, text, effort, attachmentIds, mode, skills, clientEventId } = options;
   return apiJson<AcceptedRunResponse>(`/api/threads/${id}/runs`, {
     method: 'POST',
-    body: JSON.stringify({ text, effort, attachmentIds, mode, clientEventId }),
+    body: JSON.stringify({
+      text,
+      effort,
+      attachmentIds,
+      mode,
+      clientEventId,
+      ...(skills?.length ? { skills } : {}),
+    }),
   });
 }
 

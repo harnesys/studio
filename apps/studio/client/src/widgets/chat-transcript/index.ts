@@ -1,3 +1,4 @@
+export { type DirectiveBadge, splitDirectiveTags } from './model/directive-tag';
 export {
   extractMaps,
   type MapInfo,

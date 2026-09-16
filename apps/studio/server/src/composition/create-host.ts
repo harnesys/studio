@@ -15,6 +15,7 @@ import { pluginUserConfig, substituteLspSpec } from '../application/plugins/plug
 import type { ThreadRunHooks } from '../application/threads/compact-thread.use-case.ts';
 import { SeedBranchStateUseCase } from '../application/threads/seed-branch-state.use-case.ts';
 import { SendThreadRunUseCase } from '../application/threads/send-thread-run.use-case.ts';
+import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
 import { logger, toRuntimeLogger } from '../config/logger.ts';
 import type { SecretStore } from '../domain/secret-store.port.ts';
 import type { StudioPlatform } from './create-platform.ts';
@@ -275,6 +276,7 @@ export function createStudioHost(args: {
     registry: threadRegistry,
     deskEvents: platform.deskEvents,
     getThread: runtime.getThread,
+    listSkills: new ListWorkspaceSkillsUseCase(store.workspaceRepo, workspaceHarnesys),
   });
 
   let secretStore: SecretStore | undefined;

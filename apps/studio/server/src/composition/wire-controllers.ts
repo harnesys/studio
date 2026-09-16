@@ -84,6 +84,7 @@ import { ListWorkspaceFilesUseCase } from '../application/workspaces/list-worksp
 import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
 import { ListWorkspaceToolsUseCase } from '../application/workspaces/list-workspace-tools.use-case.ts';
 import { ListWorkspacesUseCase } from '../application/workspaces/list-workspaces.use-case.ts';
+import { MoveWorkspaceFilesUseCase } from '../application/workspaces/move-workspace-files.use-case.ts';
 import { PickWorkspaceUseCase } from '../application/workspaces/pick-workspace.use-case.ts';
 import { PullGitUseCase } from '../application/workspaces/pull-git.use-case.ts';
 import { PushGitUseCase } from '../application/workspaces/push-git.use-case.ts';
@@ -207,6 +208,7 @@ export function wireControllers(d: ControllerDeps): void {
     listWorkspaceFiles: new ListWorkspaceFilesUseCase(d.workspaceRepo, d.workspaceFiles),
     createWorkspaceFile: new CreateWorkspaceFileUseCase(d.workspaceRepo, d.workspaceFiles),
     deleteWorkspaceFile: new DeleteWorkspaceFileUseCase(d.workspaceRepo, d.workspaceFiles),
+    moveWorkspaceFiles: new MoveWorkspaceFilesUseCase(d.workspaceRepo, d.workspaceFiles),
     getWorkspaceFileContent: new GetWorkspaceFileContentUseCase(d.workspaceRepo, d.workspaceFiles),
     writeWorkspaceFileContent: new WriteWorkspaceFileContentUseCase(
       d.workspaceRepo,

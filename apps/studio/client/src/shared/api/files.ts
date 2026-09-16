@@ -1,4 +1,8 @@
-import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
+import type {
+  WorkspaceFileEntry,
+  WorkspaceMoveItem,
+  WorkspaceMoveResult,
+} from '@harnesys/studio-shared';
 
 import { ApiError, apiJson } from './client';
 import { watchEventSource } from './sse';
@@ -22,6 +26,13 @@ export function deleteWorkspaceFile(workspaceId: string, path: string) {
   return apiJson<void>(`/api/workspaces/${workspaceId}/files`, {
     method: 'DELETE',
     body: JSON.stringify({ path }),
+  });
+}
+
+export function moveWorkspaceFiles(workspaceId: string, items: WorkspaceMoveItem[]) {
+  return apiJson<WorkspaceMoveResult>(`/api/workspaces/${workspaceId}/files/move`, {
+    method: 'POST',
+    body: JSON.stringify({ items }),
   });
 }
 

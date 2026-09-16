@@ -18,6 +18,7 @@ import type { GetWorkspaceStatusInput } from '../../../application/workspaces/ge
 import type { ListWorkspaceFilesInput } from '../../../application/workspaces/list-workspace-files.use-case.ts';
 import type { ListWorkspaceSkillsInput } from '../../../application/workspaces/list-workspace-skills.use-case.ts';
 import type { ListWorkspacesInput } from '../../../application/workspaces/list-workspaces.use-case.ts';
+import type { MoveWorkspaceFilesInput } from '../../../application/workspaces/move-workspace-files.use-case.ts';
 import type { PickWorkspaceInput } from '../../../application/workspaces/pick-workspace.use-case.ts';
 import type { PullGitInput } from '../../../application/workspaces/pull-git.use-case.ts';
 import type { PushGitInput } from '../../../application/workspaces/push-git.use-case.ts';
@@ -57,6 +58,7 @@ export type WorkspaceControllerDeps = {
   listWorkspaceFiles: ListWorkspaceFilesInput;
   createWorkspaceFile: CreateWorkspaceFileInput;
   deleteWorkspaceFile: DeleteWorkspaceFileInput;
+  moveWorkspaceFiles: MoveWorkspaceFilesInput;
   getWorkspaceFileContent: GetWorkspaceFileContentInput;
   writeWorkspaceFileContent: WriteWorkspaceFileContentInput;
   getGitStatus: GetGitStatusInput;

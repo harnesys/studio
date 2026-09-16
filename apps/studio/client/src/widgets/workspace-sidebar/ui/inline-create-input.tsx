@@ -6,16 +6,19 @@ export function InlineCreateInput({
   kind,
   onFinish,
   depth,
+  initialValue = '',
 }: {
   kind: 'file' | 'dir';
   onFinish: (name: string) => void;
   depth: number;
+  initialValue?: string;
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    inputRef.current?.select();
   }, []);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

@@ -1,3 +1,4 @@
+import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { create } from 'zustand';
 import { IDE_WORKSPACES_STORAGE_KEY } from '@/shared/config/constants';
 import {
@@ -15,6 +16,7 @@ import {
   upsertTabState,
   withActiveTabState,
 } from './ide-layout';
+import { remapWorkspacePaths } from './ide-path-remap';
 
 export { firstGroupOfLayout, type IdeSplitNode, lastGroupOfLayout } from './ide-tree';
 
@@ -41,6 +43,7 @@ type IdeStore = IdeState & {
   setActive: (workspaceId: string, tabId: string) => void;
   setFileDirty: (workspaceId: string, path: string, dirty: boolean) => void;
   closeByEntity: (workspaceId: string, kind: IdeTabKind, entityId: string) => void;
+  remapPaths: (workspaceId: string, moves: WorkspaceMoveItem[]) => void;
   reorderTab: (workspaceId: string, fromId: string, toId: string) => void;
   moveTab: (
     workspaceId: string,
@@ -268,6 +271,15 @@ export const useIdeStore = create<IdeStore>((set) => {
           ),
         ),
       ),
+    remapPaths: (workspaceId, moves) =>
+      set((state) => {
+        const current = state.byWorkspace[workspaceId];
+        if (!current || moves.length === 0) {
+          return state;
+        }
+        const next = remapWorkspacePaths(current, moves);
+        return next ? applyWs(state, workspaceId, next) : state;
+      }),
     reorderTab: (workspaceId, fromId, toId) =>
       set((state) => {
         const ws = pick(state, workspaceId);

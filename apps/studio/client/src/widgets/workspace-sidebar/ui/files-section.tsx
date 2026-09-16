@@ -1,8 +1,16 @@
-import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
+import type { WorkspaceFileEntry, WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EyeIcon, FileIcon, FolderIcon, LoaderCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
+import {
+  buildMoveItems,
+  buildRenameItem,
+  isValidFileName,
+  moveDrag,
+  setMoveDrag,
+  useMoveWorkspaceFiles,
+} from '@/features/move-workspace-files';
 import { openWorkspaceFile } from '@/features/open-file';
 import {
   createWorkspaceFile,
@@ -20,6 +28,7 @@ import {
   DropdownMenuSeparator,
 } from '@/shared/ui/dropdown-menu';
 import { useSidebar } from '@/shared/ui/sidebar';
+import { toast } from '@/shared/ui/toast';
 import { useExplorerDraftStore } from '../model/explorer-draft.store';
 import { useExplorerHiddenStore } from '../model/explorer-hidden.store';
 import { useFileSelectionStore } from '../model/file-selection.store';
@@ -85,6 +94,8 @@ export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
   const startCreate = useExplorerDraftStore((state) => state.start);
   const cancelCreate = useExplorerDraftStore((state) => state.cancel);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
+  const [renamePath, setRenamePath] = useState<string | null>(null);
+  const moveMutation = useMoveWorkspaceFiles(workspaceId);
   const selectedPaths = useFileSelectionStore((s) => s.selectedPaths);
   const setWorkspace = useFileSelectionStore((s) => s.setWorkspace);
   const setFilesActive = useFileSelectionStore((s) => s.setFilesActive);
@@ -237,6 +248,58 @@ export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
     useIdeStore.getState().closeByEntity(workspaceId, 'file', path);
   };
 
+  const move = (items: WorkspaceMoveItem[], expandTarget?: string) => {
+    if (items.length === 0) {
+      return;
+    }
+    moveMutation.mutate(items, {
+      onSuccess: () => {
+        if (expandTarget) {
+          setExpandedDirs((prev) => new Set(prev).add(expandTarget));
+        }
+      },
+    });
+  };
+
+  const handleMoveInto = (targetDir: string, paths: string[]) => {
+    move(buildMoveItems(paths, targetDir), targetDir);
+  };
+
+  const handleRenameFinish = (path: string, name: string) => {
+    setRenamePath(null);
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === path.split('/').pop()) {
+      return;
+    }
+    if (!isValidFileName(trimmed)) {
+      toast.add({ title: 'Invalid file name', description: trimmed });
+      return;
+    }
+    move([buildRenameItem(path, trimmed)]);
+  };
+
+  const handleRootDrop = (event: React.DragEvent) => {
+    const drag = moveDrag();
+    if (!drag || drag.workspaceId !== workspaceId) {
+      return;
+    }
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    event.preventDefault();
+    setMoveDrag(null);
+    move(buildMoveItems(drag.paths, ''));
+  };
+
+  const handleRootDragOver = (event: React.DragEvent) => {
+    const drag = moveDrag();
+    if (!drag || drag.workspaceId !== workspaceId || event.target !== event.currentTarget) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  };
+
   const handleOpen = (path: string) => {
     openWorkspaceFile(workspaceId, path);
     useIdeStore.getState().openFile(workspaceId, path);
@@ -246,7 +309,13 @@ export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
   useFilesHotkey(workspaceId);
 
   return (
-    <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
+    // biome-ignore lint/a11y/noStaticElementInteractions: explorer root is a drop target for moves to the workspace root
+    <div
+      className="flex min-h-full flex-col gap-0.5 group-data-[collapsible=icon]:items-center"
+      onDragOver={handleRootDragOver}
+      onDrop={handleRootDrop}
+      data-testid="explorer-content"
+    >
       {gitTruncated ? (
         <div className="mx-1 rounded-md bg-amber-500/10 px-2 py-1 text-amber-700 text-xs group-data-[collapsible=icon]:hidden dark:text-amber-400">
           Large repo — file decorations off. Expand a folder for status.
@@ -265,6 +334,7 @@ export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
           expandedDirs={expandedDirs}
           selectedPaths={selectedPaths}
           createDraft={createDraft}
+          renamePath={renamePath}
           iconMode={iconMode}
           gitMap={gitTruncated ? undefined : gitMap}
           gitTruncated={gitTruncated}
@@ -273,6 +343,9 @@ export function ExplorerContent({ workspaceId }: { workspaceId: string }) {
           onOpen={handleOpen}
           onStartCreate={startCreate}
           onCreateFinish={finishCreate}
+          onStartRename={setRenamePath}
+          onRenameFinish={handleRenameFinish}
+          onMoveInto={handleMoveInto}
           onDelete={handleDelete}
         />
       ))}

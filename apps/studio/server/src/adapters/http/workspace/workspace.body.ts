@@ -23,6 +23,10 @@ export const deleteWorkspaceFileBody = z.object({
   path: z.string().trim().min(1),
 });
 
+export const moveWorkspaceFilesBody = z.object({
+  items: z.array(z.object({ from: z.string().trim().min(1), to: z.string().trim().min(1) })).min(1),
+});
+
 export const writeWorkspaceFileContentBody = z.object({
   path: z.string().trim().min(1),
   content: z.string(),

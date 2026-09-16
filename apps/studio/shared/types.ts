@@ -302,6 +302,17 @@ export type WorkspaceFileEvent = {
   name: string;
 };
 
+/** One source → destination pair of a workspace move, paths relative to the root. */
+export type WorkspaceMoveItem = {
+  from: string;
+  to: string;
+};
+
+export type WorkspaceMoveResult = {
+  /** Items applied exactly as requested. Descendants of moved directories are implied by prefix. */
+  moved: WorkspaceMoveItem[];
+};
+
 export * from './src/plan-types.ts';
 export { isTextAttachment } from './src/text-attachment.ts';
 

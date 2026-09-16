@@ -5,6 +5,7 @@ import {
   createWorkspaceFileBody,
   createWorkspaceSkillBody,
   deleteWorkspaceFileBody,
+  moveWorkspaceFilesBody,
   setMcpServerStateBody,
   upsertWorkspaceMcpServerBody,
   writeWorkspaceFileContentBody,
@@ -119,6 +120,15 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
       path: body.path,
     });
     return c.body(null, 204);
+  });
+
+  app.post('/api/workspaces/:id/files/move', async (c) => {
+    const body = moveWorkspaceFilesBody.parse(await c.req.json());
+    const result = await deps.moveWorkspaceFiles.execute({
+      workspaceId: c.req.param('id'),
+      items: body.items,
+    });
+    return c.json(result);
   });
 
   app.get('/api/workspaces/:id/files/content', async (c) => {

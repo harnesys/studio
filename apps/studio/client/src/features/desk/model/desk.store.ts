@@ -1,4 +1,6 @@
+import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { create } from 'zustand';
+import { remapWorkspaceOpenFiles } from './desk-path-remap';
 
 export type InspectorTab = 'inspector' | 'memory';
 
@@ -40,6 +42,7 @@ type DeskStore = DeskState & {
   closeWorkspaceFile: (workspaceId: string, path: string) => void;
   setActiveWorkspaceFile: (workspaceId: string, path: string) => void;
   setWorkspaceFileDirty: (workspaceId: string, path: string, dirty: boolean) => void;
+  remapWorkspaceFiles: (workspaceId: string, moves: WorkspaceMoveItem[]) => void;
 };
 
 const emptyFiles = (): AgentOpenFiles => ({ tabs: [], activePath: null });
@@ -228,6 +231,21 @@ export const useDeskStore = create<DeskStore>((set) => ({
             tabs: current.tabs.map((tab) => (tab.path === path ? { ...tab, dirty } : tab)),
           },
         },
+      };
+    }),
+
+  remapWorkspaceFiles: (workspaceId, moves) =>
+    set((state) => {
+      const current = state.filesByWorkspaceId[workspaceId];
+      if (!current || moves.length === 0) {
+        return state;
+      }
+      const remapped = remapWorkspaceOpenFiles(current, moves);
+      if (remapped === current) {
+        return state;
+      }
+      return {
+        filesByWorkspaceId: { ...state.filesByWorkspaceId, [workspaceId]: remapped },
       };
     }),
 }));

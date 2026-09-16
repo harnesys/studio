@@ -1,8 +1,10 @@
 import type { Dirent } from 'node:fs';
 import {
+  cp,
   mkdir,
   readdir,
   readFile as readFileFs,
+  rename as renameFs,
   rm,
   stat,
   writeFile as writeFileFs,
@@ -74,6 +76,21 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
 
   async delete(absPath: string): Promise<void> {
     await rm(absPath, { recursive: true, force: true });
+  }
+
+  async move(fromAbsPath: string, toAbsPath: string): Promise<void> {
+    await mkdir(dirname(toAbsPath), { recursive: true });
+    try {
+      await renameFs(fromAbsPath, toAbsPath);
+      return;
+    } catch (err) {
+      // rename across filesystems (bind mounts, different volumes) falls back to a copy.
+      if ((err as NodeJS.ErrnoException).code !== 'EXDEV') {
+        throw err;
+      }
+    }
+    await cp(fromAbsPath, toAbsPath, { recursive: true, errorOnExist: true, force: false });
+    await rm(fromAbsPath, { recursive: true, force: true });
   }
 
   async stat(absPath: string): Promise<{ size: number; modifiedAt: string } | undefined> {

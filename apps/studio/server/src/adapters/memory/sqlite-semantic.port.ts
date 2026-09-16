@@ -7,9 +7,10 @@ import type {
   SemanticMemoryPort,
   SemanticProjectInput,
   SemanticScope,
+  SemanticUpdateInput,
   SemanticUpsertInput,
 } from 'harnesys';
-import { ValidationError } from '../../domain/studio.error.ts';
+import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { StudioDb } from '../store/sqlite/connection.ts';
 import { mapSqliteError } from '../store/sqlite/errors.ts';
 import { type SemanticMemoryRow, semanticMemoriesTable } from '../store/sqlite/schema';
@@ -104,6 +105,33 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       rows = rows.slice(0, query.limit);
     }
     return Promise.resolve(rows.map(toMemoryRecord));
+  }
+
+  update(scopeId: MemoryScopeId, input: SemanticUpdateInput): Promise<MemoryRecord> {
+    const existing = this.db
+      .select()
+      .from(semanticMemoriesTable)
+      .where(
+        and(
+          eq(semanticMemoriesTable.id, input.id),
+          eq(semanticMemoriesTable.workspaceId, scopeId.workspaceId),
+          eq(semanticMemoriesTable.agentName, scopeId.agentName),
+        ),
+      )
+      .get();
+    if (!existing) {
+      return Promise.reject(new NotFoundError('semantic memory not found'));
+    }
+    const row = this.db
+      .update(semanticMemoriesTable)
+      .set({
+        text: input.text,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(semanticMemoriesTable.id, existing.id))
+      .returning()
+      .get();
+    return Promise.resolve(toMemoryRecord(row));
   }
 
   remove(scopeId: MemoryScopeId, id: string): Promise<void> {

@@ -21,6 +21,10 @@ export const upsertSemanticBody = z
     }
   });
 
+export const updateSemanticBody = z.object({
+  text: z.string().trim().min(1),
+});
+
 export const listSemanticQuery = z.object({
   scope: z.enum(['session', 'long']).optional(),
   limit: z.coerce.number().int().positive().max(500).optional(),

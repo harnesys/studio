@@ -14,7 +14,8 @@ export type SemanticMemoryPorts = { semantic: SemanticMemoryPort };
 export const semanticMemoryCapability = definePack<SemanticMemoryPorts, Record<string, unknown>>({
   name: 'semantic-memory',
   version: '1.0.0',
-  description: 'Curated semantic memory: memory_write / memory_list / memory_delete',
+  description:
+    'Curated semantic memory: memory_write / memory_list / memory_update / memory_delete',
   icon: 'memory-semantic',
   specSchema: {
     type: 'object',
@@ -33,6 +34,7 @@ export const semanticMemoryCapability = definePack<SemanticMemoryPorts, Record<s
         description: 'Write a curated semantic memory fact (session or long)',
       },
       { name: 'memory_list', description: 'List curated semantic memory facts' },
+      { name: 'memory_update', description: 'Update a semantic memory fact text by id' },
       { name: 'memory_delete', description: 'Delete a semantic memory fact by id' },
     ],
     skills: [],

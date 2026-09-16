@@ -4,11 +4,13 @@ import type { DeleteSemanticInput } from '../../../application/memory/delete-sem
 import type { ListPinsInput } from '../../../application/memory/list-pins.use-case.ts';
 import type { ListSemanticInput } from '../../../application/memory/list-semantic.use-case.ts';
 import type { SearchEpisodicInput } from '../../../application/memory/search-episodic.use-case.ts';
+import type { UpdateSemanticInput } from '../../../application/memory/update-semantic.use-case.ts';
 import type { UpsertPinInput } from '../../../application/memory/upsert-pin.use-case.ts';
 import type { UpsertSemanticInput } from '../../../application/memory/upsert-semantic.use-case.ts';
 import {
   listSemanticQuery,
   searchMemoryQuery,
+  updateSemanticBody,
   upsertPinBody,
   upsertSemanticBody,
 } from './memory.body.ts';
@@ -19,6 +21,7 @@ export type MemoryControllerDeps = {
   deletePin: DeletePinInput;
   listSemantic: ListSemanticInput;
   upsertSemantic: UpsertSemanticInput;
+  updateSemantic: UpdateSemanticInput;
   deleteSemantic: DeleteSemanticInput;
   searchEpisodic: SearchEpisodicInput;
 };
@@ -84,6 +87,17 @@ export class MemoryController {
         threadId: body.threadId,
       });
       return c.json(row, 201);
+    });
+
+    app.patch(`${base}/semantic/:id`, async (c) => {
+      const body = updateSemanticBody.parse(await c.req.json());
+      const row = await this.deps.updateSemantic.execute({
+        workspaceId: c.req.param('workspaceId'),
+        agentId: c.req.param('agentId'),
+        id: c.req.param('id'),
+        text: body.text,
+      });
+      return c.json(row);
     });
 
     app.delete(`${base}/semantic/:id`, async (c) => {

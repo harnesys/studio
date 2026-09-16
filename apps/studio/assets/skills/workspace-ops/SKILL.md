@@ -58,7 +58,7 @@ Capability packs:
 | `scheduler` | `schedule_list`, `schedule_peek`, `schedule_set`, `schedule_pause`, `schedule_delete` |
 | `webhook` | `webhook_list`, `webhook_set`, `webhook_delete` |
 | `episodic-memory` | `recall_search` |
-| `semantic-memory` | `memory_write`, `memory_list`, `memory_delete` |
+| `semantic-memory` | `memory_write`, `memory_list`, `memory_update`, `memory_delete` |
 | `knowledge-memory` | `knowledge_search`, `knowledge_read` |
 | `pin-memory` | `pin_set`, `pin_list`, `pin_remove` |
 

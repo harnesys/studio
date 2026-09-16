@@ -26,6 +26,7 @@ import { PutKnowledgeSettingsUseCase } from '../application/memory/put-knowledge
 import { ReindexKnowledgeUseCase } from '../application/memory/reindex-knowledge.use-case.ts';
 import { SearchEpisodicUseCase } from '../application/memory/search-episodic.use-case.ts';
 import { SearchKnowledgeUseCase } from '../application/memory/search-knowledge.use-case.ts';
+import { UpdateSemanticUseCase } from '../application/memory/update-semantic.use-case.ts';
 import { UpsertKnowledgeRootUseCase } from '../application/memory/upsert-knowledge-root.use-case.ts';
 import { UpsertPinUseCase } from '../application/memory/upsert-pin.use-case.ts';
 import { UpsertSemanticUseCase } from '../application/memory/upsert-semantic.use-case.ts';
@@ -118,6 +119,7 @@ export function registerMemoryHttp(
     deletePin: new DeletePinUseCase(memory.pin, deps.workspaces, deps.agents),
     listSemantic: new ListSemanticUseCase(memory.semantic, deps.workspaces, deps.agents),
     upsertSemantic: new UpsertSemanticUseCase(memory.semantic, deps.workspaces, deps.agents),
+    updateSemantic: new UpdateSemanticUseCase(memory.semantic, deps.workspaces, deps.agents),
     deleteSemantic: new DeleteSemanticUseCase(memory.semantic, deps.workspaces, deps.agents),
     searchEpisodic: new SearchEpisodicUseCase(memory.episodic, deps.workspaces),
   }).register(app);

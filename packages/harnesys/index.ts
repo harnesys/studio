@@ -345,6 +345,7 @@ export type {
   SemanticMemoryPort,
   SemanticProjectInput,
   SemanticScope,
+  SemanticUpdateInput,
   SemanticUpsertInput,
 } from './src/ports/memory.ts';
 export type {

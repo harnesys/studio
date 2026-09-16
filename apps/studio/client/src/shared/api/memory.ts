@@ -28,6 +28,10 @@ export type UpsertSemanticBody = {
   threadId?: string;
 };
 
+export type UpdateSemanticBody = {
+  text: string;
+};
+
 export type ListSemanticParams = {
   scope?: SemanticScope;
   limit?: number;
@@ -101,6 +105,18 @@ export function upsertAgentSemantic(
 ) {
   return apiJson<MemoryRecord>(`/api/workspaces/${workspaceId}/agents/${agentId}/semantic`, {
     method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateAgentSemantic(
+  workspaceId: string,
+  agentId: string,
+  id: string,
+  body: UpdateSemanticBody,
+) {
+  return apiJson<MemoryRecord>(`/api/workspaces/${workspaceId}/agents/${agentId}/semantic/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify(body),
   });
 }

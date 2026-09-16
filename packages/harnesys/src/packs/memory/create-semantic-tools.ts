@@ -21,6 +21,11 @@ type MemoryDeleteInput = {
   id: string;
 };
 
+type MemoryUpdateInput = {
+  id: string;
+  text: string;
+};
+
 export function createSemanticTools(params: CreateSemanticToolsParams): ToolDefinition[] {
   const { port, resolveScope } = params;
   return [
@@ -90,6 +95,27 @@ export function createSemanticTools(params: CreateSemanticToolsParams): ToolDefi
         const parsed = input as MemoryDeleteInput;
         await port.remove(resolveScope(), parsed.id);
         return { ok: true, id: parsed.id };
+      },
+    }),
+    tool('memory_update', {
+      group: 'memory',
+      description: 'Update a semantic memory fact text by id',
+      input: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Memory record id' },
+          text: { type: 'string', description: 'Updated fact text' },
+        },
+        required: ['id', 'text'],
+        additionalProperties: false,
+      },
+      sideEffect: 'write',
+      async execute(input) {
+        const parsed = input as MemoryUpdateInput;
+        return await port.update(resolveScope(), {
+          id: parsed.id,
+          text: parsed.text,
+        });
       },
     }),
   ];

@@ -59,9 +59,15 @@ export type SemanticUpsertInput = {
   source: MemoryRecordSource;
 };
 
+export type SemanticUpdateInput = {
+  id: string;
+  text: string;
+};
+
 export type SemanticMemoryPort = {
   list(scopeId: MemoryScopeId, query: SemanticListQuery): Promise<MemoryRecord[]>;
   upsert(scopeId: MemoryScopeId, input: SemanticUpsertInput): Promise<MemoryRecord>;
+  update(scopeId: MemoryScopeId, input: SemanticUpdateInput): Promise<MemoryRecord>;
   remove(scopeId: MemoryScopeId, id: string): Promise<void>;
   projectForWindow?(scopeId: MemoryScopeId, input: SemanticProjectInput): Promise<string>;
 };

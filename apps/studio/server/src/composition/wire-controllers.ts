@@ -313,6 +313,7 @@ export function wireControllers(d: ControllerDeps): void {
       getThread: d.getThread,
       runEvents: d.events,
       runHooks: d.threadRunHooks,
+      lifecycle: d.lifecycle,
     }),
     streamRunEvents: new StreamRunEventsUseCase({
       lifecycle: d.lifecycle,

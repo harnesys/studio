@@ -8,6 +8,7 @@ import type {
   ModelBinding,
   ModelsPort,
   PendingSessionEvent,
+  RunLifecycleStore,
   SessionEvent,
 } from 'harnesys';
 import {
@@ -65,6 +66,7 @@ export type CompactThreadDeps = {
   getThread: GetThreadInput;
   runEvents: CompactJournalPort;
   runHooks: ThreadRunHooks;
+  lifecycle: RunLifecycleStore;
 };
 
 /** Хук-шина рана для PreCompact/PostCompact на ручном проходе (спека §2.3). */
@@ -151,6 +153,8 @@ export class CompactThreadUseCase implements CompactThreadInput {
     const binding = await resolveDefaultBinding(this.deps.models, def);
     const journalRunId = `compact:${crypto.randomUUID()}`;
     const signal = request.signal ?? new AbortController().signal;
+
+    await this.deps.lifecycle.create({ runId: journalRunId, threadId: thread.id });
 
     let message: CompactionMessage | undefined;
     const hooks = await this.deps.runHooks.ensure(thread.id);
@@ -250,6 +254,11 @@ export class CompactThreadUseCase implements CompactThreadInput {
     for (const sessionEvent of compactionAssigned) {
       yield { kind: 'event', event: sessionEvent };
     }
+
+    await this.deps.lifecycle.transition(journalRunId, 0, {
+      from: 'queued',
+      to: 'completed',
+    });
 
     try {
       await createEpisodicOnCompacted({

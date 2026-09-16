@@ -112,10 +112,11 @@ export function createStudioHost(args: {
         .find((row) => row.path === cwd || row.path.replace(/\/$/, '') === cwd.replace(/\/$/, ''));
       const key = workspace?.id ?? cwd;
       const stop = platform.filesWatcher.watch(key, cwd, (event) => {
+        const relPath = event.dir ? `${event.dir}/${event.name}` : event.name;
         if (event.kind === 'delete') {
+          lspAdapter.closePathFromDisk(cwd, relPath);
           return;
         }
-        const relPath = event.dir ? `${event.dir}/${event.name}` : event.name;
         void lspAdapter.syncPathFromDisk(cwd, relPath);
       });
       watcherStops.set(cwd, stop);

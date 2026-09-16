@@ -1,6 +1,7 @@
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 
 import { prefersReducedMotion } from '@/shared/lib/motion';
+import { useScrollAnchor } from '@/shared/lib/scroll-anchor';
 import { cn } from '@/shared/lib/utils';
 
 const PREVIEW = 'max-h-28';
@@ -30,6 +31,9 @@ export function ExpandableScroll({
   const frameRef = useRef(0);
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [canExpand, setCanExpand] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  // More/Less держит верх бокса на месте, ленту к низу не прибивает.
+  useScrollAnchor(boxRef, expanded);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -113,7 +117,7 @@ export function ExpandableScroll({
   };
 
   return (
-    <div className={cn('relative', className)}>
+    <div ref={boxRef} className={cn('relative', className)}>
       <div
         ref={ref}
         onScroll={handleScroll}

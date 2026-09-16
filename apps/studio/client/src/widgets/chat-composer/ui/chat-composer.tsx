@@ -12,6 +12,7 @@ import { useStudioLocation } from '@/shared/config/location';
 import { findModelLabel } from '@/shared/lib/model-label';
 import { Button } from '@/shared/ui/button';
 import { InputGroup, InputGroupAddon } from '@/shared/ui/input-group';
+import { Kbd } from '@/shared/ui/kbd';
 import { addComposerFiles } from '../model/add-composer-files';
 import {
   agentDefaultEffort,
@@ -248,6 +249,24 @@ export function ChatComposer() {
           </div>
         </InputGroupAddon>
       </InputGroup>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 pt-1.5 font-mono text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1">
+          <Kbd>Control</Kbd>+<Kbd>Enter</Kbd>
+          <span>send</span>
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Kbd>/</Kbd>
+          <span>commands</span>
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Kbd>#</Kbd>
+          <span>attachments</span>
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Kbd>@</Kbd>
+          <span>agent mention</span>
+        </span>
+      </div>
     </div>
   );
 

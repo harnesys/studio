@@ -97,6 +97,24 @@ export class LspDocuments {
     }
   }
 
+  /** Watcher push: close the document if open (file moved or deleted on disk). */
+  closeIfOpened(absPath: string): void {
+    const uri = pathToFileURL(absPath).href;
+    if (!this.opened.has(uri)) {
+      return;
+    }
+    this.send({
+      jsonrpc: '2.0',
+      method: 'textDocument/didClose',
+      params: { textDocument: { uri } },
+    });
+    this.opened.delete(uri);
+    this.diagnosticsByUri.delete(uri);
+    this.versions.delete(uri);
+    this.mtimeByUri.delete(uri);
+    this.lastSentText.delete(uri);
+  }
+
   /** Normalize an outgoing didChange from an external client (editor bridge). */
   normalizeOutgoingDidChange(message: Record<string, unknown>): void {
     if (message.method !== 'textDocument/didChange' || !isRecord(message.params)) {

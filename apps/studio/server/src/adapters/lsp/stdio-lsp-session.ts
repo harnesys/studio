@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { realpathSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -6,6 +5,7 @@ import type { LspServerSpec } from 'harnesys';
 import type { LspDiagnostic, LspHover, LspLocation } from 'harnesys/lsp';
 import { LspDocuments } from './lsp-documents.ts';
 import { isRecord, normalizeHover, normalizeLocations, toDiagnostic } from './lsp-messages.ts';
+import { LspStdioTransport } from './lsp-stdio-transport.ts';
 import { lspServerRoot, spawnServer } from './spawn-lsp-server.ts';
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 20_000;
@@ -23,10 +23,9 @@ export class StdioLspSession {
   private readonly pending = new Map<number, Pending>();
   private readonly listeners = new Set<MessageListener>();
   private readonly documents: LspDocuments;
-  private buffer = Buffer.alloc(0);
+  private readonly transport: LspStdioTransport;
   private nextId = 1;
   private initialized = false;
-  private stderr = '';
 
   private constructor(
     proc: ReturnType<typeof Bun.spawn>,
@@ -39,8 +38,7 @@ export class StdioLspSession {
       this.dead = true;
       return code;
     });
-    void this.readStdout();
-    void this.readStderr();
+    this.transport = new LspStdioTransport(proc, (message) => this.handleMessage(message));
   }
 
   /** Resolves when the server process exits (crash or dispose). */
@@ -82,7 +80,7 @@ export class StdioLspSession {
   sendRaw(message: Record<string, unknown>): void {
     this.requireAlive();
     this.documents.normalizeOutgoingDidChange(message);
-    this.write(message);
+    this.transport.write(message);
   }
 
   diagnostics(filePath: string): Promise<LspDiagnostic[]> {
@@ -100,6 +98,16 @@ export class StdioLspSession {
       await this.documents.syncIfOpened(this.resolvePath(absPath));
     } catch {
       // path outside the workspace root, dead server, or not initialized — nothing to sync
+    }
+  }
+
+  /** Watcher push: didClose if this document is open (file moved or deleted on disk). */
+  closePath(absPath: string): void {
+    try {
+      this.requireAlive();
+      this.documents.closeIfOpened(this.resolvePath(absPath));
+    } catch {
+      // path outside the workspace root, dead server, or not initialized — nothing to close
     }
   }
 
@@ -222,7 +230,7 @@ export class StdioLspSession {
     this.nextId += 1;
     return new Promise((resolvePromise, reject) => {
       this.pending.set(id, { resolve: resolvePromise, reject });
-      this.write({ jsonrpc: '2.0', id, method, params });
+      this.transport.write({ jsonrpc: '2.0', id, method, params });
       setTimeout(() => {
         if (this.pending.has(id)) {
           this.pending.delete(id);
@@ -233,74 +241,7 @@ export class StdioLspSession {
   }
 
   private notifyMessage(message: object): void {
-    this.write(message);
-  }
-
-  private write(message: object): void {
-    const body = Buffer.from(JSON.stringify(message), 'utf8');
-    const header = Buffer.from(`Content-Length: ${body.byteLength}\r\n\r\n`, 'utf8');
-    const stdin = this.proc.stdin;
-    if (stdin && typeof stdin !== 'number') {
-      stdin.write(header);
-      stdin.write(body);
-    }
-  }
-
-  private async readStdout(): Promise<void> {
-    const stdout = this.proc.stdout;
-    if (stdout == null || typeof stdout === 'number') {
-      return;
-    }
-    const reader = (stdout as ReadableStream<Uint8Array>).getReader();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        if (value) {
-          this.buffer = Buffer.concat([this.buffer, Buffer.from(value)]);
-          this.consumeBuffer();
-        }
-      }
-    } catch {
-      // stream closed
-    }
-  }
-
-  private async readStderr(): Promise<void> {
-    const stderr = this.proc.stderr;
-    if (stderr == null || typeof stderr === 'number') {
-      return;
-    }
-    try {
-      this.stderr = await new Response(stderr as ReadableStream).text();
-    } catch {
-      // ignore
-    }
-  }
-
-  private consumeBuffer(): void {
-    while (true) {
-      const headerEnd = indexOfHeaderEnd(this.buffer);
-      if (headerEnd < 0) {
-        return;
-      }
-      const header = this.buffer.subarray(0, headerEnd).toString('utf8');
-      const match = /Content-Length:\s*(\d+)/i.exec(header);
-      if (!match) {
-        this.buffer = this.buffer.subarray(headerEnd + 4);
-        continue;
-      }
-      const length = Number(match[1]);
-      const bodyStart = headerEnd + 4;
-      if (this.buffer.byteLength < bodyStart + length) {
-        return;
-      }
-      const body = this.buffer.subarray(bodyStart, bodyStart + length).toString('utf8');
-      this.buffer = this.buffer.subarray(bodyStart + length);
-      this.handleMessage(JSON.parse(body) as Record<string, unknown>);
-    }
+    this.transport.write(message);
   }
 
   private handleMessage(message: Record<string, unknown>): void {
@@ -342,10 +283,4 @@ export class StdioLspSession {
       }
     }
   }
-}
-
-function indexOfHeaderEnd(buffer: Buffer): number {
-  const text = buffer.toString('latin1');
-  const idx = text.indexOf('\r\n\r\n');
-  return idx;
 }

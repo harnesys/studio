@@ -126,6 +126,24 @@ export class StudioLspAdapter implements LspPort {
     }
   }
 
+  /** Watcher-driven push: didClose for a moved/deleted file in every workspace session. */
+  closePathFromDisk(cwd: string, relPath: string): void {
+    const prefix = `${cwd}::`;
+    const absPath = join(cwd, relPath);
+    for (const [key, promise] of this.sessions) {
+      if (!key.startsWith(prefix)) {
+        continue;
+      }
+      void promise
+        .then((session) => {
+          session.closePath(absPath);
+        })
+        .catch(() => {
+          // session failed to start — nothing to close
+        });
+    }
+  }
+
   /** Deduplicated map, resolved once per workspace cwd. */
   private effectiveServers(cwd: string): Promise<WorkspaceServers> {
     const cached = this.serversByCwd.get(cwd);

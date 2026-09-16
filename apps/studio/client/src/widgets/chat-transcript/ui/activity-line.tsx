@@ -1,6 +1,7 @@
 import { ChevronRightIcon, type LucideIcon } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 
+import { useScrollAnchor } from '@/shared/lib/scroll-anchor';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
@@ -44,10 +45,17 @@ export function ActivityLine({
   const [manual, setManual] = useState<boolean | undefined>(undefined);
   const open = manual ?? defaultOpen;
   const collapsible = hasContent && Boolean(children);
+  const headerRef = useRef<HTMLDivElement>(null);
+  // Свернуть/развернуть не должно дёргать ленту: шапка остаётся на том же уровне.
+  // Ключ — только open: появление контента при том же open идёт штатным follow.
+  useScrollAnchor(headerRef, Boolean(open));
 
   return (
     <Collapsible open={collapsible ? open : false} onOpenChange={setManual}>
-      <div className="flex min-h-6 w-full min-w-0 items-center gap-2 text-[13px] leading-none opacity-80">
+      <div
+        ref={headerRef}
+        className="flex min-h-6 w-full min-w-0 items-center gap-2 text-[13px] leading-none opacity-80"
+      >
         <CollapsibleTrigger
           disabled={!collapsible}
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 overflow-hidden text-left transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100 data-[state=open]:opacity-100"

@@ -1,5 +1,5 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import { type RunFailure, useSessionStore } from '@/entities/session';
@@ -7,6 +7,7 @@ import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
 import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
 import { retryRun } from '@/features/send-message';
+import { prefersReducedMotion } from '@/shared/lib/motion';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -14,7 +15,6 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
-  useMessageScroller,
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
 import {
@@ -122,8 +122,7 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
               ) : null}
             </MessageScrollerContent>
           </MessageScrollerViewport>
-          <MessageScrollerButton />
-          <StickOnSend streaming={streaming || compacting} />
+          <MessageScrollerButton behavior={prefersReducedMotion() ? 'auto' : 'smooth'} />
           <ThreadReadSync threadId={threadId} />
         </MessageScroller>
       </MessageScrollerProvider>
@@ -157,35 +156,21 @@ function EmptyThreadReadSync({ threadId }: { threadId: string }) {
 function ThreadReadSync({ threadId }: { threadId: string }) {
   const { end } = useMessageScrollerScrollable();
   const contentEpoch = useSessionStore((state) => state.contentEpoch[threadId] ?? 0);
+  const viewingAtEnd = !end;
 
   useEffect(() => {
-    useThreadStore.getState().setViewingAtEnd(threadId, end);
+    useThreadStore.getState().setViewingAtEnd(threadId, viewingAtEnd);
     // contentEpoch: re-mark when new events arrive while pinned to bottom.
-    if (end && contentEpoch >= 0) {
+    if (viewingAtEnd && contentEpoch >= 0) {
       scheduleMarkThreadRead(threadId);
     }
-  }, [threadId, end, contentEpoch]);
+  }, [threadId, viewingAtEnd, contentEpoch]);
 
   useEffect(() => {
     return () => {
       useThreadStore.getState().setViewingAtEnd(threadId, false);
     };
   }, [threadId]);
-
-  return null;
-}
-
-/** Re-pin to the live edge when a run starts. Manual scroll up still detaches. */
-function StickOnSend({ streaming }: { streaming: boolean }) {
-  const { scrollToEnd } = useMessageScroller();
-  const wasStreaming = useRef(false);
-
-  useLayoutEffect(() => {
-    if (streaming && !wasStreaming.current) {
-      scrollToEnd({ behavior: 'auto' });
-    }
-    wasStreaming.current = streaming;
-  }, [streaming, scrollToEnd]);
 
   return null;
 }

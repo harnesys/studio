@@ -13,7 +13,7 @@ import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import type { MapInfo } from '../model/map-groups';
-import { mapForToolCall } from '../model/map-groups';
+import { mapForToolCall, mapLineHint } from '../model/map-groups';
 import type { ToolEventPair } from '../model/session-event-groups';
 import { toolInput } from '../model/session-event-groups';
 import { toolCaption } from '../model/tool-caption';
@@ -33,6 +33,23 @@ const ICONS = {
   question: MessageCircleQuestionIcon,
 } as const;
 
+function mapBadgesFor(map: MapInfo | undefined): ActivityBadge[] {
+  if (!map) {
+    return [];
+  }
+  if (map.status === 'running') {
+    return [{ text: 'running', tone: 'live' }];
+  }
+  const badges: ActivityBadge[] = [];
+  if (map.ok > 0) {
+    badges.push({ text: `${map.ok} ok` });
+  }
+  if (map.failed > 0) {
+    badges.push({ text: `${map.failed} failed`, tone: 'destructive' });
+  }
+  return badges;
+}
+
 export function ToolLine({
   pair,
   live,
@@ -46,8 +63,7 @@ export function ToolLine({
   threadId?: string;
   maps?: MapInfo[];
 }) {
-  const expandTools = useChatPreferences((state) => state.expandTools);
-  const liveExpand = useChatPreferences((state) => state.liveExpand);
+  const feedDetail = useChatPreferences((state) => state.feedDetail);
   const [inputOpen, setInputOpen] = useState(false);
   const caption = toolCaption(pair.call, pair.result);
   const detail = toolDetail(pair.call, pair.result);
@@ -60,6 +76,8 @@ export function ToolLine({
   // (confirm отработавшего рана) показывается спокойно.
   const map = maps ? mapForToolCall(maps, pair.call.toolCallId) : undefined;
   const mapRunning = map?.status === 'running';
+  const mapHint = map ? mapLineHint(map) : null;
+  const mapBadges = mapBadgesFor(map);
   const active = runLive && (live || awaitingConfirm || mapRunning);
   const failed = pair.result?.phase === 'failed' || map?.status === 'failed';
   const rawInput = toolInput(pair);
@@ -79,7 +97,7 @@ export function ToolLine({
     ...(hasConfirm
       ? [{ text: 'confirm', tone: awaitingConfirm ? ('live' as const) : ('default' as const) }]
       : []),
-    ...(mapRunning ? [{ text: 'running', tone: 'live' as const }] : []),
+    ...mapBadges,
   ];
 
   return (
@@ -87,13 +105,11 @@ export function ToolLine({
       <ActivityLine
         icon={Icon}
         label={caption.title}
-        hint={caption.hint}
+        hint={mapHint ? [caption.hint, mapHint].filter(Boolean).join(' · ') : caption.hint}
         badges={badges}
         active={active}
         failed={failed}
-        defaultOpen={
-          liveExpand === 'collapsed' ? Boolean(map) : live || expandTools || Boolean(map)
-        }
+        defaultOpen={live || feedDetail === 'full' || Boolean(map)}
         hasContent
         tail={
           hasInput ? (

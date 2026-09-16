@@ -1,51 +1,34 @@
-import { cn } from '@/shared/lib/utils';
-import { StatusDot } from '@/shared/ui/status-dot';
+import { BotIcon } from 'lucide-react';
 
-import type { MapInfo, MapItemInfo, MapItemStatus } from '../model/map-groups';
+import type { MapInfo, MapItemInfo } from '../model/map-groups';
 import { useSpawnStream } from '../model/use-spawn-stream';
-
-const DOT_TONE: Record<MapItemStatus, 'live' | 'idle' | 'danger'> = {
-  running: 'live',
-  done: 'idle',
-  failed: 'danger',
-};
-
-const STATUS_LABEL: Record<MapItemStatus, string> = {
-  running: 'running',
-  done: 'done',
-  failed: 'failed',
-};
+import { type ActivityBadge, ActivityLine } from './activity-line';
 
 function MapItemRow({ threadId, item }: { threadId: string; item: MapItemInfo }) {
   useSpawnStream(threadId, item.workerId, item.status === 'running');
+  const badges: ActivityBadge[] =
+    item.status === 'failed' ? [{ text: 'failed', tone: 'destructive' }] : [];
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-0.5 rounded-md border border-border/50 px-2 py-1.5',
-        item.status === 'running' && 'bg-[color-mix(in_oklab,var(--live)_7%,transparent)]',
-        item.status === 'failed' && 'bg-destructive/8',
-      )}
-      data-testid="map-item"
-      data-worker-id={item.workerId}
+    <ActivityLine
+      icon={BotIcon}
+      label={`#${item.index + 1}`}
+      hint={item.preview ?? null}
+      badges={badges}
+      active={item.status === 'running'}
+      failed={item.status === 'failed'}
+      defaultOpen={item.status === 'failed'}
+      hasContent={Boolean(item.message)}
     >
-      <span className="flex min-w-0 items-center gap-2 text-[12px]">
-        <StatusDot tone={DOT_TONE[item.status]} />
-        <span className="shrink-0 font-medium tabular-nums">#{item.index}</span>
-        <span className="text-[11px] text-muted-foreground">{STATUS_LABEL[item.status]}</span>
-      </span>
-      {item.preview ? (
-        <span className="line-clamp-2 whitespace-pre-wrap text-[12px] text-muted-foreground leading-5">
-          {item.preview}
-        </span>
+      {item.message ? (
+        <div className="whitespace-pre-wrap text-[13px] text-destructive/90 leading-5">
+          {item.message}
+        </div>
       ) : null}
-      {item.status === 'failed' && item.message ? (
-        <span className="text-[11px] text-destructive leading-4">{item.message}</span>
-      ) : null}
-    </div>
+    </ActivityLine>
   );
 }
 
-/** Список воркеров control:map внутри карточки Graph Map. */
+/** Список воркеров control:map вложенными строками под родительской строкой map. */
 export function MapItems({ threadId, map }: { threadId: string; map: MapInfo }) {
   if (map.items.length === 0) {
     return (
@@ -56,19 +39,13 @@ export function MapItems({ threadId, map }: { threadId: string; map: MapInfo }) 
       </div>
     );
   }
-  const sorted = [...map.items].sort((a, b) => a.index - b.index);
   return (
     <div className="flex flex-col gap-1" data-testid="map-items">
-      <div className="text-[11px] text-muted-foreground">
-        {map.concurrency === 'sequential' ? 'Sequential' : 'Parallel'} · {sorted.length}/
-        {map.count || sorted.length}
-        {map.status !== 'running'
-          ? ` · ${map.ok} ok${map.failed > 0 ? ` · ${map.failed} failed` : ''}`
-          : ''}
-      </div>
-      {sorted.map((item) => (
-        <MapItemRow key={item.workerId} threadId={threadId} item={item} />
-      ))}
+      {[...map.items]
+        .sort((a, b) => a.index - b.index)
+        .map((item) => (
+          <MapItemRow key={item.workerId} threadId={threadId} item={item} />
+        ))}
     </div>
   );
 }

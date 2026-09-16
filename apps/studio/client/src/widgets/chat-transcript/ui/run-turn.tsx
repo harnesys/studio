@@ -21,6 +21,30 @@ function sameEventList(a: SessionEvent[], b: SessionEvent[]): boolean {
   return a[0] === b[0] && a[a.length - 1] === b[b.length - 1];
 }
 
+type DeltaEvent = SessionEvent & { type: 'text-delta' | 'reasoning-delta' };
+
+const isDelta = (ev: SessionEvent): ev is DeltaEvent =>
+  ev.type === 'text-delta' || ev.type === 'reasoning-delta';
+
+/** Live-хвост меняется в store на каждый токен; рисуется через useLiveTail, props тупеют. */
+function sameEventsIgnoringLiveTail(a: SessionEvent[], b: SessionEvent[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length || a.length === 0) {
+    return false;
+  }
+  if (a[0] !== b[0]) {
+    return false;
+  }
+  const ta = a[a.length - 1];
+  const tb = b[b.length - 1];
+  if (isDelta(ta) && isDelta(tb) && ta.id === tb.id) {
+    return true;
+  }
+  return ta === tb;
+}
+
 /** extractSpawns пересобирает массив на каждое событие — сравниваем по полям. */
 function sameSpawns(a: SpawnInfo[] | undefined, b: SpawnInfo[] | undefined): boolean {
   if (a === b) {
@@ -188,7 +212,7 @@ export const RunTurn = memo(
         prev.branchChildren === next.branchChildren &&
         sameSpawns(prev.spawns, next.spawns) &&
         sameMaps(prev.maps, next.maps) &&
-        sameEventList(prev.events, next.events)
+        sameEventsIgnoringLiveTail(prev.events, next.events)
       );
     }
     return (

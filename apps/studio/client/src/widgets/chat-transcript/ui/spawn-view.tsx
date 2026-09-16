@@ -33,7 +33,7 @@ const TASK_COLLAPSE_AT = 500;
  * Read-only IDE tab for one spawn of a thread. Events come from the parent
  * thread's journal: extractSpawns separates them from the parent feed, and
  * any runId in the spawn-id set (the spawn itself and nested spawns) is
- * rendered here — nested spawns show as SpawnCards and open their own
+ * rendered here — nested spawns show as SpawnLines and open their own
  * spawn tabs. No composer, no HitlPrompt, no MessageActions, no retry.
  */
 export function SpawnView({

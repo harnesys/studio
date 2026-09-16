@@ -1,4 +1,3 @@
-export { type ComfortScrollOptions, useComfortFollow } from './model/comfort-scroll';
 export {
   extractMaps,
   type MapInfo,
@@ -23,7 +22,6 @@ export { ChatSkeleton } from './ui/chat-skeleton';
 export { ChatTranscript } from './ui/chat-transcript';
 export { CompactionPendingCard } from './ui/compaction-card';
 export { FeedNotice, type FeedNoticeTone } from './ui/feed-notice';
-export { HandoffCard } from './ui/handoff-card';
 export { RunTurn } from './ui/run-turn';
 export { SpawnView } from './ui/spawn-view';
 export { ThreadEmpty } from './ui/thread-empty';

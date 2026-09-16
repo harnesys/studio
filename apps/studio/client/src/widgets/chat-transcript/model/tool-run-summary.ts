@@ -6,6 +6,7 @@ import {
   groupToolPairs,
   type ToolEventPair,
 } from './session-event-groups';
+import type { SpawnInfo } from './spawn-groups';
 import { toolCaption } from './tool-caption';
 
 export type ToolRunSummary = {
@@ -39,7 +40,8 @@ export type ActivityChunk =
   | { type: 'ask'; event: SessionEvent & { type: 'ask' } }
   | { type: 'tools'; pairs: ToolEventPair[] }
   | { type: 'source'; event: SessionEvent & { type: 'source' } }
-  | { type: 'file'; event: SessionEvent & { type: 'file' } };
+  | { type: 'file'; event: SessionEvent & { type: 'file' } }
+  | { type: 'spawn'; event: SessionEvent & { type: 'agent.spawned' } };
 
 export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
   const chunks: ActivityChunk[] = [];
@@ -109,6 +111,12 @@ export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
       chunks.push({ type: 'file', event: ev as SessionEvent & { type: 'file' } });
       continue;
     }
+    if (ev.type === 'agent.spawned') {
+      flushTools();
+      flushReasoning();
+      chunks.push({ type: 'spawn', event: ev as SessionEvent & { type: 'agent.spawned' } });
+      continue;
+    }
     if (ev.type === 'tool') {
       flushReasoning();
       toolEvents.push(ev);
@@ -119,8 +127,8 @@ export function chunkEvents(events: SessionEvent[]): ActivityChunk[] {
   return chunks;
 }
 
-/** Группа активности: подряд идущие reasoning/tools-чанки, сворачивается целиком. */
-export type GroupActivityChunk = Extract<ActivityChunk, { type: 'reasoning' | 'tools' }>;
+/** Группа активности: подряд идущие reasoning/tools/spawn-чанки, сворачивается целиком. */
+export type GroupActivityChunk = Extract<ActivityChunk, { type: 'reasoning' | 'tools' | 'spawn' }>;
 
 export type ActivityGroup = {
   type: 'group';
@@ -129,7 +137,7 @@ export type ActivityGroup = {
 
 export type ActivityItem = { type: 'chunk'; chunk: StandaloneActivityChunk } | ActivityGroup;
 
-/** Чанки вне групп: группируются только reasoning и tools. */
+/** Чанки вне групп: группируются только reasoning, tools и spawn. */
 export type StandaloneActivityChunk = Extract<
   ActivityChunk,
   { type: 'text' | 'ask' | 'source' | 'file' }
@@ -147,7 +155,7 @@ export function groupActivityChunks(chunks: ActivityChunk[]): ActivityItem[] {
   };
 
   for (const chunk of chunks) {
-    if (chunk.type === 'reasoning' || chunk.type === 'tools') {
+    if (chunk.type === 'reasoning' || chunk.type === 'tools' || chunk.type === 'spawn') {
       group.push(chunk);
       continue;
     }
@@ -166,4 +174,33 @@ export function groupPairs(chunks: GroupActivityChunk[]): ToolEventPair[] {
     }
   }
   return pairs;
+}
+
+export type ActivitySummary = { label: string; parts: string[]; failed: number };
+
+export function summarizeActivity(
+  chunks: GroupActivityChunk[],
+  spawnsById: Map<string, SpawnInfo>,
+): ActivitySummary {
+  const pairs = groupPairs(chunks);
+  const spawnChunks = chunks.filter((chunk) => chunk.type === 'spawn');
+  const agentsFailed = spawnChunks.filter(
+    (chunk) => spawnsById.get(chunk.event.spawnId)?.status === 'failed',
+  ).length;
+  const summary = summarizeToolRun(pairs);
+  const labels: string[] = [];
+  if (summary.total > 0) {
+    labels.push(`${summary.total} ${summary.total === 1 ? 'tool' : 'tools'}`);
+  }
+  if (spawnChunks.length > 0) {
+    labels.push(`${spawnChunks.length} ${spawnChunks.length === 1 ? 'agent' : 'agents'}`);
+  }
+  if (labels.length === 0) {
+    labels.push('activity');
+  }
+  return {
+    label: labels.join(' · '),
+    parts: summary.parts,
+    failed: summary.failed + agentsFailed,
+  };
 }

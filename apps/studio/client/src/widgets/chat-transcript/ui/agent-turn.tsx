@@ -29,10 +29,9 @@ import { ActivityRail } from './activity-rail';
 import { type BranchChild, BranchPointBadge } from './branch-point-badge';
 import { CompactionMessageCard } from './compaction-card';
 import { FeedNotice } from './feed-notice';
-import { HandoffCard } from './handoff-card';
+import { HandoffLine } from './handoff-line';
 import { MessageActions } from './message-actions';
 import { ModeTagBadges } from './mode-tag-badge';
-import { SpawnCard } from './spawn-card';
 import { ThinkingLine } from './thinking-line';
 
 export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
@@ -251,6 +250,8 @@ function TurnSegmentView({
         runId={runId}
         threadId={threadId}
         maps={maps}
+        spawns={spawns}
+        onOpenSpawn={onOpenSpawn}
       />
     );
   }
@@ -258,20 +259,10 @@ function TurnSegmentView({
     return <CompactionMessageCard text={segment.text} meta={segment.meta} />;
   }
   if (segment.type === 'handoff') {
-    return <HandoffCard agentId={segment.agentId} />;
-  }
-  if (segment.type === 'spawn') {
-    const spawn = spawns?.find((item) => item.spawnId === segment.spawnId);
-    if (!spawn) {
-      return null;
-    }
     return (
-      <SpawnCard
-        threadId={threadId ?? ''}
-        spawnId={segment.spawnId}
-        spawn={spawn}
-        onOpen={onOpenSpawn}
-      />
+      <ActivityRail>
+        <HandoffLine agentId={segment.agentId} />
+      </ActivityRail>
     );
   }
 
@@ -294,7 +285,7 @@ function LiveMarkdown({
     live && tail.kind === 'text' && tail.text && (blockId === undefined || tail.id === blockId)
       ? tail.text
       : text;
-  return <Markdown text={display} />;
+  return <Markdown text={display} streaming={live} />;
 }
 
 function isScheduleWakeEvent(event: SessionEvent & { type: 'user' }): boolean {

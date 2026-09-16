@@ -124,6 +124,29 @@
   );
 }
 
+/* Живой край markdown: блок-caret на последнем элементе, CSS-only. */
+@keyframes stream-caret-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.markdown[data-streaming="true"] > :last-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 1em;
+  margin-inline-start: 2px;
+  vertical-align: -0.12em;
+  background: var(--live);
+  animation: stream-caret-blink 1s steps(1) infinite;
+}
+
 @keyframes tab-enter {
   0% {
     max-width: 0;
@@ -149,6 +172,10 @@
   .thinking-shimmer,
   .thinking-icon-pulse,
   .animate-tab-enter {
+    animation: none;
+  }
+
+  .markdown[data-streaming="true"] > :last-child::after {
     animation: none;
   }
 

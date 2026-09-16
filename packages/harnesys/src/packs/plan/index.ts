@@ -28,10 +28,10 @@ function activePlanText(
 ): string {
   return `<active-plan>
 Plan overview: "${escapeXml(plan.overview)}"
-Tasks (use exact id from this list for plan_item_update):
+Tasks (use id, unique id prefix, or order from this list for plan_item_update):
 ${planItemsBlock(plan.items)}
 Next task: id:${nextItem.id} "${escapeXml(nextItem.title)}" — ${escapeXml(nextItem.description)}
-For each task: call plan_item_update with the exact id to mark in_progress, implement, verify, then mark completed (or failed) with resultNote. Do not invent ids — use id from the list above; if unsure call plan_get.
+For each task: call plan_item_update with the id, unique id prefix, or order to mark in_progress, implement, verify, then mark completed (or failed) with resultNote. Do not invent ids — use one from the list above; if unsure call plan_get.
 </active-plan>`;
 }
 

@@ -49,7 +49,7 @@ export class UpdatePlanItemUseCase implements UpdatePlanItemInput {
 
       const item = plans.updateItemStatus({
         planId: request.planId,
-        itemId: request.itemId,
+        itemId: request.itemId.trim(),
         status: request.status,
         resultNote: request.resultNote,
       });

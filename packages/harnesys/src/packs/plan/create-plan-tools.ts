@@ -1,7 +1,8 @@
+import { MIN_PREFIX_LEN } from '../../constants.ts';
 import type { JsonSchema } from '../../domain/json-schema.ts';
 import type { CapabilityScope } from '../../domain/pack.ts';
 import type { PlanItemStatus, SubagentRole } from '../../domain/plan.ts';
-import type { PlanPort } from '../../ports/plan.ts';
+import type { PlanItem, PlanPort } from '../../ports/plan.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
 
 export type CreatePlanToolsParams = {
@@ -61,6 +62,43 @@ async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }>
   }
 }
 
+function validPlanIds(items: PlanItem[]): string {
+  return items.map((i) => `${i.order}:${i.id} "${i.title}"`).join(', ');
+}
+
+/** Exact id → order number → unique id prefix (length ≥ 8), same order as agents. */
+function resolvePlanItemId(items: PlanItem[], query: string): { id: string } | { error: string } {
+  if (!query) {
+    return {
+      error: `Plan item id is required. Valid ids: ${validPlanIds(items)}. Use id, unique id prefix, or order from plan_get.`,
+    };
+  }
+  const exact = items.find((i) => i.id === query);
+  if (exact) {
+    return { id: exact.id };
+  }
+  if (/^\d+$/.test(query)) {
+    const byOrder = items.find((i) => i.order === Number(query));
+    if (byOrder) {
+      return { id: byOrder.id };
+    }
+  }
+  if (query.length >= MIN_PREFIX_LEN) {
+    const prefixed = items.filter((i) => i.id.startsWith(query));
+    if (prefixed.length === 1 && prefixed[0]) {
+      return { id: prefixed[0].id };
+    }
+    if (prefixed.length > 1) {
+      return {
+        error: `Ambiguous plan item "${query}": matches ${validPlanIds(prefixed)}. Use the full id or order.`,
+      };
+    }
+  }
+  return {
+    error: `Plan item "${query}" not found. Valid ids: ${validPlanIds(items)}. Use id, unique id prefix, or order from plan_get.`,
+  };
+}
+
 export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
   return [
     tool('plan_save', {
@@ -81,6 +119,11 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
             planId: plan.id,
             totalItems: plan.items.length,
             status: plan.status,
+            items: plan.items.map((item) => ({
+              id: item.id,
+              order: item.order,
+              title: item.title,
+            })),
             message: `Plan with ${plan.items.length} tasks saved to database and rendered in Inspector.`,
           };
         }),
@@ -88,13 +131,13 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
     tool('plan_item_update', {
       group: 'plan',
       description:
-        'Update status of a specific task item in the thread plan. Use exact id from plan_get output. Always update status as you progress!',
+        'Update status of a specific task item in the thread plan. Accepts the id, a unique id prefix (8+ chars), or the order number from plan_get output. Always update status as you progress!',
       input: {
         type: 'object',
         properties: {
           itemId: {
             type: 'string',
-            description: 'Exact ID of the plan item from plan_get (UUID).',
+            description: 'Plan item id, unique id prefix, or order number from plan_get.',
           },
           status: {
             type: 'string',
@@ -120,21 +163,21 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
           if (!currentPlan) {
             return { error: 'No active plan found for this thread. Call plan_get to verify.' };
           }
-          if (!currentPlan.items.some((i) => i.id === input.itemId)) {
-            return {
-              error: `Plan item "${input.itemId}" not found. Valid ids: ${currentPlan.items.map((i) => `${i.order}:${i.id} "${i.title}"`).join(', ')}. Use exact id from plan_get.`,
-            };
+          const query = typeof input.itemId === 'string' ? input.itemId.trim() : '';
+          const resolved = resolvePlanItemId(currentPlan.items, query);
+          if ('error' in resolved) {
+            return { error: resolved.error };
           }
           const result = await deps.plan.updateItem(scope, {
             planId: currentPlan.id,
-            itemId: input.itemId,
+            itemId: resolved.id,
             status: input.status,
             resultNote: input.resultNote,
           });
-          const item = result.items.find((i) => i.id === input.itemId);
+          const item = result.items.find((i) => i.id === resolved.id);
           return {
             ok: true,
-            itemId: item?.id ?? input.itemId,
+            itemId: item?.id ?? resolved.id,
             status: item?.status ?? input.status,
             planStatus: result.status,
           };

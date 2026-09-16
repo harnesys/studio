@@ -52,6 +52,6 @@ export function budgetNote(left: BudgetLeft, closing = false): LlmNote {
   }
   return {
     tag: 'budget',
-    text: `${parts.join(' · ')}. Wrap up the task within the remaining budget.`,
+    text: `${parts.join(' · ')} (per run; resets on new user message). Wrap up the task within the remaining budget.`,
   };
 }

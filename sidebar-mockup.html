@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WorkspaceSidebar — мокап 1:1</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif; margin: 0; background: #e8e8e8; color: #1c1c1c; font-size: 14px; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  .stage { display: flex; gap: 20px; align-items: flex-start; }
+  /* --- sidebar frame --- */
+  .sidebar { width: 272px; height: calc(100vh - 40px); position: sticky; top: 20px; background: #f5f5f4; border: 1px solid #d4d4d4; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+  .sb-header { padding: 8px; position: relative; }
+  .ws-row { display: flex; align-items: center; gap: 4px; }
+  .ws-tab { width: 32px; height: 32px; border-radius: 7px; border: 1px solid transparent; background: none; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .ws-tab:hover { background: #e9e9e7; }
+  .ws-tab.active { background: #e9e9e7; border-color: #c9c9c7; }
+  .ws-avatar { width: 24px; height: 24px; border-radius: 6px; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ws-menu-btn { margin-left: auto; width: 32px; height: 32px; border-radius: 7px; border: 0; background: none; color: #737373; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .ws-menu-btn:hover { background: #e9e9e7; }
+  .ws-menu { position: absolute; top: 44px; right: 8px; z-index: 10; min-width: 176px; background: #fff; border: 1px solid #d4d4d4; border-radius: 7px; font-size: 13px; display: none; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+  .ws-menu.open { display: block; }
+  .ws-menu .lbl { font-size: 11px; color: #737373; padding: 7px 10px 3px; }
+  .ws-menu .it { padding: 6px 10px; cursor: pointer; }
+  .ws-menu .it:hover { background: #f0f0ee; }
+  .ws-menu .sep { border-top: 1px solid #e5e5e5; margin: 4px 0; }
+  .sb-content { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 4px; }
+  /* --- accordion section --- */
+  .sec-head { display: flex; align-items: center; gap: 2px; height: 28px; border-radius: 6px; padding: 0 4px; color: rgba(28,28,28,.7); }
+  .sec-head:hover { background: #e9e9e7; }
+  .sec-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; background: none; border: 0; font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; padding: 0 4px; height: 28px; text-align: left; }
+  .sec-toggle .ico { width: 14px; text-align: center; font-weight: 400; }
+  .sec-toggle .ttl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sec-count { font-weight: 400; font-size: 12px; color: rgba(115,115,115,.9); }
+  .sec-actions { opacity: 0; font-size: 14px; color: #737373; background: none; border: 0; cursor: pointer; padding: 2px 6px; }
+  .sec-head:hover .sec-actions { opacity: 1; }
+  .sec-body { min-height: 0; }
+  .sec-body.hide { display: none; }
+  .resizer { height: 5px; cursor: row-resize; position: relative; }
+  .resizer::after { content: ""; position: absolute; left: 20px; right: 20px; top: 2px; border-top: 1px solid #d4d4d4; }
+  /* --- workspace groups --- */
+  .ws-group { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #737373; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px 2px; }
+  .ws-group .cnt { margin-left: auto; font-size: 11px; }
+  .ws-group-block.hide { display: none; }
+  /* --- rows --- */
+  .row { position: relative; display: flex; align-items: flex-start; border-radius: 6px; }
+  .row:hover { background: rgba(233,233,231,.7); }
+  .row.sel { background: #e2e2e0; }
+  .row button.main { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 8px; background: none; border: 0; font: inherit; text-align: left; padding: 8px; cursor: pointer; }
+  .avatar { width: 20px; height: 20px; border-radius: 50%; font-size: 9px; color: #fff; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
+  .avatar .unread { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: #16a34a; border: 2px solid #f5f5f4; }
+  .row .txt { min-width: 0; flex: 1; }
+  .row .l1 { font-size: 14px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; gap: 4px; align-items: center; }
+  .row .l2 { margin-top: 2px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .row .sub { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: #737373; line-height: 1.2; }
+  .row .sub.mono { font-family: ui-monospace, monospace; }
+  .row .st { flex-shrink: 0; font-family: ui-monospace, monospace; font-size: 8px; }
+  .st.run { color: #16a34a; } .st.wait { color: rgba(22,163,74,.7); } .st.idle { color: #737373; } .st.err { color: #dc2626; }
+  .row .more { position: absolute; top: 4px; right: 4px; opacity: 0; background: none; border: 0; color: rgba(28,28,28,.5); cursor: pointer; font-size: 13px; padding: 0 4px; }
+  .row:hover .more { opacity: 1; }
+  .kind-ico { width: 20px; text-align: center; color: #737373; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+  .threads { margin-left: 14px; border-left: 1px solid #e0e0de; padding-left: 2px; display: flex; flex-direction: column; gap: 2px; }
+  .file { padding-left: calc(8px + var(--d, 0) * 14px); }
+  .g-M { color: #b45309; } .g-A { color: #16a34a; } .g-D { color: #dc2626; } .g-Q { color: #737373; }
+  .git-letter { width: 12px; text-align: center; font-family: ui-monospace, monospace; font-size: 10px; flex-shrink: 0; }
+  .git-path { font-family: ui-monospace, monospace; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .branch-pill { background: #e9e9e7; border-radius: 3px; padding: 0 4px; font-family: ui-monospace, monospace; font-size: 10px; color: #737373; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .dirty-pill { font-size: 10px; color: #b45309; font-weight: 400; }
+  .ahead { font-size: 10px; color: #737373; font-weight: 400; }
+  .empty { padding: 8px; font-size: 12px; color: #737373; }
+  /* --- footer --- */
+  .sb-footer { border-top: 1px solid #e0e0de; padding: 6px 8px; display: flex; align-items: center; gap: 4px; }
+  .sb-footer .set { flex: 1; display: flex; align-items: center; gap: 8px; background: none; border: 0; font: inherit; font-size: 13px; border-radius: 6px; padding: 6px 8px; cursor: pointer; text-align: left; }
+  .sb-footer .set:hover { background: #e9e9e7; }
+  .sb-footer .cfg { background: none; border: 0; color: #737373; cursor: pointer; font-size: 15px; padding: 4px 8px; border-radius: 6px; }
+  .cfg-menu { position: absolute; bottom: 48px; right: 28px; background: #fff; border: 1px solid #d4d4d4; border-radius: 7px; font-size: 13px; min-width: 176px; display: none; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+  .cfg-menu.open { display: block; }
+  /* --- notes rail --- */
+  .notes { flex: 1; background: #fff; border: 1px solid #d4d4d4; border-radius: 10px; padding: 14px 16px; font-size: 13px; }
+  .notes h2 { font-size: 13px; margin: 0 0 8px; }
+  .notes table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  .notes th, .notes td { border: 1px solid #e0e0de; padding: 5px 8px; text-align: left; vertical-align: top; }
+  .notes th { background: #f5f5f4; }
+  .notes code { font-size: 11px; background: #f0f0ee; padding: 0 4px; border-radius: 3px; }
+  /* --- new workspace form --- */
+  .nw-pair { border: 1px dashed #b9b9b7; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fafaf9; }
+  .nw-pair.hide { display: none; }
+  .nw-pair-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+  .nw-status { font-size: 12px; color: #737373; align-self: center; }
+  .nw-field { display: block; font-size: 12px; color: #555; margin-bottom: 10px; }
+  .nw-field > span:first-child { display: block; margin-bottom: 4px; }
+  .nw-field input, .nw-field select { width: 100%; font: inherit; font-size: 13px; padding: 7px 9px; border: 1px solid #d4d4d4; border-radius: 6px; background: #fff; color: #1c1c1c; }
+  .nw-pathrow { display: flex; gap: 6px; }
+  .nw-pathrow input { flex: 1; }
+  .nw-pathrow button, .btnrow button { font-size: 13px; border-radius: 6px; border: 1px solid #d4d4d4; background: #fff; padding: 7px 14px; cursor: pointer; }
+  .btnrow { display: flex; gap: 8px; margin-top: 4px; }
+  .btnrow button.accent, .nw-pathrow button { background: #1c1c1c; border-color: #1c1c1c; color: #fff; }
+  .nw-hint { font-size: 12px; color: #737373; background: #f5f5f4; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="stage">
+    <div class="sidebar" id="sidebar">
+      <!-- HEADER: workspace tabs, max 4 + menu. Клик с shift/control = мультиселект -->
+      <div class="sb-header">
+        <div class="ws-row">
+          <button class="ws-tab active" data-ws="h" title="Harnesys · ~/Projects/Harnesys"><span class="ws-avatar" style="background:#3f6212">H</span></button>
+          <button class="ws-tab active" data-ws="s" title="Site · ~/Projects/site"><span class="ws-avatar" style="background:#1d4ed8">S</span></button>
+          <button class="ws-tab" data-ws="c" title="Client inbox · ~/work/client"><span class="ws-avatar" style="background:#7c3aed">C</span></button>
+          <button class="ws-tab" data-ws="d" title="Docs · ~/work/docs"><span class="ws-avatar" style="background:#b45309">D</span></button>
+          <button class="ws-menu-btn" title="Workspaces" onclick="document.getElementById('wsmenu').classList.toggle('open')">⋯</button>
+        </div>
+        <div class="ws-menu" id="wsmenu">
+          <div class="it">＋ New workspace</div>
+          <div class="sep"></div>
+          <div class="lbl">More workspaces</div>
+          <div class="it">Experiments</div>
+          <div class="it">Archive</div>
+        </div>
+      </div>
+      <!-- CONTENT -->
+      <div class="sb-content">
+        <!-- INBOX (expanded, above Agents) -->
+        <div class="sec-head"><button class="sec-toggle" onclick="toggleSec('inbox')"><span class="ico">▾</span><span>◉</span><span class="ttl">Inbox</span><span class="sec-count" id="count-inbox">2</span></button><button class="sec-actions" title="Inbox actions">⋯</button></div>
+        <div class="sec-body" id="sec-inbox">
+          <div class="ws-group-block" data-ws="h" data-count="1">
+            <div class="ws-group">Harnesys<span class="cnt">1</span></div>
+            <div class="row"><button class="main"><span class="kind-ico" style="color:#b45309">◉</span><span class="txt"><span class="l1">push origin main · +212/−38</span><span class="l2"><span class="sub mono">Ночной проход · Tue 02:15</span><span class="st wait">waiting</span></span></span></button><button class="more">⋯</button></div>
+          </div>
+          <div class="ws-group-block" data-ws="s" data-count="1">
+            <div class="ws-group">Site<span class="cnt">1</span></div>
+            <div class="row"><button class="main"><span class="kind-ico" style="color:#b45309">◉</span><span class="txt"><span class="l1">ответ клиенту · черновик</span><span class="l2"><span class="sub mono">Входящие клиента · Tue 09:02</span><span class="st wait">waiting</span></span></span></button><button class="more">⋯</button></div>
+          </div>
+        </div>
+        <div class="resizer"></div>
+        <!-- AGENTS (expanded) -->
+        <div class="sec-head"><button class="sec-toggle" onclick="toggleSec('agents')"><span class="ico">▾</span><span>◈</span><span class="ttl">Agents</span><span class="sec-count" id="count-agents">3</span></button><button class="sec-actions" title="Agent actions">⋯</button></div>
+        <div class="sec-body" id="sec-agents">
+          <div class="ws-group-block" data-ws="h" data-count="2">
+            <div class="ws-group">Harnesys<span class="cnt">2</span></div>
+            <div class="row sel"><button class="main"><span class="avatar" style="background:#4d7c0f">НП<span class="unread"></span></span><span class="txt"><span class="l1">Ночной проход</span><span class="l2"><span class="sub">Проход по репо, дайджест утром</span><span class="st run">running</span></span></span></button><button class="more">⋯</button></div>
+            <div class="threads">
+              <div class="row"><button class="main"><span class="kind-ico">◫</span><span class="txt"><span class="l1">📌 digest 16 сен</span><span class="l2"><span class="sub mono">Tue 02:14</span><span class="st run">running</span></span></span></button><button class="more">⋯</button></div>
+              <div class="row sel"><button class="main"><span class="kind-ico">◫</span><span class="txt"><span class="l1">⎇ retry loop fix</span><span class="l2"><span class="sub mono">Mon 23:41</span><span class="st wait">waiting</span></span></span></button><button class="more">⋯</button></div>
+            </div>
+            <div class="row"><button class="main"><span class="avatar" style="background:#6b7280">С</span><span class="txt"><span class="l1">Сборщик</span><span class="l2"><span class="sub">Таблица по крону</span><span class="st idle">idle</span></span></span></button><button class="more">⋯</button></div>
+          </div>
+          <div class="ws-group-block" data-ws="s" data-count="1">
+            <div class="ws-group">Site<span class="cnt">1</span></div>
+            <div class="row"><button class="main"><span class="avatar" style="background:#1d4ed8">ВК<span class="unread"></span></span><span class="txt"><span class="l1">Входящие клиента</span><span class="l2"><span class="sub">Разбор файлов, черновик ответа</span><span class="st wait">waiting</span></span></span></button><button class="more">⋯</button></div>
+          </div>
+        </div>
+        <div class="resizer"></div>
+        <!-- EXPLORER (collapsed by default). Корни верхнего уровня = workspace -->
+        <div class="sec-head"><button class="sec-toggle" onclick="toggleSec('explorer')"><span class="ico" id="arr-explorer">▸</span><span>▤</span><span class="ttl">Explorer</span></button><button class="sec-actions" title="Explorer actions">⋯</button></div>
+        <div class="sec-body hide" id="sec-explorer">
+          <div class="ws-group-block" data-ws="h" data-count="0">
+            <div class="row"><button class="main file" style="--d:0"><span class="kind-ico">▾</span><span class="txt"><span class="l1">Harnesys</span></span></button></div>
+            <div class="row"><button class="main file" style="--d:1"><span class="kind-ico">▾</span><span class="txt"><span class="l1">src</span></span></button></div>
+            <div class="row sel"><button class="main file" style="--d:2"><span class="kind-ico">≋</span><span class="txt"><span class="l1">run-engine.ts <span class="git-letter g-M">M</span></span></span></button><button class="more">⋯</button></div>
+            <div class="row"><button class="main file" style="--d:1"><span class="kind-ico">▸</span><span class="txt"><span class="l1">docs</span></span></button></div>
+          </div>
+          <div class="ws-group-block" data-ws="s" data-count="0">
+            <div class="row"><button class="main file" style="--d:0"><span class="kind-ico">▾</span><span class="txt"><span class="l1">Site</span></span></button></div>
+            <div class="row"><button class="main file" style="--d:1"><span class="kind-ico">≋</span><span class="txt"><span class="l1">index.html <span class="git-letter g-M">M</span></span></span></button><button class="more">⋯</button></div>
+            <div class="row"><button class="main file" style="--d:1"><span class="kind-ico">≋</span><span class="txt"><span class="l1">deploy.md <span class="git-letter g-A">A</span></span></span></button><button class="more">⋯</button></div>
+          </div>
+        </div>
+        <!-- AUTOMATIONS (collapsed by default) -->
+        <div class="sec-head"><button class="sec-toggle" onclick="toggleSec('automations')"><span class="ico" id="arr-automations">▸</span><span>⚡</span><span class="ttl">Automations</span><span class="sec-count" id="count-automations">3</span></button><button class="sec-actions" title="Automations actions">⋯</button></div>
+        <div class="sec-body hide" id="sec-automations">
+          <div class="ws-group-block" data-ws="h" data-count="2">
+            <div class="ws-group">Harnesys<span class="cnt">2</span></div>
+            <div class="row"><button class="main"><span class="kind-ico">◷</span><span class="txt"><span class="l1">Night digest</span><span class="l2"><span class="sub mono">0 2 * * *</span><span class="st run">active</span></span></span></button><button class="more">⋯</button></div>
+            <div class="row"><button class="main"><span class="kind-ico">⌁</span><span class="txt"><span class="l1">GitHub push</span><span class="l2"><span class="sub">Webhook</span><span class="st idle">on</span></span></span></button><button class="more">⋯</button></div>
+          </div>
+          <div class="ws-group-block" data-ws="s" data-count="1">
+            <div class="ws-group">Site<span class="cnt">1</span></div>
+            <div class="row"><button class="main"><span class="kind-ico">◷</span><span class="txt"><span class="l1">Client watch</span><span class="l2"><span class="sub mono">*/30 * * * *</span><span class="st wait">waiting</span></span></span></button><button class="more">⋯</button></div>
+          </div>
+        </div>
+        <!-- GIT (collapsed by default). Группа = workspace с веткой и счётом -->
+        <div class="sec-head"><button class="sec-toggle" onclick="toggleSec('git')"><span class="ico" id="arr-git">▸</span><span>⎇</span><span class="ttl">Git</span><span class="sec-count" id="count-git">• 4 ↑1 ↓0</span></button><button class="sec-actions" title="Git actions">⋯</button></div>
+        <div class="sec-body hide" id="sec-git">
+          <div class="ws-group-block" data-ws="h" data-count="0">
+            <div class="ws-group">Harnesys <span class="branch-pill">main</span> <span class="dirty-pill">• 3</span> <span class="ahead">↑1 ↓0</span></div>
+            <div class="row"><button class="main"><span class="git-letter g-M">M</span><span class="git-path">packages/harnesys/src/application/run-engine.ts</span></button></div>
+            <div class="row"><button class="main"><span class="git-letter g-M">M</span><span class="git-path">apps/studio/server/src/composition/studio.ts</span></button></div>
+            <div class="row"><button class="main"><span class="git-letter g-A">A</span><span class="git-path">docs/superpowers/specs/2026-09-16-packaging-federation-design.md</span></button></div>
+          </div>
+          <div class="ws-group-block" data-ws="s" data-count="0">
+            <div class="ws-group">Site <span class="branch-pill">staging</span> <span class="dirty-pill">• 1</span></div>
+            <div class="row"><button class="main"><span class="git-letter g-M">M</span><span class="git-path">index.html</span></button></div>
+          </div>
+        </div>
+      </div>
+      <!-- FOOTER -->
+      <div class="sb-footer">
+        <button class="set">⚙ Settings</button>
+        <button class="cfg" onclick="document.getElementById('cfgmenu').classList.toggle('open')" title="Sections">⋮</button>
+        <div class="cfg-menu" id="cfgmenu">
+          <div class="lbl" style="font-size:11px;color:#737373;padding:7px 10px 3px">Sections</div>
+          <div class="it" style="padding:6px 10px">☑ Agents</div>
+          <div class="it" style="padding:6px 10px">☑ Explorer</div>
+          <div class="it" style="padding:6px 10px">☑ Automations</div>
+          <div class="it" style="padding:6px 10px">☑ Git</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h2>New workspace — одна форма</h2>
+      <label class="nw-field"><span>Хост</span><select id="nw-host" onchange="nwHostChanged()">
+        <option value="local">Эта машина · локально</option>
+        <option value="vps">VPS · online</option>
+        <option value="office">Офис · offline 2 ч</option>
+        <option value="new">＋ Подключить новый хост…</option>
+      </select></label>
+      <div class="nw-pair hide" id="nw-pair">
+        <div class="nw-pair-title">Связка нового хоста</div>
+        <label class="nw-field"><span>Адрес хоста</span><input id="nw-addr" value="100.64.0.5"></label>
+        <div class="nw-hint">На новом хосте выполни <code>harnesys host pair</code> и введи код с экрана. Код живёт 10 минут, одна попытка.</div>
+        <label class="nw-field"><span>Код связки</span><input id="nw-code" value="481 516" style="letter-spacing:.2em"></label>
+        <div class="btnrow"><button onclick="nwPair()">Связать</button><span class="nw-status" id="nw-pair-status"></span></div>
+      </div>
+      <label class="nw-field"><span>Имя</span><input id="nw-name" value="Client inbox"></label>
+      <label class="nw-field"><span>Каталог</span><span class="nw-pathrow"><input id="nw-dir" value="~/work/client"><button>Выбрать</button></span></label>
+      <div class="nw-hint" id="nw-dirhint">Папка на этой машине. Имя подставилось из каталога.</div>
+      <div class="btnrow"><button class="accent">Добавить</button><button>Отмена</button></div>
+      <table style="margin-top:12px">
+        <tr><th>Поведение</th><th>Правило</th></tr>
+        <tr><td>Порядок полей</td><td>Хост → Имя → Каталог. Имя по умолчанию равно имени каталога, правится руками.</td></tr>
+        <tr><td>Каталог</td><td>Локальный хост: кнопка Выбрать открывает picker. Удалённый: путь текстом, проверка существования после связи.</td></tr>
+        <tr><td>Офлайн-хост</td><td>Добавить можно. Группы workspace висят до первой связи, контент не теряется.</td></tr>
+        <tr><td>Связка</td><td>Адрес + код. Успех добавляет хост в список и выбирает его. Удаление пары (настройки → хосты) отзывает токен.</td></tr>
+        <tr><td>После добавления</td><td>Таб в шапке слева, workspace активен, секции грузят его группы.</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+  function toggleSec(id) {
+    var body = document.getElementById('sec-' + id);
+    var arr = document.getElementById('arr-' + id);
+    var hide = body.classList.toggle('hide');
+    if (arr) arr.textContent = hide ? '▸' : '▾';
+  }
+  function nwHostChanged() {
+    var host = document.getElementById('nw-host').value;
+    document.getElementById('nw-pair').classList.toggle('hide', host !== 'new');
+    document.getElementById('nw-dirhint').textContent = host === 'local'
+      ? 'Папка на этой машине. Имя подставилось из каталога.'
+      : host === 'new'
+      ? 'После связки укажи путь каталога на новом хосте.'
+      : 'Путь каталога на выбранном хосте. Данные и секреты остаются там.';
+  }
+  function nwPair() {
+    var st = document.getElementById('nw-pair-status');
+    st.textContent = 'Связываем…';
+    setTimeout(function () {
+      var sel = document.getElementById('nw-host');
+      var opt = document.createElement('option');
+      opt.value = 'nas'; opt.textContent = 'NAS · online';
+      sel.insertBefore(opt, sel.lastChild);
+      sel.value = 'nas';
+      document.getElementById('nw-pair').classList.add('hide');
+      st.textContent = '';
+      nwHostChanged();
+    }, 800);
+  }
+  document.querySelectorAll('.ws-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tab.classList.toggle('active');
+      updateGroups();
+    });
+  });
+  function updateGroups() {
+    var active = {};
+    document.querySelectorAll('.ws-tab.active').forEach(function (t) { active[t.dataset.ws] = true; });
+    document.querySelectorAll('.ws-group-block').forEach(function (b) {
+      b.classList.toggle('hide', !active[b.dataset.ws]);
+    });
+    var sums = { inbox: 0, agents: 0, automations: 0 };
+    document.querySelectorAll('#sec-inbox .ws-group-block:not(.hide)').forEach(function (b) { sums.inbox += +b.dataset.count; });
+    document.querySelectorAll('#sec-agents .ws-group-block:not(.hide)').forEach(function (b) { sums.agents += +b.dataset.count; });
+    document.querySelectorAll('#sec-automations .ws-group-block:not(.hide)').forEach(function (b) { sums.automations += +b.dataset.count; });
+    document.getElementById('count-inbox').textContent = sums.inbox;
+    document.getElementById('count-agents').textContent = sums.agents;
+    document.getElementById('count-automations').textContent = sums.automations;
+  }
+</script>
+</body>
+</html>

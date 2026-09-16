@@ -218,7 +218,7 @@ export function FileRow({
         // biome-ignore lint/a11y/noStaticElementInteractions: drag source and drop target for explorer file moves
         <div
           className={cn(
-            'group/file relative flex items-center rounded-md transition-colors hover:bg-sidebar-accent/70',
+            'group/file relative flex items-center rounded-md hover:bg-sidebar-accent/70',
             selected && 'bg-sidebar-accent text-sidebar-accent-foreground',
             'group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center',
             dropState === 'valid' && 'bg-live/15 ring-1 ring-live ring-inset',

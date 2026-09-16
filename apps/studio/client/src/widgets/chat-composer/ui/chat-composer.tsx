@@ -1,7 +1,7 @@
 import { DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpIcon, LoaderCircleIcon, SquareIcon, TriangleAlertIcon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useScheduleStore } from '@/entities/schedule';
 import { useSessionStore } from '@/entities/session';
 import { useSelectedAgent, useSelectedThread, useThreadEvents } from '@/features/desk';
@@ -25,6 +25,7 @@ import type { ComposerPayload } from '../model/composer-doc';
 import { type ComposerMode, composerModeItems, knownMode } from '../model/composer-mode';
 import { filesFromClipboard } from '../model/composer-send';
 import { executeComposerSlash, submitComposer } from '../model/composer-submit';
+import { useComposerFileOptions } from '../model/file-source';
 import { modelContextWindow } from '../model/model-context';
 import { allowedAttachKinds, modelInputModalities } from '../model/model-input';
 import { fileFromPastedText } from '../model/paste-as-file';
@@ -55,7 +56,8 @@ export function ChatComposer() {
     thread ? (state.activeRuns[thread.id]?.runId ?? null) : null,
   );
   const hitl = pendingHitl(events);
-  const [payload, setPayload] = useState<ComposerPayload>({ text: '', skills: [] });
+  // Draft text lives in the editor; React keeps only sendability so typing never re-renders.
+  const [hasText, setHasText] = useState(false);
   const [pending, setPending] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [mode, setMode] = useState<ComposerMode>(DEFAULT_MODE_ID);
@@ -79,7 +81,9 @@ export function ChatComposer() {
   const usage = composerUsage(events, modelId, providers, contextWindow);
   const inputModalities = modelInputModalities(modelId, providers);
   const allowed = allowedAttachKinds(inputModalities);
-  const canSend = payload.text.trim().length > 0 || pending.length > 0;
+  const pendingNames = useMemo(() => pending.map((file) => file.name), [pending]);
+  const fileOptions = useComposerFileOptions(thread?.id ?? null, pendingNames);
+  const canSend = hasText || pending.length > 0;
   let placeholder = 'Select an agent to start a thread';
   if (hitl) {
     if (hitl.source === 'ask_user') {
@@ -118,7 +122,7 @@ export function ChatComposer() {
   }, [thread?.runMode, scheduleMode, agent?.defaultModeId, agentModes]);
 
   return (
-    <div className="relative mx-auto w-full max-w-3xl px-4 pb-4" data-testid="chat-composer">
+    <div className="relative mx-auto w-full max-w-3xl px-4 pb-3" data-testid="chat-composer">
       {streamLabel ? (
         <div className="mb-1.5 flex items-center gap-1.5 px-1 font-mono text-[11px] text-muted-foreground">
           <LoaderCircleIcon className="size-3 animate-spin text-live" />
@@ -155,7 +159,8 @@ export function ChatComposer() {
           ref={editorRef}
           disabled={disabled}
           placeholder={placeholder}
-          onChange={setPayload}
+          fileOptions={fileOptions.options}
+          onChange={handleDraftChange}
           onSubmit={submit}
           onSlashCommand={runSlashCommand}
           shouldConsumePaste={pasteIsHandled}
@@ -249,7 +254,7 @@ export function ChatComposer() {
           </div>
         </InputGroupAddon>
       </InputGroup>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 pt-1.5 font-mono text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 pt-2 font-mono text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Kbd>Control</Kbd>+<Kbd>Enter</Kbd>
           <span>send</span>
@@ -270,8 +275,16 @@ export function ChatComposer() {
     </div>
   );
 
+  function handleDraftChange(next: ComposerPayload) {
+    const nextHasText = next.text.trim().length > 0;
+    setHasText((prev) => (prev === nextHasText ? prev : nextHasText));
+  }
+
   function addFiles(files: File[]) {
-    addComposerFiles(files, inputModalities, setPending);
+    const accepted = addComposerFiles(files, inputModalities, setPending);
+    for (const file of accepted) {
+      editorRef.current?.insertFileMention(file.name);
+    }
   }
 
   function submit() {
@@ -279,7 +292,7 @@ export function ChatComposer() {
       return;
     }
     submitComposer({
-      payload: editorRef.current?.getPayload() ?? payload,
+      payload: editorRef.current?.getPayload() ?? { text: '', skills: [] },
       pending,
       threadId: thread.id,
       effort: currentEffort,

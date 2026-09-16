@@ -56,13 +56,76 @@ export function TextEditor({
     setViewPath(path);
   }, [path, contentQuery.data]);
 
+  const savingRef = useRef<Set<string>>(new Set());
+  const lastActiveRef = useRef<string | null>(null);
+
+  const persistFile = useCallback(
+    async (targetPath: string, content: string) => {
+      await writeWorkspaceFileContent(workspaceId, { path: targetPath, content });
+      qc.setQueryData(['workspace-file-content', workspaceId, targetPath], content);
+      setDrafts((prev) => ({ ...prev, [targetPath]: content }));
+      markWorkspaceFileDirty(workspaceId, targetPath, false);
+      useIdeStore.getState().setFileDirty(workspaceId, targetPath, false);
+      void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
+      void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
+      void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
+    },
+    [workspaceId, qc],
+  );
+
+  /** Autosave unit: persist only when the draft differs from the server copy. */
+  const flushIfDirty = useCallback(
+    async (targetPath: string) => {
+      if (savingRef.current.has(targetPath)) {
+        return;
+      }
+      const draft = draftsRef.current[targetPath];
+      if (draft === undefined) {
+        return;
+      }
+      const serverText =
+        qc.getQueryData<FileContent>(['workspace-file-content', workspaceId, targetPath]) ?? '';
+      if (draft === serverText) {
+        return;
+      }
+      savingRef.current.add(targetPath);
+      try {
+        await persistFile(targetPath, draft);
+      } catch {
+        // keep the dirty flag; the next focus change or Ctrl+S retries
+      } finally {
+        savingRef.current.delete(targetPath);
+      }
+    },
+    [workspaceId, qc, persistFile],
+  );
+
+  /** Autosave: flush the previously shown file when focus moves to another file. */
+  useEffect(() => {
+    const prevPath = lastActiveRef.current;
+    lastActiveRef.current = path;
+    if (prevPath && prevPath !== path) {
+      void flushIfDirty(prevPath);
+    }
+  }, [path, flushIfDirty]);
+
+  useEffect(() => {
+    return () => {
+      const active = lastActiveRef.current;
+      if (active) {
+        void flushIfDirty(active);
+      }
+    };
+  }, [flushIfDirty]);
+
   const saveMutation = useMutation({
-    mutationFn: (content: string) => writeWorkspaceFileContent(workspaceId, { path, content }),
-    onSuccess: (_, content) => {
-      qc.setQueryData(['workspace-file-content', workspaceId, path], content);
-      setDrafts((prev) => ({ ...prev, [path]: content }));
-      markWorkspaceFileDirty(workspaceId, path, false);
-      useIdeStore.getState().setFileDirty(workspaceId, path, false);
+    mutationFn: (input: { path: string; content: string }) =>
+      writeWorkspaceFileContent(workspaceId, input),
+    onSuccess: (_, input) => {
+      qc.setQueryData(['workspace-file-content', workspaceId, input.path], input.content);
+      setDrafts((prev) => ({ ...prev, [input.path]: input.content }));
+      markWorkspaceFileDirty(workspaceId, input.path, false);
+      useIdeStore.getState().setFileDirty(workspaceId, input.path, false);
       void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
@@ -82,10 +145,10 @@ export function TextEditor({
       return;
     }
     const draft = drafts[path];
-    if (draft === undefined || !dirty || saveMutation.isPending) {
+    if (draft === undefined || !dirty || saveMutation.isPending || savingRef.current.has(path)) {
       return;
     }
-    saveMutation.mutate(draft);
+    saveMutation.mutate({ path, content: draft });
   }, [activePath, path, drafts, dirty, saveMutation]);
 
   useEffect(() => {

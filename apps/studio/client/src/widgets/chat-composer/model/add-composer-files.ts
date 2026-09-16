@@ -7,9 +7,9 @@ export function addComposerFiles(
   files: File[],
   inputModalities: Modality[] | undefined,
   setPending: (update: (list: File[]) => File[]) => void,
-): void {
+): File[] {
   if (files.length === 0) {
-    return;
+    return [];
   }
   const next: File[] = [];
   for (const file of files) {
@@ -22,4 +22,5 @@ export function addComposerFiles(
   if (next.length > 0) {
     setPending((list) => [...list, ...next]);
   }
+  return next;
 }

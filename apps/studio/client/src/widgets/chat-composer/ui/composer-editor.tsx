@@ -19,9 +19,13 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { type ComposerPayload, serializeComposerDoc } from '../model/composer-doc';
+import { fileItems } from '../model/composer-providers';
+import { isValidEntityRef } from '../model/entity-kinds';
+import type { FileOption } from '../model/file-source';
 import { $insertInlineEntity, InlineEntityNode } from '../model/inline-entity-node';
 import { type SkillOption, useComposerSkillOptions } from '../model/skill-source';
 import type { SlashCommand } from '../model/slash-commands';
+import { createFileSuggestion, exitFileSuggestion, insertFileChip } from './file-suggestion-menu';
 import { type PickerAnchor, SkillPicker } from './picker-menu';
 import { createSlashSuggestion, exitSlashSuggestion } from './suggestion-menu';
 
@@ -29,11 +33,13 @@ export type ComposerEditorHandle = {
   getPayload(): ComposerPayload;
   clear(): void;
   focus(): void;
+  insertFileMention(ref: string): void;
 };
 
 export type ComposerEditorProps = {
   placeholder: string;
   disabled: boolean;
+  fileOptions: FileOption[];
   onChange(payload: ComposerPayload): void;
   onSubmit(): void;
   onSlashCommand(command: SlashCommand): void;
@@ -115,6 +121,11 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
             });
           },
         }),
+        createFileSuggestion({
+          isDisabled: () => latest.current.disabled,
+          // Suggestion must never break typing: on any failure show no items.
+          getItems: (query) => safeFileItems(query, latest.current.fileOptions),
+        }),
       ];
     }, []);
 
@@ -142,6 +153,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       editor.setEditable(!props.disabled);
       if (props.disabled) {
         exitSlashSuggestion(editor.view);
+        exitFileSuggestion(editor.view);
         closePicker();
       }
     }, [props.disabled, editor, closePicker]);
@@ -174,14 +186,25 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       closePicker();
     }, [editor, closePicker]);
 
+    const insertFileMention = useCallback(
+      (mentionRef: string) => {
+        if (latest.current.disabled || !isValidEntityRef('file', mentionRef)) {
+          return;
+        }
+        insertFileChip(editor, editor.state.selection.from, mentionRef);
+      },
+      [editor],
+    );
+
     useImperativeHandle(
       ref,
       () => ({
         getPayload: () => serializeComposerDoc(editor.state.doc),
         clear: () => editor.commands.clearContent(),
         focus: () => editor.commands.focus(),
+        insertFileMention,
       }),
-      [editor],
+      [editor, insertFileMention],
     );
 
     return (
@@ -207,3 +230,11 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
     );
   },
 );
+
+function safeFileItems(query: string, options: FileOption[] | undefined): FileOption[] {
+  try {
+    return fileItems(query, options ?? []);
+  } catch {
+    return [];
+  }
+}

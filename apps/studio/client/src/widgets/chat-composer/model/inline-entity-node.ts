@@ -21,7 +21,7 @@ export const InlineEntityNode = Node.create<InlineEntityAttrs>({
         default: 'skill',
         parseHTML: (element) => element.getAttribute('data-inline-entity'),
         validate: (value): asserts value is EntityKind => {
-          if (value !== 'skill') {
+          if (value !== 'skill' && value !== 'file') {
             throw new Error(`inlineEntity: unknown entity kind ${String(value)}`);
           }
         },
@@ -31,7 +31,7 @@ export const InlineEntityNode = Node.create<InlineEntityAttrs>({
         default: '',
         parseHTML: (element) => element.getAttribute('data-entity-ref'),
         validate: (value): void => {
-          if (typeof value !== 'string' || !isValidEntityRef('skill', value)) {
+          if (typeof value !== 'string' || value.length === 0) {
             throw new Error('inlineEntity: invalid entity ref');
           }
         },
@@ -46,7 +46,9 @@ export const InlineEntityNode = Node.create<InlineEntityAttrs>({
     return ['span', { 'data-inline-entity': node.attrs.kind, 'data-entity-ref': node.attrs.ref }];
   },
   renderText({ node }) {
-    return node.attrs.ref;
+    const kind = node.attrs.kind as EntityKind;
+    const ref = node.attrs.ref as string;
+    return kind === 'file' ? `#[${ref}]` : ref;
   },
   addNodeView() {
     return ReactNodeViewRenderer(EntityChipView);
@@ -61,7 +63,14 @@ export function isInlineEntityNode(node: ProseMirrorNode): boolean {
   if (node.type.name !== INLINE_ENTITY_TYPE) {
     return false;
   }
-  const kind = node.attrs.kind;
-  const ref = node.attrs.ref;
-  return kind === 'skill' && isValidEntityRef(kind, ref);
+  const kind = node.attrs.kind as EntityKind;
+  const ref = node.attrs.ref as string;
+  return (kind === 'skill' || kind === 'file') && isValidEntityRef(kind, ref);
+}
+
+export function inlineEntityKind(node: ProseMirrorNode): EntityKind | null {
+  if (!isInlineEntityNode(node)) {
+    return null;
+  }
+  return node.attrs.kind as EntityKind;
 }

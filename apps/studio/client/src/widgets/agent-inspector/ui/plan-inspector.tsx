@@ -9,6 +9,7 @@ import {
 import { useEffect } from 'react';
 import type { PlanItemStatus } from '@/entities/plan';
 import { loadThreadPlan, planProgress, usePlanStore } from '@/entities/plan';
+import { useSessionStore } from '@/entities/session';
 import { useSelectedThread } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
@@ -43,11 +44,35 @@ export function PlanInspector() {
   const thread = useSelectedThread();
   const threadId = thread?.id ?? null;
   const plan = usePlanStore((state) => (threadId ? (state.byThread[threadId] ?? null) : null));
+  const streaming = useSessionStore((state) =>
+    threadId ? Boolean(state.activeRuns[threadId]) : false,
+  );
 
   useEffect(() => {
     if (threadId) {
-      loadThreadPlan(threadId);
+      void loadThreadPlan(threadId);
     }
+  }, [threadId]);
+
+  // Desk SSE уже пушит plan-события живьём; догрузка после рана и по фокусу
+  // закрывает пропущенные кадры и держит инспектор на реальном состоянии.
+  useEffect(() => {
+    if (threadId && !streaming) {
+      void loadThreadPlan(threadId);
+    }
+  }, [threadId, streaming]);
+
+  useEffect(() => {
+    if (!threadId) {
+      return;
+    }
+    const onFocus = () => {
+      void loadThreadPlan(threadId);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+    };
   }, [threadId]);
 
   if (!threadId || !plan || plan.items.length === 0) {

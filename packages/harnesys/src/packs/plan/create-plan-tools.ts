@@ -66,14 +66,27 @@ function validPlanIds(items: PlanItem[]): string {
   return items.map((i) => `${i.order}:${i.id} "${i.title}"`).join(', ');
 }
 
-/** Exact id → order number → unique id prefix (length ≥ 8), same order as agents. */
-function resolvePlanItemId(items: PlanItem[], query: string): { id: string } | { error: string } {
+/** Exact id → order number → unique id prefix (length ≥ 8), same order as agents.
+ * Normalizes model copy-paste from <active-plan>: strips "id:" prefix, quotes,
+ * brackets and trailing punctuation, compares UUIDs case-insensitively. */
+function normalizePlanItemQuery(raw: string): string {
+  let query = raw.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  query = query.replace(/^(id|item)\s*[:=]\s*/i, '');
+  query = query.replace(/^[<("'`«»„“‘[]+/, '').replace(/[\])}>"'`«»„“‘.,;:!?]+$/, '');
+  return query.trim();
+}
+
+function resolvePlanItemId(
+  items: PlanItem[],
+  rawQuery: string,
+): { id: string } | { error: string } {
+  const query = normalizePlanItemQuery(rawQuery);
   if (!query) {
     return {
       error: `Plan item id is required. Valid ids: ${validPlanIds(items)}. Use id, unique id prefix, or order from plan_get.`,
     };
   }
-  const exact = items.find((i) => i.id === query);
+  const exact = items.find((i) => i.id.toLowerCase() === query.toLowerCase());
   if (exact) {
     return { id: exact.id };
   }
@@ -84,7 +97,8 @@ function resolvePlanItemId(items: PlanItem[], query: string): { id: string } | {
     }
   }
   if (query.length >= MIN_PREFIX_LEN) {
-    const prefixed = items.filter((i) => i.id.startsWith(query));
+    const folded = query.toLowerCase();
+    const prefixed = items.filter((i) => i.id.toLowerCase().startsWith(folded));
     if (prefixed.length === 1 && prefixed[0]) {
       return { id: prefixed[0].id };
     }
@@ -104,7 +118,7 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
     tool('plan_save', {
       group: 'plan',
       description:
-        'Create or overwrite the execution plan for this thread. One plan per thread: saving again replaces it. Write the plan before starting multi-step work, then track progress with plan_item_update.',
+        'Create or overwrite the execution plan for this thread. One plan per thread: saving again replaces it. Write the plan before starting multi-step work, then track progress with plan_item_update. Call plan_save alone and wait for its result before calling plan_item_update: parallel calls in one batch read a stale plan.',
       input: PLAN_BODY_INPUT,
       execute: async (raw) =>
         runGuard(async () => {
@@ -131,7 +145,7 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
     tool('plan_item_update', {
       group: 'plan',
       description:
-        'Update status of a specific task item in the thread plan. Accepts the id, a unique id prefix (8+ chars), or the order number from plan_get output. Always update status as you progress!',
+        'Update status of a specific task item in the thread plan. Accepts the id, a unique id prefix (8+ chars), or the order number from plan_get output. Pass the bare id without id: prefix, quotes, or trailing punctuation. Always update status as you progress!',
       input: {
         type: 'object',
         properties: {
@@ -163,7 +177,7 @@ export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
           if (!currentPlan) {
             return { error: 'No active plan found for this thread. Call plan_get to verify.' };
           }
-          const query = typeof input.itemId === 'string' ? input.itemId.trim() : '';
+          const query = typeof input.itemId === 'string' ? input.itemId : '';
           const resolved = resolvePlanItemId(currentPlan.items, query);
           if ('error' in resolved) {
             return { error: resolved.error };

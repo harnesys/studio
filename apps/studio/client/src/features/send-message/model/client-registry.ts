@@ -1,6 +1,7 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { useEffect, useState } from 'react';
 import { useAgentStore } from '@/entities/agent';
+import { loadThreadPlan } from '@/entities/plan';
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread } from '@/shared/api';
@@ -144,6 +145,9 @@ async function onRunTerminal(threadId: string, runId: string, rootRun: boolean):
     useThreadStore.getState().upsert(toClientThread(record));
     useSessionStore.getState().reconcileEvents(threadId, record.events);
     noteUnreadAfterReconcile(threadId, record.unread);
+    // План живёт отдельно от событий треда: desk SSE мог пропустить кадр,
+    // инспектор сверяется с базой по завершении рана.
+    void loadThreadPlan(threadId);
   } catch (error) {
     trace('client', 'terminal reconcile failed', error instanceof Error ? error.message : error);
   }

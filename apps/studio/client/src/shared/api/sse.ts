@@ -58,9 +58,16 @@ export type WatchEventSourceOptions = {
   onError?: () => void;
 };
 
+function isAbortError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return true;
+  }
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 /**
  * Shared SSE per URL via fetch + Authorization Bearer (EventSource cannot set headers).
- * Last unsubscribe aborts the request.
+ * Last unsubscribe aborts the request (deferred so React Strict Mode remount can reuse it).
  */
 export function watchEventSource(
   url: string,
@@ -73,8 +80,15 @@ export function watchEventSource(
     const abort = new AbortController();
     conn = { refs: 0, listeners: new Map(), abort, onError: options?.onError };
     connections.set(url, conn);
-    void openSse(url, abort.signal, options?.credential).catch(() => {
-      connections.get(url)?.onError?.();
+    const owned = conn;
+    void openSse(url, abort.signal, options?.credential).catch((error: unknown) => {
+      // A newer conn may already own this URL after Strict Mode remount.
+      if (connections.get(url) !== owned) {
+        return;
+      }
+      if (!abort.signal.aborted && !isAbortError(error)) {
+        owned.onError?.();
+      }
       connections.delete(url);
     });
   }
@@ -95,8 +109,15 @@ export function watchEventSource(
     if (current.refs > 0) {
       return;
     }
-    current.abort.abort();
-    connections.delete(url);
+    // Strict Mode: cleanup then sync remount — keep the fetch alive across the gap.
+    queueMicrotask(() => {
+      const still = connections.get(url);
+      if (!still || still !== current || still.refs > 0) {
+        return;
+      }
+      still.abort.abort();
+      connections.delete(url);
+    });
   };
 }
 
@@ -113,8 +134,7 @@ async function openSse(
   const response = await fetch(url, { headers, signal });
   if (!response.ok) {
     trace('sse', `open failed ${response.status}`);
-    connections.get(url)?.onError?.();
-    return;
+    throw new Error(`sse open failed ${response.status}`);
   }
   for await (const frame of readSse(response)) {
     const current = connections.get(url);

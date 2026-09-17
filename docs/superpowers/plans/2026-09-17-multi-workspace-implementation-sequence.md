@@ -308,15 +308,18 @@ Later    shared agents / mesh / tunnel UI / full onboarding
 
 ## Порядок детальных планов
 
-| старт | файл-ориентир |
+| фаза | файл |
 |---|---|
-| Phase 1 | `…-desk-url-selection-park.md` |
-| Phase 2 | `…-window-settings-only.md` |
-| Phase 3 | `…-config-json-registry-lifecycle.md` |
-| Phase 3b | `…-workspace-settings-modal.md` |
-| Phase 4a | `…-node-catalog-isolation.md` |
-| Phase 4b | `…-workspace-db-runtime-cutover.md` |
-| Phase 5+ | `…-host-window-split.md`, `…-pairing-multi-host.md`, `…-packaging-artifacts.md` |
+| 0 | `docs/superpowers/plans/2026-09-17-sidebar-toggle-groups.md` |
+| 1 | `docs/superpowers/plans/2026-09-17-desk-url-selection-park.md` |
+| 2 | `docs/superpowers/plans/2026-09-17-window-settings-only.md` |
+| 3 | `docs/superpowers/plans/2026-09-17-config-json-registry-lifecycle.md` |
+| 3b | `docs/superpowers/plans/2026-09-17-workspace-settings-modal.md` |
+| 4a | `docs/superpowers/plans/2026-09-17-node-catalog-isolation.md` |
+| 4b | `docs/superpowers/plans/2026-09-17-workspace-db-runtime-cutover.md` |
+| 5 | `docs/superpowers/plans/2026-09-17-host-window-split.md` |
+| 6 | `docs/superpowers/plans/2026-09-17-pairing-multi-host.md` |
+| 7 | `docs/superpowers/plans/2026-09-17-packaging-artifacts.md` |
 
 ---
 

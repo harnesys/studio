@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { env } from '../../config/env.ts';
 import type {
@@ -109,6 +109,11 @@ export class MachineConfigFileAdapter implements MachineConfigPort {
     const tmp = `${this.path}.tmp`;
     writeFileSync(tmp, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
     renameSync(tmp, this.path);
+    try {
+      chmodSync(this.path, 0o600);
+    } catch {
+      // Windows / restricted FS: leave default mode
+    }
     this.memoryDefaults = null;
   }
 }

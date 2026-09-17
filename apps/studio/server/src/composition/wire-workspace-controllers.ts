@@ -82,7 +82,7 @@ export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void 
       d.workspaceHarnesys,
     ),
     deleteWorkspace: new DeleteWorkspaceUseCase(d.nodeRegistry),
-    getWorkspaceStatus: new GetWorkspaceStatusUseCase(d.workspaceRepo, d.workspace),
+    getWorkspaceStatus: new GetWorkspaceStatusUseCase(d.nodeRegistry, d.workspace),
     getGitStatus: new GetGitStatusUseCase(d.workspaceRepo, d.git),
     getGitFileStatus: new GetGitFileStatusUseCase(d.workspaceRepo, d.git),
     getGitDiff: new GetGitDiffUseCase(d.workspaceRepo, d.git),

@@ -1,6 +1,7 @@
 import type { WorkspaceStatus } from '@harnesys/studio-shared';
 import { NotFoundError } from '../../domain/studio.error.ts';
-import type { WorkspacePort, WorkspaceRepository } from '../../domain/workspace.port.ts';
+import type { WorkspacePort } from '../../domain/workspace.port.ts';
+import type { NodeRegistry } from '../nodes/node-registry.ts';
 
 export type GetWorkspaceStatusRequest = {
   id: string;
@@ -12,15 +13,15 @@ export type GetWorkspaceStatusInput = {
 
 export class GetWorkspaceStatusUseCase implements GetWorkspaceStatusInput {
   constructor(
-    private readonly workspaces: WorkspaceRepository,
+    private readonly nodes: NodeRegistry,
     private readonly workspaceFs: WorkspacePort,
   ) {}
 
   async execute(request: GetWorkspaceStatusRequest): Promise<WorkspaceStatus> {
-    const workspace = this.workspaces.findById(request.id);
-    if (!workspace) {
+    const node = this.nodes.get(request.id);
+    if (!node) {
       throw new NotFoundError('workspace not found');
     }
-    return await this.workspaceFs.inspect(workspace.path);
+    return await this.workspaceFs.inspect(node.path);
   }
 }

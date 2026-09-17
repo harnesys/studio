@@ -44,6 +44,8 @@ export function detectLanguage(filepath: string): string | undefined {
     json: 'json',
     jsonc: 'json',
     md: 'markdown',
+    mdx: 'markdown',
+    markdown: 'markdown',
     css: 'css',
     scss: 'scss',
     html: 'html',

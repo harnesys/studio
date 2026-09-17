@@ -1,4 +1,10 @@
-export { fileBasename, fileExtension, type OpenFileKind, openFileKind } from './model/file-kind';
+export {
+  fileBasename,
+  fileExtension,
+  isMarkdownPath,
+  type OpenFileKind,
+  openFileKind,
+} from './model/file-kind';
 export {
   closeWorkspaceFile,
   markWorkspaceFileDirty,

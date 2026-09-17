@@ -2,9 +2,11 @@ export type OpenFileKind = 'text' | 'image' | 'pdf' | 'unsupported';
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
 const PDF_EXTS = new Set(['pdf']);
+const MARKDOWN_EXTS = new Set(['md', 'mdx', 'markdown']);
 const TEXT_EXTS = new Set([
   'txt',
   'md',
+  'mdx',
   'markdown',
   'json',
   'jsonc',
@@ -84,4 +86,9 @@ export function openFileKind(path: string): OpenFileKind {
     return 'text';
   }
   return 'unsupported';
+}
+
+/** True for `.md` / `.mdx` / `.markdown` paths (IDE preview toggle). */
+export function isMarkdownPath(path: string): boolean {
+  return MARKDOWN_EXTS.has(fileExtension(path));
 }

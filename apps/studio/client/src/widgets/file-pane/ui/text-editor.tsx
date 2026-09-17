@@ -1,4 +1,4 @@
-import Editor, { type OnMount } from '@monaco-editor/react';
+import type { OnMount } from '@monaco-editor/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2Icon } from 'lucide-react';
 import type { editor } from 'monaco-editor';
@@ -17,7 +17,7 @@ import {
 } from '../model/editor-languages';
 import { createEditorOptions, editorThemeName, toModelPath } from '../model/editor-setup';
 import { useEditorLspBridge } from '../model/use-editor-lsp-bridge';
-import { EditorStatusBar } from './editor-status-bar';
+import { useMarkdownEditorMode } from '../model/use-markdown-editor-mode';
 import {
   bindMonacoImportLinkOpener,
   ensureMonacoImportLinkProviders,
@@ -25,6 +25,7 @@ import {
 } from './monaco-import-links';
 import { ensureJsxTagSemanticTokens } from './monaco-jsx-tags';
 import { defineAppThemes } from './monaco-themes';
+import { TextEditorView } from './text-editor-view';
 
 type FileContent = string;
 
@@ -237,6 +238,7 @@ export function TextEditor({
     ? (langOverrides[editorLanguageKey(workspaceId, activePath)] ?? null)
     : null;
   const language = languageOverride ?? detectedLanguage;
+  const { showMarkdownMode, markdownMode, selectMarkdownMode } = useMarkdownEditorMode(activePath);
   const { status: lspStatus, pulse: lspPulse } = useEditorLspBridge(
     workspaceId,
     activePath,
@@ -316,41 +318,33 @@ export function TextEditor({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background" data-testid="text-editor">
-      <div className="relative min-h-0 flex-1">
-        <Editor
-          height="100%"
-          path={toModelPath(activePath)}
-          language={language}
-          theme={resolved}
-          value={value}
-          loading={null}
-          beforeMount={handleBeforeMount}
-          onMount={handleMount}
-          onChange={(next) => {
-            const text = next ?? '';
-            draftsRef.current = { ...draftsRef.current, [activePath]: text };
-            setDrafts((prev) => ({ ...prev, [activePath]: text }));
-            const dirty = text !== serverText;
-            markWorkspaceFileDirty(workspaceId, activePath, dirty);
-            useIdeStore.getState().setFileDirty(workspaceId, activePath, dirty);
-          }}
-          options={options}
-        />
-      </div>
-      <EditorStatusBar
-        workspaceId={workspaceId}
-        path={activePath}
-        detectedLanguage={detectedLanguage}
-        languageOverride={languageOverride}
-        languageId={language}
-        lspStatus={lspStatus}
-        lspPulse={lspPulse}
-        dirty={dirty}
-        cursor={cursor}
-        content={value}
-        onSelectLanguage={(next) => selectLanguage(activePath, next)}
-      />
-    </div>
+    <TextEditorView
+      workspaceId={workspaceId}
+      path={activePath}
+      value={value}
+      language={language}
+      detectedLanguage={detectedLanguage}
+      languageOverride={languageOverride}
+      theme={resolved}
+      options={options}
+      markdownMode={markdownMode}
+      showMarkdownMode={showMarkdownMode}
+      dirty={dirty}
+      cursor={cursor}
+      lspStatus={lspStatus}
+      lspPulse={lspPulse}
+      beforeMount={handleBeforeMount}
+      onMount={handleMount}
+      onChange={(text) => {
+        draftsRef.current = { ...draftsRef.current, [activePath]: text };
+        setDrafts((prev) => ({ ...prev, [activePath]: text }));
+        const nextDirty = text !== serverText;
+        markWorkspaceFileDirty(workspaceId, activePath, nextDirty);
+        useIdeStore.getState().setFileDirty(workspaceId, activePath, nextDirty);
+      }}
+      onSelectLanguage={(next) => selectLanguage(activePath, next)}
+      onSelectMarkdownMode={(mode) => selectMarkdownMode(activePath, mode)}
+      toModelPath={toModelPath}
+    />
   );
 }

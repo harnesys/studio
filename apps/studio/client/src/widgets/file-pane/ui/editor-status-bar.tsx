@@ -12,8 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import type { MarkdownEditorMode } from '../model/use-markdown-editor-mode';
 
 export type EditorCursor = { line: number; column: number };
+export type { MarkdownEditorMode };
 
 const AUTO_LANGUAGE = '__auto';
 
@@ -73,6 +75,8 @@ export function EditorStatusBar({
   cursor,
   content,
   onSelectLanguage,
+  markdownMode,
+  onSelectMarkdownMode,
 }: {
   workspaceId: string;
   path: string;
@@ -85,6 +89,8 @@ export function EditorStatusBar({
   cursor: EditorCursor;
   content: string;
   onSelectLanguage: (language: string | null) => void;
+  markdownMode?: MarkdownEditorMode;
+  onSelectMarkdownMode?: (mode: MarkdownEditorMode) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const sessions = useLspSessions(workspaceId);
@@ -126,6 +132,41 @@ export function EditorStatusBar({
         )}
       </button>
       <span className="ml-auto flex shrink-0 items-center">
+        {markdownMode && onSelectMarkdownMode ? (
+          <span
+            className="mr-1 flex shrink-0 items-center rounded-sm border border-border/60"
+            data-testid="markdown-mode-toggle"
+          >
+            <button
+              type="button"
+              title="Edit markdown source"
+              data-testid="markdown-mode-edit"
+              aria-pressed={markdownMode === 'edit'}
+              onClick={() => onSelectMarkdownMode('edit')}
+              className={cn(
+                SEGMENT,
+                'rounded-none first:rounded-l-[2px]',
+                markdownMode === 'edit' && 'bg-muted text-foreground',
+              )}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              title="Preview markdown"
+              data-testid="markdown-mode-view"
+              aria-pressed={markdownMode === 'view'}
+              onClick={() => onSelectMarkdownMode('view')}
+              className={cn(
+                SEGMENT,
+                'rounded-none last:rounded-r-[2px]',
+                markdownMode === 'view' && 'bg-muted text-foreground',
+              )}
+            >
+              View
+            </button>
+          </span>
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger
             title="Language servers"

@@ -16,6 +16,15 @@ export {
   type WorkspaceFileTab,
   type WorkspaceOpenFiles,
 } from './model/desk.store';
+export {
+  flushPersistDeskChrome,
+  hydrateDeskChrome,
+  schedulePersistDeskChrome,
+  setDeskParkReader,
+  setDeskParkWriter,
+  setDeskSelectionReader,
+  setDeskSelectionWriter,
+} from './model/desk-chrome';
 export { scheduleMarkThreadRead } from './model/mark-thread-read';
 export { refreshThread } from './model/refresh-thread';
 export {

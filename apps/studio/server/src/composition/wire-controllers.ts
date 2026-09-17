@@ -6,6 +6,7 @@ import { CatalogController } from '../adapters/http/catalog/catalog.controller.t
 import { ModePresetController } from '../adapters/http/mode-preset/mode-preset.controller.ts';
 import { ProviderController } from '../adapters/http/provider/provider.controller.ts';
 import { ThreadController } from '../adapters/http/thread/thread.controller.ts';
+import { WindowDeskController } from '../adapters/http/window/window-desk.controller.ts';
 import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import type { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
@@ -62,6 +63,7 @@ import type { SendThreadRunInput } from '../application/threads/send-thread-run.
 import { StreamRunEventsUseCase } from '../application/threads/stream-run-events.use-case.ts';
 import { UpdateThreadUseCase } from '../application/threads/update-thread.use-case.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
+import type { MachineConfigPort } from '../domain/machine-config.ts';
 import type { SecretStore } from '../domain/secret-store.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
@@ -73,6 +75,7 @@ import { wireWorkspaceControllers } from './wire-workspace-controllers.ts';
 type ControllerDeps = {
   app: Hono;
   home: string;
+  machineConfig: MachineConfigPort;
   nodeRegistry: NodeRegistry;
   workspaceRepo: SqliteWorkspaceRepo;
   agentRepo: SqliteAgentRepo;
@@ -123,6 +126,8 @@ export function wireControllers(d: ControllerDeps): void {
     deskEvents: d.deskEvents,
     workspaceHarnesys: d.workspaceHarnesys,
   });
+
+  new WindowDeskController({ machineConfig: d.machineConfig }).register(d.app);
 
   new CatalogController({
     getCatalog: new GetCatalogUseCase(),

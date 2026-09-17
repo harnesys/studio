@@ -1,7 +1,12 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { useWorkspaces } from '@/entities/workspace';
-import { WORKSPACE_TABS_STORAGE_KEY } from '@/shared/config/constants';
+
+import {
+  schedulePersistDeskChrome,
+  setDeskSelectionReader,
+  setDeskSelectionWriter,
+} from './desk-chrome';
 
 type WorkspaceTabsState = {
   selected: string[];
@@ -9,35 +14,13 @@ type WorkspaceTabsState = {
   add: (id: string) => void;
 };
 
-function loadSelected(): string[] {
-  try {
-    const raw = localStorage.getItem(WORKSPACE_TABS_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.filter((id): id is string => typeof id === 'string');
-  } catch {
-    return [];
-  }
-}
-
-function persistSelected(selected: string[]): void {
-  try {
-    localStorage.setItem(WORKSPACE_TABS_STORAGE_KEY, JSON.stringify(selected));
-  } catch {}
-}
-
 export const useWorkspaceTabsStore = create<WorkspaceTabsState>((set, get) => ({
-  selected: loadSelected(),
+  selected: [],
   toggle: (id) => {
     const current = get().selected;
     const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
-    persistSelected(next);
     set({ selected: next });
+    schedulePersistDeskChrome();
   },
   add: (id) => {
     const current = get().selected;
@@ -45,10 +28,15 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>((set, get) => ({
       return;
     }
     const next = [...current, id];
-    persistSelected(next);
     set({ selected: next });
+    schedulePersistDeskChrome();
   },
 }));
+
+setDeskSelectionReader(() => useWorkspaceTabsStore.getState().selected);
+setDeskSelectionWriter((selectedNodeIds) => {
+  useWorkspaceTabsStore.setState({ selected: selectedNodeIds });
+});
 
 /** Workspaces whose groups the sections show. Empty selection = empty groups. */
 export function useSelectedWorkspaceIds(): string[] {
@@ -59,7 +47,7 @@ export function useSelectedWorkspaceIds(): string[] {
   return useMemo(() => selected.filter((id) => known.has(id)), [selected, known]);
 }
 
-/** One-shot seed when LS is empty and URL has a workspace. Not a live fallback. */
+/** One-shot seed when selection is empty and URL has a workspace. Not a live fallback. */
 export function seedWorkspaceSelection(workspaceId: string): void {
   const selected = useWorkspaceTabsStore.getState().selected;
   if (selected.length === 0) {

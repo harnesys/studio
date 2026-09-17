@@ -256,15 +256,16 @@ export type CreateWebhookResponse = {
   thread: ThreadRecordType;
 };
 
-export type HostNodeStatus = 'ready' | 'unavailable';
-
-export type WorkspaceRecord = {
-  id: string;
-  name: string;
-  path: string;
-  createdAt: string;
-  status?: HostNodeStatus;
-};
+export type {
+  HostNodeStatus,
+  IdeTabKind,
+  PersistedIdeGroup,
+  PersistedIdeTab,
+  PersistedIdeWorkspace,
+  WindowDesk,
+  WindowDeskPark,
+  WorkspaceRecord,
+} from './src/window-desk.ts';
 
 export type WorkspaceStatus = {
   exists: boolean;

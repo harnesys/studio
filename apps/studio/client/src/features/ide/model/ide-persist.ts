@@ -1,4 +1,5 @@
-import { IDE_WORKSPACES_STORAGE_KEY } from '@/shared/config/constants';
+import type { WindowDeskPark } from '@harnesys/studio-shared';
+import { schedulePersistDeskChrome } from '@/features/desk';
 import type { IdeTab, IdeTabKind } from './ide.store';
 import { collapseLayout, type IdeGroup, type IdeWorkspaceState } from './ide-layout';
 
@@ -100,42 +101,30 @@ function dedupeTabs(tabs: IdeTab[]): IdeTab[] {
   });
 }
 
-export function loadPersisted(): Record<string, IdeWorkspaceState> {
-  try {
-    const raw = localStorage.getItem(IDE_WORKSPACES_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || !('byWorkspace' in parsed)) {
-      return {};
-    }
-    const byWorkspace = (parsed as { byWorkspace: Record<string, unknown> }).byWorkspace;
-    const valid: Record<string, IdeWorkspaceState> = {};
-    for (const [id, ws] of Object.entries(byWorkspace)) {
-      if (
-        ws &&
-        typeof ws === 'object' &&
-        Array.isArray((ws as IdeWorkspaceState).tabs) &&
-        Array.isArray((ws as IdeWorkspaceState).groups) &&
-        (ws as IdeWorkspaceState).layout
-      ) {
-        const sanitized = sanitizeWorkspace(ws as IdeWorkspaceState);
-        if (sanitized) {
-          valid[id] = sanitized;
-        }
+export function parkToIdeState(park: WindowDeskPark): Record<string, IdeWorkspaceState> {
+  const valid: Record<string, IdeWorkspaceState> = {};
+  for (const [id, ws] of Object.entries(park)) {
+    if (
+      ws &&
+      typeof ws === 'object' &&
+      Array.isArray(ws.tabs) &&
+      Array.isArray(ws.groups) &&
+      ws.layout
+    ) {
+      const sanitized = sanitizeWorkspace(ws as IdeWorkspaceState);
+      if (sanitized) {
+        valid[id] = sanitized;
       }
     }
-    return valid;
-  } catch {
-    return {};
   }
+  return valid;
 }
 
-export function persist(byWorkspace: Record<string, IdeWorkspaceState>) {
-  try {
-    localStorage.setItem(IDE_WORKSPACES_STORAGE_KEY, JSON.stringify({ byWorkspace }));
-  } catch {
-    // ignore quota / private mode
-  }
+/** Boot starts empty; hydrateDeskChrome fills park via setDeskParkWriter. */
+export function loadPersisted(): Record<string, IdeWorkspaceState> {
+  return {};
+}
+
+export function persist(_byWorkspace: Record<string, IdeWorkspaceState>) {
+  schedulePersistDeskChrome();
 }

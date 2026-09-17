@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router';
 import { Navigate, Outlet, useParams } from 'react-router';
 
+import { DeskChromeBootstrap } from '@/app/desk-chrome-bootstrap';
 import { DeskSync } from '@/features/desk';
 import { KnowledgeIndexSync } from '@/features/manage-knowledge-index';
 import { SettingsPage } from '@/pages/settings';
@@ -11,6 +12,7 @@ import { OverlayProvider } from '@/shared/services/overlay';
 function StudioLayout() {
   return (
     <>
+      <DeskChromeBootstrap />
       <DeskSync />
       <KnowledgeIndexSync />
       <OverlayProvider />

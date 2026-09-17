@@ -12,6 +12,7 @@ import { useAgentsDisplayStore } from '../model/agents-display.store';
 import { useAgentsSlideStore } from '../model/agents-slide.store';
 import { applyDeskEvent } from '../model/apply-desk-event';
 import { useDeskStore } from '../model/desk.store';
+import { hydrateDeskChrome } from '../model/desk-chrome';
 import { hydrateDesk } from '../model/hydrate-desk';
 import { useWorkspaceTabsStore } from '../model/workspace-tabs.store';
 
@@ -32,7 +33,13 @@ export function DeskSync() {
     if (!workspaceId) {
       return;
     }
-    useWorkspaceTabsStore.getState().add(workspaceId);
+    void hydrateDeskChrome()
+      .then(() => {
+        useWorkspaceTabsStore.getState().add(workspaceId);
+      })
+      .catch(() => {
+        useWorkspaceTabsStore.getState().add(workspaceId);
+      });
     void hydrateDesk(workspaceId).catch(() => {});
   }, [workspaceId]);
 

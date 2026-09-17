@@ -5,6 +5,7 @@ import { useIdeStore } from '@/features/ide';
 import {
   buildMoveItems,
   buildRenameItem,
+  canDropInto,
   isValidFileName,
   moveDrag,
   setMoveDrag,
@@ -231,17 +232,27 @@ export function ExplorerContent({
     if (!drag || drag.workspaceId !== workspaceId) {
       return;
     }
-    if (event.target !== event.currentTarget) {
+    if ((event.target as Element | null)?.closest?.('[data-path]')) {
+      return;
+    }
+    const items = buildMoveItems(drag.paths, '');
+    if (items.length === 0 || !canDropInto(drag.paths, '')) {
       return;
     }
     event.preventDefault();
     setMoveDrag(null);
-    move(buildMoveItems(drag.paths, ''));
+    move(items);
   };
 
   const handleRootDragOver = (event: React.DragEvent) => {
     const drag = moveDrag();
-    if (!drag || drag.workspaceId !== workspaceId || event.target !== event.currentTarget) {
+    if (!drag || drag.workspaceId !== workspaceId) {
+      return;
+    }
+    if ((event.target as Element | null)?.closest?.('[data-path]')) {
+      return;
+    }
+    if (!canDropInto(drag.paths, '') || buildMoveItems(drag.paths, '').length === 0) {
       return;
     }
     event.preventDefault();

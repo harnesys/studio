@@ -1,4 +1,3 @@
-import { CalendarClockIcon, WebhookIcon } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import type { Agent } from '@/entities/agent';
@@ -9,31 +8,24 @@ import { useWorkspaces, type Workspace } from '@/entities/workspace';
 import { useIdeStore } from '@/features/ide';
 import {
   confirmDeleteSchedule,
-  createSchedule,
   deleteSchedule,
   openScheduleConfigDialog,
   updateSchedule,
 } from '@/features/manage-schedule';
 import {
   confirmDeleteWebhook,
-  createWebhook,
   deleteWebhook,
   openWebhookConfigDialog,
   updateWebhook,
 } from '@/features/manage-webhook';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { studioPath } from '@/shared/config/routes';
-import { DropdownMenuGroup, DropdownMenuItem } from '@/shared/ui/dropdown-menu';
+import { AutomationsSectionCreateButton } from './automation-create-picker-dialog';
 import { ScheduleRow } from './schedule-row';
-import { SectionMenu } from './section-menu';
 import { WebhookRow } from './webhook-row';
 import { WorkspaceGroupLabel } from './workspace-group';
 
-export type AutomationsAddMenuProps = {
-  workspaceId: string | null;
-  agents: Agent[];
-  onDone: () => void;
-};
+export const AutomationsSectionActions = AutomationsSectionCreateButton;
 
 export type AutomationsSectionProps = {
   workspaceIds: string[];
@@ -44,6 +36,7 @@ export type AutomationsSectionProps = {
   activeWebhookId: string | null;
   activeThreadId: string | null;
   onSelectDone: () => void;
+  groupActions?: (workspaceId: string) => ReactNode;
 };
 
 type AutomationEntry = {
@@ -51,71 +44,6 @@ type AutomationEntry = {
   updatedAt: string;
   node: ReactNode;
 };
-
-export function AutomationsAddMenu({ workspaceId, agents, onDone }: AutomationsAddMenuProps) {
-  const navigate = useNavigate();
-
-  const createScheduler = () => {
-    if (!workspaceId) {
-      return;
-    }
-    void openScheduleConfigDialog(agents, workspaceId).then(async (draft) => {
-      if (!draft) {
-        return;
-      }
-      const created = await createSchedule(workspaceId, draft);
-      if (created) {
-        useIdeStore
-          .getState()
-          .openSchedule(workspaceId, created.id, created.threadId, created.targetAgentId);
-        void navigate(studioPath.schedule(workspaceId, created.id));
-        onDone();
-      }
-    });
-  };
-
-  const createHook = () => {
-    if (!workspaceId) {
-      return;
-    }
-    void openWebhookConfigDialog(agents, workspaceId).then(async (draft) => {
-      if (!draft) {
-        return;
-      }
-      const created = await createWebhook(workspaceId, draft);
-      if (created) {
-        openWebhookTab(created);
-        onDone();
-      }
-    });
-  };
-
-  const openWebhookTab = (item: Webhook) => {
-    if (!workspaceId) {
-      return;
-    }
-    const agentId = useThreadStore.getState().byId(item.threadId)?.agentId;
-    useIdeStore
-      .getState()
-      .openWebhook(workspaceId, item.id, item.threadId, agentId ?? item.targetAgentId);
-    void navigate(studioPath.webhook(workspaceId, item.id));
-  };
-
-  return (
-    <SectionMenu label="Automations actions">
-      <DropdownMenuGroup>
-        <DropdownMenuItem onClick={createScheduler}>
-          <CalendarClockIcon className="size-3" />
-          New scheduler
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={createHook}>
-          <WebhookIcon className="size-3" />
-          New webhook
-        </DropdownMenuItem>
-      </DropdownMenuGroup>
-    </SectionMenu>
-  );
-}
 
 export function AutomationsSection({
   workspaceIds,
@@ -126,6 +54,7 @@ export function AutomationsSection({
   activeWebhookId,
   activeThreadId,
   onSelectDone,
+  groupActions,
 }: AutomationsSectionProps) {
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
@@ -230,6 +159,7 @@ export function AutomationsSection({
     return entries;
   };
 
+  const multi = workspaceIds.length > 1;
   const groups: { workspace: Workspace; entries: AutomationEntry[] }[] = [];
   for (const id of workspaceIds) {
     const workspace = workspaces.find((item) => item.id === id);
@@ -238,7 +168,7 @@ export function AutomationsSection({
     }
     const workspaceAgents = agents.filter((item) => item.workspaceId === id);
     const entries = buildEntries(id, workspaceAgents);
-    if (entries.length === 0) {
+    if (entries.length === 0 && !multi) {
       continue;
     }
     groups.push({ workspace, entries });
@@ -257,9 +187,10 @@ export function AutomationsSection({
       {groups.map((group) => (
         <div key={group.workspace.id}>
           <WorkspaceGroupLabel
-            workspaceId={group.workspace.id}
             name={group.workspace.name}
             count={group.entries.length}
+            visible={multi}
+            actions={multi ? groupActions?.(group.workspace.id) : undefined}
           />
           {group.entries.map((entry) => (
             <Fragment key={entry.key}>{entry.node}</Fragment>

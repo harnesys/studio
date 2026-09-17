@@ -204,6 +204,25 @@ export class GitCliAdapter implements GitPort {
     throw new Error(retryErr || err || `git pull failed (${retry.code})`);
   }
 
+  async init(cwd: string): Promise<void> {
+    const safeCwd = await this.resolveCwd(cwd);
+    const existing = await getStatus(
+      safeCwd,
+      (c) => this.getAheadBehind(c),
+      () => this.getVersion(),
+      (c) => this.listBranches(c),
+    );
+    if (existing.isGit) {
+      return;
+    }
+    const res = await execGit(safeCwd, ['init']);
+    if (res.code !== 0) {
+      const err = (res.stderr + res.stdout).trim();
+      throw new Error(err || `git init failed (${res.code})`);
+    }
+    this.statusCache.clear();
+  }
+
   async getDiff(cwd: string, filePath: string): Promise<GitDiffResponse> {
     const safeCwd = await this.resolveCwd(cwd);
     return getDiff(safeCwd, filePath);

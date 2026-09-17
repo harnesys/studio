@@ -20,4 +20,5 @@ export type GitPort = {
   commit(cwd: string, message: string): Promise<void>;
   push(cwd: string): Promise<void>;
   pull(cwd: string): Promise<void>;
+  init(cwd: string): Promise<void>;
 };

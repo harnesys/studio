@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { workspaceFilesTreeQueryKey } from '@/shared/api/files';
-import { getGitStatus, gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
+import { getGitStatus, gitFileStatusQueryKey, gitStatusQueryKey, initGit } from '@/shared/api/git';
 import {
   DropdownMenuGroup,
   DropdownMenuItem,
@@ -19,6 +19,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { toast } from '@/shared/ui/toast';
 import { useFileSelectionStore } from '../model/file-selection.store';
 import { useGitActions } from '../model/use-git-actions';
 import { BranchRow } from './branch-row';
@@ -108,8 +109,42 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
     ? recentBranches.filter((b) => b.name.toLowerCase().includes(filterQuery))
     : recentBranches;
 
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
+    void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
+    void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
+    void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
+    void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
+  };
+
+  const handleInit = () => {
+    void initGit(workspaceId)
+      .then(() => {
+        refresh();
+        toast.add({ title: 'Git repository initialized' });
+      })
+      .catch((error) => {
+        toast.add({
+          title: error instanceof Error ? error.message : 'Could not initialize git',
+        });
+      });
+  };
+
   if (!status) {
-    return null;
+    return (
+      <SectionMenu label="Git actions" contentClassName="min-w-52">
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={handleInit}>
+            <PlusIcon className="size-3" />
+            Initialize repository
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={refresh}>
+            <RefreshCwIcon className="size-3" />
+            Refresh
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </SectionMenu>
+    );
   }
 
   let commitSuffix = '';
@@ -118,14 +153,6 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
       ? ` • ${formatCountsShort(status.counts)}`
       : ` • ${status.dirtyCount}`;
   }
-
-  const refresh = () => {
-    void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
-    void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
-    void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
-    void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
-    void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
-  };
 
   return (
     <SectionMenu label="Git actions" contentClassName="min-w-52">

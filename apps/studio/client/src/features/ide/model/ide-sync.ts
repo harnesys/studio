@@ -9,6 +9,7 @@ import { studioPath } from '@/shared/config/routes';
 import { useIdeStore } from './ide.store';
 import { normalizeIdeFilePath, tabIdFor } from './ide-persist';
 import { pathForIdeTab } from './open-ide';
+import { remappedPathAfterMove } from './recent-path-moves';
 
 function deskVisibleIds(selectedIds: string[], workspaceId: string): string[] {
   return selectedIds.includes(workspaceId) ? selectedIds : [...selectedIds, workspaceId];
@@ -41,18 +42,30 @@ export function useIdeSync() {
     const visible = deskVisibleIds(selectedIds, workspaceId);
 
     if (focus.kind === 'file') {
-      useIdeStore.getState().openFile(workspaceId, focus.path);
-      useIdeStore
-        .getState()
-        .setDeskActive(workspaceId, tabIdFor('file', normalizeIdeFilePath(focus.path)), visible);
+      const normalized = normalizeIdeFilePath(focus.path);
+      const remapped = remappedPathAfterMove(workspaceId, normalized);
+      if (remapped) {
+        void navigate(studioPath.file(workspaceId, remapped), { replace: true });
+        useIdeStore.getState().openFile(workspaceId, remapped);
+        useIdeStore.getState().setDeskActive(workspaceId, tabIdFor('file', remapped), visible);
+        return;
+      }
+      useIdeStore.getState().openFile(workspaceId, normalized);
+      useIdeStore.getState().setDeskActive(workspaceId, tabIdFor('file', normalized), visible);
       return;
     }
 
     if (focus.kind === 'diff') {
-      useIdeStore.getState().openDiff(workspaceId, focus.path);
-      useIdeStore
-        .getState()
-        .setDeskActive(workspaceId, tabIdFor('diff', normalizeIdeFilePath(focus.path)), visible);
+      const normalized = normalizeIdeFilePath(focus.path);
+      const remapped = remappedPathAfterMove(workspaceId, normalized);
+      if (remapped) {
+        void navigate(studioPath.diff(workspaceId, remapped), { replace: true });
+        useIdeStore.getState().openDiff(workspaceId, remapped);
+        useIdeStore.getState().setDeskActive(workspaceId, tabIdFor('diff', remapped), visible);
+        return;
+      }
+      useIdeStore.getState().openDiff(workspaceId, normalized);
+      useIdeStore.getState().setDeskActive(workspaceId, tabIdFor('diff', normalized), visible);
       return;
     }
 

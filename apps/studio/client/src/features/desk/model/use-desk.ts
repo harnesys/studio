@@ -12,7 +12,6 @@ import {
   useStudioLocation,
 } from '@/shared/config/location';
 
-import { useAgentsSlideStore } from './agents-slide.store';
 import { useDeskStore } from './desk.store';
 import { isWaiting } from './use-agent-live-status';
 
@@ -102,7 +101,6 @@ export function useSelectedAgent() {
   const scheduleId = focus.kind === 'schedule' ? focus.scheduleId : null;
   const webhookId = focus.kind === 'webhook' ? focus.webhookId : null;
   const agents = useWorkspaceAgents(workspaceId);
-  const slideAgentId = useAgentsSlideStore((state) => state.agentId);
   const thread = useThreadStore(
     useShallow((state) => (threadId ? (state.byId(threadId) ?? null) : null)),
   );
@@ -124,9 +122,6 @@ export function useSelectedAgent() {
   }
   if (webhook) {
     return agents.find((item) => item.id === webhook.targetAgentId) ?? null;
-  }
-  if (slideAgentId) {
-    return agents.find((item) => item.id === slideAgentId) ?? null;
   }
   return null;
 }

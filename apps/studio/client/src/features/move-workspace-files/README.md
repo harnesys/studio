@@ -6,4 +6,4 @@
 
 **UI:** `widgets/workspace-sidebar` (`FileRow`). **Server:** `application/workspaces/move-workspace-files.use-case.ts`, `POST /api/workspaces/:id/files/move`.
 
-Вкладки IDE и открытые файлы desk ремапятся через `remapPaths` / `remapWorkspaceFiles`. Пересчёт импортов в этой версии не делается.
+Вкладки IDE и открытые файлы desk ремапятся через `remapPaths` / `remapWorkspaceFiles`; URL focus и cache `workspace-file-content` едут на новый path. Пересчёт импортов в этой версии не делается.

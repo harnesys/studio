@@ -10,13 +10,13 @@ export type IdePathRemap = {
 };
 
 /**
- * Move file tabs onto their new paths. Tab ids are path-derived, so a moved file
- * gets a new id and every group pointer must follow.
+ * Move file/diff tabs onto their new paths. Tab ids are path-derived, so a moved
+ * file gets a new id and every group pointer must follow.
  */
 export function remapTabPaths(tabs: IdeTab[], moves: WorkspaceMoveItem[]): IdePathRemap {
   const idByOldId = new Map<string, string>();
   const next = tabs.map((tab) => {
-    if (tab.kind !== 'file' || !tab.path) {
+    if ((tab.kind !== 'file' && tab.kind !== 'diff') || !tab.path) {
       return tab;
     }
     const currentPath = normalizeWorkspacePath(tab.path);
@@ -24,7 +24,7 @@ export function remapTabPaths(tabs: IdeTab[], moves: WorkspaceMoveItem[]): IdePa
     if (nextPath === currentPath) {
       return tab;
     }
-    const id = `file:${nextPath}`;
+    const id = `${tab.kind}:${nextPath}`;
     idByOldId.set(tab.id, id);
     return { ...tab, id, path: nextPath };
   });

@@ -12,6 +12,10 @@ export function registerGitRoutes(app: Hono, deps: WorkspaceControllerDeps): voi
     return c.json(await deps.getGitStatus.execute({ workspaceId: c.req.param('id') }));
   });
 
+  app.post('/api/workspaces/:id/git/init', async (c) => {
+    return c.json(await deps.initGit.execute({ workspaceId: c.req.param('id') }), 201);
+  });
+
   app.get('/api/workspaces/:id/git/file-status', async (c) => {
     const subPath = c.req.query('path') ?? '';
     return c.json(

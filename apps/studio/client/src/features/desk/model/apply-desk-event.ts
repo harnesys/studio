@@ -6,7 +6,6 @@ import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { toClientWebhook, useWebhookStore } from '@/entities/webhook';
 import { useAgentsDisplayStore } from './agents-display.store';
-import { useAgentsSlideStore } from './agents-slide.store';
 import { useDeskStore } from './desk.store';
 
 export function applyDeskEvent(event: DeskEvent): void {
@@ -97,9 +96,6 @@ function dropAgent(agentId: string): void {
   const desk = useDeskStore.getState();
   if (desk.focusedThreadId && threadIds.includes(desk.focusedThreadId)) {
     desk.setFocusedThreadId(null);
-  }
-  if (useAgentsSlideStore.getState().agentId === agentId) {
-    useAgentsSlideStore.getState().reset();
   }
   useAgentsDisplayStore.getState().forget(agentId);
 }

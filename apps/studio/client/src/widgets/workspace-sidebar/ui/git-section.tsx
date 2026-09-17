@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useWorkspaces } from '@/entities/workspace';
 import { useIdeStore } from '@/features/ide';
@@ -10,8 +10,15 @@ import { gitStatusColorClass, useGitStatusColors } from '@/shared/lib/git-status
 import { cn } from '@/shared/lib/utils';
 import { gitFileStatusLabel } from './git-file-decorations';
 import { useGitStatus } from './git-menu';
+import { WorkspaceGroupLabel } from './workspace-group';
 
-export function GitSection({ workspaceIds }: { workspaceIds: string[] }) {
+export function GitSection({
+  workspaceIds,
+  groupActions,
+}: {
+  workspaceIds: string[];
+  groupActions?: (workspaceId: string) => ReactNode;
+}) {
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
 
@@ -23,6 +30,8 @@ export function GitSection({ workspaceIds }: { workspaceIds: string[] }) {
     );
   }
 
+  const multi = workspaceIds.length > 1;
+
   return (
     <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
       {workspaceIds.map((id) => {
@@ -30,7 +39,15 @@ export function GitSection({ workspaceIds }: { workspaceIds: string[] }) {
         if (!workspace) {
           return null;
         }
-        return <GitWorkspaceGroup key={id} workspaceId={id} workspaceName={workspace.name} />;
+        return (
+          <GitWorkspaceGroup
+            key={id}
+            workspaceId={id}
+            workspaceName={workspace.name}
+            showHeader={multi}
+            actions={multi ? groupActions?.(id) : undefined}
+          />
+        );
       })}
     </div>
   );
@@ -39,9 +56,13 @@ export function GitSection({ workspaceIds }: { workspaceIds: string[] }) {
 function GitWorkspaceGroup({
   workspaceId,
   workspaceName,
+  showHeader,
+  actions,
 }: {
   workspaceId: string;
   workspaceName: string;
+  showHeader: boolean;
+  actions?: ReactNode;
 }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -81,24 +102,27 @@ function GitWorkspaceGroup({
 
   return (
     <div data-testid={`git-workspace-${workspaceId}`}>
-      <div className="flex flex-wrap items-center gap-1.5 px-1.5 pt-1.5 pb-0.5 text-[11px] text-muted-foreground uppercase tracking-[0.04em]">
-        <span className="truncate">{workspaceName}</span>
-        {branchLabel ? (
-          <span className="rounded-sm bg-sidebar-accent px-1 font-mono font-normal text-[10px] text-muted-foreground normal-case leading-4 tracking-normal">
-            {branchLabel}
-          </span>
-        ) : null}
-        {gitStatus?.dirty ? (
-          <span className="font-normal text-[10px] text-amber-600 normal-case tracking-normal dark:text-amber-500">
-            • {gitStatus.dirtyCount}
-          </span>
-        ) : null}
-        {gitStatus && (gitStatus.ahead || gitStatus.behind) ? (
-          <span className="font-normal text-[10px] normal-case tracking-normal">
-            ↑{gitStatus.ahead} ↓{gitStatus.behind}
-          </span>
-        ) : null}
-      </div>
+      {showHeader ? <WorkspaceGroupLabel name={workspaceName} visible actions={actions} /> : null}
+      {showHeader &&
+      (branchLabel || gitStatus?.dirty || (gitStatus && (gitStatus.ahead || gitStatus.behind))) ? (
+        <div className="flex flex-wrap items-center gap-1.5 px-1.5 pb-0.5 text-[10px] text-muted-foreground">
+          {branchLabel ? (
+            <span className="rounded-sm bg-sidebar-accent px-1 font-mono font-normal normal-case leading-4 tracking-normal">
+              {branchLabel}
+            </span>
+          ) : null}
+          {gitStatus?.dirty ? (
+            <span className="font-normal text-amber-600 normal-case tracking-normal dark:text-amber-500">
+              • {gitStatus.dirtyCount}
+            </span>
+          ) : null}
+          {gitStatus && (gitStatus.ahead || gitStatus.behind) ? (
+            <span className="font-normal normal-case tracking-normal">
+              ↑{gitStatus.ahead} ↓{gitStatus.behind}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {!gitStatus ? (
         <p className="px-2 py-2 text-muted-foreground text-xs">Not a git repository.</p>
       ) : (

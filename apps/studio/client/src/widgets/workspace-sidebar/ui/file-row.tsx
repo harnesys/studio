@@ -1,12 +1,16 @@
 import type { GitFileStatus, GitFileStatusMap, WorkspaceFileEntry } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ClipboardIcon,
+  CopyIcon,
+  DownloadIcon,
   FileIcon,
   FolderIcon,
   FolderOpenIcon,
   InfoIcon,
   MoreHorizontalIcon,
   PenLineIcon,
+  ScanSearchIcon,
   TrashIcon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -149,13 +153,30 @@ export function FileRow({
     }
   };
 
-  const handleDragStart = (event: React.DragEvent) => {
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     const paths = selected && selectedPaths.length > 0 ? selectedPaths : [fullPath];
     const roots = collapseToRoots(paths);
     setMoveDrag({ workspaceId, paths: roots });
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData(MOVE_DRAG_MIME, roots.join('\n'));
     event.dataTransfer.setData('text/plain', fullPath);
+
+    const label = event.currentTarget.querySelector('[data-drag-label]');
+    if (label instanceof HTMLElement) {
+      const ghost = label.cloneNode(true) as HTMLElement;
+      ghost.removeAttribute('data-drag-label');
+      ghost.style.position = 'fixed';
+      ghost.style.top = '-1000px';
+      ghost.style.left = '-1000px';
+      ghost.style.width = 'max-content';
+      ghost.style.maxWidth = '240px';
+      ghost.style.pointerEvents = 'none';
+      document.body.appendChild(ghost);
+      event.dataTransfer.setDragImage(ghost, 12, Math.max(ghost.offsetHeight / 2, 1));
+      requestAnimationFrame(() => {
+        ghost.remove();
+      });
+    }
   };
 
   const handleDragOver = (event: React.DragEvent) => {
@@ -163,12 +184,13 @@ export function FileRow({
     if (!isDir || !drag || drag.workspaceId !== workspaceId) {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
     if (!canDropInto(drag.paths, fullPath)) {
       setDropState('invalid');
       event.dataTransfer.dropEffect = 'none';
       return;
     }
-    event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     setDropState('valid');
   };
@@ -189,6 +211,7 @@ export function FileRow({
       return;
     }
     event.preventDefault();
+    event.stopPropagation();
     setMoveDrag(null);
     onMoveInto(fullPath, drag.paths);
   };
@@ -238,29 +261,31 @@ export function FileRow({
                 />
               }
             >
-              {isDir ? (
-                <span className="flex size-3.5 shrink-0 items-center justify-center [&>svg]:size-3.5">
-                  {isExpanded ? (
-                    <FolderOpenIcon className="text-live/70" />
-                  ) : (
-                    <FolderIcon className="text-live/70" />
-                  )}
-                </span>
-              ) : (
-                <span className="flex size-3.5 shrink-0 items-center justify-center [&>svg]:size-3.5">
-                  <FileTypeIcon name={entry.name} className="opacity-70 saturate-60" />
-                </span>
-              )}
-              <span
-                className={cn(
-                  'min-w-0 truncate text-sm leading-4 group-data-[collapsible=icon]:hidden',
-                  selected ? 'text-sidebar-foreground/90' : 'text-sidebar-foreground/70',
-                  gitDecorationClass,
+              <span data-drag-label className="flex min-w-0 items-center gap-1.5">
+                {isDir ? (
+                  <span className="flex size-3.5 shrink-0 items-center justify-center [&>svg]:size-3.5">
+                    {isExpanded ? (
+                      <FolderOpenIcon className="text-live/70" />
+                    ) : (
+                      <FolderIcon className="text-live/70" />
+                    )}
+                  </span>
+                ) : (
+                  <span className="flex size-3.5 shrink-0 items-center justify-center [&>svg]:size-3.5">
+                    <FileTypeIcon name={entry.name} className="opacity-70 saturate-60" />
+                  </span>
                 )}
-                style={gitColor ? { color: gitColor } : undefined}
-                title={gitStatus ? `git: ${gitStatus}` : undefined}
-              >
-                {entry.name}
+                <span
+                  className={cn(
+                    'min-w-0 truncate text-sm leading-4 group-data-[collapsible=icon]:hidden',
+                    selected ? 'text-sidebar-foreground/90' : 'text-sidebar-foreground/70',
+                    gitDecorationClass,
+                  )}
+                  style={gitColor ? { color: gitColor } : undefined}
+                  title={gitStatus ? `git: ${gitStatus}` : undefined}
+                >
+                  {entry.name}
+                </span>
               </span>
             </TooltipTrigger>
             <TooltipContent side="right" hidden={!iconMode}>
@@ -284,7 +309,13 @@ export function FileRow({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
               <DropdownMenuGroup>
-                {isDir && (
+                {!isDir ? (
+                  <DropdownMenuItem onClick={() => onOpen(fullPath)}>
+                    <FileIcon className="size-3.5" />
+                    Open
+                  </DropdownMenuItem>
+                ) : null}
+                {isDir ? (
                   <>
                     <DropdownMenuItem onClick={() => onStartCreate('file', fullPath)}>
                       <FileIcon className="size-3.5" />
@@ -296,12 +327,35 @@ export function FileRow({
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
-                )}
+                ) : null}
                 <DropdownMenuItem onClick={() => onStartRename(fullPath)}>
                   <PenLineIcon className="size-3.5" />
                   Rename
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
+                <DropdownMenuItem
+                  onClick={() => {
+                    void navigator.clipboard.writeText(fullPath).catch(() => undefined);
+                  }}
+                >
+                  <ClipboardIcon className="size-3.5" />
+                  Copy path
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                  <CopyIcon className="size-3.5" />
+                  Duplicate
+                  <span className="ml-auto text-[11px] text-muted-foreground">Soon</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                  <ScanSearchIcon className="size-3.5" />
+                  Reveal in Finder
+                  <span className="ml-auto text-[11px] text-muted-foreground">Soon</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                  <DownloadIcon className="size-3.5" />
+                  Download
+                  <span className="ml-auto text-[11px] text-muted-foreground">Soon</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled>
                   <InfoIcon className="size-3.5" />
                   Info
                   <span className="ml-auto text-[11px] text-muted-foreground">{infoLabel}</span>

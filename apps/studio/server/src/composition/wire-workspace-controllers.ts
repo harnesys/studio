@@ -21,6 +21,7 @@ import { DeleteWorkspaceMcpServerUseCase } from '../application/workspaces/delet
 import { GetGitDiffUseCase } from '../application/workspaces/get-git-diff.use-case.ts';
 import { GetGitFileStatusUseCase } from '../application/workspaces/get-git-file-status.use-case.ts';
 import { GetGitStatusUseCase } from '../application/workspaces/get-git-status.use-case.ts';
+import { InitGitUseCase } from '../application/workspaces/init-git.use-case.ts';
 import { GetWorkspaceFileContentUseCase } from '../application/workspaces/get-workspace-file-content.use-case.ts';
 import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-mcp.use-case.ts';
 import { GetWorkspaceMcpConfigUseCase } from '../application/workspaces/get-workspace-mcp-config.use-case.ts';
@@ -108,6 +109,7 @@ export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void 
     getGitStatus: new GetGitStatusUseCase(d.workspaceRepo, d.git),
     getGitFileStatus: new GetGitFileStatusUseCase(d.workspaceRepo, d.git),
     getGitDiff: new GetGitDiffUseCase(d.workspaceRepo, d.git),
+    initGit: new InitGitUseCase(d.workspaceRepo, d.git),
     checkoutGitBranch: new CheckoutGitBranchUseCase(d.workspaceRepo, d.git),
     createGitBranch: new CreateGitBranchUseCase(d.workspaceRepo, d.git),
     stageGit: new StageGitUseCase(d.workspaceRepo, d.git),

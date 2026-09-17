@@ -15,4 +15,5 @@ export {
 export { parkToIdeState } from './model/ide-persist';
 export { navigateAfterPark, useIdeSync } from './model/ide-sync';
 export { pathForIdeTab, useOpenIdeTab, useOpenSpawnTab, useOpenThreadTab } from './model/open-ide';
+export { remappedPathAfterMove, rememberWorkspaceMoves } from './model/recent-path-moves';
 export { useVisibleDesk, visibleDeskActiveTab } from './model/visible-desk';

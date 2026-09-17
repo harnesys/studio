@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { Badge } from '@/shared/ui/badge';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useSidebar } from '@/shared/ui/sidebar';
 import { useAccordionStore } from '../model/accordion.store';
@@ -34,6 +35,7 @@ export function AccordionSection({
   const { state, isMobile } = useSidebar();
   const iconMode = state === 'collapsed' && !isMobile;
   const shown = iconMode || !collapsed;
+  const hasTrailing = count !== undefined || Boolean(actions);
 
   return (
     <>
@@ -59,14 +61,36 @@ export function AccordionSection({
         >
           <span className="flex size-3.5 shrink-0 items-center justify-center">{icon}</span>
           <span className="truncate">{title}</span>
-
-          {count !== undefined ? (
-            <span className="shrink-0 font-normal text-muted-foreground/80 text-xs">{count}</span>
-          ) : null}
         </button>
-        {actions ? (
-          <span className="flex shrink-0 items-center opacity-0 transition-opacity group-hover/head:opacity-100 has-data-open:opacity-100">
-            {actions}
+        {hasTrailing ? (
+          <span
+            className={cn(
+              'relative ml-auto flex h-7 shrink-0 items-center justify-end',
+              actions &&
+                'group-hover/head:[&_[data-section-count]]:opacity-0 has-data-open:[&_[data-section-count]]:opacity-0',
+            )}
+          >
+            {count !== undefined ? (
+              <Badge
+                data-section-count=""
+                variant="secondary"
+                className="h-4 px-1.5 font-normal text-[10px] tabular-nums leading-none transition-opacity"
+              >
+                {count}
+              </Badge>
+            ) : null}
+            {actions ? (
+              <span
+                className={cn(
+                  'pointer-events-none flex items-center opacity-0 transition-opacity',
+                  'group-hover/head:pointer-events-auto group-hover/head:opacity-100',
+                  'has-data-open:pointer-events-auto has-data-open:opacity-100',
+                  count !== undefined && 'absolute inset-y-0 right-0',
+                )}
+              >
+                {actions}
+              </span>
+            ) : null}
           </span>
         ) : null}
       </div>

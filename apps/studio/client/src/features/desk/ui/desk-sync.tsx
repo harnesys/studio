@@ -11,7 +11,6 @@ import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/locat
 import { studioPath } from '@/shared/config/routes';
 
 import { useAgentsDisplayStore } from '../model/agents-display.store';
-import { useAgentsSlideStore } from '../model/agents-slide.store';
 import { applyDeskEvent } from '../model/apply-desk-event';
 import { useDeskStore } from '../model/desk.store';
 import { hydrateDeskChrome } from '../model/desk-chrome';
@@ -98,11 +97,7 @@ export function DeskSync() {
 }
 
 function revealAgent(agentId: string): void {
-  if (useAgentsDisplayStore.getState().mode === 'inline') {
-    useAgentsDisplayStore.getState().expand(agentId);
-  } else {
-    useAgentsSlideStore.getState().open(agentId);
-  }
+  useAgentsDisplayStore.getState().expand(agentId);
 }
 
 function fallbackAgentId(workspaceId: string): string | null {

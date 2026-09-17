@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2Icon } from 'lucide-react';
 import type { editor } from 'monaco-editor';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useIdeStore } from '@/features/ide';
+import { remappedPathAfterMove, useIdeStore } from '@/features/ide';
 import { markWorkspaceFileDirty } from '@/features/open-file';
 import { readWorkspaceFileText, writeWorkspaceFileContent } from '@/shared/api/files';
 import { gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
@@ -113,11 +113,25 @@ export function TextEditor({
   useEffect(() => {
     const prevPath = lastActiveRef.current;
     lastActiveRef.current = path;
-    if (prevPath && prevPath !== path) {
-      setCursor({ line: 1, column: 1 });
-      void flushIfDirty(prevPath);
+    if (!prevPath || prevPath === path) {
+      return;
     }
-  }, [path, flushIfDirty]);
+    setCursor({ line: 1, column: 1 });
+    if (remappedPathAfterMove(workspaceId, prevPath) === path) {
+      setDrafts((prev) => {
+        if (!Object.hasOwn(prev, prevPath)) {
+          return prev;
+        }
+        const { [prevPath]: text, ...rest } = prev;
+        if (Object.hasOwn(rest, path)) {
+          return rest;
+        }
+        return { ...rest, [path]: text };
+      });
+      return;
+    }
+    void flushIfDirty(prevPath);
+  }, [path, workspaceId, flushIfDirty]);
 
   const flushRef = useRef(flushIfDirty);
   flushRef.current = flushIfDirty;

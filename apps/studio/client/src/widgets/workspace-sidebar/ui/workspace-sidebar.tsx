@@ -3,8 +3,6 @@ import { Fragment, type MouseEvent as ReactMouseEvent, useRef, useState } from '
 import { useThreadStore } from '@/entities/thread';
 import {
   useAgentsInWorkspaces,
-  useAgentsSlideStore,
-  useAgentThreads,
   useSchedulesInWorkspaces,
   useSelectedWorkspaceIds,
   useWaitingThreads,
@@ -33,7 +31,7 @@ import { normalizeShares, useAccordionStore } from '../model/accordion.store';
 import { useSectionDnd } from '../model/use-section-dnd';
 import { AccordionSection } from './accordion-section';
 import { AgentsSection, AgentsSectionActions } from './agents-section';
-import { AutomationsAddMenu, AutomationsSection } from './automations-section';
+import { AutomationsSection, AutomationsSectionActions } from './automations-section';
 import { ExplorerActions, ExplorerTitle, ExplorerTrees } from './files-section';
 import { GitSectionMenu, GitTitle } from './git-menu';
 import { GitSection } from './git-section';
@@ -47,28 +45,19 @@ export function WorkspaceSidebar() {
   const workspaceId = studioFocusWorkspaceId(focus);
   const threadId = studioFocusThreadId(focus);
   const workspaceIds = useSelectedWorkspaceIds();
-  const createWorkspaceId = workspaceIds[0] ?? null;
+  const singleWorkspaceId = workspaceIds.length === 1 ? (workspaceIds[0] ?? null) : null;
+  const multi = workspaceIds.length > 1;
   const inboxThreads = useWaitingThreads(workspaceIds);
   const agents = useAgentsInWorkspaces(workspaceIds);
   const schedules = useSchedulesInWorkspaces(workspaceIds);
   const webhooks = useWebhooksInWorkspaces(workspaceIds);
-  const createAgents = createWorkspaceId
-    ? agents.filter((item) => item.workspaceId === createWorkspaceId)
-    : [];
   const { openSettings } = useStudioNavigation();
   const { setOpenMobile } = useSidebar();
   const ideTabs = useIdeTabs(workspaceId);
   const activeThreadId = ideTabs.tabs.find((tab) => tab.id === ideTabs.activeId)?.threadId ?? null;
-  const slideAgentId = useAgentsSlideStore((state) => state.agentId);
-  const slideAgent = agents.find((item) => item.id === slideAgentId) ?? null;
-  const slideThreads = useAgentThreads(slideAgent?.id ?? null);
-  const threadAgentId = useThreadStore((state) =>
+  const activeAgentId = useThreadStore((state) =>
     threadId ? (state.byId(threadId)?.agentId ?? null) : null,
   );
-  let activeAgentId: string | null = threadAgentId;
-  if (slideAgentId) {
-    activeAgentId = slideAgentId;
-  }
   const activeScheduleId = focus.kind === 'schedule' ? focus.scheduleId : null;
   const activeWebhookId = focus.kind === 'webhook' ? focus.webhookId : null;
   const collapsed = useAccordionStore((state) => state.collapsed);
@@ -159,12 +148,17 @@ export function WorkspaceSidebar() {
           <AccordionSection
             id="agents"
             icon={<Icon />}
-            title={slideAgent ? `Threads · ${slideAgent.name}` : 'Agents'}
-            count={
-              slideAgent ? slideThreads.length : agents.filter((agent) => !agent.parentId).length
-            }
+            title="Agents"
+            count={agents.filter((agent) => !agent.parentId).length}
             size={shares[id] ?? 1}
-            actions={<AgentsSectionActions workspaceId={createWorkspaceId} />}
+            actions={
+              singleWorkspaceId ? (
+                <AgentsSectionActions
+                  workspaceId={singleWorkspaceId}
+                  onCreated={() => setOpenMobile(false)}
+                />
+              ) : undefined
+            }
             {...drag}
           >
             <AgentsSection
@@ -173,6 +167,16 @@ export function WorkspaceSidebar() {
               activeAgentId={activeAgentId}
               activeThreadId={activeThreadId}
               onSelectDone={() => setOpenMobile(false)}
+              groupActions={
+                multi
+                  ? (id) => (
+                      <AgentsSectionActions
+                        workspaceId={id}
+                        onCreated={() => setOpenMobile(false)}
+                      />
+                    )
+                  : undefined
+              }
             />
           </AccordionSection>
         );
@@ -183,7 +187,7 @@ export function WorkspaceSidebar() {
             icon={<Icon />}
             title={<ExplorerTitle workspaceIds={workspaceIds} />}
             size={shares[id] ?? 1}
-            actions={<ExplorerActions workspaceId={createWorkspaceId} />}
+            actions={<ExplorerActions />}
             {...drag}
           >
             <ExplorerTrees workspaceIds={workspaceIds} />
@@ -198,11 +202,13 @@ export function WorkspaceSidebar() {
             count={schedules.length + webhooks.length}
             size={shares[id] ?? 1}
             actions={
-              <AutomationsAddMenu
-                workspaceId={createWorkspaceId}
-                agents={createAgents}
-                onDone={() => setOpenMobile(false)}
-              />
+              singleWorkspaceId ? (
+                <AutomationsSectionActions
+                  workspaceId={singleWorkspaceId}
+                  agents={agents}
+                  onDone={() => setOpenMobile(false)}
+                />
+              ) : undefined
             }
             {...drag}
           >
@@ -215,6 +221,17 @@ export function WorkspaceSidebar() {
               activeWebhookId={activeWebhookId}
               activeThreadId={activeThreadId}
               onSelectDone={() => setOpenMobile(false)}
+              groupActions={
+                multi
+                  ? (id) => (
+                      <AutomationsSectionActions
+                        workspaceId={id}
+                        agents={agents}
+                        onDone={() => setOpenMobile(false)}
+                      />
+                    )
+                  : undefined
+              }
             />
           </AccordionSection>
         );
@@ -226,11 +243,14 @@ export function WorkspaceSidebar() {
             title={<GitTitle workspaceIds={workspaceIds} />}
             size={shares[id] ?? 1}
             actions={
-              createWorkspaceId ? <GitSectionMenu workspaceId={createWorkspaceId} /> : undefined
+              singleWorkspaceId ? <GitSectionMenu workspaceId={singleWorkspaceId} /> : undefined
             }
             {...drag}
           >
-            <GitSection workspaceIds={workspaceIds} />
+            <GitSection
+              workspaceIds={workspaceIds}
+              groupActions={multi ? (id) => <GitSectionMenu workspaceId={id} /> : undefined}
+            />
           </AccordionSection>
         );
     }

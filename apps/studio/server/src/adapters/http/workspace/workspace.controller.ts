@@ -11,6 +11,7 @@ import type { DeleteWorkspaceMcpServerInput } from '../../../application/workspa
 import type { GetGitDiffInput } from '../../../application/workspaces/get-git-diff.use-case.ts';
 import type { GetGitFileStatusInput } from '../../../application/workspaces/get-git-file-status.use-case.ts';
 import type { GetGitStatusInput } from '../../../application/workspaces/get-git-status.use-case.ts';
+import type { InitGitInput } from '../../../application/workspaces/init-git.use-case.ts';
 import type { GetWorkspaceFileContentInput } from '../../../application/workspaces/get-workspace-file-content.use-case.ts';
 import type { GetWorkspaceMcpInput } from '../../../application/workspaces/get-workspace-mcp.use-case.ts';
 import type { GetWorkspaceMcpConfigInput } from '../../../application/workspaces/get-workspace-mcp-config.use-case.ts';
@@ -68,6 +69,7 @@ export type WorkspaceControllerDeps = {
   getGitStatus: GetGitStatusInput;
   getGitFileStatus: GetGitFileStatusInput;
   getGitDiff: GetGitDiffInput;
+  initGit: InitGitInput;
   checkoutGitBranch: CheckoutGitBranchInput;
   createGitBranch: CreateGitBranchInput;
   stageGit: StageGitInput;

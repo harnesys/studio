@@ -6,6 +6,12 @@ export function getGitStatus(workspaceId: string) {
   return apiJson<GitStatusResponse>(`/api/workspaces/${workspaceId}/git/status`);
 }
 
+export function initGit(workspaceId: string) {
+  return apiJson<{ ok: true }>(`/api/workspaces/${workspaceId}/git/init`, {
+    method: 'POST',
+  });
+}
+
 export function getGitFileStatus(workspaceId: string, subPath = '') {
   const q = subPath ? `?path=${encodeURIComponent(subPath)}` : '';
   return apiJson<{ map: GitFileStatusMap; truncated: boolean }>(

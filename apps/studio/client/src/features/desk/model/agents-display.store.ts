@@ -1,29 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AGENTS_DISPLAY_STORAGE_KEY } from '@/shared/config/constants';
-import { useAgentsSlideStore } from './agents-slide.store';
-
-export const AGENTS_THREAD_MODES = ['panel', 'inline'] as const;
-export type AgentsThreadMode = (typeof AGENTS_THREAD_MODES)[number];
-
-export const AGENTS_THREAD_MODE_LABELS: Record<AgentsThreadMode, string> = {
-  panel: 'Panel',
-  inline: 'Inline',
-};
-
-export const AGENTS_THREAD_MODE_HINTS: Record<AgentsThreadMode, string> = {
-  panel: 'Open an agent to see its threads.',
-  inline: 'Threads live under each agent.',
-};
-
-export function isAgentsThreadMode(value: unknown): value is AgentsThreadMode {
-  return typeof value === 'string' && (AGENTS_THREAD_MODES as readonly string[]).includes(value);
-}
 
 type AgentsDisplayState = {
-  mode: AgentsThreadMode;
   expanded: Record<string, boolean>;
-  setMode: (mode: AgentsThreadMode) => void;
   toggle: (agentId: string) => void;
   expand: (agentId: string) => void;
   forget: (agentId: string) => void;
@@ -32,14 +12,7 @@ type AgentsDisplayState = {
 export const useAgentsDisplayStore = create<AgentsDisplayState>()(
   persist(
     (set) => ({
-      mode: 'panel',
       expanded: {},
-      setMode: (mode) => {
-        if (mode === 'inline') {
-          useAgentsSlideStore.getState().reset();
-        }
-        set({ mode });
-      },
       toggle: (agentId) =>
         set((state) => ({
           expanded: { ...state.expanded, [agentId]: !state.expanded[agentId] },
@@ -60,12 +33,11 @@ export const useAgentsDisplayStore = create<AgentsDisplayState>()(
     }),
     {
       name: AGENTS_DISPLAY_STORAGE_KEY,
-      version: 1,
-      partialize: (state) => ({ mode: state.mode, expanded: state.expanded }),
-      migrate: (persisted, version) => {
+      version: 2,
+      partialize: (state) => ({ expanded: state.expanded }),
+      migrate: (persisted) => {
         const state = (persisted ?? {}) as Partial<AgentsDisplayState>;
         return {
-          mode: version >= 1 && isAgentsThreadMode(state.mode) ? state.mode : 'panel',
           expanded:
             state.expanded && typeof state.expanded === 'object'
               ? Object.fromEntries(

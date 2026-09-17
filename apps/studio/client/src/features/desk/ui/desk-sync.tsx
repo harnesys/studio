@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import { useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import { useWorkspaces } from '@/entities/workspace';
 import { watchDesk } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 
 import { useAgentsDisplayStore } from '../model/agents-display.store';
@@ -13,11 +13,12 @@ import { useAgentsSlideStore } from '../model/agents-slide.store';
 import { applyDeskEvent } from '../model/apply-desk-event';
 import { useDeskStore } from '../model/desk.store';
 import { hydrateDesk } from '../model/hydrate-desk';
+import { useWorkspaceTabsStore } from '../model/workspace-tabs.store';
 
 export function DeskSync() {
-  const { workspaceId } = useParams();
   const navigate = useNavigate();
-  const { surface, threadId, threadOrigin, originEntityId, agentId } = useStudioLocation();
+  const focus = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(focus);
   const workspacesQuery = useWorkspaces();
   const workspaceIds = useMemo(
     () => workspacesQuery.data?.map((item) => item.id) ?? [],
@@ -31,6 +32,7 @@ export function DeskSync() {
     if (!workspaceId) {
       return;
     }
+    useWorkspaceTabsStore.getState().add(workspaceId);
     void hydrateDesk(workspaceId).catch(() => {});
   }, [workspaceId]);
 
@@ -65,34 +67,17 @@ export function DeskSync() {
       .getState()
       .items.filter((item) => item.workspaceId === workspaceId);
 
-    if (surface === 'agent' && agentId) {
-      revealAgent(agentId);
-      void navigate(studioPath.workspace(workspaceId), { replace: true });
-      return;
-    }
-
-    if (surface === 'thread' && threadId) {
-      const thread = threads.find((item) => item.id === threadId);
+    if (focus.kind === 'thread') {
+      const thread = threads.find((item) => item.id === focus.threadId);
       if (!thread) {
-        const fallback = fallbackAgentId(workspaceId, threadOrigin, originEntityId);
+        const fallback = fallbackAgentId(workspaceId);
         if (fallback) {
           revealAgent(fallback);
         }
-        void navigate(studioPath.workspace(workspaceId), { replace: true });
+        void navigate(studioPath.desk, { replace: true });
       }
     }
-  }, [
-    workspaceId,
-    surface,
-    threadId,
-    agentId,
-    threadOrigin,
-    originEntityId,
-    visibleReady,
-    workspacesQuery.status,
-    workspacesQuery.data,
-    navigate,
-  ]);
+  }, [workspaceId, focus, visibleReady, workspacesQuery.status, workspacesQuery.data, navigate]);
 
   return null;
 }
@@ -105,11 +90,7 @@ function revealAgent(agentId: string): void {
   }
 }
 
-function fallbackAgentId(
-  workspaceId: string,
-  threadOrigin: string | null,
-  originEntityId: string | null,
-): string | null {
+function fallbackAgentId(workspaceId: string): string | null {
   const agents = useAgentStore.getState().items.filter((item) => item.workspaceId === workspaceId);
   const known = new Set(agents.map((item) => item.id));
   const focusedThreadId = useDeskStore.getState().focusedThreadId;
@@ -117,7 +98,6 @@ function fallbackAgentId(
     ? (useThreadStore.getState().byId(focusedThreadId) ?? null)
     : null;
   const candidates = [
-    threadOrigin === 'agent' ? originEntityId : null,
     focusedThread?.agentId ?? null,
     focusedThread?.originAgentId ?? null,
     agents.length === 1 ? (agents[0]?.id ?? null) : null,

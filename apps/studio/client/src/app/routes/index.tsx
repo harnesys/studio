@@ -1,13 +1,11 @@
 import type { RouteObject } from 'react-router';
 import { Navigate, Outlet, useParams } from 'react-router';
 
-import { useWorkspaces } from '@/entities/workspace';
 import { DeskSync } from '@/features/desk';
 import { KnowledgeIndexSync } from '@/features/manage-knowledge-index';
 import { SettingsPage } from '@/pages/settings';
 import { WorkspacePage } from '@/pages/workspace';
-import { WorkspaceGatePage } from '@/pages/workspace-gate';
-import { resolveStudioEntry, studioPath } from '@/shared/config/routes';
+import { parseSettingsCategory, studioPath } from '@/shared/config/routes';
 import { OverlayProvider } from '@/shared/services/overlay';
 
 function StudioLayout() {
@@ -21,63 +19,65 @@ function StudioLayout() {
   );
 }
 
-function WorkspaceGuard() {
-  const { workspaceId } = useParams();
-  const workspacesQuery = useWorkspaces();
-  const workspace = workspacesQuery.data?.find((item) => item.id === workspaceId) ?? null;
-  const entry = resolveStudioEntry({
-    selectedWorkspaceId: workspaceId ?? null,
-    hasWorkspace: workspace !== null,
-    workspacesStatus: workspacesQuery.status,
-  });
-
-  if (entry === 'opening') {
-    return <OpeningDesk />;
-  }
-  if (entry === 'gate') {
-    return <Navigate to={studioPath.gate} replace />;
-  }
-  return <Outlet />;
+function BareWorkspaceRedirect() {
+  return <Navigate to={studioPath.desk} replace />;
 }
 
-function OpeningDesk() {
-  return (
-    <div
-      className="flex min-h-svh items-center justify-center bg-background p-6"
-      data-testid="workspace-opening"
-    >
-      <p className="text-muted-foreground text-sm">Opening workspace…</p>
-    </div>
-  );
+function LegacyWorkspaceRedirect() {
+  const params = useParams();
+  const rest = params['*'] ?? '';
+  const segments = rest.split('/').filter(Boolean);
+  const workspaceId = segments[0];
+  if (!workspaceId) {
+    return <Navigate to={studioPath.desk} replace />;
+  }
+
+  const kind = segments[1];
+  if (kind === 'thread' && segments[2]) {
+    return <Navigate to={studioPath.thread(workspaceId, segments[2])} replace />;
+  }
+  if (kind === 'file') {
+    const filePath = `/${segments.slice(2).join('/')}`;
+    return <Navigate to={studioPath.file(workspaceId, filePath)} replace />;
+  }
+  if (kind === 'settings') {
+    const category = segments[2];
+    const providerId = segments[3];
+    if (category === 'providers' && providerId) {
+      return <Navigate to={studioPath.settings('providers', providerId)} replace />;
+    }
+    if (category) {
+      return <Navigate to={studioPath.settings(parseSettingsCategory(category))} replace />;
+    }
+    return <Navigate to={studioPath.settings()} replace />;
+  }
+
+  return <Navigate to={studioPath.desk} replace />;
 }
 
 const routes: RouteObject[] = [
   {
     element: <StudioLayout />,
     children: [
+      { index: true, element: <WorkspacePage /> },
+      { path: 'settings', element: <SettingsPage /> },
+      { path: 'settings/:category', element: <SettingsPage /> },
+      { path: 'settings/:category/:providerId', element: <SettingsPage /> },
       {
-        index: true,
-        element: <WorkspaceGatePage />,
-      },
-      {
-        path: 'w/:workspaceId',
-        element: <WorkspaceGuard />,
+        path: ':workspaceId',
+        element: <WorkspacePage />,
         children: [
-          {
-            element: <WorkspacePage />,
-            children: [
-              { index: true, element: null },
-              { path: 'thread/:threadId', element: null },
-              { path: 'file/*', element: null },
-              { path: 'agent/:agentId', element: null },
-            ],
-          },
-          { path: 'settings', element: <SettingsPage /> },
-          { path: 'settings/:category', element: <SettingsPage /> },
-          { path: 'settings/:category/:providerId', element: <SettingsPage /> },
+          { index: true, element: <BareWorkspaceRedirect /> },
+          { path: 'thread/:threadId', element: null },
+          { path: 'file/*', element: null },
+          { path: 'diff/*', element: null },
+          { path: 'schedule/:scheduleId', element: null },
+          { path: 'webhook/:webhookId', element: null },
+          { path: 'spawn/:threadId/:spawnId', element: null },
         ],
       },
-      { path: '*', element: <Navigate to={studioPath.gate} replace /> },
+      { path: 'w/*', element: <LegacyWorkspaceRedirect /> },
+      { path: '*', element: <Navigate to={studioPath.desk} replace /> },
     ],
   },
 ];

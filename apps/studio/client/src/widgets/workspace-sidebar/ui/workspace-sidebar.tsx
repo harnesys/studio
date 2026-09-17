@@ -6,11 +6,16 @@ import {
   useAgentsSlideStore,
   useAgentThreads,
   useSchedulesInWorkspaces,
+  useSelectedWorkspaceIds,
   useWaitingThreads,
   useWebhooksInWorkspaces,
 } from '@/features/desk';
 import { useIdeTabs } from '@/features/ide';
-import { useStudioLocation } from '@/shared/config/location';
+import {
+  studioFocusThreadId,
+  studioFocusWorkspaceId,
+  useStudioLocation,
+} from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { Resizer } from '@/shared/ui/resizer';
 import {
@@ -26,7 +31,6 @@ import {
 } from '@/shared/ui/sidebar';
 import { normalizeShares, useAccordionStore } from '../model/accordion.store';
 import { useSectionDnd } from '../model/use-section-dnd';
-import { useSelectedWorkspaceIds } from '../model/workspace-tabs.store';
 import { AccordionSection } from './accordion-section';
 import { AgentsSection, AgentsSectionActions } from './agents-section';
 import { AutomationsAddMenu, AutomationsSection } from './automations-section';
@@ -39,7 +43,9 @@ import { SidebarSectionsConfig } from './sidebar-sections-config';
 import { WorkspaceHeader } from './workspace-header';
 
 export function WorkspaceSidebar() {
-  const { workspaceId, threadId, threadOrigin, originEntityId } = useStudioLocation();
+  const focus = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(focus);
+  const threadId = studioFocusThreadId(focus);
   const workspaceIds = useSelectedWorkspaceIds();
   const createWorkspaceId = workspaceIds[0] ?? null;
   const inboxThreads = useWaitingThreads(workspaceIds);
@@ -60,14 +66,11 @@ export function WorkspaceSidebar() {
     threadId ? (state.byId(threadId)?.agentId ?? null) : null,
   );
   let activeAgentId: string | null = threadAgentId;
-  if (threadOrigin === 'agent') {
-    activeAgentId = originEntityId;
-  }
   if (slideAgentId) {
     activeAgentId = slideAgentId;
   }
-  const activeScheduleId = threadOrigin === 'scheduler' ? originEntityId : null;
-  const activeWebhookId = threadOrigin === 'webhook' ? originEntityId : null;
+  const activeScheduleId = focus.kind === 'schedule' ? focus.scheduleId : null;
+  const activeWebhookId = focus.kind === 'webhook' ? focus.webhookId : null;
   const collapsed = useAccordionStore((state) => state.collapsed);
   const sizes = useAccordionStore((state) => state.sizes);
   const order = useAccordionStore((state) => state.order);

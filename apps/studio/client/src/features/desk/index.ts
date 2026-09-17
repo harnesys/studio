@@ -38,4 +38,9 @@ export {
   useWorkspaceSchedules,
   useWorkspaceWebhooks,
 } from './model/use-desk';
+export {
+  seedWorkspaceSelection,
+  useSelectedWorkspaceIds,
+  useWorkspaceTabsStore,
+} from './model/workspace-tabs.store';
 export { DeskSync } from './ui/desk-sync';

@@ -6,7 +6,11 @@ import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { useWebhookStore } from '@/entities/webhook';
 import { useWorkspaces } from '@/entities/workspace';
-import { useStudioLocation } from '@/shared/config/location';
+import {
+  studioFocusThreadId,
+  studioFocusWorkspaceId,
+  useStudioLocation,
+} from '@/shared/config/location';
 
 import { useAgentsSlideStore } from './agents-slide.store';
 import { useDeskStore } from './desk.store';
@@ -92,14 +96,34 @@ export function useWaitingThreads(workspaceIds: string[]) {
 }
 
 export function useSelectedAgent() {
-  const { workspaceId, threadId } = useStudioLocation();
+  const focus = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(focus);
+  const threadId = studioFocusThreadId(focus);
+  const scheduleId = focus.kind === 'schedule' ? focus.scheduleId : null;
+  const webhookId = focus.kind === 'webhook' ? focus.webhookId : null;
   const agents = useWorkspaceAgents(workspaceId);
   const slideAgentId = useAgentsSlideStore((state) => state.agentId);
   const thread = useThreadStore(
     useShallow((state) => (threadId ? (state.byId(threadId) ?? null) : null)),
   );
+  const schedule = useScheduleStore(
+    useShallow((state) =>
+      scheduleId ? (state.items.find((item) => item.id === scheduleId) ?? null) : null,
+    ),
+  );
+  const webhook = useWebhookStore(
+    useShallow((state) =>
+      webhookId ? (state.items.find((item) => item.id === webhookId) ?? null) : null,
+    ),
+  );
   if (thread) {
     return agents.find((item) => item.id === thread.agentId) ?? null;
+  }
+  if (schedule) {
+    return agents.find((item) => item.id === schedule.targetAgentId) ?? null;
+  }
+  if (webhook) {
+    return agents.find((item) => item.id === webhook.targetAgentId) ?? null;
   }
   if (slideAgentId) {
     return agents.find((item) => item.id === slideAgentId) ?? null;
@@ -108,16 +132,26 @@ export function useSelectedAgent() {
 }
 
 export function useSelectedThread() {
-  const { threadId } = useStudioLocation();
+  const focus = useStudioLocation();
+  const threadId = studioFocusThreadId(focus);
+  const scheduleId = focus.kind === 'schedule' ? focus.scheduleId : null;
+  const webhookId = focus.kind === 'webhook' ? focus.webhookId : null;
   const focusedThreadId = useDeskStore((state) => state.focusedThreadId);
-  const preferredId = threadId ?? focusedThreadId;
+  const scheduleThreadId = useScheduleStore((state) =>
+    scheduleId ? (state.items.find((item) => item.id === scheduleId)?.threadId ?? null) : null,
+  );
+  const webhookThreadId = useWebhookStore((state) =>
+    webhookId ? (state.items.find((item) => item.id === webhookId)?.threadId ?? null) : null,
+  );
+  const preferredId = threadId ?? scheduleThreadId ?? webhookThreadId ?? focusedThreadId;
   return useThreadStore(
     useShallow((state) => (preferredId ? (state.byId(preferredId) ?? null) : null)),
   );
 }
 
 export function useDesk() {
-  const { workspaceId, surface, settingsCategory, settingsProviderId } = useStudioLocation();
+  const focus = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(focus);
   const workspacesQuery = useWorkspaces();
   const desk = useDeskSelection();
   const agents = useWorkspaceAgents(workspaceId);
@@ -130,9 +164,7 @@ export function useDesk() {
 
   return {
     workspaceId,
-    surface,
-    settingsCategory,
-    settingsProviderId,
+    focus,
     workspace: workspacesQuery.data?.find((item) => item.id === workspaceId) ?? null,
     workspaces: workspacesQuery.data ?? [],
     workspacesStatus: workspacesQuery.status,

@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
-const ideTabKindSchema = z.enum(['thread', 'file', 'spawn', 'diff', 'schedule', 'webhook']);
+const ideTabKindSchema = z.enum([
+  'thread',
+  'file',
+  'spawn',
+  'diff',
+  'schedule',
+  'webhook',
+  'terminal',
+]);
 
 const persistedIdeTabSchema = z.object({
   id: z.string().min(1),
@@ -11,6 +19,7 @@ const persistedIdeTabSchema = z.object({
   spawnId: z.string().optional(),
   scheduleId: z.string().optional(),
   webhookId: z.string().optional(),
+  terminalSessionId: z.string().optional(),
   path: z.string().optional(),
   dirty: z.boolean().optional(),
 });

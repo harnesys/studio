@@ -151,7 +151,7 @@ export function TerminalView({
   }, [sessionId, workspaceId]);
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col bg-[#0b0b0c]" data-testid="ide-terminal">
+    <div className="relative flex min-h-0 flex-1 flex-col" data-testid="ide-terminal">
       <div ref={hostRef} className="min-h-0 flex-1 px-2 py-2" />
       {status === 'connecting' ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">

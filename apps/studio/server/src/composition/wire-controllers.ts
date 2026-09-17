@@ -67,6 +67,7 @@ import type { MachineConfigPort } from '../domain/machine-config.ts';
 import type { SecretStore } from '../domain/secret-store.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
+import type { NodeSupervisor } from './node-supervisor.ts';
 import { wireAgentControllers } from './wire-agent-controllers.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
 import { wirePluginControllers } from './wire-plugin-controllers.ts';
@@ -104,8 +105,11 @@ type ControllerDeps = {
   claimer: RunClaimer;
   feed: RunEventFeed;
   memory: StudioMemoryPorts;
-  db: StudioDb;
+  /** Optional: schedule/webhook mutations run without a cross-node transaction. */
+  db?: StudioDb;
   modelsPort: ModelsPort;
+  /** When set, create/delete workspace also starts/stops the node runtime. */
+  supervisor?: NodeSupervisor;
   getThread: GetThreadInput;
   getThreadPlan: GetThreadPlanInput;
   sendThreadRun: SendThreadRunInput;
@@ -125,6 +129,7 @@ export function wireControllers(d: ControllerDeps): void {
     git: d.git,
     deskEvents: d.deskEvents,
     workspaceHarnesys: d.workspaceHarnesys,
+    supervisor: d.supervisor,
   });
 
   new WindowDeskController({ machineConfig: d.machineConfig }).register(d.app);

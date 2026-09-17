@@ -52,7 +52,7 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
     listPlugins: new ListPluginsUseCase(d.pluginRepo),
     installPlugin: new InstallPluginUseCase(
       d.pluginRepo,
-      d.home,
+      d.workspaceRepo,
       d.workspaceHarnesys,
       d.pluginRegistryRepo,
     ),

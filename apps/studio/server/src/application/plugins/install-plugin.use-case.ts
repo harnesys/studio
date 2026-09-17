@@ -9,11 +9,12 @@ import {
   removePluginPath,
   resolveGitSource,
 } from '../../adapters/plugin-git.adapter.ts';
-import { pluginInstallPath } from '../../adapters/store/studio-layout.ts';
+import { workspacePluginInstallPath } from '../../adapters/store/studio-layout.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { PluginRepository } from '../../domain/plugin.port.ts';
 import type { PluginRegistryRepository } from '../../domain/plugin-registry.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { type MaterializedInstallArgs, PluginTreeInstaller } from './install-plugin-tree.ts';
 import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
 import { findCatalogEntryWithRenames } from './materialize-catalog-plugin.ts';
@@ -40,11 +41,11 @@ export class InstallPluginUseCase implements InstallPluginInput {
 
   constructor(
     private readonly plugins: PluginRepository,
-    private readonly home: string,
+    private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly registries?: PluginRegistryRepository,
   ) {
-    this.tree = new PluginTreeInstaller(plugins, home, workspaceHarnesys);
+    this.tree = new PluginTreeInstaller(plugins, workspaces, workspaceHarnesys);
   }
 
   async execute(request: InstallPluginRequest): Promise<InstallPluginResponse> {
@@ -222,7 +223,11 @@ export class InstallPluginUseCase implements InstallPluginInput {
   }): Promise<InstallPluginResponse> {
     const resolved = resolveGitSource(args.source);
     const repoName = args.catalogPluginName ?? repoNameFromSource(resolved);
-    const dest = pluginInstallPath(this.home, repoName);
+    const workspace = this.workspaces.findById(args.workspaceId);
+    if (!workspace) {
+      throw new NotFoundError('workspace not found');
+    }
+    const dest = workspacePluginInstallPath(workspace.path, repoName);
     if (this.plugins.findByName(args.workspaceId, repoName)) {
       throw new ConflictError(`plugin ${repoName} already exists`);
     }

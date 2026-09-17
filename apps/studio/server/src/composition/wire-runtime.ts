@@ -50,6 +50,7 @@ export type StudioRuntime = {
   webhookQueue: ScheduleFireQueue;
   agentsRef: { current: WorkspaceHarnesysRegistry | null };
   targetRef: { current: RunTargets | null };
+  stop: () => void;
 };
 
 export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
@@ -125,12 +126,12 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
       }
     },
   });
-  startAskTicker({
+  const askTicker = startAskTicker({
     lifecycle: runLifecycle,
     kick: runClaimer.kick,
     onCancelled: (threadId) => publishDeskThread(getThread, deskEvents, threadId),
   });
-  startWaitTicker({
+  const waitTicker = startWaitTicker({
     lifecycle: runLifecycle,
     targets: {
       resolve: (threadId) => targetRef.current?.resolve(threadId) ?? Promise.resolve(null),
@@ -149,5 +150,10 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     webhookQueue,
     agentsRef,
     targetRef,
+    stop: () => {
+      askTicker.stop();
+      waitTicker.stop();
+      runClaimer.stop();
+    },
   };
 }

@@ -9,13 +9,14 @@ import {
   type RemoteCatalogSource,
 } from '../../adapters/plugin-source.adapter.ts';
 import {
-  pluginDataPath,
-  pluginInstallPath,
-  pluginsPath,
+  workspacePluginDataPath,
+  workspacePluginInstallPath,
+  workspacePluginsPath,
 } from '../../adapters/store/studio-layout.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
-import { ConflictError } from '../../domain/studio.error.ts';
+import { ConflictError, NotFoundError } from '../../domain/studio.error.ts';
+import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
 import { prepareCatalogCheckout } from './materialize-catalog-plugin.ts';
 import { toPluginSummary } from './plugin-summary.ts';
@@ -48,12 +49,13 @@ export type MaterializedInstallArgs = {
 export class PluginTreeInstaller {
   constructor(
     private readonly plugins: PluginRepository,
-    private readonly home: string,
+    private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
   ) {}
 
   async fromMaterialized(args: MaterializedInstallArgs): Promise<PluginMutationResponse> {
-    const staged = `${pluginInstallPath(this.home, args.catalogPluginName)}__materialize`;
+    const root = this.workspacePath(args.workspaceId);
+    const staged = `${workspacePluginInstallPath(root, args.catalogPluginName)}__materialize`;
     await removePluginPath(staged).catch(() => undefined);
     try {
       const materialized = await materializeSource({ source: args.installSource, dest: staged });
@@ -73,11 +75,12 @@ export class PluginTreeInstaller {
   }
 
   async fromCopiedTree(args: TreeInstallArgs): Promise<PluginMutationResponse> {
-    const dest = pluginInstallPath(this.home, args.preferredName);
+    const root = this.workspacePath(args.workspaceId);
+    const dest = workspacePluginInstallPath(root, args.preferredName);
     if (this.plugins.findByName(args.workspaceId, args.preferredName)) {
       throw new ConflictError(`plugin ${args.preferredName} already exists`);
     }
-    await mkdir(pluginsPath(this.home), { recursive: true });
+    await mkdir(workspacePluginsPath(root), { recursive: true });
     let checkout = dest;
     let copied = false;
     if (!existsSync(dest)) {
@@ -129,13 +132,14 @@ export class PluginTreeInstaller {
     onRename: (next: string) => void;
     setInstalledName: (name: PluginName) => void;
   }): Promise<PluginMutationResponse> {
+    const root = this.workspacePath(args.workspaceId);
     let checkout = args.checkout;
     let loaded = await loadPluginIrFromDirectory({
       root: checkout,
-      pluginData: pluginDataPath(this.home, repoNameFromPath(checkout)),
+      pluginData: workspacePluginDataPath(root, repoNameFromPath(checkout)),
     });
     const name = loaded.ir.identity.name;
-    const finalDest = pluginInstallPath(this.home, name);
+    const finalDest = workspacePluginInstallPath(root, name);
     if (checkout !== finalDest) {
       if (this.plugins.findByName(args.workspaceId, name)) {
         throw new ConflictError(`plugin ${name} already exists`);
@@ -149,14 +153,14 @@ export class PluginTreeInstaller {
       args.onRename(finalDest);
       loaded = await loadPluginIrFromDirectory({
         root: checkout,
-        pluginData: pluginDataPath(this.home, name),
+        pluginData: workspacePluginDataPath(root, name),
       });
     } else if (this.plugins.findByName(args.workspaceId, name)) {
       throw new ConflictError(`plugin ${name} already exists`);
     }
 
     const now = new Date().toISOString();
-    const dataPath = pluginDataPath(this.home, name);
+    const dataPath = workspacePluginDataPath(root, name);
     const record: PluginInstallRecord = {
       workspaceId: args.workspaceId,
       name,
@@ -180,6 +184,14 @@ export class PluginTreeInstaller {
       plugin: toPluginSummary(saved, loaded.ir),
       diagnostics: loaded.diagnostics,
     };
+  }
+
+  private workspacePath(workspaceId: string): string {
+    const row = this.workspaces.findById(workspaceId);
+    if (!row) {
+      throw new NotFoundError('workspace not found');
+    }
+    return row.path;
   }
 }
 

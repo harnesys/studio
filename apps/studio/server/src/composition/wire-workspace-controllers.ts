@@ -42,9 +42,11 @@ import { SetMcpServerStateUseCase } from '../application/workspaces/set-mcp-serv
 import { StageGitUseCase } from '../application/workspaces/stage-git.use-case.ts';
 import { UpdateWorkspaceUseCase } from '../application/workspaces/update-workspace.use-case.ts';
 import { UpsertWorkspaceMcpServerUseCase } from '../application/workspaces/upsert-workspace-mcp-server.use-case.ts';
+import { WipeWorkspaceUseCase } from '../application/workspaces/wipe-workspace.use-case.ts';
 import { WriteWorkspaceFileContentUseCase } from '../application/workspaces/write-workspace-file-content.use-case.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
+import type { NodeSupervisor } from './node-supervisor.ts';
 
 export type WireWorkspaceControllersDeps = {
   app: Hono;
@@ -58,6 +60,7 @@ export type WireWorkspaceControllersDeps = {
   git: GitCliAdapter;
   deskEvents: DeskEventsAdapter;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
+  supervisor?: NodeSupervisor;
 };
 
 export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void {
@@ -70,18 +73,36 @@ export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void 
   new WorkspaceController({
     listWorkspaces: new ListWorkspacesUseCase(d.nodeRegistry, d.workspaceRepo),
     pickWorkspace: new PickWorkspaceUseCase(d.workspace),
-    createWorkspace: new CreateWorkspaceUseCase(
-      d.nodeRegistry,
-      d.workspace,
-      d.home,
-      d.workspaceRepo,
-    ),
+    createWorkspace: {
+      execute: async (request) => {
+        const created = await new CreateWorkspaceUseCase(
+          d.nodeRegistry,
+          d.workspace,
+          d.home,
+          d.workspaceRepo,
+        ).execute(request);
+        const node = d.nodeRegistry.get(created.workspace.id);
+        if (node && d.supervisor) {
+          d.supervisor.start(node);
+        }
+        return created;
+      },
+    },
     updateWorkspace: new UpdateWorkspaceUseCase(
       d.nodeRegistry,
       d.workspaceRepo,
       d.workspaceHarnesys,
     ),
-    deleteWorkspace: new DeleteWorkspaceUseCase(d.nodeRegistry),
+    deleteWorkspace: {
+      execute: async (request) => {
+        d.supervisor?.stop(request.id);
+        await new DeleteWorkspaceUseCase(d.nodeRegistry).execute(request);
+      },
+    },
+    wipeWorkspace: new WipeWorkspaceUseCase({
+      nodes: d.nodeRegistry,
+      stopRuntime: (id) => d.supervisor?.stop(id),
+    }),
     getWorkspaceStatus: new GetWorkspaceStatusUseCase(d.nodeRegistry, d.workspace),
     getGitStatus: new GetGitStatusUseCase(d.workspaceRepo, d.git),
     getGitFileStatus: new GetGitFileStatusUseCase(d.workspaceRepo, d.git),

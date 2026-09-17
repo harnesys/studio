@@ -22,7 +22,7 @@ import type { WorkspaceRepository } from '../domain/workspace.port.ts';
 
 export type WireSchedulesDeps = {
   app: Hono;
-  db: StudioDb;
+  db?: StudioDb;
   startTicker: boolean;
   schedules: ScheduleRepository;
   threads: ThreadRepository;

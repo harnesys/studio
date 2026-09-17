@@ -1,8 +1,8 @@
-import type { LspServerSpec, PluginComponent } from 'harnesys';
+import type { LspServerSpec, ModelsPort, PluginComponent } from 'harnesys';
+import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
 import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import { MonitorJobRegistrarAdapter } from '../adapters/monitor-job-registrar.adapter.ts';
 import { RunHookBuses } from '../adapters/run-hook-buses.adapter.ts';
-import { MacosSecretStoreAdapter } from '../adapters/secret-store-macos.adapter.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
 import { SqliteUnitOfWork } from '../adapters/store/sqlite/sqlite-unit-of-work.ts';
 import { StudioRunTargets } from '../adapters/studio-run-targets.adapter.ts';
@@ -26,6 +26,8 @@ import type { StudioRuntime } from './wire-runtime.ts';
 
 export type StudioHostOptions = {
   workspaceHarnesys?: WorkspaceHarnesysRegistry;
+  /** Shared host Keychain adapter; omit to leave secrets unavailable on this node. */
+  secretStore?: SecretStore;
 };
 
 export type StudioHost = {
@@ -37,8 +39,10 @@ export type StudioHost = {
   getThreadPlan: GetThreadPlanUseCase;
   sendThreadRun: SendThreadRunUseCase;
   lsp: StudioLspAdapter;
+  modelsPort: ModelsPort;
   /** Undefined when the platform has no Keychain access; sensitive options then refuse to save. */
   secretStore?: SecretStore;
+  stop: () => void;
 };
 
 export function createStudioHost(args: {
@@ -49,6 +53,7 @@ export function createStudioHost(args: {
   options: StudioHostOptions;
 }): StudioHost {
   const { store, platform, runtime, memory, options } = args;
+  const modelsPort = createHarnesysModelsPort(store.llmProviderRepo, store.llmModelRepo);
 
   const runtimeStateRepo = new SqliteRuntimeStateRepo(store.db, (threadId, events) => {
     const compaction = events.find((e) => e.type === 'compaction.completed');
@@ -159,7 +164,7 @@ export function createStudioHost(args: {
   const workspaceHarnesys =
     options.workspaceHarnesys ??
     new WorkspaceHarnesysRegistry(
-      platform.modelsPort,
+      modelsPort,
       {
         agents: store.agentRepo,
         modelRepo: store.llmModelRepo,
@@ -280,17 +285,7 @@ export function createStudioHost(args: {
     listSkills: new ListWorkspaceSkillsUseCase(store.workspaceRepo, workspaceHarnesys),
   });
 
-  let secretStore: SecretStore | undefined;
-  try {
-    secretStore = new MacosSecretStoreAdapter();
-  } catch (err) {
-    logger.warn(
-      { scope: 'plugins' },
-      `SecretStore unavailable, sensitive plugin options will refuse to save: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-    );
-  }
+  const secretStore = options.secretStore;
 
   return {
     runtimeStateRepo,
@@ -300,7 +295,17 @@ export function createStudioHost(args: {
     getThreadPlan,
     sendThreadRun,
     lsp: lspAdapter,
+    modelsPort,
     ...(secretStore ? { secretStore } : {}),
+    stop: () => {
+      for (const stop of watcherStops.values()) {
+        stop();
+      }
+      watcherStops.clear();
+      for (const row of store.workspaceRepo.list()) {
+        void workspaceHarnesys.forget(row.id);
+      }
+    },
   };
 }
 

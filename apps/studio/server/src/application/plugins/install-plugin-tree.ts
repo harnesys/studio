@@ -1,6 +1,6 @@
 import { cpSync, existsSync } from 'node:fs';
 import { mkdir, rename } from 'node:fs/promises';
-import type { PluginMutationResponse } from '@harnesys/studio-shared';
+import type { PluginDiagnostic, PluginMutationResponse } from '@harnesys/studio-shared';
 import type { PluginName } from 'harnesys';
 import { loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import { removePluginPath } from '../../adapters/plugin-git.adapter.ts';
@@ -17,7 +17,7 @@ import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesy
 import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
 import { ConflictError, NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+import { invalidatePluginWorkspaces, type LspByWorkspace } from './invalidate-plugin-workspaces.ts';
 import { prepareCatalogCheckout } from './materialize-catalog-plugin.ts';
 import { toPluginSummary } from './plugin-summary.ts';
 
@@ -51,6 +51,7 @@ export class PluginTreeInstaller {
     private readonly plugins: PluginRepository,
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
+    private readonly lspByWorkspace?: LspByWorkspace,
   ) {}
 
   async fromMaterialized(args: MaterializedInstallArgs): Promise<PluginMutationResponse> {
@@ -93,6 +94,7 @@ export class PluginTreeInstaller {
         args.marketplaceRoot && args.catalogPluginName
           ? await prepareCatalogCheckout(checkout, args.marketplaceRoot, args.catalogPluginName)
           : [];
+      const copiedFrom = checkout;
       const result = await this.finalize({
         workspaceId: args.workspaceId,
         checkout,
@@ -109,7 +111,11 @@ export class PluginTreeInstaller {
       });
       return {
         plugin: result.plugin,
-        diagnostics: [...extraDiagnostics, ...result.diagnostics],
+        diagnostics: rewriteStagedDiagPaths(
+          [...extraDiagnostics, ...result.diagnostics],
+          copiedFrom,
+          checkout,
+        ),
       };
     } catch (err) {
       if (installedName !== undefined) {
@@ -179,7 +185,11 @@ export class PluginTreeInstaller {
     args.setInstalledName(name);
     const saved = this.plugins.upsert(record);
     await mkdir(dataPath, { recursive: true });
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
+    await invalidatePluginWorkspaces(
+      this.workspaceHarnesys,
+      [saved.workspaceId],
+      this.lspByWorkspace,
+    );
     return {
       plugin: toPluginSummary(saved, loaded.ir),
       diagnostics: loaded.diagnostics,
@@ -197,4 +207,18 @@ export class PluginTreeInstaller {
 
 function repoNameFromPath(path: string): string {
   return path.split(/[/\\]/).filter(Boolean).at(-1) ?? 'plugin';
+}
+
+/** Diagnostics collected against the pre-rename checkout point at the final install dir. */
+function rewriteStagedDiagPaths(
+  diagnostics: PluginDiagnostic[],
+  staged: string,
+  final: string,
+): PluginDiagnostic[] {
+  if (staged === final) {
+    return diagnostics;
+  }
+  return diagnostics.map((d) =>
+    d.path?.startsWith(staged) ? { ...d, path: `${final}${d.path.slice(staged.length)}` } : d,
+  );
 }

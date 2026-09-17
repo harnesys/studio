@@ -10,7 +10,7 @@ import type {
 } from '../../domain/plugin.port.ts';
 import type { SecretStore } from '../../domain/secret-store.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+import { invalidatePluginWorkspaces, type LspByWorkspace } from './invalidate-plugin-workspaces.ts';
 import { isConfigOptionComponent } from './plugin-user-config.ts';
 
 export type SetPluginOptionRequest = {
@@ -40,6 +40,7 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
     private readonly plugins: PluginRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly secrets?: SecretStore,
+    private readonly lspByWorkspace?: LspByWorkspace,
   ) {}
 
   async execute(request: SetPluginOptionRequest): Promise<SetPluginOptionResponse> {
@@ -67,7 +68,11 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
       request.key,
       coerceOptionValue(spec, request.value),
     );
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
+    await invalidatePluginWorkspaces(
+      this.workspaceHarnesys,
+      [saved.workspaceId],
+      this.lspByWorkspace,
+    );
     return { plugin: saved, diagnostics: [] };
   }
 
@@ -104,7 +109,11 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
         ],
       };
     }
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, [record.workspaceId]);
+    await invalidatePluginWorkspaces(
+      this.workspaceHarnesys,
+      [record.workspaceId],
+      this.lspByWorkspace,
+    );
     return { plugin: record, diagnostics: [] };
   }
 }

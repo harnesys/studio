@@ -3,7 +3,7 @@ import { removePluginPath } from '../../adapters/plugin-git.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { PluginRepository } from '../../domain/plugin.port.ts';
 import { ConflictError, NotFoundError } from '../../domain/studio.error.ts';
-import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+import { invalidatePluginWorkspaces, type LspByWorkspace } from './invalidate-plugin-workspaces.ts';
 import { findDependantNames } from './resolve-dependencies.ts';
 
 export type RemovePluginRequest = {
@@ -20,6 +20,7 @@ export class RemovePluginUseCase implements RemovePluginInput {
   constructor(
     private readonly plugins: PluginRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
+    private readonly lspByWorkspace?: LspByWorkspace,
   ) {}
 
   async execute(request: RemovePluginRequest): Promise<void> {
@@ -39,6 +40,10 @@ export class RemovePluginUseCase implements RemovePluginInput {
         await removePluginPath(current.dataPath);
       }
     }
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, [request.workspaceId]);
+    await invalidatePluginWorkspaces(
+      this.workspaceHarnesys,
+      [request.workspaceId],
+      this.lspByWorkspace,
+    );
   }
 }

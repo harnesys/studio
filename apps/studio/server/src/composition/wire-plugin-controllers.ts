@@ -9,6 +9,10 @@ import type { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-
 import type { WorkspaceHarnesysRegistry } from '../adapters/workspace-harnesys.registry.ts';
 import { ApproveServerUseCase } from '../application/plugins/approve-server.use-case.ts';
 import { InstallPluginUseCase } from '../application/plugins/install-plugin.use-case.ts';
+import type {
+  LspByWorkspace,
+  LspWorkspaceRef,
+} from '../application/plugins/invalidate-plugin-workspaces.ts';
 import { ListPluginsUseCase } from '../application/plugins/list-plugins.use-case.ts';
 import { RemovePluginUseCase } from '../application/plugins/remove-plugin.use-case.ts';
 import { SetGrantsUseCase } from '../application/plugins/set-grants.use-case.ts';
@@ -23,6 +27,8 @@ import {
 } from '../application/plugins/sync-plugin-registry.use-case.ts';
 import { UpdatePluginUseCase } from '../application/plugins/update-plugin.use-case.ts';
 import type { SecretStore } from '../domain/secret-store.port.ts';
+import type { NodeSupervisor } from './node-supervisor.ts';
+import { requireNode } from './routing-helpers.ts';
 
 export type WirePluginControllersDeps = {
   app: Hono;
@@ -33,9 +39,11 @@ export type WirePluginControllersDeps = {
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   lsp: StudioLspAdapter;
   secretStore?: SecretStore;
+  supervisor?: NodeSupervisor;
 };
 
 export function wirePluginControllers(d: WirePluginControllersDeps): void {
+  const lspByWorkspace = createLspByWorkspace(d);
   const syncPluginRegistry = new SyncPluginRegistryUseCase(d.pluginRegistryRepo, d.home);
   const addPluginRegistry = new AddPluginRegistryUseCase(
     d.pluginRegistryRepo,
@@ -55,17 +63,24 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
       d.workspaceRepo,
       d.workspaceHarnesys,
       d.pluginRegistryRepo,
+      lspByWorkspace,
     ),
     updatePlugin: new UpdatePluginUseCase(
       d.pluginRepo,
       d.workspaceHarnesys,
       d.pluginRegistryRepo,
       syncPluginRegistry,
+      lspByWorkspace,
     ),
-    setGrants: new SetGrantsUseCase(d.pluginRepo, d.workspaceHarnesys),
-    approveServer: new ApproveServerUseCase(d.pluginRepo, d.workspaceHarnesys),
-    setPluginOption: new SetPluginOptionUseCase(d.pluginRepo, d.workspaceHarnesys, d.secretStore),
-    removePlugin: new RemovePluginUseCase(d.pluginRepo, d.workspaceHarnesys),
+    setGrants: new SetGrantsUseCase(d.pluginRepo, d.workspaceHarnesys, lspByWorkspace),
+    approveServer: new ApproveServerUseCase(d.pluginRepo, d.workspaceHarnesys, lspByWorkspace),
+    setPluginOption: new SetPluginOptionUseCase(
+      d.pluginRepo,
+      d.workspaceHarnesys,
+      d.secretStore,
+      lspByWorkspace,
+    ),
+    removePlugin: new RemovePluginUseCase(d.pluginRepo, d.workspaceHarnesys, lspByWorkspace),
   }).register(d.app);
 
   new PluginRegistriesController({
@@ -88,4 +103,31 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
     workspaceRepo: d.workspaceRepo,
     lsp: d.lsp,
   }).register();
+}
+
+/**
+ * Plugin mutations invalidate the runtime plus the workspace LSP sessions.
+ * Routing contexts resolve the node-local adapter via the supervisor;
+ * node-local wiring uses the workspace repo row plus the shared adapter.
+ */
+function createLspByWorkspace(d: WirePluginControllersDeps): LspByWorkspace {
+  const supervisor = d.supervisor;
+  if (supervisor) {
+    return (id: string): LspWorkspaceRef | undefined => {
+      try {
+        const node = requireNode(supervisor, id);
+        const workspace = node.store.workspaceRepo.findById(id);
+        return { cwd: workspace?.path ?? node.node.path, lsp: node.host.lsp };
+      } catch {
+        return undefined;
+      }
+    };
+  }
+  return (id: string): LspWorkspaceRef | undefined => {
+    const workspace = d.workspaceRepo.findById(id);
+    if (!workspace) {
+      return undefined;
+    }
+    return { cwd: workspace.path, lsp: d.lsp };
+  };
 }

@@ -147,6 +147,7 @@ export function wireControllers(d: ControllerDeps): void {
     workspaceHarnesys: d.workspaceHarnesys,
     lsp: d.lsp,
     secretStore: d.secretStore,
+    supervisor: d.supervisor,
   });
 
   new ProviderController({

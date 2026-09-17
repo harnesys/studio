@@ -17,7 +17,7 @@ import type {
   PluginRegistryRepository,
 } from '../../domain/plugin-registry.port.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+import { invalidatePluginWorkspaces, type LspByWorkspace } from './invalidate-plugin-workspaces.ts';
 import {
   findCatalogEntryWithRenames,
   prepareCatalogCheckout,
@@ -41,11 +41,13 @@ export type UpdatePluginInput = {
 };
 
 export class UpdatePluginUseCase implements UpdatePluginInput {
+  // biome-ignore lint/complexity/useMaxParams: lspByWorkspace is the optional 5th param for LSP invalidation; existing callers unaffected
   constructor(
     private readonly plugins: PluginRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly registries?: PluginRegistryRepository,
     private readonly syncRegistry?: SyncPluginRegistryInput,
+    private readonly lspByWorkspace?: LspByWorkspace,
   ) {}
 
   async execute(request: UpdatePluginRequest): Promise<UpdatePluginResponse> {
@@ -79,7 +81,11 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
       revision: checkout.revision,
       updatedAt: now,
     });
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
+    await invalidatePluginWorkspaces(
+      this.workspaceHarnesys,
+      [saved.workspaceId],
+      this.lspByWorkspace,
+    );
     return {
       plugin: toPluginSummary(saved, loaded.ir),
       diagnostics: loaded.diagnostics,
@@ -173,10 +179,18 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
         catalogPluginName: entry.pluginName,
         updatedAt: now,
       });
-      await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
+      await invalidatePluginWorkspaces(
+        this.workspaceHarnesys,
+        [saved.workspaceId],
+        this.lspByWorkspace,
+      );
       return {
         plugin: toPluginSummary(saved, loaded.ir),
-        diagnostics: [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
+        diagnostics: rewriteStagedDiagPaths(
+          [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
+          staged,
+          current.path,
+        ),
       };
     } catch (err) {
       await removePluginPath(staged).catch(() => undefined);
@@ -225,16 +239,38 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
         catalogPluginName: args.entry.pluginName,
         updatedAt: now,
       });
-      await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
+      await invalidatePluginWorkspaces(
+        this.workspaceHarnesys,
+        [saved.workspaceId],
+        this.lspByWorkspace,
+      );
       return {
         plugin: toPluginSummary(saved, loaded.ir),
-        diagnostics: [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
+        diagnostics: rewriteStagedDiagPaths(
+          [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
+          staged,
+          nextPath,
+        ),
       };
     } catch (err) {
       await removePluginPath(staged).catch(() => undefined);
       throw err;
     }
   }
+}
+
+/** Diagnostics collected against the staged checkout point at the final install dir after rename. */
+function rewriteStagedDiagPaths(
+  diagnostics: PluginDiagnostic[],
+  staged: string,
+  final: string,
+): PluginDiagnostic[] {
+  if (staged === final) {
+    return diagnostics;
+  }
+  return diagnostics.map((d) =>
+    d.path?.startsWith(staged) ? { ...d, path: `${final}${d.path.slice(staged.length)}` } : d,
+  );
 }
 
 /** Version-keyed cache dir `plugins/<name>/<revision>`; flat installs nest under their name dir. */

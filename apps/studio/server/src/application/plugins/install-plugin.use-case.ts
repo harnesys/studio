@@ -16,7 +16,7 @@ import type { PluginRegistryRepository } from '../../domain/plugin-registry.port
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { type MaterializedInstallArgs, PluginTreeInstaller } from './install-plugin-tree.ts';
-import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
+import { invalidatePluginWorkspaces, type LspByWorkspace } from './invalidate-plugin-workspaces.ts';
 import { findCatalogEntryWithRenames } from './materialize-catalog-plugin.ts';
 import { resolvePluginDependencies } from './resolve-dependencies.ts';
 
@@ -39,13 +39,15 @@ export type InstallPluginInput = {
 export class InstallPluginUseCase implements InstallPluginInput {
   private readonly tree: PluginTreeInstaller;
 
+  // biome-ignore lint/complexity/useMaxParams: lspByWorkspace is the optional 5th param for LSP invalidation; existing callers unaffected
   constructor(
     private readonly plugins: PluginRepository,
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly registries?: PluginRegistryRepository,
+    private readonly lspByWorkspace?: LspByWorkspace,
   ) {
-    this.tree = new PluginTreeInstaller(plugins, workspaces, workspaceHarnesys);
+    this.tree = new PluginTreeInstaller(plugins, workspaces, workspaceHarnesys, lspByWorkspace);
   }
 
   async execute(request: InstallPluginRequest): Promise<InstallPluginResponse> {
@@ -102,7 +104,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
         updatedAt: now,
       });
     }
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, [workspaceId]);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, [workspaceId], this.lspByWorkspace);
     if (resolution.diagnostics.length === 0) {
       return result;
     }

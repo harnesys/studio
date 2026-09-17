@@ -89,6 +89,22 @@ export class StudioLspAdapter implements LspPort {
     }
   }
 
+  async invalidateCwd(cwd: string): Promise<void> {
+    this.serversByCwd.delete(cwd);
+    const prefix = `${cwd}::`;
+    const doomed = [...this.sessions.entries()].filter(([k]) => k.startsWith(prefix));
+    for (const [k] of doomed) {
+      this.sessions.delete(k);
+    }
+    for (const [, p] of doomed) {
+      try {
+        (await p).dispose();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   /** True when some enabled server maps this file extension (does not start anything). */
   async hasServerFor(cwd: string, filePath: string): Promise<boolean> {
     const servers = await this.effectiveServers(cwd);

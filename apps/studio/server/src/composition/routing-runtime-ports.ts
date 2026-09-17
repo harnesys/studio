@@ -175,6 +175,11 @@ export function createRoutingWorkspaceHarnesys(
       requireNode(supervisor, workspaceId).host.workspaceHarnesys.invalidate(workspaceId),
     forget: (workspaceId: string) =>
       requireNode(supervisor, workspaceId).host.workspaceHarnesys.forget(workspaceId),
+    evictIrFor: (prefix: string): void => {
+      for (const entry of supervisor.list()) {
+        entry.host.workspaceHarnesys.evictIrFor(prefix);
+      }
+    },
     loadEnabledPlugins: (workspaceId: string): Promise<LoadedWorkspacePlugin[]> =>
       requireNode(supervisor, workspaceId).host.workspaceHarnesys.loadEnabledPlugins(workspaceId),
     pluginAgents: (workspaceId: string): Promise<PluginAgentCatalog> =>

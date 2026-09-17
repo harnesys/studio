@@ -102,6 +102,9 @@ export class WorkspaceHarnesysRegistry {
     const pending = this.cache.get(workspaceId);
     this.cache.delete(workspaceId);
     this.skillsCache.delete(workspaceId);
+    for (const record of this.repos.plugins?.list(workspaceId) ?? []) {
+      this.evictIrFor(`${record.name}@`);
+    }
     if (!pending) {
       return;
     }
@@ -125,6 +128,14 @@ export class WorkspaceHarnesysRegistry {
   /** Реальный compose-реестр скилов workspace; `undefined` до прогрева `get(workspace)`. */
   skillsFor(workspaceId: string): SkillRegistry | undefined {
     return this.skillsCache.get(workspaceId);
+  }
+
+  evictIrFor(prefix: string): void {
+    for (const key of [...this.irCache.keys()]) {
+      if (key.startsWith(prefix)) {
+        this.irCache.delete(key);
+      }
+    }
   }
 
   /**

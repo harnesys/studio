@@ -24,8 +24,10 @@ server/
   application/    # use case-классы
   adapters/       # HTTP, SQLite, FS
   composition/    # сборка
-  index.ts        # Main: listen, static
+  index.ts        # Main: listen (API+WS only; no client/dist)
 ```
+
+Dev ports: UI Vite `:5173`, host API `:3000`. Host does not serve the SPA.
 
 Доменные порты и ошибки — в `server/src/domain`.
 

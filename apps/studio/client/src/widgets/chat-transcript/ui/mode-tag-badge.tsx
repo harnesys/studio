@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { type LucideIcon, ZapIcon } from 'lucide-react';
 
 import { workspaceSkillsQuery } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { Badge } from '@/shared/ui/badge';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/shared/ui/hover-card';
 
@@ -19,7 +19,7 @@ export function ModeTagBadges({
   const skillsBadge = badges.find((badge) => badge.kind === 'skills');
   const parsedSkills = badges.flatMap((badge) => (badge.kind === 'skill' ? [badge.name] : []));
   const skillNames = parsedSkills.length > 0 ? parsedSkills : (sidecarSkills ?? []);
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const skillsQuery = useQuery({
     ...workspaceSkillsQuery(workspaceId ?? ''),
     enabled: skillNames.length > 0 && Boolean(workspaceId),

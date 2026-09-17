@@ -19,7 +19,7 @@ import { loadPersisted, normalizeIdeFilePath, persist, tabIdFor } from './ide-pe
 
 export { firstGroupOfLayout, type IdeSplitNode, lastGroupOfLayout } from './ide-tree';
 
-export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff';
+export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff' | 'schedule' | 'webhook';
 export type IdeTab = {
   id: string;
   kind: IdeTabKind;
@@ -27,10 +27,17 @@ export type IdeTab = {
   agentId?: string;
   threadId?: string;
   spawnId?: string;
+  scheduleId?: string;
+  webhookId?: string;
   path?: string;
   dirty?: boolean;
 };
 export type { IdeGroup, IdeSplitSide, IdeWorkspaceState } from './ide-layout';
+
+export type VisibleDesk = {
+  tabs: IdeTab[];
+  activeId: string | null;
+};
 
 type IdeState = { byWorkspace: Record<string, IdeWorkspaceState> };
 type IdeStore = IdeState & {
@@ -38,9 +45,17 @@ type IdeStore = IdeState & {
   openSpawn: (workspaceId: string, agentId: string, threadId: string, spawnId: string) => void;
   openFile: (workspaceId: string, path: string) => void;
   openDiff: (workspaceId: string, path: string) => void;
+  openSchedule: (
+    workspaceId: string,
+    scheduleId: string,
+    threadId: string,
+    agentId: string,
+  ) => void;
+  openWebhook: (workspaceId: string, webhookId: string, threadId: string, agentId: string) => void;
   closeTab: (workspaceId: string, tabId: string) => void;
   closeAll: (workspaceId: string) => void;
   setActive: (workspaceId: string, tabId: string) => void;
+  setDeskActive: (workspaceId: string, tabId: string, visibleIds: string[]) => void;
   setFileDirty: (workspaceId: string, path: string, dirty: boolean) => void;
   closeByEntity: (workspaceId: string, kind: IdeTabKind, entityId: string) => void;
   remapPaths: (workspaceId: string, moves: WorkspaceMoveItem[]) => void;
@@ -103,6 +118,32 @@ export const useIdeStore = create<IdeStore>((set) => {
         const tab: IdeTab = { id, kind: 'diff', workspaceId, path: normalized };
         return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
       }),
+    openSchedule: (workspaceId, scheduleId, threadId, agentId) =>
+      set((state) => {
+        const id = tabIdFor('schedule', scheduleId);
+        const tab: IdeTab = {
+          id,
+          kind: 'schedule',
+          workspaceId,
+          scheduleId,
+          threadId,
+          agentId,
+        };
+        return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
+      }),
+    openWebhook: (workspaceId, webhookId, threadId, agentId) =>
+      set((state) => {
+        const id = tabIdFor('webhook', webhookId);
+        const tab: IdeTab = {
+          id,
+          kind: 'webhook',
+          workspaceId,
+          webhookId,
+          threadId,
+          agentId,
+        };
+        return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
+      }),
     closeTab: (workspaceId, tabId) =>
       set((state) => withWs(state, workspaceId, closeTabState(pick(state, workspaceId), tabId))),
     closeAll: (workspaceId) =>
@@ -116,6 +157,26 @@ export const useIdeStore = create<IdeStore>((set) => {
       set((state) =>
         withWs(state, workspaceId, withActiveTabState(pick(state, workspaceId), tabId)),
       ),
+    setDeskActive: (workspaceId, tabId, visibleIds) =>
+      set((state) => {
+        let next: IdeState = state;
+        for (const id of visibleIds) {
+          if (id === workspaceId) {
+            continue;
+          }
+          const ws = next.byWorkspace[id];
+          if (!ws?.activeId) {
+            continue;
+          }
+          next = {
+            byWorkspace: {
+              ...next.byWorkspace,
+              [id]: { ...ws, activeId: null },
+            },
+          };
+        }
+        return withWs(next, workspaceId, withActiveTabState(pick(next, workspaceId), tabId));
+      }),
     setFileDirty: (workspaceId, path, dirty) =>
       set((state) => {
         const current = state.byWorkspace[workspaceId];

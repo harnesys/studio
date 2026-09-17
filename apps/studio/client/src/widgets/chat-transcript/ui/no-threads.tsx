@@ -2,7 +2,7 @@ import { MessageSquarePlusIcon } from 'lucide-react';
 import type { Agent } from '@/entities/agent';
 import { useDeskStore } from '@/features/desk';
 import { openNewThread } from '@/features/switch-thread';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import {
   CategoryLanding,
@@ -14,7 +14,7 @@ import {
 } from '@/shared/ui/category-landing';
 
 export function NoThreads({ agent }: { agent: Agent }) {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const { openThread } = useStudioNavigation();
 
   return (
@@ -40,7 +40,7 @@ export function NoThreads({ agent }: { agent: Agent }) {
               void openNewThread(agent.id, workspaceId).then((threadId) => {
                 if (threadId) {
                   useDeskStore.getState().setFocusedThreadId(threadId);
-                  openThread(threadId, { kind: 'agent', id: agent.id }, workspaceId);
+                  openThread(workspaceId, threadId);
                 }
               });
             }}

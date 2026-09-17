@@ -1,10 +1,10 @@
 import { openFileKind, useWorkspaceOpenFiles } from '@/features/open-file';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { MediaPreview } from './media-preview';
 import { TextEditor } from './text-editor';
 
 export function FilePane() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const { tabs, activePath } = useWorkspaceOpenFiles(workspaceId);
   const active = tabs.find((tab) => tab.path === activePath) ?? null;
 

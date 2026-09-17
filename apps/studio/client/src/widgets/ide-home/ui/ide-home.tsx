@@ -2,6 +2,7 @@ import { BotIcon, CalendarClockIcon, EarthIcon, FileIcon } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/entities/agent';
+import { useSelectedWorkspaceIds } from '@/features/desk';
 import { useIdeStore } from '@/features/ide';
 import {
   createAgent,
@@ -10,7 +11,6 @@ import {
 } from '@/features/manage-agent';
 import { createSchedule, openScheduleConfigDialog } from '@/features/manage-schedule';
 import { createWebhook, openWebhookConfigDialog } from '@/features/manage-webhook';
-import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 import { dialog } from '@/shared/services/overlay';
 import {
@@ -24,7 +24,8 @@ import {
 import { NewFileDialog } from './new-file-dialog';
 
 export function IdeHome() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceIds = useSelectedWorkspaceIds();
+  const workspaceId = workspaceIds[0] ?? null;
   const navigate = useNavigate();
   const agents = useAgentStore(
     useShallow((s) => (workspaceId ? s.items.filter((a) => a.workspaceId === workspaceId) : [])),
@@ -61,12 +62,7 @@ export function IdeHome() {
                 }
                 await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
                 useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
-                void navigate(
-                  studioPath.thread(workspaceId, created.thread.id, {
-                    kind: 'agent',
-                    id: created.agent.id,
-                  }),
-                );
+                void navigate(studioPath.thread(workspaceId, created.thread.id));
               });
             }}
           />
@@ -83,13 +79,13 @@ export function IdeHome() {
                 if (schedule) {
                   useIdeStore
                     .getState()
-                    .openThread(workspaceId, schedule.targetAgentId, schedule.threadId);
-                  void navigate(
-                    studioPath.thread(workspaceId, schedule.threadId, {
-                      kind: 'scheduler',
-                      id: schedule.id,
-                    }),
-                  );
+                    .openSchedule(
+                      workspaceId,
+                      schedule.id,
+                      schedule.threadId,
+                      schedule.targetAgentId,
+                    );
+                  void navigate(studioPath.schedule(workspaceId, schedule.id));
                 }
               });
             }}
@@ -107,13 +103,8 @@ export function IdeHome() {
                 if (created) {
                   useIdeStore
                     .getState()
-                    .openThread(workspaceId, created.targetAgentId, created.threadId);
-                  void navigate(
-                    studioPath.thread(workspaceId, created.threadId, {
-                      kind: 'webhook',
-                      id: created.id,
-                    }),
-                  );
+                    .openWebhook(workspaceId, created.id, created.threadId, created.targetAgentId);
+                  void navigate(studioPath.webhook(workspaceId, created.id));
                 }
               });
             }}

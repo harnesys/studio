@@ -260,7 +260,7 @@ export function ExplorerContent({
     activateWorkspace();
     openWorkspaceFile(workspaceId, path);
     useIdeStore.getState().openFile(workspaceId, path);
-    openFile(path);
+    openFile(workspaceId, path);
   };
 
   useFilesHotkey(selectionWorkspaceId === workspaceId ? workspaceId : '');

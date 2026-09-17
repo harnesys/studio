@@ -19,7 +19,7 @@ export function useThreadActions(workspaceId: string) {
 
   const openThread = (thread: Thread) => {
     openThreadRecord(thread, workspaceId);
-    void navigate(studioPath.thread(workspaceId, thread.id, { kind: 'agent', id: thread.agentId }));
+    void navigate(studioPath.thread(workspaceId, thread.id));
   };
 
   const createThread = (agentId: string) => {
@@ -73,8 +73,6 @@ export function useOpenThread() {
       return;
     }
     openThreadRecord(thread, thread.workspaceId);
-    void navigate(
-      studioPath.thread(thread.workspaceId, thread.id, { kind: 'agent', id: thread.agentId }),
-    );
+    void navigate(studioPath.thread(thread.workspaceId, thread.id));
   };
 }

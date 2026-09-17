@@ -44,7 +44,13 @@ export function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | nu
   const alive = new Set(
     tabs
       .filter(
-        (t) => t.kind === 'thread' || t.kind === 'file' || t.kind === 'spawn' || t.kind === 'diff',
+        (t) =>
+          t.kind === 'thread' ||
+          t.kind === 'file' ||
+          t.kind === 'spawn' ||
+          t.kind === 'diff' ||
+          t.kind === 'schedule' ||
+          t.kind === 'webhook',
       )
       .map((t) => t.id),
   );

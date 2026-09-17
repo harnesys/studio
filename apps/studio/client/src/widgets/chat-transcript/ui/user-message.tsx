@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { deleteTurn } from '@/features/send-message';
 import { branchThread } from '@/features/switch-thread';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { formatClock } from '@/shared/lib/format-clock';
 import { Bubble, BubbleContent } from '@/shared/ui/bubble';
@@ -19,7 +19,7 @@ export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: 
   const [editing, setEditing] = useState(false);
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const { openThread } = useStudioNavigation();
   const rawText = entry.text ?? '';
   const visibleText = visibleMessageText(rawText);
@@ -62,7 +62,7 @@ export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: 
             void branchThread(entry.id, agent.id, thread.id, workspaceId).then((nextId) => {
               if (nextId) {
                 useDeskStore.getState().setFocusedThreadId(nextId);
-                openThread(nextId, { kind: 'agent', id: agent.id }, workspaceId);
+                openThread(workspaceId, nextId);
               }
             });
           }}

@@ -10,7 +10,7 @@ import { CalendarClockIcon } from 'lucide-react';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { deleteTurn } from '@/features/send-message';
 import { branchThread } from '@/features/switch-thread';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { formatClock } from '@/shared/lib/format-clock';
 import { toast } from '@/shared/ui/toast';
@@ -26,7 +26,7 @@ export function isScheduleWake(entry: HumanEntry): boolean {
 export function ScheduleWakeMessage({ entry, threadId }: { entry: HumanEntry; threadId: string }) {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const { openThread } = useStudioNavigation();
   const text = entry.text ?? '';
   const title = scheduledTaskName(text) ?? 'Schedule';
@@ -63,7 +63,7 @@ export function ScheduleWakeMessage({ entry, threadId }: { entry: HumanEntry; th
           void branchThread(entry.id, agent.id, thread.id, workspaceId).then((nextId) => {
             if (nextId) {
               useDeskStore.getState().setFocusedThreadId(nextId);
-              openThread(nextId, { kind: 'agent', id: agent.id }, workspaceId);
+              openThread(workspaceId, nextId);
             }
           });
         }}

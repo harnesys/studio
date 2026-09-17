@@ -7,7 +7,7 @@ import {
   useSelectedThread,
 } from '@/features/desk';
 import { MAX_MOUNTED_THREADS } from '@/shared/config/constants';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { cn } from '@/shared/lib/utils';
 
 import { ChatSkeleton } from './chat-skeleton';
@@ -15,7 +15,7 @@ import { NoThreads } from './no-threads';
 import { ThreadPanel } from './thread-panel';
 
 export function ChatTranscript() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const isHydrating = useDeskStore(
     (state) => Boolean(workspaceId) && state.hydrated[workspaceId ?? ''] !== 'ready',
   );

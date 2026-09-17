@@ -10,6 +10,8 @@ import { SpawnView, ThreadPanel } from '@/widgets/chat-transcript';
 import { MediaPreview, TextEditor } from '@/widgets/file-pane';
 import { ThreadJournal } from '@/widgets/thread-journal';
 
+import { ScheduleSurface, WebhookSurface } from './automation-surface';
+
 export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: string }) {
   const isHydrating = useDeskStore((state) => state.hydrated[workspaceId] !== 'ready');
   const thread = useThreadStore((state) =>
@@ -48,6 +50,12 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
         <HitlPrompt />
       </div>
     );
+  }
+  if (tab.kind === 'schedule' && tab.scheduleId) {
+    return <ScheduleSurface workspaceId={workspaceId} scheduleId={tab.scheduleId} />;
+  }
+  if (tab.kind === 'webhook' && tab.webhookId) {
+    return <WebhookSurface workspaceId={workspaceId} webhookId={tab.webhookId} />;
   }
   if (tab.kind === 'spawn' && tab.threadId && tab.spawnId) {
     return <SpawnView tab={tab} threadId={tab.threadId} spawnId={tab.spawnId} />;

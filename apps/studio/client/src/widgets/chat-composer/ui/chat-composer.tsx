@@ -8,7 +8,7 @@ import { useSelectedAgent, useSelectedThread, useThreadEvents } from '@/features
 import { ModelSelect } from '@/features/manage-agent';
 import { pendingHitl, useRunStreamState } from '@/features/send-message';
 import { cancelRun, providersQuery } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { findModelLabel } from '@/shared/lib/model-label';
 import { Button } from '@/shared/ui/button';
 import { InputGroup, InputGroupAddon } from '@/shared/ui/input-group';
@@ -42,7 +42,7 @@ import { UnverifiedModelCard } from './unverified-model-card';
 export function ChatComposer() {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const events = useThreadEvents(thread?.id ?? null);
   const providers = useQuery(providersQuery).data ?? [];
   const modelId = agent?.modelId;

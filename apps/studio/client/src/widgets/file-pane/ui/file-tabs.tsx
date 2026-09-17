@@ -6,13 +6,13 @@ import {
   selectWorkspaceFile,
   useWorkspaceOpenFiles,
 } from '@/features/open-file';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { cn } from '@/shared/lib/utils';
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 
 export function FileTabs() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const { tabs, activePath } = useWorkspaceOpenFiles(workspaceId);
   const activeTabRef = useRef<HTMLDivElement | null>(null);
 

@@ -13,7 +13,7 @@ import {
   type SemanticDraft,
 } from '@/features/manage-agent-memory';
 import { agentSemanticQuery, deleteAgentSemantic, upsertAgentSemantic } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { formatDayTime } from '@/shared/lib/format-clock';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
@@ -23,7 +23,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 import { Section } from './section';
 
 export function SemanticPanel({ agent }: { agent: Agent }) {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const thread = useSelectedThread();
   const queryClient = useQueryClient();
   const [scope, setScope] = useState<SemanticScope | 'all'>('all');

@@ -10,7 +10,7 @@ import { useLiveTail, useSessionStore } from '@/entities/session';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
 import { attachmentUrl } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { FileChip } from '@/shared/ui/file-chip';
 import { Markdown } from '@/shared/ui/markdown';
@@ -120,7 +120,7 @@ export function AssistantMessageView({
 }) {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const { openThread } = useStudioNavigation();
   const segments = groupSegments(events);
   const textBlocks = segments.filter(
@@ -183,7 +183,7 @@ export function AssistantMessageView({
               void branchThread(runId, agent.id, thread.id, workspaceId).then((nextId) => {
                 if (nextId) {
                   useDeskStore.getState().setFocusedThreadId(nextId);
-                  openThread(nextId, { kind: 'agent', id: agent.id }, workspaceId);
+                  openThread(workspaceId, nextId);
                 }
               });
             }}

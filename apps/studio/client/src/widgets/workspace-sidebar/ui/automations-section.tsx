@@ -65,10 +65,10 @@ export function AutomationsAddMenu({ workspaceId, agents, onDone }: AutomationsA
       }
       const created = await createSchedule(workspaceId, draft);
       if (created) {
-        useIdeStore.getState().openThread(workspaceId, created.targetAgentId, created.threadId);
-        void navigate(
-          studioPath.thread(workspaceId, created.threadId, { kind: 'scheduler', id: created.id }),
-        );
+        useIdeStore
+          .getState()
+          .openSchedule(workspaceId, created.id, created.threadId, created.targetAgentId);
+        void navigate(studioPath.schedule(workspaceId, created.id));
         onDone();
       }
     });
@@ -84,19 +84,21 @@ export function AutomationsAddMenu({ workspaceId, agents, onDone }: AutomationsA
       }
       const created = await createWebhook(workspaceId, draft);
       if (created) {
-        openWebhookThread(created);
+        openWebhookTab(created);
         onDone();
       }
     });
   };
 
-  const openWebhookThread = (item: Webhook) => {
+  const openWebhookTab = (item: Webhook) => {
     if (!workspaceId) {
       return;
     }
     const agentId = useThreadStore.getState().byId(item.threadId)?.agentId;
-    useIdeStore.getState().openThread(workspaceId, agentId ?? item.targetAgentId, item.threadId);
-    void navigate(studioPath.thread(workspaceId, item.threadId, { kind: 'webhook', id: item.id }));
+    useIdeStore
+      .getState()
+      .openWebhook(workspaceId, item.id, item.threadId, agentId ?? item.targetAgentId);
+    void navigate(studioPath.webhook(workspaceId, item.id));
   };
 
   return (
@@ -128,23 +130,21 @@ export function AutomationsSection({
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
   const navigate = useNavigate();
-  const { openWorkspace } = useStudioNavigation();
+  const { openDesk } = useStudioNavigation();
 
-  const openScheduleThread = (item: Schedule) => {
-    useIdeStore.getState().openThread(item.workspaceId, item.targetAgentId, item.threadId);
-    void navigate(
-      studioPath.thread(item.workspaceId, item.threadId, { kind: 'scheduler', id: item.id }),
-    );
+  const openScheduleTab = (item: Schedule) => {
+    useIdeStore
+      .getState()
+      .openSchedule(item.workspaceId, item.id, item.threadId, item.targetAgentId);
+    void navigate(studioPath.schedule(item.workspaceId, item.id));
   };
 
-  const openWebhookThread = (item: Webhook) => {
+  const openWebhookTab = (item: Webhook) => {
     const agentId = useThreadStore.getState().byId(item.threadId)?.agentId;
     useIdeStore
       .getState()
-      .openThread(item.workspaceId, agentId ?? item.targetAgentId, item.threadId);
-    void navigate(
-      studioPath.thread(item.workspaceId, item.threadId, { kind: 'webhook', id: item.id }),
-    );
+      .openWebhook(item.workspaceId, item.id, item.threadId, agentId ?? item.targetAgentId);
+    void navigate(studioPath.webhook(item.workspaceId, item.id));
   };
 
   const buildEntries = (workspaceId: string, workspaceAgents: Agent[]): AutomationEntry[] => {
@@ -159,7 +159,7 @@ export function AutomationsSection({
             schedule={item}
             selected={activeScheduleId === item.id}
             onSelect={() => {
-              openScheduleThread(item);
+              openScheduleTab(item);
               onSelectDone();
             }}
             onSettings={() => {
@@ -179,9 +179,9 @@ export function AutomationsSection({
                 }
                 const removed = await deleteSchedule(workspaceId, item.id);
                 if (removed) {
-                  useIdeStore.getState().closeByEntity(workspaceId, 'thread', item.threadId);
-                  if (item.threadId === activeThreadId) {
-                    openWorkspace(workspaceId);
+                  useIdeStore.getState().closeByEntity(workspaceId, 'schedule', item.id);
+                  if (item.threadId === activeThreadId || activeScheduleId === item.id) {
+                    openDesk();
                   }
                 }
               });
@@ -197,7 +197,7 @@ export function AutomationsSection({
             webhook={item}
             selected={activeWebhookId === item.id}
             onSelect={() => {
-              openWebhookThread(item);
+              openWebhookTab(item);
               onSelectDone();
             }}
             onSettings={() => {
@@ -216,9 +216,9 @@ export function AutomationsSection({
                   return;
                 }
                 await deleteWebhook(workspaceId, item);
-                useIdeStore.getState().closeByEntity(workspaceId, 'thread', item.threadId);
-                if (item.threadId === activeThreadId) {
-                  openWorkspace(workspaceId);
+                useIdeStore.getState().closeByEntity(workspaceId, 'webhook', item.id);
+                if (item.threadId === activeThreadId || activeWebhookId === item.id) {
+                  openDesk();
                 }
               });
             }}

@@ -13,7 +13,7 @@ import {
   type PinDraft,
 } from '@/features/manage-agent-memory';
 import { agentPinsQuery, agentPinsQueryKey, deleteAgentPin, upsertAgentPin } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { formatDayTime } from '@/shared/lib/format-clock';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
@@ -22,7 +22,7 @@ import { toast } from '@/shared/ui/toast';
 import { Section } from './section';
 
 export function PinsPanel({ agent }: { agent: Agent }) {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const thread = useSelectedThread();
   const queryClient = useQueryClient();
   const streaming = useSessionStore(

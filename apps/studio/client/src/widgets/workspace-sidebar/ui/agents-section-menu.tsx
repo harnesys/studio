@@ -57,12 +57,7 @@ export function AgentsSectionActions({ workspaceId }: { workspaceId: string | nu
     } else {
       useAgentsSlideStore.getState().open(created.agent.id);
     }
-    await navigate(
-      studioPath.thread(workspaceId, created.thread.id, {
-        kind: 'agent',
-        id: created.agent.id,
-      }),
-    );
+    await navigate(studioPath.thread(workspaceId, created.thread.id));
   };
 
   const createAgentFlow = () => {

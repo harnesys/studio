@@ -8,15 +8,34 @@ import { studioPath } from '@/shared/config/routes';
 import type { IdeTab } from './ide.store';
 import { useIdeStore } from './ide.store';
 
+export function pathForIdeTab(workspaceId: string, tab: IdeTab): string | null {
+  if (tab.kind === 'thread' && tab.threadId) {
+    return studioPath.thread(workspaceId, tab.threadId);
+  }
+  if (tab.kind === 'file' && tab.path) {
+    return studioPath.file(workspaceId, tab.path);
+  }
+  if (tab.kind === 'diff' && tab.path) {
+    return studioPath.diff(workspaceId, tab.path);
+  }
+  if (tab.kind === 'schedule' && tab.scheduleId) {
+    return studioPath.schedule(workspaceId, tab.scheduleId);
+  }
+  if (tab.kind === 'webhook' && tab.webhookId) {
+    return studioPath.webhook(workspaceId, tab.webhookId);
+  }
+  if (tab.kind === 'spawn' && tab.threadId && tab.spawnId) {
+    return studioPath.spawn(workspaceId, tab.threadId, tab.spawnId);
+  }
+  return null;
+}
+
 export function useOpenIdeTab() {
   const navigate = useNavigate();
   return (workspaceId: string, tab: IdeTab) => {
-    if (tab.kind === 'thread' && tab.threadId) {
-      void navigate(studioPath.thread(workspaceId, tab.threadId));
-      return;
-    }
-    if (tab.kind === 'file' && tab.path) {
-      void navigate(studioPath.file(workspaceId, tab.path));
+    const path = pathForIdeTab(workspaceId, tab);
+    if (path) {
+      void navigate(path);
     }
   };
 }
@@ -31,20 +50,20 @@ export function useOpenThreadTab() {
     (workspaceId: string, agentId: string, threadId: string) => {
       useIdeStore.getState().openThread(workspaceId, agentId, threadId);
       useDeskStore.getState().setFocusedThreadId(threadId);
-      openThread(threadId, { kind: 'agent', id: agentId }, workspaceId);
+      openThread(workspaceId, threadId);
     },
     [openThread],
   );
 }
 
-/**
- * Spawn tabs have no URL form: navigating to the parent thread would let
- * ide-sync re-activate the thread tab and steal focus from the spawn tab.
- * So: store tab (upsert already activates it) + desk focus, no navigation.
- */
 export function useOpenSpawnTab() {
-  return useCallback((workspaceId: string, agentId: string, threadId: string, spawnId: string) => {
-    useIdeStore.getState().openSpawn(workspaceId, agentId, threadId, spawnId);
-    useDeskStore.getState().setFocusedThreadId(threadId);
-  }, []);
+  const { openSpawn } = useStudioNavigation();
+  return useCallback(
+    (workspaceId: string, agentId: string, threadId: string, spawnId: string) => {
+      useIdeStore.getState().openSpawn(workspaceId, agentId, threadId, spawnId);
+      useDeskStore.getState().setFocusedThreadId(threadId);
+      openSpawn(workspaceId, threadId, spawnId);
+    },
+    [openSpawn],
+  );
 }

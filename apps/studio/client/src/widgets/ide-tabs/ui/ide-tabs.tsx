@@ -2,8 +2,13 @@ import { EllipsisIcon, PanelLeftIcon, PanelRightIcon, Trash2Icon, XIcon } from '
 import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { setActiveThreadId, useThreadStore } from '@/entities/thread';
-import { useAgentsDisplayStore, useAgentsSlideStore, useDeskStore } from '@/features/desk';
-import { type IdeTab, useIdeGroup, useIdeStore, useIdeTabs } from '@/features/ide';
+import {
+  useAgentsDisplayStore,
+  useAgentsSlideStore,
+  useDeskStore,
+  useSelectedWorkspaceIds,
+} from '@/features/desk';
+import { type IdeTab, pathForIdeTab, useIdeGroup, useIdeStore, useIdeTabs } from '@/features/ide';
 import { studioPath } from '@/shared/config/routes';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -33,6 +38,7 @@ export function IdeGroupTabs({
   const group = useIdeGroup(workspaceId, groupId);
   const ws = useIdeTabs(workspaceId);
   const navigate = useNavigate();
+  const selectedIds = useSelectedWorkspaceIds();
   const inspectorOpen = useDeskStore((state) => state.inspectorOpen);
   const activeRef = useRef<HTMLDivElement | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -185,8 +191,8 @@ export function IdeGroupTabs({
   );
 
   function handleSelect(tab: (typeof tabs)[number]) {
-    useIdeStore.getState().setActive(workspaceId, tab.id);
-    if (tab.kind === 'thread' && tab.threadId) {
+    useIdeStore.getState().setDeskActive(workspaceId, tab.id, selectedIds);
+    if (tab.threadId) {
       const thread = useThreadStore.getState().byId(tab.threadId);
       const currentAgentId = thread?.agentId ?? tab.agentId;
       if (useDeskStore.getState().focusedThreadId !== tab.threadId) {
@@ -194,16 +200,11 @@ export function IdeGroupTabs({
       }
       if (currentAgentId) {
         setActiveThreadId(currentAgentId, tab.threadId);
-        void navigate(
-          studioPath.thread(workspaceId, tab.threadId, { kind: 'agent', id: currentAgentId }),
-        );
-        return;
       }
-      void navigate(studioPath.thread(workspaceId, tab.threadId));
-      return;
     }
-    if (tab.kind === 'file' && tab.path) {
-      void navigate(studioPath.file(workspaceId, tab.path));
+    const path = pathForIdeTab(workspaceId, tab);
+    if (path) {
+      void navigate(path);
     }
   }
 
@@ -224,7 +225,7 @@ export function IdeGroupTabs({
           useAgentsSlideStore.getState().open(closing.agentId);
         }
       }
-      void navigate(studioPath.workspace(workspaceId));
+      void navigate(studioPath.desk);
       return;
     }
     const next = after.tabs.find((t) => t.id === after.activeId);
@@ -241,12 +242,12 @@ export function IdeGroupTabs({
 
   function handleCloseAll() {
     useIdeStore.getState().closeAll(workspaceId);
-    void navigate(studioPath.workspace(workspaceId));
+    void navigate(studioPath.desk);
   }
 
   function navigateHomeIfEmpty() {
     if (!useIdeStore.getState().byWorkspace[workspaceId]) {
-      void navigate(studioPath.workspace(workspaceId));
+      void navigate(studioPath.desk);
     }
   }
 }

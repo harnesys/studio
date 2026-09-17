@@ -2,12 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { Agent } from '@/entities/agent';
 import { workspaceSkillsQuery } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 
 import { Section } from './section';
 
 export function SkillsInspector({ agent }: { agent: Agent }) {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const query = useQuery({
     ...workspaceSkillsQuery(workspaceId ?? ''),
     enabled: Boolean(workspaceId),

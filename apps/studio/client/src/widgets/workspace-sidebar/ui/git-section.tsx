@@ -1,9 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { useWorkspaces } from '@/entities/workspace';
 import { useIdeStore } from '@/features/ide';
 import { watchWorkspaceFiles } from '@/shared/api/files';
 import { getGitFileStatus, gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
+import { studioPath } from '@/shared/config/routes';
 import { gitStatusColorClass, useGitStatusColors } from '@/shared/lib/git-status-colors';
 import { cn } from '@/shared/lib/utils';
 import { gitFileStatusLabel } from './git-file-decorations';
@@ -41,6 +43,7 @@ function GitWorkspaceGroup({
   workspaceId: string;
   workspaceName: string;
 }) {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const gitStatus = useGitStatus(workspaceId);
   const gitColors = useGitStatusColors((state) => state.colors);
@@ -115,6 +118,7 @@ function GitWorkspaceGroup({
               title={file.path}
               onClick={() => {
                 useIdeStore.getState().openDiff(workspaceId, file.path);
+                void navigate(studioPath.diff(workspaceId, file.path));
               }}
               className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-sidebar-accent/70"
             >

@@ -1,7 +1,7 @@
 import { GitBranchIcon } from 'lucide-react';
 
 import { useOpenThreadTab } from '@/features/ide';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 
 export type BranchChild = {
   id: string;
@@ -11,7 +11,7 @@ export type BranchChild = {
 
 /** «⎇ N» on the run a thread forked from. Click opens the first child branch. */
 export function BranchPointBadge({ runId, branches }: { runId: string; branches: BranchChild[] }) {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const openThreadTab = useOpenThreadTab();
   const first = branches[0];
   if (!first) {

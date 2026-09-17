@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useThreadEvents } from '@/features/desk';
 import { listWorkspaceFiles } from '@/shared/api/files';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { isValidEntityRef } from './entity-kinds';
 
 export type FileOptionSource = 'upload' | 'attachment' | 'workspace';
@@ -25,7 +25,7 @@ export function useComposerFileOptions(
   threadId: string | null,
   pendingNames: string[],
 ): ComposerFileOptions {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const events = useThreadEvents(threadId);
   const tree = useQuery({
     queryKey: ['workspaces', workspaceId, 'files-tree'],

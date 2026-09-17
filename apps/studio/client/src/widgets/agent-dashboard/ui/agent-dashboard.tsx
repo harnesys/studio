@@ -32,7 +32,7 @@ import {
 } from '@/features/manage-webhook';
 import { confirmDeleteThread, openNewThread } from '@/features/switch-thread';
 import { deleteThreadRecord, setThreadPinned } from '@/shared/api';
-import { studioPath, type ThreadOriginRef } from '@/shared/config/routes';
+import { studioPath } from '@/shared/config/routes';
 import { cn } from '@/shared/lib/utils';
 import {
   CategoryLanding,
@@ -69,21 +69,27 @@ export function AgentDashboard() {
     useIdeStore.getState().openThread(agent.workspaceId, agent.id, threadId);
     useDeskStore.getState().setFocusedThreadId(threadId);
     setActiveThreadId(agent.id, threadId);
-    void navigate(studioPath.thread(agent.workspaceId, threadId, { kind: 'agent', id: agent.id }));
+    void navigate(studioPath.thread(agent.workspaceId, threadId));
   };
 
-  const openAutomationThread = (
-    targetAgentId: string,
-    threadId: string,
-    origin: ThreadOriginRef,
-  ) => {
+  const openScheduleTab = (scheduleId: string, threadId: string, targetAgentId: string) => {
     if (!agent) {
       return;
     }
-    useIdeStore.getState().openThread(agent.workspaceId, targetAgentId, threadId);
+    useIdeStore.getState().openSchedule(agent.workspaceId, scheduleId, threadId, targetAgentId);
     useDeskStore.getState().setFocusedThreadId(threadId);
     setActiveThreadId(targetAgentId, threadId);
-    void navigate(studioPath.thread(agent.workspaceId, threadId, origin));
+    void navigate(studioPath.schedule(agent.workspaceId, scheduleId));
+  };
+
+  const openWebhookTab = (webhookId: string, threadId: string, targetAgentId: string) => {
+    if (!agent) {
+      return;
+    }
+    useIdeStore.getState().openWebhook(agent.workspaceId, webhookId, threadId, targetAgentId);
+    useDeskStore.getState().setFocusedThreadId(threadId);
+    setActiveThreadId(targetAgentId, threadId);
+    void navigate(studioPath.webhook(agent.workspaceId, webhookId));
   };
 
   const handleNewThread = () => {
@@ -107,10 +113,7 @@ export function AgentDashboard() {
       }
       const created = await createSchedule(agent.workspaceId, draft);
       if (created) {
-        openAutomationThread(created.targetAgentId, created.threadId, {
-          kind: 'scheduler',
-          id: created.id,
-        });
+        openScheduleTab(created.id, created.threadId, created.targetAgentId);
       }
     });
   };
@@ -125,10 +128,7 @@ export function AgentDashboard() {
       }
       const created = await createWebhook(agent.workspaceId, draft);
       if (created) {
-        openAutomationThread(created.targetAgentId, created.threadId, {
-          kind: 'webhook',
-          id: created.id,
-        });
+        openWebhookTab(created.id, created.threadId, created.targetAgentId);
       }
     });
   };
@@ -140,7 +140,7 @@ export function AgentDashboard() {
     } else {
       clearActiveThreadId(agentId);
       if (agent) {
-        void navigate(studioPath.agent(agent.workspaceId, agentId));
+        void navigate(studioPath.desk);
       }
     }
   };
@@ -274,7 +274,23 @@ export function AgentDashboard() {
           label="Automations"
           emptyLabel="No automations yet."
           threads={automations}
-          onOpen={(thread) => openThread(thread.id)}
+          onOpen={(thread) => {
+            if (thread.kind === 'schedule') {
+              const schedule = schedules.find((item) => item.threadId === thread.id);
+              if (schedule) {
+                openScheduleTab(schedule.id, schedule.threadId, schedule.targetAgentId);
+                return;
+              }
+            }
+            if (thread.kind === 'webhook') {
+              const webhook = webhooks.find((item) => item.threadId === thread.id);
+              if (webhook) {
+                openWebhookTab(webhook.id, webhook.threadId, webhook.targetAgentId);
+                return;
+              }
+            }
+            openThread(thread.id);
+          }}
           onPinToggle={handleTogglePin}
           onDelete={handleDeleteThread}
         />

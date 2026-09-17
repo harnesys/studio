@@ -2,13 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { Agent } from '@/entities/agent';
 import { workspaceMcpQuery } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { StatusDot, type StatusDotTone } from '@/shared/ui/status-dot';
 
 import { Section } from './section';
 
 export function McpInspector({ agent }: { agent: Agent }) {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const query = useQuery({
     ...workspaceMcpQuery(workspaceId ?? ''),
     enabled: Boolean(workspaceId),

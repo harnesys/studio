@@ -51,11 +51,14 @@ export function DeskSync() {
     void hydrateDesk(workspaceId).catch(() => {});
   }, [workspaceId]);
 
+  // Only selected (on-desk) workspaces: agents/threads/tree. Off-desk stays cold.
   useEffect(() => {
     if (workspacesQuery.status !== 'success') {
       return;
     }
-    for (const id of workspaceIds) {
+    const known = new Set(workspaceIds);
+    const wanted = selectedWorkspaceIds.filter((id) => known.has(id));
+    for (const id of wanted) {
       void hydrateDesk(id).catch(() => {});
       void queryClient.prefetchQuery({
         queryKey: workspaceFilesTreeQueryKey(id),
@@ -63,13 +66,12 @@ export function DeskSync() {
         staleTime: 60_000,
       });
     }
-    const known = new Set(workspaceIds);
     for (const id of Object.keys(useDeskStore.getState().hydrated)) {
       if (!known.has(id)) {
         useDeskStore.getState().setHydrateStatus(id, null);
       }
     }
-  }, [workspaceIds, workspacesQuery.status, queryClient]);
+  }, [selectedWorkspaceIds, workspaceIds, workspacesQuery.status, queryClient]);
 
   useEffect(() => {
     return watchDesk(applyDeskEvent);

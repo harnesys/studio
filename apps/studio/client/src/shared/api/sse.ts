@@ -109,8 +109,16 @@ export function watchEventSource(
     if (current.refs > 0) {
       return;
     }
-    current.abort.abort();
-    connections.delete(url);
+    // Coalesce Strict Mode / HMR remount in the same turn: remount reuses conn
+    // before this microtask runs, so the fetch is not aborted and reopened.
+    void Promise.resolve().then(() => {
+      const still = connections.get(url);
+      if (!still || still !== current || still.refs > 0) {
+        return;
+      }
+      still.abort.abort();
+      connections.delete(url);
+    });
   };
 }
 

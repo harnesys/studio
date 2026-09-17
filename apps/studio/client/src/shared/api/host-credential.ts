@@ -23,11 +23,22 @@ export function hostTokenQuery(forCredential?: string | null): string {
   return token ? `token=${encodeURIComponent(token)}` : '';
 }
 
+let bootstrapInflight: Promise<string> | null = null;
+
 /** In-memory credential from loopback bootstrap. Not VITE_* env. */
-export async function ensureHostCredential(): Promise<string> {
+export function ensureHostCredential(): Promise<string> {
   if (credential && hosts.length > 0) {
-    return credential;
+    return Promise.resolve(credential);
   }
+  if (!bootstrapInflight) {
+    bootstrapInflight = loadBootstrap().finally(() => {
+      bootstrapInflight = null;
+    });
+  }
+  return bootstrapInflight;
+}
+
+async function loadBootstrap(): Promise<string> {
   const response = await fetch('/api/window/bootstrap');
   if (!response.ok) {
     let message = response.statusText || 'bootstrap failed';

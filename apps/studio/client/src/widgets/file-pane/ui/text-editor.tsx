@@ -7,6 +7,7 @@ import { remappedPathAfterMove, useIdeStore } from '@/features/ide';
 import { markWorkspaceFileDirty } from '@/features/open-file';
 import { readWorkspaceFileText, writeWorkspaceFileContent } from '@/shared/api/files';
 import { gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
+import '@/shared/lib/monaco';
 import { detectLanguage } from '@/shared/lib/tool-code';
 import { useTheme } from '@/shared/ui/theme-provider';
 import {

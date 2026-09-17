@@ -5,7 +5,8 @@ import { Providers } from '@/app/providers/providers';
 import { Root } from '@/app/ui/root';
 import '@/app/styles/index.css';
 import '@/shared/lib/chat-preferences';
-import '@/shared/lib/monaco';
+
+// Monaco workers load with the file editor, not on every desk paint.
 
 const root = document.getElementById('root');
 if (!root) {

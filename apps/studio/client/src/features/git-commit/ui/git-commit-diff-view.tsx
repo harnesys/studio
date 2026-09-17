@@ -4,6 +4,7 @@ import { Loader2Icon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getGitDiff, gitDiffQueryKey } from '@/shared/api/git';
+import '@/shared/lib/monaco';
 import { detectLanguage } from '@/shared/lib/tool-code';
 import { useTheme } from '@/shared/ui/theme-provider';
 

@@ -1,4 +1,4 @@
-import { EllipsisIcon, PlusIcon } from 'lucide-react';
+import { EllipsisIcon, PlusIcon, SettingsIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useWorkspaces, workspaceAvatarClass, workspaceInitial } from '@/entities/workspace';
@@ -9,6 +9,7 @@ import {
   useWorkspaceTabsStore,
 } from '@/features/desk';
 import { navigateAfterPark } from '@/features/ide';
+import { openWorkspaceSettingsDialog } from '@/features/manage-workspace-settings';
 import { WORKSPACE_TAB_CAP } from '@/shared/config/constants';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { cn } from '@/shared/lib/utils';
@@ -20,7 +21,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 
 export function WorkspaceHeader() {
   const navigate = useNavigate();
@@ -64,17 +64,15 @@ export function WorkspaceHeader() {
       {tabs.map((item) => {
         const active = selected.includes(item.id);
         return (
-          <Tooltip key={item.id}>
-            <TooltipTrigger
+          <DropdownMenu key={item.id}>
+            <DropdownMenuTrigger
               render={
                 <button
                   type="button"
                   data-testid={`workspace-tab-${item.id}`}
                   data-active={active ? 'true' : 'false'}
+                  title={`${item.name} · ${item.path}`}
                   aria-label={`${item.name} · ${item.path}`}
-                  onClick={() => {
-                    onToggle(item.id);
-                  }}
                   className="flex size-8 shrink-0 items-center justify-center rounded-md border border-transparent outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[active=true]:border-sidebar-border data-[active=true]:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
                 />
               }
@@ -87,11 +85,25 @@ export function WorkspaceHeader() {
               >
                 {workspaceInitial(item.name)}
               </span>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {item.name} · {item.path}
-            </TooltipContent>
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="bottom" className="min-w-44">
+              <DropdownMenuItem
+                onClick={() => {
+                  onToggle(item.id);
+                }}
+              >
+                {active ? 'Remove from window' : 'Add to window'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  void openWorkspaceSettingsDialog(item.id);
+                }}
+              >
+                <SettingsIcon />
+                Settings
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         );
       })}
       <DropdownMenu>
@@ -121,6 +133,23 @@ export function WorkspaceHeader() {
             <PlusIcon />
             New workspace
           </DropdownMenuItem>
+          {workspaces.length > 0 ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Settings</DropdownMenuLabel>
+              {workspaces.map((item) => (
+                <DropdownMenuItem
+                  key={`settings-${item.id}`}
+                  onClick={() => {
+                    void openWorkspaceSettingsDialog(item.id);
+                  }}
+                >
+                  <SettingsIcon />
+                  {item.name}
+                </DropdownMenuItem>
+              ))}
+            </>
+          ) : null}
           {overflow.length > 0 ? (
             <>
               <DropdownMenuSeparator />

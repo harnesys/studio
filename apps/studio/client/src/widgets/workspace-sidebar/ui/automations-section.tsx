@@ -256,7 +256,11 @@ export function AutomationsSection({
     <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
       {groups.map((group) => (
         <div key={group.workspace.id}>
-          <WorkspaceGroupLabel name={group.workspace.name} count={group.entries.length} />
+          <WorkspaceGroupLabel
+            workspaceId={group.workspace.id}
+            name={group.workspace.name}
+            count={group.entries.length}
+          />
           {group.entries.map((entry) => (
             <Fragment key={entry.key}>{entry.node}</Fragment>
           ))}

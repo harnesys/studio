@@ -13,6 +13,7 @@ import { SettingsNav } from '@/widgets/settings-nav';
 
 import { AppearancePane } from './appearance-pane';
 import { ChatPane } from './chat-pane';
+import { HostsPane } from './hosts-pane';
 
 export function SettingsPage() {
   const { category } = useParams();
@@ -94,5 +95,7 @@ function SettingsPane({ category }: { category: WindowSettingsCategory }) {
       return <AppearancePane />;
     case 'chat':
       return <ChatPane />;
+    case 'hosts':
+      return <HostsPane />;
   }
 }

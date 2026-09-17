@@ -1,4 +1,4 @@
-import { type LucideIcon, MessageSquareIcon, SunIcon, UserIcon } from 'lucide-react';
+import { type LucideIcon, MessageSquareIcon, ServerIcon, SunIcon, UserIcon } from 'lucide-react';
 import { WINDOW_SETTINGS_GROUPS, type WindowSettingsCategory } from '@/shared/config/settings-nav';
 import { cn } from '@/shared/lib/utils';
 
@@ -6,6 +6,7 @@ const NAV_ICONS: Record<WindowSettingsCategory, LucideIcon> = {
   profile: UserIcon,
   appearance: SunIcon,
   chat: MessageSquareIcon,
+  hosts: ServerIcon,
 };
 
 type SettingsNavProps = {

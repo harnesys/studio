@@ -34,6 +34,7 @@ import type { ScheduleHistory } from 'harnesys';
 import { SCHEDULE_HISTORIES } from 'harnesys/domain';
 import type { AgentRecord as AgentRecordType } from './src/agent.ts';
 import type { ThreadPlanRecord } from './src/plan-types.ts';
+import type { PluginDiagnostic } from './src/plugin.ts';
 import type { ThreadRecord as ThreadRecordType } from './src/thread.ts';
 
 export type {
@@ -299,6 +300,8 @@ export type WorkspaceFileEntry = {
   path: string;
   size?: number;
   modifiedAt?: string;
+  /** Directory listed without its children (heavy safety dir in hidden tree mode). Expand via single-level listing. */
+  pruned?: boolean;
 };
 
 export type WorkspaceFileEventKind = 'change' | 'create' | 'delete';
@@ -334,3 +337,10 @@ export type DeskEvent =
   | { type: 'agent'; agent: AgentRecordType }
   | { type: 'agent-deleted'; id: string }
   | { type: 'run-finish'; threadId: string };
+
+export type WorkspaceLspEntry = {
+  serverId: string; origin: 'file' | string; command: string; args?: string[];
+  extensionToLanguage: Record<string, string>; disabled: boolean;
+  granted: boolean; binaryOk: boolean; status: 'live' | 'off' | 'error';
+};
+export type WorkspaceLspListResponse = { servers: WorkspaceLspEntry[]; diagnostics: PluginDiagnostic[] };

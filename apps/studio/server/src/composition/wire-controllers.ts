@@ -3,6 +3,7 @@ import type { Hono } from 'hono';
 import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import type { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
 import { CatalogController } from '../adapters/http/catalog/catalog.controller.ts';
+import { LspController } from '../adapters/http/lsp/lsp.controller.ts';
 import { ModePresetController } from '../adapters/http/mode-preset/mode-preset.controller.ts';
 import { ProviderController } from '../adapters/http/provider/provider.controller.ts';
 import { ThreadController } from '../adapters/http/thread/thread.controller.ts';
@@ -149,6 +150,8 @@ export function wireControllers(d: ControllerDeps): void {
     secretStore: d.secretStore,
     supervisor: d.supervisor,
   });
+
+  new LspController({ workspaceRepo: d.workspaceRepo, supervisor: d.supervisor }).register(d.app);
 
   new ProviderController({
     listProviders: new ListProvidersUseCase(d.llmProviderRepo, d.llmModelRepo),

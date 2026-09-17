@@ -49,16 +49,9 @@ type FetchSseConnection = {
   listeners: Map<string, Set<(data: string) => void>>;
   abort: AbortController;
   onError?: () => void;
-  idleTimer: ReturnType<typeof setTimeout> | null;
 };
 
 const connections = new Map<string, FetchSseConnection>();
-
-/**
- * Keep the fetch across React remounts (Strict Mode, and route swaps like
- * `/` → `/:workspaceId/thread/...` that remount WorkspacePage + Explorer watches).
- */
-const IDLE_ABORT_MS = 2_000;
 
 export type WatchEventSourceOptions = {
   credential?: string | null;
@@ -72,17 +65,9 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
-function clearIdleTimer(conn: FetchSseConnection): void {
-  if (!conn.idleTimer) {
-    return;
-  }
-  clearTimeout(conn.idleTimer);
-  conn.idleTimer = null;
-}
-
 /**
  * Shared SSE per URL via fetch + Authorization Bearer (EventSource cannot set headers).
- * Last unsubscribe aborts only after IDLE_ABORT_MS with no subscribers.
+ * Last unsubscribe aborts the request.
  */
 export function watchEventSource(
   url: string,
@@ -93,22 +78,20 @@ export function watchEventSource(
   let conn = connections.get(url);
   if (!conn) {
     const abort = new AbortController();
-    conn = { refs: 0, listeners: new Map(), abort, onError: options?.onError, idleTimer: null };
+    conn = { refs: 0, listeners: new Map(), abort, onError: options?.onError };
     connections.set(url, conn);
     const owned = conn;
     void openSse(url, abort.signal, options?.credential).catch((error: unknown) => {
-      // A newer conn may already own this URL after remount.
+      // Do not tear down a newer conn that reused this URL after an abort race.
       if (connections.get(url) !== owned) {
         return;
       }
       if (!abort.signal.aborted && !isAbortError(error)) {
         owned.onError?.();
       }
-      clearIdleTimer(owned);
       connections.delete(url);
     });
   }
-  clearIdleTimer(conn);
   conn.refs += 1;
   let set = conn.listeners.get(event);
   if (!set) {
@@ -126,16 +109,8 @@ export function watchEventSource(
     if (current.refs > 0) {
       return;
     }
-    clearIdleTimer(current);
-    current.idleTimer = setTimeout(() => {
-      const still = connections.get(url);
-      if (!still || still !== current || still.refs > 0) {
-        return;
-      }
-      still.idleTimer = null;
-      still.abort.abort();
-      connections.delete(url);
-    }, IDLE_ABORT_MS);
+    current.abort.abort();
+    connections.delete(url);
   };
 }
 

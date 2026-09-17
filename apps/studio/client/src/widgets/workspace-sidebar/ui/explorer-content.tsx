@@ -16,7 +16,6 @@ import {
   createWorkspaceFile,
   deleteWorkspaceFile,
   listWorkspaceFilesTree,
-  watchWorkspaceFiles,
   workspaceFilesTreeQueryKey,
 } from '@/shared/api/files';
 import { getGitFileStatus, gitFileStatusQueryKey } from '@/shared/api/git';
@@ -75,19 +74,6 @@ export function ExplorerContent({
 
   const gitMap = gitFileStatusQuery.data?.map ?? {};
   const gitTruncated = Boolean(gitFileStatusQuery.data?.truncated);
-
-  useEffect(() => {
-    if (!workspaceId) {
-      return;
-    }
-    const invalidate = () => {
-      void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
-      void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
-      void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
-      void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'status'] });
-    };
-    return watchWorkspaceFiles(workspaceId, invalidate);
-  }, [workspaceId, qc]);
 
   const invalidateTree = () => {
     void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });

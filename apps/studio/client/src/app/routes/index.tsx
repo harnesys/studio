@@ -53,20 +53,25 @@ const routes: RouteObject[] = [
   {
     element: <StudioLayout />,
     children: [
-      { index: true, element: <WorkspacePage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'settings/:category', element: <SettingsPage /> },
       {
-        path: ':workspaceId',
+        // Pathless layout: one WorkspacePage survives `/` ↔ `/:workspaceId/...` navigation.
         element: <WorkspacePage />,
         children: [
-          { index: true, element: <BareWorkspaceRedirect /> },
-          { path: 'thread/:threadId', element: null },
-          { path: 'file/*', element: null },
-          { path: 'diff/*', element: null },
-          { path: 'schedule/:scheduleId', element: null },
-          { path: 'webhook/:webhookId', element: null },
-          { path: 'spawn/:threadId/:spawnId', element: null },
+          { index: true, element: null },
+          {
+            path: ':workspaceId',
+            children: [
+              { index: true, element: <BareWorkspaceRedirect /> },
+              { path: 'thread/:threadId', element: null },
+              { path: 'file/*', element: null },
+              { path: 'diff/*', element: null },
+              { path: 'schedule/:scheduleId', element: null },
+              { path: 'webhook/:webhookId', element: null },
+              { path: 'spawn/:threadId/:spawnId', element: null },
+            ],
+          },
         ],
       },
       { path: 'w/*', element: <LegacyWorkspaceRedirect /> },

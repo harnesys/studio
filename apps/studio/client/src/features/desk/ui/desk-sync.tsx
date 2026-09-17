@@ -6,7 +6,12 @@ import { useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import { useWorkspaces } from '@/entities/workspace';
 import { watchDesk } from '@/shared/api';
-import { listWorkspaceFilesTree, workspaceFilesTreeQueryKey } from '@/shared/api/files';
+import {
+  listWorkspaceFilesTree,
+  watchWorkspaceFiles,
+  workspaceFilesTreeQueryKey,
+} from '@/shared/api/files';
+import { gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 
@@ -15,7 +20,7 @@ import { applyDeskEvent } from '../model/apply-desk-event';
 import { useDeskStore } from '../model/desk.store';
 import { hydrateDeskChrome } from '../model/desk-chrome';
 import { hydrateDesk } from '../model/hydrate-desk';
-import { useWorkspaceTabsStore } from '../model/workspace-tabs.store';
+import { useSelectedWorkspaceIds, useWorkspaceTabsStore } from '../model/workspace-tabs.store';
 
 export function DeskSync() {
   const navigate = useNavigate();
@@ -27,6 +32,7 @@ export function DeskSync() {
     () => workspacesQuery.data?.map((item) => item.id) ?? [],
     [workspacesQuery.data],
   );
+  const selectedWorkspaceIds = useSelectedWorkspaceIds();
   const visibleReady = useDeskStore((state) =>
     workspaceId ? state.hydrated[workspaceId] === 'ready' : false,
   );
@@ -68,6 +74,23 @@ export function DeskSync() {
   useEffect(() => {
     return watchDesk(applyDeskEvent);
   }, []);
+
+  // Layout-owned fs watch: survives WorkspacePage navigation; Explorer/Git only consume queries.
+  useEffect(() => {
+    const unsubs = selectedWorkspaceIds.map((id) =>
+      watchWorkspaceFiles(id, () => {
+        void queryClient.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(id) });
+        void queryClient.invalidateQueries({ queryKey: gitFileStatusQueryKey(id) });
+        void queryClient.invalidateQueries({ queryKey: gitStatusQueryKey(id) });
+        void queryClient.invalidateQueries({ queryKey: ['workspaces', id, 'git', 'file-status'] });
+      }),
+    );
+    return () => {
+      for (const unsub of unsubs) {
+        unsub();
+      }
+    };
+  }, [selectedWorkspaceIds, queryClient]);
 
   useEffect(() => {
     if (!workspaceId || workspacesQuery.status === 'pending' || !visibleReady) {

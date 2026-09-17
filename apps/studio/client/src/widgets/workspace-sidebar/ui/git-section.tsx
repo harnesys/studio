@@ -1,10 +1,9 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { type ReactNode, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useWorkspaces } from '@/entities/workspace';
 import { useIdeStore } from '@/features/ide';
-import { watchWorkspaceFiles } from '@/shared/api/files';
-import { getGitFileStatus, gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
+import { getGitFileStatus, gitFileStatusQueryKey } from '@/shared/api/git';
 import { studioPath } from '@/shared/config/routes';
 import { gitStatusColorClass, useGitStatusColors } from '@/shared/lib/git-status-colors';
 import { cn } from '@/shared/lib/utils';
@@ -65,7 +64,6 @@ function GitWorkspaceGroup({
   actions?: ReactNode;
 }) {
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const gitStatus = useGitStatus(workspaceId);
   const gitColors = useGitStatusColors((state) => state.colors);
 
@@ -77,18 +75,6 @@ function GitWorkspaceGroup({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-
-  useEffect(() => {
-    if (!workspaceId) {
-      return;
-    }
-    const unwatch = watchWorkspaceFiles(workspaceId, () => {
-      void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
-      void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
-      void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
-    });
-    return unwatch;
-  }, [workspaceId, qc]);
 
   const map = fileStatusQuery.data?.map ?? {};
   const files = Object.entries(map)

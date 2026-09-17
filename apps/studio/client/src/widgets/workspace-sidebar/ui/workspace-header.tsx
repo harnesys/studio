@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 
 export function WorkspaceHeader() {
   const navigate = useNavigate();
@@ -64,15 +65,17 @@ export function WorkspaceHeader() {
       {tabs.map((item) => {
         const active = selected.includes(item.id);
         return (
-          <DropdownMenu key={item.id}>
-            <DropdownMenuTrigger
+          <Tooltip key={item.id}>
+            <TooltipTrigger
               render={
                 <button
                   type="button"
                   data-testid={`workspace-tab-${item.id}`}
                   data-active={active ? 'true' : 'false'}
-                  title={`${item.name} · ${item.path}`}
                   aria-label={`${item.name} · ${item.path}`}
+                  onClick={() => {
+                    onToggle(item.id);
+                  }}
                   className="flex size-8 shrink-0 items-center justify-center rounded-md border border-transparent outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[active=true]:border-sidebar-border data-[active=true]:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
                 />
               }
@@ -85,25 +88,11 @@ export function WorkspaceHeader() {
               >
                 {workspaceInitial(item.name)}
               </span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="bottom" className="min-w-44">
-              <DropdownMenuItem
-                onClick={() => {
-                  onToggle(item.id);
-                }}
-              >
-                {active ? 'Remove from window' : 'Add to window'}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  void openWorkspaceSettingsDialog(item.id);
-                }}
-              >
-                <SettingsIcon />
-                Settings
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {item.name} · {item.path}
+            </TooltipContent>
+          </Tooltip>
         );
       })}
       <DropdownMenu>

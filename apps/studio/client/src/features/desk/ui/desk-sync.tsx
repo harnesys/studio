@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useLayoutEffect, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useAgentStore } from '@/entities/agent';
@@ -75,22 +75,43 @@ export function DeskSync() {
     return watchDesk(applyDeskEvent);
   }, []);
 
-  // Layout-owned fs watch: survives WorkspacePage navigation; Explorer/Git only consume queries.
+  // Layout-owned fs watch per selected workspace; toggle only adds/removes that id's stream.
+  const filesWatchesRef = useRef(new Map<string, () => void>());
   useEffect(() => {
-    const unsubs = selectedWorkspaceIds.map((id) =>
-      watchWorkspaceFiles(id, () => {
-        void queryClient.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(id) });
-        void queryClient.invalidateQueries({ queryKey: gitFileStatusQueryKey(id) });
-        void queryClient.invalidateQueries({ queryKey: gitStatusQueryKey(id) });
-        void queryClient.invalidateQueries({ queryKey: ['workspaces', id, 'git', 'file-status'] });
-      }),
-    );
+    const watches = filesWatchesRef.current;
+    const wanted = new Set(selectedWorkspaceIds);
+    for (const [id, unsub] of watches) {
+      if (!wanted.has(id)) {
+        unsub();
+        watches.delete(id);
+      }
+    }
+    for (const id of wanted) {
+      if (watches.has(id)) {
+        continue;
+      }
+      watches.set(
+        id,
+        watchWorkspaceFiles(id, () => {
+          void queryClient.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(id) });
+          void queryClient.invalidateQueries({ queryKey: gitFileStatusQueryKey(id) });
+          void queryClient.invalidateQueries({ queryKey: gitStatusQueryKey(id) });
+          void queryClient.invalidateQueries({
+            queryKey: ['workspaces', id, 'git', 'file-status'],
+          });
+        }),
+      );
+    }
+  }, [selectedWorkspaceIds, queryClient]);
+  useEffect(() => {
+    const watches = filesWatchesRef.current;
     return () => {
-      for (const unsub of unsubs) {
+      for (const unsub of watches.values()) {
         unsub();
       }
+      watches.clear();
     };
-  }, [selectedWorkspaceIds, queryClient]);
+  }, []);
 
   useEffect(() => {
     if (!workspaceId || workspacesQuery.status === 'pending' || !visibleReady) {

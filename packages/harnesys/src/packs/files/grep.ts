@@ -1,5 +1,6 @@
 import path from 'node:path';
 import {
+  BINARY_PROBE_BYTES,
   DEFAULT_GREP_MAX_RESULTS,
   DEFAULT_PATH_BLOCKLIST,
 } from '../../adapters/actions/constants.ts';
@@ -97,6 +98,9 @@ async function scanFile(args: ScanFileArgs): Promise<void> {
   if (hidden(absolute)) {
     return;
   }
+  if (await isBinaryFile(absolute)) {
+    return;
+  }
   const text = await Bun.file(absolute)
     .text()
     .catch(() => undefined);
@@ -131,4 +135,20 @@ function collectHits(args: {
     }
     regex.lastIndex = 0;
   }
+}
+
+async function isBinaryFile(absolute: string): Promise<boolean> {
+  const probe = new Uint8Array(
+    await Bun.file(absolute).slice(0, BINARY_PROBE_BYTES).arrayBuffer().catch(makeEmptyBuffer),
+  );
+  for (let i = 0; i < probe.byteLength; i += 1) {
+    if (probe[i] === 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function makeEmptyBuffer(): ArrayBuffer {
+  return new ArrayBuffer(0);
 }

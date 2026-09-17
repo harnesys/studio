@@ -2,13 +2,10 @@ import type { DiscoveredModelView, ProviderExportBundle } from '@harnesys/studio
 import { useQuery } from '@tanstack/react-query';
 import { DownloadIcon, PlusIcon, UploadIcon } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
 
 import { initialsFromLabel } from '@/features/manage-agent';
 import { catalogQuery } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
-import { studioPath } from '@/shared/config/routes';
 import { alert, dialog } from '@/shared/services/overlay';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
@@ -33,13 +30,11 @@ import { ProviderModelsSection } from './provider-models-section';
 import { ProviderSettingsFields } from './provider-settings-fields';
 
 export function ModelsPane() {
-  const navigate = useNavigate();
-  const focus = useStudioLocation();
-  const settingsProviderId = focus.kind === 'settings' ? focus.providerId : null;
   const workspaceId = useSettingsWorkspaceId();
   const catalog = useQuery(catalogQuery).data;
   const providersQuery = useProviders();
   const providers = providersQuery.data ?? [];
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const [foundByProvider, setFoundByProvider] = useState<Record<string, DiscoveredModelView[]>>({});
   const create = useCreateProvider();
   const update = useUpdateProvider();
@@ -52,28 +47,18 @@ export function ModelsPane() {
   const importProviders = useImportProviders();
   const importFileRef = useRef<HTMLInputElement>(null);
 
-  const selected = providers.find((item) => item.id === settingsProviderId) ?? null;
+  const selected = providers.find((item) => item.id === selectedProviderId) ?? null;
   const found = selected ? (foundByProvider[selected.id] ?? null) : null;
-
-  const openProvider = useCallback(
-    (id: string, replace = false) => {
-      if (!workspaceId) {
-        return;
-      }
-      void navigate(studioPath.settings('providers', id), { replace });
-    },
-    [workspaceId, navigate],
-  );
 
   useEffect(() => {
     if (!workspaceId || providers.length === 0) {
       return;
     }
-    if (settingsProviderId && providers.some((item) => item.id === settingsProviderId)) {
+    if (selectedProviderId && providers.some((item) => item.id === selectedProviderId)) {
       return;
     }
-    openProvider(providers[0].id, true);
-  }, [workspaceId, settingsProviderId, providers, openProvider]);
+    setSelectedProviderId(providers[0].id);
+  }, [workspaceId, selectedProviderId, providers]);
 
   async function handleExport() {
     try {
@@ -136,8 +121,7 @@ export function ModelsPane() {
             delete next[id];
             return next;
           });
-          const next = providers.find((item) => item.id !== id)?.id ?? undefined;
-          void navigate(studioPath.settings('providers', next), { replace: true });
+          setSelectedProviderId(providers.find((item) => item.id !== id)?.id ?? null);
         });
       });
   }
@@ -199,7 +183,7 @@ export function ModelsPane() {
                     ? 'flex h-11 items-center gap-2 rounded-md bg-muted px-2 text-left'
                     : 'flex h-11 items-center gap-2 rounded-md px-2 text-left hover:bg-muted/60'
                 }
-                onClick={() => openProvider(item.id)}
+                onClick={() => setSelectedProviderId(item.id)}
               >
                 <Avatar size="sm" className="-mt-1.5 shrink-0 after:hidden">
                   <AvatarFallback className="bg-[color-mix(in_oklab,var(--live)_12%,transparent)] text-[9px]">
@@ -237,7 +221,7 @@ export function ModelsPane() {
                   return;
                 }
                 void create.mutateAsync(draft).then((provider) => {
-                  openProvider(provider.id);
+                  setSelectedProviderId(provider.id);
                 });
               });
           }}

@@ -5,7 +5,7 @@ import { DeskSync } from '@/features/desk';
 import { KnowledgeIndexSync } from '@/features/manage-knowledge-index';
 import { SettingsPage } from '@/pages/settings';
 import { WorkspacePage } from '@/pages/workspace';
-import { parseSettingsCategory, studioPath } from '@/shared/config/routes';
+import { parseWindowSettingsCategory, studioPath } from '@/shared/config/routes';
 import { OverlayProvider } from '@/shared/services/overlay';
 
 function StudioLayout() {
@@ -41,15 +41,7 @@ function LegacyWorkspaceRedirect() {
     return <Navigate to={studioPath.file(workspaceId, filePath)} replace />;
   }
   if (kind === 'settings') {
-    const category = segments[2];
-    const providerId = segments[3];
-    if (category === 'providers' && providerId) {
-      return <Navigate to={studioPath.settings('providers', providerId)} replace />;
-    }
-    if (category) {
-      return <Navigate to={studioPath.settings(parseSettingsCategory(category))} replace />;
-    }
-    return <Navigate to={studioPath.settings()} replace />;
+    return <Navigate to={studioPath.settings(parseWindowSettingsCategory(segments[2]))} replace />;
   }
 
   return <Navigate to={studioPath.desk} replace />;
@@ -62,7 +54,6 @@ const routes: RouteObject[] = [
       { index: true, element: <WorkspacePage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'settings/:category', element: <SettingsPage /> },
-      { path: 'settings/:category/:providerId', element: <SettingsPage /> },
       {
         path: ':workspaceId',
         element: <WorkspacePage />,

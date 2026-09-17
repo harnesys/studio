@@ -1,11 +1,9 @@
 import { ArrowLeftIcon } from 'lucide-react';
 import { useParams } from 'react-router';
 
-import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
-import { parseSettingsCategory } from '@/shared/config/routes';
-import { SETTINGS_GROUPS, type SettingsCategory } from '@/shared/config/settings-nav';
-import { cn } from '@/shared/lib/utils';
+import { parseWindowSettingsCategory } from '@/shared/config/routes';
+import { WINDOW_SETTINGS_GROUPS, type WindowSettingsCategory } from '@/shared/config/settings-nav';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
@@ -15,22 +13,11 @@ import { SettingsNav } from '@/widgets/settings-nav';
 
 import { AppearancePane } from './appearance-pane';
 import { ChatPane } from './chat-pane';
-import { GitPane } from './git-pane';
-import { McpPane } from './mcp-pane';
-import { MemoryPane } from './memory-pane';
-import { ModePresetsPane } from './mode-presets-pane';
-import { ModelsPane } from './models-pane';
-import { PluginsPane } from './plugins-pane';
-import { SkillsPane } from './skills-pane';
-import { ToolsPane } from './tools-pane';
-import { WorkspacePane } from './workspace-pane';
 
 export function SettingsPage() {
   const { category } = useParams();
-  const focus = useStudioLocation();
-  const settingsProviderId = focus.kind === 'settings' ? focus.providerId : null;
   const { openDesk, openSettings } = useStudioNavigation();
-  const active = parseSettingsCategory(category);
+  const active = parseWindowSettingsCategory(category);
   const meta = findSettingsItem(active);
 
   return (
@@ -54,32 +41,13 @@ export function SettingsPage() {
           </Button>
         </div>
         <ScrollArea className="min-h-0 flex-1">
-          <SettingsNav
-            active={active}
-            onSelect={(next) =>
-              openSettings(
-                next,
-                next === 'providers' ? (settingsProviderId ?? undefined) : undefined,
-              )
-            }
-          />
+          <SettingsNav active={active} onSelect={(next) => openSettings(next)} />
         </ScrollArea>
       </aside>
       <main className="min-w-0 flex-1">
         <ScrollArea className="h-full">
           <div
-            className={cn(
-              'flex w-full flex-col gap-8 px-8 py-10 md:px-10',
-              active === 'providers' ||
-                active === 'skills' ||
-                active === 'mcp' ||
-                active === 'plugins' ||
-                active === 'memory' ||
-                active === 'tools' ||
-                active === 'mode-presets'
-                ? 'max-w-3xl'
-                : 'max-w-xl',
-            )}
+            className="flex w-full max-w-xl flex-col gap-8 px-8 py-10 md:px-10"
             data-testid={`settings-pane-${active}`}
           >
             <div className="flex flex-col gap-1">
@@ -94,8 +62,8 @@ export function SettingsPage() {
   );
 }
 
-function findSettingsItem(id: SettingsCategory) {
-  for (const group of SETTINGS_GROUPS) {
+function findSettingsItem(id: WindowSettingsCategory) {
+  for (const group of WINDOW_SETTINGS_GROUPS) {
     for (const item of group.items) {
       if (item.id === id) {
         return item;
@@ -105,10 +73,8 @@ function findSettingsItem(id: SettingsCategory) {
   return undefined;
 }
 
-function SettingsPane({ category }: { category: SettingsCategory }) {
+function SettingsPane({ category }: { category: WindowSettingsCategory }) {
   switch (category) {
-    case 'workspace':
-      return <WorkspacePane />;
     case 'profile':
       return (
         <FieldGroup className="gap-4">
@@ -128,31 +94,5 @@ function SettingsPane({ category }: { category: SettingsCategory }) {
       return <AppearancePane />;
     case 'chat':
       return <ChatPane />;
-    case 'providers':
-      return <ModelsPane />;
-    case 'skills':
-      return <SkillsPane />;
-    case 'mcp':
-      return <McpPane />;
-    case 'plugins':
-      return <PluginsPane />;
-    case 'tools':
-      return <ToolsPane />;
-    case 'mode-presets':
-      return <ModePresetsPane />;
-    case 'memory':
-      return <MemoryPane />;
-    case 'git':
-      return <GitPane />;
-    case 'exports':
-      return (
-        <FieldGroup className="gap-4">
-          <Field>
-            <FieldLabel>Transcripts</FieldLabel>
-            <FieldDescription>Export is a stub. It does not write files yet.</FieldDescription>
-          </Field>
-          <Badge variant="secondary">Stub</Badge>
-        </FieldGroup>
-      );
   }
 }

@@ -70,6 +70,7 @@ const routes: RouteObject[] = [
               { path: 'schedule/:scheduleId', element: null },
               { path: 'webhook/:webhookId', element: null },
               { path: 'spawn/:threadId/:spawnId', element: null },
+              { path: 'terminal/:sessionId', element: null },
             ],
           },
         ],

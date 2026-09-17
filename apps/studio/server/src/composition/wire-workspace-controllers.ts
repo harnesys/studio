@@ -1,6 +1,7 @@
 import type { Hono } from 'hono';
 import type { DeskEventsAdapter } from '../adapters/desk-events.adapter.ts';
 import type { GitCliAdapter } from '../adapters/git/git-cli.adapter.ts';
+import { TerminalController } from '../adapters/http/terminal/terminal.controller.ts';
 import { CapabilitiesController } from '../adapters/http/workspace/capabilities.controller.ts';
 import { ToolsController } from '../adapters/http/workspace/tools.controller.ts';
 import { WorkspaceController } from '../adapters/http/workspace/workspace.controller.ts';
@@ -21,11 +22,11 @@ import { DeleteWorkspaceMcpServerUseCase } from '../application/workspaces/delet
 import { GetGitDiffUseCase } from '../application/workspaces/get-git-diff.use-case.ts';
 import { GetGitFileStatusUseCase } from '../application/workspaces/get-git-file-status.use-case.ts';
 import { GetGitStatusUseCase } from '../application/workspaces/get-git-status.use-case.ts';
-import { InitGitUseCase } from '../application/workspaces/init-git.use-case.ts';
 import { GetWorkspaceFileContentUseCase } from '../application/workspaces/get-workspace-file-content.use-case.ts';
 import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-mcp.use-case.ts';
 import { GetWorkspaceMcpConfigUseCase } from '../application/workspaces/get-workspace-mcp-config.use-case.ts';
 import { GetWorkspaceStatusUseCase } from '../application/workspaces/get-workspace-status.use-case.ts';
+import { InitGitUseCase } from '../application/workspaces/init-git.use-case.ts';
 import { ListWorkspaceCapabilitiesUseCase } from '../application/workspaces/list-workspace-capabilities.use-case.ts';
 import { ListWorkspaceFileTreeUseCase } from '../application/workspaces/list-workspace-file-tree.use-case.ts';
 import { ListWorkspaceFilesUseCase } from '../application/workspaces/list-workspace-files.use-case.ts';
@@ -170,4 +171,9 @@ export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void 
       d.workspaceHarnesys,
     ),
   }).register(d.app);
+
+  new TerminalController({
+    app: d.app,
+    workspaceRepo: d.workspaceRepo,
+  }).register();
 }

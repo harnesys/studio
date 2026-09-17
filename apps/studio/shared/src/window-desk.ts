@@ -31,7 +31,7 @@ export type WorkspaceRecord = {
   status?: HostNodeStatus;
 };
 
-export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff' | 'schedule' | 'webhook';
+export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff' | 'schedule' | 'webhook' | 'terminal';
 
 export type PersistedIdeTab = {
   id: string;
@@ -42,6 +42,7 @@ export type PersistedIdeTab = {
   spawnId?: string;
   scheduleId?: string;
   webhookId?: string;
+  terminalSessionId?: string;
   path?: string;
   dirty?: boolean;
 };

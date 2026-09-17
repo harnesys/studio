@@ -18,6 +18,7 @@ const DEFAULT_SIZES: Record<string, number> = {
   explorer: 1,
   automations: 1,
   git: 1,
+  terminal: 1,
 };
 
 const DEFAULT_COLLAPSED: Record<string, boolean> = {
@@ -26,9 +27,10 @@ const DEFAULT_COLLAPSED: Record<string, boolean> = {
   explorer: true,
   automations: true,
   git: true,
+  terminal: true,
 };
 
-const DEFAULT_ORDER: string[] = ['agents', 'explorer', 'automations', 'git'];
+const DEFAULT_ORDER: string[] = ['agents', 'explorer', 'automations', 'git', 'terminal'];
 
 function isValidSize(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;

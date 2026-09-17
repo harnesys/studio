@@ -11,11 +11,11 @@ import type { DeleteWorkspaceMcpServerInput } from '../../../application/workspa
 import type { GetGitDiffInput } from '../../../application/workspaces/get-git-diff.use-case.ts';
 import type { GetGitFileStatusInput } from '../../../application/workspaces/get-git-file-status.use-case.ts';
 import type { GetGitStatusInput } from '../../../application/workspaces/get-git-status.use-case.ts';
-import type { InitGitInput } from '../../../application/workspaces/init-git.use-case.ts';
 import type { GetWorkspaceFileContentInput } from '../../../application/workspaces/get-workspace-file-content.use-case.ts';
 import type { GetWorkspaceMcpInput } from '../../../application/workspaces/get-workspace-mcp.use-case.ts';
 import type { GetWorkspaceMcpConfigInput } from '../../../application/workspaces/get-workspace-mcp-config.use-case.ts';
 import type { GetWorkspaceStatusInput } from '../../../application/workspaces/get-workspace-status.use-case.ts';
+import type { InitGitInput } from '../../../application/workspaces/init-git.use-case.ts';
 import type { ListWorkspaceFileTreeInput } from '../../../application/workspaces/list-workspace-file-tree.use-case.ts';
 import type { ListWorkspaceFilesInput } from '../../../application/workspaces/list-workspace-files.use-case.ts';
 import type { ListWorkspaceSkillsInput } from '../../../application/workspaces/list-workspace-skills.use-case.ts';

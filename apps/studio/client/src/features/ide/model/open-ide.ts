@@ -27,6 +27,9 @@ export function pathForIdeTab(workspaceId: string, tab: IdeTab): string | null {
   if (tab.kind === 'spawn' && tab.threadId && tab.spawnId) {
     return studioPath.spawn(workspaceId, tab.threadId, tab.spawnId);
   }
+  if (tab.kind === 'terminal' && tab.terminalSessionId) {
+    return studioPath.terminal(workspaceId, tab.terminalSessionId);
+  }
   return null;
 }
 
@@ -65,5 +68,16 @@ export function useOpenSpawnTab() {
       openSpawn(workspaceId, threadId, spawnId);
     },
     [openSpawn],
+  );
+}
+
+export function useOpenTerminalTab() {
+  const { openTerminal } = useStudioNavigation();
+  return useCallback(
+    (workspaceId: string, sessionId: string) => {
+      useIdeStore.getState().openTerminal(workspaceId, sessionId);
+      openTerminal(workspaceId, sessionId);
+    },
+    [openTerminal],
   );
 }

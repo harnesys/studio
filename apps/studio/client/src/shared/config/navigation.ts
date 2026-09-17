@@ -27,6 +27,9 @@ export function useStudioNavigation() {
     openSpawn(workspaceId: string, threadId: string, spawnId: string) {
       void navigate(studioPath.spawn(workspaceId, threadId, spawnId));
     },
+    openTerminal(workspaceId: string, sessionId: string) {
+      void navigate(studioPath.terminal(workspaceId, sessionId));
+    },
     openSettings(category?: WindowSettingsCategory, replace = false) {
       void navigate(studioPath.settings(category), { replace });
     },

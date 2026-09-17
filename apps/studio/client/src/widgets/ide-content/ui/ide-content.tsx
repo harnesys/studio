@@ -8,6 +8,7 @@ import { HitlPrompt } from '@/features/send-message';
 import { ChatComposer } from '@/widgets/chat-composer';
 import { SpawnView, ThreadPanel } from '@/widgets/chat-transcript';
 import { MediaPreview, TextEditor } from '@/widgets/file-pane';
+import { TerminalView } from '@/widgets/terminal-pane';
 import { ThreadJournal } from '@/widgets/thread-journal';
 
 import { ScheduleSurface, WebhookSurface } from './automation-surface';
@@ -84,6 +85,9 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
         <GitCommitDiffView workspaceId={workspaceId} path={tab.path} />
       </div>
     );
+  }
+  if (tab.kind === 'terminal' && tab.terminalSessionId) {
+    return <TerminalView workspaceId={workspaceId} sessionId={tab.terminalSessionId} />;
   }
   return null;
 }

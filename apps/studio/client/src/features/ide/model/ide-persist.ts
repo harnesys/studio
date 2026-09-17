@@ -51,7 +51,8 @@ export function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | nu
           t.kind === 'spawn' ||
           t.kind === 'diff' ||
           t.kind === 'schedule' ||
-          t.kind === 'webhook',
+          t.kind === 'webhook' ||
+          t.kind === 'terminal',
       )
       .map((t) => t.id),
   );

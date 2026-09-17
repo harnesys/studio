@@ -153,6 +153,13 @@ export {
 } from './schedules';
 export { readSse } from './sse';
 export {
+  createTerminal,
+  deleteTerminal,
+  listTerminals,
+  type TerminalSessionRecord,
+  terminalsQueryKey,
+} from './terminals';
+export {
   attachmentUrl,
   type CreateThreadInput,
   cancelRun,

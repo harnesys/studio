@@ -16,6 +16,7 @@ export function useStudioLocation(): StudioFocus {
   const schedule = useMatch('/:workspaceId/schedule/:scheduleId');
   const webhook = useMatch('/:workspaceId/webhook/:webhookId');
   const spawn = useMatch('/:workspaceId/spawn/:threadId/:spawnId');
+  const terminal = useMatch('/:workspaceId/terminal/:sessionId');
 
   if (settingsCategoryMatch || settingsRoot) {
     return {
@@ -70,6 +71,14 @@ export function useStudioLocation(): StudioFocus {
       workspaceId: spawn.params.workspaceId,
       threadId: spawn.params.threadId,
       spawnId: spawn.params.spawnId,
+    };
+  }
+
+  if (terminal?.params.workspaceId && terminal.params.sessionId) {
+    return {
+      kind: 'terminal',
+      workspaceId: terminal.params.workspaceId,
+      sessionId: terminal.params.sessionId,
     };
   }
 

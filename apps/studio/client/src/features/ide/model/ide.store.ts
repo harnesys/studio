@@ -19,7 +19,7 @@ import { loadPersisted, normalizeIdeFilePath, persist, tabIdFor } from './ide-pe
 
 export { firstGroupOfLayout, type IdeSplitNode, lastGroupOfLayout } from './ide-tree';
 
-export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff' | 'schedule' | 'webhook';
+export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff' | 'schedule' | 'webhook' | 'terminal';
 export type IdeTab = {
   id: string;
   kind: IdeTabKind;
@@ -29,6 +29,7 @@ export type IdeTab = {
   spawnId?: string;
   scheduleId?: string;
   webhookId?: string;
+  terminalSessionId?: string;
   path?: string;
   dirty?: boolean;
 };
@@ -52,6 +53,7 @@ type IdeStore = IdeState & {
     agentId: string,
   ) => void;
   openWebhook: (workspaceId: string, webhookId: string, threadId: string, agentId: string) => void;
+  openTerminal: (workspaceId: string, sessionId: string) => void;
   closeTab: (workspaceId: string, tabId: string) => void;
   closeAll: (workspaceId: string) => void;
   setActive: (workspaceId: string, tabId: string) => void;
@@ -141,6 +143,17 @@ export const useIdeStore = create<IdeStore>((set) => {
           webhookId,
           threadId,
           agentId,
+        };
+        return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
+      }),
+    openTerminal: (workspaceId, sessionId) =>
+      set((state) => {
+        const id = tabIdFor('terminal', sessionId);
+        const tab: IdeTab = {
+          id,
+          kind: 'terminal',
+          workspaceId,
+          terminalSessionId: sessionId,
         };
         return withWs(state, workspaceId, upsertTabState(pick(state, workspaceId), tab));
       }),

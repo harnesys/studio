@@ -1,14 +1,17 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   CalendarClockIcon,
   EarthIcon,
   FileDiffIcon,
   FileIcon,
   MessageSquareIcon,
+  SquareTerminalIcon,
   WorkflowIcon,
 } from 'lucide-react';
 import { agentColorTintClass, useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import type { IdeTab } from '@/features/ide';
+import { listTerminals, terminalsQueryKey } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
 
@@ -31,6 +34,9 @@ export function TabIcon({ tab }: { tab: IdeTab }) {
   }
   if (tab.kind === 'webhook') {
     return <EarthIcon className="size-3.5 shrink-0 opacity-70" />;
+  }
+  if (tab.kind === 'terminal') {
+    return <SquareTerminalIcon className="size-3.5 shrink-0 opacity-70" />;
   }
   return <FileIcon className="size-3.5 shrink-0 opacity-70" />;
 }
@@ -73,6 +79,12 @@ export function useTabLabel(tab: IdeTab): string {
   const agent = useAgentStore((state) =>
     tab.kind === 'spawn' && tab.agentId ? (state.byId(tab.agentId) ?? undefined) : undefined,
   );
+  const terminalsQuery = useQuery({
+    queryKey: terminalsQueryKey(tab.workspaceId),
+    queryFn: () => listTerminals(tab.workspaceId),
+    enabled: tab.kind === 'terminal' && Boolean(tab.terminalSessionId),
+    staleTime: 5_000,
+  });
   if (tab.kind === 'file' && tab.path) {
     const parts = tab.path.split('/');
     return parts[parts.length - 1] || tab.path;
@@ -86,6 +98,10 @@ export function useTabLabel(tab: IdeTab): string {
   }
   if (tab.kind === 'spawn') {
     return agent?.name ?? 'Spawn';
+  }
+  if (tab.kind === 'terminal') {
+    const session = terminalsQuery.data?.find((item) => item.id === tab.terminalSessionId);
+    return session?.title ?? 'Terminal';
   }
   return tab.kind;
 }

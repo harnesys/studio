@@ -324,6 +324,7 @@ export type WorkspaceMoveResult = {
 };
 
 export * from './src/plan-types.ts';
+export type { TerminalSessionRecord } from './src/terminal.ts';
 export { isTextAttachment } from './src/text-attachment.ts';
 
 export type DeskEvent =
@@ -339,8 +340,17 @@ export type DeskEvent =
   | { type: 'run-finish'; threadId: string };
 
 export type WorkspaceLspEntry = {
-  serverId: string; origin: 'file' | string; command: string; args?: string[];
-  extensionToLanguage: Record<string, string>; disabled: boolean;
-  granted: boolean; binaryOk: boolean; status: 'live' | 'off' | 'error';
+  serverId: string;
+  origin: 'file' | string;
+  command: string;
+  args?: string[];
+  extensionToLanguage: Record<string, string>;
+  disabled: boolean;
+  granted: boolean;
+  binaryOk: boolean;
+  status: 'live' | 'off' | 'error';
 };
-export type WorkspaceLspListResponse = { servers: WorkspaceLspEntry[]; diagnostics: PluginDiagnostic[] };
+export type WorkspaceLspListResponse = {
+  servers: WorkspaceLspEntry[];
+  diagnostics: PluginDiagnostic[];
+};

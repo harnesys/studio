@@ -2,7 +2,14 @@ import { WINDOW_SETTINGS_CATEGORIES, type WindowSettingsCategory } from './setti
 
 export type { WindowSettingsCategory };
 
-export type StudioFocusKind = 'thread' | 'file' | 'diff' | 'schedule' | 'webhook' | 'spawn';
+export type StudioFocusKind =
+  | 'thread'
+  | 'file'
+  | 'diff'
+  | 'schedule'
+  | 'webhook'
+  | 'spawn'
+  | 'terminal';
 
 export type StudioFocus =
   | { kind: 'none' }
@@ -16,7 +23,8 @@ export type StudioFocus =
   | { kind: 'diff'; workspaceId: string; path: string }
   | { kind: 'schedule'; workspaceId: string; scheduleId: string }
   | { kind: 'webhook'; workspaceId: string; webhookId: string }
-  | { kind: 'spawn'; workspaceId: string; threadId: string; spawnId: string };
+  | { kind: 'spawn'; workspaceId: string; threadId: string; spawnId: string }
+  | { kind: 'terminal'; workspaceId: string; sessionId: string };
 
 export const studioPath = {
   desk: '/',
@@ -29,6 +37,7 @@ export const studioPath = {
   webhook: (workspaceId: string, webhookId: string) => `/${workspaceId}/webhook/${webhookId}`,
   spawn: (workspaceId: string, threadId: string, spawnId: string) =>
     `/${workspaceId}/spawn/${threadId}/${spawnId}`,
+  terminal: (workspaceId: string, sessionId: string) => `/${workspaceId}/terminal/${sessionId}`,
   settings: (category?: WindowSettingsCategory) => {
     if (category && category !== 'profile') {
       return `/settings/${category}`;

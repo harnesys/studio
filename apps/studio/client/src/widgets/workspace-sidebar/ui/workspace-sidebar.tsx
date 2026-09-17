@@ -38,6 +38,7 @@ import { GitSection } from './git-section';
 import { InboxSection } from './inbox-section';
 import { SECTION_META, type SidebarSectionId } from './sections-meta';
 import { SidebarSectionsConfig } from './sidebar-sections-config';
+import { TerminalSection, TerminalSectionActions } from './terminal-section';
 import { WorkspaceHeader } from './workspace-header';
 
 export function WorkspaceSidebar() {
@@ -60,6 +61,7 @@ export function WorkspaceSidebar() {
   );
   const activeScheduleId = focus.kind === 'schedule' ? focus.scheduleId : null;
   const activeWebhookId = focus.kind === 'webhook' ? focus.webhookId : null;
+  const activeTerminalSessionId = focus.kind === 'terminal' ? focus.sessionId : null;
   const collapsed = useAccordionStore((state) => state.collapsed);
   const sizes = useAccordionStore((state) => state.sizes);
   const order = useAccordionStore((state) => state.order);
@@ -250,6 +252,40 @@ export function WorkspaceSidebar() {
             <GitSection
               workspaceIds={workspaceIds}
               groupActions={multi ? (id) => <GitSectionMenu workspaceId={id} /> : undefined}
+            />
+          </AccordionSection>
+        );
+      case 'terminal':
+        return (
+          <AccordionSection
+            id="terminal"
+            icon={<Icon />}
+            title="Terminal"
+            size={shares[id] ?? 1}
+            actions={
+              singleWorkspaceId ? (
+                <TerminalSectionActions
+                  workspaceId={singleWorkspaceId}
+                  onCreated={() => setOpenMobile(false)}
+                />
+              ) : undefined
+            }
+            {...drag}
+          >
+            <TerminalSection
+              workspaceIds={workspaceIds}
+              activeSessionId={activeTerminalSessionId}
+              onSelectDone={() => setOpenMobile(false)}
+              groupActions={
+                multi
+                  ? (id) => (
+                      <TerminalSectionActions
+                        workspaceId={id}
+                        onCreated={() => setOpenMobile(false)}
+                      />
+                    )
+                  : undefined
+              }
             />
           </AccordionSection>
         );

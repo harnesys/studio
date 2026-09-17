@@ -116,6 +116,14 @@ export function useIdeSync() {
       return;
     }
 
+    if (focus.kind === 'terminal') {
+      useIdeStore.getState().openTerminal(workspaceId, focus.sessionId);
+      useIdeStore
+        .getState()
+        .setDeskActive(workspaceId, tabIdFor('terminal', focus.sessionId), visible);
+      return;
+    }
+
     if (focus.kind === 'thread') {
       const thread = useThreadStore.getState().byId(focus.threadId);
       if (!thread) {

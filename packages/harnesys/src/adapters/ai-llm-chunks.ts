@@ -74,3 +74,23 @@ export function canonicalToolName(name: string, registry?: Map<string, ToolDefin
   const stripped = name.slice(FUNCTION_PREFIX.length);
   return registry.has(stripped) ? stripped : name;
 }
+
+/** AI SDK / gateway may put a plain `{ code, message }` on the stream error part. */
+export function toStreamError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+  if (error && typeof error === 'object') {
+    const rec = error as { message?: unknown; code?: unknown; metadata?: unknown };
+    if (typeof rec.message === 'string' && rec.message) {
+      return Object.assign(new Error(rec.message), {
+        ...(rec.code !== undefined ? { code: rec.code } : {}),
+        ...(rec.metadata !== undefined ? { metadata: rec.metadata } : {}),
+      });
+    }
+  }
+  if (error === undefined || error === null) {
+    return new Error('stream error');
+  }
+  return new Error(String(error));
+}

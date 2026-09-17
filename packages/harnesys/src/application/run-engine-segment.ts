@@ -62,9 +62,16 @@ function isJournalBoundaryCard(event: SessionEvent): boolean {
   );
 }
 
-function messageOf(err: unknown): string {
+/** Message for run.failed: Error, or plain `{ message }` from provider gateways. */
+export function failMessageOf(err: unknown): string {
   if (err instanceof Error && err.message) {
     return err.message;
+  }
+  if (err && typeof err === 'object') {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === 'string' && message) {
+      return message;
+    }
   }
   return 'run failed';
 }
@@ -313,7 +320,7 @@ async function failSegment(
   await guardedTransition(env, ctx.runId, ctx.epoch, {
     from: 'running',
     to: 'failed',
-    events: [runFailedEvent(messageOf(err))],
+    events: [runFailedEvent(failMessageOf(err))],
   });
 }
 

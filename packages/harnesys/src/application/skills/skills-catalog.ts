@@ -2,6 +2,26 @@ import { MAX_CHARS, MAX_ENTRIES } from '../../constants.ts';
 import type { SkillSummary } from '../../domain/skill.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
 
+/**
+ * Allowlist ids are often `plugin:name`. Models call bare `name` from SKILL.md.
+ * Exact match wins; otherwise a unique `*:name` / trailing `:name` match resolves.
+ */
+export function resolveAllowedSkillName(
+  requested: string,
+  allowed: ReadonlySet<string>,
+): string | undefined {
+  if (allowed.has(requested)) {
+    return requested;
+  }
+  const matches: string[] = [];
+  for (const name of allowed) {
+    if (name.endsWith(`:${requested}`)) {
+      matches.push(name);
+    }
+  }
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
 export function filterSkills(
   registry: SkillRegistry,
   allowlist: string[] | undefined,
@@ -17,16 +37,18 @@ export function filterSkills(
       );
     },
     load(name: string) {
-      if (!allowed.has(name)) {
+      const resolved = resolveAllowedSkillName(name, allowed);
+      if (resolved === undefined) {
         throw new Error(`unknown skill: ${name}`);
       }
-      return registry.load(name);
+      return registry.load(resolved);
     },
     loadFile(name: string, relPath: string) {
-      if (!allowed.has(name)) {
+      const resolved = resolveAllowedSkillName(name, allowed);
+      if (resolved === undefined) {
         throw new Error(`unknown skill: ${name}`);
       }
-      return registry.loadFile(name, relPath);
+      return registry.loadFile(resolved, relPath);
     },
     reload() {
       return registry.reload();

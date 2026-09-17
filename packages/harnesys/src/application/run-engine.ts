@@ -9,7 +9,13 @@ import { emitHook, type HookEmitCtx } from './hooks/emit-hook.ts';
 import { eventToSessionEvent, runFailedEvent, runStartedEvent } from './run-engine-events.ts';
 import { prepareExecuteGraphOpts } from './run-engine-prepare.ts';
 import type { SegmentCtx, SegmentEnv } from './run-engine-segment.ts';
-import { admit, flushJournal, guardedTransition, runSegment } from './run-engine-segment.ts';
+import {
+  admit,
+  failMessageOf,
+  flushJournal,
+  guardedTransition,
+  runSegment,
+} from './run-engine-segment.ts';
 import type { RunEngine, RunEngineDeps, RunTargetOpts } from './run-engine-types.ts';
 
 export type { RunEngine, RunEngineDeps, RunTargetOpts };
@@ -173,9 +179,7 @@ export function createRunEngine(deps: RunEngineDeps): RunEngine {
         await guardedTransition(env, runId, epoch, {
           from: 'running',
           to: 'failed',
-          events: [
-            runFailedEvent(err instanceof Error && err.message ? err.message : 'run failed'),
-          ],
+          events: [runFailedEvent(failMessageOf(err))],
         });
         return;
       }

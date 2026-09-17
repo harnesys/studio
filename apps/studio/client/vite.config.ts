@@ -2,11 +2,41 @@ import path from 'node:path';
 import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { DEFAULT_API_PORT, DEFAULT_DEV_SERVER_PORT } from './src/shared/config/constants.ts';
 
 const root = import.meta.dirname;
 const studioRoot = path.resolve(root, '..');
+
+const BENIGN_PROXY_CODES = new Set(['EPIPE', 'ECONNRESET', 'ECONNABORTED']);
+
+/** Vite logs ws proxy EPIPE after client disconnect; suppress those only. */
+function quietWsProxyDisconnects(): Plugin {
+  return {
+    name: 'quiet-ws-proxy-disconnects',
+    configureServer(server) {
+      const logger = server.config.logger;
+      const original = logger.error.bind(logger);
+      logger.error = (msg, options) => {
+        const text = typeof msg === 'string' ? msg : String(msg);
+        const code =
+          options?.error &&
+          typeof options.error === 'object' &&
+          'code' in options.error &&
+          typeof (options.error as { code?: unknown }).code === 'string'
+            ? (options.error as { code: string }).code
+            : '';
+        if (
+          BENIGN_PROXY_CODES.has(code) &&
+          (text.includes('ws proxy error') || text.includes('ws proxy socket error'))
+        ) {
+          return;
+        }
+        original(msg, options);
+      };
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, studioRoot, '');
@@ -17,7 +47,12 @@ export default defineConfig(({ mode }) => {
     root,
     envDir: studioRoot,
     envPrefix: ['VITE_', 'CLIENT_'],
-    plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()],
+    plugins: [
+      react(),
+      babel({ presets: [reactCompilerPreset()] }),
+      tailwindcss(),
+      quietWsProxyDisconnects(),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(root, './src'),

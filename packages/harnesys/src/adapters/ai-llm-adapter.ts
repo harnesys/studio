@@ -3,7 +3,7 @@ import { STREAM_CHUNK_SIZE } from '../constants.ts';
 import type { AgentGenerationSettings } from '../domain/agent-definition.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import { canonicalToolName, type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
+import { canonicalToolName, type StreamChunk, toAiTools, toStreamError } from './ai-llm-chunks.ts';
 import { toModelMessages } from './ai-llm-messages.ts';
 import { buildProvider, effortStreamOptions } from './ai-llm-provider.ts';
 
@@ -270,7 +270,7 @@ export async function* callModel(
     }
 
     if (type === 'error') {
-      throw (part as { error?: unknown }).error ?? new Error(String(part.error ?? 'stream error'));
+      throw toStreamError((part as { error?: unknown }).error);
     }
 
     if (type === 'abort') {

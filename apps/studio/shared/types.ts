@@ -260,8 +260,10 @@ export type {
   PersistedIdeGroup,
   PersistedIdeTab,
   PersistedIdeWorkspace,
+  WindowBootstrap,
   WindowDesk,
   WindowDeskPark,
+  WindowHostRecord,
   WorkspaceRecord,
 } from './src/window-desk.ts';
 

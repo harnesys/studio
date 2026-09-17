@@ -1,5 +1,11 @@
 export type HostNodeStatus = 'ready' | 'unavailable';
 
+export type WindowHostRecord = {
+  id: string;
+  baseUrl: string;
+  credential: string;
+};
+
 export type WorkspaceRecord = {
   id: string;
   name: string;
@@ -42,4 +48,10 @@ export type WindowDeskPark = Record<string, PersistedIdeWorkspace>;
 export type WindowDesk = {
   selectedNodeIds: string[];
   park: WindowDeskPark;
+};
+
+/** Loopback bootstrap payload: window.hosts + desk (incl. local credential). */
+export type WindowBootstrap = {
+  hosts: WindowHostRecord[];
+  desk: WindowDesk;
 };

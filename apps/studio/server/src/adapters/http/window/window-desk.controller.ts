@@ -1,5 +1,6 @@
 import type { Hono } from 'hono';
 import type { MachineConfigPort, WindowDesk } from '../../../domain/machine-config.ts';
+import { isLoopbackPeer } from '../loopback.ts';
 import { windowDeskBody } from './window-desk.body.ts';
 
 export type WindowDeskControllerDeps = {
@@ -10,6 +11,18 @@ export class WindowDeskController {
   constructor(private readonly deps: WindowDeskControllerDeps) {}
 
   register(app: Hono): void {
+    /**
+     * Local chicken-egg: loopback may fetch window section (incl. credential)
+     * once without Bearer. Non-loopback always 403. After this, client sends Bearer.
+     */
+    app.get('/api/window/bootstrap', (c) => {
+      if (!isLoopbackPeer(c)) {
+        return c.json({ error: 'forbidden' }, 403);
+      }
+      const { hosts, desk } = this.deps.machineConfig.read().window;
+      return c.json({ hosts, desk });
+    });
+
     app.get('/api/window/desk', (c) => {
       return c.json(this.deps.machineConfig.read().window.desk);
     });

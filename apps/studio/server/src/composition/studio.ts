@@ -98,6 +98,7 @@ function readLegacyWorkspaceNodes(home: string): HostNodeRecord[] {
 
 function refuseApp(reason: string): Hono {
   const app = new Hono();
+  app.get('/health', (c) => c.json({ ok: false, error: reason }, 503));
   app.all('*', (c) =>
     c.json(
       {

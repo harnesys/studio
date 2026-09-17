@@ -37,6 +37,7 @@ export const ASK_MODE: AgentMode = {
 /** Пресет хранит packs в той же map-форме (`{"plan":{}}`); в AgentMode
  *  превращается через `modeFromPreset` (копия карты). */
 export type ModePreset = Omit<AgentMode, 'packs'> & {
+  workspaceId: string;
   packs?: Record<string, PackAssignment | null>;
   builtin: boolean;
   installedByDefault: boolean;

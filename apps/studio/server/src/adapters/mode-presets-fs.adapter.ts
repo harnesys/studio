@@ -74,8 +74,8 @@ function presetIdsIn(dir: string): string[] {
  */
 export function readModePresets(
   onSkip: (message: string) => void = (message) => console.warn(message),
-): Omit<ModePreset, 'createdAt' | 'updatedAt'>[] {
-  const byId = new Map<string, Omit<ModePreset, 'createdAt' | 'updatedAt'>>();
+): Omit<ModePreset, 'workspaceId' | 'createdAt' | 'updatedAt'>[] {
+  const byId = new Map<string, Omit<ModePreset, 'workspaceId' | 'createdAt' | 'updatedAt'>>();
   for (const root of presetRoots()) {
     for (const id of presetIdsIn(root.dir)) {
       const path = join(root.dir, `${id}.json`);
@@ -98,7 +98,7 @@ function parsePreset(
   id: string,
   path: string,
   builtin: boolean,
-): Omit<ModePreset, 'createdAt' | 'updatedAt'> {
+): Omit<ModePreset, 'workspaceId' | 'createdAt' | 'updatedAt'> {
   let raw: unknown;
   try {
     raw = JSON.parse(readFileSync(path, 'utf8'));

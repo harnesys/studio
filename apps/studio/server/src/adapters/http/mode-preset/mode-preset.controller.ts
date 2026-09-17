@@ -16,13 +16,18 @@ export class ModePresetController {
   constructor(private readonly deps: ModePresetControllerDeps) {}
 
   register(app: Hono): void {
-    app.get('/api/mode-presets', async (c) => {
-      return c.json(await this.deps.listModePresets.execute());
+    const base = '/api/workspaces/:workspaceId/mode-presets';
+
+    app.get(base, async (c) => {
+      return c.json(
+        await this.deps.listModePresets.execute({ workspaceId: c.req.param('workspaceId') }),
+      );
     });
 
-    app.post('/api/mode-presets', async (c) => {
+    app.post(base, async (c) => {
       const body = modePresetBody.parse(await c.req.json());
       const created = await this.deps.createModePreset.execute({
+        workspaceId: c.req.param('workspaceId'),
         id: body.id,
         name: body.name,
         description: body.description,
@@ -35,9 +40,10 @@ export class ModePresetController {
       return c.json(created, 201);
     });
 
-    app.patch('/api/mode-presets/:id', async (c) => {
+    app.patch(`${base}/:id`, async (c) => {
       const body = modePresetPatchBody.parse(await c.req.json());
       const preset = await this.deps.updateModePreset.execute({
+        workspaceId: c.req.param('workspaceId'),
         id: c.req.param('id'),
         name: body.name,
         description: body.description,
@@ -50,8 +56,11 @@ export class ModePresetController {
       return c.json(preset);
     });
 
-    app.delete('/api/mode-presets/:id', async (c) => {
-      await this.deps.deleteModePreset.execute({ id: c.req.param('id') });
+    app.delete(`${base}/:id`, async (c) => {
+      await this.deps.deleteModePreset.execute({
+        workspaceId: c.req.param('workspaceId'),
+        id: c.req.param('id'),
+      });
       return c.body(null, 204);
     });
   }

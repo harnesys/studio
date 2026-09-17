@@ -1,4 +1,6 @@
 import { existsSync, statSync } from 'node:fs';
+import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
+import { seedWorkspaceModePresets } from '../../adapters/store/sqlite/seed-workspace-mode-presets.ts';
 import type {
   HostNodeRecord,
   HostNodeStatus,
@@ -21,15 +23,18 @@ export type NodeRegistry = {
 export type NodeRegistryDeps = {
   config: MachineConfigPort;
   workspaces: WorkspaceRepository;
+  db: StudioDb;
 };
 
 export class HostNodeRegistry implements NodeRegistry {
   private readonly config: MachineConfigPort;
   private readonly workspaces: WorkspaceRepository;
+  private readonly db: StudioDb;
 
   constructor(deps: NodeRegistryDeps) {
     this.config = deps.config;
     this.workspaces = deps.workspaces;
+    this.db = deps.db;
   }
 
   list(): HostNodeRecord[] {
@@ -90,6 +95,7 @@ export class HostNodeRegistry implements NodeRegistry {
       path: record.path,
       createdAt: now,
     });
+    seedWorkspaceModePresets(this.db, record.id);
     this.config.writeHost({ nodes: [...nodes, record] });
     return record;
   }

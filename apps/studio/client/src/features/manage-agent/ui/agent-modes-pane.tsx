@@ -44,7 +44,7 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
     ...workspaceCapabilitiesQuery(workspaceId),
     enabled: active && Boolean(workspaceId),
   });
-  const presetsQuery = useQuery({ ...modePresetsQuery, enabled: active });
+  const presetsQuery = useQuery({ ...modePresetsQuery(workspaceId), enabled: active });
   const explainQuery = useQuery({
     ...agentCapabilitiesQuery(activeAgent?.id ?? null, workspaceId),
     enabled: active && Boolean(activeAgent?.id),

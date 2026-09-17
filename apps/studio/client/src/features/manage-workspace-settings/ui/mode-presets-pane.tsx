@@ -8,7 +8,7 @@ import {
   type ModePresetPatch,
   type ModePresetRecord,
   modePresetsQuery,
-  modePresetsQueryKey,
+  modePresetsQueryKeyFor,
   updateModePreset,
   workspaceCapabilitiesQuery,
   workspaceSkillsQuery,
@@ -39,7 +39,7 @@ type PresetEditing =
 
 export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
-  const presetsQuery = useQuery(modePresetsQuery);
+  const presetsQuery = useQuery(modePresetsQuery(workspaceId));
   const presets = presetsQuery.data ?? [];
   const [editing, setEditing] = useState<PresetEditing | null>(null);
   const skillsQuery = useQuery({
@@ -56,11 +56,11 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
     .map((pack) => pack.name);
 
   async function refreshCache() {
-    await queryClient.invalidateQueries({ queryKey: modePresetsQueryKey });
+    await queryClient.invalidateQueries({ queryKey: modePresetsQueryKeyFor(workspaceId) });
   }
 
   const create = useMutation({
-    mutationFn: (draft: ModePresetDraft) => createModePreset({ ...draft }),
+    mutationFn: (draft: ModePresetDraft) => createModePreset(workspaceId, { ...draft }),
     onSuccess: async (created) => {
       await refreshCache();
       toast.add({ title: 'Mode preset created', description: created.id });
@@ -75,6 +75,7 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
   const update = useMutation({
     mutationFn: (input: { preset: ModePresetRecord; draft: ModePresetDraft }) =>
       updateModePreset(
+        workspaceId,
         input.preset.id,
         input.preset.builtin
           ? { installedByDefault: input.draft.installedByDefault }
@@ -92,7 +93,7 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => deleteModePreset(id),
+    mutationFn: (id: string) => deleteModePreset(workspaceId, id),
     onSuccess: async () => {
       await refreshCache();
       toast.add({ title: 'Mode preset deleted' });

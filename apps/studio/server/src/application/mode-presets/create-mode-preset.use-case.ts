@@ -3,6 +3,7 @@ import type { ModePresetInsert, ModePresetRepository } from '../../domain/mode-p
 import { ConflictError } from '../../domain/studio.error.ts';
 
 export type CreateModePresetRequest = {
+  workspaceId: string;
   id: string;
   name: string;
   description?: string;
@@ -21,11 +22,12 @@ export class CreateModePresetUseCase implements CreateModePresetInput {
   constructor(private readonly presets: ModePresetRepository) {}
 
   execute(request: CreateModePresetRequest): Promise<ModePreset> {
-    if (this.presets.findById(request.id)) {
+    if (this.presets.findById(request.workspaceId, request.id)) {
       return Promise.reject(new ConflictError('mode preset id taken'));
     }
     const now = new Date().toISOString();
     const rec: ModePresetInsert = {
+      workspaceId: request.workspaceId,
       id: request.id,
       name: request.name,
       description: request.description ?? '',

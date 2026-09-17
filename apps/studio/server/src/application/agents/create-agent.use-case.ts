@@ -155,7 +155,9 @@ export class CreateAgentUseCase implements CreateAgentInput {
       defaultBudget = null;
     }
     const budget = request.budget ?? defaultBudget;
-    const modes = ensureAskMode(request.modes ?? this.seedDefaultModes(capabilities));
+    const modes = ensureAskMode(
+      request.modes ?? this.seedDefaultModes(request.workspaceId, capabilities),
+    );
     const defaultModeId = request.defaultModeId ?? null;
     const hooks = request.hooks ?? [];
     const enabledPlugins = request.enabledPlugins ?? {};
@@ -210,7 +212,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     return await Promise.resolve(created);
   }
 
-  private seedDefaultModes(capabilities: AgentCapabilitiesMap): AgentMode[] {
+  private seedDefaultModes(workspaceId: string, capabilities: AgentCapabilitiesMap): AgentMode[] {
     const granted = new Set(
       Object.entries(capabilities)
         .filter(([, value]) => {
@@ -222,7 +224,7 @@ export class CreateAgentUseCase implements CreateAgentInput {
     // Сиды совместимые: strict-режим (`mode ⊆ agent`) требует, чтобы seeded-план
     // не ломал создание агентов без plan-пака; ask/auto без packs проходят всегда.
     // `core` provisioned валидацией позже и на фильтр не влияет.
-    return (this.deps.modePresets?.list() ?? [])
+    return (this.deps.modePresets?.list(workspaceId) ?? [])
       .filter((preset) => preset.installedByDefault && preset.id !== DEFAULT_MODE_ID)
       .map(modeFromPreset)
       .filter((mode) => {

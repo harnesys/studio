@@ -66,6 +66,7 @@ export {
   type ModePresetRecord,
   modePresetsQuery,
   modePresetsQueryKey,
+  modePresetsQueryKeyFor,
   updateModePreset,
 } from './mode-presets';
 export {

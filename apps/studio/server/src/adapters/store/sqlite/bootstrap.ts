@@ -1,17 +1,17 @@
 import { ASK_MODE, DEFAULT_MODE_ID, modeFromPreset } from '@harnesys/studio-shared';
 import { eq, sql } from 'drizzle-orm';
-import { builtinModePresetSeed } from '../../../config/mode-preset-seed.ts';
 import { backfillAgentsModeGates } from './bootstrap-agents-gate-migration.ts';
 import { migrateCapabilityCore } from './bootstrap-capability-core-migration.ts';
 import { migrateCapabilitySet } from './bootstrap-capability-set-migration.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
 import { cleanupReservedModeIds } from './bootstrap-modes-cleanup.ts';
+import { migrateNodeCatalogPresets } from './bootstrap-node-catalog-presets-migration.ts';
 import { migrateNodeCatalogProviders } from './bootstrap-node-catalog-providers-migration.ts';
 import type { StudioDb } from './connection.ts';
 import { migratePluginGrantsSchema } from './plugins-migration.ts';
 import { SqliteModePresetRepo } from './repos/sqlite-mode-preset.repo.ts';
 import { agentsTable } from './schema/agents.ts';
-import { modePresetsTable } from './schema/mode-presets.ts';
+import { seedLegacyModePresetsIfUnscoped } from './seed-legacy-mode-presets.ts';
 
 export function bootstrap(db: StudioDb): void {
   // Drop journal tables (0.5.0 cutover)
@@ -380,28 +380,24 @@ export function bootstrap(db: StudioDb): void {
   try {
     db.run(
       sql.raw(`CREATE TABLE IF NOT EXISTS mode_presets (
-      id text PRIMARY KEY, name text NOT NULL, description text NOT NULL DEFAULT '',
+      workspace_id text NOT NULL,
+      id text NOT NULL,
+      name text NOT NULL, description text NOT NULL DEFAULT '',
       instructions text NOT NULL DEFAULT '', skills_json text NOT NULL DEFAULT '[]',
       packs_json text NOT NULL DEFAULT '[]', permissions_json text NOT NULL DEFAULT '{}',
       builtin integer NOT NULL DEFAULT 0, installed_by_default integer NOT NULL DEFAULT 0,
-      created_at text NOT NULL, updated_at text NOT NULL);`),
+      created_at text NOT NULL, updated_at text NOT NULL,
+      PRIMARY KEY (workspace_id, id));`),
     );
   } catch {}
 
-  const presetSeedNow = new Date().toISOString();
-  for (const seed of builtinModePresetSeed()) {
-    db.insert(modePresetsTable)
-      .values({
-        ...seed,
-        skillsJson: JSON.stringify(seed.skills ?? []),
-        packsJson: JSON.stringify(seed.packs ?? {}),
-        permissionsJson: JSON.stringify(seed.permissions ?? {}),
-        createdAt: presetSeedNow,
-        updatedAt: presetSeedNow,
-      })
-      .onConflictDoNothing()
-      .run();
-  }
+  // Legacy id-PK tables need the column before drizzle selects (gate/capability migrations).
+  try {
+    db.run(sql.raw('ALTER TABLE mode_presets ADD COLUMN workspace_id text;'));
+  } catch {}
+
+  // Legacy DBs still on id-PK get an unscoped seed; 4a migration copies per node.
+  seedLegacyModePresetsIfUnscoped(db);
 
   cleanupReservedModeIds(db);
 
@@ -413,20 +409,29 @@ export function bootstrap(db: StudioDb): void {
     db.run(sql.raw("ALTER TABLE agents ADD COLUMN modes_json text NOT NULL DEFAULT '[]';"));
   } catch {}
 
-  // Backfill: install installedByDefault presets + ask into agents without modes.
-  // The reserved `default` pseudo-mode id is excluded (a stray preset must not
-  // inject a `default` mode into agents; the composer offers it as a pseudo-mode).
+  // Rows predating the `agents` operation: preset rows and agent mode copies
+  // get the spec gate; custom modes keep inheriting the agent base.
+  backfillAgentsModeGates(db);
+
+  // capability_set_v1: `agents.tools` drop, modes/preset packs array→map, core
+  // merge. Runs after the mode backfill above so freshly seeded agent modes
+  // convert in the same boot; idempotent via `schema_meta`.
+  migrateCapabilitySet(db);
+
+  migrateNodeCatalogPresets(db);
+
+  // After per-node presets exist: install installedByDefault + ask into empty agents.
   const presetRepo = new SqliteModePresetRepo(db);
-  const defaults = presetRepo
-    .list()
-    .filter(
-      (preset) =>
-        preset.id !== DEFAULT_MODE_ID && (preset.installedByDefault || preset.id === ASK_MODE.id),
-    );
   for (const row of db.select().from(agentsTable).all()) {
     if (row.modesJson !== '[]') {
       continue;
     }
+    const defaults = presetRepo
+      .list(row.workspaceId)
+      .filter(
+        (preset) =>
+          preset.id !== DEFAULT_MODE_ID && (preset.installedByDefault || preset.id === ASK_MODE.id),
+      );
     const modes = defaults.map(modeFromPreset);
     if (!modes.some((mode) => mode.id === ASK_MODE.id)) {
       modes.push({ ...ASK_MODE });
@@ -436,15 +441,6 @@ export function bootstrap(db: StudioDb): void {
       .where(eq(agentsTable.id, row.id))
       .run();
   }
-
-  // Rows predating the `agents` operation: preset rows and agent mode copies
-  // get the spec gate; custom modes keep inheriting the agent base.
-  backfillAgentsModeGates(db);
-
-  // capability_set_v1: `agents.tools` drop, modes/preset packs array→map, core
-  // merge. Runs after the mode backfill above so freshly seeded agent modes
-  // convert in the same boot; idempotent via `schema_meta`.
-  migrateCapabilitySet(db);
 
   try {
     db.run(sql.raw(`ALTER TABLE threads ADD COLUMN kind text NOT NULL DEFAULT 'chat';`));

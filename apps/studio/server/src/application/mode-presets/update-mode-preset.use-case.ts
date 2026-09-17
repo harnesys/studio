@@ -3,6 +3,7 @@ import type { ModePresetPatch, ModePresetRepository } from '../../domain/mode-pr
 import { ConflictError, NotFoundError } from '../../domain/studio.error.ts';
 
 export type UpdateModePresetRequest = {
+  workspaceId: string;
   id: string;
   name?: string;
   description?: string;
@@ -21,7 +22,7 @@ export class UpdateModePresetUseCase implements UpdateModePresetInput {
   constructor(private readonly presets: ModePresetRepository) {}
 
   execute(request: UpdateModePresetRequest): Promise<ModePreset> {
-    const current = this.presets.findById(request.id);
+    const current = this.presets.findById(request.workspaceId, request.id);
     if (!current) {
       return Promise.reject(new NotFoundError('mode preset not found'));
     }
@@ -59,6 +60,6 @@ export class UpdateModePresetUseCase implements UpdateModePresetInput {
     if (request.installedByDefault !== undefined) {
       patch.installedByDefault = request.installedByDefault;
     }
-    return Promise.resolve(this.presets.update(request.id, patch));
+    return Promise.resolve(this.presets.update(request.workspaceId, request.id, patch));
   }
 }

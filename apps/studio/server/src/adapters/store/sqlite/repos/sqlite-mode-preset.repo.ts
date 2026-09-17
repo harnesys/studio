@@ -1,5 +1,5 @@
 import type { ModeOpPermissions, ModePreset, PackAssignment } from '@harnesys/studio-shared';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type {
   ModePresetInsert,
   ModePresetPatch,
@@ -13,12 +13,21 @@ import { type ModePresetRow, modePresetsTable } from '../schema';
 export class SqliteModePresetRepo implements ModePresetRepository {
   constructor(private readonly db: StudioDb) {}
 
-  list(): ModePreset[] {
-    return this.db.select().from(modePresetsTable).all().map(toPreset);
+  list(workspaceId: string): ModePreset[] {
+    return this.db
+      .select()
+      .from(modePresetsTable)
+      .where(eq(modePresetsTable.workspaceId, workspaceId))
+      .all()
+      .map(toPreset);
   }
 
-  findById(id: string): ModePreset | undefined {
-    const row = this.db.select().from(modePresetsTable).where(eq(modePresetsTable.id, id)).get();
+  findById(workspaceId: string, id: string): ModePreset | undefined {
+    const row = this.db
+      .select()
+      .from(modePresetsTable)
+      .where(and(eq(modePresetsTable.workspaceId, workspaceId), eq(modePresetsTable.id, id)))
+      .get();
     return row ? toPreset(row) : undefined;
   }
 
@@ -41,7 +50,7 @@ export class SqliteModePresetRepo implements ModePresetRepository {
     }
   }
 
-  update(id: string, patch: ModePresetPatch): ModePreset {
+  update(workspaceId: string, id: string, patch: ModePresetPatch): ModePreset {
     try {
       const { skills, packs, permissions, ...rest } = patch;
       const row = this.db
@@ -52,7 +61,7 @@ export class SqliteModePresetRepo implements ModePresetRepository {
           ...(packs !== undefined ? { packsJson: JSON.stringify(packs) } : {}),
           ...(permissions !== undefined ? { permissionsJson: JSON.stringify(permissions) } : {}),
         })
-        .where(eq(modePresetsTable.id, id))
+        .where(and(eq(modePresetsTable.workspaceId, workspaceId), eq(modePresetsTable.id, id)))
         .returning()
         .get();
       if (!row) {
@@ -64,13 +73,17 @@ export class SqliteModePresetRepo implements ModePresetRepository {
     }
   }
 
-  delete(id: string): void {
-    this.db.delete(modePresetsTable).where(eq(modePresetsTable.id, id)).run();
+  delete(workspaceId: string, id: string): void {
+    this.db
+      .delete(modePresetsTable)
+      .where(and(eq(modePresetsTable.workspaceId, workspaceId), eq(modePresetsTable.id, id)))
+      .run();
   }
 }
 
 function toPreset(row: ModePresetRow): ModePreset {
   return {
+    workspaceId: row.workspaceId,
     id: row.id,
     name: row.name,
     description: row.description,

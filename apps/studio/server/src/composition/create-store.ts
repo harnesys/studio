@@ -52,7 +52,11 @@ export function createStudioStore(options: StudioStoreOptions = {}): StudioStore
 
   const workspaceRepo = new SqliteWorkspaceRepo(db);
   const machineConfig = options.machineConfig ?? new MachineConfigFileAdapter({ home });
-  const nodeRegistry = new HostNodeRegistry({ config: machineConfig, workspaces: workspaceRepo });
+  const nodeRegistry = new HostNodeRegistry({
+    config: machineConfig,
+    workspaces: workspaceRepo,
+    db,
+  });
   nodeRegistry.migrateFromTableIfEmpty();
 
   return {

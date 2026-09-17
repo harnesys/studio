@@ -14,9 +14,9 @@ export type ModePresetPatch = Partial<{
 }>;
 
 export type ModePresetRepository = {
-  list(): ModePreset[];
-  findById(id: string): ModePreset | undefined;
+  list(workspaceId: string): ModePreset[];
+  findById(workspaceId: string, id: string): ModePreset | undefined;
   insert(rec: ModePresetInsert): ModePreset;
-  update(id: string, patch: ModePresetPatch): ModePreset;
-  delete(id: string): void;
+  update(workspaceId: string, id: string, patch: ModePresetPatch): ModePreset;
+  delete(workspaceId: string, id: string): void;
 };

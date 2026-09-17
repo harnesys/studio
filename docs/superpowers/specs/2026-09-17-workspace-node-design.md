@@ -24,15 +24,50 @@ Scope: топология Window / Host process / Workspace-node, persist на �
 
 Единица автономии: **workspace-node** (далее нода). Host process поднимает ноды. Window подключается к нодам и рисует стол. Секреты и capabilities принадлежат ноде.
 
-Целевой persist: **отдельный store на каждую ноду** (свой db-файл или каталог состояния). Host process держит registry «какие ноды поднять» и transport (listen, token), не каталог моделей и не skills.
+Целевой persist: **`workspace.db` в каталоге каждой ноды**. На машине один домашний **`~/.harnesys/config.json`**: host (listen, token, локальные ноды), window (известные hosts, desk chrome). Отдельные `host.token` / `host.json` / `window.json` не плодим; вынос секрета в файл с mode 0600 — позже, если понадобится.
+
+## Persist
+
+### Нода
+
+```text
+<workspace>/
+  .harnesys/
+    workspace.db
+  …
+```
+
+Domain ноды (агенты, треды, providers, plugins, presets, …) только здесь. `/.harnesys/` в ignore VCS. Concurrent cloud-sync папки с открытым `workspace.db` не предполагаем.
+
+### Машина (`~/.harnesys/config.json`)
+
+Один файл на машину. Секции по роли (на VPS без UI заполнен `host`; на тонком клиенте — `window`; на desktop с sidecar — обе):
+
+```json
+{
+  "host": {
+    "listen": "127.0.0.1:3000",
+    "token": "…",
+    "nodes": [{ "id": "…", "path": "/Users/…/Shop", "name": "Shop" }]
+  },
+  "window": {
+    "hosts": [{ "id": "local", "baseUrl": "http://127.0.0.1:3000" }],
+    "desk": { "selectedNodeIds": ["…"] }
+  }
+}
+```
+
+Источник правды локальных нод на runtime-машине: `host.nodes` (path → id). Список нод remote host окно получает с API того host; при желании кэширует в `window`. Окно не сканирует диск вместо реестра.
+
+Расхождение с packaging-federation (`host.token` отдельным файлом): для этой модели токен в `config.json` до явного выноса.
 
 ## Три слоя
 
 | слой | роль | persist |
 |---|---|---|
-| **Window** | UI стола, реестр известных host endpoints / нод для pairing, desk chrome (selection, park) | локально у клиента (`~/.harnesys` окна / Tauri store) |
-| **Host process** | runtime: listen, auth token, список нод на этой машине, cron/ticker *внутри* каждой поднятой ноды | host registry + token; без domain-таблиц агентов/провайдеров |
-| **Workspace-node** | каталог workspace + все domain-данные этой ноды | store ноды |
+| **Window** | UI стола, реестр известных host, desk chrome (selection, park) | секция `window` в `~/.harnesys/config.json` |
+| **Host process** | runtime: listen, auth, список локальных нод, ticker внутри каждой ноды | секция `host` в том же `config.json`; без domain-таблиц |
+| **Workspace-node** | каталог workspace + domain | `<workspace>/.harnesys/workspace.db` |
 
 Один host process на машине может поднимать несколько локальных нод (Home + Shop на ноутбуке). Нода на VPS — другой host process. Окно в selection держит id нод с разных host; каждый API-вызов идёт на host той ноды.
 
@@ -56,8 +91,8 @@ Scope: топология Window / Host process / Workspace-node, persist на �
 
 ### Что лежит на Host process
 
-- `host.token`, bind address/port;
-- список локальных node id → путь store / путь папки;
+- bind address/port и token (поля секции `host` в `config.json`);
+- список локальных node id → путь папки workspace;
 - процессные health/logs.
 
 Host не экспонирует «providers хоста». UI никогда не пишет domain-настройки «в хост целиком».
@@ -113,7 +148,7 @@ Desk-спека (`multi-workspace-desk-design`): selection и URL фокуса �
 - Дружба агентов разных нод: отдельный протокол (allowlist нод, флаг вроде `shared`, маршрутизация сообщений/HITL). Записи хода принадлежат ноде-владельцу (или явно выбранной home-node в будущей спеке).
 - Sync конфигурации между нодами (копирование presets без секретов, export/import bundle): отдельный дизайн. Эта спека требует лишь, чтобы не появился скрытый global settings bag.
 
-Packaging-federation v1 (pairing host, inbox с нескольких host) совместим: host по-прежнему точка транспорта; domain внутри host режется на ноды с отдельным persist.
+Packaging-federation v1 (pairing host, inbox с нескольких host) совместим: host по-прежнему точка транспорта; domain внутри host режется на ноды с `workspace.db`. Имя/место token в packaging при реализации выровнять под `config.json`.
 
 ## Расхождение с сегодняшним кодом
 
@@ -128,7 +163,7 @@ Packaging-federation v1 (pairing host, inbox с нескольких host) со�
 - При двух включённых нодах (в т.ч. разных host) модалка одной ноды пишет только в её store/API; вторая не меняется.
 - Футер Settings не открывает domain ноды.
 - Нет UI «providers этого хоста для всех его workspace».
-- Persist целевой: у ноды свой store; host registry отдельно.
+- Persist: `<workspace>/.harnesys/workspace.db`; машина — один `~/.harnesys/config.json` (секции host/window, token внутри).
 
 ## Вне скоупа
 
@@ -139,7 +174,7 @@ Packaging-federation v1 (pairing host, inbox с нескольких host) со�
 
 ## Самопроверка спека
 
-- Плейсхолдеров нет: три слоя, списки владения, UI входы, группы модалки заданы.
+- Плейсхолдеров нет: три слоя, `workspace.db`, `config.json`, UI входы, группы модалки заданы.
 - Противоречие с desk-спекой Settings закрывается правкой desk-документа (ссылка сюда).
-- Скоуп: владение и settings. Sync/shared исключены явно, задел описан.
-- Неоднозначность «providers на хосте» снята: на ноде.
+- Скоуп: владение, persist, settings. Sync/shared исключены явно, задел описан.
+- Неоднозначность «providers на хосте» снята: на ноде. Реестр — один JSON, не два файла.

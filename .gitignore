@@ -39,4 +39,5 @@ ref/
 .superpowers/
 .harnesys/
 temp/
-.agents/shots/
+.agents/shots/.smoke
+.smoke/

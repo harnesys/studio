@@ -1,12 +1,11 @@
 import type { Workspace } from '@/entities/workspace';
 import { alert, dialog } from '@/shared/services/overlay';
 
-import { CreateWorkspaceDialog } from '../ui/create-workspace-dialog';
-import { EditWorkspaceDialog } from '../ui/edit-workspace-dialog';
+import { WorkspaceDetailsDialog } from '../ui/workspace-details-dialog';
 
 export function openCreateWorkspaceDialog() {
-  return dialog.open(CreateWorkspaceDialog, {
-    title: 'Create a workspace',
+  return dialog.open(WorkspaceDetailsDialog, {
+    title: 'New workspace',
     description:
       'A workspace is a folder on disk: agents, threads, schedules, and webhooks for that tree.',
     className: 'sm:max-w-md',
@@ -15,7 +14,7 @@ export function openCreateWorkspaceDialog() {
 }
 
 export function openEditWorkspaceDialog(workspace: Workspace) {
-  return dialog.open(EditWorkspaceDialog, {
+  return dialog.open(WorkspaceDetailsDialog, {
     title: 'Edit workspace',
     description: 'Rename the workspace or point it at another folder.',
     className: 'sm:max-w-md',

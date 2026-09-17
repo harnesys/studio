@@ -54,12 +54,14 @@ function GeneralSection({ workspace }: { workspace: Workspace }) {
     <section className="flex flex-col gap-4" data-testid="workspace-general">
       <h2 className="font-medium text-sm">General</h2>
       <WorkspaceFields
+        mode="edit"
         name={name}
         path={path}
         nameRequired
         pathRequired
         picking={pick.isPending}
         onNameChange={setName}
+        onPathChange={setPath}
         onPick={() => {
           void pick.mutateAsync().then((picked) => {
             if (picked?.path) {

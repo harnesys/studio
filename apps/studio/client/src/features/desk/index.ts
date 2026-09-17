@@ -30,6 +30,7 @@ export {
   useSelectedAgent,
   useSelectedThread,
   useThreadEvents,
+  useWaitingThreads,
   useWorkspaceAgents,
   useWorkspaceSchedules,
   useWorkspaceWebhooks,

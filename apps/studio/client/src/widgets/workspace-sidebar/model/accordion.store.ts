@@ -13,6 +13,7 @@ export type AccordionState = {
 };
 
 const DEFAULT_SIZES: Record<string, number> = {
+  inbox: 1,
   agents: 1,
   explorer: 1,
   automations: 1,
@@ -20,6 +21,7 @@ const DEFAULT_SIZES: Record<string, number> = {
 };
 
 const DEFAULT_COLLAPSED: Record<string, boolean> = {
+  inbox: false,
   agents: false,
   explorer: true,
   automations: true,

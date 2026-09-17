@@ -1,11 +1,10 @@
-import { ChevronsUpDownIcon, PlusIcon, SettingsIcon } from 'lucide-react';
+import { InboxIcon, SettingsIcon } from 'lucide-react';
 import { Fragment, type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useThreadStore } from '@/entities/thread';
-import { useWorkspaces } from '@/entities/workspace';
-import { openCreateWorkspaceDialog } from '@/features/create-workspace';
 import {
   useAgentsSlideStore,
   useAgentThreads,
+  useWaitingThreads,
   useWorkspaceAgents,
   useWorkspaceSchedules,
   useWorkspaceWebhooks,
@@ -13,15 +12,6 @@ import {
 import { useIdeTabs } from '@/features/ide';
 import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/shared/ui/dropdown-menu';
 import { Resizer } from '@/shared/ui/resizer';
 import {
   Sidebar,
@@ -36,24 +26,26 @@ import {
 } from '@/shared/ui/sidebar';
 import { normalizeShares, useAccordionStore } from '../model/accordion.store';
 import { useSectionDnd } from '../model/use-section-dnd';
+import { useSelectedWorkspaceIds } from '../model/workspace-tabs.store';
 import { AccordionSection } from './accordion-section';
 import { AgentsSection, AgentsSectionActions } from './agents-section';
 import { AutomationsAddMenu, AutomationsSection } from './automations-section';
 import { ExplorerActions, ExplorerContent, ExplorerTitle } from './files-section';
 import { GitSectionMenu, GitTitle } from './git-menu';
 import { GitSection } from './git-section';
+import { InboxSection } from './inbox-section';
 import { SECTION_META, type SidebarSectionId } from './sections-meta';
 import { SidebarSectionsConfig } from './sidebar-sections-config';
+import { WorkspaceHeader } from './workspace-header';
 
 export function WorkspaceSidebar() {
   const { workspaceId, threadId, threadOrigin, originEntityId } = useStudioLocation();
-  const workspacesQuery = useWorkspaces();
-  const workspaces = workspacesQuery.data ?? [];
-  const workspace = workspaces.find((item) => item.id === workspaceId) ?? null;
+  const workspaceIds = useSelectedWorkspaceIds();
+  const inboxThreads = useWaitingThreads(workspaceIds);
   const agents = useWorkspaceAgents(workspaceId);
   const schedules = useWorkspaceSchedules(workspaceId);
   const webhooks = useWorkspaceWebhooks(workspaceId);
-  const { openWorkspace, leaveWorkspace, openSettings } = useStudioNavigation();
+  const { openSettings } = useStudioNavigation();
   const { setOpenMobile } = useSidebar();
   const ideTabs = useIdeTabs(workspaceId);
   const activeThreadId = ideTabs.tabs.find((tab) => tab.id === ideTabs.activeId)?.threadId ?? null;
@@ -82,18 +74,19 @@ export function WorkspaceSidebar() {
 
   const visibleSections = order.filter((id): id is SidebarSectionId => !hidden[id]);
   const expanded = visibleSections.filter((id) => !(collapsed[id] ?? false));
-  const shares = normalizeShares(expanded, sizes);
+  const inboxCollapsed = collapsed.inbox ?? false;
+  const expandedWithInbox = inboxCollapsed ? expanded : ['inbox', ...expanded];
+  const shares = normalizeShares(expandedWithInbox, sizes);
 
-  const resizePairs: { upper: SidebarSectionId; lower: SidebarSectionId }[] = [];
-  let lastExpanded: SidebarSectionId | null = null;
-  for (const id of expanded) {
+  const resizePairs: { upper: string; lower: string }[] = [];
+  let lastExpanded: string | null = null;
+  for (const id of expandedWithInbox) {
     if (lastExpanded) {
       resizePairs.push({ upper: lastExpanded, lower: id });
     }
     lastExpanded = id;
   }
-  const pairBefore = (id: SidebarSectionId) =>
-    resizePairs.find((pair) => pair.lower === id) ?? null;
+  const pairBefore = (id: string) => resizePairs.find((pair) => pair.lower === id) ?? null;
 
   const resizeNode = (id: SidebarSectionId) => {
     const pair = pairBefore(id);
@@ -113,39 +106,38 @@ export function WorkspaceSidebar() {
     );
   };
 
-  const beginResize =
-    (upperId: SidebarSectionId, lowerId: SidebarSectionId) => (event: ReactMouseEvent) => {
-      event.preventDefault();
-      const root = containerRef.current;
-      const upper = root?.querySelector(`[data-accordion-content="${upperId}"]`);
-      const lower = root?.querySelector(`[data-accordion-content="${lowerId}"]`);
-      if (!upper || !lower) {
-        return;
-      }
-      const upperPx = upper.getBoundingClientRect().height;
-      const lowerPx = lower.getBoundingClientRect().height;
-      const totalPx = upperPx + lowerPx;
-      if (totalPx <= 0) {
-        return;
-      }
-      const startY = event.clientY;
-      setDragPair(`${upperId}:${lowerId}`);
-      const onMove = (moveEvent: MouseEvent) => {
-        const current = useAccordionStore.getState().sizes;
-        const pairSum = (current[upperId] ?? 1) + (current[lowerId] ?? 1);
-        const ratio = Math.min(1, Math.max(0, (upperPx + moveEvent.clientY - startY) / totalPx));
-        useAccordionStore
-          .getState()
-          .setSizes({ ...current, [upperId]: pairSum * ratio, [lowerId]: pairSum * (1 - ratio) });
-      };
-      const onUp = () => {
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
-        setDragPair(null);
-      };
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
+  const beginResize = (upperId: string, lowerId: string) => (event: ReactMouseEvent) => {
+    event.preventDefault();
+    const root = containerRef.current;
+    const upper = root?.querySelector(`[data-accordion-content="${upperId}"]`);
+    const lower = root?.querySelector(`[data-accordion-content="${lowerId}"]`);
+    if (!upper || !lower) {
+      return;
+    }
+    const upperPx = upper.getBoundingClientRect().height;
+    const lowerPx = lower.getBoundingClientRect().height;
+    const totalPx = upperPx + lowerPx;
+    if (totalPx <= 0) {
+      return;
+    }
+    const startY = event.clientY;
+    setDragPair(`${upperId}:${lowerId}`);
+    const onMove = (moveEvent: MouseEvent) => {
+      const current = useAccordionStore.getState().sizes;
+      const pairSum = (current[upperId] ?? 1) + (current[lowerId] ?? 1);
+      const ratio = Math.min(1, Math.max(0, (upperPx + moveEvent.clientY - startY) / totalPx));
+      useAccordionStore
+        .getState()
+        .setSizes({ ...current, [upperId]: pairSum * ratio, [lowerId]: pairSum * (1 - ratio) });
     };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setDragPair(null);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   const renderSection = (id: SidebarSectionId) => {
     const Icon = SECTION_META[id].icon;
@@ -237,56 +229,29 @@ export function WorkspaceSidebar() {
 
   return (
     <Sidebar collapsible="icon" data-testid="workspace-sidebar">
-      <SidebarHeader className="p-2 group-data-[collapsible=icon]:items-center">
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md bg-sidebar-accent px-2.5 py-2.5 text-left outline-none hover:bg-sidebar-accent data-open:bg-sidebar-accent group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-live/70 font-medium text-[10px] text-white">
-              {workspace ? workspace.name.slice(0, 1) : 'H'}
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col justify-between gap-0.5 group-data-[collapsible=icon]:hidden">
-              <span className="truncate text-[12px] leading-none">
-                {workspace?.name ?? 'Harnesys'}
-              </span>
-              <span className="truncate pt-0.5 font-mono text-[10px] text-muted-foreground leading-none">
-                {workspace?.path ?? 'no workspace'}
-              </span>
-            </span>
-            <ChevronsUpDownIcon className="size-3.5 shrink-0 text-muted-foreground opacity-60 group-data-[collapsible=icon]:hidden" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="min-w-52" align="start" side="bottom">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-              {workspaces.map((item) => (
-                <DropdownMenuItem key={item.id} onClick={() => openWorkspace(item.id)}>
-                  {item.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => {
-                  void openCreateWorkspaceDialog().then((created) => {
-                    if (created) {
-                      openWorkspace(created.id);
-                    }
-                  });
-                }}
-              >
-                <PlusIcon />
-                New workspace
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => leaveWorkspace()}>All workspaces</DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <SidebarHeader className="p-2">
+        <WorkspaceHeader />
       </SidebarHeader>
 
       <SidebarContent className="gap-1 group-data-[collapsible=icon]:overflow-y-auto">
         <div ref={containerRef} className="flex min-h-0 flex-auto flex-col gap-1 px-2 pb-2">
+          <AccordionSection
+            id="inbox"
+            icon={<InboxIcon />}
+            title="Inbox"
+            count={inboxThreads.length}
+            size={shares.inbox ?? 1}
+          >
+            <InboxSection
+              workspaceIds={workspaceIds}
+              threads={inboxThreads}
+              activeThreadId={activeThreadId}
+              onSelectDone={() => setOpenMobile(false)}
+            />
+          </AccordionSection>
           {visibleSections.map((id, index) => (
             <Fragment key={id}>
-              {index > 0 ? resizeNode(id) : null}
+              {index > 0 || !inboxCollapsed ? resizeNode(id) : null}
               {renderSection(id)}
             </Fragment>
           ))}

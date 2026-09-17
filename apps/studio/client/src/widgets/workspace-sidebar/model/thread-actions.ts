@@ -7,13 +7,18 @@ import { confirmDeleteThread, openNewThread } from '@/features/switch-thread';
 import { deleteThreadRecord, setThreadPinned } from '@/shared/api';
 import { studioPath } from '@/shared/config/routes';
 
+/** Desk state for opening a thread: ide tab, focused thread, active thread id. */
+export function openThreadRecord(thread: Thread, workspaceId: string): void {
+  useIdeStore.getState().openThread(workspaceId, thread.agentId, thread.id);
+  useDeskStore.getState().setFocusedThreadId(thread.id);
+  setActiveThreadId(thread.agentId, thread.id);
+}
+
 export function useThreadActions(workspaceId: string) {
   const navigate = useNavigate();
 
   const openThread = (thread: Thread) => {
-    useIdeStore.getState().openThread(workspaceId, thread.agentId, thread.id);
-    useDeskStore.getState().setFocusedThreadId(thread.id);
-    setActiveThreadId(thread.agentId, thread.id);
+    openThreadRecord(thread, workspaceId);
     void navigate(studioPath.thread(workspaceId, thread.id, { kind: 'agent', id: thread.agentId }));
   };
 
@@ -57,4 +62,19 @@ export function useThreadActions(workspaceId: string) {
   };
 
   return { openThread, createThread, togglePin, removeThread };
+}
+
+/** Opens a thread in its own workspace, wherever it lives (inbox rows). */
+export function useOpenThread() {
+  const navigate = useNavigate();
+
+  return (thread: Thread) => {
+    if (!thread.workspaceId) {
+      return;
+    }
+    openThreadRecord(thread, thread.workspaceId);
+    void navigate(
+      studioPath.thread(thread.workspaceId, thread.id, { kind: 'agent', id: thread.agentId }),
+    );
+  };
 }

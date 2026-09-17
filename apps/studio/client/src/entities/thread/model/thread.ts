@@ -1,4 +1,4 @@
-import type { ThreadKind } from '@harnesys/studio-shared';
+import type { ThreadActiveRun, ThreadKind } from '@harnesys/studio-shared';
 
 export type Thread = {
   id: string;
@@ -19,6 +19,7 @@ export type Thread = {
   runMode?: string;
   /** Live run known from the last full record. Drives stream reconnect without refetch. */
   activeRunId?: string | null;
+  activeRun?: ThreadActiveRun | null;
 };
 
 // Dev-only fixture kept for visual inspection. Production stores start empty

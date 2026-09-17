@@ -3,6 +3,6 @@ export {
   openCreateWorkspaceDialog,
   openEditWorkspaceDialog,
 } from './model/workspace-dialogs';
-export { CreateWorkspaceDialog } from './ui/create-workspace-dialog';
-export { EditWorkspaceDialog } from './ui/edit-workspace-dialog';
+export { HostPairFields } from './ui/host-pair-fields';
+export { WorkspaceDetailsDialog } from './ui/workspace-details-dialog';
 export { WorkspaceFields } from './ui/workspace-fields';

@@ -66,6 +66,8 @@ function isWaiting(events: SessionEvent[]): boolean {
   return false;
 }
 
+export { isWaiting };
+
 function hasRunningSession(events: SessionEvent[]): boolean {
   return events.length > 0 && !events.some((e) => TERMINAL_EVENT_TYPES.has(e.type));
 }

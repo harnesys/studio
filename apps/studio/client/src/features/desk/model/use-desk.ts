@@ -10,6 +10,7 @@ import { useStudioLocation } from '@/shared/config/location';
 
 import { useAgentsSlideStore } from './agents-slide.store';
 import { useDeskStore } from './desk.store';
+import { isWaiting } from './use-agent-live-status';
 
 const EMPTY_EVENTS: SessionEvent[] = [];
 
@@ -55,6 +56,19 @@ export function useWorkspaceWebhooks(workspaceId: string | null) {
   return useWebhookStore(
     useShallow((state) =>
       workspaceId ? state.items.filter((item) => item.workspaceId === workspaceId) : [],
+    ),
+  );
+}
+
+/** Threads with a pending ask or wait across the given workspaces (inbox rows). */
+export function useWaitingThreads(workspaceIds: string[]) {
+  const items = useThreadStore(useShallow((state) => state.items));
+  return useSessionStore(
+    useShallow((state) =>
+      items.filter(
+        (item) =>
+          workspaceIds.includes(item.workspaceId ?? '') && isWaiting(state.events[item.id] ?? []),
+      ),
     ),
   );
 }

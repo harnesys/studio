@@ -22,6 +22,7 @@ export function registerStudioHttp(args: {
   wireControllers({
     app,
     home: store.home,
+    nodeRegistry: store.nodeRegistry,
     workspaceRepo: store.workspaceRepo,
     agentRepo: store.agentRepo,
     llmProviderRepo: store.llmProviderRepo,

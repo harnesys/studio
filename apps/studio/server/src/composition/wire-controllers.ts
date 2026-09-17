@@ -6,9 +6,6 @@ import { CatalogController } from '../adapters/http/catalog/catalog.controller.t
 import { ModePresetController } from '../adapters/http/mode-preset/mode-preset.controller.ts';
 import { ProviderController } from '../adapters/http/provider/provider.controller.ts';
 import { ThreadController } from '../adapters/http/thread/thread.controller.ts';
-import { CapabilitiesController } from '../adapters/http/workspace/capabilities.controller.ts';
-import { ToolsController } from '../adapters/http/workspace/tools.controller.ts';
-import { WorkspaceController } from '../adapters/http/workspace/workspace.controller.ts';
 import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
 import type { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
@@ -33,6 +30,7 @@ import { CreateModePresetUseCase } from '../application/mode-presets/create-mode
 import { DeleteModePresetUseCase } from '../application/mode-presets/delete-mode-preset.use-case.ts';
 import { ListModePresetsUseCase } from '../application/mode-presets/list-mode-presets.use-case.ts';
 import { UpdateModePresetUseCase } from '../application/mode-presets/update-mode-preset.use-case.ts';
+import type { NodeRegistry } from '../application/nodes/node-registry.ts';
 import type { GetThreadPlanInput } from '../application/plans/get-thread-plan.use-case.ts';
 import { CreateProviderUseCase } from '../application/providers/create-provider.use-case.ts';
 import { CreateProviderModelUseCase } from '../application/providers/create-provider-model.use-case.ts';
@@ -63,40 +61,6 @@ import { RetryRunUseCase } from '../application/threads/retry-run.use-case.ts';
 import type { SendThreadRunInput } from '../application/threads/send-thread-run.use-case.ts';
 import { StreamRunEventsUseCase } from '../application/threads/stream-run-events.use-case.ts';
 import { UpdateThreadUseCase } from '../application/threads/update-thread.use-case.ts';
-import { CheckoutGitBranchUseCase } from '../application/workspaces/checkout-git-branch.use-case.ts';
-import { CommitGitUseCase } from '../application/workspaces/commit-git.use-case.ts';
-import { CreateGitBranchUseCase } from '../application/workspaces/create-git-branch.use-case.ts';
-import { CreateWorkspaceUseCase } from '../application/workspaces/create-workspace.use-case.ts';
-import { CreateWorkspaceFileUseCase } from '../application/workspaces/create-workspace-file.use-case.ts';
-import { CreateWorkspaceSkillUseCase } from '../application/workspaces/create-workspace-skill.use-case.ts';
-import { DeleteWorkspaceUseCase } from '../application/workspaces/delete-workspace.use-case.ts';
-import { DeleteWorkspaceFileUseCase } from '../application/workspaces/delete-workspace-file.use-case.ts';
-import { DeleteWorkspaceMcpServerUseCase } from '../application/workspaces/delete-workspace-mcp-server.use-case.ts';
-import { GetGitDiffUseCase } from '../application/workspaces/get-git-diff.use-case.ts';
-import { GetGitFileStatusUseCase } from '../application/workspaces/get-git-file-status.use-case.ts';
-import { GetGitStatusUseCase } from '../application/workspaces/get-git-status.use-case.ts';
-import { GetWorkspaceFileContentUseCase } from '../application/workspaces/get-workspace-file-content.use-case.ts';
-import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-mcp.use-case.ts';
-import { GetWorkspaceMcpConfigUseCase } from '../application/workspaces/get-workspace-mcp-config.use-case.ts';
-import { GetWorkspaceStatusUseCase } from '../application/workspaces/get-workspace-status.use-case.ts';
-import { ListWorkspaceCapabilitiesUseCase } from '../application/workspaces/list-workspace-capabilities.use-case.ts';
-import { ListWorkspaceFilesUseCase } from '../application/workspaces/list-workspace-files.use-case.ts';
-import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
-import { ListWorkspaceToolsUseCase } from '../application/workspaces/list-workspace-tools.use-case.ts';
-import { ListWorkspacesUseCase } from '../application/workspaces/list-workspaces.use-case.ts';
-import { MoveWorkspaceFilesUseCase } from '../application/workspaces/move-workspace-files.use-case.ts';
-import { PickWorkspaceUseCase } from '../application/workspaces/pick-workspace.use-case.ts';
-import { PullGitUseCase } from '../application/workspaces/pull-git.use-case.ts';
-import { PushGitUseCase } from '../application/workspaces/push-git.use-case.ts';
-import { ReloadWorkspaceMcpUseCase } from '../application/workspaces/reload-workspace-mcp.use-case.ts';
-import { ReloadWorkspaceSkillsUseCase } from '../application/workspaces/reload-workspace-skills.use-case.ts';
-import { RestartMcpServerUseCase } from '../application/workspaces/restart-mcp-server.use-case.ts';
-import { RevealWorkspaceUseCase } from '../application/workspaces/reveal-workspace.use-case.ts';
-import { SetMcpServerStateUseCase } from '../application/workspaces/set-mcp-server-state.use-case.ts';
-import { StageGitUseCase } from '../application/workspaces/stage-git.use-case.ts';
-import { UpdateWorkspaceUseCase } from '../application/workspaces/update-workspace.use-case.ts';
-import { UpsertWorkspaceMcpServerUseCase } from '../application/workspaces/upsert-workspace-mcp-server.use-case.ts';
-import { WriteWorkspaceFileContentUseCase } from '../application/workspaces/write-workspace-file-content.use-case.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { SecretStore } from '../domain/secret-store.port.ts';
 import type { WorkspacePort } from '../domain/workspace.port.ts';
@@ -104,10 +68,12 @@ import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
 import { wireAgentControllers } from './wire-agent-controllers.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
 import { wirePluginControllers } from './wire-plugin-controllers.ts';
+import { wireWorkspaceControllers } from './wire-workspace-controllers.ts';
 
 type ControllerDeps = {
   app: Hono;
   home: string;
+  nodeRegistry: NodeRegistry;
   workspaceRepo: SqliteWorkspaceRepo;
   agentRepo: SqliteAgentRepo;
   llmProviderRepo: SqliteLlmProviderRepo;
@@ -144,79 +110,19 @@ type ControllerDeps = {
 };
 
 export function wireControllers(d: ControllerDeps): void {
-  const getWorkspaceMcpConfig = new GetWorkspaceMcpConfigUseCase(
-    d.workspaceRepo,
-    d.workspaceHarnesys,
-    d.pluginRepo,
-  );
-
-  new WorkspaceController({
-    listWorkspaces: new ListWorkspacesUseCase(d.workspaceRepo),
-    pickWorkspace: new PickWorkspaceUseCase(d.workspace),
-    createWorkspace: new CreateWorkspaceUseCase(d.workspaceRepo, d.workspace, d.home),
-    updateWorkspace: new UpdateWorkspaceUseCase(d.workspaceRepo, d.workspaceHarnesys),
-    deleteWorkspace: new DeleteWorkspaceUseCase({
-      workspaces: d.workspaceRepo,
-      agents: d.agentRepo,
-      threads: d.threadRepo,
-      attachments: d.attachmentRepo,
-      attachmentsFs: d.attachments,
-      db: d.db,
-      workspaceHarnesys: d.workspaceHarnesys,
-      schedules: d.scheduleRepo,
-    }),
-    getWorkspaceStatus: new GetWorkspaceStatusUseCase(d.workspaceRepo, d.workspace),
-    getGitStatus: new GetGitStatusUseCase(d.workspaceRepo, d.git),
-    getGitFileStatus: new GetGitFileStatusUseCase(d.workspaceRepo, d.git),
-    getGitDiff: new GetGitDiffUseCase(d.workspaceRepo, d.git),
-    checkoutGitBranch: new CheckoutGitBranchUseCase(d.workspaceRepo, d.git),
-    createGitBranch: new CreateGitBranchUseCase(d.workspaceRepo, d.git),
-    stageGit: new StageGitUseCase(d.workspaceRepo, d.git),
-    commitGit: new CommitGitUseCase(d.workspaceRepo, d.git),
-    pushGit: new PushGitUseCase(d.workspaceRepo, d.git),
-    pullGit: new PullGitUseCase(d.workspaceRepo, d.git),
-    listWorkspaceSkills: new ListWorkspaceSkillsUseCase(d.workspaceRepo, d.workspaceHarnesys),
-    reloadWorkspaceSkills: new ReloadWorkspaceSkillsUseCase(d.workspaceRepo, d.workspaceHarnesys),
-    createWorkspaceSkill: new CreateWorkspaceSkillUseCase(d.workspaceRepo, d.workspaceHarnesys),
-    getWorkspaceMcp: new GetWorkspaceMcpUseCase(d.workspaceRepo, d.workspaceHarnesys),
-    getWorkspaceMcpConfig,
-    reloadWorkspaceMcp: new ReloadWorkspaceMcpUseCase(
-      d.workspaceRepo,
-      d.workspaceHarnesys,
-      getWorkspaceMcpConfig,
-    ),
-    upsertWorkspaceMcpServer: new UpsertWorkspaceMcpServerUseCase(
-      d.workspaceRepo,
-      d.workspaceHarnesys,
-    ),
-    deleteWorkspaceMcpServer: new DeleteWorkspaceMcpServerUseCase(
-      d.workspaceRepo,
-      d.workspaceHarnesys,
-    ),
-    setMcpServerState: new SetMcpServerStateUseCase(
-      d.workspaceRepo,
-      d.workspaceHarnesys,
-      d.pluginRepo,
-      getWorkspaceMcpConfig,
-    ),
-    restartMcpServer: new RestartMcpServerUseCase(
-      d.workspaceRepo,
-      d.workspaceHarnesys,
-      getWorkspaceMcpConfig,
-    ),
-    revealWorkspace: new RevealWorkspaceUseCase(d.workspaceRepo, d.workspace),
-    listWorkspaceFiles: new ListWorkspaceFilesUseCase(d.workspaceRepo, d.workspaceFiles),
-    createWorkspaceFile: new CreateWorkspaceFileUseCase(d.workspaceRepo, d.workspaceFiles),
-    deleteWorkspaceFile: new DeleteWorkspaceFileUseCase(d.workspaceRepo, d.workspaceFiles),
-    moveWorkspaceFiles: new MoveWorkspaceFilesUseCase(d.workspaceRepo, d.workspaceFiles),
-    getWorkspaceFileContent: new GetWorkspaceFileContentUseCase(d.workspaceRepo, d.workspaceFiles),
-    writeWorkspaceFileContent: new WriteWorkspaceFileContentUseCase(
-      d.workspaceRepo,
-      d.workspaceFiles,
-    ),
+  wireWorkspaceControllers({
+    app: d.app,
+    home: d.home,
+    nodeRegistry: d.nodeRegistry,
+    workspaceRepo: d.workspaceRepo,
+    pluginRepo: d.pluginRepo,
+    workspace: d.workspace,
+    workspaceFiles: d.workspaceFiles,
     filesWatcher: d.filesWatcher,
+    git: d.git,
     deskEvents: d.deskEvents,
-  }).register(d.app);
+    workspaceHarnesys: d.workspaceHarnesys,
+  });
 
   new CatalogController({
     getCatalog: new GetCatalogUseCase(),
@@ -232,17 +138,6 @@ export function wireControllers(d: ControllerDeps): void {
     lsp: d.lsp,
     secretStore: d.secretStore,
   });
-
-  new ToolsController({
-    listWorkspaceTools: new ListWorkspaceToolsUseCase(d.workspaceRepo, d.workspaceHarnesys),
-  }).register(d.app);
-
-  new CapabilitiesController({
-    listWorkspaceCapabilities: new ListWorkspaceCapabilitiesUseCase(
-      d.workspaceRepo,
-      d.workspaceHarnesys,
-    ),
-  }).register(d.app);
 
   new ProviderController({
     listProviders: new ListProvidersUseCase(d.llmProviderRepo, d.llmModelRepo),

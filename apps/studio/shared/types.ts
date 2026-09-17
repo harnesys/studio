@@ -256,11 +256,14 @@ export type CreateWebhookResponse = {
   thread: ThreadRecordType;
 };
 
+export type HostNodeStatus = 'ready' | 'unavailable';
+
 export type WorkspaceRecord = {
   id: string;
   name: string;
   path: string;
   createdAt: string;
+  status?: HostNodeStatus;
 };
 
 export type WorkspaceStatus = {

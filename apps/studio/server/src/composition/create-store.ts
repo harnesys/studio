@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { MachineConfigFileAdapter } from '../adapters/machine-config/machine-config.file.ts';
 import { bootstrap } from '../adapters/store/sqlite/bootstrap.ts';
 import { createSqliteConnection, type StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
@@ -13,9 +14,12 @@ import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.r
 import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
 import { DB_FILE, defaultHomePath } from '../adapters/store/studio-layout.ts';
+import { HostNodeRegistry, type NodeRegistry } from '../application/nodes/node-registry.ts';
+import type { MachineConfigPort } from '../domain/machine-config.ts';
 
 export type StudioStoreOptions = {
   db?: StudioDb;
+  machineConfig?: MachineConfigPort;
 };
 
 export type StudioStore = {
@@ -23,6 +27,8 @@ export type StudioStore = {
   db: StudioDb;
   /** true when caller injected db (skip schedule ticker bootstrap side-effects). */
   externalDb: boolean;
+  machineConfig: MachineConfigPort;
+  nodeRegistry: NodeRegistry;
   workspaceRepo: SqliteWorkspaceRepo;
   agentRepo: SqliteAgentRepo;
   llmProviderRepo: SqliteLlmProviderRepo;
@@ -44,11 +50,18 @@ export function createStudioStore(options: StudioStoreOptions = {}): StudioStore
     bootstrap(db);
   }
 
+  const workspaceRepo = new SqliteWorkspaceRepo(db);
+  const machineConfig = options.machineConfig ?? new MachineConfigFileAdapter({ home });
+  const nodeRegistry = new HostNodeRegistry({ config: machineConfig, workspaces: workspaceRepo });
+  nodeRegistry.migrateFromTableIfEmpty();
+
   return {
     home,
     db,
     externalDb,
-    workspaceRepo: new SqliteWorkspaceRepo(db),
+    machineConfig,
+    nodeRegistry,
+    workspaceRepo,
     agentRepo: new SqliteAgentRepo(db),
     llmProviderRepo: new SqliteLlmProviderRepo(db),
     llmModelRepo: new SqliteLlmModelRepo(db),

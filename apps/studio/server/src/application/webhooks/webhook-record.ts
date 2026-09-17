@@ -3,7 +3,7 @@ import type { Webhook } from '../../domain/webhook.port.ts';
 
 export type { WebhookRecord };
 
-export function toWebhookRecord(webhook: Webhook): WebhookRecord {
+export function toWebhookRecord(webhook: Webhook, publicOrigin?: string): WebhookRecord {
   return {
     id: webhook.id,
     workspaceId: webhook.workspaceId,
@@ -11,10 +11,19 @@ export function toWebhookRecord(webhook: Webhook): WebhookRecord {
     status: webhook.status,
     targetAgentId: webhook.targetAgentId,
     detail: webhook.detail,
-    endpoint: webhook.endpoint,
+    endpoint: withPublicOrigin(webhook.endpoint, publicOrigin),
     threadId: webhook.threadId,
     lastFiredAt: webhook.lastFiredAt,
     createdAt: webhook.createdAt,
     updatedAt: webhook.updatedAt,
   };
+}
+
+/** Prefer host.publicOrigin; keep relative endpoint when unset (UI joins listen/baseUrl). */
+export function withPublicOrigin(endpoint: string, publicOrigin?: string): string {
+  if (!publicOrigin || /^https?:\/\//i.test(endpoint)) {
+    return endpoint;
+  }
+  const origin = publicOrigin.replace(/\/$/, '');
+  return endpoint.startsWith('/') ? `${origin}${endpoint}` : `${origin}/${endpoint}`;
 }

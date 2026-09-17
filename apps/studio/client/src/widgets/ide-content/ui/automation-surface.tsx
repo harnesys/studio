@@ -7,6 +7,7 @@ import { useWorkspaceAgents } from '@/features/desk';
 import { openScheduleConfigDialog, updateSchedule } from '@/features/manage-schedule';
 import { openWebhookConfigDialog, updateWebhook } from '@/features/manage-webhook';
 import { HitlPrompt } from '@/features/send-message';
+import { webhookDisplayUrl } from '@/shared/lib/webhook-display-url';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
@@ -134,7 +135,8 @@ function WebhookSurfaceView({ webhook, agents }: { webhook: Webhook; agents: Age
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium text-sm">{webhook.name}</div>
           <div className="truncate font-mono text-[11px] text-muted-foreground">
-            {webhook.endpoint} · {webhookStatusLabel(webhook.status)}
+            {webhookDisplayUrl(webhook.endpoint, webhook.workspaceId)} ·{' '}
+            {webhookStatusLabel(webhook.status)}
             {agent ? ` · ${agent.name}` : ''}
           </div>
         </div>

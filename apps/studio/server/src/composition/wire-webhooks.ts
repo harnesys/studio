@@ -14,6 +14,7 @@ import type { AgentRepository } from '../domain/agent.port.ts';
 import type { AttachmentRepository } from '../domain/attachment.port.ts';
 import type { AttachmentsPort } from '../domain/attachments.port.ts';
 import type { DeskEventsPort } from '../domain/desk-events.port.ts';
+import type { MachineConfigPort } from '../domain/machine-config.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
 import type { WebhookRepository } from '../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
@@ -32,10 +33,12 @@ export type WireWebhooksDeps = {
   sendThreadRun: SendThreadRunInput;
   getThread: GetThreadInput;
   queue: ScheduleFireQueue;
+  machineConfig: MachineConfigPort;
 };
 
 export function wireWebhooks(deps: WireWebhooksDeps): void {
   const queue = deps.queue;
+  const publicOrigin = deps.machineConfig.read().host.publicOrigin;
   const fireWebhook = new FireWebhookUseCase({
     webhooks: deps.webhooks,
     threads: deps.threads,
@@ -44,11 +47,12 @@ export function wireWebhooks(deps: WireWebhooksDeps): void {
     queue,
     deskEvents: deps.deskEvents,
     getThread: deps.getThread,
+    publicOrigin,
   });
   queue.setHandler((webhookId) => fireWebhook.execute({ webhookId }).then(() => undefined));
 
   new WebhookController({
-    listWebhooks: new ListWebhooksUseCase(deps.webhooks, deps.workspaces),
+    listWebhooks: new ListWebhooksUseCase(deps.webhooks, deps.workspaces, publicOrigin),
     createWebhook: new CreateWebhookUseCase({
       webhooks: deps.webhooks,
       threads: deps.threads,
@@ -57,6 +61,7 @@ export function wireWebhooks(deps: WireWebhooksDeps): void {
       deskEvents: deps.deskEvents,
       getThread: deps.getThread,
       db: deps.db,
+      publicOrigin,
     }),
     updateWebhook: new UpdateWebhookUseCase({
       webhooks: deps.webhooks,
@@ -64,6 +69,7 @@ export function wireWebhooks(deps: WireWebhooksDeps): void {
       workspaces: deps.workspaces,
       threads: deps.threads,
       deskEvents: deps.deskEvents,
+      publicOrigin,
     }),
     deleteWebhook: new DeleteWebhookUseCase({
       webhooks: deps.webhooks,

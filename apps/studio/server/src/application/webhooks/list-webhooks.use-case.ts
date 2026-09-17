@@ -15,6 +15,7 @@ export class ListWebhooksUseCase implements ListWebhooksInput {
   constructor(
     private readonly webhooks: WebhookRepository,
     private readonly workspaces: WorkspaceRepository,
+    private readonly publicOrigin?: string,
   ) {}
 
   execute(request: ListWebhooksRequest): Promise<WebhookRecord[]> {
@@ -22,6 +23,10 @@ export class ListWebhooksUseCase implements ListWebhooksInput {
     if (!workspace) {
       return Promise.reject(new NotFoundError('workspace not found'));
     }
-    return Promise.resolve(this.webhooks.listByWorkspace(request.workspaceId).map(toWebhookRecord));
+    return Promise.resolve(
+      this.webhooks
+        .listByWorkspace(request.workspaceId)
+        .map((webhook) => toWebhookRecord(webhook, this.publicOrigin)),
+    );
   }
 }

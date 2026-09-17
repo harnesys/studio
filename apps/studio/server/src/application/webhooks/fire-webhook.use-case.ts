@@ -22,6 +22,7 @@ export type FireWebhookDeps = {
   queue: ScheduleFireQueue;
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
+  publicOrigin?: string;
 };
 
 export class FireWebhookUseCase implements FireWebhookInput {
@@ -32,6 +33,7 @@ export class FireWebhookUseCase implements FireWebhookInput {
   private readonly queue: ScheduleFireQueue;
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
+  private readonly publicOrigin?: string;
 
   constructor(deps: FireWebhookDeps) {
     this.webhooks = deps.webhooks;
@@ -41,6 +43,7 @@ export class FireWebhookUseCase implements FireWebhookInput {
     this.queue = deps.queue;
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
+    this.publicOrigin = deps.publicOrigin;
   }
 
   async execute(request: { webhookId: string; text?: string }) {
@@ -59,7 +62,7 @@ export class FireWebhookUseCase implements FireWebhookInput {
     const updated = this.webhooks.update(webhook.id, { lastFiredAt: now, updatedAt: now });
     this.deskEvents.emit(webhook.workspaceId, {
       type: 'webhook',
-      webhook: toWebhookRecord(updated),
+      webhook: toWebhookRecord(updated, this.publicOrigin),
     });
     try {
       const accepted = await this.sendThreadRun.execute({
@@ -80,7 +83,10 @@ export class FireWebhookUseCase implements FireWebhookInput {
         this.webhooks.update(webhook.id, { status: 'failed', updatedAt: now });
         this.deskEvents.emit(webhook.workspaceId, {
           type: 'webhook',
-          webhook: toWebhookRecord(this.webhooks.findById(webhook.id) ?? updated),
+          webhook: toWebhookRecord(
+            this.webhooks.findById(webhook.id) ?? updated,
+            this.publicOrigin,
+          ),
         });
       }
       throw new ValidationError(`webhook fire failed: ${message}`);

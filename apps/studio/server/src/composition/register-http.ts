@@ -220,6 +220,7 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
     sendThreadRun,
     getThread,
     queue: routingScheduleQueue(supervisor, 'webhook'),
+    machineConfig,
   });
 
   app.onError(handleHttpError);

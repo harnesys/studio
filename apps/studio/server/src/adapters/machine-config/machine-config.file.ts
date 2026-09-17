@@ -166,8 +166,7 @@ function normalizeHost(raw: unknown, defaultListen: string): HostSection {
     typeof obj.listen === 'string' && obj.listen.trim() ? obj.listen.trim() : defaultListen;
   const token =
     typeof obj.token === 'string' && obj.token.trim() ? obj.token.trim() : crypto.randomUUID();
-  const id =
-    typeof obj.id === 'string' && obj.id.trim() ? obj.id.trim() : crypto.randomUUID();
+  const id = typeof obj.id === 'string' && obj.id.trim() ? obj.id.trim() : crypto.randomUUID();
   const name =
     typeof obj.name === 'string' && obj.name.trim() ? obj.name.trim() : defaultHostName();
   const fromFile =
@@ -244,12 +243,14 @@ function normalizeHosts(raw: unknown, host: HostSection): WindowHostRecord[] {
     ) {
       continue;
     }
-    const name =
-      typeof row.name === 'string' && row.name.trim()
-        ? row.name.trim()
-        : row.id === 'local'
-          ? host.name || 'This machine'
-          : row.id;
+    let name: string;
+    if (typeof row.name === 'string' && row.name.trim()) {
+      name = row.name.trim();
+    } else if (row.id === 'local') {
+      name = host.name || 'This machine';
+    } else {
+      name = row.id;
+    }
     out.push({
       id: row.id,
       name,

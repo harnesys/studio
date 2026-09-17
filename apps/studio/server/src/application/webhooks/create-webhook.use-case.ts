@@ -32,6 +32,7 @@ export type CreateWebhookDeps = {
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
   db?: StudioDb;
+  publicOrigin?: string;
 };
 
 export class CreateWebhookUseCase implements CreateWebhookInput {
@@ -42,6 +43,7 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
   private readonly db?: StudioDb;
+  private readonly publicOrigin?: string;
 
   constructor(deps: CreateWebhookDeps) {
     this.webhooks = deps.webhooks;
@@ -51,6 +53,7 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
     this.db = deps.db;
+    this.publicOrigin = deps.publicOrigin;
   }
 
   async execute(request: CreateWebhookRequest): Promise<CreateWebhookResponse> {
@@ -113,7 +116,7 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
         createdAt: now,
         updatedAt: now,
       });
-      return toWebhookRecord(webhook);
+      return toWebhookRecord(webhook, this.publicOrigin);
     };
 
     const record = this.db ? this.db.transaction(perform) : perform();

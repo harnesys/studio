@@ -28,6 +28,7 @@ export type UpdateWebhookDeps = {
   workspaces: WorkspaceRepository;
   threads: ThreadRepository;
   deskEvents: DeskEventsPort;
+  publicOrigin?: string;
 };
 
 export class UpdateWebhookUseCase implements UpdateWebhookInput {
@@ -36,6 +37,7 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
   private readonly workspaces: WorkspaceRepository;
   private readonly threads: ThreadRepository;
   private readonly deskEvents: DeskEventsPort;
+  private readonly publicOrigin?: string;
 
   constructor(deps: UpdateWebhookDeps) {
     this.webhooks = deps.webhooks;
@@ -43,6 +45,7 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
     this.workspaces = deps.workspaces;
     this.threads = deps.threads;
     this.deskEvents = deps.deskEvents;
+    this.publicOrigin = deps.publicOrigin;
   }
 
   async execute(request: UpdateWebhookRequest): Promise<WebhookRecord> {
@@ -100,10 +103,11 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
     }
 
     const updated = this.webhooks.update(request.id, patch);
+    const record = toWebhookRecord(updated, this.publicOrigin);
     this.deskEvents.emit(request.workspaceId, {
       type: 'webhook',
-      webhook: toWebhookRecord(updated),
+      webhook: record,
     });
-    return await Promise.resolve(toWebhookRecord(updated));
+    return await Promise.resolve(record);
   }
 }

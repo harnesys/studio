@@ -55,9 +55,8 @@ Persist selection и park переживает reload окна. Selection в URL
 | URL | смысл |
 |---|---|
 | `/` | стол; selection из persist (в т.ч. пустой) |
-| `/settings` | настройки окна |
-| `/settings/:category` | категория |
-| `/settings/providers/:providerId` | провайдер |
+| `/settings` | настройки Window (не domain ноды) |
+| `/settings/:category` | категория Window (Profile, Appearance, Chat, …) |
 
 Голого `/:workspaceId` нет. Корневые зарезервированные сегменты: `settings` (позже при необходимости онбординг). Id workspace: UUID, с зарезервированными словами не пересекаются.
 
@@ -122,7 +121,13 @@ Query-origin (`?agent=`, `?scheduler=`, `?webhook=`) снимаем. Текущ�
 
 ## Settings
 
-`/settings/...` без workspace в path. Поля, привязанные к workspace (skills, capabilities и т.п.), берут workspace из UI: последний сфокусированный ресурсный workspace или явный переключатель на панели. Persist «settingsWorkspaceId» допустим в chrome.
+Владение данными и раскладка панелей: `2026-09-17-workspace-node-design.md`.
+
+Кратко для стола:
+
+- `/settings/...` — только Window (Profile, Appearance, Chat, реестр host/node). Футер сайдбара открывает это.
+- Domain ноды (General, Providers, Skills, MCP, Plugins, Packages, Mode presets, Memory, Git, Exports) — модалка workspace settings с левым nav, открывается **от конкретного** workspace/node id (меню аватара / ⋯), не от selection.
+- Multi-select не дизейблит вход в модалку ноды и не требует табов selection внутри модалки.
 
 ## Пустой стол и онбординг
 
@@ -151,18 +156,20 @@ Query-origin (`?agent=`, `?scheduler=`, `?webhook=`) снимаем. Текущ�
 - `/:ws/spawn/:threadId/:spawnId` синхронизируется с active spawn-табом.
 - Primary thread schedule/webhook по `/thread/...` редиректит на automation URL.
 - Старые `/w/...` редиректят; `?agent=`/`?scheduler=`/`?webhook=` не используются.
-- `/settings` открывается без workspace в path.
+- `/settings` — только Window; domain ноды через модалку конкретного workspace (см. workspace-node-design).
 
 ## Вне скоупа
 
-- Флаг `shared` у агентов и кросс-workspace беседы (отдельный дизайн).
+- Флаг `shared` у агентов и кросс-workspace беседы (отдельный дизайн; задел в workspace-node-design).
 - Сериализация всего desk (selection + все табы + сплит) в одну shareable ссылку.
 - Pairing хостов и реестр (см. packaging-federation).
+- Persist ноды и split store (см. workspace-node-design).
 - Полный UI онбординга.
 
 ## Самопроверка спека
 
 - Плейсхолдеров нет: kind, шаблоны URL, redirect table, поведение park заданы.
 - Противоречий с packaging-federation UX сайдбара нет: мультиселект уточнён как toggle без модификаторов; группы секций по selection.
-- Скоуп один: состояние стола и URL. Shared-агенты и онбординг исключены явно.
+- Settings не дублируют workspace-node: только отсылка и правила входа со стола.
+- Скоуп: состояние стола и URL. Shared-агенты, persist ноды, онбординг исключены явно.
 - Неоднозначность закрыта: канон thread vs automation, spawn в URL, голого `/:workspaceId` нет, gate не home.

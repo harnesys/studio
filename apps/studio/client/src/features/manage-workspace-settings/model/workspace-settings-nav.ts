@@ -1,4 +1,5 @@
 import {
+  ActivityIcon,
   BoxesIcon,
   CpuIcon,
   DatabaseIcon,
@@ -20,6 +21,7 @@ export type WorkspaceSettingsCategory =
   | 'skills'
   | 'mcp'
   | 'plugins'
+  | 'lsp'
   | 'tools'
   | 'mode-presets'
   | 'memory'
@@ -52,6 +54,7 @@ export const WORKSPACE_SETTINGS_GROUPS: WorkspaceSettingsNavGroup[] = [
       { id: 'skills', label: 'Skills', icon: PuzzleIcon },
       { id: 'mcp', label: 'MCP', icon: ServerIcon },
       { id: 'plugins', label: 'Plugins', icon: BoxesIcon },
+      { id: 'lsp', label: 'LSP', icon: ActivityIcon },
       { id: 'tools', label: 'Packages', icon: PackageIcon },
       { id: 'mode-presets', label: 'Mode presets', icon: SlidersHorizontalIcon },
     ],

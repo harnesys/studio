@@ -2,6 +2,7 @@ import type { WorkspaceSettingsCategory } from '../model/workspace-settings-nav'
 import { ExportsPane } from './exports-pane';
 import { GeneralPane } from './general-pane';
 import { GitPane } from './git-pane';
+import { LspPane } from './lsp-pane';
 import { McpPane } from './mcp-pane';
 import { MemoryPane } from './memory-pane';
 import { ModePresetsPane } from './mode-presets-pane';
@@ -51,6 +52,8 @@ function CategoryPane({
       return <McpPane workspaceId={workspaceId} />;
     case 'plugins':
       return <PluginsPane workspaceId={workspaceId} />;
+    case 'lsp':
+      return <LspPane workspaceId={workspaceId} />;
     case 'tools':
       return <ToolsPane workspaceId={workspaceId} />;
     case 'mode-presets':

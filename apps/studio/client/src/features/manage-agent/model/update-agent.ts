@@ -22,7 +22,7 @@ export async function updateAgent(workspaceId: string, agentId: string, draft: A
   const budget = draft.budget !== undefined ? draft.budget : current.budget;
 
   if (draft.modelId !== current.modelId) {
-    const providers = await listProviders();
+    const providers = await listProviders(workspaceId);
     const sanitized = sanitizeForModel(draft.modelId, effort, generation, providers);
     effort = sanitized.effort;
     generation = sanitized.generation;

@@ -2,8 +2,12 @@ import type { ProviderPublic } from '@harnesys/studio-shared';
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { toProviderPublic } from './provider.helpers.ts';
 
+export type ListProvidersRequest = {
+  workspaceId: string;
+};
+
 export type ListProvidersInput = {
-  execute(): Promise<ProviderPublic[]>;
+  execute(request: ListProvidersRequest): Promise<ProviderPublic[]>;
 };
 
 export class ListProvidersUseCase implements ListProvidersInput {
@@ -12,8 +16,8 @@ export class ListProvidersUseCase implements ListProvidersInput {
     private readonly models: LlmModelRepository,
   ) {}
 
-  execute(): Promise<ProviderPublic[]> {
-    const allProviders = this.providers.list();
+  execute(request: ListProvidersRequest): Promise<ProviderPublic[]> {
+    const allProviders = this.providers.list(request.workspaceId);
     return Promise.resolve(
       allProviders.map((provider) => {
         const models = this.models.listByProvider(provider.id);

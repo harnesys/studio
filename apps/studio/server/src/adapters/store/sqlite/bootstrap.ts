@@ -6,6 +6,7 @@ import { migrateCapabilityCore } from './bootstrap-capability-core-migration.ts'
 import { migrateCapabilitySet } from './bootstrap-capability-set-migration.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
 import { cleanupReservedModeIds } from './bootstrap-modes-cleanup.ts';
+import { migrateNodeCatalogProviders } from './bootstrap-node-catalog-providers-migration.ts';
 import type { StudioDb } from './connection.ts';
 import { migratePluginGrantsSchema } from './plugins-migration.ts';
 import { SqliteModePresetRepo } from './repos/sqlite-mode-preset.repo.ts';
@@ -43,7 +44,8 @@ export function bootstrap(db: StudioDb): void {
     );`,
     `CREATE TABLE IF NOT EXISTS llm_providers (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
+      workspace_id TEXT NOT NULL,
+      name TEXT NOT NULL,
       driver TEXT NOT NULL,
       api_url TEXT,
       api_key TEXT,
@@ -52,6 +54,8 @@ export function bootstrap(db: StudioDb): void {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS llm_providers_workspace_id_name_unique
+      ON llm_providers(workspace_id, name);`,
     `CREATE TABLE IF NOT EXISTS llm_models (
       id TEXT PRIMARY KEY,
       provider_id TEXT NOT NULL REFERENCES llm_providers(id) ON DELETE CASCADE,
@@ -284,6 +288,7 @@ export function bootstrap(db: StudioDb): void {
   } catch {}
 
   migratePluginGrantsSchema(db);
+  migrateNodeCatalogProviders(db);
 
   try {
     db.run(sql.raw('DELETE FROM webhooks WHERE thread_id IS NULL;'));

@@ -20,7 +20,7 @@ export function InspectorPane({ agent }: { agent: Agent }) {
   const streaming = useSessionStore(
     (state) => thread !== null && Boolean(state.activeRuns[thread.id]),
   );
-  const providers = useQuery(providersQuery).data ?? [];
+  const providers = useQuery(providersQuery(workspace?.id ?? '')).data ?? [];
   const modelLabel = findModelLabel(agent.modelId, providers);
   const resolvedModel = providers
     .flatMap((provider) =>

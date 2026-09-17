@@ -1,13 +1,14 @@
-import type {
-  ImportProvidersRequest,
-  ImportProvidersSummary,
-  ProviderExportEntry,
-} from '@harnesys/studio-shared';
+import type { ImportProvidersSummary, ProviderExportEntry } from '@harnesys/studio-shared';
 import type {
   LlmModelRepository,
   LlmProvider,
   LlmProviderRepository,
 } from '../../domain/llm-provider.port.ts';
+
+export type ImportProvidersRequest = {
+  workspaceId: string;
+  providers: ProviderExportEntry[];
+};
 
 export type ImportProvidersInput = {
   execute(request: ImportProvidersRequest): Promise<ImportProvidersSummary>;
@@ -28,10 +29,10 @@ export class ImportProvidersUseCase implements ImportProvidersInput {
     };
 
     for (const entry of request.providers) {
-      const existing = this.providers.findByName(entry.name);
+      const existing = this.providers.findByName(request.workspaceId, entry.name);
       const provider = existing
-        ? this.mergeProvider(existing.id, entry)
-        : this.createProvider(entry);
+        ? this.mergeProvider(request.workspaceId, existing.id, entry)
+        : this.createProvider(request.workspaceId, entry);
       if (existing) {
         summary.providersUpdated += 1;
       } else {
@@ -61,8 +62,8 @@ export class ImportProvidersUseCase implements ImportProvidersInput {
     return Promise.resolve(summary);
   }
 
-  private mergeProvider(id: string, entry: ProviderExportEntry): LlmProvider {
-    return this.providers.update(id, {
+  private mergeProvider(workspaceId: string, id: string, entry: ProviderExportEntry): LlmProvider {
+    return this.providers.update(workspaceId, id, {
       driver: entry.driver,
       apiUrl: entry.apiUrl ?? null,
       apiKey: entry.apiKey ?? null,
@@ -71,10 +72,11 @@ export class ImportProvidersUseCase implements ImportProvidersInput {
     });
   }
 
-  private createProvider(entry: ProviderExportEntry): LlmProvider {
+  private createProvider(workspaceId: string, entry: ProviderExportEntry): LlmProvider {
     const now = new Date().toISOString();
     return this.providers.insert({
       id: crypto.randomUUID(),
+      workspaceId,
       name: entry.name,
       driver: entry.driver,
       apiUrl: entry.apiUrl ?? null,

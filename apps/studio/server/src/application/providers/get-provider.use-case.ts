@@ -3,6 +3,7 @@ import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm
 import { requireProvider, toProviderPublic } from './provider.helpers.ts';
 
 export type GetProviderRequest = {
+  workspaceId: string;
   id: string;
 };
 
@@ -17,7 +18,7 @@ export class GetProviderUseCase implements GetProviderInput {
   ) {}
 
   execute(request: GetProviderRequest): Promise<ProviderPublic> {
-    const provider = requireProvider(this.providers, request.id);
+    const provider = requireProvider(this.providers, request.workspaceId, request.id);
     const models = this.models.listByProvider(provider.id);
     return Promise.resolve(toProviderPublic(provider, models));
   }

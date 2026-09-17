@@ -100,12 +100,14 @@ export function AgentEffortField({
   control,
   idPrefix = 'agent',
   onCommit,
+  workspaceId,
 }: {
   control: AgentFieldsControl;
   idPrefix?: string;
   onCommit?: () => void;
+  workspaceId: string;
 }) {
-  const providers = useQuery(providersQuery).data ?? [];
+  const providers = useQuery(providersQuery(workspaceId)).data ?? [];
   const modelId = useWatch({ control, name: 'modelId' });
   const levels = modelEfforts(modelId, providers);
   const fieldId = `${idPrefix}-effort`;
@@ -156,12 +158,14 @@ export function AgentGenerationFields({
   control,
   idPrefix = 'agent',
   onCommit,
+  workspaceId,
 }: {
   control: AgentFieldsControl;
   idPrefix?: string;
   onCommit?: () => void;
+  workspaceId: string;
 }) {
-  const providers = useQuery(providersQuery).data ?? [];
+  const providers = useQuery(providersQuery(workspaceId)).data ?? [];
   const modelId = useWatch({ control, name: 'modelId' });
   const supported = modelSupportedParameters(modelId, providers);
   const sliders = SAMPLING_SLIDERS.filter((item) => generationFieldVisible(supported, item.name));

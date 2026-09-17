@@ -76,7 +76,7 @@ export function AgentConfigCategoryPanes({
         label="Model"
         description="Model, effort and generation parameters."
       >
-        <AgentModelPane form={form} />
+        <AgentModelPane form={form} workspaceId={workspaceId} />
       </Pane>
       <div className={cn(category !== 'permissions' && 'hidden')}>
         <Controller

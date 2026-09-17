@@ -13,6 +13,10 @@ export function runInHostToolScope<T>(scope: HostToolScope, fn: () => T): T {
   return storage.run(scope, fn);
 }
 
+export function getHostToolScope(): HostToolScope | undefined {
+  return storage.getStore();
+}
+
 export function requireHostToolScope(): HostToolScope {
   const scope = storage.getStore();
   if (!scope) {

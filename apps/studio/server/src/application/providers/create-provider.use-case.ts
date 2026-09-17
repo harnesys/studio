@@ -4,6 +4,7 @@ import { ValidationError } from '../../domain/studio.error.ts';
 import { toProviderPublic } from './provider.helpers.ts';
 
 export type CreateProviderRequest = {
+  workspaceId: string;
   name: string;
   driver: string;
   apiUrl?: string | null;
@@ -35,6 +36,7 @@ export class CreateProviderUseCase implements CreateProviderInput {
     const now = new Date().toISOString();
     const inserted = this.providers.insert({
       id: crypto.randomUUID(),
+      workspaceId: request.workspaceId,
       name,
       driver,
       apiUrl: request.apiUrl?.trim() || null,

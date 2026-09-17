@@ -94,7 +94,7 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     if (!model) {
       throw new NotFoundError('model not found');
     }
-    const provider = this.providers.findById(model.providerId);
+    const provider = this.providers.findById(thread.workspaceId, model.providerId);
     if (!provider) {
       throw new NotFoundError('provider not found');
     }

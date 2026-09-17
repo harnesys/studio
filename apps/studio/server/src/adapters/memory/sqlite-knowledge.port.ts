@@ -222,7 +222,7 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
   private resolveEmbeddings(workspaceId: string): EmbeddingsPort | undefined {
     const settings = this.indexRepo?.getSettingsOrDefault(workspaceId);
     if (settings && this.options.embeddingsDeps) {
-      return embeddingsForSettings(this.options.embeddingsDeps, settings);
+      return embeddingsForSettings(this.options.embeddingsDeps, settings, workspaceId);
     }
     return this.embeddings;
   }

@@ -44,7 +44,7 @@ export function ChatComposer() {
   const thread = useSelectedThread();
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const events = useThreadEvents(thread?.id ?? null);
-  const providers = useQuery(providersQuery).data ?? [];
+  const providers = useQuery(providersQuery(workspaceId ?? '')).data ?? [];
   const modelId = agent?.modelId;
   const levels = agentEfforts(modelId, providers);
   const streaming = useSessionStore((state) =>

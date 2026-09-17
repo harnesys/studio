@@ -208,6 +208,7 @@ export function KnowledgeSettingsFields({
           <div className={vectorNeedsEmbed ? 'rounded-md ring-2 ring-destructive/60' : undefined}>
             <EmbedModelSelect
               id="knowledge-embed-model"
+              workspaceId={workspaceId ?? ''}
               embedProvider={draft.embedProvider}
               embedModel={draft.embedModel}
               disabled={disabled}

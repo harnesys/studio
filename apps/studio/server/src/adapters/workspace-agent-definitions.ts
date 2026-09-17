@@ -36,6 +36,7 @@ export function dbAgentDefinition(agent: Agent, repos: AgentModelRepos): AgentDe
 
 function resolveModelRef(
   agent: {
+    workspaceId: string;
     modelId: string | null;
     effort: string | null;
     generation: unknown;
@@ -50,7 +51,7 @@ function resolveModelRef(
   if (repos.modelRepo && repos.providerRepo) {
     const model = repos.modelRepo.findById(agent.modelId);
     if (model) {
-      const provider = repos.providerRepo.findById(model.providerId);
+      const provider = repos.providerRepo.findById(agent.workspaceId, model.providerId);
       if (provider) {
         return {
           provider: provider.name,

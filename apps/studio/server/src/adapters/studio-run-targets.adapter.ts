@@ -97,7 +97,7 @@ export class StudioRunTargets implements RunTargets {
     if (!model) {
       return null;
     }
-    const provider = this.deps.providers.findById(model.providerId);
+    const provider = this.deps.providers.findById(thread.workspaceId, model.providerId);
     if (!provider) {
       return null;
     }

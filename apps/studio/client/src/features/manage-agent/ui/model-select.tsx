@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { providersQuery } from '@/shared/api';
+import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import {
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ type ModelSelectProps = {
   placeholder?: string;
   triggerClassName?: string;
   size?: 'sm' | 'default';
+  workspaceId?: string;
 };
 
 export function ModelSelect({
@@ -30,8 +32,11 @@ export function ModelSelect({
   placeholder = 'Select model',
   triggerClassName,
   size = 'default',
+  workspaceId: workspaceIdProp,
 }: ModelSelectProps) {
-  const providers = useQuery(providersQuery).data ?? [];
+  const focusWorkspaceId = studioFocusWorkspaceId(useStudioLocation());
+  const workspaceId = workspaceIdProp ?? focusWorkspaceId ?? '';
+  const providers = useQuery(providersQuery(workspaceId)).data ?? [];
   const groups = modelGroups(providers);
   const items = modelOptions(groups);
   const empty = items.length === 0;

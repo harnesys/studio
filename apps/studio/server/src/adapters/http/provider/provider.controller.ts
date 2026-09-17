@@ -30,13 +30,18 @@ export class ProviderController {
   constructor(private readonly deps: ProviderControllerDeps) {}
 
   register(app: Hono): void {
-    app.get('/api/providers', async (c) => {
-      return c.json(await this.deps.listProviders.execute());
+    const base = '/api/workspaces/:workspaceId/providers';
+
+    app.get(base, async (c) => {
+      return c.json(
+        await this.deps.listProviders.execute({ workspaceId: c.req.param('workspaceId') }),
+      );
     });
 
-    app.post('/api/providers', async (c) => {
+    app.post(base, async (c) => {
       const body = createProviderBody.parse(await c.req.json());
       const provider = await this.deps.createProvider.execute({
+        workspaceId: c.req.param('workspaceId'),
         name: body.name,
         driver: body.driver,
         apiUrl: body.apiUrl ?? undefined,
@@ -46,43 +51,62 @@ export class ProviderController {
       return c.json(provider, 201);
     });
 
-    // Static /export and /import must precede /:id lookups.
-    app.get('/api/providers/export', async (c) => {
-      return c.json(await this.deps.exportProviders.execute());
+    app.get(`${base}/export`, async (c) => {
+      return c.json(
+        await this.deps.exportProviders.execute({ workspaceId: c.req.param('workspaceId') }),
+      );
     });
 
-    app.post('/api/providers/import', async (c) => {
+    app.post(`${base}/import`, async (c) => {
       const body = importProvidersBody.parse(await c.req.json());
-      return c.json(await this.deps.importProviders.execute({ providers: body.providers }));
+      return c.json(
+        await this.deps.importProviders.execute({
+          workspaceId: c.req.param('workspaceId'),
+          providers: body.providers,
+        }),
+      );
     });
 
-    app.get('/api/providers/:id', async (c) => {
-      return c.json(await this.deps.getProvider.execute({ id: c.req.param('id') }));
+    app.get(`${base}/:id`, async (c) => {
+      return c.json(
+        await this.deps.getProvider.execute({
+          workspaceId: c.req.param('workspaceId'),
+          id: c.req.param('id'),
+        }),
+      );
     });
 
-    app.patch('/api/providers/:id', async (c) => {
+    app.patch(`${base}/:id`, async (c) => {
       const body = updateProviderBody.parse(await c.req.json());
       return c.json(
         await this.deps.updateProvider.execute({
+          workspaceId: c.req.param('workspaceId'),
           id: c.req.param('id'),
           ...body,
         }),
       );
     });
 
-    app.delete('/api/providers/:id', async (c) => {
-      await this.deps.deleteProvider.execute({ id: c.req.param('id') });
+    app.delete(`${base}/:id`, async (c) => {
+      await this.deps.deleteProvider.execute({
+        workspaceId: c.req.param('workspaceId'),
+        id: c.req.param('id'),
+      });
       return c.body(null, 204);
     });
 
-    app.post('/api/providers/:id/discover', async (c) => {
-      const found = await this.deps.discoverProviderModels.execute({ id: c.req.param('id') });
+    app.post(`${base}/:id/discover`, async (c) => {
+      const found = await this.deps.discoverProviderModels.execute({
+        workspaceId: c.req.param('workspaceId'),
+        id: c.req.param('id'),
+      });
       return c.json({ found });
     });
 
-    app.post('/api/providers/:id/models', async (c) => {
+    app.post(`${base}/:id/models`, async (c) => {
       const body = (await c.req.json()) as { name: string; kind?: string; metadata?: unknown };
       const model = await this.deps.createProviderModel.execute({
+        workspaceId: c.req.param('workspaceId'),
         providerId: c.req.param('id'),
         name: body.name,
         kind: body.kind,
@@ -91,9 +115,10 @@ export class ProviderController {
       return c.json(model, 201);
     });
 
-    app.patch('/api/providers/:id/models/:modelId', async (c) => {
+    app.patch(`${base}/:id/models/:modelId`, async (c) => {
       const body = (await c.req.json()) as { name?: string; kind?: string; metadata?: unknown };
       const model = await this.deps.updateProviderModel.execute({
+        workspaceId: c.req.param('workspaceId'),
         providerId: c.req.param('id'),
         modelId: c.req.param('modelId'),
         name: body.name,
@@ -103,8 +128,9 @@ export class ProviderController {
       return c.json(model);
     });
 
-    app.delete('/api/providers/:id/models/:modelId', async (c) => {
+    app.delete(`${base}/:id/models/:modelId`, async (c) => {
       await this.deps.deleteProviderModel.execute({
+        workspaceId: c.req.param('workspaceId'),
         providerId: c.req.param('id'),
         modelId: c.req.param('modelId'),
       });

@@ -32,7 +32,7 @@ export function DraftCompaction({
   agent: Agent | null;
   onChange: (compaction: PortRef | null) => void;
 }) {
-  const providers = useQuery(providersQuery).data ?? [];
+  const providers = useQuery(providersQuery(agent?.workspaceId ?? '')).data ?? [];
   const groups = modelGroups(providers);
   const items = modelOptions(groups);
   const [draft, setDraft] = useState(() => compactionDraftFrom(agent?.compaction ?? null));

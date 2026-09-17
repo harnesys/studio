@@ -19,6 +19,7 @@ import {
 } from '../model/embed-model-groups';
 
 type EmbedModelSelectProps = {
+  workspaceId: string;
   embedProvider: string | null;
   embedModel: string | null;
   onChange: (next: { embedProvider: string | null; embedModel: string | null }) => void;
@@ -27,13 +28,14 @@ type EmbedModelSelectProps = {
 };
 
 export function EmbedModelSelect({
+  workspaceId,
   embedProvider,
   embedModel,
   onChange,
   disabled,
   id,
 }: EmbedModelSelectProps) {
-  const providers = useQuery(providersQuery).data ?? [];
+  const providers = useQuery(providersQuery(workspaceId)).data ?? [];
   const groups = embedModelGroups(providers);
   const value = findEmbedModelId(providers, embedProvider, embedModel) ?? EMBED_NONE;
   const selected =

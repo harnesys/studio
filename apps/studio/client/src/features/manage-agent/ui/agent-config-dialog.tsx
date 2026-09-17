@@ -111,7 +111,7 @@ export function AgentConfigDialog({
   const graphDocRef = useRef(graphDoc);
   graphDocRef.current = graphDoc;
   const graphTouchedRef = useRef(false);
-  const providers = useQuery(providersQuery).data ?? [];
+  const providers = useQuery(providersQuery(workspaceId)).data ?? [];
   const [capabilities, setCapabilities] = useState<AgentCapabilitiesDraft>(() =>
     initialCapabilities(rootAgent),
   );

@@ -30,19 +30,19 @@ import { ProviderSettingsFields } from './provider-settings-fields';
 
 export function ModelsPane({ workspaceId }: { workspaceId: string }) {
   const catalog = useQuery(catalogQuery).data;
-  const providersQuery = useProviders();
+  const providersQuery = useProviders(workspaceId);
   const providers = providersQuery.data ?? [];
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const [foundByProvider, setFoundByProvider] = useState<Record<string, DiscoveredModelView[]>>({});
-  const create = useCreateProvider();
-  const update = useUpdateProvider();
-  const remove = useDeleteProvider();
-  const discover = useDiscoverProviderModels();
-  const attach = useAttachProviderModel();
-  const patchModel = useUpdateProviderModel();
-  const detach = useDetachProviderModel();
-  const exportProviders = useExportProviders();
-  const importProviders = useImportProviders();
+  const create = useCreateProvider(workspaceId);
+  const update = useUpdateProvider(workspaceId);
+  const remove = useDeleteProvider(workspaceId);
+  const discover = useDiscoverProviderModels(workspaceId);
+  const attach = useAttachProviderModel(workspaceId);
+  const patchModel = useUpdateProviderModel(workspaceId);
+  const detach = useDetachProviderModel(workspaceId);
+  const exportProviders = useExportProviders(workspaceId);
+  const importProviders = useImportProviders(workspaceId);
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const selected = providers.find((item) => item.id === selectedProviderId) ?? null;

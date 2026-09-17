@@ -22,6 +22,7 @@ export type StudioEmbeddingsDeps = {
   models: LlmModelRepository;
   /** Prefer this embed model; else first enabled embed model in catalog. */
   modelRef?: EmbeddingModelRef;
+  workspaceId?: string;
 };
 
 type ResolvedEmbedTarget = {
@@ -101,7 +102,11 @@ function resolveEmbedTarget(deps: StudioEmbeddingsDeps): ResolvedEmbedTarget | u
   if (deps.modelRef) {
     return targetFromRef(deps, deps.modelRef);
   }
-  for (const provider of deps.providers.list()) {
+  const workspaceId = deps.workspaceId;
+  if (!workspaceId) {
+    return undefined;
+  }
+  for (const provider of deps.providers.list(workspaceId)) {
     if (!provider.enabled || !isDriver(provider.driver)) {
       continue;
     }
@@ -124,7 +129,11 @@ function targetFromRef(
   deps: StudioEmbeddingsDeps,
   ref: EmbeddingModelRef,
 ): ResolvedEmbedTarget | undefined {
-  const provider = deps.providers.findByName(ref.provider);
+  const workspaceId = deps.workspaceId;
+  if (!workspaceId) {
+    return undefined;
+  }
+  const provider = deps.providers.findByName(workspaceId, ref.provider);
   if (!provider?.enabled || !isDriver(provider.driver)) {
     return undefined;
   }

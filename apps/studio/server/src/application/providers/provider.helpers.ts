@@ -6,14 +6,19 @@ import {
   type ProviderPublic,
 } from '@harnesys/studio-shared';
 import { resolveModel } from 'harnesys';
-import type { LlmModel, LlmProvider } from '../../domain/llm-provider.port.ts';
+import type {
+  LlmModel,
+  LlmProvider,
+  LlmProviderRepository,
+} from '../../domain/llm-provider.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 
 export function requireProvider(
-  providers: { findById(id: string): LlmProvider | undefined },
+  providers: LlmProviderRepository,
+  workspaceId: string,
   providerId: string,
 ): LlmProvider {
-  const provider = providers.findById(providerId);
+  const provider = providers.findById(workspaceId, providerId);
   if (!provider) {
     throw new NotFoundError('provider not found');
   }

@@ -8,6 +8,7 @@ import { ValidationError } from '../../domain/studio.error.ts';
 import { requireProvider, toProviderPublic } from './provider.helpers.ts';
 
 export type UpdateProviderRequest = {
+  workspaceId: string;
   id: string;
   name?: string;
   driver?: string;
@@ -28,7 +29,7 @@ export class UpdateProviderUseCase implements UpdateProviderInput {
   ) {}
 
   async execute(request: UpdateProviderRequest): Promise<ProviderPublic> {
-    requireProvider(this.providers, request.id);
+    requireProvider(this.providers, request.workspaceId, request.id);
 
     const patch: LlmProviderPatch = {};
 
@@ -64,7 +65,7 @@ export class UpdateProviderUseCase implements UpdateProviderInput {
       patch.enabled = request.enabled;
     }
 
-    const updated = this.providers.update(request.id, patch);
+    const updated = this.providers.update(request.workspaceId, request.id, patch);
     const models = this.models.listByProvider(updated.id);
     return await Promise.resolve(toProviderPublic(updated, models));
   }

@@ -1,5 +1,6 @@
 export type LlmProvider = {
   id: string;
+  workspaceId: string;
   name: string;
   driver: string;
   apiUrl: string | null;
@@ -12,6 +13,7 @@ export type LlmProvider = {
 
 export type LlmProviderInsert = {
   id: string;
+  workspaceId: string;
   name: string;
   driver: string;
   apiUrl: string | null;
@@ -32,12 +34,12 @@ export type LlmProviderPatch = Partial<{
 }>;
 
 export type LlmProviderRepository = {
-  list(): LlmProvider[];
-  findById(id: string): LlmProvider | undefined;
-  findByName(name: string): LlmProvider | undefined;
+  list(workspaceId: string): LlmProvider[];
+  findById(workspaceId: string, id: string): LlmProvider | undefined;
+  findByName(workspaceId: string, name: string): LlmProvider | undefined;
   insert(rec: LlmProviderInsert): LlmProvider;
-  update(id: string, patch: LlmProviderPatch): LlmProvider;
-  delete(id: string): void;
+  update(workspaceId: string, id: string, patch: LlmProviderPatch): LlmProvider;
+  delete(workspaceId: string, id: string): void;
 };
 
 export type LlmModel = {

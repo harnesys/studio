@@ -119,6 +119,7 @@ export {
   listProviders,
   providersQuery,
   providersQueryKey,
+  providersQueryKeyFor,
   type UpdateProviderInput,
   type UpdateProviderModelInput,
   updateProvider,

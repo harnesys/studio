@@ -109,7 +109,7 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     scope: CapabilityScope,
     input: AgentCatalogCreateInput,
   ): Promise<AgentCatalogCreated> {
-    const model = resolveModelFields(input.model, this.deps);
+    const model = resolveModelFields(input.model, scope.workspaceId, this.deps);
     // This port owns tool-path desk emissions; the wired CreateAgentUseCase has no emitter.
     const created = await this.deps.createAgent.execute({
       workspaceId: scope.workspaceId,
@@ -208,6 +208,7 @@ const emptyPluginAgents: PluginAgentCatalog = {
 
 function resolveModelFields(
   model: AgentModelRef | undefined,
+  workspaceId: string,
   deps: SqliteAgentsCatalogPortDeps,
 ): {
   modelId: string;
@@ -222,7 +223,7 @@ function resolveModelFields(
   if (!deps.providers || !deps.models) {
     throw new ValidationError('model lookup is unavailable');
   }
-  const provider = deps.providers.findByName(model.provider);
+  const provider = deps.providers.findByName(workspaceId, model.provider);
   if (!provider) {
     throw new NotFoundError(`provider not found: ${model.provider}`);
   }

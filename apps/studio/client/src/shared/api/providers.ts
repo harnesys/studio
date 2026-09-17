@@ -40,68 +40,89 @@ export type UpdateProviderModelInput = {
 
 export const providersQueryKey = ['providers'] as const;
 
-export function listProviders() {
-  return apiJson<ProviderPublic[]>('/api/providers');
+export function providersQueryKeyFor(workspaceId: string) {
+  return [...providersQueryKey, workspaceId] as const;
 }
 
-export function createProvider(input: CreateProviderInput) {
-  return apiJson<ProviderPublic>('/api/providers', {
+function providersBase(workspaceId: string) {
+  return `/api/workspaces/${encodeURIComponent(workspaceId)}/providers`;
+}
+
+export function listProviders(workspaceId: string) {
+  return apiJson<ProviderPublic[]>(providersBase(workspaceId));
+}
+
+export function createProvider(workspaceId: string, input: CreateProviderInput) {
+  return apiJson<ProviderPublic>(providersBase(workspaceId), {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
-export function updateProvider(id: string, input: UpdateProviderInput) {
-  return apiJson<ProviderPublic>(`/api/providers/${id}`, {
+export function updateProvider(workspaceId: string, id: string, input: UpdateProviderInput) {
+  return apiJson<ProviderPublic>(`${providersBase(workspaceId)}/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
 }
 
-export function deleteProvider(id: string) {
-  return apiJson<void>(`/api/providers/${id}`, { method: 'DELETE' });
+export function deleteProvider(workspaceId: string, id: string) {
+  return apiJson<void>(`${providersBase(workspaceId)}/${id}`, { method: 'DELETE' });
 }
 
-export function exportProviders() {
-  return apiJson<ProviderExportBundle>('/api/providers/export');
+export function exportProviders(workspaceId: string) {
+  return apiJson<ProviderExportBundle>(`${providersBase(workspaceId)}/export`);
 }
 
-export function importProviders(bundle: ProviderExportBundle) {
-  return apiJson<ImportProvidersSummary>('/api/providers/import', {
+export function importProviders(workspaceId: string, bundle: ProviderExportBundle) {
+  return apiJson<ImportProvidersSummary>(`${providersBase(workspaceId)}/import`, {
     method: 'POST',
     body: JSON.stringify(bundle),
   });
 }
 
-export function discoverProviderModels(id: string) {
-  return apiJson<{ found: DiscoveredModelView[] }>(`/api/providers/${id}/discover`, {
+export function discoverProviderModels(workspaceId: string, id: string) {
+  return apiJson<{ found: DiscoveredModelView[] }>(`${providersBase(workspaceId)}/${id}/discover`, {
     method: 'POST',
   });
 }
 
-export function attachProviderModel(providerId: string, input: AttachProviderModelInput) {
-  return apiJson<ProviderModelPublic>(`/api/providers/${providerId}/models`, {
+export function attachProviderModel(
+  workspaceId: string,
+  providerId: string,
+  input: AttachProviderModelInput,
+) {
+  return apiJson<ProviderModelPublic>(`${providersBase(workspaceId)}/${providerId}/models`, {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
 export function updateProviderModel(
+  workspaceId: string,
   providerId: string,
   modelId: string,
   input: UpdateProviderModelInput,
 ) {
-  return apiJson<ProviderModelPublic>(`/api/providers/${providerId}/models/${modelId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(input),
+  return apiJson<ProviderModelPublic>(
+    `${providersBase(workspaceId)}/${providerId}/models/${modelId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function detachProviderModel(workspaceId: string, providerId: string, modelId: string) {
+  return apiJson<void>(`${providersBase(workspaceId)}/${providerId}/models/${modelId}`, {
+    method: 'DELETE',
   });
 }
 
-export function detachProviderModel(providerId: string, modelId: string) {
-  return apiJson<void>(`/api/providers/${providerId}/models/${modelId}`, { method: 'DELETE' });
+export function providersQuery(workspaceId: string) {
+  return queryOptions({
+    queryKey: providersQueryKeyFor(workspaceId),
+    queryFn: () => listProviders(workspaceId),
+    enabled: Boolean(workspaceId),
+  });
 }
-
-export const providersQuery = queryOptions({
-  queryKey: providersQueryKey,
-  queryFn: listProviders,
-});

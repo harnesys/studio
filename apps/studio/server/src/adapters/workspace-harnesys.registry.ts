@@ -37,6 +37,7 @@ import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-pr
 import type { PluginInstallRecord, PluginRepository } from '../domain/plugin.port.ts';
 import { ValidationError } from '../domain/studio.error.ts';
 import type { Workspace } from '../domain/workspace.port.ts';
+import { createHarnesysModelsPort } from './harnesys-models-port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
 import { skillRegistryRoots } from './store/studio-layout.ts';
 import { dbAgentDefinition } from './workspace-agent-definitions.ts';
@@ -149,21 +150,22 @@ export class WorkspaceHarnesysRegistry {
 
   /** Plugin agents of this workspace (`pluginName:agentName` catalog ids). */
   async pluginAgents(workspaceId: string): Promise<PluginAgentCatalog> {
-    return this.pluginCatalog(await this.loadEnabledPlugins(workspaceId));
+    return this.pluginCatalog(workspaceId, await this.loadEnabledPlugins(workspaceId));
   }
 
   /** Sync catalog from the warm (memoized) IR cache; same contract as resolvePluginAgent. */
   private warmPluginAgents(workspaceId: string): PluginAgentCatalog {
-    return this.pluginCatalog(this.cachedLoaded(workspaceId));
+    return this.pluginCatalog(workspaceId, this.cachedLoaded(workspaceId));
   }
 
-  private pluginCatalog(entries: LoadedWorkspacePlugin[]): PluginAgentCatalog {
+  private pluginCatalog(workspaceId: string, entries: LoadedWorkspacePlugin[]): PluginAgentCatalog {
     return pluginAgentCatalog(
       entries,
       this.repos.modelRepo,
       this.repos.providerRepo,
       this.pluginBindDiagnostic,
       this.packRegistrations,
+      workspaceId,
     );
   }
 
@@ -247,8 +249,12 @@ export class WorkspaceHarnesysRegistry {
       this.runtime?.logger?.warn(`[plugins] ${diagnostic.code}: ${diagnostic.message}`);
     }
     const mcp = merged.mcp;
+    const modelsPort =
+      this.repos.providerRepo && this.repos.modelRepo
+        ? createHarnesysModelsPort(this.repos.providerRepo, this.repos.modelRepo, workspace.id)
+        : this.models;
     const runtime = await createRuntime({
-      models: this.models,
+      models: modelsPort,
       // Host base registry is code + auto-MCP only. ask_user/map/wait and the
       // service tools come with the `core` pack through the capability resolver's
       // grant (T5); per-agent gating lives in `resolveCapabilitySet`, not here.

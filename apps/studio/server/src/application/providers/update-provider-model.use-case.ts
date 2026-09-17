@@ -8,6 +8,7 @@ import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { requireProvider, toModelPublic } from './provider.helpers.ts';
 
 export type UpdateProviderModelRequest = {
+  workspaceId: string;
   providerId: string;
   modelId: string;
   name?: string;
@@ -26,7 +27,7 @@ export class UpdateProviderModelUseCase implements UpdateProviderModelInput {
   ) {}
 
   async execute(request: UpdateProviderModelRequest): Promise<ProviderModelPublic> {
-    const provider = requireProvider(this.providers, request.providerId);
+    const provider = requireProvider(this.providers, request.workspaceId, request.providerId);
     const existing = this.models.findById(request.modelId);
     if (!existing || existing.providerId !== request.providerId) {
       throw new NotFoundError('model not found');

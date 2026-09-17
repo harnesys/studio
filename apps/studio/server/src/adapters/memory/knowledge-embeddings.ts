@@ -35,6 +35,7 @@ export function knowledgeIndexModeKey(settings: KnowledgeSettingsRecord): string
 export function embeddingsForSettings(
   deps: StudioEmbeddingsDeps,
   settings: KnowledgeSettingsRecord,
+  workspaceId: string,
 ): EmbeddingsPort {
   const modelRef = modelRefFromSettings(settings);
   if (!modelRef) {
@@ -43,5 +44,6 @@ export function embeddingsForSettings(
   return new StudioEmbeddings({
     ...deps,
     modelRef,
+    workspaceId,
   });
 }

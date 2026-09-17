@@ -3,6 +3,7 @@ import type { LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { requireProvider } from './provider.helpers.ts';
 
 export type DiscoverProviderModelsRequest = {
+  workspaceId: string;
   id: string;
 };
 
@@ -14,7 +15,7 @@ export class DiscoverProviderModelsUseCase implements DiscoverProviderModelsInpu
   constructor(private readonly providers: LlmProviderRepository) {}
 
   execute(request: DiscoverProviderModelsRequest): Promise<DiscoveredModel[]> {
-    const provider = requireProvider(this.providers, request.id);
+    const provider = requireProvider(this.providers, request.workspaceId, request.id);
 
     return discoverModels({
       driver: provider.driver,

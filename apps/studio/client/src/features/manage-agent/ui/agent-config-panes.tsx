@@ -123,8 +123,14 @@ export function AgentIdentityPane({ form }: { form: AgentFieldsForm }) {
   );
 }
 
-export function AgentModelPane({ form }: { form: AgentFieldsForm }) {
-  const providers = useQuery(providersQuery).data ?? [];
+export function AgentModelPane({
+  form,
+  workspaceId,
+}: {
+  form: AgentFieldsForm;
+  workspaceId: string;
+}) {
+  const providers = useQuery(providersQuery(workspaceId)).data ?? [];
   return (
     <FieldGroup className="gap-3">
       <div className="grid grid-cols-1 gap-3 has-[[data-slot=agent-effort]]:grid-cols-2">
@@ -136,6 +142,7 @@ export function AgentModelPane({ form }: { form: AgentFieldsForm }) {
               <FieldLabel htmlFor="agent-model">Model</FieldLabel>
               <ModelSelect
                 id="agent-model"
+                workspaceId={workspaceId}
                 value={field.value}
                 triggerClassName="w-full"
                 onChange={(modelId) => {
@@ -175,9 +182,9 @@ export function AgentModelPane({ form }: { form: AgentFieldsForm }) {
             </Field>
           )}
         />
-        <AgentEffortField control={form.control} />
+        <AgentEffortField control={form.control} workspaceId={workspaceId} />
       </div>
-      <AgentGenerationFields control={form.control} />
+      <AgentGenerationFields control={form.control} workspaceId={workspaceId} />
     </FieldGroup>
   );
 }

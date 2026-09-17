@@ -47,6 +47,7 @@ export function pluginAgentCatalog(
   providers?: LlmProviderRepository,
   onDiagnostic?: BindDiagnosticSink,
   registrations?: PackRegistration[],
+  workspaceId?: string,
 ): PluginAgentCatalog {
   const packIndex = new Map(
     (registrations ?? []).flatMap((r) =>
@@ -58,7 +59,7 @@ export function pluginAgentCatalog(
     const userConfig = pluginUserConfig(entry.ir, entry.record.options);
     const bound = bindAgentComponents(
       entry.ir,
-      (ref) => resolveModelRef(ref, models, providers),
+      (ref) => resolveModelRef(ref, models, providers, workspaceId),
       onDiagnostic,
       userConfig,
       packIndex,
@@ -176,21 +177,22 @@ function resolveModelRef(
   ref: string,
   models?: LlmModelRepository,
   providers?: LlmProviderRepository,
+  workspaceId?: string,
 ): AgentModelRef | null {
-  if (models === undefined || providers === undefined) {
+  if (models === undefined || providers === undefined || workspaceId === undefined) {
     return null;
   }
   const separator = ref.indexOf('/');
   const modelName = separator === -1 ? ref : ref.slice(separator + 1);
   const provider =
     separator === -1
-      ? providers.list().find((row) => hasModel(models, row.id, modelName))
-      : providers.findByName(ref.slice(0, separator));
+      ? providers.list(workspaceId).find((row) => hasModel(models, row.id, modelName))
+      : providers.findByName(workspaceId, ref.slice(0, separator));
   if (provider === undefined) {
     // exact miss on a bare alias (sonnet/opus/haiku): substring match across providers
     if (separator === -1) {
       const hit = providers
-        .list()
+        .list(workspaceId)
         .flatMap((p) => models.listByProvider(p.id).map((m) => ({ provider: p, model: m })))
         .find(({ model }) => model.name.toLowerCase().includes(modelName.toLowerCase()));
       if (hit) {

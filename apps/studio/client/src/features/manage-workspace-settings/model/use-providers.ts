@@ -9,58 +9,58 @@ import {
   exportProviders,
   importProviders,
   providersQuery,
-  providersQueryKey,
+  providersQueryKeyFor,
   type UpdateProviderInput,
   type UpdateProviderModelInput,
   updateProvider,
   updateProviderModel,
 } from '@/shared/api';
 
-export function useProviders() {
-  return useQuery(providersQuery);
+export function useProviders(workspaceId: string) {
+  return useQuery(providersQuery(workspaceId));
 }
 
-export function useCreateProvider() {
+export function useCreateProvider(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createProvider,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
+    mutationFn: (input: Parameters<typeof createProvider>[1]) => createProvider(workspaceId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
 
-export function useUpdateProvider() {
+export function useUpdateProvider(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...input }: UpdateProviderInput & { id: string }) =>
-      updateProvider(id, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
+      updateProvider(workspaceId, id, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
 
-export function useDeleteProvider() {
+export function useDeleteProvider(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteProvider,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
+    mutationFn: (id: string) => deleteProvider(workspaceId, id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
 
-export function useDiscoverProviderModels() {
+export function useDiscoverProviderModels(workspaceId: string) {
   return useMutation({
-    mutationFn: discoverProviderModels,
+    mutationFn: (id: string) => discoverProviderModels(workspaceId, id),
   });
 }
 
-export function useAttachProviderModel() {
+export function useAttachProviderModel(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ providerId, ...input }: { providerId: string } & AttachProviderModelInput) =>
-      attachProviderModel(providerId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
+      attachProviderModel(workspaceId, providerId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
 
-export function useUpdateProviderModel() {
+export function useUpdateProviderModel(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -68,30 +68,31 @@ export function useUpdateProviderModel() {
       modelId,
       ...input
     }: { providerId: string; modelId: string } & UpdateProviderModelInput) =>
-      updateProviderModel(providerId, modelId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
+      updateProviderModel(workspaceId, providerId, modelId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
 
-export function useDetachProviderModel() {
+export function useDetachProviderModel(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ providerId, modelId }: { providerId: string; modelId: string }) =>
-      detachProviderModel(providerId, modelId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
+      detachProviderModel(workspaceId, providerId, modelId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
 
-export function useExportProviders() {
+export function useExportProviders(workspaceId: string) {
   return useMutation({
-    mutationFn: exportProviders,
+    mutationFn: () => exportProviders(workspaceId),
   });
 }
 
-export function useImportProviders() {
+export function useImportProviders(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: importProviders,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKey }),
+    mutationFn: (bundle: Parameters<typeof importProviders>[1]) =>
+      importProviders(workspaceId, bundle),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }

@@ -4,6 +4,7 @@ export const llmProvidersTable = sqliteTable(
   'llm_providers',
   {
     id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').notNull(),
     name: text('name').notNull(),
     driver: text('driver').notNull(),
     apiUrl: text('api_url'),
@@ -14,7 +15,10 @@ export const llmProvidersTable = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (table) => ({
-    nameUnique: uniqueIndex('llm_providers_name_unique').on(table.name),
+    workspaceNameUnique: uniqueIndex('llm_providers_workspace_id_name_unique').on(
+      table.workspaceId,
+      table.name,
+    ),
   }),
 );
 

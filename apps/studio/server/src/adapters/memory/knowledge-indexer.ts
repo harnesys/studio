@@ -49,9 +49,12 @@ export class KnowledgeIndexer {
     this.embeddings = embeddings;
   }
 
-  private resolveEmbeddings(settings: KnowledgeSettingsRecord): EmbeddingsPort | undefined {
+  private resolveEmbeddings(
+    workspaceId: string,
+    settings: KnowledgeSettingsRecord,
+  ): EmbeddingsPort | undefined {
     if (this.options.embeddingsDeps) {
-      return embeddingsForSettings(this.options.embeddingsDeps, settings);
+      return embeddingsForSettings(this.options.embeddingsDeps, settings, workspaceId);
     }
     return this.embeddings;
   }
@@ -215,7 +218,7 @@ export class KnowledgeIndexer {
     }
     const settings = this.repo.getSettingsOrDefault(workspaceId);
     const wantVector = settings.backend === 'vector';
-    const embeddings = this.resolveEmbeddings(settings);
+    const embeddings = this.resolveEmbeddings(workspaceId, settings);
     if (wantVector && !embeddings?.available()) {
       const message =
         'knowledge vector backend needs an embeddings model; use backend "fts" or configure embed model';
@@ -420,7 +423,7 @@ export class KnowledgeIndexer {
     }
     const settings = this.repo.getSettingsOrDefault(workspaceId);
     const wantVector = settings.backend === 'vector';
-    const embeddings = this.resolveEmbeddings(settings);
+    const embeddings = this.resolveEmbeddings(workspaceId, settings);
     if (wantVector && !embeddings?.available()) {
       trace('knowledge-indexer', 'skip incremental: embeddings unavailable', { workspaceId });
       job.pendingUris.length = 0;

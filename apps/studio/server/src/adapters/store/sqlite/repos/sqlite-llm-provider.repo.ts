@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type {
   LlmProvider,
   LlmProviderInsert,
@@ -13,20 +13,29 @@ import { type LlmProviderRow, llmProvidersTable } from '../schema';
 export class SqliteLlmProviderRepo implements LlmProviderRepository {
   constructor(private readonly db: StudioDb) {}
 
-  list(): LlmProvider[] {
-    return this.db.select().from(llmProvidersTable).all().map(toProvider);
+  list(workspaceId: string): LlmProvider[] {
+    return this.db
+      .select()
+      .from(llmProvidersTable)
+      .where(eq(llmProvidersTable.workspaceId, workspaceId))
+      .all()
+      .map(toProvider);
   }
 
-  findById(id: string): LlmProvider | undefined {
-    const row = this.db.select().from(llmProvidersTable).where(eq(llmProvidersTable.id, id)).get();
-    return row ? toProvider(row) : undefined;
-  }
-
-  findByName(name: string): LlmProvider | undefined {
+  findById(workspaceId: string, id: string): LlmProvider | undefined {
     const row = this.db
       .select()
       .from(llmProvidersTable)
-      .where(eq(llmProvidersTable.name, name))
+      .where(and(eq(llmProvidersTable.workspaceId, workspaceId), eq(llmProvidersTable.id, id)))
+      .get();
+    return row ? toProvider(row) : undefined;
+  }
+
+  findByName(workspaceId: string, name: string): LlmProvider | undefined {
+    const row = this.db
+      .select()
+      .from(llmProvidersTable)
+      .where(and(eq(llmProvidersTable.workspaceId, workspaceId), eq(llmProvidersTable.name, name)))
       .get();
     return row ? toProvider(row) : undefined;
   }
@@ -44,14 +53,14 @@ export class SqliteLlmProviderRepo implements LlmProviderRepository {
     }
   }
 
-  update(id: string, patch: LlmProviderPatch): LlmProvider {
+  update(workspaceId: string, id: string, patch: LlmProviderPatch): LlmProvider {
     try {
       const { headers, ...rest } = patch;
       const dbPatch = headers !== undefined ? { ...rest, headers: JSON.stringify(headers) } : rest;
       const row = this.db
         .update(llmProvidersTable)
         .set(dbPatch)
-        .where(eq(llmProvidersTable.id, id))
+        .where(and(eq(llmProvidersTable.workspaceId, workspaceId), eq(llmProvidersTable.id, id)))
         .returning()
         .get();
       if (!row) {
@@ -63,14 +72,18 @@ export class SqliteLlmProviderRepo implements LlmProviderRepository {
     }
   }
 
-  delete(id: string): void {
-    this.db.delete(llmProvidersTable).where(eq(llmProvidersTable.id, id)).run();
+  delete(workspaceId: string, id: string): void {
+    this.db
+      .delete(llmProvidersTable)
+      .where(and(eq(llmProvidersTable.workspaceId, workspaceId), eq(llmProvidersTable.id, id)))
+      .run();
   }
 }
 
 function toProvider(row: LlmProviderRow): LlmProvider {
   return {
     id: row.id,
+    workspaceId: row.workspaceId,
     name: row.name,
     driver: row.driver,
     apiUrl: row.apiUrl,

@@ -1,20 +1,21 @@
-import type { InterruptReason, JsonSchema, Node } from 'harnesys';
+import type { Node } from 'harnesys';
 
 import { Field, FieldLabel } from '@/shared/ui/field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
 
 import { ConcurrencyField, concurrencyString } from './agent-graph-concurrency-field';
+import {
+  INTERRUPT_REASONS,
+  inputAsText,
+  isInterruptReason,
+  parseInputField,
+  safeJson,
+  tryParseJsonSchema,
+  tryParseObject,
+  tryParseStringArray,
+} from './agent-graph-control-parse';
 import { GraphInput } from './agent-graph-input';
-
-const INTERRUPT_REASONS: InterruptReason[] = [
-  'human_review',
-  'policy',
-  'uncertain_effect',
-  'definition_migrated',
-  'work',
-  'wait',
-];
 
 type ControlNode = Extract<
   Node,
@@ -397,70 +398,4 @@ export function ControlNodeFields({
         </>
       );
   }
-}
-
-function safeJson(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return '';
-  }
-}
-
-function tryParseObject(raw: string): Record<string, unknown> | undefined {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    return undefined;
-  }
-  return undefined;
-}
-
-function tryParseStringArray(raw: string): string[] | undefined {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.every((item) => typeof item === 'string')) {
-      return parsed as string[];
-    }
-  } catch {
-    return undefined;
-  }
-  return undefined;
-}
-
-function tryParseJsonSchema(raw: string): JsonSchema | undefined {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as JsonSchema;
-    }
-  } catch {
-    return undefined;
-  }
-  return undefined;
-}
-
-function inputAsText(input: unknown): string {
-  if (typeof input === 'string') {
-    return input;
-  }
-  return safeJson(input);
-}
-
-function parseInputField(raw: string): string | Record<string, unknown> {
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-    const obj = tryParseObject(trimmed);
-    if (obj !== undefined) {
-      return obj;
-    }
-  }
-  return raw;
-}
-
-function isInterruptReason(value: string): value is InterruptReason {
-  return (INTERRUPT_REASONS as string[]).includes(value);
 }

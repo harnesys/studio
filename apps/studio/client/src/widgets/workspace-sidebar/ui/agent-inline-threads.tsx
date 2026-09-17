@@ -81,7 +81,7 @@ export function AgentInlineThreads({
   return (
     <div
       className={cn(
-        'flex flex-col gap-px pb-1 pl-2',
+        'mt-px flex flex-col gap-px pb-1 pl-2',
         'group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:pl-0',
       )}
       data-testid={`agent-threads-inline-${agent.id}`}

@@ -1,4 +1,5 @@
 import { trace } from '../lib/trace';
+import { getHostCredential } from './host-credential';
 
 export type SseFrame = {
   event: string;
@@ -43,30 +44,31 @@ export async function* readSse(response: Response): AsyncGenerator<SseFrame> {
   }
 }
 
-type EventSourceConnection = {
-  source: EventSource;
+type FetchSseConnection = {
   refs: number;
   listeners: Map<string, Set<(data: string) => void>>;
-  attached: Set<string>;
+  abort: AbortController;
 };
 
-const eventSources = new Map<string, EventSourceConnection>();
+const connections = new Map<string, FetchSseConnection>();
 
-/** Shared EventSource per URL. Last unsubscribe closes the socket. */
+/**
+ * Shared SSE per URL via fetch + Authorization Bearer (EventSource cannot set headers).
+ * Last unsubscribe aborts the request.
+ */
 export function watchEventSource(
   url: string,
   event: string,
   onData: (data: string) => void,
 ): () => void {
-  let conn = eventSources.get(url);
+  let conn = connections.get(url);
   if (!conn) {
-    conn = {
-      source: new EventSource(url),
-      refs: 0,
-      listeners: new Map(),
-      attached: new Set(),
-    };
-    eventSources.set(url, conn);
+    const abort = new AbortController();
+    conn = { refs: 0, listeners: new Map(), abort };
+    connections.set(url, conn);
+    void openSse(url, abort.signal).catch(() => {
+      connections.delete(url);
+    });
   }
   conn.refs += 1;
   let set = conn.listeners.get(event);
@@ -75,22 +77,8 @@ export function watchEventSource(
     conn.listeners.set(event, set);
   }
   set.add(onData);
-  if (!conn.attached.has(event)) {
-    conn.attached.add(event);
-    const name = event;
-    conn.source.addEventListener(name, (message: Event) => {
-      const current = eventSources.get(url);
-      if (!current) {
-        return;
-      }
-      const payload = (message as MessageEvent<string>).data;
-      for (const handler of current.listeners.get(name) ?? []) {
-        handler(payload);
-      }
-    });
-  }
   return () => {
-    const current = eventSources.get(url);
+    const current = connections.get(url);
     if (!current) {
       return;
     }
@@ -99,9 +87,31 @@ export function watchEventSource(
     if (current.refs > 0) {
       return;
     }
-    current.source.close();
-    eventSources.delete(url);
+    current.abort.abort();
+    connections.delete(url);
   };
+}
+
+async function openSse(url: string, signal: AbortSignal): Promise<void> {
+  const headers = new Headers();
+  const credential = getHostCredential();
+  if (credential) {
+    headers.set('Authorization', `Bearer ${credential}`);
+  }
+  const response = await fetch(url, { headers, signal });
+  if (!response.ok) {
+    trace('sse', `open failed ${response.status}`);
+    return;
+  }
+  for await (const frame of readSse(response)) {
+    const current = connections.get(url);
+    if (!current) {
+      return;
+    }
+    for (const handler of current.listeners.get(frame.event) ?? []) {
+      handler(frame.data);
+    }
+  }
 }
 
 function parseBlock(block: string): SseFrame | undefined {

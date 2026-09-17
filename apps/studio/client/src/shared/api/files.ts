@@ -5,6 +5,7 @@ import type {
 } from '@harnesys/studio-shared';
 
 import { ApiError, apiJson } from './client';
+import { getHostCredential, hostTokenQuery } from './host-credential';
 import { watchEventSource } from './sse';
 
 export function listWorkspaceFiles(workspaceId: string, subPath = '') {
@@ -37,11 +38,18 @@ export function moveWorkspaceFiles(workspaceId: string, items: WorkspaceMoveItem
 }
 
 export function workspaceFileContentUrl(workspaceId: string, path: string): string {
-  return `/api/workspaces/${workspaceId}/files/content?path=${encodeURIComponent(path)}`;
+  const token = hostTokenQuery();
+  const qs = `path=${encodeURIComponent(path)}${token ? `&${token}` : ''}`;
+  return `/api/workspaces/${workspaceId}/files/content?${qs}`;
 }
 
 export async function readWorkspaceFileText(workspaceId: string, path: string): Promise<string> {
-  const response = await fetch(workspaceFileContentUrl(workspaceId, path));
+  const headers = new Headers();
+  const credential = getHostCredential();
+  if (credential) {
+    headers.set('Authorization', `Bearer ${credential}`);
+  }
+  const response = await fetch(workspaceFileContentUrl(workspaceId, path), { headers });
   if (!response.ok) {
     let message = response.statusText || 'Request failed';
     try {

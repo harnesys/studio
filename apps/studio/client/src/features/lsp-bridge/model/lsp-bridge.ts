@@ -1,4 +1,7 @@
 import type * as monacoNs from 'monaco-editor';
+
+import { hostTokenQuery } from '@/shared/api/host-credential';
+
 import {
   applyBuiltinDiagnostics,
   applyMarkers,
@@ -64,8 +67,10 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
   const savedDiagnostics = captureBuiltinDiagnostics(monaco, languageId);
 
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const token = hostTokenQuery();
+  const tokenQs = token ? `&${token}` : '';
   const ws = new WebSocket(
-    `${proto}://${location.host}/api/lsp?workspace=${encodeURIComponent(workspaceId)}&path=${encodeURIComponent(path)}`,
+    `${proto}://${location.host}/api/lsp?workspace=${encodeURIComponent(workspaceId)}&path=${encodeURIComponent(path)}${tokenQs}`,
   );
 
   const send = (message: unknown) => {

@@ -19,6 +19,12 @@ export { catalogQuery, catalogQueryKey, getCatalog } from './catalog';
 export { ApiError, apiJson } from './client';
 export { watchDesk } from './desk';
 export {
+  ensureHostCredential,
+  getHostCredential,
+  getWindowHosts,
+  hostTokenQuery,
+} from './host-credential';
+export {
   agentPinsQuery,
   agentPinsQueryKey,
   agentSemanticQuery,

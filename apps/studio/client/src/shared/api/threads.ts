@@ -7,6 +7,7 @@ import type {
 } from '@harnesys/studio-shared';
 
 import { ApiError, apiJson } from './client';
+import { getHostCredential, hostTokenQuery } from './host-credential';
 
 export type CreateThreadInput = {
   title?: string;
@@ -33,7 +34,9 @@ export function createThreadRecord(body: CreateThreadInput) {
 }
 
 export function attachmentUrl(threadId: string, attachmentId: string): string {
-  return `/api/threads/${threadId}/attachments/${attachmentId}`;
+  const token = hostTokenQuery();
+  const base = `/api/threads/${threadId}/attachments/${attachmentId}`;
+  return token ? `${base}?${token}` : base;
 }
 
 export function uploadThreadAttachment(threadId: string, file: File): Promise<ThreadAttachment> {
@@ -113,9 +116,14 @@ export function retryRun(runId: string): Promise<RetryRunResponse> {
 }
 
 export async function compactThreadStream(id: string, signal?: AbortSignal): Promise<Response> {
+  const headers = new Headers({ Accept: 'text/event-stream' });
+  const credential = getHostCredential();
+  if (credential) {
+    headers.set('Authorization', `Bearer ${credential}`);
+  }
   const response = await fetch(`/api/threads/${id}/compact`, {
     method: 'POST',
-    headers: { Accept: 'text/event-stream' },
+    headers,
     signal,
   });
   if (!response.ok) {
@@ -139,9 +147,14 @@ export async function getRunEventsStream(
   signal?: AbortSignal,
 ): Promise<Response> {
   const url = `/api/runs/${runId}/events${fromSeq != null ? `?fromSeq=${fromSeq}` : ''}`;
+  const headers = new Headers({ Accept: 'text/event-stream' });
+  const credential = getHostCredential();
+  if (credential) {
+    headers.set('Authorization', `Bearer ${credential}`);
+  }
   const response = await fetch(url, {
     method: 'GET',
-    headers: { Accept: 'text/event-stream' },
+    headers,
     signal,
   });
   if (!response.ok) {

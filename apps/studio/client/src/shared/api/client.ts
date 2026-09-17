@@ -1,5 +1,7 @@
 import type { StudioErrorBody } from '@harnesys/studio-shared';
 
+import { getHostCredential } from './host-credential';
+
 export class ApiError extends Error {
   status: number;
   /** Parsed response body of the failed request (e.g. run-conflict 409 payloads). */
@@ -17,6 +19,10 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (init?.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
+  }
+  const credential = getHostCredential();
+  if (credential && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${credential}`);
   }
 
   const response = await fetch(path, { ...init, headers });

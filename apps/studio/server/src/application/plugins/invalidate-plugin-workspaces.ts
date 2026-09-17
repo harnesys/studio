@@ -1,5 +1,6 @@
 import type { StudioLspAdapter } from '../../adapters/lsp/studio-lsp.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
+import { logger } from '../../config/logger.ts';
 
 export type LspWorkspaceRef = {
   cwd: string;
@@ -19,6 +20,11 @@ export async function invalidatePluginWorkspaces(
       const ref = lspByWorkspace?.(workspaceId);
       if (ref) {
         await ref.lsp.invalidateCwd(ref.cwd);
+      } else {
+        logger.warn(
+          { scope: 'plugins' },
+          `LSP invalidation skipped for workspace ${workspaceId}: no resolver or unresolved ref`,
+        );
       }
     }),
   );

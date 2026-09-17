@@ -10,7 +10,6 @@ export const IDE_WORKSPACES_STORAGE_KEY = 'harnesys.ide-workspaces';
 export const EDITOR_LANGUAGES_STORAGE_KEY = 'harnesys.editor-languages';
 export const SIDEBAR_ACCORDION_STORAGE_KEY = 'harnesys.sidebar-accordion';
 export const WORKSPACE_TABS_STORAGE_KEY = 'harnesys.workspace-tabs';
-export const STUDIO_HOSTS_STORAGE_KEY = 'harnesys.studio-hosts';
 export const WORKSPACE_TAB_CAP = 4;
 export const AGENTS_DISPLAY_STORAGE_KEY = 'harnesys.agents-display';
 export const EXPLORER_SHOW_HIDDEN_STORAGE_KEY = 'harnesys.explorer-show-hidden';

@@ -11,14 +11,21 @@ export function getWindowHosts(): WindowHostRecord[] {
   return hosts;
 }
 
+export function setWindowHosts(next: WindowHostRecord[]): void {
+  hosts = next;
+  const local = next.find((host) => host.id === 'local') ?? next[0];
+  credential = local?.credential ?? credential;
+}
+
 /** Query param for WebSocket / <img src> (cannot set Authorization). */
-export function hostTokenQuery(): string {
-  return credential ? `token=${encodeURIComponent(credential)}` : '';
+export function hostTokenQuery(forCredential?: string | null): string {
+  const token = forCredential === undefined ? credential : forCredential;
+  return token ? `token=${encodeURIComponent(token)}` : '';
 }
 
 /** In-memory credential from loopback bootstrap. Not VITE_* env. */
 export async function ensureHostCredential(): Promise<string> {
-  if (credential) {
+  if (credential && hosts.length > 0) {
     return credential;
   }
   const response = await fetch('/api/window/bootstrap');
@@ -35,11 +42,17 @@ export async function ensureHostCredential(): Promise<string> {
     throw new Error(`host bootstrap ${response.status}: ${message}`);
   }
   const boot = (await response.json()) as WindowBootstrap;
-  const local = boot.hosts[0];
+  const local = boot.hosts.find((host) => host.id === 'local') ?? boot.hosts[0];
   if (!local?.credential) {
     throw new Error('bootstrap missing host credential');
   }
-  hosts = boot.hosts;
-  credential = local.credential;
-  return credential;
+  setWindowHosts(
+    boot.hosts.map((host) => ({
+      id: host.id,
+      name: host.name || (host.id === 'local' ? 'This machine' : host.id),
+      baseUrl: host.baseUrl,
+      credential: host.credential,
+    })),
+  );
+  return credential as string;
 }

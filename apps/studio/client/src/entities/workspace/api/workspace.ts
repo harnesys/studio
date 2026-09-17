@@ -23,7 +23,8 @@ export function usePickWorkspaceFolder() {
 export function useCreateWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createWorkspace,
+    mutationFn: (input: { path?: string; name?: string; hostId?: string }) =>
+      createWorkspace(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesQueryKey });
     },

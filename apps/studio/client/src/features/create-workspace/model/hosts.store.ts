@@ -1,16 +1,26 @@
+import type { PairingRedeemResponse, WindowHostRecord } from '@harnesys/studio-shared';
 import { create } from 'zustand';
-import { STUDIO_HOSTS_STORAGE_KEY } from '@/shared/config/constants';
+
+import { apiJson } from '@/shared/api/client';
+import { getWindowHosts, setWindowHosts } from '@/shared/api/host-credential';
+import {
+  getHostOnlineStatus,
+  type StudioHostOnlineStatus,
+  setHostOnlineStatus,
+  trimBaseUrl,
+} from '@/shared/api/host-router';
 
 export const LOCAL_HOST_ID = 'local';
 export const NEW_HOST_ID = '__new__';
 
-export type StudioHostStatus = 'online' | 'offline';
+export type StudioHostStatus = StudioHostOnlineStatus;
 
 export type StudioHost = {
   id: string;
   name: string;
   kind: 'local' | 'remote';
   address?: string;
+  baseUrl: string;
   status: StudioHostStatus;
 };
 
@@ -18,68 +28,115 @@ export const LOCAL_HOST: StudioHost = {
   id: LOCAL_HOST_ID,
   name: 'This machine',
   kind: 'local',
+  baseUrl: '',
   status: 'online',
 };
 
 type HostsState = {
   remotes: StudioHost[];
+  syncFromWindowHosts: () => void;
   pairHost: (input: { address: string; code: string }) => Promise<StudioHost>;
+  revokeHost: (hostId: string) => Promise<void>;
 };
 
-function loadRemotes(): StudioHost[] {
-  try {
-    const raw = localStorage.getItem(STUDIO_HOSTS_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const parsed = JSON.parse(raw) as { remotes?: StudioHost[] };
-    if (!Array.isArray(parsed.remotes)) {
-      return [];
-    }
-    return parsed.remotes.filter(
-      (item) => item && typeof item.id === 'string' && item.kind === 'remote',
-    );
-  } catch {
-    return [];
-  }
+function toStudioHost(record: WindowHostRecord): StudioHost {
+  const kind = record.id === LOCAL_HOST_ID ? 'local' : 'remote';
+  return {
+    id: record.id,
+    name: record.name || (kind === 'local' ? LOCAL_HOST.name : record.id),
+    kind,
+    address: kind === 'remote' ? record.baseUrl.replace(/^https?:\/\//, '') : undefined,
+    baseUrl: record.baseUrl,
+    status: getHostOnlineStatus(record.id),
+  };
 }
 
-function persist(remotes: StudioHost[]): void {
-  try {
-    localStorage.setItem(STUDIO_HOSTS_STORAGE_KEY, JSON.stringify({ remotes }));
-  } catch {}
+function remotesFromWindow(): StudioHost[] {
+  return getWindowHosts()
+    .filter((host) => host.id !== LOCAL_HOST_ID)
+    .map(toStudioHost);
 }
 
-function hostLabelFromAddress(address: string): string {
+function normalizePairAddress(address: string): string {
   const trimmed = address.trim();
-  const host = trimmed.split('/')[0]?.split(':')[0] ?? trimmed;
-  return host.length > 0 ? host : 'Remote host';
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimBaseUrl(trimmed);
+  }
+  return trimBaseUrl(`http://${trimmed}`);
+}
+
+async function persistHosts(hosts: WindowHostRecord[]): Promise<WindowHostRecord[]> {
+  const response = await apiJson<{ hosts: WindowHostRecord[] }>('/api/window/hosts', {
+    method: 'PUT',
+    body: JSON.stringify({ hosts }),
+    hostId: LOCAL_HOST_ID,
+  });
+  setWindowHosts(response.hosts);
+  return response.hosts;
 }
 
 export const useStudioHostsStore = create<HostsState>((set, get) => ({
-  remotes: loadRemotes(),
+  remotes: remotesFromWindow(),
+  syncFromWindowHosts: () => {
+    set({ remotes: remotesFromWindow() });
+  },
   pairHost: async ({ address, code }) => {
-    void code;
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 700);
+    const baseUrl = normalizePairAddress(address);
+    const redeem = await fetch(`${baseUrl}/api/host/pair/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
     });
-    const host: StudioHost = {
-      id: crypto.randomUUID(),
-      name: hostLabelFromAddress(address),
-      kind: 'remote',
-      address: address.trim(),
-      status: 'online',
+    if (!redeem.ok) {
+      let message = redeem.statusText || 'Pairing failed';
+      try {
+        const body = (await redeem.json()) as { error?: string };
+        if (body.error) {
+          message = body.error;
+        }
+      } catch {
+        // keep status text
+      }
+      throw new Error(message);
+    }
+    const payload = (await redeem.json()) as PairingRedeemResponse;
+    const record: WindowHostRecord = {
+      id: payload.hostId,
+      name: payload.name || hostLabelFromAddress(address),
+      baseUrl: normalizePairAddress(payload.listen ? `http://${payload.listen}` : baseUrl),
+      credential: payload.credential,
     };
-    const remotes = [...get().remotes, host];
-    persist(remotes);
-    set({ remotes });
-    return host;
+    // Prefer the address the user typed when listen is loopback-only on remote.
+    if (!/^https?:\/\/(127\.0\.0\.1|localhost)\b/i.test(baseUrl)) {
+      record.baseUrl = baseUrl;
+    }
+    const existing = getWindowHosts().filter((host) => host.id !== record.id);
+    await persistHosts([...existing, record]);
+    setHostOnlineStatus(record.id, 'online');
+    get().syncFromWindowHosts();
+    return toStudioHost(record);
+  },
+  revokeHost: async (hostId) => {
+    if (hostId === LOCAL_HOST_ID) {
+      throw new Error('Cannot revoke the local host');
+    }
+    const next = getWindowHosts().filter((host) => host.id !== hostId);
+    await persistHosts(next);
+    get().syncFromWindowHosts();
   },
 }));
 
+export function listStudioHosts(): StudioHost[] {
+  const hosts = getWindowHosts();
+  if (hosts.length === 0) {
+    return [{ ...LOCAL_HOST, status: getHostOnlineStatus(LOCAL_HOST_ID) }];
+  }
+  return hosts.map(toStudioHost);
+}
+
 export function hostStatusLabel(host: StudioHost): string {
   if (host.kind === 'local') {
-    return 'local';
+    return host.status === 'offline' ? 'offline' : 'local';
   }
   return host.status;
 }
@@ -91,4 +148,14 @@ export function folderNameFromPath(path: string): string {
   }
   const parts = trimmed.split(/[\\/]/);
   return parts[parts.length - 1] ?? '';
+}
+
+function hostLabelFromAddress(address: string): string {
+  const trimmed = address.trim();
+  const host =
+    trimmed
+      .replace(/^https?:\/\//i, '')
+      .split('/')[0]
+      ?.split(':')[0] ?? trimmed;
+  return host.length > 0 ? host : 'Remote host';
 }

@@ -11,6 +11,8 @@ import type {
 import { queryOptions } from '@tanstack/react-query';
 
 import { apiJson } from './client';
+import { getWindowHosts } from './host-credential';
+import { rememberNodeRoute, setHostOnlineStatus, trimBaseUrl, urlForHost } from './host-router';
 
 export type {
   CreateWorkspaceSkillRequest,
@@ -52,18 +54,64 @@ export type UpsertWorkspaceMcpServerResponse = {
 
 export const workspacesQueryKey = ['workspaces'] as const;
 
-export function listWorkspaces() {
-  return apiJson<WorkspaceRecord[]>('/api/workspaces');
+/** Fan-out across window.hosts. Offline host does not clear other hosts' rows. */
+export async function listWorkspaces(): Promise<WorkspaceRecord[]> {
+  const hosts = getWindowHosts();
+  if (hosts.length === 0) {
+    return apiJson<WorkspaceRecord[]>('/api/workspaces');
+  }
+
+  const settled = await Promise.all(
+    hosts.map(async (host) => {
+      const headers = new Headers({ Authorization: `Bearer ${host.credential}` });
+      try {
+        const response = await fetch(urlForHost(host, '/api/workspaces'), { headers });
+        if (!response.ok) {
+          setHostOnlineStatus(host.id, 'offline');
+          return [] as WorkspaceRecord[];
+        }
+        setHostOnlineStatus(host.id, 'online');
+        const rows = (await response.json()) as WorkspaceRecord[];
+        for (const row of rows) {
+          rememberNodeRoute({
+            nodeId: row.id,
+            hostId: host.id,
+            baseUrl: trimBaseUrl(host.baseUrl),
+            credential: host.credential,
+          });
+        }
+        return rows;
+      } catch {
+        setHostOnlineStatus(host.id, 'offline');
+        return [] as WorkspaceRecord[];
+      }
+    }),
+  );
+
+  return settled.flat();
 }
 
 export function pickWorkspaceFolder() {
   return apiJson<{ path: string } | undefined>('/api/workspaces/pick', { method: 'POST' });
 }
 
-export function createWorkspace(input: { path?: string; name?: string }) {
+export function createWorkspace(input: { path?: string; name?: string; hostId?: string }) {
+  const { hostId, ...body } = input;
   return apiJson<WorkspaceRecord>('/api/workspaces', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
+    hostId,
+  }).then((created) => {
+    const host = getWindowHosts().find((item) => item.id === (hostId ?? 'local'));
+    if (host) {
+      rememberNodeRoute({
+        nodeId: created.id,
+        hostId: host.id,
+        baseUrl: trimBaseUrl(host.baseUrl),
+        credential: host.credential,
+      });
+    }
+    return created;
   });
 }
 

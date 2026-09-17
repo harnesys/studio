@@ -33,9 +33,13 @@ export function WorkspaceDetailsDialog({
 
   const trimmedName = name.trim();
   const trimmedPath = path.trim();
-  const invalid = editing
-    ? trimmedName.length === 0 || trimmedPath.length === 0
-    : trimmedName.length === 0 && trimmedPath.length === 0;
+  const remoteHost = !editing && hostId !== LOCAL_HOST_ID;
+  let invalid = false;
+  if (editing || remoteHost) {
+    invalid = trimmedName.length === 0 || trimmedPath.length === 0;
+  } else {
+    invalid = trimmedName.length === 0 && trimmedPath.length === 0;
+  }
   const busy = create.isPending || update.isPending || pick.isPending;
 
   const applyPath = (next: string) => {
@@ -75,7 +79,7 @@ export function WorkspaceDetailsDialog({
           Cancel
         </Button>
         <Button
-          disabled={invalid || busy || (!editing && hostId !== LOCAL_HOST_ID)}
+          disabled={invalid || busy}
           onClick={() => {
             if (editing) {
               if (!workspace) {
@@ -94,6 +98,7 @@ export function WorkspaceDetailsDialog({
               .mutateAsync({
                 ...(trimmedPath ? { path: trimmedPath } : {}),
                 ...(trimmedName ? { name: trimmedName } : {}),
+                hostId,
               })
               .then((created) => onResolve?.(created));
           }}

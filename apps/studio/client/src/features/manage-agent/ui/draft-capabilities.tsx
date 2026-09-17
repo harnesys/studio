@@ -44,15 +44,13 @@ export function DraftCapabilities({
     ...workspaceCapabilitiesQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
-  const pluginsListQuery = useQuery(pluginsQuery());
+  const pluginsListQuery = useQuery(pluginsQuery(workspaceId));
   const explainQuery = useQuery(agentCapabilitiesQuery(agentId, workspaceId));
   const view = explainQuery.data;
   const catalog = (packsQuery.data?.capabilities ?? [])
     .filter((pack) => !pack.name.endsWith('-memory'))
     .filter((pack) => !(isDelegate && pack.name === 'agents'));
-  const plugins = (pluginsListQuery.data ?? []).filter((item) =>
-    item.plugin.enabledWorkspaceIds.includes(workspaceId),
-  );
+  const plugins = pluginsListQuery.data ?? [];
 
   function togglePlugin(name: string, enable: boolean) {
     const next: Record<string, boolean> = {};

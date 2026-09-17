@@ -43,7 +43,7 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
   ) {}
 
   async execute(request: SetPluginOptionRequest): Promise<SetPluginOptionResponse> {
-    const record = this.plugins.findByName(request.name);
+    const record = this.plugins.findByName(request.workspaceId, request.name);
     if (!record) {
       throw new NotFoundError('plugin not found');
     }
@@ -62,11 +62,12 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
       return await this.saveSensitive(record, request);
     }
     const saved = this.plugins.setOption(
+      request.workspaceId,
       request.name,
       request.key,
       coerceOptionValue(spec, request.value),
     );
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
     return { plugin: saved, diagnostics: [] };
   }
 
@@ -103,7 +104,7 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
         ],
       };
     }
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, record.enabledWorkspaceIds);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, [record.workspaceId]);
     return { plugin: record, diagnostics: [] };
   }
 }

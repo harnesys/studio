@@ -8,6 +8,7 @@ const MASKED_OPTION = '••••••••';
 
 export function toPluginSummary(record: PluginInstallRecord, ir: PluginIr): PluginSummary {
   const summary: PluginSummary = {
+    workspaceId: record.workspaceId,
     name: record.name,
     source: record.source,
     revision: record.revision,
@@ -17,7 +18,6 @@ export function toPluginSummary(record: PluginInstallRecord, ir: PluginIr): Plug
     grants: record.grants,
     options: maskedOptions(record, ir),
     components: ir.components.map(toComponentSummary),
-    enabledWorkspaceIds: record.enabledWorkspaceIds,
     installedAt: record.installedAt,
     updatedAt: record.updatedAt,
     skillCount: countKind(ir, 'skill'),

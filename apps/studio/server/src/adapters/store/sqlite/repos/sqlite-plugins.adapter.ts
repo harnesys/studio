@@ -21,20 +21,41 @@ import {
 export class SqlitePluginsAdapter implements PluginRepository {
   constructor(private readonly db: StudioDb) {}
 
-  list(): PluginInstallRecord[] {
+  list(workspaceId: string): PluginInstallRecord[] {
+    return this.db
+      .select()
+      .from(pluginsTable)
+      .where(eq(pluginsTable.workspaceId, workspaceId))
+      .orderBy(pluginsTable.name)
+      .all()
+      .map(toRecord);
+  }
+
+  listAll(): PluginInstallRecord[] {
     return this.db.select().from(pluginsTable).orderBy(pluginsTable.name).all().map(toRecord);
   }
 
-  findByName(name: PluginName): PluginInstallRecord | undefined {
+  findByName(workspaceId: string, name: PluginName): PluginInstallRecord | undefined {
+    const row = this.db
+      .select()
+      .from(pluginsTable)
+      .where(and(eq(pluginsTable.workspaceId, workspaceId), eq(pluginsTable.name, name)))
+      .get();
+    return row ? toRecord(row) : undefined;
+  }
+
+  findByNameAny(name: PluginName): PluginInstallRecord | undefined {
     const row = this.db.select().from(pluginsTable).where(eq(pluginsTable.name, name)).get();
     return row ? toRecord(row) : undefined;
   }
 
   upsert(rec: PluginInstallRecord): PluginInstallRecord {
     try {
+      const id = pluginRowId(rec.workspaceId, rec.name);
       const values = {
         ...toRow(rec),
-        id: rec.name,
+        id,
+        workspaceId: rec.workspaceId,
         name: rec.name,
         installedAt: rec.installedAt,
       };
@@ -53,10 +74,29 @@ export class SqlitePluginsAdapter implements PluginRepository {
     }
   }
 
-  delete(name: PluginName): void {
-    this.db.delete(pluginsTable).where(eq(pluginsTable.name, name)).run();
-    this.db.delete(pluginApprovalsTable).where(eq(pluginApprovalsTable.pluginName, name)).run();
-    this.db.delete(pluginServerStateTable).where(eq(pluginServerStateTable.pluginName, name)).run();
+  delete(workspaceId: string, name: PluginName): void {
+    this.db
+      .delete(pluginsTable)
+      .where(and(eq(pluginsTable.workspaceId, workspaceId), eq(pluginsTable.name, name)))
+      .run();
+    this.db
+      .delete(pluginApprovalsTable)
+      .where(
+        and(
+          eq(pluginApprovalsTable.workspaceId, workspaceId),
+          eq(pluginApprovalsTable.pluginName, name),
+        ),
+      )
+      .run();
+    this.db
+      .delete(pluginServerStateTable)
+      .where(
+        and(
+          eq(pluginServerStateTable.pluginName, name),
+          eq(pluginServerStateTable.workspaceId, workspaceId),
+        ),
+      )
+      .run();
   }
 
   setServerDisabled(
@@ -117,7 +157,7 @@ export class SqlitePluginsAdapter implements PluginRepository {
   }
 
   setGrants(workspaceId: string, name: PluginName, classes: GrantClass[]): PluginInstallRecord {
-    const current = this.findByName(name);
+    const current = this.findByName(workspaceId, name);
     if (!current) {
       throw new NotFoundError('plugin not found');
     }
@@ -125,56 +165,52 @@ export class SqlitePluginsAdapter implements PluginRepository {
     for (const grantClass of classes) {
       grants[grantClass] = true;
     }
-    const next: Record<string, PluginGrants> = { ...current.grants, [workspaceId]: grants };
-    return this.updateRow(name, { grants: JSON.stringify(next) });
+    return this.updateRow(workspaceId, name, { grants: JSON.stringify(grants) });
   }
 
-  setOption(name: PluginName, key: string, value: PluginOptionValue): PluginInstallRecord {
-    const current = this.findByName(name);
+  setOption(
+    workspaceId: string,
+    name: PluginName,
+    key: string,
+    value: PluginOptionValue,
+  ): PluginInstallRecord {
+    const current = this.findByName(workspaceId, name);
     if (!current) {
       throw new NotFoundError('plugin not found');
     }
     const options: Record<string, PluginOptionValue> = { ...current.options, [key]: value };
-    return this.updateRow(name, { options: JSON.stringify(options) });
+    return this.updateRow(workspaceId, name, { options: JSON.stringify(options) });
   }
 
-  approveServer(name: PluginName, serverId: string): void {
+  approveServer(workspaceId: string, name: PluginName, serverId: string): void {
     this.db
       .insert(pluginApprovalsTable)
-      .values({ pluginName: name, serverId, approvedAt: new Date().toISOString() })
+      .values({
+        workspaceId,
+        pluginName: name,
+        serverId,
+        approvedAt: new Date().toISOString(),
+      })
       .onConflictDoNothing()
       .run();
   }
 
-  approvals(name: PluginName): string[] {
+  approvals(workspaceId: string, name: PluginName): string[] {
     return this.db
       .select({ serverId: pluginApprovalsTable.serverId })
       .from(pluginApprovalsTable)
-      .where(eq(pluginApprovalsTable.pluginName, name))
+      .where(
+        and(
+          eq(pluginApprovalsTable.workspaceId, workspaceId),
+          eq(pluginApprovalsTable.pluginName, name),
+        ),
+      )
       .all()
       .map((row) => row.serverId);
   }
 
-  setWorkspaceEnabled(
-    name: PluginName,
-    workspaceId: string,
-    enabled: boolean,
-  ): PluginInstallRecord {
-    const current = this.findByName(name);
-    if (!current) {
-      throw new NotFoundError('plugin not found');
-    }
-    const enabledWorkspaceIds = nextEnabledWorkspaceIds(
-      current.enabledWorkspaceIds,
-      workspaceId,
-      enabled,
-    );
-    return this.updateRow(name, {
-      enabledWorkspaceIds: JSON.stringify(enabledWorkspaceIds),
-    });
-  }
-
   private updateRow(
+    workspaceId: string,
     name: PluginName,
     patch: Partial<typeof pluginsTable.$inferInsert>,
   ): PluginInstallRecord {
@@ -182,7 +218,7 @@ export class SqlitePluginsAdapter implements PluginRepository {
       const row = this.db
         .update(pluginsTable)
         .set({ ...patch, updatedAt: new Date().toISOString() })
-        .where(eq(pluginsTable.name, name))
+        .where(and(eq(pluginsTable.workspaceId, workspaceId), eq(pluginsTable.name, name)))
         .returning()
         .get();
       if (!row) {
@@ -195,11 +231,8 @@ export class SqlitePluginsAdapter implements PluginRepository {
   }
 }
 
-function nextEnabledWorkspaceIds(ids: string[], workspaceId: string, enabled: boolean): string[] {
-  if (enabled) {
-    return ids.includes(workspaceId) ? ids : [...ids, workspaceId];
-  }
-  return ids.filter((id) => id !== workspaceId);
+export function pluginRowId(workspaceId: string, name: string): string {
+  return `${workspaceId}::${name}`;
 }
 
 function toRow(rec: PluginInstallRecord) {
@@ -211,7 +244,6 @@ function toRow(rec: PluginInstallRecord) {
     format: rec.format,
     grants: JSON.stringify(rec.grants),
     options: JSON.stringify(rec.options),
-    enabledWorkspaceIds: JSON.stringify(rec.enabledWorkspaceIds),
     registryId: rec.registryId ?? null,
     catalogPluginName: rec.catalogPluginName ?? null,
     updatedAt: rec.updatedAt,
@@ -239,6 +271,7 @@ function parseFormat(raw: string | null): PluginInstallFormat {
 
 function toRecord(row: PluginRow): PluginInstallRecord {
   const record: PluginInstallRecord = {
+    workspaceId: row.workspaceId,
     name: row.name,
     source: row.source,
     revision: row.revision,
@@ -247,7 +280,6 @@ function toRecord(row: PluginRow): PluginInstallRecord {
     format: parseFormat(row.format),
     grants: parseGrants(row.grants),
     options: parseOptions(row.options),
-    enabledWorkspaceIds: parseEnabledWorkspaceIds(row.enabledWorkspaceIds),
     installedAt: row.installedAt,
     updatedAt: row.updatedAt,
   };
@@ -260,17 +292,13 @@ function toRecord(row: PluginRow): PluginInstallRecord {
   return record;
 }
 
-function parseGrants(raw: string): Record<string, PluginGrants> {
+function parseGrants(raw: string): PluginGrants {
   const parsed = parseJsonMap(raw);
-  const grants: Record<string, PluginGrants> = {};
-  for (const [workspaceId, value] of Object.entries(parsed)) {
-    const classes: PluginGrants = {};
-    for (const [grantClass, enabled] of Object.entries(toMap(value))) {
-      if (typeof enabled === 'boolean') {
-        classes[grantClass as GrantClass] = enabled;
-      }
+  const grants: PluginGrants = {};
+  for (const [grantClass, enabled] of Object.entries(parsed)) {
+    if (typeof enabled === 'boolean') {
+      grants[grantClass as GrantClass] = enabled;
     }
-    grants[workspaceId] = classes;
   }
   return grants;
 }
@@ -284,16 +312,4 @@ function parseOptions(raw: string): Record<string, PluginOptionValue> {
     }
   }
   return options;
-}
-
-function parseEnabledWorkspaceIds(raw: string): string[] {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.filter((item): item is string => typeof item === 'string');
-  } catch {
-    return [];
-  }
 }

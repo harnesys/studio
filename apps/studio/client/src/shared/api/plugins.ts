@@ -1,6 +1,5 @@
 import type {
   ApprovePluginServerRequest,
-  EnableWorkspacePluginRequest,
   InstallPluginRequest,
   PluginDiagnostic,
   PluginListItem,
@@ -17,7 +16,6 @@ import { apiJson } from './client';
 
 export type {
   ApprovePluginServerRequest,
-  EnableWorkspacePluginRequest,
   InstallPluginRequest,
   PluginDiagnostic,
   PluginListItem,
@@ -29,73 +27,39 @@ export type {
   SetPluginOptionRequest,
 };
 
-export type EnableWorkspacePluginResponse = {
-  plugin: PluginSummary;
-};
-
 export const pluginsQueryKey = ['plugins'] as const;
 
-export function listPlugins(workspaceId?: string) {
-  const suffix = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : '';
-  return apiJson<PluginListItem[]>(`/api/plugins${suffix}`);
+export function pluginsQueryKeyFor(workspaceId: string) {
+  return [...pluginsQueryKey, workspaceId] as const;
 }
 
-export function pluginsQuery(workspaceId?: string) {
+function pluginsBase(workspaceId: string) {
+  return `/api/workspaces/${encodeURIComponent(workspaceId)}/plugins`;
+}
+
+export function listPlugins(workspaceId: string) {
+  return apiJson<PluginListItem[]>(pluginsBase(workspaceId));
+}
+
+export function pluginsQuery(workspaceId: string) {
   return queryOptions({
-    queryKey: workspaceId ? [...pluginsQueryKey, workspaceId] : pluginsQueryKey,
+    queryKey: pluginsQueryKeyFor(workspaceId),
     queryFn: () => listPlugins(workspaceId),
+    enabled: Boolean(workspaceId),
     staleTime: 20_000,
   });
 }
 
-export function installPlugin(body: InstallPluginRequest) {
-  return apiJson<PluginMutationResponse>('/api/plugins/install', {
+export function installPlugin(workspaceId: string, body: InstallPluginRequest) {
+  return apiJson<PluginMutationResponse>(`${pluginsBase(workspaceId)}/install`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
 
-export function updatePlugin(name: string, body: { ref?: string } = {}) {
-  return apiJson<PluginMutationResponse>(`/api/plugins/${encodeURIComponent(name)}/update`, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export function setPluginGrants(workspaceId: string, name: string, body: SetPluginGrantsRequest) {
-  return apiJson<{ plugin: PluginRecord }>(
-    `/api/workspaces/${workspaceId}/plugins/${encodeURIComponent(name)}/grants`,
-    {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    },
-  );
-}
-
-export function approvePluginServer(name: string, body: ApprovePluginServerRequest) {
-  return apiJson<{ plugin: PluginRecord }>(`/api/plugins/${encodeURIComponent(name)}/approvals`, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export function setPluginOption(workspaceId: string, name: string, body: SetPluginOptionRequest) {
-  return apiJson<{ plugin: PluginRecord; diagnostics: PluginDiagnostic[] }>(
-    `/api/workspaces/${workspaceId}/plugins/${encodeURIComponent(name)}/options`,
-    {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    },
-  );
-}
-
-export function enableWorkspacePlugin(
-  workspaceId: string,
-  name: string,
-  body: EnableWorkspacePluginRequest,
-) {
-  return apiJson<EnableWorkspacePluginResponse>(
-    `/api/workspaces/${workspaceId}/plugins/${encodeURIComponent(name)}/enable`,
+export function updatePlugin(workspaceId: string, name: string, body: { ref?: string } = {}) {
+  return apiJson<PluginMutationResponse>(
+    `${pluginsBase(workspaceId)}/${encodeURIComponent(name)}/update`,
     {
       method: 'POST',
       body: JSON.stringify(body),
@@ -103,9 +67,43 @@ export function enableWorkspacePlugin(
   );
 }
 
-export function removePlugin(name: string, body: RemovePluginRequest = {}) {
+export function setPluginGrants(workspaceId: string, name: string, body: SetPluginGrantsRequest) {
+  return apiJson<{ plugin: PluginRecord }>(
+    `${pluginsBase(workspaceId)}/${encodeURIComponent(name)}/grants`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function approvePluginServer(
+  workspaceId: string,
+  name: string,
+  body: ApprovePluginServerRequest,
+) {
+  return apiJson<{ plugin: PluginRecord }>(
+    `${pluginsBase(workspaceId)}/${encodeURIComponent(name)}/approvals`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function setPluginOption(workspaceId: string, name: string, body: SetPluginOptionRequest) {
+  return apiJson<{ plugin: PluginRecord; diagnostics: PluginDiagnostic[] }>(
+    `${pluginsBase(workspaceId)}/${encodeURIComponent(name)}/options`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function removePlugin(workspaceId: string, name: string, body: RemovePluginRequest = {}) {
   const query = body.deleteData ? '?deleteData=true' : '';
-  return apiJson<void>(`/api/plugins/${encodeURIComponent(name)}${query}`, {
+  return apiJson<void>(`${pluginsBase(workspaceId)}/${encodeURIComponent(name)}${query}`, {
     method: 'DELETE',
     ...(body.deleteData !== undefined ? { body: JSON.stringify(body) } : {}),
   });

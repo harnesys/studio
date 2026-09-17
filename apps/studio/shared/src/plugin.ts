@@ -29,22 +29,19 @@ export type ComponentOrigin =
 
 export type PluginGrantSelection = Partial<Record<GrantClass, boolean>>;
 
-/** Granted classes per workspace id, as stored on the plugin record. */
-export type PluginGrantsMap = Record<string, PluginGrantSelection>;
-
 export type PluginOptionValue = string | number | boolean;
 
 export type PluginRecord = {
+  workspaceId: string;
   name: PluginName;
   source: string;
   revision: string;
   path: string;
   dataPath: string;
   format: PluginSourceFormat | 'unknown';
-  grants: PluginGrantsMap;
+  grants: PluginGrantSelection;
   /** Sensitive userConfig values never land here (SecretStore); masked as `••••••••`. */
   options: Record<string, PluginOptionValue>;
-  enabledWorkspaceIds: string[];
   registryId?: string;
   catalogPluginName?: string;
   installedAt: string;
@@ -141,10 +138,6 @@ export type PluginCatalogEntry = {
   installSource?: CatalogInstallSource;
   format?: PluginSourceFormat | 'unknown';
   inertComponents?: PluginKind[];
-};
-
-export type EnableWorkspacePluginRequest = {
-  enabled: boolean;
 };
 
 export type RemovePluginRequest = {

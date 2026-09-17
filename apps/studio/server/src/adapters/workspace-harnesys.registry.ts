@@ -202,9 +202,8 @@ export class WorkspaceHarnesysRegistry {
     workspaceId: string,
   ): LoadedWorkspacePlugin {
     const repo = this.repos.plugins;
-    const grants = record.grants[workspaceId] ?? {};
-    const approved = new Set(repo?.approvals(record.name) ?? []);
-    return { record, ir: applyGrantGating(raw, grants, approved) };
+    const approved = new Set(repo?.approvals(workspaceId, record.name) ?? []);
+    return { record, ir: applyGrantGating(raw, record.grants, approved) };
   }
 
   private async create(workspace: Workspace): Promise<RuntimeHandle> {

@@ -62,7 +62,7 @@ export function resolvePluginDependencies(
       diagnostics.push(unsatisfiedDiagnostic(dep, 'not found in plugin catalogs'));
       continue;
     }
-    const installed = plugins.findByName(dep.name);
+    const installed = plugins.findByName(record.workspaceId, dep.name);
     const installedVersion = installed ? readPluginManifestVersion(installed.path) : undefined;
     if (!rangeSatisfied(dep.version, [installedVersion, entry.version])) {
       diagnostics.push(unsatisfiedDiagnostic(dep, `no version satisfies "${dep.version}"`));
@@ -80,10 +80,14 @@ export function resolvePluginDependencies(
   return Promise.resolve({ dependencies, diagnostics });
 }
 
-/** Имена установленных плагинов, чей манифест объявляет зависимость от `name`. */
-export function findDependantNames(plugins: PluginRepository, name: PluginName): PluginName[] {
+/** Имена установленных на ноде плагинов, чей манифест объявляет зависимость от `name`. */
+export function findDependantNames(
+  plugins: PluginRepository,
+  workspaceId: string,
+  name: PluginName,
+): PluginName[] {
   return plugins
-    .list()
+    .list(workspaceId)
     .filter((record) => record.name !== name)
     .filter((record) =>
       manifestDependencies(record.path, record.format).some((dep) => dep.name === name),

@@ -1,6 +1,5 @@
 import type { Hono } from 'hono';
 import type { ApproveServerInput } from '../../../application/plugins/approve-server.use-case.ts';
-import type { EnableWorkspacePluginInput } from '../../../application/plugins/enable-workspace-plugin.use-case.ts';
 import type { InstallPluginInput } from '../../../application/plugins/install-plugin.use-case.ts';
 import type { ListPluginsInput } from '../../../application/plugins/list-plugins.use-case.ts';
 import type { RemovePluginInput } from '../../../application/plugins/remove-plugin.use-case.ts';
@@ -9,7 +8,6 @@ import type { SetPluginOptionInput } from '../../../application/plugins/set-plug
 import type { UpdatePluginInput } from '../../../application/plugins/update-plugin.use-case.ts';
 import {
   approveServerBody,
-  enableWorkspacePluginBody,
   installPluginBody,
   removePluginBody,
   updatePluginBody,
@@ -24,7 +22,6 @@ export type PluginsControllerDeps = {
   setGrants: SetGrantsInput;
   approveServer: ApproveServerInput;
   setPluginOption: SetPluginOptionInput;
-  enableWorkspacePlugin: EnableWorkspacePluginInput;
   removePlugin: RemovePluginInput;
 };
 
@@ -32,14 +29,18 @@ export class PluginsController {
   constructor(private readonly deps: PluginsControllerDeps) {}
 
   register(app: Hono): void {
-    app.get('/api/plugins', async (c) => {
-      const workspaceId = c.req.query('workspaceId') || undefined;
-      return c.json(await this.deps.listPlugins.execute(workspaceId ? { workspaceId } : undefined));
+    const base = '/api/workspaces/:workspaceId/plugins';
+
+    app.get(base, async (c) => {
+      return c.json(
+        await this.deps.listPlugins.execute({ workspaceId: c.req.param('workspaceId') }),
+      );
     });
 
-    app.post('/api/plugins/install', async (c) => {
+    app.post(`${base}/install`, async (c) => {
       const body = installPluginBody.parse(await c.req.json());
       const result = await this.deps.installPlugin.execute({
+        workspaceId: c.req.param('workspaceId'),
         ...(body.source !== undefined ? { source: body.source } : {}),
         ...(body.path !== undefined ? { path: body.path } : {}),
         ...(body.ref !== undefined ? { ref: body.ref } : {}),
@@ -52,17 +53,18 @@ export class PluginsController {
       return c.json(result, 201);
     });
 
-    app.post('/api/plugins/:name/update', async (c) => {
+    app.post(`${base}/:name/update`, async (c) => {
       const raw = await c.req.json().catch(() => undefined);
       const body = updatePluginBody.parse(raw ?? {});
       const result = await this.deps.updatePlugin.execute({
+        workspaceId: c.req.param('workspaceId'),
         name: c.req.param('name'),
         ...(body.ref !== undefined ? { ref: body.ref } : {}),
       });
       return c.json(result);
     });
 
-    app.put('/api/workspaces/:workspaceId/plugins/:name/grants', async (c) => {
+    app.put(`${base}/:name/grants`, async (c) => {
       const body = setGrantsBody.parse(await c.req.json());
       const plugin = await this.deps.setGrants.execute({
         workspaceId: c.req.param('workspaceId'),
@@ -72,16 +74,17 @@ export class PluginsController {
       return c.json({ plugin });
     });
 
-    app.post('/api/plugins/:name/approvals', async (c) => {
+    app.post(`${base}/:name/approvals`, async (c) => {
       const body = approveServerBody.parse(await c.req.json());
       const plugin = await this.deps.approveServer.execute({
+        workspaceId: c.req.param('workspaceId'),
         name: c.req.param('name'),
         serverId: body.serverId,
       });
       return c.json({ plugin }, 201);
     });
 
-    app.put('/api/workspaces/:workspaceId/plugins/:name/options', async (c) => {
+    app.put(`${base}/:name/options`, async (c) => {
       const body = setPluginOptionBody.parse(await c.req.json());
       const result = await this.deps.setPluginOption.execute({
         workspaceId: c.req.param('workspaceId'),
@@ -92,22 +95,13 @@ export class PluginsController {
       return c.json(result);
     });
 
-    app.post('/api/workspaces/:workspaceId/plugins/:name/enable', async (c) => {
-      const body = enableWorkspacePluginBody.parse(await c.req.json());
-      const plugin = await this.deps.enableWorkspacePlugin.execute({
-        workspaceId: c.req.param('workspaceId'),
-        name: c.req.param('name'),
-        enabled: body.enabled,
-      });
-      return c.json({ plugin });
-    });
-
-    app.delete('/api/plugins/:name', async (c) => {
+    app.delete(`${base}/:name`, async (c) => {
       const queryDeleteData = c.req.query('deleteData');
       const raw = await c.req.json().catch(() => undefined);
       const body = removePluginBody.parse(raw ?? {});
       const deleteData = body.deleteData ?? (queryDeleteData === 'true' || queryDeleteData === '1');
       await this.deps.removePlugin.execute({
+        workspaceId: c.req.param('workspaceId'),
         name: c.req.param('name'),
         ...(deleteData ? { deleteData: true } : {}),
       });

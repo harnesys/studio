@@ -5,6 +5,7 @@ export const pluginsTable = sqliteTable(
   'plugins',
   {
     id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').notNull(),
     name: text('name').notNull(),
     source: text('source').notNull(),
     revision: text('revision').notNull(),
@@ -14,7 +15,6 @@ export const pluginsTable = sqliteTable(
     irSummary: text('ir_summary'),
     grants: text('grants').notNull().default('{}'),
     options: text('options').notNull().default('{}'),
-    enabledWorkspaceIds: text('enabled_workspace_ids').notNull().default('[]'),
     registryId: text('registry_id').references(() => pluginRegistriesTable.id, {
       onDelete: 'set null',
     }),
@@ -23,7 +23,10 @@ export const pluginsTable = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (table) => ({
-    nameUnique: uniqueIndex('plugins_name_unique').on(table.name),
+    workspaceNameUnique: uniqueIndex('plugins_workspace_id_name_unique').on(
+      table.workspaceId,
+      table.name,
+    ),
   }),
 );
 

@@ -20,6 +20,7 @@ import { findCatalogEntryWithRenames } from './materialize-catalog-plugin.ts';
 import { resolvePluginDependencies } from './resolve-dependencies.ts';
 
 export type InstallPluginRequest = {
+  workspaceId: string;
   source?: string;
   path?: string;
   ref?: string;
@@ -48,18 +49,19 @@ export class InstallPluginUseCase implements InstallPluginInput {
 
   async execute(request: InstallPluginRequest): Promise<InstallPluginResponse> {
     const result = await this.install(request);
-    return this.settleDependencies(result);
+    return this.settleDependencies(request.workspaceId, result);
   }
 
   private install(request: InstallPluginRequest): Promise<InstallPluginResponse> {
     if (request.registryId && request.pluginName) {
-      return this.installFromCatalog(request.registryId, request.pluginName);
+      return this.installFromCatalog(request.workspaceId, request.registryId, request.pluginName);
     }
     const source = request.source?.trim() ?? '';
     if (source.length === 0) {
       throw new ValidationError('source is required');
     }
     return this.installFromGit({
+      workspaceId: request.workspaceId,
       source,
       path: request.path?.trim() || undefined,
       ref: request.ref?.trim() || undefined,
@@ -70,24 +72,36 @@ export class InstallPluginUseCase implements InstallPluginInput {
 
   /**
    * Post-install dependency pass: resolve declared dependencies against the
-   * catalogs, cascade the parent's workspace enables onto installed deps, and
-   * surface cycles/unsatisfied ranges as diagnostics. Install is not rolled
-   * back on unsatisfied dependencies.
+   * catalogs, ensure dep install rows exist on this node (reuse host checkout),
+   * and surface cycles/unsatisfied ranges as diagnostics.
    */
-  private async settleDependencies(result: InstallPluginResponse): Promise<InstallPluginResponse> {
-    const record = this.plugins.findByName(result.plugin.name);
+  private async settleDependencies(
+    workspaceId: string,
+    result: InstallPluginResponse,
+  ): Promise<InstallPluginResponse> {
+    const record = this.plugins.findByName(workspaceId, result.plugin.name);
     if (!record) {
       return result;
     }
     const resolution = await resolvePluginDependencies(record, this.registries, this.plugins);
-    for (const workspaceId of record.enabledWorkspaceIds) {
-      for (const dep of resolution.dependencies) {
-        if (this.plugins.findByName(dep.name)) {
-          this.plugins.setWorkspaceEnabled(dep.name, workspaceId, true);
-        }
+    const now = new Date().toISOString();
+    for (const dep of resolution.dependencies) {
+      if (this.plugins.findByName(workspaceId, dep.name)) {
+        continue;
       }
+      const existing = this.plugins.findByNameAny(dep.name);
+      if (!existing) {
+        continue;
+      }
+      this.plugins.upsert({
+        ...existing,
+        workspaceId,
+        grants: {},
+        installedAt: now,
+        updatedAt: now,
+      });
     }
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, record.enabledWorkspaceIds);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, [workspaceId]);
     if (resolution.diagnostics.length === 0) {
       return result;
     }
@@ -98,6 +112,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
   }
 
   private installFromCatalog(
+    workspaceId: string,
     registryId: string,
     pluginName: string,
   ): Promise<InstallPluginResponse> {
@@ -116,6 +131,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
       throw new ValidationError(entry.unsupportedReason ?? 'plugin source is not installable');
     }
     return this.installFromCatalogSource({
+      workspaceId,
       installSource: entry.installSource,
       marketplaceRoot: registry.path,
       displaySource: `${entry.pluginName}@${registry.name}`,
@@ -125,6 +141,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
   }
 
   private installFromCatalogSource(args: {
+    workspaceId: string;
     installSource: CatalogInstallSource;
     marketplaceRoot: string;
     displaySource: string;
@@ -144,6 +161,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
         throw new ValidationError(`relative plugin path missing: ${installSource.path}`);
       }
       return this.tree.fromCopiedTree({
+        workspaceId: args.workspaceId,
         from,
         displaySource: args.displaySource,
         registryId: args.registryId,
@@ -155,6 +173,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
 
     if (installSource.type === 'github') {
       return this.installFromGit({
+        workspaceId: args.workspaceId,
         source: installSource.repo,
         ref: installSource.sha ?? installSource.ref,
         registryId: args.registryId,
@@ -164,6 +183,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
 
     if (installSource.type === 'url') {
       return this.installFromGit({
+        workspaceId: args.workspaceId,
         source: installSource.url,
         ref: installSource.sha ?? installSource.ref,
         registryId: args.registryId,
@@ -173,6 +193,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
 
     if (installSource.type === 'npm' || installSource.type === 'archive') {
       return this.tree.fromMaterialized({
+        workspaceId: args.workspaceId,
         installSource,
         displaySource: args.displaySource,
         registryId: args.registryId,
@@ -182,6 +203,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
     }
 
     return this.installFromGit({
+      workspaceId: args.workspaceId,
       source: installSource.url,
       path: installSource.path,
       ref: installSource.sha ?? installSource.ref,
@@ -191,6 +213,7 @@ export class InstallPluginUseCase implements InstallPluginInput {
   }
 
   private async installFromGit(args: {
+    workspaceId: string;
     source: string;
     path?: string;
     ref?: string;
@@ -200,33 +223,38 @@ export class InstallPluginUseCase implements InstallPluginInput {
     const resolved = resolveGitSource(args.source);
     const repoName = args.catalogPluginName ?? repoNameFromSource(resolved);
     const dest = pluginInstallPath(this.home, repoName);
-    if (this.plugins.findByName(repoName) || existsSync(dest)) {
+    if (this.plugins.findByName(args.workspaceId, repoName)) {
       throw new ConflictError(`plugin ${repoName} already exists`);
     }
 
-    const cloned = await clonePlugin({
-      source: resolved,
-      dest,
-      ...(args.ref ? { ref: args.ref } : {}),
-    });
     let checkout = dest;
     let installedName: PluginName | undefined;
+    let clonedRevision = 'unknown';
     try {
-      const pluginRoot = args.path ? join(dest, args.path) : dest;
-      if (args.path && !existsSync(pluginRoot)) {
-        throw new ValidationError(`subdirectory missing in repo: ${args.path}`);
-      }
-      if (args.path) {
-        const staged = `${dest}__plugin_root`;
-        cpSync(pluginRoot, staged, { recursive: true });
-        await removePluginPath(dest);
-        await rename(staged, dest);
-        checkout = dest;
+      if (!existsSync(dest)) {
+        const cloned = await clonePlugin({
+          source: resolved,
+          dest,
+          ...(args.ref ? { ref: args.ref } : {}),
+        });
+        clonedRevision = cloned.revision;
+        const pluginRoot = args.path ? join(dest, args.path) : dest;
+        if (args.path && !existsSync(pluginRoot)) {
+          throw new ValidationError(`subdirectory missing in repo: ${args.path}`);
+        }
+        if (args.path) {
+          const staged = `${dest}__plugin_root`;
+          cpSync(pluginRoot, staged, { recursive: true });
+          await removePluginPath(dest);
+          await rename(staged, dest);
+          checkout = dest;
+        }
       }
       return await this.tree.finalize({
+        workspaceId: args.workspaceId,
         checkout,
         displaySource: args.source,
-        revision: cloned.revision,
+        revision: clonedRevision,
         registryId: args.registryId,
         catalogPluginName: args.catalogPluginName,
         onRename: (next) => {
@@ -238,9 +266,11 @@ export class InstallPluginUseCase implements InstallPluginInput {
       });
     } catch (err) {
       if (installedName !== undefined) {
-        this.plugins.delete(installedName);
+        this.plugins.delete(args.workspaceId, installedName);
       }
-      await removePluginPath(checkout);
+      if (!this.plugins.findByNameAny(repoName)) {
+        await removePluginPath(checkout);
+      }
       throw err;
     }
   }

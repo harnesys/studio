@@ -21,6 +21,7 @@ import { prepareCatalogCheckout } from './materialize-catalog-plugin.ts';
 import { toPluginSummary } from './plugin-summary.ts';
 
 export type TreeInstallArgs = {
+  workspaceId: string;
   from: string;
   displaySource: string;
   revision?: string;
@@ -31,6 +32,7 @@ export type TreeInstallArgs = {
 };
 
 export type MaterializedInstallArgs = {
+  workspaceId: string;
   installSource: RemoteCatalogSource;
   displaySource: string;
   registryId: string;
@@ -50,17 +52,13 @@ export class PluginTreeInstaller {
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
   ) {}
 
-  /**
-   * npm/archive sources materialize into a staged directory (no git), then follow
-   * the copied-tree install path. The revision keys the record: npm package
-   * version or archive digest(12).
-   */
   async fromMaterialized(args: MaterializedInstallArgs): Promise<PluginMutationResponse> {
     const staged = `${pluginInstallPath(this.home, args.catalogPluginName)}__materialize`;
     await removePluginPath(staged).catch(() => undefined);
     try {
       const materialized = await materializeSource({ source: args.installSource, dest: staged });
       return await this.fromCopiedTree({
+        workspaceId: args.workspaceId,
         from: staged,
         displaySource: args.displaySource,
         revision: materialized.revision ?? 'unknown',
@@ -76,12 +74,16 @@ export class PluginTreeInstaller {
 
   async fromCopiedTree(args: TreeInstallArgs): Promise<PluginMutationResponse> {
     const dest = pluginInstallPath(this.home, args.preferredName);
-    if (this.plugins.findByName(args.preferredName) || existsSync(dest)) {
+    if (this.plugins.findByName(args.workspaceId, args.preferredName)) {
       throw new ConflictError(`plugin ${args.preferredName} already exists`);
     }
     await mkdir(pluginsPath(this.home), { recursive: true });
-    cpSync(args.from, dest, { recursive: true });
     let checkout = dest;
+    let copied = false;
+    if (!existsSync(dest)) {
+      cpSync(args.from, dest, { recursive: true });
+      copied = true;
+    }
     let installedName: PluginName | undefined;
     try {
       const extraDiagnostics =
@@ -89,6 +91,7 @@ export class PluginTreeInstaller {
           ? await prepareCatalogCheckout(checkout, args.marketplaceRoot, args.catalogPluginName)
           : [];
       const result = await this.finalize({
+        workspaceId: args.workspaceId,
         checkout,
         displaySource: args.displaySource,
         revision: args.revision ?? 'marketplace',
@@ -107,14 +110,17 @@ export class PluginTreeInstaller {
       };
     } catch (err) {
       if (installedName !== undefined) {
-        this.plugins.delete(installedName);
+        this.plugins.delete(args.workspaceId, installedName);
       }
-      await removePluginPath(checkout);
+      if (copied) {
+        await removePluginPath(checkout);
+      }
       throw err;
     }
   }
 
   async finalize(args: {
+    workspaceId: string;
     checkout: string;
     displaySource: string;
     revision: string;
@@ -131,23 +137,28 @@ export class PluginTreeInstaller {
     const name = loaded.ir.identity.name;
     const finalDest = pluginInstallPath(this.home, name);
     if (checkout !== finalDest) {
-      if (this.plugins.findByName(name) || existsSync(finalDest)) {
+      if (this.plugins.findByName(args.workspaceId, name)) {
         throw new ConflictError(`plugin ${name} already exists`);
       }
-      await rename(checkout, finalDest);
+      if (!existsSync(finalDest)) {
+        await rename(checkout, finalDest);
+      } else {
+        await removePluginPath(checkout);
+      }
       checkout = finalDest;
       args.onRename(finalDest);
       loaded = await loadPluginIrFromDirectory({
         root: checkout,
         pluginData: pluginDataPath(this.home, name),
       });
-    } else if (this.plugins.findByName(name)) {
+    } else if (this.plugins.findByName(args.workspaceId, name)) {
       throw new ConflictError(`plugin ${name} already exists`);
     }
 
     const now = new Date().toISOString();
     const dataPath = pluginDataPath(this.home, name);
     const record: PluginInstallRecord = {
+      workspaceId: args.workspaceId,
       name,
       source: args.displaySource,
       revision: args.revision,
@@ -156,7 +167,6 @@ export class PluginTreeInstaller {
       format: loaded.ir.sourceFormat,
       grants: {},
       options: {},
-      enabledWorkspaceIds: [],
       installedAt: now,
       updatedAt: now,
       ...(args.registryId ? { registryId: args.registryId } : {}),
@@ -165,7 +175,7 @@ export class PluginTreeInstaller {
     args.setInstalledName(name);
     const saved = this.plugins.upsert(record);
     await mkdir(dataPath, { recursive: true });
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
     return {
       plugin: toPluginSummary(saved, loaded.ir),
       diagnostics: loaded.diagnostics,

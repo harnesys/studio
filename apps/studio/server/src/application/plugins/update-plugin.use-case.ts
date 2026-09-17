@@ -29,6 +29,7 @@ import { findDependantNames } from './resolve-dependencies.ts';
 import type { SyncPluginRegistryInput } from './sync-plugin-registry.use-case.ts';
 
 export type UpdatePluginRequest = {
+  workspaceId: string;
   name: PluginName;
   ref?: string;
 };
@@ -48,14 +49,14 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
   ) {}
 
   async execute(request: UpdatePluginRequest): Promise<UpdatePluginResponse> {
-    const current = this.plugins.findByName(request.name);
+    const current = this.plugins.findByName(request.workspaceId, request.name);
     if (!current) {
       throw new NotFoundError('plugin not found');
     }
     if (!existsSync(current.path)) {
       throw new NotFoundError('plugin checkout not found');
     }
-    const dependants = findDependantNames(this.plugins, request.name);
+    const dependants = findDependantNames(this.plugins, request.workspaceId, request.name);
     if (dependants.length > 0) {
       throw new ConflictError(`plugin ${request.name} is required by: ${dependants.join(', ')}`);
     }
@@ -78,7 +79,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
       revision: checkout.revision,
       updatedAt: now,
     });
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
     return {
       plugin: toPluginSummary(saved, loaded.ir),
       diagnostics: loaded.diagnostics,
@@ -172,7 +173,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
         catalogPluginName: entry.pluginName,
         updatedAt: now,
       });
-      await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
+      await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
       return {
         plugin: toPluginSummary(saved, loaded.ir),
         diagnostics: [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],
@@ -224,7 +225,7 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
         catalogPluginName: args.entry.pluginName,
         updatedAt: now,
       });
-      await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
+      await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
       return {
         plugin: toPluginSummary(saved, loaded.ir),
         diagnostics: [...extraDiagnostics, ...depsDiagnostics, ...loaded.diagnostics],

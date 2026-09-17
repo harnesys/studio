@@ -20,7 +20,7 @@ async function decorateEntry(
   entry: CatalogEntry,
   plugins: PluginRepository,
 ): Promise<CatalogEntry> {
-  const record = plugins.findByName(entry.pluginName);
+  const record = plugins.findByNameAny(entry.pluginName);
   if (!record || !existsSync(record.path)) {
     return entry;
   }

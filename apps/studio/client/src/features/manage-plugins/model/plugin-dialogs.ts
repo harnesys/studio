@@ -11,18 +11,22 @@ import {
 } from '../ui/plugin-dialogs';
 import { EnablePluginDialog } from '../ui/plugin-enable-dialog';
 
-export function openInstallPluginDialog(prefill?: InstallPluginRequest) {
+export function openInstallPluginDialog(workspaceId: string, prefill?: InstallPluginRequest) {
   return dialog.open(InstallPluginDialog, {
     title: 'Install plugin',
     description:
       'Clone from `owner/repo` or a git URL. Use subdirectory when the plugin is not at the repo root.',
     className: 'sm:max-w-lg',
     testId: 'install-plugin-dialog',
-    ...(prefill ? { data: prefill } : {}),
+    data: { workspaceId, prefill },
   });
 }
 
-export function openInstallCatalogPluginDialog(input: { registryId: string; pluginName: string }) {
+export function openInstallCatalogPluginDialog(input: {
+  workspaceId: string;
+  registryId: string;
+  pluginName: string;
+}) {
   return dialog.open(InstallCatalogPluginDialog, {
     title: `Install ${input.pluginName}`,
     description: 'Install from the connected marketplace catalog.',
@@ -43,7 +47,7 @@ export function openAddRegistryDialog() {
 
 export function openEnablePluginDialog(plugin: PluginSummary, workspaceId: string) {
   return dialog.open(EnablePluginDialog, {
-    title: `Enable ${plugin.name}`,
+    title: `Configure ${plugin.name}`,
     description: 'Review components, grant classes and configure user settings.',
     className: 'sm:max-w-lg',
     testId: 'enable-plugin-dialog',
@@ -54,7 +58,8 @@ export function openEnablePluginDialog(plugin: PluginSummary, workspaceId: strin
 export function confirmRemovePlugin(name: string) {
   return alert.confirm({
     title: `Remove ${name}?`,
-    description: 'Deletes the checkout under `~/.harnesys/plugins`. Plugin data is kept.',
+    description:
+      'Removes the install from this node. Shared host checkout is deleted only when no other node uses it.',
     confirmText: 'Remove',
     variant: 'destructive',
     testId: 'remove-plugin-dialog',

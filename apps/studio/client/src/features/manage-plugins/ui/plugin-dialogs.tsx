@@ -32,14 +32,19 @@ const INSTALL_STAGES = ['resolving', 'cloning', 'loading', 'saving'] as const;
 export function InstallPluginDialog({
   onResolve,
   data,
-}: DialogComponentProps<PluginMutationResponse, InstallPluginRequest | undefined>) {
+}: DialogComponentProps<
+  PluginMutationResponse,
+  { workspaceId: string; prefill?: InstallPluginRequest } | undefined
+>) {
+  const workspaceId = data?.workspaceId ?? '';
+  const prefill = data?.prefill;
   const form = useForm<InstallPluginFieldsInput, unknown, InstallPluginFieldsOutput>({
     resolver: zodResolver(installPluginFieldsSchema),
     defaultValues: {
       ...emptyInstallPluginFields(),
-      source: data?.source ?? '',
-      path: data?.path ?? '',
-      ref: data?.ref ?? '',
+      source: prefill?.source ?? '',
+      path: prefill?.path ?? '',
+      ref: prefill?.ref ?? '',
     },
   });
   const [stage, setStage] = useState<string | null>(null);
@@ -47,11 +52,15 @@ export function InstallPluginDialog({
   const busy = stage !== null && error === null;
 
   async function runInstall(values: InstallPluginFieldsOutput) {
+    if (!workspaceId) {
+      setError('No workspace');
+      return;
+    }
     setError(null);
     setStage('resolving');
     try {
       setStage('cloning');
-      const result = await installPlugin(toInstallPluginRequest(values));
+      const result = await installPlugin(workspaceId, toInstallPluginRequest(values));
       setStage('done');
       onResolve?.(result);
     } catch (err) {
@@ -95,20 +104,23 @@ export function InstallPluginDialog({
 export function InstallCatalogPluginDialog({
   onResolve,
   data,
-}: DialogComponentProps<PluginMutationResponse, { registryId: string; pluginName: string }>) {
+}: DialogComponentProps<
+  PluginMutationResponse,
+  { workspaceId: string; registryId: string; pluginName: string }
+>) {
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
 
   async function runInstall() {
-    if (!data) {
+    if (!data?.workspaceId) {
       return;
     }
     setStarted(true);
     setError(null);
     setStage('cloning');
     try {
-      const result = await installPlugin({
+      const result = await installPlugin(data.workspaceId, {
         registryId: data.registryId,
         pluginName: data.pluginName,
       });

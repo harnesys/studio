@@ -23,7 +23,7 @@ export function PluginsPane({ workspaceId }: { workspaceId: string }) {
           <PluginsInstalledTab workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value="discover" className="mt-4">
-          <PluginsDiscoverTab />
+          <PluginsDiscoverTab workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value="marketplaces" className="mt-4">
           <PluginsMarketplacesTab />

@@ -5,6 +5,7 @@ import { NotFoundError } from '../../domain/studio.error.ts';
 import { invalidatePluginWorkspaces } from './invalidate-plugin-workspaces.ts';
 
 export type ApproveServerRequest = {
+  workspaceId: string;
   name: PluginName;
   serverId: string;
 };
@@ -20,12 +21,12 @@ export class ApproveServerUseCase implements ApproveServerInput {
   ) {}
 
   async execute(request: ApproveServerRequest): Promise<PluginInstallRecord> {
-    const current = this.plugins.findByName(request.name);
+    const current = this.plugins.findByName(request.workspaceId, request.name);
     if (!current) {
       throw new NotFoundError('plugin not found');
     }
-    this.plugins.approveServer(request.name, request.serverId);
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, current.enabledWorkspaceIds);
+    this.plugins.approveServer(request.workspaceId, request.name, request.serverId);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, [request.workspaceId]);
     return current;
   }
 }

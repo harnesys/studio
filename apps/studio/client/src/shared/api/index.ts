@@ -86,9 +86,6 @@ export {
 export {
   type ApprovePluginServerRequest,
   approvePluginServer,
-  type EnableWorkspacePluginRequest,
-  type EnableWorkspacePluginResponse,
-  enableWorkspacePlugin,
   type InstallPluginRequest,
   installPlugin,
   listPlugins,
@@ -99,6 +96,7 @@ export {
   type PluginSummary,
   pluginsQuery,
   pluginsQueryKey,
+  pluginsQueryKeyFor,
   type RemovePluginRequest,
   removePlugin,
   type SetPluginGrantsRequest,

@@ -7,27 +7,27 @@ import { applyGrantGating } from './plugin-grant-gate.ts';
 import { toPluginSummary } from './plugin-summary.ts';
 
 export type ListPluginsRequest = {
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 export type ListPluginsInput = {
-  execute(request?: ListPluginsRequest): Promise<PluginListItem[]>;
+  execute(request: ListPluginsRequest): Promise<PluginListItem[]>;
 };
 
 export class ListPluginsUseCase implements ListPluginsInput {
   constructor(private readonly plugins: PluginRepository) {}
 
-  async execute(request?: ListPluginsRequest): Promise<PluginListItem[]> {
-    const records = this.plugins.list();
+  async execute(request: ListPluginsRequest): Promise<PluginListItem[]> {
+    const records = this.plugins.list(request.workspaceId);
     return await Promise.all(
-      records.map((record) => loadListItem(record, request?.workspaceId, this.plugins)),
+      records.map((record) => loadListItem(record, request.workspaceId, this.plugins)),
     );
   }
 }
 
 async function loadListItem(
   record: PluginInstallRecord,
-  workspaceId: string | undefined,
+  workspaceId: string,
   plugins: PluginRepository,
 ): Promise<PluginListItem> {
   if (!existsSync(record.path)) {
@@ -67,27 +67,19 @@ async function loadListItem(
   }
 }
 
-/**
- * Workspace-gated IR view: without a workspace the raw parse result is
- * returned; with a workspace the same grant+approval gating as the runtime
- * load applies, so Plugins and MCP tabs report one status.
- */
 function gatedIr(
   record: PluginInstallRecord,
   raw: PluginIr,
-  workspaceId: string | undefined,
+  workspaceId: string,
   plugins: PluginRepository,
 ): PluginIr {
-  if (workspaceId === undefined) {
-    return raw;
-  }
-  const grants = record.grants[workspaceId] ?? {};
-  const approved = new Set(plugins.approvals(record.name));
-  return applyGrantGating(raw, grants, approved);
+  const approved = new Set(plugins.approvals(workspaceId, record.name));
+  return applyGrantGating(raw, record.grants, approved);
 }
 
 function unloadedSummary(record: PluginInstallRecord): PluginSummary {
   return {
+    workspaceId: record.workspaceId,
     name: record.name,
     source: record.source,
     revision: record.revision,
@@ -97,7 +89,6 @@ function unloadedSummary(record: PluginInstallRecord): PluginSummary {
     grants: record.grants,
     options: record.options,
     components: [],
-    enabledWorkspaceIds: record.enabledWorkspaceIds,
     installedAt: record.installedAt,
     updatedAt: record.updatedAt,
     skillCount: 0,

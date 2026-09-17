@@ -97,13 +97,11 @@ export function pluginAgentCatalog(
   };
 }
 
-/** All workspace ids that have at least one enabled plugin record. */
+/** All workspace ids that have at least one plugin install row. */
 export function workspaceIdsWithPlugins(repo: PluginRepository): string[] {
   const ids = new Set<string>();
-  for (const record of repo.list()) {
-    for (const workspaceId of record.enabledWorkspaceIds) {
-      ids.add(workspaceId);
-    }
+  for (const record of repo.listAll()) {
+    ids.add(record.workspaceId);
   }
   return [...ids];
 }
@@ -136,9 +134,9 @@ function pluginAgentName(id: string): string {
   return id.split(':').at(-1) ?? id;
 }
 
-/** Installed plugin records enabled for a workspace. */
+/** Installed plugin records for a workspace node. */
 export function enabledRecords(repo: PluginRepository, workspaceId: string): PluginInstallRecord[] {
-  return repo.list().filter((record) => record.enabledWorkspaceIds.includes(workspaceId));
+  return repo.list(workspaceId);
 }
 
 /**

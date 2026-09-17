@@ -8,7 +8,7 @@ import {
   pluginCatalogQuery,
   pluginCatalogQueryKey,
   pluginRegistriesQuery,
-  pluginsQueryKey,
+  pluginsQueryKeyFor,
 } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
 import { Row, RowChip, RowField, RowList, RowSection } from '@/shared/ui/capability-rows';
@@ -19,7 +19,7 @@ import { toast } from '@/shared/ui/toast';
 
 const FILTER_ALL = 'all';
 
-export function PluginsDiscoverTab() {
+export function PluginsDiscoverTab({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
@@ -61,7 +61,7 @@ export function PluginsDiscoverTab() {
   );
 
   async function onInstalled(name: string) {
-    await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+    await queryClient.invalidateQueries({ queryKey: pluginsQueryKeyFor(workspaceId) });
     await queryClient.invalidateQueries({ queryKey: pluginCatalogQueryKey });
     toast.add({ title: 'Plugin installed', description: name });
   }
@@ -197,6 +197,7 @@ export function PluginsDiscoverTab() {
             {entries.map((entry) => (
               <CatalogRow
                 key={`${entry.registryId}:${entry.pluginName}`}
+                workspaceId={workspaceId}
                 entry={entry}
                 registryName={registryNames.get(entry.registryId) ?? entry.registryId}
                 expanded={expandedKey === `${entry.registryId}:${entry.pluginName}`}
@@ -271,12 +272,14 @@ function installSourceLines(entry: PluginCatalogEntry): [string, string][] {
 }
 
 function CatalogRow({
+  workspaceId,
   entry,
   registryName,
   expanded,
   onToggle,
   onInstalled,
 }: {
+  workspaceId: string;
   entry: PluginCatalogEntry;
   registryName: string;
   expanded: boolean;
@@ -310,6 +313,7 @@ function CatalogRow({
           disabled={!entry.installable}
           onClick={() => {
             void openInstallCatalogPluginDialog({
+              workspaceId,
               registryId: entry.registryId,
               pluginName: entry.pluginName,
             }).then(async (result) => {

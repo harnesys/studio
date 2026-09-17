@@ -5,6 +5,7 @@ import { migrateCapabilityCore } from './bootstrap-capability-core-migration.ts'
 import { migrateCapabilitySet } from './bootstrap-capability-set-migration.ts';
 import { bootstrapMemory } from './bootstrap-memory.ts';
 import { cleanupReservedModeIds } from './bootstrap-modes-cleanup.ts';
+import { migrateNodeCatalogPlugins } from './bootstrap-node-catalog-plugins-migration.ts';
 import { migrateNodeCatalogPresets } from './bootstrap-node-catalog-presets-migration.ts';
 import { migrateNodeCatalogProviders } from './bootstrap-node-catalog-providers-migration.ts';
 import type { StudioDb } from './connection.ts';
@@ -192,7 +193,8 @@ export function bootstrap(db: StudioDb): void {
     `CREATE INDEX IF NOT EXISTS attachments_thread_idx ON attachments(thread_id);`,
     `CREATE TABLE IF NOT EXISTS plugins (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
+      workspace_id TEXT NOT NULL,
+      name TEXT NOT NULL,
       source TEXT NOT NULL,
       revision TEXT NOT NULL,
       path TEXT NOT NULL,
@@ -201,17 +203,19 @@ export function bootstrap(db: StudioDb): void {
       ir_summary TEXT,
       grants TEXT NOT NULL DEFAULT '{}',
       options TEXT NOT NULL DEFAULT '{}',
-      enabled_workspace_ids TEXT NOT NULL DEFAULT '[]',
       registry_id TEXT REFERENCES plugin_registries(id) ON DELETE SET NULL,
       catalog_plugin_name TEXT,
       installed_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS plugins_workspace_id_name_unique
+      ON plugins(workspace_id, name);`,
     `CREATE TABLE IF NOT EXISTS plugin_approvals (
-      plugin_name TEXT NOT NULL REFERENCES plugins(name) ON DELETE CASCADE,
+      workspace_id TEXT NOT NULL,
+      plugin_name TEXT NOT NULL,
       server_id TEXT NOT NULL,
       approved_at TEXT NOT NULL,
-      PRIMARY KEY (plugin_name, server_id)
+      PRIMARY KEY (workspace_id, plugin_name, server_id)
     );`,
     `CREATE TABLE IF NOT EXISTS plugin_server_state (
       plugin_name TEXT NOT NULL REFERENCES plugins(name) ON DELETE CASCADE,
@@ -289,6 +293,7 @@ export function bootstrap(db: StudioDb): void {
 
   migratePluginGrantsSchema(db);
   migrateNodeCatalogProviders(db);
+  migrateNodeCatalogPlugins(db);
 
   try {
     db.run(sql.raw('DELETE FROM webhooks WHERE thread_id IS NULL;'));

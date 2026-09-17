@@ -12,7 +12,7 @@ import {
 import {
   approvePluginServer,
   deleteWorkspaceMcpServer,
-  pluginsQueryKey,
+  pluginsQueryKeyFor,
   reloadWorkspaceMcp,
   restartWorkspaceMcpServer,
   setWorkspaceMcpServerState,
@@ -97,9 +97,9 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
 
   const approve = useMutation({
     mutationFn: (input: { pluginName: string; serverId: string }) =>
-      approvePluginServer(input.pluginName, { serverId: input.serverId }),
+      approvePluginServer(workspaceId, input.pluginName, { serverId: input.serverId }),
     onSuccess: async (_result, input) => {
-      await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
+      await queryClient.invalidateQueries({ queryKey: pluginsQueryKeyFor(workspaceId) });
       await invalidateMcp();
       toast.add({ title: 'Server approved', description: input.serverId });
     },

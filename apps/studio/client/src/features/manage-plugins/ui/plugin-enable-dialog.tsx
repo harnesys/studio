@@ -1,7 +1,7 @@
 import type { PluginGrantSelection, PluginSummary } from '@harnesys/studio-shared';
 import { useState } from 'react';
 
-import { enableWorkspacePlugin, setPluginGrants, setPluginOption } from '@/shared/api';
+import { setPluginGrants, setPluginOption } from '@/shared/api';
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
@@ -25,9 +25,7 @@ export function EnablePluginDialog({
 }: DialogComponentProps<PluginSummary, EnablePluginDialogData>) {
   const plugin = data?.plugin;
   const workspaceId = data?.workspaceId ?? '';
-  const [grants, setGrants] = useState<PluginGrantSelection>(
-    () => plugin?.grants[workspaceId] ?? {},
-  );
+  const [grants, setGrants] = useState<PluginGrantSelection>(() => plugin?.grants ?? {});
   const [drafts, setDrafts] = useState<PluginOptionDraft[]>(() =>
     plugin ? optionDrafts(plugin) : [],
   );
@@ -47,11 +45,10 @@ export function EnablePluginDialog({
       for (const change of optionChanges) {
         await setPluginOption(workspaceId, plugin.name, change);
       }
-      await setPluginGrants(workspaceId, plugin.name, { classes: grantedClasses(grants) });
-      const enabled = await enableWorkspacePlugin(workspaceId, plugin.name, {
-        enabled: true,
+      const saved = await setPluginGrants(workspaceId, plugin.name, {
+        classes: grantedClasses(grants),
       });
-      onResolve?.(enabled.plugin);
+      onResolve?.(saved.plugin as PluginSummary);
     } catch (err) {
       setBusy(false);
       setError(err instanceof Error ? err.message : 'Enable failed');

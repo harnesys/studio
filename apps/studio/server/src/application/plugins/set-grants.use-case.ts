@@ -21,7 +21,7 @@ export class SetGrantsUseCase implements SetGrantsInput {
 
   async execute(request: SetGrantsRequest): Promise<PluginInstallRecord> {
     const saved = this.plugins.setGrants(request.workspaceId, request.name, request.classes);
-    await invalidatePluginWorkspaces(this.workspaceHarnesys, saved.enabledWorkspaceIds);
+    await invalidatePluginWorkspaces(this.workspaceHarnesys, [saved.workspaceId]);
     return saved;
   }
 }

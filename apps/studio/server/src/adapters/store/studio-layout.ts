@@ -116,7 +116,10 @@ export function attachmentsDir(workspacePath: string, threadId: string): string 
   return join(studioDir(workspacePath), 'threads', threadId, ATTACHMENTS_DIR);
 }
 
-/** Host-wide plugin checkouts (`~/.harnesys/plugins`). */
+/**
+ * Host-wide plugin checkouts (`~/.harnesys/plugins`).
+ * Phase 4a keeps this path; Phase 4b moves checkouts to `<workspace>/.harnesys/plugins`.
+ */
 export function pluginsPath(home: string = defaultHomePath()): string {
   return join(home, PLUGINS_DIR);
 }

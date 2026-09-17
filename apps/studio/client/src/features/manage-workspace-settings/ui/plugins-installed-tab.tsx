@@ -25,7 +25,7 @@ import {
   approvePluginServer,
   listPlugins,
   pluginsQuery,
-  pluginsQueryKey,
+  pluginsQueryKeyFor,
   removePlugin,
   setPluginGrants,
   setPluginOption,
@@ -67,7 +67,7 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
   });
 
   const update = useMutation({
-    mutationFn: (name: string) => updatePlugin(name),
+    mutationFn: (name: string) => updatePlugin(workspaceId, name),
     onSuccess: async (result) => {
       await invalidatePlugins();
       toast.add({ title: 'Plugin updated', description: result.plugin.name });
@@ -81,7 +81,7 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
   });
 
   const remove = useMutation({
-    mutationFn: (name: string) => removePlugin(name),
+    mutationFn: (name: string) => removePlugin(workspaceId, name),
     onSuccess: async (_result, name) => {
       await invalidatePlugins();
       toast.add({ title: 'Plugin removed', description: name });
@@ -108,7 +108,7 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
           size="sm"
           className="text-muted-foreground"
           onClick={() => {
-            void openInstallPluginDialog().then(async (result) => {
+            void openInstallPluginDialog(workspaceId).then(async (result) => {
               if (!result) {
                 return;
               }
@@ -141,8 +141,6 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
             {items.map((item) => {
               const plugin = item.plugin;
               const expanded = expandedName === plugin.name;
-              const enabledHere =
-                Boolean(workspaceId) && plugin.enabledWorkspaceIds.includes(workspaceId ?? '');
               const inventory = `${plugin.skillCount} skills · ${plugin.hookCount} hooks · ${plugin.mcpServerCount} mcp · ${plugin.agentCount} agents · ${plugin.commandCount} commands`;
               return (
                 <Row
@@ -150,11 +148,10 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
                   testId={`plugin-${plugin.name}`}
                   title={plugin.name}
                   meta={plugin.version}
-                  muted={!enabledHere}
                   summary={inventory}
                   chips={
                     <>
-                      {enabledHere ? <RowChip tone="accent">here</RowChip> : null}
+                      <RowChip tone="accent">here</RowChip>
                       <RowChip>
                         {plugin.format === 'unknown' ? 'unattested' : plugin.format}
                       </RowChip>
@@ -180,12 +177,12 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
                                   return;
                                 }
                                 await invalidatePlugins();
-                                toast.add({ title: 'Plugin enabled', description: result.name });
+                                toast.add({ title: 'Plugin saved', description: result.name });
                               },
                             );
                           }}
                         >
-                          {enabledHere ? 'Reconfigure' : 'Enable'}
+                          Configure
                         </Button>
                       ) : null}
                       <Button
@@ -231,7 +228,7 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
 function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId: string }) {
   const plugin = item.plugin;
   const queryClient = useQueryClient();
-  const [grants, setGrants] = useState(() => plugin.grants[workspaceId] ?? {});
+  const [grants, setGrants] = useState(() => plugin.grants);
   const [drafts, setDrafts] = useState<PluginOptionDraft[]>(() => optionDrafts(plugin));
 
   const grantsMutation = useMutation({
@@ -247,7 +244,7 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
   });
 
   const approveMutation = useMutation({
-    mutationFn: (serverId: string) => approvePluginServer(plugin.name, { serverId }),
+    mutationFn: (serverId: string) => approvePluginServer(workspaceId, plugin.name, { serverId }),
     onSuccess: async (_result, serverId) => {
       await invalidatePluginAndMcp(queryClient, workspaceId);
       toast.add({ title: 'Server approved', description: serverId });
@@ -293,14 +290,7 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
           value={plugin.revision ? plugin.revision.slice(0, 12) : 'unknown'}
         />
         {plugin.registryId ? <RowField label="registry" value={plugin.registryId} /> : null}
-        <RowField
-          label="enabled"
-          value={
-            plugin.enabledWorkspaceIds.length > 0
-              ? plugin.enabledWorkspaceIds.join(', ')
-              : 'no workspace yet'
-          }
-        />
+        <RowField label="node" value={plugin.workspaceId} />
       </RowSection>
 
       <RowSection label="Components" count={plugin.components.length}>
@@ -385,13 +375,14 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
 }
 
 async function invalidatePluginAndMcp(queryClient: QueryClient, workspaceId?: string | null) {
-  await queryClient.invalidateQueries({ queryKey: pluginsQueryKey });
-  if (workspaceId) {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: workspaceMcpConfigQueryKey(workspaceId) }),
-      queryClient.invalidateQueries({ queryKey: workspaceMcpQueryKey(workspaceId) }),
-    ]);
+  if (!workspaceId) {
+    return;
   }
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: pluginsQueryKeyFor(workspaceId) }),
+    queryClient.invalidateQueries({ queryKey: workspaceMcpConfigQueryKey(workspaceId) }),
+    queryClient.invalidateQueries({ queryKey: workspaceMcpQueryKey(workspaceId) }),
+  ]);
 }
 
 function DiagnosticChip({ diagnostics }: { diagnostics: PluginDiagnostic[] }) {

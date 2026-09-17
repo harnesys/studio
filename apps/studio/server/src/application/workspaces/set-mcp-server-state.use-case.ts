@@ -7,7 +7,7 @@ import {
 } from '../../adapters/mcp-json.adapter.ts';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { PluginRepository } from '../../domain/plugin.port.ts';
-import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type {
   GetWorkspaceMcpConfigInput,
@@ -60,12 +60,9 @@ export class SetMcpServerStateUseCase implements SetMcpServerStateInput {
   ): Promise<void> {
     const pluginName = serverId.slice(PLUGIN_SERVER_KEY_PREFIX.length).split(':')[0] ?? '';
     const pointer = serverId.slice(`${PLUGIN_SERVER_KEY_PREFIX}${pluginName}:`.length);
-    const record = this.plugins.findByName(pluginName);
+    const record = this.plugins.findByName(workspaceId, pluginName);
     if (!record) {
       throw new NotFoundError(`plugin ${pluginName} not found`);
-    }
-    if (!record.enabledWorkspaceIds.includes(workspaceId)) {
-      throw new ValidationError(`plugin ${pluginName} is not enabled in this workspace`);
     }
     const specId = await this.resolveSpecId(workspaceId, pluginName, pointer);
     this.plugins.setServerDisabled(pluginName, specId, workspaceId, !enabled);

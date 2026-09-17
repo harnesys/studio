@@ -7,13 +7,18 @@ export type HostNodeRecord = {
 export type HostNodeStatus = 'ready' | 'unavailable';
 
 export type HostSection = {
+  id: string;
+  name: string;
   listen: string;
   token: string;
+  /** Public base URL for webhook links (env PUBLIC_URL). */
+  publicOrigin?: string;
   nodes: HostNodeRecord[];
 };
 
 export type WindowHostRecord = {
   id: string;
+  name: string;
   baseUrl: string;
   credential: string;
 };

@@ -1,9 +1,11 @@
 import type { ModelsPort, RuntimeHandle } from 'harnesys';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
 import { requireHostToken } from '../adapters/http/auth.middleware.ts';
 import { HealthController } from '../adapters/http/health.controller.ts';
 import { handleHttpError } from '../adapters/http/http.error.ts';
+import { PairingController } from '../adapters/http/pairing/pairing.controller.ts';
 import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import { ThreadRuntimeRegistry } from '../adapters/thread-runtime.registry.ts';
@@ -57,8 +59,21 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
   const app = new Hono();
   const hostToken = machineConfig.read().host.token;
 
+  // Dogfood multi-host: allow window origin (Vite) or any Origin for remote absolute fetches.
+  app.use(
+    '*',
+    cors({
+      origin: (origin) => origin || '*',
+      allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowHeaders: ['Authorization', 'Content-Type', 'Accept'],
+      exposeHeaders: ['Content-Type'],
+      maxAge: 86400,
+    }),
+  );
+
   new HealthController().register(app);
   app.use('*', requireHostToken(hostToken));
+  new PairingController({ machineConfig }).register(app);
 
   const workspaceRepo = createRoutingWorkspaceRepo(supervisor);
   const agentRepo = createRoutingAgentRepo(supervisor);

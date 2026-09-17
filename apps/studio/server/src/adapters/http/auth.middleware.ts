@@ -8,6 +8,9 @@ export function isHostAuthExempt(method: string, path: string): boolean {
   if (method === 'GET' && path === '/api/window/bootstrap') {
     return true;
   }
+  if (method === 'POST' && path === '/api/host/pair/redeem') {
+    return true;
+  }
   if (method === 'POST' && /^\/api\/workspaces\/[^/]+\/hooks\/[^/]+$/.test(path)) {
     return true;
   }
@@ -16,7 +19,7 @@ export function isHostAuthExempt(method: string, path: string): boolean {
 
 /**
  * Require `Authorization: Bearer <host.token>`, or `?token=` (WebSocket / EventSource).
- * Exempt: GET /health, GET /api/window/bootstrap, POST webhook fire.
+ * Exempt: GET /health, GET /api/window/bootstrap, POST pair/redeem, POST webhook fire.
  */
 export function requireHostToken(token: string): MiddlewareHandler {
   return async (c, next) => {

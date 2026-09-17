@@ -33,3 +33,14 @@ export const windowDeskBody = z.object({
   selectedNodeIds: z.array(z.string()),
   park: z.record(z.string(), persistedIdeWorkspaceSchema),
 });
+
+export const windowHostsBody = z.object({
+  hosts: z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      baseUrl: z.string().min(1),
+      credential: z.string().min(1),
+    }),
+  ),
+});

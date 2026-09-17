@@ -257,6 +257,9 @@ export type CreateWebhookResponse = {
 export type {
   HostNodeStatus,
   IdeTabKind,
+  PairingRedeemRequest,
+  PairingRedeemResponse,
+  PairingStartResponse,
   PersistedIdeGroup,
   PersistedIdeTab,
   PersistedIdeWorkspace,

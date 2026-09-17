@@ -2,7 +2,24 @@ export type HostNodeStatus = 'ready' | 'unavailable';
 
 export type WindowHostRecord = {
   id: string;
+  name: string;
   baseUrl: string;
+  credential: string;
+};
+
+export type PairingStartResponse = {
+  code: string;
+  expiresAt: string;
+};
+
+export type PairingRedeemRequest = {
+  code: string;
+};
+
+export type PairingRedeemResponse = {
+  hostId: string;
+  name: string;
+  listen: string;
   credential: string;
 };
 

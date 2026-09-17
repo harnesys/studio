@@ -1,4 +1,5 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { hostname } from 'node:os';
 import { dirname } from 'node:path';
 import { env } from '../../config/env.ts';
 import type {
@@ -42,10 +43,17 @@ export class MachineConfigFileAdapter implements MachineConfigPort {
   writeHost(patch: Partial<HostSection>): MachineConfig {
     const { config, extras } = this.load();
     const nextHost: HostSection = {
+      id: patch.id ?? config.host.id,
+      name: patch.name ?? config.host.name,
       listen: patch.listen ?? config.host.listen,
       token: patch.token ?? config.host.token,
+      publicOrigin:
+        patch.publicOrigin !== undefined ? patch.publicOrigin : config.host.publicOrigin,
       nodes: patch.nodes ?? config.host.nodes,
     };
+    if (!nextHost.publicOrigin) {
+      delete nextHost.publicOrigin;
+    }
     const next: MachineConfig = { host: nextHost, window: config.window };
     this.persist(next, extras);
     return next;
@@ -89,8 +97,11 @@ export class MachineConfigFileAdapter implements MachineConfigPort {
     }
     const token = crypto.randomUUID();
     const host: HostSection = {
+      id: crypto.randomUUID(),
+      name: defaultHostName(),
       listen: this.defaultListen,
       token,
+      ...(env.publicUrl ? { publicOrigin: env.publicUrl } : {}),
       nodes: [],
     };
     this.memoryDefaults = {
@@ -125,16 +136,28 @@ function emptyDesk(): WindowDesk {
 function localWindowHost(host: HostSection): WindowHostRecord {
   return {
     id: 'local',
+    name: host.name || 'This machine',
     baseUrl: `http://${host.listen}`,
     credential: host.token,
   };
 }
 
+function defaultHostName(): string {
+  try {
+    return hostname() || 'Host';
+  } catch {
+    return 'Host';
+  }
+}
+
 function normalizeHost(raw: unknown, defaultListen: string): HostSection {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return {
+      id: crypto.randomUUID(),
+      name: defaultHostName(),
       listen: defaultListen,
       token: crypto.randomUUID(),
+      ...(env.publicUrl ? { publicOrigin: env.publicUrl } : {}),
       nodes: [],
     };
   }
@@ -143,9 +166,21 @@ function normalizeHost(raw: unknown, defaultListen: string): HostSection {
     typeof obj.listen === 'string' && obj.listen.trim() ? obj.listen.trim() : defaultListen;
   const token =
     typeof obj.token === 'string' && obj.token.trim() ? obj.token.trim() : crypto.randomUUID();
+  const id =
+    typeof obj.id === 'string' && obj.id.trim() ? obj.id.trim() : crypto.randomUUID();
+  const name =
+    typeof obj.name === 'string' && obj.name.trim() ? obj.name.trim() : defaultHostName();
+  const fromFile =
+    typeof obj.publicOrigin === 'string' && obj.publicOrigin.trim()
+      ? obj.publicOrigin.trim()
+      : undefined;
+  const publicOrigin = env.publicUrl || fromFile;
   return {
+    id,
+    name,
     listen,
     token,
+    ...(publicOrigin ? { publicOrigin } : {}),
     nodes: normalizeNodes(obj.nodes),
   };
 }
@@ -209,8 +244,15 @@ function normalizeHosts(raw: unknown, host: HostSection): WindowHostRecord[] {
     ) {
       continue;
     }
+    const name =
+      typeof row.name === 'string' && row.name.trim()
+        ? row.name.trim()
+        : row.id === 'local'
+          ? host.name || 'This machine'
+          : row.id;
     out.push({
       id: row.id,
+      name,
       baseUrl: row.baseUrl,
       credential: row.credential || host.token,
     });

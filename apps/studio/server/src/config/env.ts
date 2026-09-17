@@ -27,6 +27,8 @@ export const env = {
   bundledSkills: process.env.HARNESYS_BUNDLED_SKILLS?.trim() || undefined,
   bundledPresets: process.env.HARNESYS_BUNDLED_PRESETS?.trim() || undefined,
   STUDIO_INSTANCE_ID: process.env.STUDIO_INSTANCE_ID?.trim() || undefined,
+  /** Public origin for webhook URLs (packaging PUBLIC_URL). */
+  publicUrl: process.env.PUBLIC_URL?.trim() || undefined,
   /** Console verbosity switch: dev shows trace-level by default, SERVER_TRACE=0 quiets it. */
   trace: readBool(process.env.SERVER_TRACE, true),
 } as const;

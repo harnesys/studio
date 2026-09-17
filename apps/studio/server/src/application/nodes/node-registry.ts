@@ -61,6 +61,14 @@ export class HostNodeRegistry implements NodeRegistry {
     const nodes = this.list();
     assertUniqueAmong(nodes, { name, path });
 
+    // Orphan rows left by removeFromHost: same path must not block re-create.
+    const hostIds = new Set(nodes.map((node) => node.id));
+    for (const row of this.workspaces.list()) {
+      if (row.path === path && !hostIds.has(row.id)) {
+        this.workspaces.delete(row.id);
+      }
+    }
+
     for (const row of this.workspaces.list()) {
       if (row.name === name) {
         throw new ConflictError('workspace name exists');

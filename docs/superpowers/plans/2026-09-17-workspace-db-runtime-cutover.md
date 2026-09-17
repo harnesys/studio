@@ -158,7 +158,7 @@ get(nodeId: string, pluginId: string, key: string): ...
 
 **Files:** `docs/ROADMAP.md`, `docs/superpowers/specs/2026-09-16-packaging-federation-design.md`
 
-Вычеркнуть «ход пишется в `~/.harnesys/studio.db`» / «два процесса с одной базой» ещё рано для process split, но **данные** = N `workspace.db` в каталогах нод + `config.json`. Бэкап: эти файлы, не один studio.db. Docker volume: bind mount каталогов нод + `~/.harnesys/config.json`.
+Данные = N `workspace.db` в каталогах нод + `config.json`. Два процесса не делят одну sqlite: host держит db нод, окно без sqlite. Бэкап: эти файлы, не один studio.db. Docker volume: bind mount каталогов нод + `~/.harnesys/config.json`.
 
 - [ ] **Commit** `docs: persist is workspace.db per node`
 

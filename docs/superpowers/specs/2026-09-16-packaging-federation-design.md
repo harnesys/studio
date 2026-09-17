@@ -6,7 +6,7 @@ Scope: упаковка (десктоп x3, self-hosted CLI, Docker) + феде�
 
 ## Контекст
 
-ROADMAP (`docs/ROADMAP.md`) описывает стол агентов на машине пользователя или его VPS: агент привязан к папке, domain — `<workspace>/.harnesys/workspace.db`, машина — `~/.harnesys/config.json`, ключи на хосте. Сегодня `apps/studio/server/src/index.ts` раздаёт API и `client/dist` одним процессом Bun. Демона, tray, автозапуска, pairing нет.
+ROADMAP (`docs/ROADMAP.md`) описывает стол агентов на машине пользователя или его VPS: агент привязан к папке, domain — `<workspace>/.harnesys/workspace.db`, машина — `~/.harnesys/config.json`, ключи на хосте. Host (`server/src/index.ts`) — API+WS+tickers; окно — отдельный процесс (Vite / later Tauri / `harnesys-web`). Общей sqlite у двух процессов нет: N× `workspace.db` только на host. Демона, tray, автозапуска, pairing нет.
 
 ## Решение
 

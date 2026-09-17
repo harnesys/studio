@@ -34,7 +34,7 @@ Studio в репозитории — этот стол. `packages/harnesys` — 
 | хост | runtime, persist, cron, вебхуки, MCP, HITL-gate. Живёт в фоне. Старт с логином ОС. |
 | окно | стол: чат, файлы, инспектор, inbox подтверждений, расход. Можно закрыть. |
 
-Сейчас продукт так не живёт. Факт: `apps/studio/dev.ts` поднимает Vite и `bun --watch server/src/index.ts`. Факт: `apps/studio/server/src/index.ts` в production раздаёт API и `client/dist` одним процессом. Фона, tray, автозапуска ОС, туннеля нет.
+Факт: `apps/studio/dev.ts` поднимает Vite (окно, `:5173`) и `bun --watch server/src/index.ts` (host, `:3000`). Host отдаёт API+WS, не `client/dist`. Persist нод — N× `workspace.db` на host; окно без sqlite. Auth: `host.token` / `window.hosts[0].credential`, клиент шлёт Bearer после loopback `GET /api/window/bootstrap`. Фона, tray, автозапуска ОС, туннеля, pairing remote нет.
 
 Иконка в tray показывает `running` и `awaiting_confirm` по всем тредам. Закрытое окно хост не останавливает. После сна хост поднимает paused HITL, очередь cron догоняет. Тот же бинарь работает на VPS. С ноутбука и телефона открывается UI по HTTPS. Вебхуки смотрят в интернет. HITL приходит в Telegram или системный пуш.
 
@@ -90,7 +90,7 @@ BYOK везде. Маржа с токенов не нужна на старте.
 | память: порты Pin, Semantic, Episodic, Knowledge, wiring, UI | `src/packs/memory/`, `src/ports/memory.ts`, `server/src/composition/wire-memory.ts`, `features/manage-agent-memory/`, `manage-knowledge-roots/`, `manage-knowledge-index/` |
 | plan mechanics | `apps/studio/assets/plan-mode.md`, `src/packs/plan/` |
 | LSP | `src/packs/lsp/`, `features/lsp-bridge/` |
-| prod один процесс раздаёт API и `client/dist` | `apps/studio/server/src/index.ts` |
+| host API+WS без `client/dist`; UI на Vite / later `harnesys-web` | `apps/studio/server/src/index.ts`, `dev.ts` |
 
 Проверено чтением кода 2026-09-15. Не проверял метрики долгого прогона, потребление окна и стоимость: стенд не гонял.
 
@@ -193,7 +193,7 @@ HITL в ядре сильный. Продукт вокруг него тонки
 ## Упаковка
 
 1. Имя и сайт. Один экран: обещание, ролик, download, BYOK, цена хоста. Документация: install, первый агент, cron, webhook, HITL, свои ключи.
-2. Бинарь хоста и UI. Сейчас dev держит два процесса. Продукт: один процесс раздаёт API и собранный клиент (`server/src/index.ts`), плюс daemon без окна.
+2. Бинарь хоста и UI. Два процесса: host (API+WS+sqlite нод) и window (UI). Prod static — отдельный `harnesys-web` / Tauri webview (Phase 7), не host.
 3. Трей и автозапуск: macOS launch agent, Windows service, systemd user.
 4. Туннель из UI: кнопка URL для вебхука без CLI.
 5. Лицензия. Ядро `harnesys` открытое для встраивания. Деньги за hosted и always-on. Сказать на сайте прямо.

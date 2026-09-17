@@ -97,20 +97,14 @@ Desk SSE `/api/desk/watch`: с Bearer.
 
 **Files:** `shared/api/client.ts`, boot
 
-Window не читает `config.json` с диска в браузере (нет fs). Dev: Vite plugin или `GET /api/window/bootstrap` **без** token не отдаёт host.token. Проблема: курица-яйцо для первого запроса.
+Window не читает `config.json` с диска в браузере (нет fs). Курица-яйцо:
 
-Решение local Phase 5:
+1. `GET /api/window/bootstrap` **только с loopback**, без Bearer → `{ hosts, desk }` (credential в `hosts[0]`).
+2. Клиент кладёт credential в память (`host-credential.ts`) и дальше шлёт `Authorization: Bearer` на все `/api/*` (тот же контур, что Phase 6 для remote).
+3. WS / `<img src>`: `?token=` (браузер не ставит Authorization на WebSocket и media).
+4. Vite proxy inject Bearer — **опциональный** dogfood, не единственный путь. Не класть token в `VITE_*`.
 
-1. Dev proxy: Vite `server.proxy` добавляет `Authorization` из env `HARNESYS_WINDOW_CREDENTIAL` / читает token только в **Node Vite config** с диска `~/.harnesys/config.json` `window.hosts[0].credential` (Vite запускается на машине пользователя, это window-процесс). Browser `fetch('/api/...')` идёт на Vite, proxy ставит header. Браузер token не видит.
-2. Production Tauri (Phase 7) проставит header в rust; в Phase 5 prod web: тот же proxy или `harnesys-web` (Phase 7).
-
-Не класть token в `import.meta.env` публичный `VITE_*`.
-
-`apiJson` в браузере остаётся relative `/api`. SSE `EventSource` тоже через Vite proxy.
-
-Если Vite не может читать home: маленький local plugin `apps/studio/client/vite-host-auth.ts`.
-
-- [ ] **Commit** `feat(studio): vite window proxy injects host credential`
+- [ ] **Commit** `feat(studio): client sends host bearer from loopback bootstrap`
 
 ---
 

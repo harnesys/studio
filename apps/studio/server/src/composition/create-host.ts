@@ -1,6 +1,8 @@
 import type { LspServerSpec, ModelsPort, PluginComponent } from 'harnesys';
 import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
 import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
+import type { WorkspacePluginLspServer } from '../adapters/lsp/workspace-lsp-file.ts';
+import { resolveWorkspaceLsp } from '../adapters/lsp/workspace-lsp-file.ts';
 import { MonitorJobRegistrarAdapter } from '../adapters/monitor-job-registrar.adapter.ts';
 import { RunHookBuses } from '../adapters/run-hook-buses.adapter.ts';
 import { SqliteRuntimeStateRepo } from '../adapters/store/sqlite/repos/sqlite-runtime-state-repo.adapter.ts';
@@ -225,7 +227,7 @@ export function createStudioHost(args: {
       return [];
     }
     const loaded = await workspaceHarnesys.loadEnabledPlugins(workspace.id);
-    const servers: LspServerSpec[] = [];
+    const pluginServers: WorkspacePluginLspServer[] = [];
     for (const entry of loaded) {
       // First-wins dedupe by extension (lsp_shadowed) happens in the adapter.
       const userConfig = pluginUserConfig(entry.ir, entry.record.options);
@@ -238,10 +240,12 @@ export function createStudioHost(args: {
           );
           continue;
         }
-        servers.push(substituted);
+        pluginServers.push({ spec: substituted, pluginName: entry.ir.identity.name });
       }
     }
-    return servers;
+    // File servers first: they win the adapter dedupe; origin rides on the
+    // spec for the controller, which reuses resolveWorkspaceLsp.
+    return resolveWorkspaceLsp(workspace.path, pluginServers);
   };
 
   const branchSeeder = new SeedBranchStateUseCase({

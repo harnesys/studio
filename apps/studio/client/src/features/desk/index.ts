@@ -24,13 +24,16 @@ export {
   useThreadWaiting,
 } from './model/use-agent-live-status';
 export {
+  useAgentsInWorkspaces,
   useAgentThreads,
   useDesk,
   useDeskSelection,
+  useSchedulesInWorkspaces,
   useSelectedAgent,
   useSelectedThread,
   useThreadEvents,
   useWaitingThreads,
+  useWebhooksInWorkspaces,
   useWorkspaceAgents,
   useWorkspaceSchedules,
   useWorkspaceWebhooks,

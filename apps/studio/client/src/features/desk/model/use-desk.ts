@@ -31,6 +31,12 @@ export function useWorkspaceAgents(workspaceId: string | null) {
   );
 }
 
+export function useAgentsInWorkspaces(workspaceIds: string[]) {
+  return useAgentStore(
+    useShallow((state) => state.items.filter((item) => workspaceIds.includes(item.workspaceId))),
+  );
+}
+
 export function useAgentThreads(agentId: string | null) {
   return useThreadStore(useShallow((state) => (agentId ? state.forAgent(agentId) : [])));
 }
@@ -52,11 +58,23 @@ export function useWorkspaceSchedules(workspaceId: string | null) {
   );
 }
 
+export function useSchedulesInWorkspaces(workspaceIds: string[]) {
+  return useScheduleStore(
+    useShallow((state) => state.items.filter((item) => workspaceIds.includes(item.workspaceId))),
+  );
+}
+
 export function useWorkspaceWebhooks(workspaceId: string | null) {
   return useWebhookStore(
     useShallow((state) =>
       workspaceId ? state.items.filter((item) => item.workspaceId === workspaceId) : [],
     ),
+  );
+}
+
+export function useWebhooksInWorkspaces(workspaceIds: string[]) {
+  return useWebhookStore(
+    useShallow((state) => state.items.filter((item) => workspaceIds.includes(item.workspaceId))),
   );
 }
 

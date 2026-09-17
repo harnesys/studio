@@ -7,6 +7,9 @@ import { useFileSelectionStore } from './file-selection.store';
 export function useFilesHotkey(workspaceId: string) {
   const qc = useQueryClient();
   useEffect(() => {
+    if (!workspaceId) {
+      return;
+    }
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.metaKey && event.altKey && event.code === 'KeyA')) {
         return;

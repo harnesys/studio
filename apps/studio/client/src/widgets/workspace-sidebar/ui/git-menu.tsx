@@ -1,5 +1,5 @@
 import type { GitStatusResponse } from '@harnesys/studio-shared';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DownloadIcon,
   GitCommitVerticalIcon,
@@ -21,7 +21,7 @@ import {
 import { useFileSelectionStore } from '../model/file-selection.store';
 import { useGitActions } from '../model/use-git-actions';
 import { BranchRow } from './branch-row';
-import { formatCountsShort, GitCounts } from './git-counts';
+import { formatCountsShort } from './git-counts';
 import { SectionMenu } from './section-menu';
 
 type GitStatus = Extract<GitStatusResponse, { isGit: true }>;
@@ -38,32 +38,40 @@ export function useGitStatus(workspaceId: string): GitStatus | null {
   return query.data?.isGit ? (query.data as GitStatus) : null;
 }
 
-export function GitTitle({ workspaceId }: { workspaceId: string }) {
-  const status = useGitStatus(workspaceId);
-  if (!status) {
-    return <>Git</>;
-  }
-  const label = status.branch ?? status.head?.slice(0, 7) ?? 'HEAD';
-  let dirtyBadge: React.ReactNode = null;
-  if (status.counts) {
-    dirtyBadge = <GitCounts counts={status.counts} />;
-  } else if (status.dirty) {
-    dirtyBadge = (
-      <span className="shrink-0 font-normal text-[10px] text-amber-600 dark:text-amber-500">
-        • {status.dirtyCount}
-      </span>
-    );
+export function GitTitle({ workspaceIds }: { workspaceIds: string[] }) {
+  const queries = useQueries({
+    queries: workspaceIds.map((workspaceId) => ({
+      queryKey: gitStatusQueryKey(workspaceId),
+      queryFn: () => getGitStatus(workspaceId),
+      enabled: Boolean(workspaceId),
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    })),
+  });
+  let dirtyTotal = 0;
+  let aheadTotal = 0;
+  let behindTotal = 0;
+  for (const query of queries) {
+    const status = query.data?.isGit ? (query.data as GitStatus) : null;
+    if (!status) {
+      continue;
+    }
+    dirtyTotal += status.dirtyCount;
+    aheadTotal += status.ahead;
+    behindTotal += status.behind;
   }
   return (
     <span className="flex min-w-0 items-center gap-1.5">
       Git
-      <span className="min-w-0 truncate rounded-sm bg-sidebar-accent px-1 font-mono font-normal text-[10px] text-muted-foreground leading-4">
-        {label}
-      </span>
-      {dirtyBadge}
-      {status.ahead || status.behind ? (
+      {dirtyTotal > 0 ? (
+        <span className="shrink-0 font-normal text-[10px] text-amber-600 dark:text-amber-500">
+          • {dirtyTotal}
+        </span>
+      ) : null}
+      {aheadTotal || behindTotal ? (
         <span className="shrink-0 font-normal text-[10px] text-muted-foreground">
-          ↑{status.ahead} ↓{status.behind}
+          ↑{aheadTotal} ↓{behindTotal}
         </span>
       ) : null}
     </span>

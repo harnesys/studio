@@ -2,12 +2,12 @@ import { InboxIcon, SettingsIcon } from 'lucide-react';
 import { Fragment, type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useThreadStore } from '@/entities/thread';
 import {
+  useAgentsInWorkspaces,
   useAgentsSlideStore,
   useAgentThreads,
+  useSchedulesInWorkspaces,
   useWaitingThreads,
-  useWorkspaceAgents,
-  useWorkspaceSchedules,
-  useWorkspaceWebhooks,
+  useWebhooksInWorkspaces,
 } from '@/features/desk';
 import { useIdeTabs } from '@/features/ide';
 import { useStudioLocation } from '@/shared/config/location';
@@ -30,7 +30,7 @@ import { useSelectedWorkspaceIds } from '../model/workspace-tabs.store';
 import { AccordionSection } from './accordion-section';
 import { AgentsSection, AgentsSectionActions } from './agents-section';
 import { AutomationsAddMenu, AutomationsSection } from './automations-section';
-import { ExplorerActions, ExplorerContent, ExplorerTitle } from './files-section';
+import { ExplorerActions, ExplorerTitle, ExplorerTrees } from './files-section';
 import { GitSectionMenu, GitTitle } from './git-menu';
 import { GitSection } from './git-section';
 import { InboxSection } from './inbox-section';
@@ -41,10 +41,14 @@ import { WorkspaceHeader } from './workspace-header';
 export function WorkspaceSidebar() {
   const { workspaceId, threadId, threadOrigin, originEntityId } = useStudioLocation();
   const workspaceIds = useSelectedWorkspaceIds();
+  const createWorkspaceId = workspaceIds[0] ?? null;
   const inboxThreads = useWaitingThreads(workspaceIds);
-  const agents = useWorkspaceAgents(workspaceId);
-  const schedules = useWorkspaceSchedules(workspaceId);
-  const webhooks = useWorkspaceWebhooks(workspaceId);
+  const agents = useAgentsInWorkspaces(workspaceIds);
+  const schedules = useSchedulesInWorkspaces(workspaceIds);
+  const webhooks = useWebhooksInWorkspaces(workspaceIds);
+  const createAgents = createWorkspaceId
+    ? agents.filter((item) => item.workspaceId === createWorkspaceId)
+    : [];
   const { openSettings } = useStudioNavigation();
   const { setOpenMobile } = useSidebar();
   const ideTabs = useIdeTabs(workspaceId);
@@ -157,11 +161,11 @@ export function WorkspaceSidebar() {
               slideAgent ? slideThreads.length : agents.filter((agent) => !agent.parentId).length
             }
             size={shares[id] ?? 1}
-            actions={<AgentsSectionActions workspaceId={workspaceId} />}
+            actions={<AgentsSectionActions workspaceId={createWorkspaceId} />}
             {...drag}
           >
             <AgentsSection
-              workspaceId={workspaceId}
+              workspaceIds={workspaceIds}
               agents={agents}
               activeAgentId={activeAgentId}
               activeThreadId={activeThreadId}
@@ -174,12 +178,12 @@ export function WorkspaceSidebar() {
           <AccordionSection
             id="explorer"
             icon={<Icon />}
-            title={workspaceId ? <ExplorerTitle workspaceId={workspaceId} /> : 'Explorer'}
+            title={<ExplorerTitle workspaceIds={workspaceIds} />}
             size={shares[id] ?? 1}
-            actions={workspaceId ? <ExplorerActions /> : undefined}
+            actions={<ExplorerActions workspaceId={createWorkspaceId} />}
             {...drag}
           >
-            {workspaceId ? <ExplorerContent workspaceId={workspaceId} /> : null}
+            <ExplorerTrees workspaceIds={workspaceIds} />
           </AccordionSection>
         );
       case 'automations':
@@ -192,15 +196,15 @@ export function WorkspaceSidebar() {
             size={shares[id] ?? 1}
             actions={
               <AutomationsAddMenu
-                workspaceId={workspaceId}
-                agents={agents}
+                workspaceId={createWorkspaceId}
+                agents={createAgents}
                 onDone={() => setOpenMobile(false)}
               />
             }
             {...drag}
           >
             <AutomationsSection
-              workspaceId={workspaceId}
+              workspaceIds={workspaceIds}
               agents={agents}
               schedules={schedules}
               webhooks={webhooks}
@@ -216,12 +220,14 @@ export function WorkspaceSidebar() {
           <AccordionSection
             id="git"
             icon={<Icon />}
-            title={workspaceId ? <GitTitle workspaceId={workspaceId} /> : 'Git'}
+            title={<GitTitle workspaceIds={workspaceIds} />}
             size={shares[id] ?? 1}
-            actions={workspaceId ? <GitSectionMenu workspaceId={workspaceId} /> : undefined}
+            actions={
+              createWorkspaceId ? <GitSectionMenu workspaceId={createWorkspaceId} /> : undefined
+            }
             {...drag}
           >
-            {workspaceId ? <GitSection workspaceId={workspaceId} /> : null}
+            <GitSection workspaceIds={workspaceIds} />
           </AccordionSection>
         );
     }

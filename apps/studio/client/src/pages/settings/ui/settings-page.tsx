@@ -27,8 +27,9 @@ import { WorkspacePane } from './workspace-pane';
 
 export function SettingsPage() {
   const { category } = useParams();
-  const { workspaceId, settingsProviderId } = useStudioLocation();
-  const { openWorkspace, openSettings } = useStudioNavigation();
+  const focus = useStudioLocation();
+  const settingsProviderId = focus.kind === 'settings' ? focus.providerId : null;
+  const { openDesk, openSettings } = useStudioNavigation();
   const active = parseSettingsCategory(category);
   const meta = findSettingsItem(active);
 
@@ -44,24 +45,21 @@ export function SettingsPage() {
             size="sm"
             className="w-full justify-start text-muted-foreground"
             onClick={() => {
-              if (workspaceId) {
-                openWorkspace(workspaceId);
-              }
+              openDesk();
             }}
             data-testid="settings-back"
           >
             <ArrowLeftIcon data-icon="inline-start" />
-            Back to workspace
+            Back to desk
           </Button>
         </div>
         <ScrollArea className="min-h-0 flex-1">
           <SettingsNav
             active={active}
-            onSelect={(category) =>
+            onSelect={(next) =>
               openSettings(
-                category,
-                undefined,
-                category === 'providers' ? (settingsProviderId ?? undefined) : undefined,
+                next,
+                next === 'providers' ? (settingsProviderId ?? undefined) : undefined,
               )
             }
           />

@@ -8,12 +8,11 @@ import {
   workspaceMcpConfigQuery,
   workspaceToolsQuery,
 } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
-
 import { Row, RowHeader, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
+import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 
 export function ToolsPane() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = useSettingsWorkspaceId();
   const query = useQuery({
     ...workspaceToolsQuery(workspaceId ?? ''),
     enabled: Boolean(workspaceId),

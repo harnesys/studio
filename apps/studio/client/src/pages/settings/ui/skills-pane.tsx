@@ -11,14 +11,14 @@ import {
   workspaceSkillsQuery,
   workspaceSkillsQueryKey,
 } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
 import { Button } from '@/shared/ui/button';
 import { Row, RowChip, RowHeader, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
+import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 
 export function SkillsPane() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = useSettingsWorkspaceId();
   const queryClient = useQueryClient();
   const skillsQuery = useQuery({
     ...workspaceSkillsQuery(workspaceId ?? ''),

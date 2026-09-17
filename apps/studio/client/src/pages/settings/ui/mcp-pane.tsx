@@ -22,14 +22,14 @@ import {
   workspaceMcpQuery,
   workspaceMcpQueryKey,
 } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
 import { Button } from '@/shared/ui/button';
 import { RowHeader, RowList } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
+import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 
 export function McpPane() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = useSettingsWorkspaceId();
   const queryClient = useQueryClient();
   const configQuery = useQuery({
     ...workspaceMcpConfigQuery(workspaceId ?? ''),

@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { GitBranchIcon } from 'lucide-react';
 
 import { getGitStatus, gitStatusQueryKey } from '@/shared/api/git';
-import { useStudioLocation } from '@/shared/config/location';
 import { Badge } from '@/shared/ui/badge';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 
 type DecorationsMode = 'auto' | 'on' | 'off';
 
@@ -23,7 +23,7 @@ function getDecorationsMode(): DecorationsMode {
 }
 
 export function GitPane() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = useSettingsWorkspaceId();
   const statusQuery = useQuery({
     queryKey: workspaceId ? gitStatusQueryKey(workspaceId) : ['git', 'none'],
     queryFn: () => getGitStatus(workspaceId as string),

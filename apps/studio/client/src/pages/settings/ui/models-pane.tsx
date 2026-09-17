@@ -15,7 +15,6 @@ import { Button } from '@/shared/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { Switch } from '@/shared/ui/switch';
 import { toast } from '@/shared/ui/toast';
-
 import {
   useAttachProviderModel,
   useCreateProvider,
@@ -28,13 +27,16 @@ import {
   useUpdateProvider,
   useUpdateProviderModel,
 } from '../model/use-providers';
+import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 import { ProviderForm } from './provider-form';
 import { ProviderModelsSection } from './provider-models-section';
 import { ProviderSettingsFields } from './provider-settings-fields';
 
 export function ModelsPane() {
   const navigate = useNavigate();
-  const { workspaceId, settingsProviderId } = useStudioLocation();
+  const focus = useStudioLocation();
+  const settingsProviderId = focus.kind === 'settings' ? focus.providerId : null;
+  const workspaceId = useSettingsWorkspaceId();
   const catalog = useQuery(catalogQuery).data;
   const providersQuery = useProviders();
   const providers = providersQuery.data ?? [];
@@ -58,7 +60,7 @@ export function ModelsPane() {
       if (!workspaceId) {
         return;
       }
-      void navigate(studioPath.settings(workspaceId, 'providers', id), { replace });
+      void navigate(studioPath.settings('providers', id), { replace });
     },
     [workspaceId, navigate],
   );
@@ -135,9 +137,7 @@ export function ModelsPane() {
             return next;
           });
           const next = providers.find((item) => item.id !== id)?.id ?? undefined;
-          if (workspaceId) {
-            void navigate(studioPath.settings(workspaceId, 'providers', next), { replace: true });
-          }
+          void navigate(studioPath.settings('providers', next), { replace: true });
         });
       });
   }

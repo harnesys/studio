@@ -8,12 +8,12 @@ import {
   type Workspace,
 } from '@/entities/workspace';
 import { confirmDeleteWorkspace, WorkspaceFields } from '@/features/create-workspace';
-import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { Button } from '@/shared/ui/button';
+import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 
 export function WorkspacePane() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = useSettingsWorkspaceId();
   const workspacesQuery = useWorkspaces();
   const workspace = (workspacesQuery.data ?? []).find((item) => item.id === workspaceId) ?? null;
 
@@ -82,7 +82,7 @@ function GeneralSection({ workspace }: { workspace: Workspace }) {
 
 function DangerSection({ workspace }: { workspace: Workspace }) {
   const removeWorkspace = useDeleteWorkspace();
-  const { leaveWorkspace } = useStudioNavigation();
+  const { openDesk } = useStudioNavigation();
 
   const handleDelete = () => {
     void confirmDeleteWorkspace(workspace).then((confirmed) => {
@@ -90,7 +90,7 @@ function DangerSection({ workspace }: { workspace: Workspace }) {
         return;
       }
       void removeWorkspace.mutateAsync(workspace.id).then(() => {
-        leaveWorkspace();
+        openDesk();
       });
     });
   };

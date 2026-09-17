@@ -33,7 +33,6 @@ import {
   workspaceMcpConfigQueryKey,
   workspaceMcpQueryKey,
 } from '@/shared/api';
-import { useStudioLocation } from '@/shared/config/location';
 import { Button } from '@/shared/ui/button';
 import {
   Row,
@@ -45,12 +44,13 @@ import {
 } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
+import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 
 const SERVER_APPROVAL_REASON = 'needs_server_approval';
 const MCP_SERVER_KIND = 'mcp-server';
 
 export function PluginsInstalledTab() {
-  const { workspaceId } = useStudioLocation();
+  const workspaceId = useSettingsWorkspaceId();
   const queryClient = useQueryClient();
   const pluginsListQuery = useQuery(pluginsQuery(workspaceId ?? undefined));
   const items = pluginsListQuery.data ?? [];

@@ -1,4 +1,4 @@
-import { MoreHorizontalIcon, PlusIcon } from 'lucide-react';
+import { MessageCircle, MoreHorizontalIcon } from 'lucide-react';
 import type { Agent, AgentStatus } from '@/entities/agent';
 import { agentColorTintClass, statusLabel } from '@/entities/agent';
 import { useAgentHasUnread, useAgentLiveStatus } from '@/features/desk';
@@ -85,7 +85,7 @@ export function AgentCard({
             </div>
             <div className="mt-0.5 flex items-baseline justify-between gap-2">
               <div className="min-w-0 truncate text-[11px] text-muted-foreground leading-3">
-                {agent.instructions}
+                {agent.role}
               </div>
               <div className={cn('shrink-0 font-mono text-[8px]', statusInk(status))}>
                 {statusLabel(status)}
@@ -104,14 +104,14 @@ export function AgentCard({
           variant="ghost"
           size="icon-xs"
           title="New thread"
-          className="absolute top-1 right-[30px] opacity-0 group-hover/agent:opacity-100 group-data-[collapsible=icon]:hidden"
+          className="absolute top-1 right-[28px] opacity-0 group-hover/agent:opacity-100 group-data-[collapsible=icon]:hidden"
           data-testid={`agent-new-thread-${agent.id}`}
           onClick={(event) => {
             event.stopPropagation();
             onNewThread();
           }}
         >
-          <PlusIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
+          <MessageCircle className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
           <span className="sr-only">New thread</span>
         </Button>
       ) : null}

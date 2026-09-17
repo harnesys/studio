@@ -3,7 +3,7 @@ import {
   CalendarClockIcon,
   EarthIcon,
   GitBranchIcon,
-  MessageSquareIcon,
+  MessageCircle,
   MoreHorizontalIcon,
   PinIcon,
 } from 'lucide-react';
@@ -303,7 +303,7 @@ function kindIcon(kind: ThreadKind): ReactNode {
   if (kind === 'webhook') {
     return <EarthIcon className="size-3" />;
   }
-  return <MessageSquareIcon className="size-3" />;
+  return <MessageCircle className="size-3" />;
 }
 
 function threadTime(iso: string): string {

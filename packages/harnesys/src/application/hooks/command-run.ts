@@ -1,4 +1,10 @@
-import type { HookEventName, HookHandler, HookPayload } from '../../domain/hook.ts';
+import path from 'node:path';
+import type {
+  HookCommandShell,
+  HookEventName,
+  HookHandler,
+  HookPayload,
+} from '../../domain/hook.ts';
 import type { ConfigError, UserConfigContentOptions } from '../plugins/user-config.ts';
 import { substituteUserConfig } from '../plugins/user-config.ts';
 import type { HookRuntimeCtx } from './bus.ts';
@@ -12,6 +18,9 @@ import type {
 
 const DEFAULT_TIMEOUT_S_USER_PROMPT = 30;
 const DEFAULT_TIMEOUT_S = 600;
+
+/** Basename `$SHELL`, при котором Claude/`shell: "bash"` используют этот интерпретатор. */
+const BASH_FAMILY = new Set(['bash', 'zsh', 'sh']);
 
 const COMMAND_PLACEHOLDERS = [
   '${' + 'CLAUDE_PLUGIN_ROOT}',
@@ -42,23 +51,37 @@ export async function runCommand(
       ],
     };
   }
-  const argv = buildCommandArgv(resolved.handler, vars);
-  if (argv === undefined) {
-    return {
-      effects: [],
-      diagnostics: [
-        {
-          level: 'warning',
-          code: 'invalid_command_form',
-          message: `команда не разбирается без шелла: ${h.command}`,
-        },
-      ],
-    };
-  }
   const timeoutS = h.timeoutS ?? defaultTimeoutS(payload.event, 'command');
+  const spawnOptions: HookSpawnOptions = {
+    cwd: vars.pluginRoot,
+    env: hookProcessEnv(ctx, vars, resolved.handler.env),
+  };
   let proc: Bun.Subprocess<'pipe', 'pipe', 'pipe'>;
   try {
-    proc = spawnHookCommand(argv, { cwd: vars.pluginRoot, env: hookProcessEnv(ctx, vars, h.env) });
+    // Claude: `shell` только в shell-form (без `args`); при `args` — прямой spawn.
+    const shellForm = resolved.handler.args === undefined ? resolved.handler.shell : undefined;
+    if (shellForm !== undefined) {
+      proc = spawnHookShell(
+        shellForm,
+        expandCommandPlaceholders(resolved.handler.command, vars),
+        spawnOptions,
+      );
+    } else {
+      const argv = buildCommandArgv(resolved.handler, vars);
+      if (argv === undefined) {
+        return {
+          effects: [],
+          diagnostics: [
+            {
+              level: 'warning',
+              code: 'invalid_command_form',
+              message: `команда не разбирается без шелла: ${h.command}`,
+            },
+          ],
+        };
+      }
+      proc = spawnHookCommand(argv, spawnOptions);
+    }
   } catch (error) {
     return {
       effects: [],
@@ -256,25 +279,58 @@ function tokenizeCommand(command: string): string[] | undefined {
 
 type HookSpawnOptions = { cwd: string; env: Record<string, string> };
 
-/** Spawn argv; ENOEXEC/EACCES (полиглот без шебанга — канонический `.cmd` Claude) → повтор под bash — паритет шелл-исполнения Claude (спека §2.2). */
-function spawnHookCommand(
-  argv: string[],
-  options: HookSpawnOptions,
-): Bun.Subprocess<'pipe', 'pipe', 'pipe'> {
-  const base = {
+function spawnBase(options: HookSpawnOptions) {
+  return {
     ...options,
     stdout: 'pipe' as const,
     stderr: 'pipe' as const,
     stdin: 'pipe' as const,
     detached: true,
   };
+}
+
+/**
+ * Claude shell-form: строка `command` целиком в интерпретатор.
+ * `bash` → `$SHELL` если basename bash/zsh/sh, иначе `bash -c`;
+ * `powershell` → `pwsh -NoProfile -Command`.
+ */
+function spawnHookShell(
+  shell: HookCommandShell,
+  command: string,
+  options: HookSpawnOptions,
+): Bun.Subprocess<'pipe', 'pipe', 'pipe'> {
+  const base = spawnBase(options);
+  if (shell === 'powershell') {
+    return Bun.spawn(['pwsh', '-NoProfile', '-Command', command], base);
+  }
+  return Bun.spawn([resolveBashBin(), '-c', command], base);
+}
+
+/** `$SHELL`, если это bash/zsh/sh; иначе литерал `bash` (схема Claude plugin manifest). */
+function resolveBashBin(): string {
+  const shell = process.env.SHELL;
+  if (shell !== undefined && shell.length > 0) {
+    const base = path.basename(shell);
+    if (BASH_FAMILY.has(base)) {
+      return shell;
+    }
+  }
+  return 'bash';
+}
+
+/** Spawn argv; ENOEXEC/EACCES (полиглот без шебанга — канонический `.cmd` Claude) → повтор под bash-family. */
+function spawnHookCommand(
+  argv: string[],
+  options: HookSpawnOptions,
+): Bun.Subprocess<'pipe', 'pipe', 'pipe'> {
+  const base = spawnBase(options);
   try {
     return Bun.spawn(argv, base);
   } catch (error) {
     if (!isExecFormatError(error)) {
       throw error;
     }
-    return Bun.spawn(['bash', ...argv], base);
+    return Bun.spawn([resolveBashBin(), ...argv], base);
   }
 }
 

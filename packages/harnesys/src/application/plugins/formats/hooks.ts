@@ -1,5 +1,10 @@
 import path from 'node:path';
-import type { HookBinding, HookEventName, HookHandler } from '../../../domain/hook.ts';
+import type {
+  HookBinding,
+  HookCommandShell,
+  HookEventName,
+  HookHandler,
+} from '../../../domain/hook.ts';
 import { NATIVE_HOOK_EVENTS } from '../../../domain/hook.ts';
 import type { PluginDiagnostic } from '../../../domain/plugin-diagnostics.ts';
 import type { InertSpec, PluginComponent } from '../../../domain/plugin-ir.ts';
@@ -211,10 +216,12 @@ function parseHandler(
         diagnostics.push(entryWarning(label, `${pointer}: command must be a non-empty string`));
         return undefined;
       }
+      const shell = pickCommandShell(entry.shell, label, pointer, diagnostics);
       const handler: HookHandler = {
         type: 'command',
         command: entry.command,
         ...common,
+        ...(shell !== undefined ? { shell } : {}),
         ...(entry.async === true ? { async: true } : {}),
         ...(isRecordValue(entry.env) ? { env: stringMap(entry.env) } : {}),
       };
@@ -288,6 +295,7 @@ const HANDLER_FIELD_KEYS: ReadonlySet<string> = new Set([
   'type',
   'command',
   'args',
+  'shell',
   'url',
   'headers',
   'server',
@@ -300,6 +308,24 @@ const HANDLER_FIELD_KEYS: ReadonlySet<string> = new Set([
   'async',
   'env',
 ]);
+
+const COMMAND_SHELLS: ReadonlySet<string> = new Set(['bash', 'powershell']);
+
+function pickCommandShell(
+  value: unknown,
+  label: string,
+  pointer: string,
+  diagnostics: PluginDiagnostic[],
+): HookCommandShell | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string' && COMMAND_SHELLS.has(value)) {
+    return value as HookCommandShell;
+  }
+  diagnostics.push(entryWarning(label, `${pointer}: shell must be "bash" or "powershell"`));
+  return undefined;
+}
 
 function pickTimeoutS(entry: Record<string, unknown>): number | undefined {
   if (typeof entry.timeoutS === 'number' && Number.isFinite(entry.timeoutS)) {

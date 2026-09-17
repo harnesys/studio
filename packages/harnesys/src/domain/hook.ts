@@ -127,12 +127,17 @@ export type HookEffect =
   | { kind: 'ask'; reason: string }
   | { kind: 'stop'; reason?: string };
 
+/** Интерпретатор shell-form command-хука (Claude `shell`; игнорируется при `args`). */
+export type HookCommandShell = 'bash' | 'powershell';
+
 /** Шесть видов обработчиков: command, http, mcp_tool, prompt, agent, inline. */
 export type HookHandler =
   | {
       type: 'command';
       command: string;
       args?: string[];
+      /** Shell-form без `args`: `bash` → `$SHELL` (bash/zsh/sh) иначе `bash`; `powershell` → `pwsh`. */
+      shell?: HookCommandShell;
       timeoutS?: number;
       async?: boolean;
       env?: Record<string, string>;

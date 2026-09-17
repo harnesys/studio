@@ -1,5 +1,3 @@
-import { ScrollArea } from '@/shared/ui/scroll-area';
-
 import type { WorkspaceSettingsCategory } from '../model/workspace-settings-nav';
 import { ExportsPane } from './exports-pane';
 import { GeneralPane } from './general-pane';
@@ -22,11 +20,14 @@ export function WorkspaceSettingsCategoryPanes({
   onClose: () => void;
 }) {
   return (
-    <ScrollArea className="min-h-0 flex-1">
-      <div className="flex flex-col gap-4 pr-1" data-testid={`workspace-settings-pane-${category}`}>
+    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+      <div
+        className="flex min-w-0 flex-col gap-4 pe-3"
+        data-testid={`workspace-settings-pane-${category}`}
+      >
         <CategoryPane category={category} workspaceId={workspaceId} onClose={onClose} />
       </div>
-    </ScrollArea>
+    </div>
   );
 }
 

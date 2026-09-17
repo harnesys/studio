@@ -183,6 +183,7 @@ export {
 } from './src/domain/generation-settings.ts';
 export type {
   HookBinding,
+  HookCommandShell,
   HookEffect,
   HookEventName,
   HookHandler,

@@ -8,9 +8,8 @@ const SERVICE = 'com.harnesys.studio.plugins';
 const DELETE_NOT_FOUND_CODE = 44;
 
 /**
- * SecretStore over the macOS Keychain via the `security` CLI
- * (`add-generic-password` / `find-generic-password` / `delete-generic-password`),
- * service `com.harnesys.studio.plugins`, account `<pluginId>:<key>`.
+ * SecretStore over the macOS Keychain via the `security` CLI,
+ * service `com.harnesys.studio.plugins`, account `<nodeId>:<pluginId>:<key>`.
  * Throws from the constructor when unavailable — composition decides what to do.
  */
 export class MacosSecretStoreAdapter implements SecretStore {
@@ -23,13 +22,13 @@ export class MacosSecretStoreAdapter implements SecretStore {
     }
   }
 
-  async get(pluginId: PluginName, key: string): Promise<string | null> {
+  async get(nodeId: string, pluginId: PluginName, key: string): Promise<string | null> {
     const res = await runSecurity([
       'find-generic-password',
       '-s',
       SERVICE,
       '-a',
-      account(pluginId, key),
+      account(nodeId, pluginId, key),
       '-w',
     ]);
     if (res.code !== 0) {
@@ -38,10 +37,10 @@ export class MacosSecretStoreAdapter implements SecretStore {
     return res.stdout.trimEnd();
   }
 
-  async set(pluginId: PluginName, key: string, value: string): Promise<void> {
+  async set(nodeId: string, pluginId: PluginName, key: string, value: string): Promise<void> {
     if (Buffer.byteLength(value, 'utf8') > MAX_SECRET_VALUE_BYTES) {
       throw new ValidationError(
-        `secret value for ${pluginId}:${key} exceeds ${MAX_SECRET_VALUE_BYTES} bytes; shorten the value`,
+        `secret value for ${nodeId}:${pluginId}:${key} exceeds ${MAX_SECRET_VALUE_BYTES} bytes; shorten the value`,
       );
     }
     const res = await runSecurity([
@@ -49,35 +48,40 @@ export class MacosSecretStoreAdapter implements SecretStore {
       '-s',
       SERVICE,
       '-a',
-      account(pluginId, key),
+      account(nodeId, pluginId, key),
       '-w',
       value,
       '-U',
     ]);
     if (res.code !== 0) {
       throw new ValidationError(
-        `failed to store secret ${pluginId}:${key} in Keychain: ${res.stderr.trim() || `exit ${res.code}`}`,
+        `failed to store secret ${nodeId}:${pluginId}:${key} in Keychain: ${res.stderr.trim() || `exit ${res.code}`}`,
       );
     }
   }
 
-  async delete(pluginId: PluginName, key: string): Promise<void> {
+  async delete(nodeId: string, pluginId: PluginName, key: string): Promise<void> {
     const res = await runSecurity([
       'delete-generic-password',
       '-s',
       SERVICE,
       '-a',
-      account(pluginId, key),
+      account(nodeId, pluginId, key),
     ]);
     if (res.code !== 0 && res.code !== DELETE_NOT_FOUND_CODE) {
       throw new ValidationError(
-        `failed to delete secret ${pluginId}:${key} from Keychain: ${res.stderr.trim() || `exit ${res.code}`}`,
+        `failed to delete secret ${nodeId}:${pluginId}:${key} from Keychain: ${res.stderr.trim() || `exit ${res.code}`}`,
       );
     }
   }
 }
 
-function account(pluginId: PluginName, key: string): string {
+export function account(nodeId: string, pluginId: PluginName, key: string): string {
+  return `${nodeId}:${pluginId}:${key}`;
+}
+
+/** Pre-4b account shape `pluginId:key`. */
+export function legacyAccount(pluginId: PluginName, key: string): string {
   return `${pluginId}:${key}`;
 }
 
@@ -95,4 +99,35 @@ async function runSecurity(args: string[]): Promise<SecurityResult> {
     proc.exited,
   ]);
   return { code, stdout, stderr };
+}
+
+/** Copy Keychain item from legacy account to node-scoped account when present. */
+export async function migrateLegacySecret(
+  nodeId: string,
+  pluginId: PluginName,
+  key: string,
+): Promise<boolean> {
+  const find = await runSecurity([
+    'find-generic-password',
+    '-s',
+    SERVICE,
+    '-a',
+    legacyAccount(pluginId, key),
+    '-w',
+  ]);
+  if (find.code !== 0) {
+    return false;
+  }
+  const value = find.stdout.trimEnd();
+  const add = await runSecurity([
+    'add-generic-password',
+    '-s',
+    SERVICE,
+    '-a',
+    account(nodeId, pluginId, key),
+    '-w',
+    value,
+    '-U',
+  ]);
+  return add.code === 0;
 }

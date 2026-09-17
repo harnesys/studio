@@ -90,7 +90,7 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
       };
     }
     try {
-      await this.secrets.set(request.name, request.key, String(request.value));
+      await this.secrets.set(request.workspaceId, request.name, request.key, String(request.value));
     } catch (err) {
       return {
         plugin: record,

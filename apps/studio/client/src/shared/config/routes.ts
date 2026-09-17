@@ -1,65 +1,63 @@
 import { SETTINGS_CATEGORIES, type SettingsCategory } from './settings-nav';
 
-export type StudioSurface = 'home' | 'thread' | 'file' | 'agent' | 'settings';
+/** Phase 1: may still include domain ids from settings-nav until Phase 2. */
+export type WindowSettingsCategory = SettingsCategory;
 
-export type ThreadOrigin = 'agent' | 'scheduler' | 'webhook';
+export type StudioFocusKind = 'thread' | 'file' | 'diff' | 'schedule' | 'webhook' | 'spawn';
 
-export type ThreadOriginRef = { kind: ThreadOrigin; id: string };
-
-export type StudioLocation = {
-  workspaceId: string | null;
-  surface: StudioSurface;
-  threadId: string | null;
-  threadOrigin: ThreadOrigin | null;
-  originEntityId: string | null;
-  agentId: string | null;
-  filePath: string | null;
-  settingsCategory: SettingsCategory;
-  settingsProviderId: string | null;
-};
-
-export const STUDIO_THREAD_PATTERN = '/w/:workspaceId/thread/:threadId';
-export const STUDIO_FILE_PATTERN = '/w/:workspaceId/file/*';
-export const STUDIO_AGENT_PATTERN = '/w/:workspaceId/agent/:agentId';
+export type StudioFocus =
+  | { kind: 'none' }
+  | { kind: 'settings'; category: WindowSettingsCategory; providerId: string | null }
+  | {
+      kind: 'thread';
+      workspaceId: string;
+      threadId: string;
+    }
+  | { kind: 'file'; workspaceId: string; path: string }
+  | { kind: 'diff'; workspaceId: string; path: string }
+  | { kind: 'schedule'; workspaceId: string; scheduleId: string }
+  | { kind: 'webhook'; workspaceId: string; webhookId: string }
+  | { kind: 'spawn'; workspaceId: string; threadId: string; spawnId: string };
 
 export const studioPath = {
-  gate: '/',
-  workspace: (workspaceId: string) => `/w/${workspaceId}`,
-  thread: (workspaceId: string, threadId: string, origin?: ThreadOriginRef) => {
-    const base = `/w/${workspaceId}/thread/${threadId}`;
-    return origin ? `${base}?${origin.kind}=${origin.id}` : base;
-  },
+  desk: '/',
+  thread: (workspaceId: string, threadId: string) => `/${workspaceId}/thread/${threadId}`,
   file: (workspaceId: string, path: string) =>
-    `/w/${workspaceId}/file${path.startsWith('/') ? path : `/${path}`}`,
-  agent: (workspaceId: string, agentId: string) => `/w/${workspaceId}/agent/${agentId}`,
-  settings: (workspaceId: string, category?: SettingsCategory, providerId?: string) => {
-    if (category === 'providers' && providerId) {
-      return `/w/${workspaceId}/settings/providers/${providerId}`;
-    }
+    `/${workspaceId}/file${path.startsWith('/') ? path : `/${path}`}`,
+  diff: (workspaceId: string, path: string) =>
+    `/${workspaceId}/diff${path.startsWith('/') ? path : `/${path}`}`,
+  schedule: (workspaceId: string, scheduleId: string) => `/${workspaceId}/schedule/${scheduleId}`,
+  webhook: (workspaceId: string, webhookId: string) => `/${workspaceId}/webhook/${webhookId}`,
+  spawn: (workspaceId: string, threadId: string, spawnId: string) =>
+    `/${workspaceId}/spawn/${threadId}/${spawnId}`,
+  settings: (category?: WindowSettingsCategory, providerId?: string) => {
     if (category && category !== 'profile') {
-      return `/w/${workspaceId}/settings/${category}`;
+      if (category === 'providers' && providerId) {
+        return `/settings/providers/${providerId}`;
+      }
+      return `/settings/${category}`;
     }
-    return `/w/${workspaceId}/settings`;
+    return '/settings';
   },
 };
 
-export function parseSettingsCategory(value: string | undefined): SettingsCategory {
+export function parseSettingsCategory(value: string | undefined): WindowSettingsCategory {
   if (value && (SETTINGS_CATEGORIES as readonly string[]).includes(value)) {
-    return value as SettingsCategory;
+    return value as WindowSettingsCategory;
   }
   return 'profile';
 }
 
-export function resolveStudioEntry(input: {
-  selectedWorkspaceId: string | null;
-  hasWorkspace: boolean;
-  workspacesStatus: 'pending' | 'error' | 'success';
-}): 'desk' | 'opening' | 'gate' {
-  if (input.hasWorkspace) {
-    return 'desk';
+export function studioFocusWorkspaceId(focus: StudioFocus): string | null {
+  if (focus.kind === 'none' || focus.kind === 'settings') {
+    return null;
   }
-  if (input.selectedWorkspaceId && input.workspacesStatus === 'pending') {
-    return 'opening';
+  return focus.workspaceId;
+}
+
+export function studioFocusThreadId(focus: StudioFocus): string | null {
+  if (focus.kind === 'thread' || focus.kind === 'spawn') {
+    return focus.threadId;
   }
-  return 'gate';
+  return null;
 }

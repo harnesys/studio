@@ -1,38 +1,34 @@
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
-import { studioPath, type ThreadOriginRef } from './routes';
-import type { SettingsCategory } from './settings-nav';
+import { studioPath, type WindowSettingsCategory } from './routes';
 
 export function useStudioNavigation() {
   const navigate = useNavigate();
-  const workspaceId = useParams().workspaceId ?? null;
 
   return {
-    openWorkspace(id: string) {
-      void navigate(studioPath.workspace(id));
+    openDesk() {
+      void navigate(studioPath.desk);
     },
-    leaveWorkspace() {
-      void navigate(studioPath.gate);
+    openThread(workspaceId: string, threadId: string) {
+      void navigate(studioPath.thread(workspaceId, threadId));
     },
-    openThread(threadId: string, origin?: ThreadOriginRef, id: string | null = workspaceId) {
-      if (id) {
-        void navigate(studioPath.thread(id, threadId, origin));
-      }
+    openFile(workspaceId: string, path: string) {
+      void navigate(studioPath.file(workspaceId, path));
     },
-    openFile(path: string, id: string | null = workspaceId) {
-      if (id) {
-        void navigate(studioPath.file(id, path));
-      }
+    openDiff(workspaceId: string, path: string) {
+      void navigate(studioPath.diff(workspaceId, path));
     },
-    openSettings(
-      category?: SettingsCategory,
-      id: string | null = workspaceId,
-      providerId?: string,
-      replace = false,
-    ) {
-      if (id) {
-        void navigate(studioPath.settings(id, category, providerId), { replace });
-      }
+    openSchedule(workspaceId: string, scheduleId: string) {
+      void navigate(studioPath.schedule(workspaceId, scheduleId));
+    },
+    openWebhook(workspaceId: string, webhookId: string) {
+      void navigate(studioPath.webhook(workspaceId, webhookId));
+    },
+    openSpawn(workspaceId: string, threadId: string, spawnId: string) {
+      void navigate(studioPath.spawn(workspaceId, threadId, spawnId));
+    },
+    openSettings(category?: WindowSettingsCategory, providerId?: string, replace = false) {
+      void navigate(studioPath.settings(category, providerId), { replace });
     },
   };
 }

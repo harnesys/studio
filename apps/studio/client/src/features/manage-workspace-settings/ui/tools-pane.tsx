@@ -9,20 +9,17 @@ import {
   workspaceToolsQuery,
 } from '@/shared/api';
 import { Row, RowHeader, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
-import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
-
-export function ToolsPane() {
-  const workspaceId = useSettingsWorkspaceId();
+export function ToolsPane({ workspaceId }: { workspaceId: string }) {
   const query = useQuery({
-    ...workspaceToolsQuery(workspaceId ?? ''),
+    ...workspaceToolsQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const mcpConfigQuery = useQuery({
-    ...workspaceMcpConfigQuery(workspaceId ?? ''),
+    ...workspaceMcpConfigQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const capabilitiesQuery = useQuery({
-    ...workspaceCapabilitiesQuery(workspaceId ?? ''),
+    ...workspaceCapabilitiesQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const packs = capabilitiesQuery.data?.capabilities ?? [];

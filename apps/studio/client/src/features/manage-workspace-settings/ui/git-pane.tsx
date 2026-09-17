@@ -6,7 +6,6 @@ import { Badge } from '@/shared/ui/badge';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
-import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 
 type DecorationsMode = 'auto' | 'on' | 'off';
 
@@ -22,11 +21,10 @@ function getDecorationsMode(): DecorationsMode {
   return 'auto';
 }
 
-export function GitPane() {
-  const workspaceId = useSettingsWorkspaceId();
+export function GitPane({ workspaceId }: { workspaceId: string }) {
   const statusQuery = useQuery({
-    queryKey: workspaceId ? gitStatusQueryKey(workspaceId) : ['git', 'none'],
-    queryFn: () => getGitStatus(workspaceId as string),
+    queryKey: gitStatusQueryKey(workspaceId),
+    queryFn: () => getGitStatus(workspaceId),
     enabled: Boolean(workspaceId),
   });
 

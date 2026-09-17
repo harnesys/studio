@@ -1,7 +1,6 @@
 import type { KnowledgeFileStatus, KnowledgeStats } from '@harnesys/studio-shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { useSelectedWorkspaceIds } from '@/features/desk';
 import {
   knowledgeFilesQueryKey,
   knowledgeStatsQueryKey,
@@ -15,8 +14,7 @@ import { KnowledgeIndexStatus } from './knowledge-index-status';
 import { KnowledgeSearchSmoke } from './knowledge-search-smoke';
 import { KnowledgeSettingsFields } from './knowledge-settings-fields';
 
-export function KnowledgeIndexPane() {
-  const workspaceId = useSelectedWorkspaceIds()[0] ?? null;
+export function KnowledgeIndexPane({ workspaceId }: { workspaceId: string }) {
   const [fileStatus, setFileStatus] = useState<KnowledgeFileStatus>('indexed');
   const {
     settingsQuery,

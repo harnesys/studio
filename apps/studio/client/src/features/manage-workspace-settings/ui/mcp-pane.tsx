@@ -26,18 +26,15 @@ import { Button } from '@/shared/ui/button';
 import { RowHeader, RowList } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
-
-export function McpPane() {
-  const workspaceId = useSettingsWorkspaceId();
+export function McpPane({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const configQuery = useQuery({
-    ...workspaceMcpConfigQuery(workspaceId ?? ''),
+    ...workspaceMcpConfigQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const servers = configQuery.data?.servers ?? [];
   const liveQuery = useQuery({
-    ...workspaceMcpQuery(workspaceId ?? ''),
+    ...workspaceMcpQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const liveServers = new Map(

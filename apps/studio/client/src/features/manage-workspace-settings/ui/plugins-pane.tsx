@@ -4,7 +4,7 @@ import { PluginsDiscoverTab } from './plugins-discover-tab';
 import { PluginsInstalledTab } from './plugins-installed-tab';
 import { PluginsMarketplacesTab } from './plugins-marketplaces-tab';
 
-export function PluginsPane() {
+export function PluginsPane({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="flex flex-col gap-4" data-testid="plugins-pane">
       <Tabs defaultValue="installed">
@@ -20,7 +20,7 @@ export function PluginsPane() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="installed" className="mt-4">
-          <PluginsInstalledTab />
+          <PluginsInstalledTab workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value="discover" className="mt-4">
           <PluginsDiscoverTab />

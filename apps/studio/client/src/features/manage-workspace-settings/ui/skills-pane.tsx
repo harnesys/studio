@@ -15,13 +15,10 @@ import { Button } from '@/shared/ui/button';
 import { Row, RowChip, RowHeader, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
-
-export function SkillsPane() {
-  const workspaceId = useSettingsWorkspaceId();
+export function SkillsPane({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const skillsQuery = useQuery({
-    ...workspaceSkillsQuery(workspaceId ?? ''),
+    ...workspaceSkillsQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const skills = skillsQuery.data?.skills ?? [];

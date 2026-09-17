@@ -44,15 +44,13 @@ import {
 } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 
 const SERVER_APPROVAL_REASON = 'needs_server_approval';
 const MCP_SERVER_KIND = 'mcp-server';
 
-export function PluginsInstalledTab() {
-  const workspaceId = useSettingsWorkspaceId();
+export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
-  const pluginsListQuery = useQuery(pluginsQuery(workspaceId ?? undefined));
+  const pluginsListQuery = useQuery(pluginsQuery(workspaceId));
   const items = pluginsListQuery.data ?? [];
   const [expandedName, setExpandedName] = useState<string | null>(null);
 
@@ -61,7 +59,7 @@ export function PluginsInstalledTab() {
   }
 
   const reload = useMutation({
-    mutationFn: () => listPlugins(workspaceId ?? undefined),
+    mutationFn: () => listPlugins(workspaceId),
     onSuccess: async () => {
       await invalidatePlugins();
       toast.add({ title: 'Plugins reloaded' });

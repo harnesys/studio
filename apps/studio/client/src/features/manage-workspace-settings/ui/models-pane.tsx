@@ -24,13 +24,11 @@ import {
   useUpdateProvider,
   useUpdateProviderModel,
 } from '../model/use-providers';
-import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 import { ProviderForm } from './provider-form';
 import { ProviderModelsSection } from './provider-models-section';
 import { ProviderSettingsFields } from './provider-settings-fields';
 
-export function ModelsPane() {
-  const workspaceId = useSettingsWorkspaceId();
+export function ModelsPane({ workspaceId }: { workspaceId: string }) {
   const catalog = useQuery(catalogQuery).data;
   const providersQuery = useProviders();
   const providers = providersQuery.data ?? [];

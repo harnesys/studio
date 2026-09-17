@@ -13,21 +13,12 @@ export function openCreateWorkspaceDialog() {
   });
 }
 
-export function openEditWorkspaceDialog(workspace: Workspace) {
-  return dialog.open(WorkspaceDetailsDialog, {
-    title: 'Edit workspace',
-    description: 'Rename the workspace or point it at another folder.',
-    className: 'sm:max-w-md',
-    testId: 'edit-workspace-dialog',
-    data: { workspace },
-  });
-}
-
 export function confirmDeleteWorkspace(workspace: Workspace) {
   return alert.confirm({
-    title: 'Delete workspace',
-    description: `Remove ${workspace.name} from Studio? Agents, threads, and messages stored for it are deleted. The folder on disk stays.`,
-    confirmText: 'Delete',
+    title: `Remove ${workspace.name} from host?`,
+    description:
+      'Stops listing this node on the host. The folder on disk stays. Studio does not wipe workspace files here.',
+    confirmText: 'Remove from host',
     variant: 'destructive',
     testId: 'delete-workspace-dialog',
   });

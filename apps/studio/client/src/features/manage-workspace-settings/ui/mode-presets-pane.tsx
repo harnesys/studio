@@ -18,7 +18,6 @@ import { Button } from '@/shared/ui/button';
 import { Row, RowChip, RowHeader, RowList } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-import { useSettingsWorkspaceId } from '../model/use-settings-workspace-id';
 import type { ModePresetDraft } from './mode-preset-draft';
 import { ModePresetEditor } from './mode-preset-editor';
 
@@ -38,18 +37,17 @@ type PresetEditing =
   | { kind: 'edit'; preset: ModePresetRecord }
   | { kind: 'draft'; preset: ModePresetRecord | null };
 
-export function ModePresetsPane() {
-  const workspaceId = useSettingsWorkspaceId();
+export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const presetsQuery = useQuery(modePresetsQuery);
   const presets = presetsQuery.data ?? [];
   const [editing, setEditing] = useState<PresetEditing | null>(null);
   const skillsQuery = useQuery({
-    ...workspaceSkillsQuery(workspaceId ?? ''),
+    ...workspaceSkillsQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const packsQuery = useQuery({
-    ...workspaceCapabilitiesQuery(workspaceId ?? ''),
+    ...workspaceCapabilitiesQuery(workspaceId),
     enabled: Boolean(workspaceId),
   });
   const skillNames = (skillsQuery.data?.skills ?? []).map((skill) => skill.name);

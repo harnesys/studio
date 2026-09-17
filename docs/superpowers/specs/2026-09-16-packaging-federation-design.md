@@ -47,7 +47,7 @@ ROADMAP (`docs/ROADMAP.md`) описывает стол агентов на ма
 
 ## Упаковка
 
-Принцип: клиент и сервер всегда разные процессы. Host слушает loopback (или 0.0.0.0 за reverse proxy), окно ходит в API по HTTP+WS с Bearer-токеном pairing. Токен локального хоста лежит в `~/.harnesys/host.token` (0600). Раздача `client/dist` тем же процессом, что API, запрещена: за статику отвечает отдельный процесс.
+Принцип: клиент и сервер всегда разные процессы. Host слушает loopback (или 0.0.0.0 за reverse proxy), окно ходит в API по HTTP+WS с Bearer-токеном pairing. Токен локального хоста — поле `host.token` в `~/.harnesys/config.json` (файл целиком с правами 0600). Раздача `client/dist` тем же процессом, что API, запрещена: за статику отвечает отдельный процесс.
 
 Артефакты сборки из этого репо:
 
@@ -57,7 +57,7 @@ ROADMAP (`docs/ROADMAP.md`) описывает стол агентов на ма
 
 Десктоп (Tauri 2.0, сначала macOS aarch64):
 
-- `src-tauri`: sidecar `binaries/harnesys-host-<triple>` через `bundle.externalBin`, запуск и останов хоста в Rust на setup/exit, порт и путь к токену через args/env. Capability `shell:allow-execute` с `sidecar: true`.
+- `src-tauri`: sidecar `binaries/harnesys-host-<triple>` через `bundle.externalBin`, запуск и останов хоста в Rust на setup/exit, порт и `~/.harnesys/config.json` (секция `host`) через args/env. Capability `shell:allow-execute` с `sidecar: true`.
 - Фронт: существующий Vite-билд client без изменений логики, API base указывает на loopback-порт sidecar.
 - Плагины: tray (открыть стол, счётчики running/awaiting, выход останавливает окно и хост), autostart (`MacosLauncher::LaunchAgent`), single-instance, opener.
 - `.dmg` через bundler Tauri. Подпись Apple Developer ID и notarization обязательны, иначе Gatekeeper. CI собирает через `tauri-action`.
@@ -74,7 +74,7 @@ VPS CLI:
 
 Docker compose (Dokploy, Coolify):
 
-- Сервисы: `host` (`ghcr.io/harnesys/host`, volume `harnesys-data`, env `PORT`, `HOST_TOKEN`, `PUBLIC_URL`, healthcheck `/health`) и `web` (`ghcr.io/harnesys/web`, `depends_on host`, env `UPSTREAM=http://host:3000`, expose 80). Ingress панели смотрит на `web:80`.
+- Сервисы: `host` (`ghcr.io/harnesys/host`, volume `harnesys-data`, env `PORT`, `HOST_TOKEN`, `PUBLIC_URL`, healthcheck `/health`) и `web` (`ghcr.io/harnesys/web`, `depends_on host`, env `UPSTREAM=http://host:3000`, expose 80). Ingress панели смотрит на `web:80`. В volume: `config.json` (в т.ч. `host.token`) и пути нод; не сводить данные к одному `studio.db`.
 - `.env.example` в репо. Теги образов по релизу + `latest`. Миграции выполняет host при старте.
 
 ## Приёмка v1

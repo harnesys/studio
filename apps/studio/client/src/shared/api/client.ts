@@ -1,6 +1,7 @@
 import type { StudioErrorBody } from '@harnesys/studio-shared';
 
 import { getHostCredential } from './host-credential';
+import { resolveApiTarget, setHostOnlineStatus } from './host-router';
 
 export class ApiError extends Error {
   status: number;
@@ -15,17 +16,33 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  if (init?.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
+export type ApiJsonOptions = RequestInit & {
+  /** Force route to this node/host (threads, runs, remote create). */
+  nodeId?: string;
+  hostId?: string;
+};
+
+export async function apiJson<T>(path: string, init?: ApiJsonOptions): Promise<T> {
+  const { nodeId, hostId, ...requestInit } = init ?? {};
+  const headers = new Headers(requestInit.headers);
+  if (requestInit.body && !(requestInit.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-  const credential = getHostCredential();
+
+  const target = resolveApiTarget(path, { nodeId, hostId });
+  const credential = target.credential ?? getHostCredential();
   if (credential && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${credential}`);
   }
 
-  const response = await fetch(path, { ...init, headers });
+  let response: Response;
+  try {
+    response = await fetch(target.url, { ...requestInit, headers });
+    setHostOnlineStatus(target.hostId, 'online');
+  } catch (error) {
+    setHostOnlineStatus(target.hostId, 'offline');
+    throw error;
+  }
 
   if (response.status === 204) {
     return undefined as T;

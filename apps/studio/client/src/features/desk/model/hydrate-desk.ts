@@ -3,6 +3,7 @@ import { toClientSchedule, useScheduleStore } from '@/entities/schedule';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { toClientWebhook, useWebhookStore } from '@/entities/webhook';
 import { listAgents, listSchedules, listThreads, listWebhooks } from '@/shared/api';
+import { rememberRunNode, rememberThreadNode } from '@/shared/api/host-router';
 import { useDeskStore } from './desk.store';
 
 const inflight = new Map<string, Promise<void>>();
@@ -41,7 +42,14 @@ async function loadDesk(workspaceId: string): Promise<void> {
     listWebhooks(workspaceId),
   ]);
   useAgentStore.getState().replaceWorkspace(workspaceId, agents.map(toClientAgent));
-  useThreadStore.getState().replaceWorkspace(workspaceId, summaries.map(toClientThread));
+  const threads = summaries.map(toClientThread);
+  useThreadStore.getState().replaceWorkspace(workspaceId, threads);
   useScheduleStore.getState().replaceWorkspace(workspaceId, schedules.map(toClientSchedule));
   useWebhookStore.getState().replaceWorkspace(workspaceId, webhooks.map(toClientWebhook));
+  for (const thread of threads) {
+    rememberThreadNode(thread.id, workspaceId);
+    if (thread.activeRunId) {
+      rememberRunNode(thread.activeRunId, workspaceId);
+    }
+  }
 }

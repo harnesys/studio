@@ -7,7 +7,14 @@ import type {
 } from '@harnesys/studio-shared';
 
 import { ApiError, apiJson } from './client';
-import { getHostCredential, hostTokenQuery } from './host-credential';
+import { hostTokenQuery } from './host-credential';
+import {
+  nodeIdForThread,
+  rememberRunNode,
+  rememberThreadNode,
+  resolveApiTarget,
+  setHostOnlineStatus,
+} from './host-router';
 
 export type CreateThreadInput = {
   title?: string;
@@ -30,13 +37,20 @@ export function createThreadRecord(body: CreateThreadInput) {
   return apiJson<ThreadRecord>('/api/threads', {
     method: 'POST',
     body: JSON.stringify(body),
+    nodeId: body.workspaceId,
+  }).then((record) => {
+    if (body.workspaceId) {
+      rememberThreadNode(record.id, body.workspaceId);
+    }
+    return record;
   });
 }
 
 export function attachmentUrl(threadId: string, attachmentId: string): string {
-  const token = hostTokenQuery();
-  const base = `/api/threads/${threadId}/attachments/${attachmentId}`;
-  return token ? `${base}?${token}` : base;
+  const path = `/api/threads/${threadId}/attachments/${attachmentId}`;
+  const target = resolveApiTarget(path);
+  const token = hostTokenQuery(target.credential);
+  return token ? `${target.url}?${token}` : target.url;
 }
 
 export function uploadThreadAttachment(threadId: string, file: File): Promise<ThreadAttachment> {
@@ -70,6 +84,12 @@ export function sendThreadRun(options: SendThreadRunOptions): Promise<AcceptedRu
       clientEventId,
       ...(skills?.length ? { skills } : {}),
     }),
+  }).then((accepted) => {
+    const nodeId = nodeIdForThread(id);
+    if (nodeId && accepted.runId) {
+      rememberRunNode(accepted.runId, nodeId);
+    }
+    return accepted;
   });
 }
 
@@ -116,16 +136,24 @@ export function retryRun(runId: string): Promise<RetryRunResponse> {
 }
 
 export async function compactThreadStream(id: string, signal?: AbortSignal): Promise<Response> {
+  const path = `/api/threads/${id}/compact`;
+  const target = resolveApiTarget(path);
   const headers = new Headers({ Accept: 'text/event-stream' });
-  const credential = getHostCredential();
-  if (credential) {
-    headers.set('Authorization', `Bearer ${credential}`);
+  if (target.credential) {
+    headers.set('Authorization', `Bearer ${target.credential}`);
   }
-  const response = await fetch(`/api/threads/${id}/compact`, {
-    method: 'POST',
-    headers,
-    signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(target.url, {
+      method: 'POST',
+      headers,
+      signal,
+    });
+    setHostOnlineStatus(target.hostId, 'online');
+  } catch (error) {
+    setHostOnlineStatus(target.hostId, 'offline');
+    throw error;
+  }
   if (!response.ok) {
     let message = response.statusText || 'Compact failed';
     try {
@@ -146,17 +174,24 @@ export async function getRunEventsStream(
   fromSeq?: number,
   signal?: AbortSignal,
 ): Promise<Response> {
-  const url = `/api/runs/${runId}/events${fromSeq != null ? `?fromSeq=${fromSeq}` : ''}`;
+  const path = `/api/runs/${runId}/events${fromSeq != null ? `?fromSeq=${fromSeq}` : ''}`;
+  const target = resolveApiTarget(path);
   const headers = new Headers({ Accept: 'text/event-stream' });
-  const credential = getHostCredential();
-  if (credential) {
-    headers.set('Authorization', `Bearer ${credential}`);
+  if (target.credential) {
+    headers.set('Authorization', `Bearer ${target.credential}`);
   }
-  const response = await fetch(url, {
-    method: 'GET',
-    headers,
-    signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(target.url, {
+      method: 'GET',
+      headers,
+      signal,
+    });
+    setHostOnlineStatus(target.hostId, 'online');
+  } catch (error) {
+    setHostOnlineStatus(target.hostId, 'offline');
+    throw error;
+  }
   if (!response.ok) {
     let message = response.statusText || 'Stream connection failed';
     try {

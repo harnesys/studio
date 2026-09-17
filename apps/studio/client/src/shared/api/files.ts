@@ -5,7 +5,8 @@ import type {
 } from '@harnesys/studio-shared';
 
 import { ApiError, apiJson } from './client';
-import { getHostCredential, hostTokenQuery } from './host-credential';
+import { hostTokenQuery } from './host-credential';
+import { findWindowHost, resolveApiTarget, routeForNode, setHostOnlineStatus } from './host-router';
 import { watchEventSource } from './sse';
 
 export function listWorkspaceFiles(workspaceId: string, subPath = '') {
@@ -38,18 +39,29 @@ export function moveWorkspaceFiles(workspaceId: string, items: WorkspaceMoveItem
 }
 
 export function workspaceFileContentUrl(workspaceId: string, path: string): string {
-  const token = hostTokenQuery();
+  const apiPath = `/api/workspaces/${workspaceId}/files/content`;
+  const target = resolveApiTarget(apiPath, { nodeId: workspaceId });
+  const token = hostTokenQuery(target.credential);
   const qs = `path=${encodeURIComponent(path)}${token ? `&${token}` : ''}`;
-  return `/api/workspaces/${workspaceId}/files/content?${qs}`;
+  return `${target.url}?${qs}`;
 }
 
 export async function readWorkspaceFileText(workspaceId: string, path: string): Promise<string> {
+  const target = resolveApiTarget(`/api/workspaces/${workspaceId}/files/content`, {
+    nodeId: workspaceId,
+  });
   const headers = new Headers();
-  const credential = getHostCredential();
-  if (credential) {
-    headers.set('Authorization', `Bearer ${credential}`);
+  if (target.credential) {
+    headers.set('Authorization', `Bearer ${target.credential}`);
   }
-  const response = await fetch(workspaceFileContentUrl(workspaceId, path), { headers });
+  let response: Response;
+  try {
+    response = await fetch(workspaceFileContentUrl(workspaceId, path), { headers });
+    setHostOnlineStatus(target.hostId, 'online');
+  } catch (error) {
+    setHostOnlineStatus(target.hostId, 'offline');
+    throw error;
+  }
   if (!response.ok) {
     let message = response.statusText || 'Request failed';
     try {
@@ -76,7 +88,20 @@ export function writeWorkspaceFileContent(
 }
 
 export function watchWorkspaceFiles(workspaceId: string, onEvent: () => void): () => void {
-  return watchEventSource(`/api/workspaces/${workspaceId}/files/watch`, 'fs-change', () => {
-    onEvent();
+  const route = routeForNode(workspaceId);
+  const host = route ? findWindowHost(route.hostId) : undefined;
+  const target = resolveApiTarget(`/api/workspaces/${workspaceId}/files/watch`, {
+    nodeId: workspaceId,
   });
+  return watchEventSource(
+    target.url,
+    'fs-change',
+    () => {
+      onEvent();
+    },
+    {
+      credential: target.credential ?? host?.credential,
+      onError: () => setHostOnlineStatus(target.hostId, 'offline'),
+    },
+  );
 }

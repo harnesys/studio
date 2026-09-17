@@ -16,14 +16,27 @@ export {
   updateAgentRecord,
 } from './agents';
 export { catalogQuery, catalogQueryKey, getCatalog } from './catalog';
-export { ApiError, apiJson } from './client';
+export { ApiError, type ApiJsonOptions, apiJson } from './client';
 export { watchDesk } from './desk';
 export {
   ensureHostCredential,
   getHostCredential,
   getWindowHosts,
   hostTokenQuery,
+  setWindowHosts,
 } from './host-credential';
+export {
+  findWindowHost,
+  getHostOnlineStatus,
+  listHostOnlineStatuses,
+  type NodeRoute,
+  rememberNodeRoute,
+  resolveApiTarget,
+  routeForNode,
+  type StudioHostOnlineStatus,
+  setHostOnlineStatus,
+  urlForHost,
+} from './host-router';
 export {
   agentPinsQuery,
   agentPinsQueryKey,

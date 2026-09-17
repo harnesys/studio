@@ -11,7 +11,12 @@ import {
   GitNotFoundError,
   GitTimeoutError,
 } from '../../domain/git.error.ts';
-import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
+import {
+  ConflictError,
+  NotFoundError,
+  UnavailableError,
+  ValidationError,
+} from '../../domain/studio.error.ts';
 
 export const handleHttpError: ErrorHandler = (err, c) => {
   const { status, error } = toStudioError(err);
@@ -28,6 +33,9 @@ function toStudioError(err: unknown): { status: ContentfulStatusCode; error: str
   }
   if (err instanceof NotFoundError) {
     return { status: 404, error: err.message };
+  }
+  if (err instanceof UnavailableError) {
+    return { status: 503, error: err.message };
   }
   if (err instanceof ConflictError || err instanceof ThreadBusyError) {
     return { status: 409, error: err.message };

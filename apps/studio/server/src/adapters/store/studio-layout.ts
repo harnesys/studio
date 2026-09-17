@@ -4,19 +4,7 @@ import { join } from 'node:path';
 import {
   ATTACHMENTS_DIR,
   CONFIG_FILE,
-  HOME_DIR_NAME,
-  MARKETPLACES_DIR,
-  PLUGINS_DATA_DIR,
-  PLUGINS_DIR,
-  SKILLS_DIR,
-  STUDIO_DIR,
-  STUDIO_DIR_LEGACY,
-} from '../../config/constants.ts';
-import { env } from '../../config/env.ts';
-
-export {
-  ATTACHMENTS_DIR,
-  CONFIG_FILE,
+  DB_BAK_FILE,
   DB_FILE,
   HOME_DIR_NAME,
   MARKETPLACES_DIR,
@@ -25,6 +13,23 @@ export {
   SKILLS_DIR,
   STUDIO_DIR,
   STUDIO_DIR_LEGACY,
+  WORKSPACE_DB_FILE,
+} from '../../config/constants.ts';
+import { env } from '../../config/env.ts';
+
+export {
+  ATTACHMENTS_DIR,
+  CONFIG_FILE,
+  DB_BAK_FILE,
+  DB_FILE,
+  HOME_DIR_NAME,
+  MARKETPLACES_DIR,
+  PLUGINS_DATA_DIR,
+  PLUGINS_DIR,
+  SKILLS_DIR,
+  STUDIO_DIR,
+  STUDIO_DIR_LEGACY,
+  WORKSPACE_DB_FILE,
   WORKSPACES_DIR,
 } from '../../config/constants.ts';
 
@@ -102,14 +107,43 @@ export function workspaceSkillsPath(workspacePath: string): string {
 }
 
 /**
- * Skill registry roots, ascending precedence: bundled app assets, host home,
- * workspace. Same name in a later root overrides earlier ones (`Map.set` last
- * wins), so workspace overrides home and home overrides the bundle.
+ * Skill registry roots, ascending precedence: bundled app assets, then
+ * workspace overlay. Host `~/.harnesys/skills` is seed-only (cutover/create),
+ * not a live root.
  */
 export function skillRegistryRoots(workspacePath: string): string[] {
-  const systemRoot = systemSkillsPath();
-  mkdirSync(systemRoot, { recursive: true });
-  return [bundledSkillsPath(), systemRoot, workspaceSkillsPath(workspacePath)];
+  return [bundledSkillsPath(), workspaceSkillsPath(workspacePath)];
+}
+
+/** Per-node domain sqlite: `<workspace>/.harnesys/workspace.db`. */
+export function workspaceDbPath(workspacePath: string): string {
+  return join(studioDir(workspacePath), WORKSPACE_DB_FILE);
+}
+
+export function studioDbPath(home: string = defaultHomePath()): string {
+  return join(home, DB_FILE);
+}
+
+export function studioDbBakPath(home: string = defaultHomePath()): string {
+  return join(home, DB_BAK_FILE);
+}
+
+/** Plugin checkouts for a node: `<workspace>/.harnesys/plugins`. */
+export function workspacePluginsPath(workspacePath: string): string {
+  return join(studioDir(workspacePath), PLUGINS_DIR);
+}
+
+export function workspacePluginInstallPath(workspacePath: string, name: string): string {
+  return join(workspacePluginsPath(workspacePath), name);
+}
+
+export function workspacePluginDataPath(workspacePath: string, name: string): string {
+  return join(studioDir(workspacePath), PLUGINS_DATA_DIR, name);
+}
+
+/** User presets under the node meta dir (seed from host on cutover/create). */
+export function workspacePresetsPath(workspacePath: string, sub: 'agents' | 'modes'): string {
+  return join(studioDir(workspacePath), 'presets', sub);
 }
 
 export function attachmentsDir(workspacePath: string, threadId: string): string {

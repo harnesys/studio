@@ -19,6 +19,14 @@ export class ConflictError extends Error {
   }
 }
 
+/** Node is on the host but its folder/runtime is not ready (HTTP 503). */
+export class UnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnavailableError';
+  }
+}
+
 export type RunConflictBody = {
   code?: string;
   runId?: string;

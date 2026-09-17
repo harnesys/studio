@@ -20,7 +20,11 @@ export const PLUGINS_DATA_DIR = 'plugins-data';
 /** Marketplace checkouts (`~/.harnesys/marketplaces/<id>`). */
 export const MARKETPLACES_DIR = 'marketplaces';
 export const DEFAULT_PLUGIN_REGISTRY_SOURCE = 'anthropics/claude-plugins-official';
+/** Legacy host bag (pre-4b). Cutover renames to `studio.db.bak`. */
 export const DB_FILE = 'studio.db';
+export const DB_BAK_FILE = 'studio.db.bak';
+/** Per-node domain file: `<workspace>/.harnesys/workspace.db`. */
+export const WORKSPACE_DB_FILE = 'workspace.db';
 /** Machine registry + window desk: `~/.harnesys/config.json`. */
 export const CONFIG_FILE = 'config.json';
 /** NDJSON trace logs: `<home>/logs/studio-YYYY-MM-DD.log`. */

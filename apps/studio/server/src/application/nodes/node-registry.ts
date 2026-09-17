@@ -1,13 +1,13 @@
 import { existsSync, statSync } from 'node:fs';
-import type { StudioDb } from '../../adapters/store/sqlite/connection.ts';
 import { seedWorkspaceModePresets } from '../../adapters/store/sqlite/seed-workspace-mode-presets.ts';
+import { workspaceDbPath } from '../../adapters/store/studio-layout.ts';
+import { createWorkspaceStore } from '../../composition/create-store.ts';
 import type {
   HostNodeRecord,
   HostNodeStatus,
   MachineConfigPort,
 } from '../../domain/machine-config.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
 export type NodeRegistry = {
   list(): HostNodeRecord[];
@@ -16,25 +16,22 @@ export type NodeRegistry = {
   create(input: { name: string; path: string }): HostNodeRecord;
   update(id: string, patch: { name?: string; path?: string }): HostNodeRecord;
   removeFromHost(id: string): void;
-  /** One-shot: copy workspaces table into host.nodes when registry empty. */
-  migrateFromTableIfEmpty(): void;
+  /**
+   * One-shot: if host.nodes empty and legacy studio.db still has workspaces,
+   * copy those rows into config. Prefer cutover script for domain data.
+   */
+  migrateFromLegacyStudioDbIfEmpty(listLegacyWorkspaces: () => HostNodeRecord[]): void;
 };
 
 export type NodeRegistryDeps = {
   config: MachineConfigPort;
-  workspaces: WorkspaceRepository;
-  db: StudioDb;
 };
 
 export class HostNodeRegistry implements NodeRegistry {
   private readonly config: MachineConfigPort;
-  private readonly workspaces: WorkspaceRepository;
-  private readonly db: StudioDb;
 
   constructor(deps: NodeRegistryDeps) {
     this.config = deps.config;
-    this.workspaces = deps.workspaces;
-    this.db = deps.db;
   }
 
   list(): HostNodeRecord[] {
@@ -66,36 +63,26 @@ export class HostNodeRegistry implements NodeRegistry {
     const nodes = this.list();
     assertUniqueAmong(nodes, { name, path });
 
-    // Orphan rows left by removeFromHost: same path must not block re-create.
-    const hostIds = new Set(nodes.map((node) => node.id));
-    for (const row of this.workspaces.list()) {
-      if (row.path === path && !hostIds.has(row.id)) {
-        this.workspaces.delete(row.id);
-      }
-    }
-
-    for (const row of this.workspaces.list()) {
-      if (row.name === name) {
-        throw new ConflictError('workspace name exists');
-      }
-      if (row.path === path) {
-        throw new ConflictError('workspace path exists');
-      }
-    }
-
     const record: HostNodeRecord = {
       id: crypto.randomUUID(),
       name,
       path,
     };
     const now = new Date().toISOString();
-    this.workspaces.insert({
+    const store = createWorkspaceStore(path);
+    // Drop orphan identity left by removeFromHost so path can be re-bound.
+    for (const row of store.workspaceRepo.list()) {
+      if (row.path === path || row.id === record.id) {
+        store.workspaceRepo.delete(row.id);
+      }
+    }
+    store.workspaceRepo.insert({
       id: record.id,
       name: record.name,
       path: record.path,
       createdAt: now,
     });
-    seedWorkspaceModePresets(this.db, record.id);
+    seedWorkspaceModePresets(store.db, record.id);
     this.config.writeHost({ nodes: [...nodes, record] });
     return record;
   }
@@ -119,24 +106,18 @@ export class HostNodeRegistry implements NodeRegistry {
     const others = nodes.filter((node) => node.id !== id);
     assertUniqueAmong(others, { name, path });
 
-    for (const row of this.workspaces.list()) {
-      if (row.id === id) {
-        continue;
-      }
-      if (row.name === name || row.path === path) {
-        throw new ConflictError(
-          row.name === name ? 'workspace name exists' : 'workspace path exists',
-        );
-      }
-    }
-
     const next: HostNodeRecord = { id, name, path };
     const nextNodes = nodes.slice();
     nextNodes[index] = next;
     this.config.writeHost({ nodes: nextNodes });
 
-    if (this.workspaces.findById(id)) {
-      this.workspaces.update(id, { name, path });
+    const dbFile = workspaceDbPath(path);
+    if (existsSync(dbFile) || existsSync(workspaceDbPath(current.path))) {
+      const storePath = existsSync(dbFile) ? path : current.path;
+      const store = createWorkspaceStore(storePath);
+      if (store.workspaceRepo.findById(id)) {
+        store.workspaceRepo.update(id, { name, path });
+      }
     }
     return next;
   }
@@ -149,23 +130,17 @@ export class HostNodeRegistry implements NodeRegistry {
     this.config.writeHost({ nodes: nodes.filter((node) => node.id !== id) });
   }
 
-  migrateFromTableIfEmpty(): void {
+  migrateFromLegacyStudioDbIfEmpty(listLegacyWorkspaces: () => HostNodeRecord[]): void {
     const current = this.config.read();
     if (current.host.nodes.length > 0) {
       return;
     }
-    const rows = this.workspaces.list();
+    const rows = listLegacyWorkspaces();
     if (rows.length === 0) {
-      // Ensure config.json exists with token + local window host.
       this.config.writeHost({});
       return;
     }
-    const nodes: HostNodeRecord[] = rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      path: row.path,
-    }));
-    this.config.writeHost({ nodes });
+    this.config.writeHost({ nodes: rows });
   }
 }
 

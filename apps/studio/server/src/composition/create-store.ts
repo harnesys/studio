@@ -1,5 +1,3 @@
-import { join } from 'node:path';
-import { MachineConfigFileAdapter } from '../adapters/machine-config/machine-config.file.ts';
 import { bootstrap } from '../adapters/store/sqlite/bootstrap.ts';
 import { createSqliteConnection, type StudioDb } from '../adapters/store/sqlite/connection.ts';
 import { SqliteAgentRepo } from '../adapters/store/sqlite/repos/sqlite-agent.repo.ts';
@@ -13,22 +11,23 @@ import { SqliteScheduleRepo } from '../adapters/store/sqlite/repos/sqlite-schedu
 import { SqliteThreadRepo } from '../adapters/store/sqlite/repos/sqlite-thread.repo.ts';
 import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook.repo.ts';
 import { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
-import { DB_FILE, defaultHomePath } from '../adapters/store/studio-layout.ts';
-import { HostNodeRegistry, type NodeRegistry } from '../application/nodes/node-registry.ts';
-import type { MachineConfigPort } from '../domain/machine-config.ts';
+import { defaultHomePath, workspaceDbPath } from '../adapters/store/studio-layout.ts';
+import { ValidationError } from '../domain/studio.error.ts';
 
 export type StudioStoreOptions = {
+  /** Absolute path to the sqlite file. Required unless `db` is injected. */
+  dbPath?: string;
+  /** Injected connection (tests / cutover helpers). Skips bootstrap. */
   db?: StudioDb;
-  machineConfig?: MachineConfigPort;
+  home?: string;
 };
 
 export type StudioStore = {
   home: string;
+  dbPath: string;
   db: StudioDb;
-  /** true when caller injected db (skip schedule ticker bootstrap side-effects). */
+  /** true when caller injected db (skip bootstrap and ticker side-effects). */
   externalDb: boolean;
-  machineConfig: MachineConfigPort;
-  nodeRegistry: NodeRegistry;
   workspaceRepo: SqliteWorkspaceRepo;
   agentRepo: SqliteAgentRepo;
   llmProviderRepo: SqliteLlmProviderRepo;
@@ -42,30 +41,25 @@ export type StudioStore = {
   pluginRegistryRepo: SqlitePluginRegistriesAdapter;
 };
 
+/** Opens one domain sqlite (`workspace.db` or injected). No host catalog. */
 export function createStudioStore(options: StudioStoreOptions = {}): StudioStore {
-  const home = defaultHomePath();
+  const home = options.home ?? defaultHomePath();
   const externalDb = options.db !== undefined;
-  const db = options.db ?? createSqliteConnection(join(home, DB_FILE));
+  const dbPath = options.dbPath ?? (externalDb ? ':memory:' : undefined);
+  if (!dbPath) {
+    throw new ValidationError('createStudioStore requires dbPath (or injected db)');
+  }
+  const db = options.db ?? createSqliteConnection(dbPath);
   if (!externalDb) {
     bootstrap(db);
   }
 
-  const workspaceRepo = new SqliteWorkspaceRepo(db);
-  const machineConfig = options.machineConfig ?? new MachineConfigFileAdapter({ home });
-  const nodeRegistry = new HostNodeRegistry({
-    config: machineConfig,
-    workspaces: workspaceRepo,
-    db,
-  });
-  nodeRegistry.migrateFromTableIfEmpty();
-
   return {
     home,
+    dbPath,
     db,
     externalDb,
-    machineConfig,
-    nodeRegistry,
-    workspaceRepo,
+    workspaceRepo: new SqliteWorkspaceRepo(db),
     agentRepo: new SqliteAgentRepo(db),
     llmProviderRepo: new SqliteLlmProviderRepo(db),
     llmModelRepo: new SqliteLlmModelRepo(db),
@@ -77,4 +71,9 @@ export function createStudioStore(options: StudioStoreOptions = {}): StudioStore
     pluginRepo: new SqlitePluginsAdapter(db),
     pluginRegistryRepo: new SqlitePluginRegistriesAdapter(db),
   };
+}
+
+/** Convenience: store for a workspace folder path. */
+export function createWorkspaceStore(workspacePath: string, home?: string): StudioStore {
+  return createStudioStore({ dbPath: workspaceDbPath(workspacePath), home });
 }

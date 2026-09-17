@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import {
   ATTACHMENTS_DIR,
+  CONFIG_FILE,
   HOME_DIR_NAME,
   MARKETPLACES_DIR,
   PLUGINS_DATA_DIR,
@@ -15,6 +16,7 @@ import { env } from '../../config/env.ts';
 
 export {
   ATTACHMENTS_DIR,
+  CONFIG_FILE,
   DB_FILE,
   HOME_DIR_NAME,
   MARKETPLACES_DIR,
@@ -28,6 +30,10 @@ export {
 
 export function defaultHomePath(): string {
   return env.harnesysHome ?? join(homedir(), HOME_DIR_NAME);
+}
+
+export function configJsonPath(home: string = defaultHomePath()): string {
+  return join(home, CONFIG_FILE);
 }
 
 /** Host-wide skills for every workspace (`~/.harnesys/skills`). */

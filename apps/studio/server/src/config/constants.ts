@@ -21,6 +21,8 @@ export const PLUGINS_DATA_DIR = 'plugins-data';
 export const MARKETPLACES_DIR = 'marketplaces';
 export const DEFAULT_PLUGIN_REGISTRY_SOURCE = 'anthropics/claude-plugins-official';
 export const DB_FILE = 'studio.db';
+/** Machine registry + window desk: `~/.harnesys/config.json`. */
+export const CONFIG_FILE = 'config.json';
 /** NDJSON trace logs: `<home>/logs/studio-YYYY-MM-DD.log`. */
 export const LOGS_DIR = 'logs';
 

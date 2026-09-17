@@ -227,11 +227,19 @@ export function createStudioHost(args: {
       return [];
     }
     const loaded = await workspaceHarnesys.loadEnabledPlugins(workspace.id);
+    const disabled = new Set(
+      (store.pluginRepo.listDisabledServers(workspace.id) ?? []).map(
+        (e) => `${e.pluginName}:${e.serverId}`,
+      ),
+    );
     const pluginServers: WorkspacePluginLspServer[] = [];
     for (const entry of loaded) {
       // First-wins dedupe by extension (lsp_shadowed) happens in the adapter.
       const userConfig = pluginUserConfig(entry.ir, entry.record.options);
       for (const component of entry.ir.components.filter(isLspServerComponent)) {
+        if (disabled.has(`${entry.ir.identity.name}:${component.spec.serverId}`)) {
+          continue;
+        }
         const substituted = substituteLspSpec(component.spec, userConfig);
         if ('message' in substituted) {
           logger.warn(

@@ -6,11 +6,11 @@ Scope: упаковка (десктоп x3, self-hosted CLI, Docker) + феде�
 
 ## Контекст
 
-ROADMAP (`docs/ROADMAP.md`) описывает стол агентов на машине пользователя или его VPS: агент привязан к папке, ход пишется в `~/.harnesys/studio.db`, ключи на хосте. Сегодня `apps/studio/server/src/index.ts` раздаёт API и `client/dist` одним процессом Bun. Демона, tray, автозапуска, pairing нет.
+ROADMAP (`docs/ROADMAP.md`) описывает стол агентов на машине пользователя или его VPS: агент привязан к папке, domain — `<workspace>/.harnesys/workspace.db`, машина — `~/.harnesys/config.json`, ключи на хосте. Сегодня `apps/studio/server/src/index.ts` раздаёт API и `client/dist` одним процессом Bun. Демона, tray, автозапуска, pairing нет.
 
 ## Решение
 
-Подход A (remote-host) как v1. Агент живёт там, где его папка и `studio.db`. Окно подключается к любому хосту. Подход B (home-host с раннерами) — задел, протокол раннера позже. Подход C (mesh sync) — отложен.
+Подход A (remote-host) как v1. Агент живёт там, где его папка и `workspace.db`. Окно подключается к любому хосту. Подход B (home-host с раннерами) — задел, протокол раннера позже. Подход C (mesh sync) — отложен.
 
 ## Архитектура
 

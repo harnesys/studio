@@ -10,7 +10,7 @@ Date: 2026-09-15
 
 Harnesys — стол агентов на машине пользователя или на его VPS.
 
-Агент привязан к папке. Его будят чатом, кроном, вебхуком или другим процессом или событием системы. Он читает и пишет файлы, ходит в shell, fetch, MCP, skills, LSP. Длинный ход не раздувает окно: уплотнение и артефакты. Между пробуждениями он помнит сделанное: Snapshot, SessionEvent, Pin и Semantic записи. Перед удалением, отправкой, пушем, оплатой — пауза и кнопка. Весь ход пишется в `~/.harnesys/studio.db`. Ключи хранятся на хосте.
+Агент привязан к папке. Его будят чатом, кроном, вебхуком или другим процессом или событием системы. Он читает и пишет файлы, ходит в shell, fetch, MCP, skills, LSP. Длинный ход не раздувает окно: уплотнение и артефакты. Между пробуждениями он помнит сделанное: Snapshot, SessionEvent, Pin и Semantic записи. Перед удалением, отправкой, пушем, оплатой — пауза и кнопка. Domain каждой ноды пишется в `<workspace>/.harnesys/workspace.db`. Машина держит `~/.harnesys/config.json` (host.nodes, window). Ключи на хосте, account с node id.
 
 Studio в репозитории — этот стол. `packages/harnesys` — ядро, которое стол крутит. Правило слоёв зафиксировано в `apps/studio/AGENTS.md`.
 
@@ -27,7 +27,7 @@ Studio в репозитории — этот стол. `packages/harnesys` — 
 
 ## Конечная картина: процесс
 
-Два процесса с одной базой `~/.harnesys/studio.db`:
+Два процесса (окно и хост). Persist нод — N файлов `workspace.db`, не общий bag:
 
 | процесс | роль |
 |---|---|
@@ -64,7 +64,7 @@ BYOK везде. Маржа с токенов не нужна на старте.
 | что | цена |
 |---|---|
 | приложение на своей машине | бесплатно |
-| хост на нашей стороне (VPS, HTTPS, вебхуки, бэкап `studio.db`) | $29/мес соло |
+| хост на нашей стороне (VPS, HTTPS, вебхуки, бэкап `workspace.db` + `config.json`) | $29/мес соло |
 | несколько людей на один стол, общий inbox | $79/мес workspace |
 
 Библиотека `harnesys` остаётся встраиваемой. Платят за стол и always-on.
@@ -134,7 +134,7 @@ BYOK везде. Маржа с токенов не нужна на старте.
 | публичный URL вебхука: tunnel локально, HTTPS на VPS | `application/webhooks/fire-webhook.use-case.ts`, `adapters/http/webhook/` |
 | очередь на занятый тред для webhook и ручного send | `adapters/schedule-fire-queue.adapter.ts`, `domain/errors.ts` (`ThreadBusyError`) |
 | секреты на хосте: ключи, MCP env, tunnel token вне промпта и git | `server/src/config/env.ts`, `application/providers/`, `application/plugins/` |
-| бэкап `studio.db` по крону | `server/src/adapters/store/sqlite/connection.ts` |
+| бэкап N× `workspace.db` + `config.json` по крону | `server/src/adapters/store/studio-layout.ts` |
 
 ## Обязательно: человек в контуре
 

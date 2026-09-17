@@ -48,9 +48,15 @@ type FetchSseConnection = {
   refs: number;
   listeners: Map<string, Set<(data: string) => void>>;
   abort: AbortController;
+  onError?: () => void;
 };
 
 const connections = new Map<string, FetchSseConnection>();
+
+export type WatchEventSourceOptions = {
+  credential?: string | null;
+  onError?: () => void;
+};
 
 /**
  * Shared SSE per URL via fetch + Authorization Bearer (EventSource cannot set headers).
@@ -60,13 +66,15 @@ export function watchEventSource(
   url: string,
   event: string,
   onData: (data: string) => void,
+  options?: WatchEventSourceOptions,
 ): () => void {
   let conn = connections.get(url);
   if (!conn) {
     const abort = new AbortController();
-    conn = { refs: 0, listeners: new Map(), abort };
+    conn = { refs: 0, listeners: new Map(), abort, onError: options?.onError };
     connections.set(url, conn);
-    void openSse(url, abort.signal).catch(() => {
+    void openSse(url, abort.signal, options?.credential).catch(() => {
+      connections.get(url)?.onError?.();
       connections.delete(url);
     });
   }
@@ -92,15 +100,20 @@ export function watchEventSource(
   };
 }
 
-async function openSse(url: string, signal: AbortSignal): Promise<void> {
+async function openSse(
+  url: string,
+  signal: AbortSignal,
+  credentialOverride?: string | null,
+): Promise<void> {
   const headers = new Headers();
-  const credential = getHostCredential();
+  const credential = credentialOverride === undefined ? getHostCredential() : credentialOverride;
   if (credential) {
     headers.set('Authorization', `Bearer ${credential}`);
   }
   const response = await fetch(url, { headers, signal });
   if (!response.ok) {
     trace('sse', `open failed ${response.status}`);
+    connections.get(url)?.onError?.();
     return;
   }
   for await (const frame of readSse(response)) {

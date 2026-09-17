@@ -196,6 +196,7 @@ export {
   type WorkspaceSkillsResponse,
   type WorkspaceTool,
   type WorkspaceToolsResponse,
+  wipeWorkspace,
   workspaceCapabilitiesQuery,
   workspaceCapabilitiesQueryKey,
   workspaceMcpConfigQuery,

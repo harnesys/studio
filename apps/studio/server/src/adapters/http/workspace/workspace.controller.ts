@@ -30,6 +30,7 @@ import type { SetMcpServerStateInput } from '../../../application/workspaces/set
 import type { StageGitInput } from '../../../application/workspaces/stage-git.use-case.ts';
 import type { UpdateWorkspaceInput } from '../../../application/workspaces/update-workspace.use-case.ts';
 import type { UpsertWorkspaceMcpServerInput } from '../../../application/workspaces/upsert-workspace-mcp-server.use-case.ts';
+import type { WipeWorkspaceInput } from '../../../application/workspaces/wipe-workspace.use-case.ts';
 import type { WriteWorkspaceFileContentInput } from '../../../application/workspaces/write-workspace-file-content.use-case.ts';
 import type { DeskEventsPort } from '../../../domain/desk-events.port.ts';
 import type { FilesWatcherPort } from '../../../domain/files-watcher.port.ts';
@@ -43,6 +44,7 @@ export type WorkspaceControllerDeps = {
   createWorkspace: CreateWorkspaceInput;
   updateWorkspace: UpdateWorkspaceInput;
   deleteWorkspace: DeleteWorkspaceInput;
+  wipeWorkspace: WipeWorkspaceInput;
   getWorkspaceStatus: GetWorkspaceStatusInput;
   listWorkspaceSkills: ListWorkspaceSkillsInput;
   reloadWorkspaceSkills: ReloadWorkspaceSkillsInput;
@@ -111,6 +113,15 @@ export class WorkspaceController {
 
     app.delete('/api/workspaces/:id', async (c) => {
       await this.deps.deleteWorkspace.execute({ id: c.req.param('id') });
+      return c.body(null, 204);
+    });
+
+    app.post('/api/workspaces/:id/wipe', async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as { wipeFolder?: boolean };
+      await this.deps.wipeWorkspace.execute({
+        id: c.req.param('id'),
+        wipeFolder: body.wipeFolder === true,
+      });
       return c.body(null, 204);
     });
 

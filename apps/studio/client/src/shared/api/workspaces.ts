@@ -78,6 +78,13 @@ export function deleteWorkspace(id: string) {
   return apiJson<void>(`/api/workspaces/${id}`, { method: 'DELETE' });
 }
 
+export function wipeWorkspace(id: string, input: { wipeFolder?: boolean } = {}) {
+  return apiJson<void>(`/api/workspaces/${id}/wipe`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export const workspacesQuery = queryOptions({
   queryKey: workspacesQueryKey,
   queryFn: listWorkspaces,

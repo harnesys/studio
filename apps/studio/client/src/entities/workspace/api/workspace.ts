@@ -5,6 +5,7 @@ import {
   deleteWorkspace,
   pickWorkspaceFolder,
   updateWorkspace,
+  wipeWorkspace,
   workspacesQuery,
   workspacesQueryKey,
 } from '@/shared/api';
@@ -44,6 +45,17 @@ export function useDeleteWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteWorkspace,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesQueryKey });
+    },
+  });
+}
+
+export function useWipeWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, wipeFolder }: { id: string; wipeFolder?: boolean }) =>
+      wipeWorkspace(id, { wipeFolder }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesQueryKey });
     },

@@ -3,6 +3,7 @@ export {
   useDeleteWorkspace,
   usePickWorkspaceFolder,
   useUpdateWorkspace,
+  useWipeWorkspace,
   useWorkspaces,
 } from './api/workspace';
 export type { Workspace } from './model/workspace';

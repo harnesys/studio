@@ -5,6 +5,7 @@ import {
   useDeleteWorkspace,
   usePickWorkspaceFolder,
   useUpdateWorkspace,
+  useWipeWorkspace,
   useWorkspaces,
   type Workspace,
 } from '@/entities/workspace';
@@ -110,9 +111,25 @@ function GeneralSection({ workspace }: { workspace: Workspace }) {
 function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClose: () => void }) {
   const navigate = useNavigate();
   const removeWorkspace = useDeleteWorkspace();
+  const wipeWorkspace = useWipeWorkspace();
   const toggle = useWorkspaceTabsStore((state) => state.toggle);
   const selected = useWorkspaceTabsStore((state) => state.selected);
   const inWindow = selected.includes(workspace.id);
+
+  const parkAfterRemove = () => {
+    if (useWorkspaceTabsStore.getState().selected.includes(workspace.id)) {
+      toggle(workspace.id);
+      const remaining = useWorkspaceTabsStore.getState().selected;
+      navigateAfterPark(
+        (to) => {
+          void navigate(to);
+        },
+        workspace.id,
+        remaining,
+      );
+    }
+    onClose();
+  };
 
   const removeFromWindow = () => {
     if (!inWindow) {
@@ -147,24 +164,48 @@ function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClos
         }
         void removeWorkspace
           .mutateAsync(workspace.id)
-          .then(() => {
-            if (useWorkspaceTabsStore.getState().selected.includes(workspace.id)) {
-              toggle(workspace.id);
-              const remaining = useWorkspaceTabsStore.getState().selected;
-              navigateAfterPark(
-                (to) => {
-                  void navigate(to);
-                },
-                workspace.id,
-                remaining,
-              );
-            }
-            onClose();
-          })
+          .then(parkAfterRemove)
           .catch((error: unknown) => {
             toast.add({
               title: error instanceof Error ? error.message : 'Could not remove workspace',
             });
+          });
+      });
+  };
+
+  const wipeData = () => {
+    void alert
+      .confirm({
+        title: `Delete ${workspace.name} workspace.db?`,
+        description:
+          'Stops the node and deletes `<path>/.harnesys/workspace.db`. The folder stays unless you confirm the next step.',
+        confirmText: 'Delete workspace.db',
+        variant: 'destructive',
+        testId: 'wipe-workspace-db-dialog',
+      })
+      .then((confirmedDb) => {
+        if (!confirmedDb) {
+          return;
+        }
+        void alert
+          .confirm({
+            title: `Also delete the folder ${workspace.path}?`,
+            description:
+              'Optional. Default is to keep the user folder and only remove workspace.db / host registration.',
+            confirmText: 'Delete folder too',
+            cancelText: 'Keep folder',
+            variant: 'destructive',
+            testId: 'wipe-workspace-folder-dialog',
+          })
+          .then((wipeFolder) => {
+            void wipeWorkspace
+              .mutateAsync({ id: workspace.id, wipeFolder: wipeFolder === true })
+              .then(parkAfterRemove)
+              .catch((error: unknown) => {
+                toast.add({
+                  title: error instanceof Error ? error.message : 'Could not wipe workspace',
+                });
+              });
           });
       });
   };
@@ -199,11 +240,28 @@ function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClos
         <Button
           variant="destructive"
           size="sm"
-          disabled={removeWorkspace.isPending}
+          disabled={removeWorkspace.isPending || wipeWorkspace.isPending}
           onClick={removeFromHost}
           data-testid="workspace-remove-from-host"
         >
           Remove from host
+        </Button>
+      </div>
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/20 bg-destructive/3 px-3 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-sm">Delete workspace data</span>
+          <span className="text-muted-foreground text-xs">
+            Deletes workspace.db. Optional second confirm removes the folder.
+          </span>
+        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          disabled={removeWorkspace.isPending || wipeWorkspace.isPending}
+          onClick={wipeData}
+          data-testid="workspace-wipe-data"
+        >
+          Delete data
         </Button>
       </div>
     </section>

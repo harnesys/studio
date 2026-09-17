@@ -1,6 +1,6 @@
-import type { WorkspaceFileEntry, WorkspaceMoveItem } from '@harnesys/studio-shared';
+import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
 import {
   buildMoveItems,
@@ -14,16 +14,19 @@ import { openWorkspaceFile } from '@/features/open-file';
 import {
   createWorkspaceFile,
   deleteWorkspaceFile,
-  listWorkspaceFiles,
+  listWorkspaceFilesTree,
   watchWorkspaceFiles,
+  workspaceFilesTreeQueryKey,
 } from '@/shared/api/files';
 import { getGitFileStatus, gitFileStatusQueryKey } from '@/shared/api/git';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { useSidebar } from '@/shared/ui/sidebar';
+import { Spinner } from '@/shared/ui/spinner';
 import { toast } from '@/shared/ui/toast';
 import { useExplorerDraftStore } from '../model/explorer-draft.store';
 import { useExplorerHiddenStore } from '../model/explorer-hidden.store';
 import { useFileSelectionStore } from '../model/file-selection.store';
+import { childrenOf, indexFileTree } from '../model/file-tree-index';
 import { useFilesHotkey } from '../model/use-files-hotkey';
 import { FileRow, InlineCreateInput } from './file-row';
 
@@ -38,10 +41,10 @@ export function ExplorerContent({
   const iconMode = state === 'collapsed' && !isMobile;
   const { openFile } = useStudioNavigation();
   const qc = useQueryClient();
-  const draft = useExplorerDraftStore((state) => state.draft);
+  const draft = useExplorerDraftStore((store) => store.draft);
   const createDraft = draft?.workspaceId === workspaceId ? draft : null;
-  const startCreate = useExplorerDraftStore((state) => state.start);
-  const cancelCreate = useExplorerDraftStore((state) => state.cancel);
+  const startCreate = useExplorerDraftStore((store) => store.start);
+  const cancelCreate = useExplorerDraftStore((store) => store.cancel);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [renamePath, setRenamePath] = useState<string | null>(null);
   const moveMutation = useMoveWorkspaceFiles(workspaceId);
@@ -54,9 +57,10 @@ export function ExplorerContent({
   const selectRange = useFileSelectionStore((s) => s.selectRange);
   const activeSelectedPaths = selectionWorkspaceId === workspaceId ? selectedPaths : [];
 
-  const filesQuery = useQuery({
-    queryKey: ['workspace-files', workspaceId],
-    queryFn: () => listWorkspaceFiles(workspaceId),
+  const treeQuery = useQuery({
+    queryKey: workspaceFilesTreeQueryKey(workspaceId),
+    queryFn: () => listWorkspaceFilesTree(workspaceId),
+    staleTime: 60_000,
   });
 
   const gitFileStatusQuery = useQuery({
@@ -76,7 +80,7 @@ export function ExplorerContent({
       return;
     }
     const invalidate = () => {
-      void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
+      void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
       void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'status'] });
@@ -84,52 +88,40 @@ export function ExplorerContent({
     return watchWorkspaceFiles(workspaceId, invalidate);
   }, [workspaceId, qc]);
 
+  const invalidateTree = () => {
+    void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
+    void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
+    void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'status'] });
+  };
+
   const createMutation = useMutation({
     mutationFn: (input: { path: string; kind: 'file' | 'dir' }) =>
       createWorkspaceFile(workspaceId, input),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
-      void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
-      void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'status'] });
-    },
+    onSuccess: invalidateTree,
   });
 
   const deleteMutation = useMutation({
     mutationFn: (path: string) => deleteWorkspaceFile(workspaceId, path),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
-      void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
-      void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'status'] });
-    },
+    onSuccess: invalidateTree,
   });
 
-  const showHidden = useExplorerHiddenStore((state) => state.showHidden);
-  const allEntries = filesQuery.data ?? [];
-  const entries = showHidden
-    ? allEntries
-    : allEntries.filter((entry) => !entry.name.startsWith('.'));
+  const showHidden = useExplorerHiddenStore((store) => store.showHidden);
+  const treeIndex = useMemo(() => indexFileTree(treeQuery.data ?? []), [treeQuery.data]);
+  const entries = childrenOf(treeIndex, '', showHidden);
 
   const computeVisible = useCallback((): string[] => {
     const out: string[] = [];
-    const walk = (ents: WorkspaceFileEntry[], parent: string) => {
-      for (const ent of ents) {
-        const full = parent ? `${parent}/${ent.name}` : ent.name;
-        out.push(full);
-        if (ent.kind === 'dir' && expandedDirs.has(full)) {
-          const cached = qc.getQueryData<WorkspaceFileEntry[]>([
-            'workspace-files',
-            workspaceId,
-            full,
-          ]);
-          if (cached) {
-            walk(cached, full);
-          }
+    const walk = (parent: string) => {
+      for (const ent of childrenOf(treeIndex, parent, showHidden)) {
+        out.push(ent.path);
+        if (ent.kind === 'dir' && expandedDirs.has(ent.path)) {
+          walk(ent.path);
         }
       }
     };
-    walk(entries, '');
+    walk('');
     return out;
-  }, [entries, expandedDirs, qc, workspaceId]);
+  }, [treeIndex, expandedDirs, showHidden]);
 
   const visibleForStore = computeVisible();
   const setVisiblePaths = useFileSelectionStore((s) => s.setVisiblePaths);
@@ -278,6 +270,12 @@ export function ExplorerContent({
           Large repo — file decorations off. Expand a folder for status.
         </div>
       ) : null}
+      {treeQuery.isPending ? (
+        <div className="flex items-center gap-1.5 px-2 py-2 text-muted-foreground group-data-[collapsible=icon]:hidden">
+          <Spinner className="size-3" />
+          <span className="text-xs">Loading tree…</span>
+        </div>
+      ) : null}
       {createDraft && createDraft.parentPath === '' ? (
         <InlineCreateInput kind={createDraft.kind} onFinish={finishCreate} depth={depthOffset} />
       ) : null}
@@ -295,6 +293,8 @@ export function ExplorerContent({
           iconMode={iconMode}
           gitMap={gitTruncated ? undefined : gitMap}
           gitTruncated={gitTruncated}
+          treeIndex={treeIndex}
+          showHidden={showHidden}
           onToggle={toggleDir}
           onSelect={handleSelect}
           onOpen={handleOpen}
@@ -306,7 +306,7 @@ export function ExplorerContent({
           onDelete={handleDelete}
         />
       ))}
-      {entries.length === 0 && !filesQuery.isLoading ? (
+      {!treeQuery.isPending && entries.length === 0 ? (
         <p
           className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden"
           style={{ paddingLeft: `${8 + depthOffset * 12}px` }}

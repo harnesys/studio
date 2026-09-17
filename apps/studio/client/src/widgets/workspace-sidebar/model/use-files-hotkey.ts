@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { workspaceFilesTreeQueryKey } from '@/shared/api/files';
 import { gitFileStatusQueryKey, stageGit } from '@/shared/api/git';
 import { toast } from '@/shared/ui/toast';
 import { useFileSelectionStore } from './file-selection.store';
@@ -31,6 +32,7 @@ export function useFilesHotkey(workspaceId: string) {
       void stageGit(workspaceId, target)
         .then(() => {
           void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
+          void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
           void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
           void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'status'] });
           toast.add({ title: target.length === 0 ? 'Staged all' : `Staged ${target.length}` });

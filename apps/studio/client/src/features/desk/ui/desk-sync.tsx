@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useLayoutEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -5,6 +6,7 @@ import { useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import { useWorkspaces } from '@/entities/workspace';
 import { watchDesk } from '@/shared/api';
+import { listWorkspaceFilesTree, workspaceFilesTreeQueryKey } from '@/shared/api/files';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 
@@ -18,6 +20,7 @@ import { useWorkspaceTabsStore } from '../model/workspace-tabs.store';
 
 export function DeskSync() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const focus = useStudioLocation();
   const workspaceId = studioFocusWorkspaceId(focus);
   const workspacesQuery = useWorkspaces();
@@ -49,6 +52,11 @@ export function DeskSync() {
     }
     for (const id of workspaceIds) {
       void hydrateDesk(id).catch(() => {});
+      void queryClient.prefetchQuery({
+        queryKey: workspaceFilesTreeQueryKey(id),
+        queryFn: () => listWorkspaceFilesTree(id),
+        staleTime: 60_000,
+      });
     }
     const known = new Set(workspaceIds);
     for (const id of Object.keys(useDeskStore.getState().hydrated)) {
@@ -56,7 +64,7 @@ export function DeskSync() {
         useDeskStore.getState().setHydrateStatus(id, null);
       }
     }
-  }, [workspaceIds, workspacesQuery.status]);
+  }, [workspaceIds, workspacesQuery.status, queryClient]);
 
   useEffect(() => {
     return watchDesk(applyDeskEvent);

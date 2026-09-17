@@ -14,6 +14,15 @@ export function listWorkspaceFiles(workspaceId: string, subPath = '') {
   return apiJson<WorkspaceFileEntry[]>(`/api/workspaces/${workspaceId}/files${params}`);
 }
 
+export function workspaceFilesTreeQueryKey(workspaceId: string) {
+  return ['workspace-files-tree', workspaceId] as const;
+}
+
+/** One-shot flat tree; each entry.path is workspace-relative. */
+export function listWorkspaceFilesTree(workspaceId: string) {
+  return apiJson<WorkspaceFileEntry[]>(`/api/workspaces/${workspaceId}/files/tree`);
+}
+
 export function createWorkspaceFile(
   workspaceId: string,
   input: { path: string; kind: 'file' | 'dir' },

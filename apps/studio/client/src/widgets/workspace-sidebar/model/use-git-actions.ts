@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { openNewBranchDialog } from '@/features/git-branch';
 import { openCommitDialog } from '@/features/git-commit';
+import { workspaceFilesTreeQueryKey } from '@/shared/api/files';
 import {
   checkoutGitBranch,
   commitGit,
@@ -23,6 +24,7 @@ export function useGitActions(workspaceId: string) {
       void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
+      void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
     },
     onError: (err: unknown) => {
@@ -50,6 +52,7 @@ export function useGitActions(workspaceId: string) {
       void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
+      void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
       toast.add({ title: 'Committed' });
     },
@@ -77,6 +80,7 @@ export function useGitActions(workspaceId: string) {
       void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
+      void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
       toast.add({ title: 'Updated' });
     },
@@ -92,6 +96,7 @@ export function useGitActions(workspaceId: string) {
       void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
+      void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
       const title = paths.length === 0 ? 'Staged all' : `Staged ${paths.length}`;
       toast.add({ title });

@@ -2,6 +2,8 @@ import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 
 export type WorkspaceFilesPort = {
   listDir(absPath: string): Promise<WorkspaceFileEntry[]>;
+  /** Flat recursive listing; `path` is workspace-relative. Skips SAFETY_NAMES. */
+  listTree(absRoot: string): Promise<WorkspaceFileEntry[]>;
   createFile(absPath: string): Promise<void>;
   createDir(absPath: string): Promise<void>;
   delete(absPath: string): Promise<void>;

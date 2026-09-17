@@ -16,6 +16,7 @@ import { cn } from '@/shared/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -60,6 +61,14 @@ export function WorkspaceHeader() {
   const tabs = workspaces.slice(0, WORKSPACE_TAB_CAP);
   const overflow = workspaces.slice(WORKSPACE_TAB_CAP);
 
+  const createWorkspace = () => {
+    void openCreateWorkspaceDialog().then((created) => {
+      if (created) {
+        add(created.id);
+      }
+    });
+  };
+
   return (
     <div className="flex items-center gap-1" data-testid="workspace-tabs">
       {tabs.map((item) => {
@@ -95,6 +104,26 @@ export function WorkspaceHeader() {
           </Tooltip>
         );
       })}
+      {tabs.length < WORKSPACE_TAB_CAP ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                data-testid="workspace-tab-create"
+                aria-label="New workspace"
+                onClick={createWorkspace}
+                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:hidden"
+              />
+            }
+          >
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-sidebar-border border-dashed">
+              <PlusIcon className="size-3.5" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">New workspace</TooltipContent>
+        </Tooltip>
+      ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -110,44 +139,40 @@ export function WorkspaceHeader() {
           <span className="sr-only">Workspaces</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="bottom" className="min-w-44">
-          <DropdownMenuItem
-            onClick={() => {
-              void openCreateWorkspaceDialog().then((created) => {
-                if (created) {
-                  add(created.id);
-                }
-              });
-            }}
-          >
+          <DropdownMenuItem onClick={createWorkspace}>
             <PlusIcon />
             New workspace
           </DropdownMenuItem>
           {workspaces.length > 0 ? (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Settings</DropdownMenuLabel>
-              {workspaces.map((item) => (
-                <DropdownMenuItem
-                  key={`settings-${item.id}`}
-                  onClick={() => {
-                    void openWorkspaceSettingsDialog(item.id);
-                  }}
-                >
-                  <SettingsIcon />
-                  {item.name}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Settings</DropdownMenuLabel>
+                {workspaces.map((item) => (
+                  <DropdownMenuItem
+                    key={`settings-${item.id}`}
+                    onClick={() => {
+                      void openWorkspaceSettingsDialog(item.id);
+                    }}
+                  >
+                    <SettingsIcon />
+                    {item.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
             </>
           ) : null}
           {overflow.length > 0 ? (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>More workspaces</DropdownMenuLabel>
-              {overflow.map((item) => (
-                <DropdownMenuItem key={item.id} onClick={() => onToggle(item.id)}>
-                  {item.name}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>More workspaces</DropdownMenuLabel>
+                {overflow.map((item) => (
+                  <DropdownMenuItem key={item.id} onClick={() => onToggle(item.id)}>
+                    {item.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
             </>
           ) : null}
         </DropdownMenuContent>

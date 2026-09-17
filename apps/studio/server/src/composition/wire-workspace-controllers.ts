@@ -26,6 +26,7 @@ import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-
 import { GetWorkspaceMcpConfigUseCase } from '../application/workspaces/get-workspace-mcp-config.use-case.ts';
 import { GetWorkspaceStatusUseCase } from '../application/workspaces/get-workspace-status.use-case.ts';
 import { ListWorkspaceCapabilitiesUseCase } from '../application/workspaces/list-workspace-capabilities.use-case.ts';
+import { ListWorkspaceFileTreeUseCase } from '../application/workspaces/list-workspace-file-tree.use-case.ts';
 import { ListWorkspaceFilesUseCase } from '../application/workspaces/list-workspace-files.use-case.ts';
 import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
 import { ListWorkspaceToolsUseCase } from '../application/workspaces/list-workspace-tools.use-case.ts';
@@ -144,6 +145,7 @@ export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void 
     ),
     revealWorkspace: new RevealWorkspaceUseCase(d.workspaceRepo, d.workspace),
     listWorkspaceFiles: new ListWorkspaceFilesUseCase(d.workspaceRepo, d.workspaceFiles),
+    listWorkspaceFileTree: new ListWorkspaceFileTreeUseCase(d.workspaceRepo, d.workspaceFiles),
     createWorkspaceFile: new CreateWorkspaceFileUseCase(d.workspaceRepo, d.workspaceFiles),
     deleteWorkspaceFile: new DeleteWorkspaceFileUseCase(d.workspaceRepo, d.workspaceFiles),
     moveWorkspaceFiles: new MoveWorkspaceFilesUseCase(d.workspaceRepo, d.workspaceFiles),

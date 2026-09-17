@@ -2,7 +2,7 @@ import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDeskStore } from '@/features/desk';
 import { useIdeStore } from '@/features/ide';
-import { moveWorkspaceFiles } from '@/shared/api/files';
+import { moveWorkspaceFiles, workspaceFilesTreeQueryKey } from '@/shared/api/files';
 import { gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
 import { toast } from '@/shared/ui/toast';
 
@@ -18,6 +18,7 @@ export function useMoveWorkspaceFiles(workspaceId: string) {
       const moved = result.moved;
       useIdeStore.getState().remapPaths(workspaceId, moved);
       useDeskStore.getState().remapWorkspaceFiles(workspaceId, moved);
+      void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
       void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
       void qc.invalidateQueries({ queryKey: ['workspace-file-content', workspaceId] });
       void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });

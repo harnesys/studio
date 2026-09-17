@@ -5,6 +5,7 @@ import { cn } from '@/shared/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -149,31 +150,37 @@ export function EditorStatusBar({
             className="w-72"
             data-testid="lsp-popup"
           >
-            <DropdownMenuLabel>This file</DropdownMenuLabel>
-            <div className="flex items-center gap-1.5 px-1.5 py-1 text-xs">
-              <span className={cn('size-1.5 shrink-0 rounded-full', LSP_DOT[lspStatus])} />
-              <span className="min-w-0 flex-1 truncate">{path}</span>
-              <span className="shrink-0 text-muted-foreground">
-                {languageId} · {LSP_HINT[lspStatus]}
-              </span>
-            </div>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>This file</DropdownMenuLabel>
+              <div className="flex items-center gap-1.5 px-1.5 py-1 text-xs">
+                <span className={cn('size-1.5 shrink-0 rounded-full', LSP_DOT[lspStatus])} />
+                <span className="min-w-0 flex-1 truncate">{path}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {languageId} · {LSP_HINT[lspStatus]}
+                </span>
+              </div>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Running sessions ({orderedSessions.length})</DropdownMenuLabel>
-            {orderedSessions.length === 0 ? (
-              <div className="px-1.5 py-1 text-muted-foreground text-xs">No active sessions</div>
-            ) : (
-              orderedSessions.map((session) => (
-                <div
-                  key={session.path}
-                  className="flex items-center gap-1.5 px-1.5 py-1 text-xs"
-                  title={`${session.path} — ${session.languageId}, ${session.status}`}
-                >
-                  <span className={cn('size-1.5 shrink-0 rounded-full', LSP_DOT[session.status])} />
-                  <span className="min-w-0 flex-1 truncate">{session.path}</span>
-                  <span className="shrink-0 text-muted-foreground">{session.languageId}</span>
-                </div>
-              ))
-            )}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Running sessions ({orderedSessions.length})</DropdownMenuLabel>
+              {orderedSessions.length === 0 ? (
+                <div className="px-1.5 py-1 text-muted-foreground text-xs">No active sessions</div>
+              ) : (
+                orderedSessions.map((session) => (
+                  <div
+                    key={session.path}
+                    className="flex items-center gap-1.5 px-1.5 py-1 text-xs"
+                    title={`${session.path} — ${session.languageId}, ${session.status}`}
+                  >
+                    <span
+                      className={cn('size-1.5 shrink-0 rounded-full', LSP_DOT[session.status])}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{session.path}</span>
+                    <span className="shrink-0 text-muted-foreground">{session.languageId}</span>
+                  </div>
+                ))
+              )}
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>
@@ -192,20 +199,22 @@ export function EditorStatusBar({
             className="w-52"
             data-testid="language-popup"
           >
-            <DropdownMenuLabel>File type</DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              value={languageOverride ?? AUTO_LANGUAGE}
-              onValueChange={(value) => onSelectLanguage(value === AUTO_LANGUAGE ? null : value)}
-            >
-              <DropdownMenuRadioItem value={AUTO_LANGUAGE}>
-                Auto ({detectedLanguage})
-              </DropdownMenuRadioItem>
-              {LANGUAGE_OPTIONS.map((option) => (
-                <DropdownMenuRadioItem key={option.id} value={option.id}>
-                  {option.label}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>File type</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={languageOverride ?? AUTO_LANGUAGE}
+                onValueChange={(value) => onSelectLanguage(value === AUTO_LANGUAGE ? null : value)}
+              >
+                <DropdownMenuRadioItem value={AUTO_LANGUAGE}>
+                  Auto ({detectedLanguage})
                 </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <DropdownMenuRadioItem key={option.id} value={option.id}>
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
         <span title="Cursor position" className="px-1 tabular-nums">

@@ -94,6 +94,13 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     return c.body(null, 204);
   });
 
+  app.get('/api/workspaces/:id/files/tree', async (c) => {
+    const { entries } = await deps.listWorkspaceFileTree.execute({
+      workspaceId: c.req.param('id'),
+    });
+    return c.json(entries);
+  });
+
   app.get('/api/workspaces/:id/files', async (c) => {
     const subPath = c.req.query('path') ?? '';
     const { entries } = await deps.listWorkspaceFiles.execute({

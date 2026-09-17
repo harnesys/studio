@@ -8,6 +8,7 @@ import {
   UploadIcon,
 } from 'lucide-react';
 import { useState } from 'react';
+import { workspaceFilesTreeQueryKey } from '@/shared/api/files';
 import { getGitStatus, gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
 import {
   DropdownMenuGroup,
@@ -122,6 +123,7 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
     void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
     void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
     void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
+    void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
     void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
   };
 

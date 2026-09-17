@@ -15,6 +15,7 @@ import type { GetWorkspaceFileContentInput } from '../../../application/workspac
 import type { GetWorkspaceMcpInput } from '../../../application/workspaces/get-workspace-mcp.use-case.ts';
 import type { GetWorkspaceMcpConfigInput } from '../../../application/workspaces/get-workspace-mcp-config.use-case.ts';
 import type { GetWorkspaceStatusInput } from '../../../application/workspaces/get-workspace-status.use-case.ts';
+import type { ListWorkspaceFileTreeInput } from '../../../application/workspaces/list-workspace-file-tree.use-case.ts';
 import type { ListWorkspaceFilesInput } from '../../../application/workspaces/list-workspace-files.use-case.ts';
 import type { ListWorkspaceSkillsInput } from '../../../application/workspaces/list-workspace-skills.use-case.ts';
 import type { ListWorkspacesInput } from '../../../application/workspaces/list-workspaces.use-case.ts';
@@ -58,6 +59,7 @@ export type WorkspaceControllerDeps = {
   restartMcpServer: RestartMcpServerInput;
   revealWorkspace: RevealWorkspaceInput;
   listWorkspaceFiles: ListWorkspaceFilesInput;
+  listWorkspaceFileTree: ListWorkspaceFileTreeInput;
   createWorkspaceFile: CreateWorkspaceFileInput;
   deleteWorkspaceFile: DeleteWorkspaceFileInput;
   moveWorkspaceFiles: MoveWorkspaceFilesInput;

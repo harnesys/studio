@@ -8,6 +8,7 @@ import { cleanupReservedModeIds } from './bootstrap-modes-cleanup.ts';
 import { migrateNodeCatalogPlugins } from './bootstrap-node-catalog-plugins-migration.ts';
 import { migrateNodeCatalogPresets } from './bootstrap-node-catalog-presets-migration.ts';
 import { migrateNodeCatalogProviders } from './bootstrap-node-catalog-providers-migration.ts';
+import { migratePluginServerStateFk } from './bootstrap-plugin-server-state-fk-migration.ts';
 import type { StudioDb } from './connection.ts';
 import { migratePluginGrantsSchema } from './plugins-migration.ts';
 import { SqliteModePresetRepo } from './repos/sqlite-mode-preset.repo.ts';
@@ -218,11 +219,12 @@ export function bootstrap(db: StudioDb): void {
       PRIMARY KEY (workspace_id, plugin_name, server_id)
     );`,
     `CREATE TABLE IF NOT EXISTS plugin_server_state (
-      plugin_name TEXT NOT NULL REFERENCES plugins(name) ON DELETE CASCADE,
+      plugin_name TEXT NOT NULL,
       server_id TEXT NOT NULL,
       workspace_id TEXT NOT NULL,
       disabled_at TEXT NOT NULL,
-      PRIMARY KEY (plugin_name, server_id, workspace_id)
+      PRIMARY KEY (plugin_name, server_id, workspace_id),
+      FOREIGN KEY (workspace_id, plugin_name) REFERENCES plugins(workspace_id, name) ON DELETE CASCADE
     );`,
     `CREATE TABLE IF NOT EXISTS plugin_registries (
       id TEXT PRIMARY KEY,
@@ -294,6 +296,7 @@ export function bootstrap(db: StudioDb): void {
   migratePluginGrantsSchema(db);
   migrateNodeCatalogProviders(db);
   migrateNodeCatalogPlugins(db);
+  migratePluginServerStateFk(db);
 
   try {
     db.run(sql.raw('DELETE FROM webhooks WHERE thread_id IS NULL;'));

@@ -11,7 +11,10 @@ import {
 } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
+import { SAFETY_NAMES } from '../../config/constants.ts';
 import type { WorkspaceFilesPort } from '../../domain/workspace-files.port.ts';
+
+const MAX_TREE_ENTRIES = 20_000;
 
 export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
   async listDir(absPath: string): Promise<WorkspaceFileEntry[]> {
@@ -65,6 +68,12 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
     return results;
   }
 
+  async listTree(absRoot: string): Promise<WorkspaceFileEntry[]> {
+    const results: WorkspaceFileEntry[] = [];
+    await collectTree(absRoot, '', results);
+    return results;
+  }
+
   async createFile(absPath: string): Promise<void> {
     await mkdir(dirname(absPath), { recursive: true });
     await writeFileFs(absPath, '', { flag: 'wx' });
@@ -110,6 +119,72 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
   async writeFile(absPath: string, content: string): Promise<void> {
     await mkdir(dirname(absPath), { recursive: true });
     await writeFileFs(absPath, content, 'utf8');
+  }
+}
+
+async function collectTree(
+  absRoot: string,
+  relDir: string,
+  results: WorkspaceFileEntry[],
+): Promise<void> {
+  if (results.length >= MAX_TREE_ENTRIES) {
+    return;
+  }
+  const dirToRead = relDir ? join(absRoot, relDir) : absRoot;
+  let dirents: Dirent[] = [];
+  try {
+    dirents = (await readdir(dirToRead, {
+      withFileTypes: true,
+      encoding: 'utf8',
+    })) as Dirent[];
+  } catch {
+    return;
+  }
+
+  const batch: WorkspaceFileEntry[] = [];
+  for (const entry of dirents) {
+    const name = String(entry.name);
+    if (SAFETY_NAMES.has(name)) {
+      continue;
+    }
+    const isDirectory = typeof entry.isDirectory === 'function' ? entry.isDirectory() : false;
+    const relPath = relDir ? `${relDir}/${name}` : name;
+    const absPath = join(absRoot, relPath);
+    let size: number | undefined;
+    let modifiedAt: string | undefined;
+    try {
+      const info = await stat(absPath);
+      modifiedAt = info.mtime.toISOString();
+      if (!isDirectory) {
+        size = info.size;
+      }
+    } catch {
+      // skip stat failures
+    }
+    batch.push({
+      name,
+      kind: isDirectory ? 'dir' : 'file',
+      path: relPath,
+      ...(size !== undefined ? { size } : {}),
+      ...(modifiedAt !== undefined ? { modifiedAt } : {}),
+    });
+  }
+
+  batch.sort((a, b) => {
+    if (a.kind !== b.kind) {
+      return a.kind === 'dir' ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  for (const item of batch) {
+    if (results.length >= MAX_TREE_ENTRIES) {
+      return;
+    }
+    results.push(item);
+    if (item.kind === 'dir') {
+      await collectTree(absRoot, item.path, results);
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 import type { GitFileStatus, GitFileStatusMap, WorkspaceFileEntry } from '@harnesys/studio-shared';
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   FileIcon,
   FolderIcon,
@@ -17,7 +17,6 @@ import {
   moveDrag,
   setMoveDrag,
 } from '@/features/move-workspace-files';
-import { listWorkspaceFiles } from '@/shared/api/files';
 import { getGitFileStatus } from '@/shared/api/git';
 import { gitStatusColorClass, useGitStatusColors } from '@/shared/lib/git-status-colors';
 import { cn } from '@/shared/lib/utils';
@@ -31,9 +30,9 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
-import { Spinner } from '@/shared/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 import type { ExplorerCreateDraft } from '../model/explorer-draft.store';
+import { childrenOf } from '../model/file-tree-index';
 import { getDirAggregatedStatus } from './git-file-decorations';
 import { InlineCreateInput } from './inline-create-input';
 
@@ -51,6 +50,8 @@ export function FileRow({
   iconMode,
   gitMap,
   gitTruncated,
+  treeIndex,
+  showHidden,
   onToggle,
   onSelect,
   onOpen,
@@ -72,6 +73,8 @@ export function FileRow({
   iconMode: boolean;
   gitMap?: GitFileStatusMap;
   gitTruncated?: boolean;
+  treeIndex: Map<string, WorkspaceFileEntry[]>;
+  showHidden: boolean;
   onToggle: (fullPath: string) => void;
   onSelect: (fullPath: string, event: React.MouseEvent) => void;
   onOpen: (fullPath: string) => void;
@@ -86,9 +89,7 @@ export function FileRow({
   const isDir = entry.kind === 'dir';
   const isExpanded = isDir && expandedDirs.has(fullPath);
   const selected = selectedPaths.includes(fullPath);
-  const qc = useQueryClient();
   const [dropState, setDropState] = useState<DropState>(null);
-
   const dirGitQuery = useQuery({
     queryKey: ['workspaces', workspaceId, 'git', 'file-status', fullPath],
     queryFn: () => getGitFileStatus(workspaceId, fullPath),
@@ -118,14 +119,7 @@ export function FileRow({
   const gitColor = gitStatus ? gitColors[gitStatus] : undefined;
   const gitDecorationClass = gitStatus ? gitStatusColorClass(gitStatus) : undefined;
 
-  const childrenQuery = useQuery({
-    queryKey: ['workspace-files', workspaceId, fullPath],
-    queryFn: () => listWorkspaceFiles(workspaceId, fullPath),
-    enabled: isDir && isExpanded,
-    placeholderData: keepPreviousData,
-  });
-
-  const children = isDir ? (childrenQuery.data ?? []) : [];
+  const children = isDir ? childrenOf(treeIndex, fullPath, showHidden) : [];
   let infoLabel = '';
   if (isDir) {
     infoLabel = `${children.length} items`;
@@ -141,12 +135,6 @@ export function FileRow({
       if (hasModifier) {
         onSelect(fullPath, event);
         return;
-      }
-      if (!isExpanded) {
-        void qc.prefetchQuery({
-          queryKey: ['workspace-files', workspaceId, fullPath],
-          queryFn: () => listWorkspaceFiles(workspaceId, fullPath),
-        });
       }
       onToggle(fullPath);
       onSelect(fullPath, event);
@@ -331,12 +319,6 @@ export function FileRow({
 
       {isDir && isExpanded && (
         <div className="flex flex-col">
-          {childrenQuery.isFetching && children.length === 0 && (
-            <div className="flex items-center gap-1.5 px-1.5 py-1 pl-6 text-muted-foreground group-data-[collapsible=icon]:hidden">
-              <Spinner className="size-3" />
-              <span className="text-xs">Loading...</span>
-            </div>
-          )}
           {children.map((child) => (
             <FileRow
               key={child.name}
@@ -351,6 +333,8 @@ export function FileRow({
               iconMode={iconMode}
               gitMap={effectiveMap ?? gitMap}
               gitTruncated={gitTruncated}
+              treeIndex={treeIndex}
+              showHidden={showHidden}
               onToggle={onToggle}
               onSelect={onSelect}
               onOpen={onOpen}

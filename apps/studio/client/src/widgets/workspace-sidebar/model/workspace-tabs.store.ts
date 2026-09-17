@@ -2,15 +2,11 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { useWorkspaces } from '@/entities/workspace';
 import { WORKSPACE_TABS_STORAGE_KEY } from '@/shared/config/constants';
-import { useStudioLocation } from '@/shared/config/location';
 
 type WorkspaceTabsState = {
-  /** Explicitly selected workspace tabs, in selection order. Empty = follow the open workspace. */
   selected: string[];
-  /** Single-select: one tab, sections follow it. */
-  select: (id: string) => void;
-  /** Multi-select (shift/control click): toggle a tab in the selection. */
   toggle: (id: string) => void;
+  add: (id: string) => void;
 };
 
 function loadSelected(): string[] {
@@ -37,30 +33,36 @@ function persistSelected(selected: string[]): void {
 
 export const useWorkspaceTabsStore = create<WorkspaceTabsState>((set, get) => ({
   selected: loadSelected(),
-  select: (id) => {
-    persistSelected([id]);
-    set({ selected: [id] });
-  },
   toggle: (id) => {
     const current = get().selected;
     const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
     persistSelected(next);
     set({ selected: next });
   },
+  add: (id) => {
+    const current = get().selected;
+    if (current.includes(id)) {
+      return;
+    }
+    const next = [...current, id];
+    persistSelected(next);
+    set({ selected: next });
+  },
 }));
 
-/** Workspaces whose groups the sections show: explicit selection, else the open workspace. */
+/** Workspaces whose groups the sections show. Empty selection = empty groups. */
 export function useSelectedWorkspaceIds(): string[] {
-  const { workspaceId } = useStudioLocation();
   const selected = useWorkspaceTabsStore((state) => state.selected);
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
   const known = useMemo(() => new Set(workspaces.map((item) => item.id)), [workspaces]);
-  return useMemo(() => {
-    const valid = selected.filter((id) => known.has(id));
-    if (valid.length > 0) {
-      return valid;
-    }
-    return workspaceId ? [workspaceId] : [];
-  }, [selected, known, workspaceId]);
+  return useMemo(() => selected.filter((id) => known.has(id)), [selected, known]);
+}
+
+/** One-shot seed when LS is empty and URL has a workspace. Not a live fallback. */
+export function seedWorkspaceSelection(workspaceId: string): void {
+  const selected = useWorkspaceTabsStore.getState().selected;
+  if (selected.length === 0) {
+    useWorkspaceTabsStore.getState().add(workspaceId);
+  }
 }

@@ -1,7 +1,9 @@
 import { EllipsisIcon, PlusIcon } from 'lucide-react';
+import { useEffect } from 'react';
 import { useWorkspaces, workspaceAvatarClass, workspaceInitial } from '@/entities/workspace';
 import { openCreateWorkspaceDialog } from '@/features/create-workspace';
 import { WORKSPACE_TAB_CAP } from '@/shared/config/constants';
+import { useStudioLocation } from '@/shared/config/location';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -12,27 +14,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { useSidebar } from '@/shared/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
-import { useSelectedWorkspaceIds, useWorkspaceTabsStore } from '../model/workspace-tabs.store';
+import {
+  seedWorkspaceSelection,
+  useSelectedWorkspaceIds,
+  useWorkspaceTabsStore,
+} from '../model/workspace-tabs.store';
 
 export function WorkspaceHeader() {
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
   const selected = useSelectedWorkspaceIds();
-  const select = useWorkspaceTabsStore((state) => state.select);
   const toggle = useWorkspaceTabsStore((state) => state.toggle);
+  const add = useWorkspaceTabsStore((state) => state.add);
+  const { workspaceId } = useStudioLocation();
   const { openWorkspace } = useStudioNavigation();
-  const { setOpenMobile } = useSidebar();
+
+  useEffect(() => {
+    if (workspaceId) {
+      seedWorkspaceSelection(workspaceId);
+    }
+  }, [workspaceId]);
 
   const tabs = workspaces.slice(0, WORKSPACE_TAB_CAP);
   const overflow = workspaces.slice(WORKSPACE_TAB_CAP);
-
-  const selectSingle = (id: string) => {
-    select(id);
-    openWorkspace(id);
-    setOpenMobile(false);
-  };
 
   return (
     <div className="flex items-center gap-1" data-testid="workspace-tabs">
@@ -47,12 +52,8 @@ export function WorkspaceHeader() {
                   data-testid={`workspace-tab-${item.id}`}
                   data-active={active ? 'true' : 'false'}
                   aria-label={`${item.name} · ${item.path}`}
-                  onClick={(event) => {
-                    if (event.shiftKey || event.metaKey || event.ctrlKey) {
-                      toggle(item.id);
-                      return;
-                    }
-                    selectSingle(item.id);
+                  onClick={() => {
+                    toggle(item.id);
                   }}
                   className="flex size-8 shrink-0 items-center justify-center rounded-md border border-transparent outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[active=true]:border-sidebar-border data-[active=true]:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
                 />
@@ -92,6 +93,7 @@ export function WorkspaceHeader() {
             onClick={() => {
               void openCreateWorkspaceDialog().then((created) => {
                 if (created) {
+                  add(created.id);
                   openWorkspace(created.id);
                 }
               });
@@ -105,7 +107,7 @@ export function WorkspaceHeader() {
               <DropdownMenuSeparator />
               <DropdownMenuLabel>More workspaces</DropdownMenuLabel>
               {overflow.map((item) => (
-                <DropdownMenuItem key={item.id} onClick={() => selectSingle(item.id)}>
+                <DropdownMenuItem key={item.id} onClick={() => toggle(item.id)}>
                   {item.name}
                 </DropdownMenuItem>
               ))}

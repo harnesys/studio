@@ -6,6 +6,7 @@ import type { LspDiagnostic, LspHover, LspLocation } from 'harnesys/lsp';
 import { LspDocuments } from './lsp-documents.ts';
 import { isRecord, normalizeHover, normalizeLocations, toDiagnostic } from './lsp-messages.ts';
 import { LspStdioTransport } from './lsp-stdio-transport.ts';
+import { resolveTsserverJs } from './resolve-tsserver.ts';
 import { lspServerRoot, spawnServer } from './spawn-lsp-server.ts';
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 20_000;
@@ -56,7 +57,18 @@ export class StdioLspSession {
     const root = realpathSync(lspServerRoot(config, workspaceRoot));
     const proc = spawnServer(config, root);
     const session = new StdioLspSession(proc, config, root);
-    await session.initialize();
+    try {
+      await session.initialize();
+    } catch (error) {
+      try {
+        proc.kill();
+      } catch {
+        // ignore
+      }
+      const detail = error instanceof Error ? error.message : String(error);
+      const stderr = session.transport.stderrText.trim();
+      throw new Error(stderr.length > 0 ? `${detail} (${stderr.slice(0, 400)})` : detail);
+    }
     return session;
   }
 
@@ -198,7 +210,7 @@ export class StdioLspSession {
           workspace: { workspaceFolders: true },
         },
         workspaceFolders: [{ uri: rootUri, name: 'workspace' }],
-        initializationOptions: this.config.initializationOptions ?? {},
+        initializationOptions: enrichInitializationOptions(this.config),
       },
       this.config.startupTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
     );
@@ -283,4 +295,26 @@ export class StdioLspSession {
       }
     }
   }
+}
+
+/**
+ * typescript-language-server needs a `typescript` install. Workspace local wins
+ * via its own discovery; when missing, inject host `tsserver.fallbackPath`.
+ */
+function enrichInitializationOptions(config: LspServerSpec): unknown {
+  const base = isRecord(config.initializationOptions) ? { ...config.initializationOptions } : {};
+  if (config.command !== 'typescript-language-server') {
+    return base;
+  }
+  const tsserver = isRecord(base.tsserver) ? { ...base.tsserver } : {};
+  if (typeof tsserver.path === 'string' || typeof tsserver.fallbackPath === 'string') {
+    base.tsserver = tsserver;
+    return base;
+  }
+  const fallbackPath = resolveTsserverJs();
+  if (fallbackPath !== undefined) {
+    tsserver.fallbackPath = fallbackPath;
+  }
+  base.tsserver = tsserver;
+  return base;
 }

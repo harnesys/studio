@@ -5,6 +5,7 @@ import type { WorkspaceFilesPort } from '../../domain/workspace-files.port.ts';
 
 export type ListWorkspaceFileTreeRequest = {
   workspaceId: string;
+  includeHidden?: boolean;
 };
 
 export type ListWorkspaceFileTreeResponse = {
@@ -26,7 +27,9 @@ export class ListWorkspaceFileTreeUseCase implements ListWorkspaceFileTreeInput 
     if (!workspace) {
       throw new NotFoundError(`Workspace ${req.workspaceId} not found`);
     }
-    const entries = await this.files.listTree(workspace.path);
+    const entries = await this.files.listTree(workspace.path, {
+      includeSafety: req.includeHidden ?? false,
+    });
     return { entries };
   }
 }

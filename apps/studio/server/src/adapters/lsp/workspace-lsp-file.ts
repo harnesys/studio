@@ -30,9 +30,13 @@ export function readWorkspaceLspFile(root: string): WorkspaceLspFile {
   if (!existsSync(path)) {
     return { raw: {}, servers: [], diagnostics: [] };
   }
+  const text = readFileSync(path, 'utf8').trim();
+  if (text.length === 0) {
+    return { raw: {}, servers: [], diagnostics: [] };
+  }
   let raw: unknown;
   try {
-    raw = JSON.parse(readFileSync(path, 'utf8')) as unknown;
+    raw = JSON.parse(text) as unknown;
   } catch (error) {
     return {
       raw: {},

@@ -90,7 +90,8 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
     if (savedDiagnostics) {
       applyBuiltinDiagnostics(monaco, { noSemanticValidation: true, noSyntaxValidation: true });
     }
-    setStatus('live');
+    // Stay on `starting` until the language server answers; onopen only means
+    // the WebSocket upgraded — session spawn may still fail with 1011.
   };
 
   ws.onmessage = (event) => {
@@ -102,6 +103,9 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
       message = JSON.parse(event.data);
     } catch {
       return;
+    }
+    if (status === 'starting') {
+      setStatus('live');
     }
     const id = typeof message.id === 'string' ? message.id : undefined;
     if (id && pending.has(id)) {
@@ -132,10 +136,12 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
     if (disposed) {
       return;
     }
-    if (status === 'live' || event.code !== 1011) {
-      setStatus('off');
-    } else {
+    // 1011 = server failed to start the language server (see LspBridgeController).
+    // Do not demote that to `off` just because we briefly looked live.
+    if (event.code === 1011) {
       setStatus('error');
+    } else if (status !== 'error') {
+      setStatus('off');
     }
     if (savedDiagnostics) {
       applyBuiltinDiagnostics(monaco, savedDiagnostics);

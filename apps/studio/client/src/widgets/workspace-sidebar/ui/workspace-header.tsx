@@ -1,4 +1,4 @@
-import { EllipsisIcon, PlusIcon, SettingsIcon } from 'lucide-react';
+import { EllipsisVerticalIcon, PlusIcon, SettingsIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useWorkspaces, workspaceAvatarClass, workspaceInitial } from '@/entities/workspace';
@@ -159,7 +159,7 @@ export function WorkspaceHeader() {
               />
             }
           >
-            <EllipsisIcon className="size-4" />
+            <EllipsisVerticalIcon className="size-4" />
             <span className="sr-only">Workspaces</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="bottom" className="min-w-44">

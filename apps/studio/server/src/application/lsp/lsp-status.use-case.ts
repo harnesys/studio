@@ -123,11 +123,19 @@ export class LspStatusUseCase implements LspStatusInput {
   }
 }
 
-/** `binaryOk` via `which command` (spec §2); any spawn failure reads as missing. */
+/**
+ * `binaryOk`: command on PATH, or a bare name that Studio can launch via
+ * `bunx --bun <command>` (spawn-lsp-server fallback).
+ */
 function checkBinary(command: string): boolean {
   try {
-    const result = Bun.spawnSync(['which', command]);
-    return result.exitCode === 0;
+    if (Bun.spawnSync(['which', command]).exitCode === 0) {
+      return true;
+    }
+    if (command.includes('/') || command.includes('\\')) {
+      return false;
+    }
+    return Bun.spawnSync(['which', 'bunx']).exitCode === 0;
   } catch {
     return false;
   }

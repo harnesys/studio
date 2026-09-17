@@ -53,14 +53,14 @@ export function AgentCard({
           render={
             <button
               type="button"
-              className="flex min-w-0 flex-1 items-start gap-2 px-2 py-2 text-left group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+              className="flex min-w-0 flex-1 items-start gap-1 px-2 py-2 text-left group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
               onClick={onSelect}
             />
           }
         >
           <div className="relative mr-0.5 inline-flex size-5 shrink-0">
             <Avatar size="sm" className="size-5 after:hidden">
-              <AvatarFallback className={agentColorTintClass(agent.color)}>
+              <AvatarFallback className={`${agentColorTintClass(agent.color)} size-5`}>
                 {agent.initials}
               </AvatarFallback>
             </Avatar>
@@ -83,7 +83,7 @@ export function AgentCard({
             >
               <span className="truncate">{agent.name}</span>
             </div>
-            <div className="mt-0.5 flex items-baseline justify-between gap-2">
+            <div className="mt-1 flex items-baseline justify-between gap-2 leading-1">
               <div className="min-w-0 truncate text-[11px] text-muted-foreground leading-3">
                 {agent.role}
               </div>

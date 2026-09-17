@@ -16,6 +16,9 @@ import type { WorkspaceFilesPort } from '../../domain/workspace-files.port.ts';
 
 const MAX_TREE_ENTRIES = 20_000;
 
+/** Safety dirs listed without children in hidden tree mode; expand via single-level listing. */
+const NO_RECURSE_NAMES = new Set(['node_modules', '.git']);
+
 export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
   async listDir(absPath: string): Promise<WorkspaceFileEntry[]> {
     let entries: Dirent[] = [];
@@ -68,9 +71,12 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
     return results;
   }
 
-  async listTree(absRoot: string): Promise<WorkspaceFileEntry[]> {
+  async listTree(
+    absRoot: string,
+    options?: { includeSafety?: boolean },
+  ): Promise<WorkspaceFileEntry[]> {
     const results: WorkspaceFileEntry[] = [];
-    await collectTree(absRoot, '', results);
+    await collectTree(absRoot, '', results, options?.includeSafety ?? false);
     return results;
   }
 
@@ -126,6 +132,7 @@ async function collectTree(
   absRoot: string,
   relDir: string,
   results: WorkspaceFileEntry[],
+  includeSafety: boolean,
 ): Promise<void> {
   if (results.length >= MAX_TREE_ENTRIES) {
     return;
@@ -144,10 +151,11 @@ async function collectTree(
   const batch: WorkspaceFileEntry[] = [];
   for (const entry of dirents) {
     const name = String(entry.name);
-    if (SAFETY_NAMES.has(name)) {
+    const isDirectory = typeof entry.isDirectory === 'function' ? entry.isDirectory() : false;
+    const isSafety = SAFETY_NAMES.has(name);
+    if (isSafety && !includeSafety) {
       continue;
     }
-    const isDirectory = typeof entry.isDirectory === 'function' ? entry.isDirectory() : false;
     const relPath = relDir ? `${relDir}/${name}` : name;
     const absPath = join(absRoot, relPath);
     let size: number | undefined;
@@ -161,12 +169,14 @@ async function collectTree(
     } catch {
       // skip stat failures
     }
+    const pruned = isSafety && isDirectory && NO_RECURSE_NAMES.has(name);
     batch.push({
       name,
       kind: isDirectory ? 'dir' : 'file',
       path: relPath,
       ...(size !== undefined ? { size } : {}),
       ...(modifiedAt !== undefined ? { modifiedAt } : {}),
+      ...(pruned ? { pruned: true } : {}),
     });
   }
 
@@ -182,8 +192,8 @@ async function collectTree(
       return;
     }
     results.push(item);
-    if (item.kind === 'dir') {
-      await collectTree(absRoot, item.path, results);
+    if (item.kind === 'dir' && !item.pruned) {
+      await collectTree(absRoot, item.path, results, includeSafety);
     }
   }
 }

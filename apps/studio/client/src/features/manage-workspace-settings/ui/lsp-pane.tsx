@@ -110,6 +110,19 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
 
       {isPending && <p className="text-muted-foreground text-sm">Loading LSP servers…</p>}
       {!isPending && error && <p className="text-destructive text-sm">{error}</p>}
+      {!isPending && !error && (data?.diagnostics?.length ?? 0) > 0 && (
+        <div className="flex flex-col gap-1 rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1.5">
+          {data?.diagnostics.map((diagnostic) => (
+            <p
+              key={`${diagnostic.code}:${diagnostic.message}`}
+              className="text-destructive text-xs"
+            >
+              {diagnostic.path ? `${diagnostic.path}: ` : ''}
+              {diagnostic.message}
+            </p>
+          ))}
+        </div>
+      )}
       {!isPending && !error && servers.length === 0 && (
         <Empty className="min-h-0 border-0 py-8">
           <EmptyHeader>
@@ -184,6 +197,17 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
                 <RowField label="Disabled" value={server.disabled ? 'true' : 'false'} />
                 <RowField label="Granted" value={server.granted ? 'true' : 'false'} />
                 <RowField label="Binary found" value={server.binaryOk ? 'true' : 'false'} />
+                {!server.binaryOk && (
+                  <p className="text-muted-foreground text-xs">
+                    Install hint: npm i -g typescript-language-server typescript
+                  </p>
+                )}
+                {server.status === 'error' && server.binaryOk && (
+                  <p className="text-muted-foreground text-xs">
+                    Server configured but not ready. Restart from this row, or ensure `typescript`
+                    is installed in the workspace (or rely on Studio host fallback).
+                  </p>
+                )}
               </RowSection>
             </Row>
           ))}

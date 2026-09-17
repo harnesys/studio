@@ -32,7 +32,15 @@ export function IdeHome() {
   );
 
   if (!workspaceId) {
-    return null;
+    return (
+      <CategoryLanding data-testid="ide-home">
+        <CategoryLandingEyebrow>CLEAR</CategoryLandingEyebrow>
+        <CategoryLandingTitle>No workspace selected</CategoryLandingTitle>
+        <CategoryLandingDescription>
+          Toggle a workspace tab above or create one from ⋯.
+        </CategoryLandingDescription>
+      </CategoryLanding>
+    );
   }
 
   return (

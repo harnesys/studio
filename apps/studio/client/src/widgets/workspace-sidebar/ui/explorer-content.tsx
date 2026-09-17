@@ -1,6 +1,6 @@
 import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIdeStore } from '@/features/ide';
 import {
   buildMoveItems,
@@ -25,6 +25,7 @@ import { Spinner } from '@/shared/ui/spinner';
 import { toast } from '@/shared/ui/toast';
 import { useExplorerDraftStore } from '../model/explorer-draft.store';
 import { useExplorerHiddenStore } from '../model/explorer-hidden.store';
+import { createLazyChildrenState, ensurePrunedChildren } from '../model/explorer-lazy-children';
 import { useFileSelectionStore } from '../model/file-selection.store';
 import { childrenOf, indexFileTree } from '../model/file-tree-index';
 import { useFilesHotkey } from '../model/use-files-hotkey';
@@ -57,9 +58,13 @@ export function ExplorerContent({
   const selectRange = useFileSelectionStore((s) => s.selectRange);
   const activeSelectedPaths = selectionWorkspaceId === workspaceId ? selectedPaths : [];
 
+  const showHidden = useExplorerHiddenStore((store) => store.showHidden);
+  const treeKey = workspaceFilesTreeQueryKey(workspaceId, showHidden);
+  const lazyState = useRef(createLazyChildrenState());
+
   const treeQuery = useQuery({
-    queryKey: workspaceFilesTreeQueryKey(workspaceId),
-    queryFn: () => listWorkspaceFilesTree(workspaceId),
+    queryKey: treeKey,
+    queryFn: () => listWorkspaceFilesTree(workspaceId, { includeHidden: showHidden }),
     staleTime: 60_000,
   });
 
@@ -92,7 +97,6 @@ export function ExplorerContent({
     onSuccess: invalidateTree,
   });
 
-  const showHidden = useExplorerHiddenStore((store) => store.showHidden);
   const treeIndex = useMemo(() => indexFileTree(treeQuery.data ?? []), [treeQuery.data]);
   const entries = childrenOf(treeIndex, '', showHidden);
 
@@ -148,6 +152,7 @@ export function ExplorerContent({
   );
 
   const toggleDir = (dirPath: string) => {
+    const expanding = !expandedDirs.has(dirPath);
     setExpandedDirs((prev) => {
       const next = new Set(prev);
       if (next.has(dirPath)) {
@@ -157,6 +162,15 @@ export function ExplorerContent({
       }
       return next;
     });
+    if (expanding) {
+      ensurePrunedChildren({
+        qc,
+        treeKey,
+        workspaceId,
+        dirPath,
+        state: lazyState.current,
+      });
+    }
   };
 
   const finishCreate = (name: string) => {

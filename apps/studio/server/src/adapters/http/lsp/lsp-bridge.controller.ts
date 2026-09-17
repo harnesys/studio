@@ -62,8 +62,9 @@ export class LspBridgeController {
       const upgrade = upgradeWebSocket(() => ({
         onOpen: (_evt, ws) => {
           this.connections.set(rawOf(ws), { pending: [] });
-          void this.connect(workspaceId, relPath, ws).catch(() => {
-            ws.close(1011, 'failed to start language server');
+          void this.connect(workspaceId, relPath, ws).catch((error: unknown) => {
+            const detail = error instanceof Error ? error.message : String(error);
+            ws.close(1011, truncateCloseReason(`failed to start language server: ${detail}`));
           });
         },
         onMessage: (evt, ws) => {
@@ -194,4 +195,9 @@ function absoluteToEditorUri(uri: string, rootHref: string): string {
     return `${FILE_SCHEME}/${uri.slice(rootHref.length + 1)}`;
   }
   return uri;
+}
+
+/** WebSocket close reasons are capped (~123 bytes); keep the leading detail. */
+function truncateCloseReason(reason: string): string {
+  return reason.length <= 120 ? reason : `${reason.slice(0, 117)}...`;
 }

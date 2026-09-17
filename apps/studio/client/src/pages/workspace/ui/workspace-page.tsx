@@ -11,6 +11,7 @@ import { Resizer } from '@/shared/ui/resizer';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/shared/ui/sidebar';
 import { AgentInspector } from '@/widgets/agent-inspector';
 import { FileInspector } from '@/widgets/file-inspector';
+import { IdeHome } from '@/widgets/ide-home';
 import { WorkspaceSidebar } from '@/widgets/workspace-sidebar';
 
 import { useInspectorWidth } from '../model/inspector-width';
@@ -83,15 +84,8 @@ function WorkspaceShell() {
                 </span>
               </Button>
             </div>
-            <div
-              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 text-center"
-              data-testid="empty-desk"
-            >
-              <p className="text-muted-foreground text-sm">
-                {selectedIds.length === 0
-                  ? 'No workspace selected. Toggle a tab above or create one from ⋯.'
-                  : 'No open tabs. Pick a thread, file, or automation in the sidebar.'}
-              </p>
+            <div className="flex min-h-0 flex-1 flex-col" data-testid="empty-desk">
+              <IdeHome />
             </div>
           </>
         )}

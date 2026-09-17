@@ -14,13 +14,25 @@ export function listWorkspaceFiles(workspaceId: string, subPath = '') {
   return apiJson<WorkspaceFileEntry[]>(`/api/workspaces/${workspaceId}/files${params}`);
 }
 
-export function workspaceFilesTreeQueryKey(workspaceId: string) {
-  return ['workspace-files-tree', workspaceId] as const;
+/** Two-element key is a prefix: matches both visible and hidden trees on invalidate. */
+export function workspaceFilesTreeQueryKey(
+  workspaceId: string,
+  includeHidden?: undefined,
+): readonly ['workspace-files-tree', string];
+export function workspaceFilesTreeQueryKey(
+  workspaceId: string,
+  includeHidden: boolean,
+): readonly ['workspace-files-tree', string, 'hidden' | 'visible'];
+export function workspaceFilesTreeQueryKey(workspaceId: string, includeHidden?: boolean) {
+  return includeHidden === undefined
+    ? (['workspace-files-tree', workspaceId] as const)
+    : (['workspace-files-tree', workspaceId, includeHidden ? 'hidden' : 'visible'] as const);
 }
 
 /** One-shot flat tree; each entry.path is workspace-relative. */
-export function listWorkspaceFilesTree(workspaceId: string) {
-  return apiJson<WorkspaceFileEntry[]>(`/api/workspaces/${workspaceId}/files/tree`);
+export function listWorkspaceFilesTree(workspaceId: string, options?: { includeHidden?: boolean }) {
+  const qs = options?.includeHidden ? '?hidden=1' : '';
+  return apiJson<WorkspaceFileEntry[]>(`/api/workspaces/${workspaceId}/files/tree${qs}`);
 }
 
 export function createWorkspaceFile(

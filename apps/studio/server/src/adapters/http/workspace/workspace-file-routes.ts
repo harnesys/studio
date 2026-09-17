@@ -95,8 +95,10 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
   });
 
   app.get('/api/workspaces/:id/files/tree', async (c) => {
+    const hidden = c.req.query('hidden');
     const { entries } = await deps.listWorkspaceFileTree.execute({
       workspaceId: c.req.param('id'),
+      ...(hidden === '1' || hidden === 'true' ? { includeHidden: true } : {}),
     });
     return c.json(entries);
   });

@@ -27,8 +27,8 @@ export function useStudioNavigation() {
     openSpawn(workspaceId: string, threadId: string, spawnId: string) {
       void navigate(studioPath.spawn(workspaceId, threadId, spawnId));
     },
-    openSettings(category?: WindowSettingsCategory, providerId?: string, replace = false) {
-      void navigate(studioPath.settings(category, providerId), { replace });
+    openSettings(category?: WindowSettingsCategory, replace = false) {
+      void navigate(studioPath.settings(category), { replace });
     },
   };
 }

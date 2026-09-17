@@ -1,14 +1,13 @@
 import { useMatch } from 'react-router';
 
 import {
-  parseSettingsCategory,
+  parseWindowSettingsCategory,
   type StudioFocus,
   studioFocusThreadId,
   studioFocusWorkspaceId,
 } from './routes';
 
 export function useStudioLocation(): StudioFocus {
-  const settingsWithProvider = useMatch('/settings/:category/:providerId');
   const settingsCategoryMatch = useMatch('/settings/:category');
   const settingsRoot = useMatch('/settings');
   const thread = useMatch('/:workspaceId/thread/:threadId');
@@ -18,15 +17,10 @@ export function useStudioLocation(): StudioFocus {
   const webhook = useMatch('/:workspaceId/webhook/:webhookId');
   const spawn = useMatch('/:workspaceId/spawn/:threadId/:spawnId');
 
-  if (settingsWithProvider || settingsCategoryMatch || settingsRoot) {
-    const category = parseSettingsCategory(
-      settingsWithProvider?.params.category ?? settingsCategoryMatch?.params.category,
-    );
+  if (settingsCategoryMatch || settingsRoot) {
     return {
       kind: 'settings',
-      category,
-      providerId:
-        category === 'providers' ? (settingsWithProvider?.params.providerId ?? null) : null,
+      category: parseWindowSettingsCategory(settingsCategoryMatch?.params.category),
     };
   }
 

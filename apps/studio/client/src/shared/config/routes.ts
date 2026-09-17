@@ -1,13 +1,12 @@
-import { SETTINGS_CATEGORIES, type SettingsCategory } from './settings-nav';
+import { WINDOW_SETTINGS_CATEGORIES, type WindowSettingsCategory } from './settings-nav';
 
-/** Phase 1: may still include domain ids from settings-nav until Phase 2. */
-export type WindowSettingsCategory = SettingsCategory;
+export type { WindowSettingsCategory };
 
 export type StudioFocusKind = 'thread' | 'file' | 'diff' | 'schedule' | 'webhook' | 'spawn';
 
 export type StudioFocus =
   | { kind: 'none' }
-  | { kind: 'settings'; category: WindowSettingsCategory; providerId: string | null }
+  | { kind: 'settings'; category: WindowSettingsCategory }
   | {
       kind: 'thread';
       workspaceId: string;
@@ -30,19 +29,16 @@ export const studioPath = {
   webhook: (workspaceId: string, webhookId: string) => `/${workspaceId}/webhook/${webhookId}`,
   spawn: (workspaceId: string, threadId: string, spawnId: string) =>
     `/${workspaceId}/spawn/${threadId}/${spawnId}`,
-  settings: (category?: WindowSettingsCategory, providerId?: string) => {
+  settings: (category?: WindowSettingsCategory) => {
     if (category && category !== 'profile') {
-      if (category === 'providers' && providerId) {
-        return `/settings/providers/${providerId}`;
-      }
       return `/settings/${category}`;
     }
     return '/settings';
   },
 };
 
-export function parseSettingsCategory(value: string | undefined): WindowSettingsCategory {
-  if (value && (SETTINGS_CATEGORIES as readonly string[]).includes(value)) {
+export function parseWindowSettingsCategory(value: string | undefined): WindowSettingsCategory {
+  if (value && (WINDOW_SETTINGS_CATEGORIES as readonly string[]).includes(value)) {
     return value as WindowSettingsCategory;
   }
   return 'profile';

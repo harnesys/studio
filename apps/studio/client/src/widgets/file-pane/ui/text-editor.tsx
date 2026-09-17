@@ -239,11 +239,11 @@ export function TextEditor({
     : null;
   const language = languageOverride ?? detectedLanguage;
   const { showMarkdownMode, markdownMode, selectMarkdownMode } = useMarkdownEditorMode(activePath);
-  const { status: lspStatus, pulse: lspPulse } = useEditorLspBridge(
-    workspaceId,
-    activePath,
-    language,
-  );
+  const {
+    status: lspStatus,
+    pulse: lspPulse,
+    restartFileServer,
+  } = useEditorLspBridge(workspaceId, activePath, language);
 
   useLayoutEffect(() => {
     setMonacoImportLinkContext({
@@ -344,6 +344,7 @@ export function TextEditor({
       }}
       onSelectLanguage={(next) => selectLanguage(activePath, next)}
       onSelectMarkdownMode={(mode) => selectMarkdownMode(activePath, mode)}
+      onRestartFileServer={restartFileServer}
       toModelPath={toModelPath}
     />
   );

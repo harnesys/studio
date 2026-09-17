@@ -27,6 +27,7 @@ type TextEditorViewProps = {
   onChange: (text: string) => void;
   onSelectLanguage: (language: string | null) => void;
   onSelectMarkdownMode: (mode: MarkdownEditorMode) => void;
+  onRestartFileServer: () => void;
   toModelPath: (path: string) => string;
 };
 
@@ -50,6 +51,7 @@ export function TextEditorView({
   onChange,
   onSelectLanguage,
   onSelectMarkdownMode,
+  onRestartFileServer,
   toModelPath,
 }: TextEditorViewProps) {
   return (
@@ -86,6 +88,7 @@ export function TextEditorView({
         onSelectLanguage={onSelectLanguage}
         markdownMode={showMarkdownMode ? markdownMode : undefined}
         onSelectMarkdownMode={showMarkdownMode ? onSelectMarkdownMode : undefined}
+        onRestartFileServer={onRestartFileServer}
       />
     </div>
   );

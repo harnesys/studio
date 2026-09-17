@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   attachLspBridge,
   type LspBridge,
   type LspBridgeStatus,
+  restartLspForPath,
   useLspSessionsStore,
 } from '@/features/lsp-bridge';
 import { monaco } from '@/shared/lib/monaco';
@@ -15,8 +16,11 @@ import { toModelPath } from './editor-setup';
 export function useEditorLspBridge(workspaceId: string, path: string | null, languageId: string) {
   const [status, setStatus] = useState<LspBridgeStatus>('off');
   const [pulse, setPulse] = useState(0);
+  const [attachEpoch, setAttachEpoch] = useState(0);
 
   useEffect(() => {
+    // Read to retrigger dispose + re-attach after a popup restart.
+    void attachEpoch;
     if (!path) {
       return;
     }
@@ -58,7 +62,19 @@ export function useEditorLspBridge(workspaceId: string, path: string | null, lan
       useLspSessionsStore.getState().remove(workspaceId, path);
       setStatus('off');
     };
-  }, [workspaceId, path, languageId]);
+  }, [workspaceId, path, languageId, attachEpoch]);
 
-  return { status, pulse };
+  /** Popup reload: restart the file's server, then dispose + re-attach the bridge. */
+  const restartFileServer = useCallback(() => {
+    if (!path) {
+      return;
+    }
+    void restartLspForPath(workspaceId, path)
+      .then(() => setAttachEpoch((n) => n + 1))
+      .catch(() => {
+        // No server for this file or restart failed; the popup hint keeps the state.
+      });
+  }, [workspaceId, path]);
+
+  return { status, pulse, restartFileServer };
 }

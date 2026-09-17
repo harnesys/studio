@@ -1,4 +1,4 @@
-import { CheckIcon, CopyIcon } from 'lucide-react';
+import { CheckIcon, CopyIcon, RotateCwIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { type LspBridgeStatus, type LspSessionEntry, useLspSessions } from '@/features/lsp-bridge';
 import { cn } from '@/shared/lib/utils';
@@ -77,6 +77,7 @@ export function EditorStatusBar({
   onSelectLanguage,
   markdownMode,
   onSelectMarkdownMode,
+  onRestartFileServer,
 }: {
   workspaceId: string;
   path: string;
@@ -91,6 +92,7 @@ export function EditorStatusBar({
   onSelectLanguage: (language: string | null) => void;
   markdownMode?: MarkdownEditorMode;
   onSelectMarkdownMode?: (mode: MarkdownEditorMode) => void;
+  onRestartFileServer: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const sessions = useLspSessions(workspaceId);
@@ -199,6 +201,15 @@ export function EditorStatusBar({
                 <span className="shrink-0 text-muted-foreground">
                   {languageId} · {LSP_HINT[lspStatus]}
                 </span>
+                <button
+                  type="button"
+                  title="Restart language server"
+                  data-testid="lsp-restart"
+                  onClick={onRestartFileServer}
+                  className="shrink-0 rounded-sm p-0.5 hover:text-foreground"
+                >
+                  <RotateCwIcon className="size-3" />
+                </button>
               </div>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

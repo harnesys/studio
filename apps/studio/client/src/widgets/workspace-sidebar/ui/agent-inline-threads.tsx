@@ -167,7 +167,7 @@ function InlineThreadRow({
     <div
       className={cn(
         'group/ithread relative flex items-center rounded-md transition-colors hover:bg-sidebar-accent/70',
-        selected && 'bg-sidebar-accent text-sidebar-accent-foreground',
+        selected && 'bg-sidebar-accent/70 text-sidebar-accent-foreground',
         'group-data-[collapsible=icon]:justify-center',
       )}
       data-testid={`agent-thread-${thread.id}`}

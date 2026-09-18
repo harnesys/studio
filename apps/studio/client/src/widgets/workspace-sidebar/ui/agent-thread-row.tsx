@@ -62,7 +62,7 @@ export function AgentThreadRow({
     <div
       className={cn(
         'group/thread relative flex items-start rounded-md transition-colors hover:bg-sidebar-accent/70',
-        selected && 'bg-sidebar-accent text-sidebar-accent-foreground',
+        selected && 'bg-sidebar-accent/70 text-sidebar-accent-foreground',
         'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center',
       )}
       data-testid={`agent-thread-${thread.id}`}

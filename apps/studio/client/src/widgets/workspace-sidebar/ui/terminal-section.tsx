@@ -194,7 +194,7 @@ function TerminalRow({
     <div
       className={cn(
         'group/term relative flex items-center rounded-md transition-colors hover:bg-sidebar-accent/70',
-        selected && 'bg-sidebar-accent text-sidebar-accent-foreground',
+        selected && 'bg-sidebar-accent/70 text-sidebar-accent-foreground',
       )}
       data-testid={`terminal-${session.id}`}
       data-selected={selected ? 'true' : 'false'}

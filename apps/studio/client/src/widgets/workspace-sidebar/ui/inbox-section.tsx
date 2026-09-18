@@ -99,7 +99,7 @@ function InboxRow({
     <div
       className={cn(
         'group/inbox relative flex items-start rounded-md transition-colors hover:bg-sidebar-accent/70',
-        selected && 'bg-sidebar-accent text-sidebar-accent-foreground',
+        selected && 'bg-sidebar-accent/70 text-sidebar-accent-foreground',
         'group-data-[collapsible=icon]:justify-center',
       )}
       data-testid={`inbox-thread-${thread.id}`}

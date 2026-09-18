@@ -230,7 +230,7 @@ export function FileRow({
         <div
           className={cn(
             'group/file relative flex items-center rounded-md hover:bg-sidebar-accent/70',
-            selected && 'bg-sidebar-accent text-sidebar-accent-foreground',
+            selected && 'bg-sidebar-accent/70 text-sidebar-accent-foreground',
             'group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center',
             dropState === 'valid' && 'bg-live/15 ring-1 ring-live ring-inset',
             dropState === 'invalid' && 'cursor-not-allowed opacity-60',

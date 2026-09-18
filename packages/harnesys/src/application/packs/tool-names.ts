@@ -41,7 +41,28 @@ export function packCatalog(registrations: PackRegistration[]): PackCatalogEntry
       description: r.pack.description,
       icon: r.pack.icon,
       hasSettings: r.pack.specSchema !== undefined,
-      tools: r.pack.meta.tools,
+      tools: catalogTools(r),
       skills: r.pack.meta.skills,
     }));
+}
+
+/** Каталог показывает фактический выдачу `create()` — тот же набор, что попадает
+ *  в реестр рана при гранте. `meta.tools` — только fallback: create может быть
+ *  невозможен вне рана (порты не разрешены). */
+function catalogTools(r: PackRegistration): Array<{ name: string; description: string }> {
+  try {
+    const out = r.pack.create({
+      ports: (r.ports ?? {}) as Record<string, unknown>,
+      spec: {},
+      scope: r.resolveScope?.() ?? {
+        workspaceId: '_',
+        agentId: '_',
+        threadId: '_',
+      },
+    });
+    const tools = (out.tools ?? []).map((t) => ({ name: t.name, description: t.description }));
+    return tools.length > 0 || r.pack.meta.tools.length === 0 ? tools : r.pack.meta.tools;
+  } catch {
+    return r.pack.meta.tools;
+  }
 }

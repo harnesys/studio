@@ -107,6 +107,7 @@ export {
   type UserConfigValue,
   type UserConfigValues,
 } from './src/application/plugins/user-config.ts';
+export { createProcessJobRegistry } from './src/application/process-jobs/process-job-registry.ts';
 export type { RunClaimer } from './src/application/run-claimer.ts';
 export { createRunClaimer } from './src/application/run-claimer.ts';
 export { createRunEngine } from './src/application/run-engine.ts';
@@ -244,6 +245,13 @@ export type {
   SettingDefaultSpec,
   SkillSpec,
 } from './src/domain/plugin-ir.ts';
+export type {
+  ProcessJobMode,
+  ProcessJobReadResult,
+  ProcessJobRecord,
+  ProcessJobRegistry,
+  ProcessJobStatus,
+} from './src/domain/process-job.ts';
 export type {
   Command,
   RunCancelled,

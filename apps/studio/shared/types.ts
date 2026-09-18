@@ -312,20 +312,10 @@ export type WorkspaceFileEvent = {
   name: string;
 };
 
-/** One source → destination pair of a workspace move, paths relative to the root. */
-export type WorkspaceMoveItem = {
-  from: string;
-  to: string;
-};
-
-export type WorkspaceMoveResult = {
-  /** Items applied exactly as requested. Descendants of moved directories are implied by prefix. */
-  moved: WorkspaceMoveItem[];
-};
-
 export * from './src/plan-types.ts';
 export type { TerminalSessionRecord } from './src/terminal.ts';
 export { isTextAttachment } from './src/text-attachment.ts';
+export * from './src/workspace-files.ts';
 
 export type DeskEvent =
   | { type: 'thread'; thread: ThreadRecordType }
@@ -337,6 +327,7 @@ export type DeskEvent =
   | { type: 'webhook-deleted'; id: string }
   | { type: 'agent'; agent: AgentRecordType }
   | { type: 'agent-deleted'; id: string }
+  | { type: 'terminal'; workspaceId: string; jobId: string }
   | { type: 'run-finish'; threadId: string };
 
 export type WorkspaceLspEntry = {

@@ -121,7 +121,9 @@ export function segmentKey(segment: TurnSegment, index: number): string {
     return `activity-${index}`;
   }
   if (first.type === 'tool') {
-    return first.toolCallId;
+    // toolCallId повторяется между сегментами: провайдер может прислать
+    // text-delta между фазами одного tool call, и activity разрывается.
+    return `tool-${index}-${first.toolCallId}`;
   }
   return `activity-${index}`;
 }

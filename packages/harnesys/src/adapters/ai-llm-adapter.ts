@@ -284,8 +284,13 @@ export async function* callModel(
     yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
   }
 
-  // fallback finishReason from toolCalls
-  if (toolCalls.length > 0 && finishReason === 'stop') {
+  // Присутствие tool-calls важнее подрядчика finishReason: провайдеры свободной
+  // категории присылают 'unknown'/'other'/пустоту вместе с вызовами. Такой шаг
+  // обязан маршрутизироваться в исполнение тулов, иначе вызов зависает в
+  // истории без результата и следующий запрос отвергается провайдером.
+  // Исключение — 'length': аргументы могли обрезаться, исполнение опасно
+  // (висящий вызов чинится синтетическим результатом на завершении рана).
+  if (toolCalls.length > 0 && finishReason !== 'tool-calls' && finishReason !== 'length') {
     finishReason = 'tool-calls';
   }
 

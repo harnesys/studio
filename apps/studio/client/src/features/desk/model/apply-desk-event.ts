@@ -66,6 +66,11 @@ export function applyDeskEvent(event: DeskEvent): void {
       // state updates arrive through thread events.
       return;
     }
+    case 'terminal': {
+      // Agent pty job: tab + terminals query update live in useIdeSync
+      // (features/ide owns the terminal tab); no desk store state here.
+      return;
+    }
     default: {
       const _exhaustive: never = event;
       void _exhaustive;

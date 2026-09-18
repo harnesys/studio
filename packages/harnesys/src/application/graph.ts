@@ -66,6 +66,7 @@ import {
 import type { PackRunMap } from './packs/pack-run.ts';
 import { printPackDiagnostics, selectPackOutputs } from './packs/pack-run.ts';
 import { executeToolCall, type ToolCallResult } from './tool-call.ts';
+import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 import { sandboxDenyText } from './tool-permission.ts';
 
 export type { MergeStateFn } from './graph-helpers.ts';
@@ -76,6 +77,64 @@ function isApprovedFalse(payload: unknown): boolean {
       typeof payload === 'object' &&
       (payload as { approved?: unknown }).approved === false,
   );
+}
+
+type DanglingToolCall = { toolCallId: string; name: string };
+
+/** Answered calls: id присутствует в последующем tool-сообщении. */
+function collectUnansweredToolCalls(messages: unknown[]): DanglingToolCall[] {
+  const asked: DanglingToolCall[] = [];
+  const answered = new Set<string>();
+  for (const item of messages) {
+    if (!item || typeof item !== 'object') {
+      continue;
+    }
+    const rec = item as Record<string, unknown>;
+    if (rec.role === 'assistant') {
+      const calls = rec.toolCalls;
+      if (Array.isArray(calls)) {
+        for (const tc of calls) {
+          if (!tc || typeof tc !== 'object') {
+            continue;
+          }
+          const id = String((tc as Record<string, unknown>).id ?? '');
+          if (id && !answered.has(id)) {
+            asked.push({
+              toolCallId: id,
+              name: String((tc as Record<string, unknown>).name ?? 'tool'),
+            });
+          }
+        }
+      }
+      continue;
+    }
+    if (rec.role === 'tool') {
+      const id = String(rec.toolCallId ?? rec.id ?? '');
+      if (id) {
+        answered.add(id);
+      }
+    }
+  }
+  return asked.filter((c) => !answered.has(c.toolCallId));
+}
+
+/** Инвариант истории: у каждого tool-call должен быть результат, иначе следующий
+ *  запрос провайдер отвергает («Tool result is missing»). Висящие вызовы (ран
+ *  оборвался между step'ом модели и исполнением) закрываются синтетикой. */
+function repairDanglingToolCalls(messages: unknown[]): DanglingToolCall[] {
+  const dangling = collectUnansweredToolCalls(messages);
+  if (dangling.length === 0) {
+    return [];
+  }
+  const fixed: ToolMessage[] = dangling.map((c) =>
+    buildToolMessage({
+      toolCallId: c.toolCallId,
+      name: c.name,
+      content: 'run ended before tool execution; no result recorded',
+    }),
+  );
+  messages.push(...fixed);
+  return dangling;
 }
 
 function normalizeInputAttachments(input: unknown): {
@@ -428,6 +487,25 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     });
   }
 
+  /** Закрыть висящие tool-calls синтетикой перед выходом из рана + события в журнал. */
+  async function repairBeforeExit(): Promise<Event[]> {
+    const msgs = st.messages;
+    if (!Array.isArray(msgs)) {
+      return [];
+    }
+    const out: Event[] = [];
+    for (const dangling of repairDanglingToolCalls(msgs)) {
+      out.push(
+        await commit('running', 'tool.skipped', 'recorded', {
+          toolCallId: dangling.toolCallId,
+          name: dangling.name,
+          output: 'run ended before tool execution; no result recorded',
+        }),
+      );
+    }
+    return out;
+  }
+
   // Песочничный ребёнок: бюджет — условие сдачи, а не отказа. Оверран не валит
   // ран, а вооружает единственный закрывающий generate без тулов; штатный путь
   // — снимок тулов на последнем шаге (wrapDue) и отчёт вместо нового вызова.
@@ -482,6 +560,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
   while (true) {
     if (opts.signal?.aborted) {
+      for (const ev of await repairBeforeExit()) {
+        yield ev;
+      }
       const e = await commit('cancelled', 'run.cancelled');
       yield e;
       break;
@@ -637,6 +718,19 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const e = await commit('running', 'node.completed');
       yield e;
     } else if (node.type === 'core:end') {
+      // Висящие tool-calls закрываются до финала: история остаётся валидной
+      // для следующего запроса в этом треде.
+      const msgsForRepair = st.messages;
+      if (Array.isArray(msgsForRepair)) {
+        for (const dangling of repairDanglingToolCalls(msgsForRepair)) {
+          const ev = await commit('running', 'tool.skipped', 'recorded', {
+            toolCallId: dangling.toolCallId,
+            name: dangling.name,
+            output: 'run ended before tool execution; no result recorded',
+          });
+          yield ev;
+        }
+      }
       // Финал Graph-рана агентом: точка события Stop.
       await emitHook(hooks, 'Stop', {});
       let fin: unknown = output;
@@ -1426,6 +1520,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     await emitHook(hooks, 'NodeEnd', { node: { id: cur, type: node.type } });
     const over = budgetOver();
     if (over && !isSandboxWrap()) {
+      for (const ev of await repairBeforeExit()) {
+        yield ev;
+      }
       const e = await budgetStop(over);
       yield e;
       break;

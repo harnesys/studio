@@ -1,8 +1,13 @@
 import type { Hono } from 'hono';
 import type { WSContext } from 'hono/ws';
-import { NotFoundError } from '../../../domain/studio.error.ts';
+import type { NodeSupervisor } from '../../../composition/node-supervisor.ts';
+import { requireNode, scan } from '../../../composition/routing-helpers.ts';
+import { NotFoundError, UnavailableError } from '../../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../../domain/workspace.port.ts';
-import { terminalSessions } from '../../terminal/terminal-sessions.ts';
+import {
+  type TerminalSessionRegistry,
+  terminalSessionsFor,
+} from '../../terminal/terminal-sessions.ts';
 import { upgradeWebSocket } from '../lsp/bun-websocket.ts';
 
 type ClientMessage = { type: 'in'; data: string } | { type: 'resize'; cols: number; rows: number };
@@ -18,11 +23,12 @@ function rawOf(ws: WSContext): object {
 
 type Attachment = {
   sessionId: string;
+  sessions: TerminalSessionRegistry;
   unsubscribe: () => void;
 };
 
 /**
- * REST session CRUD + WebSocket PTY bridge.
+ * REST session CRUD + WebSocket PTY bridge over the per-node process job registry.
  * GET /api/workspaces/:id/terminals
  * POST /api/workspaces/:id/terminals
  * DELETE /api/workspaces/:id/terminals/:sessionId
@@ -35,48 +41,40 @@ export class TerminalController {
     private readonly deps: {
       app: Hono;
       workspaceRepo: WorkspaceRepository;
+      supervisor?: NodeSupervisor;
     },
   ) {}
 
   register(): void {
     this.deps.app.get('/api/workspaces/:id/terminals', (c) => {
       const workspaceId = c.req.param('id');
-      const workspace = this.deps.workspaceRepo.findById(workspaceId);
-      if (!workspace) {
-        throw new NotFoundError('workspace not found');
-      }
-      return c.json(terminalSessions.list(workspaceId));
+      const node = this.sessionsForWorkspace(workspaceId);
+      return c.json(node.sessions.list(workspaceId));
     });
 
     this.deps.app.post('/api/workspaces/:id/terminals', (c) => {
       const workspaceId = c.req.param('id');
-      const workspace = this.deps.workspaceRepo.findById(workspaceId);
-      if (!workspace) {
-        throw new NotFoundError('workspace not found');
-      }
-      const record = terminalSessions.create(workspaceId, workspace.path);
+      const node = this.sessionsForWorkspace(workspaceId);
+      const record = node.sessions.create(workspaceId, node.cwd);
       return c.json(record, 201);
     });
 
     this.deps.app.delete('/api/workspaces/:id/terminals/:sessionId', (c) => {
       const workspaceId = c.req.param('id');
       const sessionId = c.req.param('sessionId');
-      const workspace = this.deps.workspaceRepo.findById(workspaceId);
-      if (!workspace) {
-        throw new NotFoundError('workspace not found');
-      }
-      const session = terminalSessions.get(sessionId);
+      const node = this.sessionsForWorkspace(workspaceId);
+      const session = node.sessions.get(sessionId);
       if (!session || session.workspaceId !== workspaceId) {
         throw new NotFoundError('terminal session not found');
       }
-      terminalSessions.delete(sessionId);
+      node.sessions.delete(sessionId);
       return c.body(null, 204);
     });
 
     this.deps.app.get('/api/terminals/:sessionId', async (c) => {
       const sessionId = c.req.param('sessionId');
-      const session = terminalSessions.get(sessionId);
-      if (!session) {
+      const sessions = this.sessionsForSession(sessionId);
+      if (!sessions?.get(sessionId)) {
         return c.json({ error: 'terminal session not found' }, 404);
       }
 
@@ -98,16 +96,49 @@ export class TerminalController {
     });
   }
 
+  private sessionsForWorkspace(workspaceId: string): {
+    sessions: TerminalSessionRegistry;
+    cwd: string;
+  } {
+    const supervisor = this.deps.supervisor;
+    if (!supervisor) {
+      if (!this.deps.workspaceRepo.findById(workspaceId)) {
+        throw new NotFoundError('workspace not found');
+      }
+      throw new UnavailableError('workspace runtime not started');
+    }
+    const node = requireNode(supervisor, workspaceId);
+    const workspace = node.store.workspaceRepo.findById(workspaceId);
+    if (!workspace) {
+      throw new NotFoundError('workspace not found');
+    }
+    return { sessions: terminalSessionsFor(node.host.jobs), cwd: workspace.path };
+  }
+
+  private sessionsForSession(sessionId: string): TerminalSessionRegistry | null {
+    const supervisor = this.deps.supervisor;
+    if (!supervisor) {
+      return null;
+    }
+    const node = scan(supervisor, (entry) => (entry.host.jobs.get(sessionId) ? entry : undefined));
+    return node ? terminalSessionsFor(node.host.jobs) : null;
+  }
+
   private attach(sessionId: string, ws: WSContext, cols: number, rows: number): void {
-    const session = terminalSessions.get(sessionId);
+    const sessions = this.sessionsForSession(sessionId);
+    if (!sessions) {
+      ws.close(1008, 'terminal session not found');
+      return;
+    }
+    const session = sessions.get(sessionId);
     if (!session) {
       ws.close(1008, 'terminal session not found');
       return;
     }
 
-    terminalSessions.resize(sessionId, cols, rows);
+    sessions.resize(sessionId, cols, rows);
 
-    const history = terminalSessions.scrollback(sessionId) ?? '';
+    const history = sessions.scrollback(sessionId) ?? '';
     if (history.length > 0 && ws.readyState === 1) {
       ws.send(JSON.stringify({ type: 'history', data: history } satisfies ServerMessage));
     }
@@ -116,7 +147,7 @@ export class TerminalController {
       ws.send(JSON.stringify({ type: 'exit', code: session.exitCode } satisfies ServerMessage));
     }
 
-    const unsubscribe = terminalSessions.subscribe(
+    const unsubscribe = sessions.subscribe(
       sessionId,
       (chunk) => {
         if (ws.readyState !== 1) {
@@ -136,7 +167,7 @@ export class TerminalController {
       return;
     }
 
-    this.attachments.set(rawOf(ws), { sessionId, unsubscribe });
+    this.attachments.set(rawOf(ws), { sessionId, sessions, unsubscribe });
   }
 
   private onMessage(ws: WSContext, data: unknown): void {
@@ -154,14 +185,14 @@ export class TerminalController {
       if (typeof message.data !== 'string') {
         return;
       }
-      terminalSessions.write(attachment.sessionId, message.data);
+      attachment.sessions.write(attachment.sessionId, message.data);
       return;
     }
     if (message.type === 'resize') {
       if (typeof message.cols !== 'number' || typeof message.rows !== 'number') {
         return;
       }
-      terminalSessions.resize(attachment.sessionId, message.cols, message.rows);
+      attachment.sessions.resize(attachment.sessionId, message.cols, message.rows);
     }
   }
 

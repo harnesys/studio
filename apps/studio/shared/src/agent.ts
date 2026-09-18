@@ -26,6 +26,9 @@ export type AgentGraph = {
   nodes: Record<string, Node>;
   edges: Edge[];
   layout?: AgentGraphLayout;
+  /** `explicit`: llm-ноды хранят авторский список `tools`; без маркера
+   *  legacy-списки снимаются сервером при чтении. */
+  toolPolicy?: 'explicit';
 };
 
 export type AgentRecord = {

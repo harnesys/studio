@@ -25,6 +25,9 @@ export type AgentGraph = {
   nodes: Record<string, Node>;
   edges: Edge[];
   layout?: AgentGraphLayout;
+  /** `explicit`: llm-ноды хранят авторский список `tools` — заморозке не подлежит.
+   *  Без маркера списки legacy-снапшотов снимаются при чтении (см. `parseGraph`). */
+  toolPolicy?: 'explicit';
 };
 
 export type Agent = {

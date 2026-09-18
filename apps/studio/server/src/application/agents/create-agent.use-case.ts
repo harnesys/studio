@@ -32,6 +32,7 @@ import {
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
+import { stampExplicitTools } from './update-agent.use-case.ts';
 
 export { DEFAULT_REACT_BUDGET };
 
@@ -145,7 +146,8 @@ export class CreateAgentUseCase implements CreateAgentInput {
       const unknown = mcpServers.filter((server) => !known.has(server));
       assertAllKnown(unknown, 'mcp server');
     }
-    const graph = request.graph !== undefined ? request.graph : buildReactGraph();
+    const graph =
+      request.graph !== undefined ? stampExplicitTools(request.graph) : buildReactGraph();
     let defaultBudget: AgentBudget | null;
     if (parentId !== null) {
       defaultBudget = { maxSteps: 25, policy: 'error' };

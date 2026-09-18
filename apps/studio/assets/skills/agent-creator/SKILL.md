@@ -69,7 +69,9 @@ Definition field is `packs` (Studio records and preset files carry the legacy ke
 |---|---|
 | `core` | `ask_user`, `map`, `wait` (grant also enables the `load_tools` + `load_skill`/`Skill` services) |
 | `files` | `read_file`, `write_file`, `edit_file`, `list_dir`, `glob`, `grep` |
-| `shell` | `shell` (arg: `command`) |
+| `shell` | `shell` (args: `command`, `run_in_background`, `block_until_ms`, `open_in_terminal`) |
+| `process_poll` | `process_poll` (args: `job_id`, `since`, `wait_ms`; reads a `shell` background job) |
+| `process_kill` | `process_kill` (arg: `job_id`; marks a `shell` background job killed) |
 | `fetch` | `fetch` (arg: `url`; the old name `http` no longer exists) |
 | `plan` | `plan_save`, `plan_item_update`, `plan_get` |
 | `agents` | `agents_list`, `agents_create`, `agents_create_subagent`, `agents_spawn`, `agents_handoff`, `agents_update`, `agents_delete` |

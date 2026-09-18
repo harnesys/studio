@@ -254,7 +254,7 @@ export function ChatComposer() {
           </div>
         </InputGroupAddon>
       </InputGroup>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 pt-2 font-mono text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-1 pt-2 font-mono text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Kbd>Control</Kbd>+<Kbd>Enter</Kbd>
           <span>send</span>

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
   BINARY_PROBE_BYTES,
@@ -57,11 +58,28 @@ async function grep(
   compilePattern(parsed.pattern);
   const workdir = resolveWorkdirPath(ctx.cwd, '.', options.root);
   const root = resolveWorkdirPath(ctx.cwd, parsed.path ?? '.', options.root);
+  if (!existsSync(root)) {
+    throw new Error(`Path not found: ${parsed.path ?? '.'}`);
+  }
   const rg = await resolveRipgrep(ctx.env);
   if (rg !== null) {
-    return runRipgrepEngine(parsed, ctx, { workdir, root }, blocklist);
+    try {
+      return await runRipgrepEngine(parsed, ctx, { workdir, root }, blocklist);
+    } catch (error) {
+      if (!isSpawnMissingError(error)) {
+        throw error;
+      }
+    }
   }
   return scanFallback(parsed, ctx, { workdir, root }, blocklist);
+}
+
+function isSpawnMissingError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error as NodeJS.ErrnoException).code === 'ENOENT' &&
+    error.message.includes('posix_spawn')
+  );
 }
 
 async function runRipgrepEngine(
@@ -209,6 +227,9 @@ function collectHits(args: {
       return true;
     }
     const line = lines[i] ?? '';
+    if (line.includes('\0')) {
+      continue;
+    }
     if (regex.test(line)) {
       const clipped = clipGrepLine(line);
       hits.push({ file, line: i + 1, text: clipped });

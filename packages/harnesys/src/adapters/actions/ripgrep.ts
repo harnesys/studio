@@ -114,32 +114,35 @@ function spawnRipgrep(
   };
 }
 
+type PendingRows = { file: string; rows: RipgrepRow[]; chars: number };
+
+type RowSink = { rows: RipgrepRow[]; chars: number };
+
+type RowBudget = { limit: number; chars: number };
+
+type RowBuffers = { pending: PendingRows | null; truncated: boolean; budget: RowBudget };
+
 async function readMatchRows(
   proc: RipgrepProcess,
   state: RipgrepState,
   opts: RipgrepOptions,
 ): Promise<{ rows: RipgrepRow[]; truncated: boolean }> {
-  const budgetChars = opts.budgetChars ?? DEFAULT_GREP_MAX_CHARS;
-  const rows: RipgrepRow[] = [];
-  let chars = 0;
-  let truncated = false;
+  const sink: RowSink = { rows: [], chars: 0 };
+  const buffers: RowBuffers = {
+    pending: null,
+    truncated: false,
+    budget: { limit: opts.limit, chars: opts.budgetChars ?? DEFAULT_GREP_MAX_CHARS },
+  };
   try {
     for await (const raw of iterateJsonLines(proc.stdout)) {
       if (state.stopped) {
         break;
       }
-      if (raw.length > MAX_JSON_RECORD_CHARS) {
+      const record = parseRecord(raw);
+      if (record === undefined) {
         continue;
       }
-      const row = parseMatchRow(raw);
-      if (row === undefined) {
-        continue;
-      }
-      rows.push(row);
-      chars += row.text.length + row.file.length + 16;
-      if (rows.length > opts.limit || chars > budgetChars) {
-        rows.pop();
-        truncated = true;
+      if (acceptRecord(record, sink, buffers)) {
         state.stop();
         break;
       }
@@ -149,7 +152,51 @@ async function readMatchRows(
       throw error;
     }
   }
-  return { rows, truncated };
+  flushPending(sink, buffers.pending);
+  return { rows: sink.rows, truncated: buffers.truncated };
+}
+
+function flushPending(sink: RowSink, pending: PendingRows | null): void {
+  if (pending === null) {
+    return;
+  }
+  sink.rows.push(...pending.rows);
+  sink.chars += pending.chars;
+}
+
+/** Returns true when the output budget is exhausted and the search must stop. */
+function acceptRecord(record: RipgrepJsonRecord, sink: RowSink, buffers: RowBuffers): boolean {
+  if (record.type === 'end') {
+    if (typeof record.data?.binary_offset === 'number') {
+      buffers.pending = null;
+    } else {
+      flushPending(sink, buffers.pending);
+      buffers.pending = null;
+    }
+    return false;
+  }
+  const row = matchRow(record);
+  if (row === undefined) {
+    return false;
+  }
+  if (buffers.pending === null || buffers.pending.file !== row.file) {
+    flushPending(sink, buffers.pending);
+    buffers.pending = { file: row.file, rows: [], chars: 0 };
+  }
+  const pending = buffers.pending;
+  const cost = row.text.length + row.file.length + 16;
+  pending.rows.push(row);
+  pending.chars += cost;
+  if (
+    sink.rows.length + pending.rows.length > buffers.budget.limit ||
+    sink.chars + pending.chars > buffers.budget.chars
+  ) {
+    pending.rows.pop();
+    pending.chars -= cost;
+    buffers.truncated = true;
+    return true;
+  }
+  return false;
 }
 
 async function* iterateJsonLines(stream: ReadableStream<Uint8Array>): AsyncGenerator<string> {
@@ -207,27 +254,30 @@ type RipgrepJsonRecord = {
     path?: { text?: string };
     lines?: { text?: string };
     line_number?: number;
+    binary_offset?: number;
   };
 };
 
-function parseMatchRow(raw: string): RipgrepRow | undefined {
+function parseRecord(raw: string): RipgrepJsonRecord | undefined {
   if (raw.length === 0) {
     return undefined;
   }
-  let parsed: RipgrepJsonRecord;
   try {
-    parsed = JSON.parse(raw) as RipgrepJsonRecord;
+    return JSON.parse(raw) as RipgrepJsonRecord;
   } catch {
     return undefined;
   }
-  const pathText = parsed.data?.path?.text;
-  const lineText = parsed.data?.lines?.text;
-  if (parsed.type !== 'match' || pathText === undefined || lineText === undefined) {
+}
+
+function matchRow(record: RipgrepJsonRecord): RipgrepRow | undefined {
+  const pathText = record.data?.path?.text;
+  const lineText = record.data?.lines?.text;
+  if (record.type !== 'match' || pathText === undefined || lineText === undefined) {
     return undefined;
   }
   return {
     file: pathText,
-    line: parsed.data?.line_number ?? 0,
+    line: record.data?.line_number ?? 0,
     text: clipGrepLine(lineText),
   };
 }

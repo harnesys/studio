@@ -1,24 +1,10 @@
-/* Единый скроллбар приложения: тонкий, прозрачный трек, скруглённый тумб. */
+/* Скроллбары приложения: тонкие, в покое прозрачные, проявляются при наведении на контейнер. */
 * {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
   scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
-}
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-*::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
-}
-*::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
-}
-*::-webkit-scrollbar-corner {
-  background: transparent;
 }
 
 /* Слайдеры Monaco рисует сам; скругляем и прячем тень, чтобы совпадали с общим стилем. */
@@ -29,12 +15,9 @@
   display: none;
 }
 
-/* Вьюпорт чата: при автоскролле тумб прозрачный. */
+/* Вьюпорт чата: при автоскролле тумб прозрачный, даже под ховером. */
 [data-slot="message-scroller-viewport"][data-autoscrolling] {
   scrollbar-color: transparent transparent;
-}
-[data-slot="message-scroller-viewport"][data-autoscrolling]::-webkit-scrollbar-thumb {
-  background: transparent;
 }
 
 @layer base {

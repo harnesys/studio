@@ -1,12 +1,4 @@
-import type { ThreadKind } from '@harnesys/studio-shared';
-import {
-  CalendarClockIcon,
-  EarthIcon,
-  GitBranchIcon,
-  MessageCircle,
-  MoreHorizontalIcon,
-  PinIcon,
-} from 'lucide-react';
+import { GitBranchIcon, MessageCircle, MoreHorizontalIcon, PinIcon } from 'lucide-react';
 import { Fragment, type ReactNode, useState } from 'react';
 import type { Agent } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
@@ -46,7 +38,7 @@ export function AgentInlineThreads({
   onDone: () => void;
 }) {
   const [showAll, setShowAll] = useState(false);
-  const threads = useAgentThreads(agent.id);
+  const threads = useAgentThreads(agent.id).filter((thread) => thread.kind === 'chat');
   const actions = useThreadActions(workspaceId);
   const roots = buildThreadTree(threads);
   const total = roots.reduce((sum, node) => sum + countSubtree(node), 0);
@@ -81,7 +73,7 @@ export function AgentInlineThreads({
   return (
     <div
       className={cn(
-        'mt-px ml-4 flex flex-col gap-px border-border/50 border-l pb-1 pl-2',
+        'mt-px ml-4 flex flex-col gap-px border-border/50 border-l pb-1 pl-1',
         'group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:pl-0',
       )}
       data-testid={`agent-threads-inline-${agent.id}`}
@@ -184,7 +176,7 @@ function InlineThreadRow({
           }
         >
           <span className="inline-flex size-3 shrink-0 items-center justify-center text-muted-foreground">
-            {kindIcon(thread.kind)}
+            <MessageCircle className="size-3" />
           </span>
           {thread.pinned ? (
             <PinIcon className="size-2.5 shrink-0 text-muted-foreground" aria-hidden />
@@ -294,16 +286,6 @@ function rowRight(
       {threadTime(thread.updatedAt)}
     </span>
   );
-}
-
-function kindIcon(kind: ThreadKind): ReactNode {
-  if (kind === 'schedule') {
-    return <CalendarClockIcon className="size-3" />;
-  }
-  if (kind === 'webhook') {
-    return <EarthIcon className="size-3" />;
-  }
-  return <MessageCircle className="size-3" />;
 }
 
 function threadTime(iso: string): string {

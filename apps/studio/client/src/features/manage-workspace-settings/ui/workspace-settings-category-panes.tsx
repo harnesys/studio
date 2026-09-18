@@ -23,7 +23,7 @@ export function WorkspaceSettingsCategoryPanes({
   return (
     <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
       <div
-        className="flex min-w-0 flex-col gap-4 pe-3"
+        className="flex min-w-0 flex-col gap-4 pr-3 pl-0.5"
         data-testid={`workspace-settings-pane-${category}`}
       >
         <CategoryPane category={category} workspaceId={workspaceId} onClose={onClose} />

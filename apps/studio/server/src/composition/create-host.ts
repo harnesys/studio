@@ -1,4 +1,5 @@
 import type { LspServerSpec, ModelsPort, PluginComponent } from 'harnesys';
+import { createProcessJobRegistry, type ProcessJobRegistry } from 'harnesys';
 import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
 import { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import type { WorkspacePluginLspServer } from '../adapters/lsp/workspace-lsp-file.ts';
@@ -41,6 +42,8 @@ export type StudioHost = {
   getThreadPlan: GetThreadPlanUseCase;
   sendThreadRun: SendThreadRunUseCase;
   lsp: StudioLspAdapter;
+  /** Per-node process jobs (shell pack ports + Terminal facade share the instance). */
+  jobs: ProcessJobRegistry;
   modelsPort: ModelsPort;
   /** Undefined when the platform has no Keychain access; sensitive options then refuse to save. */
   secretStore?: SecretStore;
@@ -140,6 +143,10 @@ export function createStudioHost(args: {
   // (tool calls happen post-boot, after the registry below exists).
   const workspaceHarnesysRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
 
+  // Per-node process jobs: shell pack ports and the Terminal facade share it,
+  // so agent `open_in_terminal` jobs and human terminals live in one list.
+  const jobs = createProcessJobRegistry();
+
   const packRegistrations = createPackRegistrations({
     db: store.db,
     schedules: store.scheduleRepo,
@@ -159,6 +166,7 @@ export function createStudioHost(args: {
     semanticSessions: memory.semantic,
     memory,
     lsp: lspAdapter,
+    jobs,
     pluginAgentsRef,
     workspaceHarnesysRef,
   });
@@ -307,6 +315,7 @@ export function createStudioHost(args: {
     getThreadPlan,
     sendThreadRun,
     lsp: lspAdapter,
+    jobs,
     modelsPort,
     ...(secretStore ? { secretStore } : {}),
     stop: () => {

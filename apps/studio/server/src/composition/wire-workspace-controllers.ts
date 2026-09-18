@@ -175,5 +175,6 @@ export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void 
   new TerminalController({
     app: d.app,
     workspaceRepo: d.workspaceRepo,
+    supervisor: d.supervisor,
   }).register();
 }

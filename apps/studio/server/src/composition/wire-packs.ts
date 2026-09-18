@@ -6,6 +6,7 @@ import {
   filesCapability,
   knowledgeMemoryCapability,
   type PackRegistration,
+  type ProcessJobRegistry,
   pinMemoryCapability,
   planCapability,
   type RunLifecycleStore,
@@ -81,6 +82,8 @@ export type PackRegistrationsDeps = {
   memory: Pick<StudioMemoryPorts, 'pin' | 'semantic' | 'episodic' | 'knowledge'>;
   /** Shared LSP adapter (tools pack + editor WS bridge). Created in create-host. */
   lsp: StudioLspAdapter;
+  /** Per-node process job registry (shell pack + Terminal facade). Created in create-host. */
+  jobs: ProcessJobRegistry;
   /** Late-wired `pluginName:agentName` catalog resolver (registry lands after packs). */
   pluginAgentsRef: PluginAgentsRef;
   /** Late-wired registry for write-path §7 validation (same shape, set in create-host). */
@@ -124,7 +127,10 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
     // agent that carries `core` in capabilities (migration `capability_core_v1`).
     registerPack(coreCapability, { resolveScope: stubScope }),
     registerPack(filesCapability, { resolveScope: stubScope }),
-    registerPack(shellCapability, { resolveScope: stubScope }),
+    registerPack(shellCapability, {
+      ports: { jobs: deps.jobs },
+      resolveScope: stubScope,
+    }),
     registerPack(fetchCapability, { resolveScope: stubScope }),
     registerPack(lspCapability, {
       ports: { lsp: deps.lsp },

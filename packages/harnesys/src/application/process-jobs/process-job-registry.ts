@@ -158,10 +158,13 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         let argv: string[];
         if (process.platform === 'win32') {
           argv = [shell];
-        } else if (input.command) {
-          argv = [shell, '-l', '-c', input.command];
-        } else {
+        } else if (!input.command || input.command === shell) {
+          // Empty or shell-path command is a login-shell sentinel (human
+          // terminal): spawn interactive `[shell, -l]`, keep the path in
+          // the record for display. Anything else runs via `-c`.
           argv = [shell, '-l'];
+        } else {
+          argv = [shell, '-l', '-c', input.command];
         }
         const proc = Bun.spawn(argv, {
           cwd,

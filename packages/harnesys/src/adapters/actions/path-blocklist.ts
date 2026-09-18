@@ -21,7 +21,7 @@ export async function createSearchFilter(
   };
 }
 
-function isWorkspaceMetaPath(workdir: string, absolutePath: string): boolean {
+export function isWorkspaceMetaPath(workdir: string, absolutePath: string): boolean {
   const relative = path.relative(workdir, absolutePath).split(path.sep).join('/');
   return relative === WORKSPACE_META_DIR || relative.startsWith(`${WORKSPACE_META_DIR}/`);
 }

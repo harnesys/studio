@@ -59,7 +59,7 @@ export async function executeComposerSlash(
       toast.add({ title: message });
     }
   } catch (error) {
-    const description = error instanceof ApiError ? error.message : 'Command failed';
+    const description = error instanceof Error ? error.message : 'Command failed';
     toast.add({ title: `/${command.name}`, description });
   } finally {
     options.setSending(false);

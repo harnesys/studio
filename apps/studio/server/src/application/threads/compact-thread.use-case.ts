@@ -150,7 +150,6 @@ export class CompactThreadUseCase implements CompactThreadInput {
       return;
     }
     const st: Record<string, unknown> = { ...(snap.state as Record<string, unknown>) };
-    const binding = await resolveDefaultBinding(this.deps.models, def);
     const journalRunId = `compact:${crypto.randomUUID()}`;
     const signal = request.signal ?? new AbortController().signal;
 
@@ -158,58 +157,68 @@ export class CompactThreadUseCase implements CompactThreadInput {
 
     let message: CompactionMessage | undefined;
     const hooks = await this.deps.runHooks.ensure(thread.id);
-    // Тот же авторитетный набор, что собирает ран (резолвер composition-root без
-    // полей режима: имена от экспозиции не зависят) — toolsJson промпта/оценки
-    // не расходится с грантом агента.
-    const universe = buildCapabilityUniverse(workspace, {
-      hx,
-      workspaceHarnesys: this.deps.workspaceHarnesys,
-    });
-    const runSet = runInHostToolScope(
-      { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
-      () =>
-        resolveCapabilitySet(def, {
-          ...universe,
-          roster: this.deps.workspaceHarnesys.listScopedRoster(def),
-        }),
-    );
-    if (runSet.fatal.length > 0) {
-      logger.warn({ scope: 'capabilities' }, `compact ${thread.id}: ${runSet.fatal.join('; ')}`);
-    }
-    const runToolRegistry = projectToolRegistry(runSet.registry);
+    // Тот же штатный вход в scope, что withScope у рана: всё исполнение прохода
+    // (резолв биндинга, universe, резолвер, дренаж) живёт внутри одного scope.
+    // Генератор не пересекает границу scope живьём — события расходятся журналом.
+    const streamed: SessionEvent[] = [];
     try {
-      for await (const ev of compactForced({
-        agent: def,
-        state: st,
-        sessionId: state.sessionId,
-        binding,
-        models: this.deps.models,
-        toolRegistry: runToolRegistry,
-        paths: { allow: [workspace.path], cwd: workspace.path },
-        signal,
-        logger: toRuntimeLogger('runtime'),
-        hooks,
-      })) {
-        if (ev.type === 'completed') {
-          message = ev.message;
-          continue;
-        }
-        if (ev.type === 'failed') {
-          throw new ValidationError(ev.error);
-        }
-        const pending = sessionEventFromCompactionPass(ev);
-        if (!pending) {
-          continue;
-        }
-        const assigned = await this.deps.runEvents.appendForThread(thread.id, journalRunId, [
-          pending,
-        ]);
-        for (const event of assigned) {
-          yield { kind: 'event', event };
-        }
-      }
+      await runInHostToolScope(
+        { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
+        async () => {
+          const binding = await resolveDefaultBinding(this.deps.models, def);
+          // Тот же авторитетный набор, что собирает ран (резолвер composition-root без
+          // полей режима: имена от экспозиции не зависят) — toolsJson промпта/оценки
+          // не расходится с грантом агента.
+          const universe = buildCapabilityUniverse(workspace, {
+            hx,
+            workspaceHarnesys: this.deps.workspaceHarnesys,
+          });
+          const runSet = resolveCapabilitySet(def, {
+            ...universe,
+            roster: this.deps.workspaceHarnesys.listScopedRoster(def),
+          });
+          if (runSet.fatal.length > 0) {
+            logger.warn(
+              { scope: 'capabilities' },
+              `compact ${thread.id}: ${runSet.fatal.join('; ')}`,
+            );
+          }
+          const runToolRegistry = projectToolRegistry(runSet.registry);
+          for await (const ev of compactForced({
+            agent: def,
+            state: st,
+            sessionId: state.sessionId,
+            binding,
+            models: this.deps.models,
+            toolRegistry: runToolRegistry,
+            paths: { allow: [workspace.path], cwd: workspace.path },
+            signal,
+            logger: toRuntimeLogger('runtime'),
+            hooks,
+          })) {
+            if (ev.type === 'completed') {
+              message = ev.message;
+              continue;
+            }
+            if (ev.type === 'failed') {
+              throw new ValidationError(ev.error);
+            }
+            const pending = sessionEventFromCompactionPass(ev);
+            if (!pending) {
+              continue;
+            }
+            const assigned = await this.deps.runEvents.appendForThread(thread.id, journalRunId, [
+              pending,
+            ]);
+            streamed.push(...assigned);
+          }
+        },
+      );
     } finally {
       await this.deps.runHooks.release(thread.id).catch(() => undefined);
+    }
+    for (const event of streamed) {
+      yield { kind: 'event', event };
     }
     if (!message) {
       yield { kind: 'result', response: { compacted: false } };

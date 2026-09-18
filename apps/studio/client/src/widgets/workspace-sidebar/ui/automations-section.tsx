@@ -188,7 +188,6 @@ export function AutomationsSection({
         <div key={group.workspace.id}>
           <WorkspaceGroupLabel
             name={group.workspace.name}
-            count={group.entries.length}
             visible={multi}
             actions={multi ? groupActions?.(group.workspace.id) : undefined}
           />

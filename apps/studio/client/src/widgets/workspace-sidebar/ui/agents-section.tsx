@@ -99,7 +99,6 @@ export function AgentsSection({
         <div key={group.workspace.id}>
           <WorkspaceGroupLabel
             name={group.workspace.name}
-            count={group.agents.length}
             visible={multi}
             actions={multi ? groupActions?.(group.workspace.id) : undefined}
           />

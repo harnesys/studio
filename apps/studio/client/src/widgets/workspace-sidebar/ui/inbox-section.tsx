@@ -61,11 +61,7 @@ export function InboxSection({
     <div className="flex flex-col gap-0.5 pb-1">
       {groups.map((group) => (
         <div key={group.workspace.id}>
-          <WorkspaceGroupLabel
-            name={group.workspace.name}
-            count={group.threads.length}
-            visible={multi}
-          />
+          <WorkspaceGroupLabel name={group.workspace.name} visible={multi} />
           {group.threads.map((thread) => (
             <InboxRow
               key={thread.id}

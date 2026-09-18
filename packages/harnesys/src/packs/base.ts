@@ -1,6 +1,8 @@
 import { fetch, files, shell } from '../adapters/actions';
 import type { FilesOptions } from '../adapters/actions/files-options.ts';
 import { definePack } from '../domain/pack.ts';
+import type { ProcessJobRegistry } from '../domain/process-job.ts';
+import { processTools } from './shell/process-tools.ts';
 import type { ShellOptions } from './shell/shell.ts';
 
 export type FilesPackSpec = {
@@ -78,7 +80,9 @@ export const filesCapability = definePack<Record<string, unknown>, FilesPackSpec
   create: (ctx) => ({ tools: files(filesOptionsFromSpec(ctx.spec)) }),
 });
 
-export const shellCapability = definePack<Record<string, unknown>, ShellPackSpec>({
+export type ShellPackPorts = { jobs: ProcessJobRegistry };
+
+export const shellCapability = definePack<ShellPackPorts, ShellPackSpec>({
   name: 'shell',
   version: '1.0.0',
   description: 'Thread workdir shell command: shell',
@@ -94,12 +98,16 @@ export const shellCapability = definePack<Record<string, unknown>, ShellPackSpec
   },
   meta: {
     tools: [
-      { name: 'shell', description: 'Run a shell command with cwd fixed to the thread workdir.' },
+      { name: 'shell', description: 'Run a shell command; optional background / terminal.' },
+      { name: 'process_poll', description: 'Read output and status of a process job.' },
+      { name: 'process_kill', description: 'Kill a process job started by shell.' },
     ],
     skills: [],
     hasSettings: true,
   },
-  create: (ctx) => ({ tools: [shell(shellOptionsFromSpec(ctx.spec))] }),
+  create: (ctx) => ({
+    tools: [shell(shellOptionsFromSpec(ctx.spec), ctx.ports.jobs), ...processTools(ctx.ports.jobs)],
+  }),
 });
 
 export const fetchCapability = definePack<Record<string, unknown>, Record<string, unknown>>({

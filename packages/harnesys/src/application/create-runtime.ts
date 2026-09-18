@@ -3,6 +3,7 @@
 import { createRunEventBus } from '../adapters/in-memory-run-store.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
+import type { PackRegistration } from '../domain/pack.ts';
 import { registerPack } from '../domain/pack.ts';
 import type { RunResult } from '../domain/run-result.ts';
 import type { Event } from '../domain/snapshot.ts';
@@ -22,6 +23,7 @@ import { createHookBus } from './hooks/bus.ts';
 import { emitHook, type HookEmitCtx } from './hooks/emit-hook.ts';
 import { fallbackScope } from './packs/pack-run.ts';
 import { packCatalog } from './packs/tool-names.ts';
+import { createProcessJobRegistry } from './process-jobs/process-job-registry.ts';
 import { createRunEventFeed } from './run-event-feed.ts';
 import { createSession, type RuntimeContext } from './session.ts';
 import { createLoadSkillTool } from './skills/create-load-skill-tool.ts';
@@ -80,6 +82,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
   // Base packs are always registered (R20: availability unconditional); a
   // host-supplied registration with the same pack name wins. Portless base
   // packs register with no ports key; per-run create calls get `{}` ports.
+  // The shell pack carries the runtime-wide process job registry.
   const stubScope = fallbackScope;
   const supplied = options.packs ?? [];
   const suppliedNames = new Set(supplied.map((reg) => reg.pack.name));
@@ -88,9 +91,23 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       throw new Error(`pack "${name}" registered twice by host`);
     }
   }
-  const baseRegistrations = [filesCapability, shellCapability, fetchCapability]
-    .filter((pack) => !suppliedNames.has(pack.name))
-    .map((pack) => registerPack(pack, { resolveScope: stubScope }));
+  const processJobs = createProcessJobRegistry();
+  const baseRegistrations = [
+    ...[filesCapability, fetchCapability]
+      .filter((pack) => !suppliedNames.has(pack.name))
+      .map((pack) => registerPack(pack, { resolveScope: stubScope })),
+    ...(suppliedNames.has(shellCapability.name)
+      ? []
+      : [
+          registerPack(shellCapability, {
+            ports: { jobs: processJobs },
+            resolveScope: stubScope,
+          }),
+        ]),
+    // Each pack carries its own Ports type, so the heterogeneous host list
+    // cannot satisfy the uniform `PackRegistration` element type directly;
+    // asserted once at this boundary (same as Studio wire-packs).
+  ] as PackRegistration[];
   const packRegistrations = [...supplied, ...baseRegistrations];
 
   let mcpRegistry: McpRegistry | undefined;

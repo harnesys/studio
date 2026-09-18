@@ -23,14 +23,7 @@ export type WindowHostRecord = {
   credential: string;
 };
 
-export type IdeTabKind =
-  | 'thread'
-  | 'file'
-  | 'spawn'
-  | 'diff'
-  | 'schedule'
-  | 'webhook'
-  | 'terminal';
+export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff' | 'schedule' | 'webhook' | 'terminal';
 
 export type PersistedIdeTab = {
   id: string;

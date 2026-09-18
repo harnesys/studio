@@ -114,6 +114,7 @@ const agentGraphBody = z
         positions: z.record(z.string(), z.object({ x: z.number(), y: z.number() })),
       })
       .optional(),
+    toolPolicy: z.literal('explicit').optional(),
   })
   .optional();
 

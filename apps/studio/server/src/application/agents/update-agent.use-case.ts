@@ -28,6 +28,22 @@ import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
 
+/** Граф с авторскими списками `tools` на llm-нодах помечается явным намерением:
+ *  такие списки переживают чтение (parseGraph не снимает помеченные). */
+export function stampExplicitTools(graph: AgentGraph): AgentGraph {
+  const hasTools = Object.values(graph.nodes).some(
+    (node) =>
+      node !== null &&
+      typeof node === 'object' &&
+      (node as { type?: unknown }).type === 'llm:generate' &&
+      Array.isArray((node as { tools?: unknown }).tools),
+  );
+  if (!hasTools || graph.toolPolicy === 'explicit') {
+    return graph;
+  }
+  return { ...graph, toolPolicy: 'explicit' };
+}
+
 export type UpdateAgentRequest = {
   workspaceId: string;
   id: string;
@@ -179,7 +195,7 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
     }
 
     if (request.graph !== undefined) {
-      patch.graph = request.graph;
+      patch.graph = stampExplicitTools(request.graph);
     } else if (request.capabilities !== undefined && isStockReactGraph(agent.graph)) {
       // Смена источников на сток-графе: пересборка шаблона без снапшота
       // `think.tools` — набор резолвится на каждый ран, нода видит весь.

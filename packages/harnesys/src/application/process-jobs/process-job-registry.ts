@@ -193,7 +193,7 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
           try {
             proc.kill();
           } catch {
-            return record;
+            // already dead
           }
           throw new Error('Bun.spawn did not attach a terminal');
         }
@@ -210,7 +210,10 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
       } else {
         const proc = Bun.spawn(['/bin/sh', '-c', input.command], {
           cwd,
-          env: input.env,
+          env: {
+            ...process.env,
+            ...input.env,
+          },
           stdout: 'pipe',
           stderr: 'pipe',
           stdin: 'pipe',
@@ -265,7 +268,7 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
       if (!job) {
         return null;
       }
-      const since = opts?.since ?? 0;
+      const since = Math.max(0, opts?.since ?? 0);
       const dropped = job.totalAppended - job.scrollback.length;
       if (since <= dropped) {
         return { text: job.scrollback, nextSince: job.totalAppended, truncated: since < dropped };

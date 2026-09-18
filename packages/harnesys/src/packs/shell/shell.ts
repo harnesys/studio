@@ -182,6 +182,7 @@ async function runBlocking(args: ShellBlockingArgs): Promise<ShellBlockingResult
   const started = performance.now();
   const workspaceId = ports.resolveWorkspaceId?.();
   const record = registry.start({ cwd: ctx.cwd, command, mode, env: ctx.env, workspaceId });
+  ports.onPtyJob?.(record);
   await waitForJobExit(registry, record.id, timeoutMs, ctx.signal);
   if (ctx.signal?.aborted === true) {
     registry.kill(record.id);

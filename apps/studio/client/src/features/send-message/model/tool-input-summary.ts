@@ -180,7 +180,7 @@ function linePairs(
 /** Background/terminal mode flags for `shell` input (jobId itself arrives in the result). */
 function shellModeLines(fields: Record<string, unknown>): Array<{ label: string; value: string }> {
   const lines: Array<{ label: string; value: string }> = [];
-  if (fields.run_in_background === true) {
+  if (fields.run_in_background === true || fields.block_until_ms === 0) {
     lines.push({ label: 'background', value: 'true' });
   }
   if (fields.open_in_terminal === true) {

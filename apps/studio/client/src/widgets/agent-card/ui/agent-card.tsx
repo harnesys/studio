@@ -3,7 +3,6 @@ import type { Agent, AgentStatus } from '@/entities/agent';
 import { agentColorTintClass, statusLabel } from '@/entities/agent';
 import { useAgentHasUnread, useAgentLiveStatus } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
@@ -40,9 +39,9 @@ export function AgentCard({
   return (
     <div
       className={cn(
-        'group/agent relative flex items-start rounded-md transition-colors hover:bg-sidebar-accent/70',
+        'group/agent relative flex items-center rounded-md transition-colors hover:bg-sidebar-accent/70',
         selected && 'bg-sidebar-accent text-sidebar-accent-foreground',
-        'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center',
+        'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center',
       )}
       data-testid={`agent-card-${agent.id}`}
       data-selected={selected ? 'true' : 'false'}
@@ -53,17 +52,20 @@ export function AgentCard({
           render={
             <button
               type="button"
-              className="flex min-w-0 flex-1 items-start gap-1 px-2 py-2 text-left group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+              className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1.5 text-left group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
               onClick={onSelect}
             />
           }
         >
-          <div className="relative mr-0.5 inline-flex size-5 shrink-0">
-            <Avatar size="sm" className="size-5 after:hidden">
-              <AvatarFallback className={`${agentColorTintClass(agent.color)} size-5`}>
-                {agent.initials}
-              </AvatarFallback>
-            </Avatar>
+          <div className="relative inline-flex size-4 shrink-0">
+            <span
+              className={cn(
+                'flex size-4 shrink-0 items-center justify-center rounded-full font-medium text-[8px] leading-none',
+                agentColorTintClass(agent.color),
+              )}
+            >
+              {agent.initials.slice(0, 2)}
+            </span>
             {hasUnread ? (
               <span
                 title="Unread messages"
@@ -73,38 +75,36 @@ export function AgentCard({
               </span>
             ) : null}
           </div>
-          <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-            <div
-              className={cn(
-                'flex min-w-0 items-center gap-1.5 text-sm leading-4',
-                status === 'offline' && 'text-muted-foreground',
-                hasUnread && 'font-medium',
-              )}
-            >
-              <span className="truncate">{agent.name}</span>
-            </div>
-            <div className="mt-1 flex items-baseline justify-between gap-2 leading-1">
-              <div className="min-w-0 truncate text-[11px] text-muted-foreground leading-3">
-                {agent.role}
-              </div>
-              <div className={cn('shrink-0 font-mono text-[8px]', statusInk(status))}>
-                {statusLabel(status)}
-              </div>
-            </div>
-          </div>
+          <span
+            className={cn(
+              'min-w-0 flex-1 truncate text-sm leading-4 group-data-[collapsible=icon]:hidden',
+              status === 'offline' && 'text-muted-foreground',
+              hasUnread && 'font-medium',
+            )}
+          >
+            {agent.name}
+          </span>
         </TooltipTrigger>
         <TooltipContent side="right" hidden={!iconMode}>
           {agent.name}
           {hasUnread ? ' · unread' : ''}
         </TooltipContent>
       </Tooltip>
+      <div
+        className={cn(
+          'shrink-0 pr-2 font-mono text-[8px] transition-opacity group-hover/agent:opacity-0 group-data-[collapsible=icon]:hidden',
+          statusInk(status),
+        )}
+      >
+        {statusLabel(status)}
+      </div>
       {onNewThread ? (
         <Button
           type="button"
           variant="ghost"
           size="icon-xs"
           title="New thread"
-          className="absolute top-1 right-[28px] opacity-0 group-hover/agent:opacity-100 group-data-[collapsible=icon]:hidden"
+          className="absolute top-1/2 right-[28px] -translate-y-1/2 opacity-0 group-hover/agent:opacity-100 group-data-[collapsible=icon]:hidden"
           data-testid={`agent-new-thread-${agent.id}`}
           onClick={(event) => {
             event.stopPropagation();
@@ -121,7 +121,7 @@ export function AgentCard({
             <Button
               variant="ghost"
               size="icon-xs"
-              className="absolute top-1 right-1 opacity-0 group-hover/agent:opacity-100 data-open:opacity-100 group-data-[collapsible=icon]:hidden"
+              className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/agent:opacity-100 data-open:opacity-100 group-data-[collapsible=icon]:hidden"
             />
           }
           onClick={(event) => event.stopPropagation()}

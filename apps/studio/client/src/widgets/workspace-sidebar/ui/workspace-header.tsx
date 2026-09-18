@@ -1,4 +1,4 @@
-import { EllipsisVerticalIcon, PlusIcon, SettingsIcon } from 'lucide-react';
+import { EllipsisVerticalIcon, FolderPlusIcon, PlusIcon, SettingsIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useWorkspaces, workspaceAvatarClass, workspaceInitial } from '@/entities/workspace';
@@ -61,6 +61,11 @@ export function WorkspaceHeader() {
   const strip = onDesk.slice(0, WORKSPACE_TAB_CAP);
   const stripOverflow = onDesk.slice(WORKSPACE_TAB_CAP);
   const offDesk = workspaces.filter((item) => !selected.includes(item.id));
+  const freeSlots = Math.max(0, WORKSPACE_TAB_CAP - strip.length);
+  const ghosts = offDesk.slice(0, freeSlots);
+  const ghostsOverflow = offDesk.slice(freeSlots);
+  const emptySlots = Math.max(0, WORKSPACE_TAB_CAP - strip.length - ghosts.length);
+  const emptySlotIds = Array.from({ length: emptySlots }, (_, index) => `empty-slot-${index}`);
 
   const createWorkspace = () => {
     void openCreateWorkspaceDialog().then((created) => {
@@ -69,6 +74,30 @@ export function WorkspaceHeader() {
       }
     });
   };
+
+  if (workspaces.length === 0) {
+    return (
+      <div
+        className="flex flex-col gap-1 group-data-[collapsible=icon]:items-center"
+        data-testid="workspace-tabs"
+      >
+        <button
+          type="button"
+          data-testid="workspace-create-cta"
+          aria-label="Create workspace"
+          onClick={createWorkspace}
+          className={cn(
+            'flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-sidebar-border border-dashed text-muted-foreground text-xs outline-none transition-colors',
+            'hover:border-sidebar-ring hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+            'group-data-[collapsible=icon]:w-8',
+          )}
+        >
+          <PlusIcon className="size-4 shrink-0" />
+          <span className="group-data-[collapsible=icon]:hidden">Create workspace</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -148,6 +177,49 @@ export function WorkspaceHeader() {
           );
         })}
 
+        {ghosts.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            data-testid={`workspace-ghost-${item.id}`}
+            aria-label={`Add ${item.name} to desk`}
+            title={`${item.name} · ${item.path}`}
+            onClick={() => {
+              add(item.id);
+            }}
+            className={cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-md border border-sidebar-border border-dashed outline-none transition-colors',
+              'hover:border-sidebar-ring focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+            )}
+          >
+            <span
+              className={cn(
+                'flex size-6 shrink-0 items-center justify-center rounded-md font-medium text-[10px] text-white opacity-50',
+                workspaceAvatarClass(item.id),
+              )}
+            >
+              {workspaceInitial(item.name)}
+            </span>
+          </button>
+        ))}
+
+        {emptySlotIds.map((slotId) => (
+          <button
+            key={slotId}
+            type="button"
+            data-testid={`workspace-${slotId}`}
+            aria-label="Add workspace"
+            title="Add workspace"
+            onClick={createWorkspace}
+            className={cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-md border border-sidebar-border border-dashed text-muted-foreground outline-none transition-colors',
+              'hover:border-sidebar-ring hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+            )}
+          >
+            <FolderPlusIcon className="size-3.5 opacity-40" />
+          </button>
+        ))}
+
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
@@ -193,12 +265,12 @@ export function WorkspaceHeader() {
                 </DropdownMenuGroup>
               </>
             ) : null}
-            {offDesk.length > 0 ? (
+            {ghostsOverflow.length > 0 ? (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>Off desk</DropdownMenuLabel>
-                  {offDesk.map((item) => (
+                  {ghostsOverflow.map((item) => (
                     <DropdownMenuItem
                       key={`off-${item.id}`}
                       onClick={() => {

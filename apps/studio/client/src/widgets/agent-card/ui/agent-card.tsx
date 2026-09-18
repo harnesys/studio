@@ -1,4 +1,4 @@
-import { MessageCircle, MoreHorizontalIcon } from 'lucide-react';
+import { MessageCirclePlusIcon, MoreHorizontalIcon } from 'lucide-react';
 import type { Agent, AgentStatus } from '@/entities/agent';
 import { agentColorTintClass, statusLabel } from '@/entities/agent';
 import { useAgentHasUnread, useAgentLiveStatus } from '@/features/desk';
@@ -111,7 +111,7 @@ export function AgentCard({
             onNewThread();
           }}
         >
-          <MessageCircle className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
+          <MessageCirclePlusIcon className="text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
           <span className="sr-only">New thread</span>
         </Button>
       ) : null}

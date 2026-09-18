@@ -17,7 +17,7 @@ export function WorkspaceGroupLabel({
 
   return (
     <div
-      className="group/ws flex items-center gap-1.5 px-1 pt-1.5 pr-0.5 pb-0.5 text-[9px] text-muted-foreground uppercase tracking-[0.04em] group-data-[collapsible=icon]:hidden"
+      className="group/ws flex items-center gap-1.5 px-1.5 pt-1 pr-0.5 pb-0.5 text-[9px] text-muted-foreground uppercase tracking-[0.04em] group-data-[collapsible=icon]:hidden"
       data-testid={`workspace-group-${name}`}
     >
       <div className="min-w-0 truncate">W: {name}</div>

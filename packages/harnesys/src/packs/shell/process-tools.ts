@@ -99,7 +99,7 @@ export function processTools(jobs: ProcessJobRegistry): ToolDefinition[] {
         let text = read.text;
         let nextSince = read.nextSince;
         let truncated = read.truncated;
-        if (record.status === 'running' && text.length === 0 && waitMs > 0) {
+        if (record.status === 'running' && waitMs > 0) {
           await waitForJobData(jobs, id, waitMs);
           const reread = jobs.read(id, { since });
           if (reread) {

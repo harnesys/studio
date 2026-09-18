@@ -65,10 +65,14 @@ export function summarizeToolInput(name: string, raw: string | undefined): ToolI
       const command = typeof fields.command === 'string' ? fields.command : '';
       return {
         title,
-        lines: linePairs(fields, ['cwd']),
+        lines: [...linePairs(fields, ['cwd']), ...shellModeLines(fields)],
         preview: command ? { kind: 'code', language: 'bash', text: command } : undefined,
       };
     }
+    case 'process_poll':
+      return { title, lines: linePairs(fields, ['job_id', 'since', 'wait_ms']) };
+    case 'process_kill':
+      return { title, lines: linePairs(fields, ['job_id']) };
     case 'http':
     case 'fetch': {
       const body = typeof fields.body === 'string' ? fields.body : undefined;
@@ -131,6 +135,10 @@ function toolTitle(name: string): string {
       return 'Grep';
     case 'shell':
       return 'Terminal';
+    case 'process_poll':
+      return 'Process Poll';
+    case 'process_kill':
+      return 'Process Kill';
     case 'http':
     case 'fetch':
       return 'Fetch';
@@ -165,6 +173,18 @@ function linePairs(
       continue;
     }
     lines.push({ label: key, value: truncate(stringifyValue(value), 160) });
+  }
+  return lines;
+}
+
+/** Background/terminal mode flags for `shell` input (jobId itself arrives in the result). */
+function shellModeLines(fields: Record<string, unknown>): Array<{ label: string; value: string }> {
+  const lines: Array<{ label: string; value: string }> = [];
+  if (fields.run_in_background === true) {
+    lines.push({ label: 'background', value: 'true' });
+  }
+  if (fields.open_in_terminal === true) {
+    lines.push({ label: 'terminal', value: 'true' });
   }
   return lines;
 }

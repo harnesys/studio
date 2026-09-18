@@ -9,9 +9,9 @@ import type {
   ProcessJobRegistry,
   ProcessJobStatus,
 } from '../../domain/process-job.ts';
-import type { ToolCallGate, ToolContext, ToolDefinition } from '../../ports/tools.ts';
+import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-import { firstMatchingCommandPattern } from './command-glob.ts';
+import { gateShellCommand } from './shell-gate.ts';
 
 export type ShellOptions = {
   timeout?: number;
@@ -66,18 +66,25 @@ export type ShellBlockingArgs = {
   command: string;
   timeoutMs: number;
   ctx: ToolContext;
-  jobs: ProcessJobRegistry | undefined;
+  ports: ShellPorts;
   mode: ProcessJobMode;
 };
 
 export type ShellBackgroundArgs = {
   input: ShellExecuteInput;
   ctx: ToolContext;
-  jobs: ProcessJobRegistry | undefined;
+  ports: ShellPorts;
   mode: ProcessJobMode;
 };
 
-export function shell(options: ShellOptions = {}, jobs?: ProcessJobRegistry): ToolDefinition {
+export type ShellPorts = {
+  jobs?: ProcessJobRegistry;
+  /** Host hook fired after a `pty` job starts (Studio publishes a desk event). */
+  onPtyJob?: (record: ProcessJobRecord) => void;
+  /** Host hook resolving the current workspace (Studio reads the run scope). */
+  resolveWorkspaceId?: () => string | undefined;
+};
+export function shell(options: ShellOptions = {}, ports: ShellPorts = {}): ToolDefinition {
   const defaultTimeout = options.timeout ?? DEFAULT_SHELL_TIMEOUT_MS;
   const allowlist = options.allowlist ?? [];
   const blocklist = options.blocklist ?? [];
@@ -107,9 +114,9 @@ export function shell(options: ShellOptions = {}, jobs?: ProcessJobRegistry): To
       const mode: ProcessJobMode = parsed.open_in_terminal === true ? 'pty' : 'pipes';
       const background = parsed.run_in_background === true || parsed.block_until_ms === 0;
       if (!background && parsed.block_until_ms === undefined) {
-        return runBlocking({ command: parsed.command, timeoutMs, ctx, jobs, mode });
+        return runBlocking({ command: parsed.command, timeoutMs, ctx, ports, mode });
       }
-      return runBackground({ input: parsed, ctx, jobs, mode });
+      return runBackground({ input: parsed, ctx, ports, mode });
     },
   });
 }
@@ -164,16 +171,17 @@ function waitForJobExit(
 }
 
 async function runBlocking(args: ShellBlockingArgs): Promise<ShellBlockingResult> {
-  const { command, timeoutMs, ctx, jobs, mode } = args;
+  const { command, timeoutMs, ctx, ports, mode } = args;
   if (mode === 'pipes') {
     return runOnHost(command, timeoutMs, ctx.cwd, {
       signal: ctx.signal,
       env: ctx.env,
     });
   }
-  const registry = requireJobs(jobs);
+  const registry = requireJobs(ports.jobs);
   const started = performance.now();
-  const record = registry.start({ cwd: ctx.cwd, command, mode, env: ctx.env });
+  const workspaceId = ports.resolveWorkspaceId?.();
+  const record = registry.start({ cwd: ctx.cwd, command, mode, env: ctx.env, workspaceId });
   await waitForJobExit(registry, record.id, timeoutMs, ctx.signal);
   if (ctx.signal?.aborted === true) {
     registry.kill(record.id);
@@ -197,17 +205,27 @@ async function runBackground(
 ): Promise<
   ShellBackgroundResult | ShellStartErrorResult | ShellWaitedResult | ShellWaitTimeoutResult
 > {
-  const { input: parsed, ctx, jobs, mode } = args;
-  const registry = requireJobs(jobs);
+  const { input: parsed, ctx, ports, mode } = args;
+  const registry = requireJobs(ports.jobs);
   const started = performance.now();
+  const workspaceId = ports.resolveWorkspaceId?.();
   let record: ProcessJobRecord;
   try {
-    record = registry.start({ cwd: ctx.cwd, command: parsed.command, mode, env: ctx.env });
+    record = registry.start({
+      cwd: ctx.cwd,
+      command: parsed.command,
+      mode,
+      env: ctx.env,
+      workspaceId,
+    });
   } catch (err) {
     return {
       jobId: '',
       error: err instanceof Error ? err.message : String(err),
     };
+  }
+  if (mode === 'pty') {
+    ports.onPtyJob?.(record);
   }
   const waitMs = parsed.block_until_ms ?? 0;
   if (!(waitMs > 0)) {
@@ -235,34 +253,6 @@ async function runBackground(
     outputSoFar: text,
     timedOutWaiting: true,
   };
-}
-
-function gateShellCommand(
-  input: unknown,
-  allowlist: readonly string[],
-  blocklist: readonly string[],
-): ToolCallGate | undefined {
-  const command =
-    typeof (input as { command?: unknown })?.command === 'string'
-      ? (input as { command: string }).command
-      : '';
-  if (command.length === 0) {
-    return undefined;
-  }
-  const blocked = firstMatchingCommandPattern(command, blocklist);
-  if (blocked !== undefined) {
-    return {
-      decision: 'deny',
-      reason: `command blocked by shell blocklist (${blocked}): ${command}`,
-    };
-  }
-  if (allowlist.length > 0) {
-    const allowed = firstMatchingCommandPattern(command, allowlist);
-    if (allowed !== undefined) {
-      return { decision: 'allow' };
-    }
-  }
-  return undefined;
 }
 
 async function runOnHost(

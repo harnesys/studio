@@ -21,6 +21,20 @@ export function toolCaption(
       hint: fields.command ?? firstLine(inputStr, outputStr),
     };
   }
+  if (name === 'process_poll') {
+    return {
+      kind: 'terminal',
+      title: 'Process Poll',
+      hint: fields.job_id ?? fields.jobId ?? firstLine(inputStr, outputStr),
+    };
+  }
+  if (name === 'process_kill') {
+    return {
+      kind: 'terminal',
+      title: 'Process Kill',
+      hint: fields.job_id ?? fields.jobId ?? firstLine(inputStr, outputStr),
+    };
+  }
   if (name === 'read_file') {
     return {
       kind: 'file',

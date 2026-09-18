@@ -1,7 +1,7 @@
 import { fetch, files, shell } from '../adapters/actions';
 import type { FilesOptions } from '../adapters/actions/files-options.ts';
 import { definePack } from '../domain/pack.ts';
-import type { ProcessJobRegistry } from '../domain/process-job.ts';
+import type { ProcessJobRecord, ProcessJobRegistry } from '../domain/process-job.ts';
 import { processTools } from './shell/process-tools.ts';
 import type { ShellOptions } from './shell/shell.ts';
 
@@ -80,7 +80,11 @@ export const filesCapability = definePack<Record<string, unknown>, FilesPackSpec
   create: (ctx) => ({ tools: files(filesOptionsFromSpec(ctx.spec)) }),
 });
 
-export type ShellPackPorts = { jobs: ProcessJobRegistry };
+export type ShellPackPorts = {
+  jobs: ProcessJobRegistry;
+  onPtyJob?: (record: ProcessJobRecord) => void;
+  resolveWorkspaceId?: () => string | undefined;
+};
 
 export const shellCapability = definePack<ShellPackPorts, ShellPackSpec>({
   name: 'shell',
@@ -106,7 +110,7 @@ export const shellCapability = definePack<ShellPackPorts, ShellPackSpec>({
     hasSettings: true,
   },
   create: (ctx) => ({
-    tools: [shell(shellOptionsFromSpec(ctx.spec), ctx.ports.jobs), ...processTools(ctx.ports.jobs)],
+    tools: [shell(shellOptionsFromSpec(ctx.spec), ctx.ports), ...processTools(ctx.ports.jobs)],
   }),
 });
 

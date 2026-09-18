@@ -337,6 +337,7 @@ export type DeskEvent =
   | { type: 'webhook-deleted'; id: string }
   | { type: 'agent'; agent: AgentRecordType }
   | { type: 'agent-deleted'; id: string }
+  | { type: 'terminal'; workspaceId: string; jobId: string }
   | { type: 'run-finish'; threadId: string };
 
 export type WorkspaceLspEntry = {

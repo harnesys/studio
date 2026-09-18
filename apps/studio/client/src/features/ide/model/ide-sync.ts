@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useScheduleStore } from '@/entities/schedule';
 import { setActiveThreadId, useThreadStore } from '@/entities/thread';
 import { useWebhookStore } from '@/entities/webhook';
 import { useDeskStore, useSelectedWorkspaceIds, useWorkspaceTabsStore } from '@/features/desk';
+import { terminalsQueryKey, watchDesk } from '@/shared/api';
 import { useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
 import { useIdeStore } from './ide.store';
@@ -21,12 +23,31 @@ function deskVisibleIds(selectedIds: string[], workspaceId: string): string[] {
  */
 export function useIdeSync() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const focus = useStudioLocation();
   const selectedIds = useSelectedWorkspaceIds();
   const workspaceId = focus.kind === 'none' || focus.kind === 'settings' ? null : focus.workspaceId;
   const deskReady = useDeskStore((state) =>
     workspaceId ? state.hydrated[workspaceId] === 'ready' : false,
   );
+  // Agent pty jobs auto-open IDE tabs: row appears via invalidate, tab opens
+  // in the store always, URL follows only when the job's workspace is focused
+  // (no yanking the user out of another workspace).
+  const focusWorkspaceRef = useRef<string | null>(workspaceId);
+  focusWorkspaceRef.current = workspaceId;
+
+  useEffect(() => {
+    return watchDesk((event) => {
+      if (event.type !== 'terminal') {
+        return;
+      }
+      void queryClient.invalidateQueries({ queryKey: terminalsQueryKey(event.workspaceId) });
+      useIdeStore.getState().openTerminal(event.workspaceId, event.jobId);
+      if (event.workspaceId === focusWorkspaceRef.current) {
+        void navigate(studioPath.terminal(event.workspaceId, event.jobId));
+      }
+    });
+  }, [queryClient, navigate]);
 
   useEffect(() => {
     if (!workspaceId || focus.kind === 'none' || focus.kind === 'settings') {

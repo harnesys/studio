@@ -26,7 +26,11 @@ import { SqlitePlanPort } from '../adapters/capabilities/sqlite-plan.port.ts';
 import { SqliteSchedulerPort } from '../adapters/capabilities/sqlite-scheduler.port.ts';
 import { SqliteThreadsPort } from '../adapters/capabilities/sqlite-threads.port.ts';
 import { SqliteWebhookPort } from '../adapters/capabilities/sqlite-webhook.port.ts';
-import { type HostToolScope, requireHostToolScope } from '../adapters/host-tool-scope.ts';
+import {
+  getHostToolScope,
+  type HostToolScope,
+  requireHostToolScope,
+} from '../adapters/host-tool-scope.ts';
 import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import type { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
 import type { StudioDb } from '../adapters/store/sqlite/connection.ts';
@@ -128,7 +132,21 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
     registerPack(coreCapability, { resolveScope: stubScope }),
     registerPack(filesCapability, { resolveScope: stubScope }),
     registerPack(shellCapability, {
-      ports: { jobs: deps.jobs },
+      ports: {
+        jobs: deps.jobs,
+        resolveWorkspaceId: () => getHostToolScope()?.workspaceId,
+        onPtyJob: (record) => {
+          const workspaceId = record.workspaceId ?? getHostToolScope()?.workspaceId;
+          if (!workspaceId) {
+            return;
+          }
+          deps.deskEvents.emit(workspaceId, {
+            type: 'terminal',
+            workspaceId,
+            jobId: record.id,
+          });
+        },
+      },
       resolveScope: stubScope,
     }),
     registerPack(fetchCapability, { resolveScope: stubScope }),

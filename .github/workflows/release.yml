@@ -107,6 +107,7 @@ jobs:
         working-directory: dist
         run: |
           find . -mindepth 2 -type f \( -name '*.dmg' -o -name '*-setup.exe' -o -name '*.AppImage' -o -name '*.deb' \) -exec mv -f {} . \;
+          find . -mindepth 1 -type d -empty -delete
           shopt -s nullglob
           for f in *_aarch64.dmg; do mv -f "$f" Harnesys_aarch64.dmg; done
           for f in *_x64.dmg; do mv -f "$f" Harnesys_x64.dmg; done
@@ -114,6 +115,7 @@ jobs:
           for f in *_arm64-setup.exe; do mv -f "$f" Harnesys_arm64-setup.exe; done
           for f in *_amd64.AppImage; do mv -f "$f" Harnesys_amd64.AppImage; done
           for f in *_amd64.deb; do mv -f "$f" Harnesys_amd64.deb; done
+          ls -la
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useState } from 'react';
 import { workspaceMcpQuery, workspaceSkillsQuery } from '@/shared/api';
-import { Pane, Row, RowList, RowSection } from '@/shared/ui/capability-rows';
+import { Pane, Row, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Switch } from '@/shared/ui/switch';
 
 import {
@@ -159,6 +159,7 @@ export function DraftGrantedMcpServers({
     (server) => mcpServerPluginOf(server.serverId),
     enabledPlugins,
   );
+  const [expandedServerId, setExpandedServerId] = useState<string | null>(null);
 
   return (
     <Pane
@@ -174,45 +175,92 @@ export function DraftGrantedMcpServers({
       {groups.map((group) => (
         <SectionGroup key={group.label} label={group.label} count={group.items.length}>
           <RowList>
-            {group.items.map((server) => (
-              <Row
-                key={server.serverId}
-                testId={`draft-mcp-${server.serverId}`}
-                title={
-                  group.plugin ? stripPluginPrefix(server.serverId, group.plugin) : server.serverId
-                }
-                meta={server.transport}
-                status={
-                  server.connected
-                    ? { tone: 'live', label: 'Connected' }
-                    : { tone: 'danger', label: 'Offline' }
-                }
-                muted={!isChecked(mcpServers, server.serverId)}
-                summary={`${server.toolCount} ${server.toolCount === 1 ? 'tool' : 'tools'}`}
-                actions={
-                  <Switch
-                    size="sm"
-                    checked={isChecked(mcpServers, server.serverId)}
-                    onCheckedChange={(value) =>
-                      onChange(
-                        nextAllowlist(
-                          servers.map((item) => item.serverId),
-                          mcpServers,
-                          server.serverId,
-                          Boolean(value),
-                        ),
-                      )
-                    }
-                  />
-                }
-                alwaysShowActions
-              />
-            ))}
+            {group.items.map((server) => {
+              const expanded = expandedServerId === server.serverId;
+              return (
+                <Row
+                  key={server.serverId}
+                  testId={`draft-mcp-${server.serverId}`}
+                  title={
+                    group.plugin
+                      ? stripPluginPrefix(server.serverId, group.plugin)
+                      : server.serverId
+                  }
+                  meta={server.transport}
+                  status={
+                    server.connected
+                      ? { tone: 'live', label: 'Connected' }
+                      : { tone: 'danger', label: 'Offline' }
+                  }
+                  muted={!isChecked(mcpServers, server.serverId)}
+                  summary={`${server.toolCount} ${server.toolCount === 1 ? 'tool' : 'tools'}`}
+                  onToggle={() => {
+                    setExpandedServerId((current) =>
+                      current === server.serverId ? null : server.serverId,
+                    );
+                  }}
+                  expanded={expanded}
+                  actions={
+                    <Switch
+                      size="sm"
+                      checked={isChecked(mcpServers, server.serverId)}
+                      onCheckedChange={(value) =>
+                        onChange(
+                          nextAllowlist(
+                            servers.map((item) => item.serverId),
+                            mcpServers,
+                            server.serverId,
+                            Boolean(value),
+                          ),
+                        )
+                      }
+                    />
+                  }
+                  alwaysShowActions
+                >
+                  <RowSection label="Tools" count={server.tools.length}>
+                    {server.tools.length === 0 ? (
+                      <p className="px-1 text-muted-foreground text-xs">No tools on this server.</p>
+                    ) : (
+                      server.tools.map((tool) => (
+                        <RowItem
+                          key={tool.name}
+                          testId={`draft-mcp-tool-${tool.name}`}
+                          title={shortToolName(tool.name)}
+                          description={tool.description}
+                        />
+                      ))
+                    )}
+                  </RowSection>
+                  <RowSection label="Resources" count={server.resources.length}>
+                    {server.resources.length === 0 ? (
+                      <p className="px-1 text-muted-foreground text-xs">No resources exposed.</p>
+                    ) : (
+                      server.resources.map((resource) => (
+                        <RowItem
+                          key={resource.uri}
+                          testId={`draft-mcp-resource-${resource.uri}`}
+                          title={resource.name}
+                          description={[resource.mimeType, resource.uri]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        />
+                      ))
+                    )}
+                  </RowSection>
+                </Row>
+              );
+            })}
           </RowList>
         </SectionGroup>
       ))}
     </Pane>
   );
+}
+
+/** MCP tool names arrive as `server__tool` — rows show the short part. */
+function shortToolName(name: string): string {
+  return name.includes('__') ? name.split('__').slice(1).join('__') : name;
 }
 
 function SectionGroup({

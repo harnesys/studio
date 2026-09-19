@@ -33,7 +33,7 @@ Biome плагин `lint/plugins` (корень монорепо) ловит `T[
 
 `T[K]` в дженерике по ключу допустимо.
 
-Слайс FSD снаружи только через `index.ts` — ловит `noRestrictedImports` в `apps/studio/client/biome.json`.
+Слайс FSD снаружи только через `index.ts` — ловит `noRestrictedImports` в `apps/webui/biome.json`.
 
 ## Тесты
 
@@ -47,7 +47,7 @@ Biome плагин `lint/plugins` (корень монорепо) ловит `T[
 
 ### Стратегия: библиотека vs хост
 
-Библиотека (`packages/harnesys`) — источник правды. Studio (`apps/studio`) — хост, который адаптируется к библиотеке, а не наоборот.
+Библиотека (`packages/harnesys`) — источник правды. Хост (`apps/server`) — адаптируется к библиотеке, а не наоборот.
 
 **Перед любым изменением типов или функций:**
 

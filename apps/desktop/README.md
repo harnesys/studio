@@ -1,7 +1,8 @@
-# Tauri + React + Typescript
+# Harnesys Desktop
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Tauri-оболочка вокруг webui (`apps/webui`). Своего фронтенда нет: дев и прод берут SPA из webui.
 
-## Recommended IDE Setup
+- Дев: `bun run dev:desktop` из корня — поднимает vite webui (:5173) и окно Tauri.
+- Прод: `bun run build:client`, затем `bun run --cwd apps/desktop build` — `frontendDist` смотрит в `../webui/dist`.
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+Референс обвязки (version bump, иконки, настройки): `~/Projects/LangSwitcher/langswitcher` — не перенесено, по мере нужды.

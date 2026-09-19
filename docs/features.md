@@ -1,6 +1,6 @@
 # Инвентарь фич Harnesys
 
-Полный список функциональности монорепозитория для отбора материалов лендинга. Область осмотра: `packages/harnesys`, `apps/studio` (server + client + shared), `apps/harnesys-cli`, `apps/harnesys-web`, `deploy/`, `scripts/`, `landing/`.
+Полный список функциональности монорепозитория для отбора материалов лендинга. Область осмотра: `packages/harnesys`, `apps/server`, `apps/webui`, `packages/studio-shared`, `apps/cli`, `deploy/`, `scripts/`, `landing/`.
 
 Harnesys — веб-студия для AI-агентов, работающих в папках пользователя. Агент получает инструменты (файлы, shell, git, браузер-поиск), автоматизации (cron, вебхуки), память и плагины; пользователь управляет всем из IDE-подобного интерфейса с чатом. Ядро — библиотека `packages/harnesys`, хост — Studio, поставка — три бинарника (`harnesys`, `harnesys-host`, `harnesys-web`).
 
@@ -8,8 +8,8 @@ Harnesys — веб-студия для AI-агентов, работающих 
 
 - Декларативное определение: `defineAgent()` описывает агента как граф узлов (`start`, `end`, `llm:generate`, `tool:call`, `control:assign/spawn/map/yield/goto/interrupt/wait/handoff`, custom) с рёбрами и `when`-условиями (`src/domain/agent-definition.ts`).
 - Компиляция и линт: `compile()` строит исполняемый план, `check()` и `validateStructural()` ловят циклы, неизвестные тулы, неразрешимые модели (`src/application/compile.ts`, `check.ts`, `validate.ts`).
-- Визуальный редактор графа в Studio: canvas на React Flow + dagre, палитра нод, инспектор нод (`apps/studio/client/src/features/manage-agent/ui/agent-graph-canvas.tsx`).
-- 10 комплектных пресетов агентов: assistant, coder, explorer, general, orchestrator, planner, researcher, reviewer, tester, writer (`apps/studio/assets/presets/agents/`).
+- Визуальный редактор графа в Studio: canvas на React Flow + dagre, палитра нод, инспектор нод (`apps/webui/src/features/manage-agent/ui/agent-graph-canvas.tsx`).
+- 10 комплектных пресетов агентов: assistant, coder, explorer, general, orchestrator, planner, researcher, reviewer, tester, writer (`apps/server/assets/presets/agents/`).
 - Мультиагентность: `agents_spawn` (субагент с песочницей и урезанными правами), `agents_create_subagent` (одноразовый делегат), `agents_handoff` (передача треда другому агенту), роли `explore/coder/verifier/general`.
 - `map` — параллельный fan-out до 32 воркеров с шаблоном `$item/$index`.
 - Бюджеты: `maxSteps`, `maxTokens`, `deadlineMs`, политика исчерпания `ask|error`; LLM-нотка `<budget>` подсказывает агенту финальный шаг.
@@ -54,14 +54,14 @@ Harnesys — веб-студия для AI-агентов, работающих 
 - 20 драйверов: openai, openai-compatible, anthropic, openrouter, google, groq, mistral, xai, together, kimi, zai, ollama, ollama-cloud, nvidia, cerebras, minimax, xiaomi, qwen, alibaba, moonshotai (`src/constants.ts:133`).
 - Автодискавери моделей: `POST /api/workspaces/:id/providers/:id/discover` тянет `/models` провайдера и нормализует карточки (pricing, модальности, context length, supported parameters).
 - Ручное управление моделями: kind chat/embed/image/audio, pricing, поддерживаемые effort-уровни.
-- OpenRouter sync в диалоге моделей (`apps/studio/client/src/features/manage-model/model/openrouter-sync.ts`).
+- OpenRouter sync в диалоге моделей (`apps/webui/src/features/manage-model/model/openrouter-sync.ts`).
 - Экспорт/импорт бандла провайдеров между установками (`GET/POST /api/workspaces/:id/providers/export|import`).
 - API-ключи лежат в macOS Keychain (`adapters/secret-store-macos.adapter.ts`); клиент получает только флаг `hasKey`, значение ключа никогда не возвращается.
 
 ## Права и безопасность
 
 - Permission-карта по операциям `fs.read`, `fs.write`, `process`, `network`, `mcp`, `agents` с гейтами `allow/ask/deny`; дефолт: чтение разрешено, остальное — с вопросом.
-- 5 режимов-пресетов: ask, auto, dont_ask, bypass, plan; редактор режимов и своих пресетов в настройках воркспейса (`apps/studio/assets/presets/modes/`).
+- 5 режимов-пресетов: ask, auto, dont_ask, bypass, plan; редактор режимов и своих пресетов в настройках воркспейса (`apps/server/assets/presets/modes/`).
 - Спавн субагента получает пересечение прав родителя (`intersectPermissions`, строжайший гейт побеждает).
 - Гранты плагинов трёх классов: content, process, network; approve отдельных MCP-серверов плагина.
 - Allowlist-гейтинг MCP: агент видит только серверы из своего `mcpServers`.
@@ -134,8 +134,8 @@ Harnesys — веб-студия для AI-агентов, работающих 
 
 ## Поставка и деплой
 
-- CLI-супервизор `harnesys`: `up --with-ui --port --web-port --install-systemd`, `down`, `status`, `restart`, `logs -f`, `update`, `host pair`, интерактивное меню; pidfiles и логи в `~/.harnesys/` (`apps/harnesys-cli/`).
-- Веб-шлюз `harnesys-web`: token-gated reverse proxy перед хостом, раздача SPA, прокси `/api` и WebSocket, форма логина (`apps/harnesys-web/src/app.ts`).
+- CLI-супервизор `harnesys`: `up --with-ui --port --web-port --install-systemd`, `down`, `status`, `restart`, `logs -f`, `update`, `host pair`, интерактивное меню; pidfiles и логи в `~/.harnesys/` (`apps/cli/`).
+- Веб-шлюз `harnesys-web`: token-gated reverse proxy перед хостом, раздача SPA, прокси `/api` и WebSocket, форма логина (`apps/webui/server/app.ts`).
 - Три скомпилированных бинарника через `bun build --compile` (`build:host`, `build:web`, `build:cli` в корневом `package.json`).
 - Docker: `deploy/docker-compose.yml` с сервисами host и web, healthchecks, общий том данных; образы `ghcr.io/harnesys/{host,web}`.
 - systemd user-юниты из CLI, скрипт установки `scripts/install.sh` (curl-инсталлятор в `~/.local/bin`).

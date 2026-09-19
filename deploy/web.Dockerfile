@@ -2,26 +2,25 @@
 # Build context is the repo root: `docker build -f deploy/web.Dockerfile .`
 
 # Stage 1: build the client SPA (the same build `bun run build:client` runs locally:
-# `tsc -b && vite build` in apps/studio/client).
+# `tsc -b && vite build` in apps/webui).
 FROM oven/bun:1-alpine AS client-build
 WORKDIR /app
 
 COPY package.json bun.lock ./
 COPY packages/harnesys/package.json packages/harnesys/
-COPY apps/studio/package.json apps/studio/
-COPY apps/studio/shared/package.json apps/studio/shared/
-COPY apps/studio/server/package.json apps/studio/server/
-COPY apps/studio/client/package.json apps/studio/client/
-COPY apps/harnesys-web/package.json apps/harnesys-web/
-COPY apps/harnesys-cli/package.json apps/harnesys-cli/
+COPY packages/studio-shared/package.json packages/studio-shared/
+COPY apps/server/package.json apps/server/
+COPY apps/webui/package.json apps/webui/
+COPY apps/cli/package.json apps/cli/
+COPY apps/desktop/package.json apps/desktop/
 RUN bun install --frozen-lockfile
 
-# The SPA build compiles against apps/studio/shared (vite alias) and imports the
+# The SPA build compiles against packages/studio-shared (vite alias) and imports the
 # `harnesys` workspace package, so both sources must be present.
-COPY apps/studio/client apps/studio/client
-COPY apps/studio/shared apps/studio/shared
+COPY apps/webui apps/webui
 COPY packages/harnesys packages/harnesys
-RUN cd apps/studio/client && bun run build
+COPY packages/studio-shared packages/studio-shared
+RUN cd apps/webui && bun run build
 
 # Stage 2: runtime — the web proxy from sources, with the built SPA as static assets.
 FROM oven/bun:1-alpine
@@ -31,16 +30,15 @@ ENV NODE_ENV=production
 
 COPY package.json bun.lock ./
 COPY packages/harnesys/package.json packages/harnesys/
-COPY apps/studio/package.json apps/studio/
-COPY apps/studio/shared/package.json apps/studio/shared/
-COPY apps/studio/server/package.json apps/studio/server/
-COPY apps/studio/client/package.json apps/studio/client/
-COPY apps/harnesys-web/package.json apps/harnesys-web/
-COPY apps/harnesys-cli/package.json apps/harnesys-cli/
+COPY packages/studio-shared/package.json packages/studio-shared/
+COPY apps/server/package.json apps/server/
+COPY apps/webui/package.json apps/webui/
+COPY apps/cli/package.json apps/cli/
+COPY apps/desktop/package.json apps/desktop/
 RUN bun install --frozen-lockfile
 
-COPY apps/harnesys-web apps/harnesys-web
-COPY --from=client-build /app/apps/studio/client/dist /srv/dist
+COPY apps/webui/server apps/webui/server
+COPY --from=client-build /app/apps/webui/dist /srv/dist
 
 # STATIC_DIR: the copied SPA. UPSTREAM: the compose `host` service on its fixed
 # container port (see compose — the host container always listens on 3000).
@@ -53,4 +51,4 @@ ENV STATIC_DIR=/srv/dist \
 VOLUME /data
 
 EXPOSE 8080
-CMD ["bun", "apps/harnesys-web/src/index.ts"]
+CMD ["bun", "apps/webui/server/index.ts"]

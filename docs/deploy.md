@@ -21,7 +21,7 @@ Requires [bun](https://bun.sh). From the repository root:
 
 ```sh
 bun install
-bun run build:client   # vite build of the SPA → apps/studio/client/dist
+bun run build:client   # vite build of the SPA → apps/webui/dist
 bun run build:host     # → build/harnesys-host
 bun run build:web      # → build/harnesys-web
 bun run build:cli      # → build/harnesys
@@ -168,7 +168,7 @@ docker compose -f deploy/docker-compose.yml up -d
   bind-mounted host folders registered in `config.json` (`host.nodes`) — see the
   commented `./workspaces:/workspaces` example in the compose file; registered
   node paths must point inside such a mount.
-- Skills/presets (`apps/studio/assets`) are baked into the host image.
+- Skills/presets (`apps/server/assets`) are baked into the host image.
 - The web service needs no public host port for the API: `PORT` publishes the
   host API (used by pairing from other machines), `WEB_PORT` publishes the UI.
 

@@ -12,7 +12,7 @@
         "typescript": "^5",
       },
     },
-    "apps/harnesys-cli": {
+    "apps/cli": {
       "name": "@harnesys/cli",
       "version": "0.0.1",
       "bin": {
@@ -23,22 +23,34 @@
         "@types/node": "^26.4.0",
       },
     },
-    "apps/harnesys-web": {
-      "name": "@harnesys/web",
+    "apps/desktop": {
+      "name": "@harnesys/desktop",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@tauri-apps/cli": "^2",
+      },
+    },
+    "apps/server": {
+      "name": "@harnesys/server",
       "version": "0.0.1",
       "dependencies": {
+        "@harnesys/studio-shared": "workspace:*",
+        "croner": "^10.0.1",
+        "drizzle-orm": "^0.45.2",
+        "harnesys": "workspace:*",
         "hono": "^4.13.2",
+        "ignore": "^7.0.6",
+        "pino": "^10.3.1",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@biomejs/biome": "2.5.6",
         "@types/node": "^26.4.0",
+        "drizzle-kit": "^0.31.10",
       },
     },
-    "apps/studio": {
-      "name": "@harnesys/studio",
-    },
-    "apps/studio/client": {
-      "name": "@harnesys/studio-client",
+    "apps/webui": {
+      "name": "@harnesys/webui",
       "version": "0.0.1",
       "dependencies": {
         "@base-ui/react": "^1.7.0",
@@ -68,6 +80,7 @@
         "dagre": "^0.8.5",
         "harnesys": "workspace:*",
         "highlight.js": "^11.12.0",
+        "hono": "^4.13.2",
         "katex": "^0.18.4",
         "lucide-react": "^1.31.0",
         "mermaid": "^11.17.0",
@@ -103,35 +116,6 @@
         "vite": "^8.2.1",
       },
     },
-    "apps/studio/server": {
-      "name": "@harnesys/studio-server",
-      "version": "0.0.1",
-      "dependencies": {
-        "@harnesys/studio-shared": "workspace:*",
-        "croner": "^10.0.1",
-        "drizzle-orm": "^0.45.2",
-        "harnesys": "workspace:*",
-        "hono": "^4.13.2",
-        "ignore": "^7.0.6",
-        "pino": "^10.3.1",
-        "zod": "^4.4.3",
-      },
-      "devDependencies": {
-        "@biomejs/biome": "2.5.6",
-        "@types/node": "^26.4.0",
-        "drizzle-kit": "^0.31.10",
-      },
-    },
-    "apps/studio/shared": {
-      "name": "@harnesys/studio-shared",
-      "version": "0.0.1",
-      "dependencies": {
-        "harnesys": "workspace:*",
-      },
-      "devDependencies": {
-        "@biomejs/biome": "2.5.6",
-      },
-    },
     "packages/harnesys": {
       "name": "harnesys",
       "version": "0.3.0",
@@ -160,6 +144,16 @@
         "@types/diff": "^8.0.0",
         "@types/node": "^26.4.0",
         "typescript": "~5.9.0",
+      },
+    },
+    "packages/studio-shared": {
+      "name": "@harnesys/studio-shared",
+      "version": "0.0.1",
+      "dependencies": {
+        "harnesys": "workspace:*",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "2.5.6",
       },
     },
   },
@@ -352,17 +346,15 @@
 
     "@fontsource/ibm-plex-mono": ["@fontsource/ibm-plex-mono@5.3.0", "", {}, "sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q=="],
 
-    "@harnesys/cli": ["@harnesys/cli@workspace:apps/harnesys-cli"],
+    "@harnesys/cli": ["@harnesys/cli@workspace:apps/cli"],
 
-    "@harnesys/studio": ["@harnesys/studio@workspace:apps/studio"],
+    "@harnesys/desktop": ["@harnesys/desktop@workspace:apps/desktop"],
 
-    "@harnesys/studio-client": ["@harnesys/studio-client@workspace:apps/studio/client"],
+    "@harnesys/server": ["@harnesys/server@workspace:apps/server"],
 
-    "@harnesys/studio-server": ["@harnesys/studio-server@workspace:apps/studio/server"],
+    "@harnesys/studio-shared": ["@harnesys/studio-shared@workspace:packages/studio-shared"],
 
-    "@harnesys/studio-shared": ["@harnesys/studio-shared@workspace:apps/studio/shared"],
-
-    "@harnesys/web": ["@harnesys/web@workspace:apps/harnesys-web"],
+    "@harnesys/webui": ["@harnesys/webui@workspace:apps/webui"],
 
     "@hono/node-server": ["@hono/node-server@2.1.1", "", { "peerDependencies": { "hono": "^4" } }, "sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg=="],
 
@@ -479,6 +471,30 @@
     "@tanstack/query-core": ["@tanstack/query-core@5.102.8", "", {}, "sha512-ZNjkJ33CqvPNec/6lZBnHqLc3EVGPZ9ySLhYahU9TcuRFdmwXewuj0c4hwSWcGHqEUwcSrKeZ+oGcvPBqXcQcg=="],
 
     "@tanstack/react-query": ["@tanstack/react-query@5.102.8", "", { "dependencies": { "@tanstack/query-core": "5.102.8" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-TYBea4OuXWD7MhaSHq069TWbFe7rcwWN6kzT7JF0OKi1K6c1gTv2IzD6A6ExJsCMozdkqBWeuIUZmu4KQg0O5A=="],
+
+    "@tauri-apps/cli": ["@tauri-apps/cli@2.11.4", "", { "optionalDependencies": { "@tauri-apps/cli-darwin-arm64": "2.11.4", "@tauri-apps/cli-darwin-x64": "2.11.4", "@tauri-apps/cli-linux-arm-gnueabihf": "2.11.4", "@tauri-apps/cli-linux-arm64-gnu": "2.11.4", "@tauri-apps/cli-linux-arm64-musl": "2.11.4", "@tauri-apps/cli-linux-riscv64-gnu": "2.11.4", "@tauri-apps/cli-linux-x64-gnu": "2.11.4", "@tauri-apps/cli-linux-x64-musl": "2.11.4", "@tauri-apps/cli-win32-arm64-msvc": "2.11.4", "@tauri-apps/cli-win32-ia32-msvc": "2.11.4", "@tauri-apps/cli-win32-x64-msvc": "2.11.4" }, "bin": { "tauri": "tauri.js" } }, "sha512-R8xGtMpwyetawSqm9kYOuMmEqkhUbvcUy8n0aNXIxollKBLESUu5f4Fx+64hgASYm1H+jSWq6jCW6zqTnH6hqQ=="],
+
+    "@tauri-apps/cli-darwin-arm64": ["@tauri-apps/cli-darwin-arm64@2.11.4", "", { "os": "darwin", "cpu": "arm64" }, "sha512-1ryOF3ZhpZ/nemHV5zVwBQBz9jDGKmKPvWPADOhc83ig0P4bMc2iER4NbC6r9sjeIZ6RVQ4g3RZIYvezhcl4TQ=="],
+
+    "@tauri-apps/cli-darwin-x64": ["@tauri-apps/cli-darwin-x64@2.11.4", "", { "os": "darwin", "cpu": "x64" }, "sha512-uFsGQAAfuyz1k/yGLmkWfkBlgKAqZfxqlHmLWx81QU27RJWfmbNHCIq8T8w1e+VClleIuZUjpHWfoE4E3DLo3A=="],
+
+    "@tauri-apps/cli-linux-arm-gnueabihf": ["@tauri-apps/cli-linux-arm-gnueabihf@2.11.4", "", { "os": "linux", "cpu": "arm" }, "sha512-IaHZn5CdBL21oUmjiVOS1ctw6Ip1O0pjp70FwOWmYz1myWe0SY96ZIj2FYf7pT0m8bI2h/hrs5ZbEXXh44/MkQ=="],
+
+    "@tauri-apps/cli-linux-arm64-gnu": ["@tauri-apps/cli-linux-arm64-gnu@2.11.4", "", { "os": "linux", "cpu": "arm64" }, "sha512-N41/ukTRVe6XSuUTESuFdGeOW2i7k62tK+6gHK5Kd5/q5RPvvi19GaWAVPPb9u95HSGmTChSolBfzynUsssFaA=="],
+
+    "@tauri-apps/cli-linux-arm64-musl": ["@tauri-apps/cli-linux-arm64-musl@2.11.4", "", { "os": "linux", "cpu": "arm64" }, "sha512-v277UnT/fB64xAfSroL5N3Km3tLmvATWqJJw/wRI+g6o+HkeD0slyE7gOhNs1MbjE41R7bQOTxMVoL3aomUJmw=="],
+
+    "@tauri-apps/cli-linux-riscv64-gnu": ["@tauri-apps/cli-linux-riscv64-gnu@2.11.4", "", { "os": "linux", "cpu": "none" }, "sha512-qqgNkQ2u1yZHxjhxsZaxUtRDW8dIqIYm33rx/mzwQv0SfY9x1B+iraj8vWeFiXjjSVVhEMepXSOts1TqPzvXNQ=="],
+
+    "@tauri-apps/cli-linux-x64-gnu": ["@tauri-apps/cli-linux-x64-gnu@2.11.4", "", { "os": "linux", "cpu": "x64" }, "sha512-2VRNWl84FOH0m2giiDkO2h0QXlcMJeX+zJDpI5kDIQAx6s+geF3v48F4DXfJez4GS/FdoDGnPnw1C2iYGbQ7bQ=="],
+
+    "@tauri-apps/cli-linux-x64-musl": ["@tauri-apps/cli-linux-x64-musl@2.11.4", "", { "os": "linux", "cpu": "x64" }, "sha512-o9GyhYor/nc7xarmwDE3ka2szuW3uuZzXjHWh64Q8YX5AtSgxdQkFWzrY4O8KiGtVNvFBI14H3Q49Qj5TOIP/A=="],
+
+    "@tauri-apps/cli-win32-arm64-msvc": ["@tauri-apps/cli-win32-arm64-msvc@2.11.4", "", { "os": "win32", "cpu": "arm64" }, "sha512-ld5Ehb598m0VkYyylRPNeCFsBe/km0jxis6KgMpl3IGY6I/i1RwQXO05I1AsXUXO2WC6AvB/Lw4qTf/asiuEiQ=="],
+
+    "@tauri-apps/cli-win32-ia32-msvc": ["@tauri-apps/cli-win32-ia32-msvc@2.11.4", "", { "os": "win32", "cpu": "ia32" }, "sha512-12Hxi0XX/H5VFxO/bGgHkFWhml9VMgEOu9CidjeCeTNQ1l6fpUlbiGgSP7CLI3PFtW9/FfbeHieZ+kyWK5H7CA=="],
+
+    "@tauri-apps/cli-win32-x64-msvc": ["@tauri-apps/cli-win32-x64-msvc@2.11.4", "", { "os": "win32", "cpu": "x64" }, "sha512-+vDiqBIU5dMISg/wNvX3sF+ZHfgJGJ5T0AcO+EHNXV9GGAG+P5fzodlDXD3QdKCRgZxMoCm5PPvj3BqLNjBthw=="],
 
     "@tiptap/core": ["@tiptap/core@3.31.3", "", { "peerDependencies": { "@tiptap/pm": "3.31.3" } }, "sha512-Cz50pvciQrxdSxgTkHOVz0uD0Yl/8Xt0QatGD6ILm47jW8EzyHR9RkUGs/D5IqzXKuVPntfw1ttaT926vXfiRg=="],
 

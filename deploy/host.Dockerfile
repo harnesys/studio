@@ -9,22 +9,21 @@ ENV NODE_ENV=production
 # The lockfile covers the whole workspace, so every workspace manifest must be present.
 COPY package.json bun.lock ./
 COPY packages/harnesys/package.json packages/harnesys/
-COPY apps/studio/package.json apps/studio/
-COPY apps/studio/shared/package.json apps/studio/shared/
-COPY apps/studio/server/package.json apps/studio/server/
-COPY apps/studio/client/package.json apps/studio/client/
-COPY apps/harnesys-web/package.json apps/harnesys-web/
-COPY apps/harnesys-cli/package.json apps/harnesys-cli/
+COPY packages/studio-shared/package.json packages/studio-shared/
+COPY apps/server/package.json apps/server/
+COPY apps/webui/package.json apps/webui/
+COPY apps/cli/package.json apps/cli/
+COPY apps/desktop/package.json apps/desktop/
 RUN bun install --frozen-lockfile
 
 # Runtime sources: the server plus the workspace packages it imports.
-# apps/studio/assets must keep its repo position relative to the server sources:
-# bundled skills/presets resolve as import.meta.dir/../../../../assets from
-# apps/studio/server/src/adapters/store → /app/apps/studio/assets here.
-COPY apps/studio/assets apps/studio/assets
-COPY apps/studio/server apps/studio/server
-COPY apps/studio/shared apps/studio/shared
+# apps/server/assets must keep its repo position relative to the server sources:
+# bundled skills/presets resolve as import.meta.dir/../../../assets from
+# apps/server/src/adapters/store → /app/apps/server/assets here.
+COPY apps/server/assets apps/server/assets
+COPY apps/server/src apps/server/src
 COPY packages/harnesys packages/harnesys
+COPY packages/studio-shared packages/studio-shared
 
 # /data is the machine home: config.json (with the auto-generated host.token),
 # logs, workspace sqlite files. Persisted by the `harnesys-data` volume in compose.
@@ -32,4 +31,4 @@ ENV HARNESYS_HOME=/data
 VOLUME /data
 
 EXPOSE 3000
-CMD ["bun", "apps/studio/server/src/index.ts"]
+CMD ["bun", "apps/server/src/index.ts"]

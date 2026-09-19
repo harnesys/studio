@@ -1,0 +1,118 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "root": false,
+  "extends": "//",
+  "files": {
+    "includes": [
+      "src/**",
+      "server/**",
+      "*.ts",
+      "*.tsx",
+      "*.json",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/out",
+      "!**/coverage",
+      "!**/temp",
+      "!bun.lock"
+    ]
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off"
+      },
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": [
+                  "@/features/*/model",
+                  "@/features/*/model/**",
+                  "@/features/*/ui",
+                  "@/features/*/ui/**",
+                  "@/entities/*/model",
+                  "@/entities/*/model/**",
+                  "@/entities/*/api",
+                  "@/entities/*/api/**",
+                  "@/widgets/*/model",
+                  "@/widgets/*/model/**",
+                  "@/widgets/*/ui",
+                  "@/widgets/*/ui/**"
+                ],
+                "message": "Import the slice through its index.ts public API."
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/shared/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off",
+            "useFocusableInteractive": "off",
+            "useSemanticElements": "off",
+            "useKeyWithClickEvents": "off",
+            "useAriaPropsSupportedByRole": "off"
+          },
+          "suspicious": {
+            "noDocumentCookie": "off",
+            "noDoubleEquals": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["vite.config.ts", "src/app/routes/index.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["server/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["server/index.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/shared/lib/trace.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    }
+  ]
+}

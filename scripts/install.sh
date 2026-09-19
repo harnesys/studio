@@ -8,7 +8,7 @@
 #   HARNESYS_REPO    GitHub repository (default: harnesys/harnesys)
 #   HARNESYS_PREFIX  install directory   (default: $HOME/.local/bin)
 #
-# Asset naming matches `harnesys update` (apps/harnesys-cli/src/update.ts):
+# Asset naming matches `harnesys update` (apps/cli/src/update.ts):
 #   <bin>-<os>-<arch>   with os darwin|linux and arch x64|arm64
 #
 # Releases do not exist yet; while that is true the script fails with an honest

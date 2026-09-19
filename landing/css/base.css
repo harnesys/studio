@@ -1,0 +1,149 @@
+:root {
+  --paper: #f2f4f2;
+  --paper-tint: #e9edea;
+  --raise: #ffffff;
+  --ink: #1a1d1f;
+  --ink-2: #525b5e;
+  --ink-3: #8a938f;
+  --line: #dde2de;
+  --line-soft: #e6eae7;
+  --ask: #a34e0a;
+  --ask-deep: #83400a;
+  --ask-soft: #f7e8d8;
+  --allow: #2e7d4f;
+  --allow-soft: #e2efe6;
+  --deny: #bf3b3b;
+  --win-bg: #14181a;
+  --win-raise: #1c2124;
+  --win-line: #2a3134;
+  --win-text: #e6eae8;
+  --win-dim: #93a09a;
+  --font-ui: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 17px;
+  line-height: 1.65;
+  font-synthesis-weight: none;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.6em;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+}
+
+h3 {
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0 0 1em;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-3);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration-color: var(--ask);
+  color: var(--ask-deep);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--paper-tint);
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ask);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--ask-soft);
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.prose {
+  max-width: 58ch;
+}
+
+.prose-wide {
+  max-width: 66ch;
+}
+
+.btn {
+  display: inline-block;
+  font: inherit;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 0.65em 1.2em;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn-amber {
+  background: var(--ask);
+  color: #fff;
+}
+
+.btn-amber:hover {
+  background: var(--ask-deep);
+  color: #fff;
+}
+
+.btn-sm {
+  padding: 0.45em 0.9em;
+  font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

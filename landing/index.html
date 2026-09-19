@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Harnesys — self-hosted studio for AI agents</title>
+  <meta name="description" content="Harnesys runs AI agents in your real folders: files, shell, git, web search, cron and webhook automations, memory and plugins — supervised from an IDE-style web interface. All platforms, self-hosted.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23A34E0A'/%3E%3Cpath d='M9 12h14M9 17h9M9 22h12' stroke='%23F5EFE6' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/page.css">
+  <script>document.documentElement.classList.add("js")</script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#">Harnesys</a>
+    <nav class="top-nav" aria-label="Main">
+      <a href="#chat">Chat</a>
+      <a href="#agents">Agents</a>
+      <a href="#ide">IDE</a>
+      <a href="#automations">Automations</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/harnesys/studio">GitHub</a>
+      <a class="btn btn-amber btn-sm" href="https://github.com/harnesys/studio/releases">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <h1>Self-hosted studio for AI agents that work in your folders</h1>
+        <p class="hero-sub">
+          An agent gets tools for files, shell, git and web search, plus
+          schedules, memory and plugins. It works inside your workspace on your
+          machine, asks before anything risky, and you watch every step from an
+          IDE-style interface in the browser.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-amber" href="https://github.com/harnesys/studio/releases">Download — all platforms</a>
+          <span class="hero-cta-note">macOS (Apple silicon, Intel) · Linux · Windows</span>
+        </div>
+        <div class="cmd">
+          <div class="cmd-head">
+            <span>Or one line on a server:</span>
+            <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh&#10;harnesys up --with-ui">Copy</button>
+          </div>
+          <pre class="cmd-body"><code>curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh
+harnesys up --with-ui</code></pre>
+        </div>
+      </div>
+      <figure class="shot shot-hero reveal">
+        <img src="assets/chat-confirm.png" alt="Harnesys chat: an agent plans, checks the workspace with Glob, and a permission card asks to allow writing fizzbuzz.js" width="1600" height="1000">
+        <figcaption>The agent checked the workspace, drafted the file, and stopped at the <em>ask</em> gate until it was allowed.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec" id="chat">
+    <div class="wrap">
+      <div class="prose prose-wide reveal">
+        <h2>Every step in the open</h2>
+        <p>
+          The transcript is one readable feed: reasoning, each tool call with its
+          input and exit code, the final answer. Streaming starts on the first
+          token. Expand any call to see exactly what ran. Attach a screenshot by
+          pasting it, branch the thread from any turn to try another route, and
+          read per-turn token counts instead of guessing.
+        </p>
+      </div>
+      <figure class="shot shot-wide reveal">
+        <img src="assets/chat-transcript.png" alt="Completed run: Glob, Write File and Terminal tool calls in the feed, with the last lines of the script output" width="1600" height="1000">
+        <figcaption>One run, three tool calls, exit codes included: <code>node fizzbuzz.js | tail -n 10</code> finished with 0.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec sec-tint" id="agents">
+    <div class="wrap">
+      <div class="prose prose-wide reveal">
+        <h2>Agents are graphs, not prompts</h2>
+        <p>
+          An agent is a node graph: LLM calls, tool calls, map fan-outs, waits,
+          interrupts where a human answers. Draw it on the canvas, then tune the
+          twelve categories behind it — identity, model, compaction, limits,
+          permissions, capabilities, skills, MCP, subagents, hooks and modes.
+          Subagents spawn in a sandbox with reduced permissions; budgets cap
+          steps, tokens and deadlines.
+        </p>
+      </div>
+      <div class="duo">
+        <figure class="shot reveal">
+          <img src="assets/agent-graph.png" alt="Visual graph editor: start, map_item, act, wait, spawn, handoff and end nodes on a canvas with a node palette" width="1600" height="1000">
+          <figcaption>The graph canvas: node palette on the left, inspector on the right, layout in one click.</figcaption>
+        </figure>
+        <figure class="shot reveal">
+          <img src="assets/agent-config.png" alt="Agent configuration dialog with Identity, Model, Compaction, Limits, Graph, Permissions, Capabilities, Skills, MCP, Subagents, Hooks and Modes categories" width="1600" height="1000">
+          <figcaption>The same agent as config: twelve categories, from identity to modes.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="ide">
+    <div class="wrap">
+      <div class="prose prose-wide reveal">
+        <h2>A real IDE in the same window</h2>
+        <p>
+          File explorer with per-line git status, Monaco editor, diff view,
+          branches, staging and commits without leaving the tab. Terminals run
+          in real PTY sessions next to the chat, and an LSP reports diagnostics
+          in the status bar. The agent edits the same files you see.
+        </p>
+      </div>
+      <div class="duo">
+        <figure class="shot reveal">
+          <img src="assets/ide-editor.png" alt="Monaco editor with fizzbuzz.js open, git-decorated file explorer and untracked file in the Git section" width="1600" height="1000">
+          <figcaption>Explorer, editor and Git agree on what changed: fizzbuzz.js is new.</figcaption>
+        </figure>
+        <figure class="shot reveal">
+          <img src="assets/ide-terminal.png" alt="PTY terminal running the fizzbuzz script and git status, with the workspace tree in the sidebar" width="1600" height="1000">
+          <figcaption>A terminal you could type into yourself — because you can.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec-tint" id="automations">
+    <div class="wrap">
+      <div class="prose prose-wide reveal">
+        <h2>It keeps working when you&rsquo;re away</h2>
+        <p>
+          Schedules bind an agent, a thread and a permission mode to a cron, from
+          presets like Weekdays to a raw expression. Webhooks wake a thread from
+          an HTTP endpoint. Runs land in a dedicated log thread, past fires stay
+          in a journal, and anything that needs a decision waits in the inbox
+          with an unread counter.
+        </p>
+      </div>
+      <figure class="shot shot-wide reveal">
+        <img src="assets/automations.png" alt="New scheduler dialog: target agent, wake thread, cron presets, raw expression, permission mode and history" width="1600" height="1000">
+        <figcaption>One form covers the whole automation: agent, thread, cron, mode, history.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec" id="features">
+    <div class="wrap">
+      <div class="prose prose-wide reveal">
+        <h2>And the rest of the toolbox</h2>
+      </div>
+      <div class="cards">
+        <article class="card reveal">
+          <h3>Rules you set once</h3>
+          <p>
+            Six operations — reading, writing, processes, network, MCP, agents —
+            each get an allow, ask or deny gate, with presets from ask to bypass.
+            Provider keys live in the macOS Keychain and never reach the browser;
+            the web UI sits behind a token gate.
+          </p>
+        </article>
+        <article class="card reveal">
+          <h3>Memory across threads</h3>
+          <p>
+            Pins keep agent rules in context. Semantic memory stores editable
+            facts. Episodic search looks through past conversations, and
+            knowledge roots index your documents with hybrid full-text and vector
+            search.
+          </p>
+        </article>
+        <article class="card reveal">
+          <h3>Bring your own model</h3>
+          <p>
+            Twenty providers connect out of the box, from OpenAI, Anthropic and
+            Google to Ollama on your own GPU. Autodiscovery pulls pricing,
+            context length and supported parameters; OpenRouter models sync from
+            one dialog.
+          </p>
+        </article>
+        <article class="card reveal">
+          <h3>Plugins, skills, MCP</h3>
+          <p>
+            Installs Claude Code plugins and open Agent Plugins from git, npm or
+            an archive. Skills load on demand, hooks fire on 37 events, MCP
+            servers speak stdio, HTTP or SSE from a Cursor-compatible
+            <code>.mcp.json</code>.
+          </p>
+        </article>
+        <article class="card reveal">
+          <h3>One desk, many machines</h3>
+          <p>
+            Pair another computer with a 6-digit code and the same window holds
+            several hosts. Workspaces multiply, requests route to the right
+            machine, and the layout follows the host.
+          </p>
+        </article>
+        <article class="card reveal">
+          <h3>Comfortable for hours</h3>
+          <p>
+            Dark, light or system theme, seven accent colors, four UI scales,
+            custom git colors, chat font size and feed detail. Hotkeys everywhere;
+            dialogs confirm before anything destructive.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec-tint" id="install">
+    <div class="wrap">
+      <div class="prose prose-wide install-head reveal">
+        <h2>Install</h2>
+        <p>All platforms, today: macOS for Apple silicon and Intel, plus Linux and Windows builds.</p>
+      </div>
+      <div class="install-grid">
+        <article class="install-card install-primary reveal">
+          <h3>Download</h3>
+          <p>
+            macOS DMG (Apple silicon and Intel) with the host bundled as a
+            sidecar — drag to Applications and launch from the tray. Linux and
+            Windows binaries ship the same three pieces: host, web gateway and
+            the <span class="mono">harnesys</span> supervisor.
+          </p>
+          <p>
+            First launch on macOS: right-click the app and choose Open, or run
+            <span class="mono">xattr -cr /Applications/Harnesys.app</span> — the
+            build is ad-hoc signed.
+          </p>
+          <a class="btn btn-amber" href="https://github.com/harnesys/studio/releases">Get the latest release</a>
+        </article>
+        <article class="install-card reveal">
+          <h3>Linux server</h3>
+          <div class="cmd">
+            <div class="cmd-head">
+              <span>installs to <span class="mono">~/.local/bin</span></span>
+              <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh&#10;harnesys up --with-ui">Copy</button>
+            </div>
+            <pre class="cmd-body"><code>curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh
+harnesys up --with-ui</code></pre>
+          </div>
+          <p>
+            <span class="mono">--install-systemd</span> writes user units and
+            starts them via <span class="mono">systemctl --user</span>. The web
+            UI needs the Docker stack or the
+            <span class="mono">client-dist.zip</span> asset with
+            <span class="mono">STATIC_DIR</span> — details in the
+            <a href="https://github.com/harnesys/studio/blob/main/docs/deploy.md">deploy docs</a>.
+          </p>
+        </article>
+        <article class="install-card reveal">
+          <h3>Docker compose</h3>
+          <div class="cmd">
+            <div class="cmd-head">
+              <span>host + web in one stack</span>
+              <button class="copy" type="button" data-copy="cp deploy/.env.example deploy/.env&#10;docker compose -f deploy/docker-compose.yml up -d">Copy</button>
+            </div>
+            <pre class="cmd-body"><code>cp deploy/.env.example deploy/.env
+docker compose -f deploy/docker-compose.yml up -d</code></pre>
+          </div>
+          <p>
+            The host writes its token into the shared volume on first boot and
+            the web gate reads it automatically. Read it with
+            <span class="mono">docker compose exec host cat /data/config.json</span>.
+          </p>
+        </article>
+      </div>
+      <div class="install-extra prose-wide reveal">
+        <p>
+          Connect another machine with
+          <span class="mono">harnesys host pair</span>: a 6-digit code, valid for
+          10 minutes, entered under &ldquo;Connect a new host&hellip;&rdquo;. On the public
+          internet, terminate TLS with Tailscale, Caddy or nginx and keep SSE
+          unbuffered — recipes in
+          <a href="https://github.com/harnesys/studio/blob/main/docs/deploy.md">docs/deploy.md</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div>
+      <span class="brand">Harnesys</span>
+      <p class="foot-note">
+        Early software. The desktop build is not notarized, and the public API
+        of the agent library can change between minor versions.
+      </p>
+    </div>
+    <nav class="foot-nav" aria-label="Footer">
+      <a href="https://github.com/harnesys/studio">GitHub</a>
+      <a href="https://github.com/harnesys/studio/releases">Releases</a>
+      <a href="https://github.com/harnesys/studio/blob/main/docs/deploy.md">Deploy</a>
+      <a href="https://github.com/harnesys/studio/blob/main/docs/features.md">Features</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="js/site.js"></script>
+</body>
+</html>

@@ -1,9 +1,10 @@
-/* Скроллбары приложения: тонкие, в покое прозрачные, проявляются при наведении на контейнер. */
+/* Скроллбары приложения: тонкие, в покое прозрачные, видны только во время прокрутки (см. shared/lib/scrollbar-reveal). */
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
+  transition: scrollbar-color 700ms ease;
 }
-*:hover {
+[data-scrolling] {
   scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
 }
 

@@ -6,6 +6,7 @@ import { Root } from '@/app/ui/root';
 import '@/app/styles/index.css';
 import '@/shared/lib/chat-preferences';
 import '@/shared/lib/mdi-icons';
+import '@/shared/lib/scrollbar-reveal';
 
 // Monaco workers load with the file editor, not on every desk paint.
 

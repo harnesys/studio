@@ -56,6 +56,32 @@ export function useIdeSync() {
     useWorkspaceTabsStore.getState().add(workspaceId);
   }, [workspaceId, focus.kind]);
 
+  // Restored park carries an active tab but the URL may carry none (`/` after
+  // boot or back from settings): rewrite URL to the visible active tab.
+  const activeTabPath = useIdeStore((state) => {
+    for (const id of selectedIds) {
+      const ws = state.byWorkspace[id];
+      if (!ws?.activeId) {
+        continue;
+      }
+      const tab = ws.tabs.find((item) => item.id === ws.activeId);
+      const path = tab ? pathForIdeTab(id, tab) : null;
+      if (path) {
+        return path;
+      }
+    }
+    return null;
+  });
+  const restoredPathRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (focus.kind !== 'none' || !activeTabPath || restoredPathRef.current === activeTabPath) {
+      return;
+    }
+    restoredPathRef.current = activeTabPath;
+    void navigate(activeTabPath, { replace: true });
+  }, [focus.kind, activeTabPath, navigate]);
+
   useEffect(() => {
     if (!workspaceId || !deskReady) {
       return;

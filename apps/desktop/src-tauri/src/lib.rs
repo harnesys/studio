@@ -135,6 +135,7 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app, event| match event {
             // macOS dock icon click while the window is hidden.
+            #[cfg(target_os = "macos")]
             RunEvent::Reopen { .. } => show_main(app),
             RunEvent::Exit => {
                 if let Some(child) = app.state::<HostProcess>().0.lock().unwrap().take() {

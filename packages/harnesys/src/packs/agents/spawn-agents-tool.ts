@@ -2,9 +2,9 @@ import { resolveAgentTarget } from '../../application/agent-target-resolve.ts';
 import { parseSpawnBudget } from '../../application/graph-spawn.ts';
 import type { AgentRosterEntry } from '../../ports/create-runtime.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
+import type { CreateAgentsToolsParams } from './create-agents-tools.ts';
 import { runGuard } from './run-guard.ts';
 import { scopeFor } from './scope-for.ts';
-import type { CreateAgentsToolsParams } from './create-agents-tools.ts';
 
 function spawnCallsShapeError(calls: unknown[]): string | null {
   for (let idx = 0; idx < calls.length; idx += 1) {

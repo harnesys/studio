@@ -153,7 +153,9 @@ export class SqliteRunEventStore implements RunEventStore {
       .from(runEventsTable)
       .where(eq(runEventsTable.threadId, threadId))
       .all();
-    return Promise.resolve(rows.sort((a, b) => a.timestamp - b.timestamp || a.seq - b.seq).map(rowToEvent));
+    return Promise.resolve(
+      rows.sort((a, b) => a.timestamp - b.timestamp || a.seq - b.seq).map(rowToEvent),
+    );
   }
   hasRun(runId: string): Promise<boolean> {
     const row = this.db

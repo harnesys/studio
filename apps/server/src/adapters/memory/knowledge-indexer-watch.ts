@@ -1,7 +1,7 @@
 import { trace } from '../../libs/trace.ts';
 import { knowledgeIndexModeKey } from './knowledge-embeddings.ts';
-import { indexOneUri } from './knowledge-indexer-uri.ts';
 import { isAbortError, type KnowledgeIndexerHost } from './knowledge-indexer-shared.ts';
+import { indexOneUri } from './knowledge-indexer-uri.ts';
 import { uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
 
 export async function drainIncremental(

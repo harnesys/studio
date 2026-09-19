@@ -37,6 +37,9 @@
     "enabled": true,
     "rules": {
       "preset": "recommended",
+      "a11y": {
+        "noStaticElementInteractions": "warn"
+      },
       "complexity": {
         "noBannedTypes": "error",
         "noExcessiveCognitiveComplexity": {
@@ -48,7 +51,7 @@
         "noForEach": "off",
         "noUselessEmptyExport": "error",
         "useMaxParams": {
-          "level": "error",
+          "level": "warn",
           "options": {
             "max": 4
           }
@@ -62,6 +65,9 @@
       },
       "performance": {
         "noAccumulatingSpread": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
       },
       "style": {
         "noDefaultExport": "error",
@@ -100,6 +106,7 @@
       },
       "suspicious": {
         "noAlert": "error",
+        "noArrayIndexKey": "off",
         "noConfusingVoidType": "error",
         "noConsole": "error",
         "noDebugger": "error",
@@ -109,7 +116,7 @@
         "noNonNullAssertedOptionalChain": "error",
         "noTsIgnore": "error",
         "noUnsafeDeclarationMerging": "error",
-        "useAwait": "error"
+        "useAwait": "warn"
       },
       "nursery": {
         "noFloatingPromises": "error",

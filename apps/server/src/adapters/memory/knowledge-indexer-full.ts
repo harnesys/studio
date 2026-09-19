@@ -3,10 +3,13 @@ import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { trace } from '../../libs/trace.ts';
 import { knowledgeIndexModeKey } from './knowledge-embeddings.ts';
 import { indexKnowledgeFile, upsertWalkEntry } from './knowledge-index-file.ts';
-import { collectKnowledgePaths, type KnowledgePath } from './knowledge-walk.ts';
 import { isAbortError, type KnowledgeIndexerHost } from './knowledge-indexer-shared.ts';
+import { collectKnowledgePaths, type KnowledgePath } from './knowledge-walk.ts';
 
-export async function runFullReindex(host: KnowledgeIndexerHost, workspaceId: string): Promise<void> {
+export async function runFullReindex(
+  host: KnowledgeIndexerHost,
+  workspaceId: string,
+): Promise<void> {
   const workspacePath = host.options.resolveWorkspacePath(workspaceId);
   if (!workspacePath) {
     throw new NotFoundError('workspace not found');

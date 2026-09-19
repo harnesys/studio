@@ -8,14 +8,13 @@ import type {
   KnowledgeSettingsRecord,
 } from './knowledge-index-types.ts';
 import { runFullReindex } from './knowledge-indexer-full.ts';
-import {
-  isAbortError,
-  type KnowledgeIndexerHost,
-  type KnowledgeIndexerOptions,
-  type WorkspaceJob,
+import type {
+  KnowledgeIndexerHost,
+  KnowledgeIndexerOptions,
+  WorkspaceJob,
 } from './knowledge-indexer-shared.ts';
-import { drainIncremental } from './knowledge-indexer-watch.ts';
 import { filterEnqueueUris } from './knowledge-indexer-uri.ts';
+import { drainIncremental } from './knowledge-indexer-watch.ts';
 
 export type { KnowledgeIndexerOptions } from './knowledge-indexer-shared.ts';
 

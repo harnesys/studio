@@ -105,58 +105,58 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
     try {
       return Promise.resolve(
         this.db.transaction((tx) => {
-      for (const event of events) {
-        const clientEventId = clientEventIdOf(event);
-        if (clientEventId === undefined) {
-          continue;
-        }
-        const found = tx.get<RunEventIdRow>(
-          sql`SELECT run_id FROM run_events WHERE thread_id = ${run.threadId} AND client_event_id = ${clientEventId} LIMIT 1`,
-        );
-        if (found) {
-          const existing = tx
-            .select()
-            .from(runsTable)
-            .where(eq(runsTable.runId, found.run_id))
-            .get();
-          if (existing) {
-            return rowToRecord(existing);
+          for (const event of events) {
+            const clientEventId = clientEventIdOf(event);
+            if (clientEventId === undefined) {
+              continue;
+            }
+            const found = tx.get<RunEventIdRow>(
+              sql`SELECT run_id FROM run_events WHERE thread_id = ${run.threadId} AND client_event_id = ${clientEventId} LIMIT 1`,
+            );
+            if (found) {
+              const existing = tx
+                .select()
+                .from(runsTable)
+                .where(eq(runsTable.runId, found.run_id))
+                .get();
+              if (existing) {
+                return rowToRecord(existing);
+              }
+            }
           }
-        }
-      }
-      const now = new Date().toISOString();
-      try {
-        tx.insert(runsTable)
-          .values({
-            runId: run.runId,
-            threadId: run.threadId,
-            status: 'queued',
-            parentRunId: run.parentRunId,
-            attempt: 1,
-            leaseEpoch: 0,
-            lastSeq: 0,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .run();
-      } catch (err) {
-        if (err instanceof SQLiteError && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-          throw codedRunError('thread_busy', 'thread already has an active run');
-        }
-        throw err;
-      }
-      if (events.length > 0) {
-        const stored = this.appendWithinTx(tx as StudioDb, run.runId, run.threadId, events);
-        tx.update(runsTable)
-          .set({ lastSeq: maxSeqOf(stored, 0), updatedAt: new Date().toISOString() })
-          .where(eq(runsTable.runId, run.runId))
-          .run();
-      }
-      const row = tx.select().from(runsTable).where(eq(runsTable.runId, run.runId)).get();
-      if (!row) {
-        throw codedRunError('unknown_run', `run ${run.runId} not found`);
-      }
-      return rowToRecord(row);
+          const now = new Date().toISOString();
+          try {
+            tx.insert(runsTable)
+              .values({
+                runId: run.runId,
+                threadId: run.threadId,
+                status: 'queued',
+                parentRunId: run.parentRunId,
+                attempt: 1,
+                leaseEpoch: 0,
+                lastSeq: 0,
+                createdAt: now,
+                updatedAt: now,
+              })
+              .run();
+          } catch (err) {
+            if (err instanceof SQLiteError && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+              throw codedRunError('thread_busy', 'thread already has an active run');
+            }
+            throw err;
+          }
+          if (events.length > 0) {
+            const stored = this.appendWithinTx(tx as StudioDb, run.runId, run.threadId, events);
+            tx.update(runsTable)
+              .set({ lastSeq: maxSeqOf(stored, 0), updatedAt: new Date().toISOString() })
+              .where(eq(runsTable.runId, run.runId))
+              .run();
+          }
+          const row = tx.select().from(runsTable).where(eq(runsTable.runId, run.runId)).get();
+          if (!row) {
+            throw codedRunError('unknown_run', `run ${run.runId} not found`);
+          }
+          return rowToRecord(row);
         }),
       );
     } catch (error) {

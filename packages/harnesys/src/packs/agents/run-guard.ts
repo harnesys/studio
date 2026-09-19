@@ -1,6 +1,4 @@
-export async function runGuard<T>(
-  fn: () => Promise<T>,
-): Promise<T | { error: string }> {
+export async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
   try {
     return await fn();
   } catch (err) {

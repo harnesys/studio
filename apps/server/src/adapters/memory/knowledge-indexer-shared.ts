@@ -1,7 +1,11 @@
 import type { KnowledgeIndexEventsPort } from '../../domain/knowledge-index-events.port.ts';
 import type { EmbeddingsPort, StudioEmbeddingsDeps } from './embeddings.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
-import type { KnowledgeIndexStatePatch, KnowledgeIndexStateRecord, KnowledgeSettingsRecord } from './knowledge-index-types.ts';
+import type {
+  KnowledgeIndexStatePatch,
+  KnowledgeIndexStateRecord,
+  KnowledgeSettingsRecord,
+} from './knowledge-index-types.ts';
 
 export type KnowledgeIndexerOptions = {
   resolveWorkspacePath: (workspaceId: string) => string | undefined;
@@ -26,10 +30,7 @@ export type KnowledgeIndexerHost = {
     settings: KnowledgeSettingsRecord,
   ): EmbeddingsPort | undefined;
   ensureJob(workspaceId: string): WorkspaceJob;
-  upsertState(
-    workspaceId: string,
-    patch: KnowledgeIndexStatePatch,
-  ): KnowledgeIndexStateRecord;
+  upsertState(workspaceId: string, patch: KnowledgeIndexStatePatch): KnowledgeIndexStateRecord;
   emitState(workspaceId: string): void;
   bumpProcessed(workspaceId: string): void;
 };

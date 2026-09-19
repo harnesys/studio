@@ -25,7 +25,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/harnesys-host"],
+    "externalBin": [
+      "binaries/harnesys-host"
+    ],
     "resources": {
       "../../server/assets/**/*": "assets/"
     },

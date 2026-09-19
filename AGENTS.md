@@ -39,6 +39,11 @@ FSD slice outside only via `index.ts` — caught by `noRestrictedImports` in `ap
 
 **Tests are temporarily forbidden.** Do not create `*.test.ts` / `*.spec.ts`, do not install vitest / RTL / playwright. If logs or screenshots are needed, ask the person.
 
+## Languages
+
+- Documents (`docs/`, README, any `*.md`): English only.
+- Code: no comments, any language.
+
 ## How to work
 
 - Ask if boundary or type is unclear. Do not guess layer.

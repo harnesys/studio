@@ -170,7 +170,7 @@ function InlineThreadRow({
           render={
             <button
               type="button"
-              className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded-md pr-2 pl-2 text-left group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pr-0"
+              className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded-md pr-2 pl-2 text-left opacity-75 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pr-0"
               onClick={onSelect}
             />
           }

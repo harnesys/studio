@@ -16,7 +16,7 @@
     "build:web": "bun build --compile apps/webui/server/index.ts --outfile build/harnesys-web",
     "build:cli": "bun build --compile apps/cli/src/index.ts --outfile build/harnesys",
     "build:client": "bun run --cwd apps/webui build",
-    "build:desktop": "bun run --cwd apps/desktop build:dmg",
+    "build:desktop": "bun run scripts/build-desktop.ts",
     "db:generate": "bun run --cwd apps/server db:generate",
     "db:migrate": "bun run --cwd apps/server db:migrate",
     "db:studio": "bun run --cwd apps/server db:studio",

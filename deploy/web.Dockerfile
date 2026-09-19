@@ -41,11 +41,11 @@ COPY apps/webui/server apps/webui/server
 COPY --from=client-build /app/apps/webui/dist /srv/dist
 
 # STATIC_DIR: the copied SPA. UPSTREAM: the compose `host` service on its fixed
-# container port (see compose — the host container always listens on 3000).
+# container port (see compose — the host container always listens on 47474).
 # HARNESYS_HOME: the shared /data volume — the web gate reads `host.token` from
 # /data/config.json, which the host generates on first boot.
 ENV STATIC_DIR=/srv/dist \
-    UPSTREAM=http://host:3000 \
+    UPSTREAM=http://host:47474 \
     WEB_PORT=8080 \
     HARNESYS_HOME=/data
 VOLUME /data

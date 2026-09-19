@@ -30,14 +30,14 @@ export const env = {
   /** Running inside a Tauri webview (packaged desktop): no same-origin API proxy. */
   isTauri: typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window,
   /**
-   * Absolute origin of the local host API. Desktop build targets 127.0.0.1:3000
+   * Absolute origin of the local host API. Desktop build targets 127.0.0.1:47474
    * directly (override at build time with CLIENT_HOST_ORIGIN); web builds keep
    * window.location.origin so harnesys-web / vite proxy keep fronting the API.
    */
   localHostOrigin: readString(
     import.meta.env.CLIENT_HOST_ORIGIN,
     typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
-      ? 'http://127.0.0.1:3000'
+      ? 'http://127.0.0.1:47474'
       : window.location.origin,
   ),
 } as const;

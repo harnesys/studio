@@ -21,7 +21,7 @@ function readPort(raw: string | undefined, fallback: number): number {
 }
 
 function readUpstream(raw: string | undefined): URL {
-  const value = raw?.trim() || 'http://127.0.0.1:3000';
+  const value = raw?.trim() || 'http://127.0.0.1:47474';
   try {
     const url = new URL(value);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {

@@ -30,5 +30,5 @@ COPY packages/studio-shared packages/studio-shared
 ENV HARNESYS_HOME=/data
 VOLUME /data
 
-EXPOSE 3000
+EXPOSE 47474
 CMD ["bun", "apps/server/src/index.ts"]

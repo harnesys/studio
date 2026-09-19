@@ -8,7 +8,7 @@ The system has three binaries:
 
 | binary | role | listens on |
 |---|---|---|
-| `harnesys-host` | host API: sessions, terminals, workspace control | `3000` (env `PORT`) |
+| `harnesys-host` | host API: sessions, terminals, workspace control | `47474` (env `PORT`) |
 | `harnesys-web` | static SPA + token-gated reverse proxy in front of the host | `8080` (env `WEB_PORT`) |
 | `harnesys` | CLI supervisor: `up`, `down`, `status`, `restart`, `logs`, `update`, `host pair` | — |
 
@@ -68,7 +68,7 @@ harnesys logs [-f] [server|webui]                   # tail or follow ~/.harnesys
 harnesys host pair [--port N]                       # pairing code for another machine
 ```
 
-Defaults: host port `3000`, web port `8080`. `up` waits up to 15 s for the host
+Defaults: host port `47474`, web port `8080`. `up` waits up to 15 s for the host
 `GET /health` and the web `GET /healthz`; on failure it stops the process and
 prints the last log lines. Restart reuses the ports and the web `STATIC_DIR`
 recorded in the pidfiles — it refuses instead of guessing when no state exists.
@@ -85,7 +85,7 @@ checkout build.
 ### systemd (Linux)
 
 ```sh
-harnesys up --install-systemd --port 3000 --web-port 8080
+harnesys up --install-systemd --port 47474 --web-port 8080
 ```
 
 Writes two user units (`harnesys-host.service`, `harnesys-web.service`) to

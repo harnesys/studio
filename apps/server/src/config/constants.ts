@@ -2,7 +2,7 @@ import type { AgentBudget, WebhookStatus } from '@harnesys/studio-shared';
 import type { RunLifecycleStatus } from 'harnesys';
 
 /** HTTP */
-export const DEFAULT_PORT = 3000;
+export const DEFAULT_PORT = 47474;
 
 /** Paths */
 export const HOME_DIR_NAME = '.harnesys';

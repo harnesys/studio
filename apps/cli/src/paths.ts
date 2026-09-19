@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 
 export const SERVER_BIN = 'harnesys-host';
 export const WEB_BIN = 'harnesys-web';
-export const HOST_DEFAULT_PORT = 3000;
+export const HOST_DEFAULT_PORT = 47474;
 export const WEB_DEFAULT_PORT = 8080;
 
 export function harnesysHome(): string {

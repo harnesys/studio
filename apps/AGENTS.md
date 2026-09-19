@@ -13,7 +13,7 @@
 
 Контракт API: `packages/studio-shared` (`@harnesys/studio-shared`, баррель `types.ts`) — общий для server и webui.
 
-Дев из корня: `bun run dev` (vite :5173 + `bun --watch` :3000), `dev:server`, `dev:webui`, `dev:desktop`.
+Дев из корня: `bun run dev` (vite :5173 + `bun --watch` :47474), `dev:server`, `dev:webui`, `dev:desktop`.
 
 ## Сервер
 
@@ -28,7 +28,7 @@ server/src/
   index.ts        # Main: listen (API+WS only; no SPA)
 ```
 
-Dev ports: UI Vite `:5173`, host API `:3000`. Host does not serve the SPA. Бандл-ассеты: `apps/server/assets` (skills, presets) — резолвятся как `import.meta.dir/../../../assets` от `src/adapters/store`.
+Dev ports: UI Vite `:5173`, host API `:47474`. Host does not serve the SPA. Бандл-ассеты: `apps/server/assets` (skills, presets) — резолвятся как `import.meta.dir/../../../assets` от `src/adapters/store`.
 
 Доменные порты и ошибки — в `src/domain`.
 

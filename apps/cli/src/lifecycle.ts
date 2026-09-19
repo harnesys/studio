@@ -223,7 +223,7 @@ function portFromUpstream(upstream: string | undefined): number | undefined {
 
 /**
  * Restart never falls back to default ports — that would silently land on the live
- * stand (or on 3000). Ports come from --port/--web-port or the recorded pidfiles;
+ * stand (or on 47474). Ports come from --port/--web-port or the recorded pidfiles;
  * with neither, the command refuses. systemd-managed components restart via
  * systemctl and need no recorded state.
  */

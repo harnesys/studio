@@ -15,6 +15,7 @@ import {
   STUDIO_DIR_LEGACY,
   WORKSPACE_DB_FILE,
 } from '../../config/constants.ts';
+import { bundledAssetsRoot } from '../../config/constants.ts';
 import { env } from '../../config/env.ts';
 
 export {
@@ -47,27 +48,22 @@ export function systemSkillsPath(home: string = defaultHomePath()): string {
 }
 
 /**
- * Skills shipped with the app (repo: `apps/server/assets/skills`).
+ * Skills shipped with the app (`apps/server/assets/skills`).
  * Lowest-precedence root: home overrides it, workspace overrides home.
- * `HARNESYS_BUNDLED_SKILLS` points elsewhere for packaged builds;
- * a missing directory simply contributes nothing.
+ * A missing directory simply contributes nothing.
  */
 export function bundledSkillsPath(): string {
-  return env.bundledSkills ?? join(import.meta.dir, '..', '..', '..', 'assets', SKILLS_DIR);
+  return join(bundledAssetsRoot(), SKILLS_DIR);
 }
 
-/** Root of the bundled app assets shipped with Studio (`apps/server/assets`). */
+/** Root of the bundled app assets shipped with the host (`apps/server/assets`). */
 export function bundledAssetsPath(): string {
-  return join(import.meta.dir, '..', '..', '..', 'assets');
+  return bundledAssetsRoot();
 }
 
-/**
- * Bundled agent/mode preset roots under `apps/server/assets/presets`.
- * `HARNESYS_BUNDLED_PRESETS` points elsewhere for packaged builds;
- * a missing directory simply contributes nothing.
- */
+/** Bundled agent/mode preset roots under the bundled assets root. */
 export function bundledPresetsPath(sub: 'agents' | 'modes'): string {
-  return join(env.bundledPresets ?? join(bundledAssetsPath(), 'presets'), sub);
+  return join(bundledAssetsRoot(), 'presets', sub);
 }
 
 /** User preset root, shadows bundled: `~/.harnesys/presets/<sub>`. */

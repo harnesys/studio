@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+
 import type { AgentBudget, WebhookStatus } from '@harnesys/studio-shared';
 import type { RunLifecycleStatus } from 'harnesys';
 
@@ -29,6 +32,31 @@ export const WORKSPACE_DB_FILE = 'workspace.db';
 export const CONFIG_FILE = 'config.json';
 /** NDJSON trace logs: `<home>/logs/studio-YYYY-MM-DD.log`. */
 export const LOGS_DIR = 'logs';
+
+/**
+ * Bundled app assets (skills, presets) shipped with the host. Resolution order
+ * in `bundledAssetsRoot()`:
+ *   1. `HARNESYS_BUNDLED_ASSETS` env — set by packagers (desktop sidecar gets
+ *      it from the Tauri resource dir);
+ *   2. `assets/` next to the executable — staging convention for compiled
+ *      binaries (`build/assets` next to `build/harnesys-host`);
+ *   3. `SOURCE_ASSETS_DIR` — repo position for source runs (bun, Docker).
+ */
+export const BUNDLED_ASSETS_ENV = 'HARNESYS_BUNDLED_ASSETS';
+/** Single place that knows the repo-relative position of the assets. */
+export const SOURCE_ASSETS_DIR = join(import.meta.dir, '..', '..', 'assets');
+
+export function bundledAssetsRoot(): string {
+  const override = process.env[BUNDLED_ASSETS_ENV]?.trim();
+  if (override) {
+    return resolve(override);
+  }
+  const sibling = join(dirname(process.execPath), 'assets');
+  if (existsSync(sibling)) {
+    return sibling;
+  }
+  return SOURCE_ASSETS_DIR;
+}
 
 /** Safety / skip */
 export const SAFETY_NAMES = new Set([

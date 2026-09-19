@@ -12,7 +12,7 @@
     "dev:server": "bun run --cwd apps/server dev",
     "dev:webui": "bun run --cwd apps/webui dev",
     "dev:desktop": "bun run scripts/dev-desktop.ts",
-    "build:host": "bun build --compile apps/server/src/index.ts --outfile build/harnesys-host",
+    "build:host": "bun build --compile apps/server/src/index.ts --outfile build/harnesys-host && rm -rf build/assets && cp -R apps/server/assets build/assets",
     "build:web": "bun build --compile apps/webui/server/index.ts --outfile build/harnesys-web",
     "build:cli": "bun build --compile apps/cli/src/index.ts --outfile build/harnesys",
     "build:client": "bun run --cwd apps/webui build",

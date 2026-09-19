@@ -1,4 +1,4 @@
-import { InboxIcon, SettingsIcon } from 'lucide-react';
+import { CogIcon, InboxIcon } from 'lucide-react';
 import { Fragment, type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useThreadStore } from '@/entities/thread';
 import {
@@ -335,7 +335,7 @@ export function WorkspaceSidebar() {
               tooltip="Settings"
               data-testid="nav-settings"
             >
-              <SettingsIcon />
+              <CogIcon />
               <span>Settings</span>
             </SidebarMenuButton>
             <SidebarSectionsConfig />

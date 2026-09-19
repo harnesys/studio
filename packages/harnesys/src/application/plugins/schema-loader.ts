@@ -1,46 +1,26 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { ErrorObject, ValidateFunction } from 'ajv';
 import Ajv from 'ajv';
 import Ajv2020 from 'ajv/dist/2020';
 
-const SCHEMA_FILES = {
-  apPlugin: 'ap-plugin-1.0.0.schema.json',
-  apMcp: 'ap-mcp-1.0.0.schema.json',
-  claudeManifest: 'claude-plugin-manifest.schema.json',
-} as const;
+// Static JSON imports: the bundler embeds the schemas into compiled binaries.
+// A runtime readFileSync next to import.meta.dir breaks under `$bunfs` —
+// compiled builds only embed what is imported.
+import apMcpSchemaJson from './schemas/ap-mcp-1.0.0.schema.json';
+import apPluginSchemaJson from './schemas/ap-plugin-1.0.0.schema.json';
+import claudeManifestSchemaJson from './schemas/claude-plugin-manifest.schema.json';
 
-type SchemaName = keyof typeof SCHEMA_FILES;
+type SchemaName = 'apPlugin' | 'apMcp' | 'claudeManifest';
 
-export type LoadedSchemas = {
-  apPlugin: Record<string, unknown>;
-  apMcp: Record<string, unknown>;
-  claudeManifest: Record<string, unknown>;
+export type LoadedSchemas = Record<SchemaName, Record<string, unknown>>;
+
+const SCHEMAS: LoadedSchemas = {
+  apPlugin: apPluginSchemaJson as Record<string, unknown>,
+  apMcp: apMcpSchemaJson as Record<string, unknown>,
+  claudeManifest: claudeManifestSchemaJson as Record<string, unknown>,
 };
 
-const cache = new Map<string, Record<string, unknown>>();
-
-function readSchema(file: string): Record<string, unknown> {
-  const path = join(import.meta.dir, 'schemas', file);
-  const cached = cache.get(path);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'));
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`plugin schema is not an object: ${path}`);
-  }
-  const schema: Record<string, unknown> = parsed as Record<string, unknown>;
-  cache.set(path, schema);
-  return schema;
-}
-
 export function loadSchemas(): LoadedSchemas {
-  return {
-    apPlugin: readSchema(SCHEMA_FILES.apPlugin),
-    apMcp: readSchema(SCHEMA_FILES.apMcp),
-    claudeManifest: readSchema(SCHEMA_FILES.claudeManifest),
-  };
+  return { ...SCHEMAS };
 }
 
 // AP-схемы декларируют draft 2020-12, claude-схема — draft-07: один Ajv

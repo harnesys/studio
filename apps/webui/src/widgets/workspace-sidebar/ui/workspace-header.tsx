@@ -1,4 +1,4 @@
-import { EllipsisVerticalIcon, FolderPlusIcon, PlusIcon, SettingsIcon } from 'lucide-react';
+import { CogIcon, EllipsisVerticalIcon, FolderPlusIcon, PlusIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useWorkspaces, workspaceAvatarClass, workspaceInitial } from '@/entities/workspace';
@@ -158,11 +158,12 @@ export function WorkspaceHeader() {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  className="flex items-center"
                   onClick={() => {
                     void openWorkspaceSettingsDialog(item.id);
                   }}
                 >
-                  <SettingsIcon />
+                  <CogIcon className="relative -top-px size-3.5" />
                   Settings…
                 </DropdownMenuItem>
                 <DropdownMenuItem

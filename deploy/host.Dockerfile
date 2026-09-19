@@ -17,9 +17,8 @@ COPY apps/desktop/package.json apps/desktop/
 RUN bun install --frozen-lockfile
 
 # Runtime sources: the server plus the workspace packages it imports.
-# apps/server/assets must keep its repo position relative to the server sources:
-# bundled skills/presets resolve as import.meta.dir/../../../assets from
-# apps/server/src/adapters/store → /app/apps/server/assets here.
+# apps/server/assets must keep its repo position (SOURCE_ASSETS_DIR in
+# apps/server/src/config/constants.ts resolves it) → /app/apps/server/assets here.
 COPY apps/server/assets apps/server/assets
 COPY apps/server/src apps/server/src
 COPY packages/harnesys packages/harnesys

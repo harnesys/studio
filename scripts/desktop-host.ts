@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
-import { copyFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 const root = join(import.meta.dir, '..');
 
@@ -17,12 +17,31 @@ function targetTriple(): string {
   }
 }
 
-/** Build build/harnesys-host and stage it as the tauri sidecar with the triple suffix. */
-export function prepareHostBinary(): void {
-  execSync('bun run build:host', { cwd: root, stdio: 'inherit' });
-  const dir = join(root, 'apps', 'desktop', 'src-tauri', 'binaries');
-  mkdirSync(dir, { recursive: true });
-  const dest = join(dir, `harnesys-host-${targetTriple()}`);
-  copyFileSync(join(root, 'build', 'harnesys-host'), dest);
+function stageSidecar(source: string, dest: string): void {
+  mkdirSync(dirname(dest), { recursive: true });
+  copyFileSync(source, dest);
   execSync(`chmod 755 '${dest}'`);
+}
+
+/**
+ * Build build/harnesys-host (assets staged next to it by the build:host
+ * script) and copy it as the tauri sidecar with the triple suffix.
+ * `fresh: false` reuses an existing sidecar or binary without rebuilding —
+ * the dev flow only needs the file to exist for tauri's externalBin check.
+ */
+export function prepareHostBinary({ fresh = true }: { fresh?: boolean } = {}): void {
+  const dir = join(root, 'apps', 'desktop', 'src-tauri', 'binaries');
+  const dest = join(dir, `harnesys-host-${targetTriple()}`);
+  if (!fresh) {
+    if (existsSync(dest)) {
+      return;
+    }
+    const built = join(root, 'build', 'harnesys-host');
+    if (existsSync(built)) {
+      stageSidecar(built, dest);
+      return;
+    }
+  }
+  execSync('bun run build:host', { cwd: root, stdio: 'inherit' });
+  stageSidecar(join(root, 'build', 'harnesys-host'), dest);
 }

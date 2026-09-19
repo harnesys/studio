@@ -24,8 +24,6 @@ export const env = {
   production: process.env.NODE_ENV === 'production',
   port: readPort(process.env.PORT, DEFAULT_PORT),
   harnesysHome: process.env.HARNESYS_HOME?.trim() || undefined,
-  bundledSkills: process.env.HARNESYS_BUNDLED_SKILLS?.trim() || undefined,
-  bundledPresets: process.env.HARNESYS_BUNDLED_PRESETS?.trim() || undefined,
   STUDIO_INSTANCE_ID: process.env.STUDIO_INSTANCE_ID?.trim() || undefined,
   /** Public origin for webhook URLs (packaging PUBLIC_URL). */
   publicUrl: process.env.PUBLIC_URL?.trim() || undefined,

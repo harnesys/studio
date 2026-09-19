@@ -1,4 +1,5 @@
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -16,18 +17,29 @@ fn host_alive() -> bool {
 
 struct HostProcess(Mutex<Option<CommandChild>>);
 
+/// Bundled skills/presets live in the resource dir for packaged builds
+/// (`Contents/Resources/assets`). Returned only when it actually exists —
+/// in dev builds the resource dir holds no assets and the host falls back
+/// to its own resolution.
+fn bundled_assets_env(app: &AppHandle) -> Option<PathBuf> {
+    let dir = app.path().resource_dir().ok()?.join("assets");
+    dir.is_dir().then_some(dir)
+}
+
 /// Spawn the bundled host sidecar unless a host already listens on the port
 /// (dev server or CLI-managed host — the window talks to whichever is there).
 fn spawn_host(app: &AppHandle) -> Result<(), String> {
     if host_alive() {
         return Ok(());
     }
-    let (_rx, child) = app
+    let mut command = app
         .shell()
         .sidecar("harnesys-host")
-        .map_err(|e| e.to_string())?
-        .spawn()
         .map_err(|e| e.to_string())?;
+    if let Some(dir) = bundled_assets_env(app) {
+        command = command.env("HARNESYS_BUNDLED_ASSETS", dir.to_string_lossy().to_string());
+    }
+    let (_rx, child) = command.spawn().map_err(|e| e.to_string())?;
     app.state::<HostProcess>()
         .0
         .lock()

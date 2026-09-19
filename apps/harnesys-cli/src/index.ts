@@ -11,7 +11,7 @@ usage:
   harnesys up [--with-ui] [--port N] [--web-port N] [--install-systemd]
   harnesys down
   harnesys status
-  harnesys restart [server|webui|all]
+  harnesys restart [server|webui|all] [--port N] [--web-port N]
   harnesys logs [-f] [server|webui]
   harnesys update [--repo owner/name]
   harnesys host pair [--port N]
@@ -105,9 +105,14 @@ async function main(): Promise<void> {
     case 'status':
       await commandStatus();
       return;
-    case 'restart':
-      await commandRestart(parseArgs(rest).positionals[0]);
+    case 'restart': {
+      const parsed = parseArgs(rest);
+      await commandRestart(parsed.positionals[0], {
+        port: flagNumber(parsed.flags, 'port'),
+        webPort: flagNumber(parsed.flags, 'web-port'),
+      });
       return;
+    }
     case 'logs': {
       const parsed = parseArgs(rest);
       await commandLogs(parsed.flags.has('f'), parsed.positionals[0]);

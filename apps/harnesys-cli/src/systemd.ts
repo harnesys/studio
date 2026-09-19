@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { harnesysHome, resolveBinDir, resolveStaticDir, SERVER_BIN, WEB_BIN } from './paths.ts';
 
@@ -7,8 +8,18 @@ export type SystemdOptions = {
   webPort: number;
 };
 
+/** systemd --user search path: $XDG_CONFIG_HOME/systemd/user, default ~/.config/systemd/user. */
+export function userUnitDir(): string {
+  const xdg = process.env.XDG_CONFIG_HOME?.trim();
+  if (xdg) {
+    return join(xdg, 'systemd', 'user');
+  }
+  return join(homedir(), '.config', 'systemd', 'user');
+}
+
 function unitText(description: string, bin: string, env: [string, string][]): string {
-  const envLines = env.map(([key, value]) => `Environment=${key}=${value}`).join('\n');
+  // Whole assignment quoted: values with spaces survive systemd's parser.
+  const envLines = env.map(([key, value]) => `Environment="${key}=${value}"`).join('\n');
   return `\
 [Unit]
 Description=${description}
@@ -42,17 +53,20 @@ export function renderUnits(options: SystemdOptions): { host: string; web: strin
 
 /**
  * `up --install-systemd`: user-level units, `systemctl --user enable --now`.
- * Off Linux the units are printed with a warning so they stay inspectable everywhere.
+ * Off Linux the units are printed with a warning (plus the paths they would take)
+ * so they stay inspectable everywhere.
  */
 export function installSystemdUnits(options: SystemdOptions): void {
   const units = renderUnits(options);
+  const unitDir = userUnitDir();
   if (process.platform !== 'linux') {
+    console.log(`# would write: ${join(unitDir, 'harnesys-host.service')}`);
     console.log(units.host);
+    console.log(`# would write: ${join(unitDir, 'harnesys-web.service')}`);
     console.log(units.web);
     console.error('harnesys: systemd is unavailable on this platform — units printed above only');
     return;
   }
-  const unitDir = join(harnesysHome(), 'systemd', 'user');
   mkdirSync(unitDir, { recursive: true });
   writeFileSync(join(unitDir, 'harnesys-host.service'), units.host);
   writeFileSync(join(unitDir, 'harnesys-web.service'), units.web);

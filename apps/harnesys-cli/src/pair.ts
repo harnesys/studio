@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { HOST_DEFAULT_PORT, harnesysHome } from './paths.ts';
+import { harnesysHome } from './paths.ts';
 import { readPidRecord } from './processes.ts';
 
 /** Same resolution rule as the web gate: HOST_TOKEN env, else `host.token` in config.json. */
@@ -33,7 +33,8 @@ function fail(message: string): never {
 /**
  * `host pair [--port N]`: starts a pairing challenge on the local host.
  * The 6-digit code comes from the API response (the host returns { code, expiresAt });
- * the port is --port > running server's recorded port > 3000.
+ * the port is --port > the running server's recorded port. No silent default: without
+ * recorded state the command refuses, so it can never land on an unrelated listener.
  */
 export async function commandPair(portOverride: number | undefined): Promise<void> {
   const home = harnesysHome();
@@ -41,7 +42,10 @@ export async function commandPair(portOverride: number | undefined): Promise<voi
   if (!token) {
     fail(`no host token — set "host.token" in ${join(home, 'config.json')} or HOST_TOKEN`);
   }
-  const port = portOverride ?? readPidRecord(home, 'server')?.port ?? HOST_DEFAULT_PORT;
+  const port = portOverride ?? readPidRecord(home, 'server')?.port;
+  if (port === undefined) {
+    fail('no running server recorded — run `harnesys up` first (or pass --port N)');
+  }
   let response: Response;
   try {
     response = await fetch(`http://127.0.0.1:${port}/api/host/pair/start`, {

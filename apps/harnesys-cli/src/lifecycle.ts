@@ -144,11 +144,14 @@ export async function commandDown(): Promise<void> {
   const home = harnesysHome();
   for (const name of ['webui', 'server'] as const) {
     const record = readPidRecord(home, name);
+    const wasAlive = record !== undefined && isPidAlive(record.pid);
     const result = await terminate(home, name);
-    if (result === 'stopped') {
+    if (result === 'not-running') {
+      console.log(`${name.padEnd(5)} is not running`);
+    } else if (wasAlive) {
       console.log(`stopped ${name.padEnd(5)} (was pid ${record?.pid ?? '?'})`);
     } else {
-      console.log(`${name.padEnd(5)} is not running`);
+      console.log(`stopped ${name.padEnd(5)} (was not running — stale pidfile removed)`);
     }
   }
 }
@@ -191,17 +194,47 @@ function parseTarget(target: string | undefined): ComponentName[] {
   return fail(`unknown target "${target}" — expected server | webui | all`);
 }
 
-export async function commandRestart(target: string | undefined): Promise<void> {
+/** Port encoded in a recorded UPSTREAM URL, when the host pidfile itself is gone. */
+function portFromUpstream(upstream: string | undefined): number | undefined {
+  if (!upstream) {
+    return undefined;
+  }
+  try {
+    const port = Number(new URL(upstream).port);
+    return port > 0 ? port : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Restart never falls back to default ports — that would silently land on the live
+ * stand (or on 3000). Ports come from --port/--web-port or the recorded pidfiles;
+ * with neither, the command refuses.
+ */
+export async function commandRestart(
+  target: string | undefined,
+  ports: { port?: number; webPort?: number },
+): Promise<void> {
   const home = harnesysHome();
   ensureStateDirs(home);
+  const names = parseTarget(target);
   const previousServer = readPidRecord(home, 'server');
   const previousWeb = readPidRecord(home, 'webui');
+  const hostPort =
+    ports.port ?? previousServer?.port ?? portFromUpstream(previousWeb?.env?.UPSTREAM);
+  const webPort = ports.webPort ?? previousWeb?.port;
+  if (names.includes('server') && hostPort === undefined) {
+    fail('no previous server state — run `harnesys up` first (or pass --port N)');
+  }
+  if (names.includes('webui') && (webPort === undefined || hostPort === undefined)) {
+    fail('no previous webui state — run `harnesys up` first (or pass --port/--web-port)');
+  }
   const context: StartContext = {
     home,
-    hostPort: previousServer?.port ?? HOST_DEFAULT_PORT,
-    webPort: previousWeb?.port ?? WEB_DEFAULT_PORT,
+    hostPort: hostPort ?? HOST_DEFAULT_PORT,
+    webPort: webPort ?? WEB_DEFAULT_PORT,
   };
-  const names = parseTarget(target);
   if (names.includes('webui')) {
     assertStaticDir(effectiveStaticDir(previousWeb));
   }
@@ -224,10 +257,18 @@ export async function restartRunningComponents(): Promise<ComponentName[]> {
   if (alive.size === 0) {
     return [];
   }
+  const hostPort = alive.get('server')?.port ?? portFromUpstream(alive.get('webui')?.env?.UPSTREAM);
+  const webPort = alive.get('webui')?.port;
+  if (hostPort === undefined) {
+    fail('recorded state is incomplete — run `harnesys down` and `harnesys up` again');
+  }
+  if (alive.has('webui') && webPort === undefined) {
+    fail('recorded webui state is incomplete — run `harnesys down` and `harnesys up` again');
+  }
   const context: StartContext = {
     home,
-    hostPort: (alive.get('server') ?? readPidRecord(home, 'server'))?.port ?? HOST_DEFAULT_PORT,
-    webPort: (alive.get('webui') ?? readPidRecord(home, 'webui'))?.port ?? WEB_DEFAULT_PORT,
+    hostPort: hostPort ?? HOST_DEFAULT_PORT,
+    webPort: webPort ?? WEB_DEFAULT_PORT,
   };
   if (alive.has('webui')) {
     assertStaticDir(effectiveStaticDir(alive.get('webui')));

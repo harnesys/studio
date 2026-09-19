@@ -1,4 +1,4 @@
-import { chmodSync, renameSync, writeFileSync } from 'node:fs';
+import { chmodSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { restartRunningComponents } from './lifecycle.ts';
 import { resolveBinDir, SERVER_BIN, WEB_BIN } from './paths.ts';
@@ -45,15 +45,46 @@ export async function commandUpdate(repoFlag: string | undefined): Promise<void>
   }
   const release = await fetchRelease(repo);
   const binDir = resolveBinDir();
-  for (const bin of [SERVER_BIN, WEB_BIN]) {
-    const asset = findAsset(release.assets, assetNameFor(bin));
-    const target = join(binDir, bin);
-    const staging = `${target}.update-${process.pid}`;
-    const bytes = await download(asset.browser_download_url);
-    writeFileSync(staging, bytes);
-    chmodSync(staging, 0o755);
-    renameSync(staging, target);
-    console.log(`updated ${bin} ← ${asset.name} (${Math.round(bytes.length / 1024 / 1024)} MiB)`);
+  // Both assets are resolved and staged before anything is replaced: a failure
+  // mid-way aborts with the installed binaries untouched (all-or-nothing).
+  const assetForServer = findAsset(release.assets, assetNameFor(SERVER_BIN));
+  const assetForWeb = findAsset(release.assets, assetNameFor(WEB_BIN));
+  const staged: {
+    bin: string;
+    assetName: string;
+    staging: string;
+    target: string;
+    size: number;
+  }[] = [];
+  try {
+    for (const [bin, asset] of [
+      [SERVER_BIN, assetForServer],
+      [WEB_BIN, assetForWeb],
+    ] as const) {
+      const target = join(binDir, bin);
+      const staging = `${target}.update-${process.pid}`;
+      const bytes = await download(asset.browser_download_url);
+      writeFileSync(staging, bytes);
+      chmodSync(staging, 0o755);
+      staged.push({
+        bin,
+        assetName: asset.name,
+        staging,
+        target,
+        size: bytes.length,
+      });
+    }
+  } catch (error) {
+    for (const item of staged) {
+      rmSync(item.staging, { force: true });
+    }
+    fail(`update aborted, binaries untouched: ${String(error).slice(0, 120)}`);
+  }
+  for (const item of staged) {
+    renameSync(item.staging, item.target);
+    console.log(
+      `updated ${item.bin} ← ${item.assetName} (${Math.round(item.size / 1024 / 1024)} MiB)`,
+    );
   }
   const restarted = await restartRunningComponents();
   if (restarted.length > 0) {
@@ -100,18 +131,14 @@ function findAsset(assets: ReleaseAsset[], name: string): ReleaseAsset {
   return asset;
 }
 
+/** Throws so commandUpdate can clean staged files; the caller turns it into a user-facing error. */
 async function download(url: string): Promise<Uint8Array> {
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: { 'user-agent': 'harnesys-cli' },
-      signal: AbortSignal.timeout(120_000),
-    });
-  } catch (error) {
-    fail(`download failed: ${String(error).slice(0, 120)}`);
-  }
+  const response = await fetch(url, {
+    headers: { 'user-agent': 'harnesys-cli' },
+    signal: AbortSignal.timeout(120_000),
+  });
   if (!response.ok) {
-    fail(`download failed with HTTP ${response.status}`);
+    throw new Error(`download failed with HTTP ${response.status}`);
   }
   return new Uint8Array(await response.arrayBuffer());
 }

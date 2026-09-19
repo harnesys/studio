@@ -1,17 +1,9 @@
 import type { PluginDiagnostic } from '../../domain/plugin-diagnostics.ts';
 import type { LspServerSpec } from '../../domain/plugin-ir.ts';
-
 export type ParsePluginLspResult = {
   servers: LspServerSpec[];
   diagnostics: PluginDiagnostic[];
 };
-
-/**
- * Полная форма lspServers-записи (Claude `.lsp.json` / AP `lsp.json` / inline):
- * command, args, transport, env, initializationOptions, settings, workspaceFolder,
- * таймауты, restart-политика, diagnostics, extensionToLanguage.
- * Имена таймаутов принимаются в обеих формах (`startupTimeout` и `startupTimeoutMs`).
- */
 export function parsePluginLspServers(raw: unknown, sourcePath?: string): ParsePluginLspResult {
   const diagnostics: PluginDiagnostic[] = [];
   const servers: LspServerSpec[] = [];
@@ -88,7 +80,6 @@ export function parsePluginLspServers(raw: unknown, sourcePath?: string): ParseP
   }
   return { servers, diagnostics };
 }
-
 function lspWarning(message: string, sourcePath: string | undefined): PluginDiagnostic {
   const diagnostic: PluginDiagnostic = {
     level: 'warning',
@@ -100,11 +91,9 @@ function lspWarning(message: string, sourcePath: string | undefined): PluginDiag
   }
   return diagnostic;
 }
-
 function optionalMs(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

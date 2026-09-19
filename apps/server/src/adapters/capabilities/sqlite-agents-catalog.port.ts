@@ -18,35 +18,30 @@ import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm
 import { ConflictError, NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { dbAgentDefinition } from '../workspace-agent-definitions.ts';
-
-/** Late-wired resolver for `pluginName:agentName` catalog ids (set in create-host). */
 export type PluginAgentsRef = {
   current: ((workspaceId: string) => Promise<PluginAgentCatalog>) | null;
 };
-
 export type SqliteAgentsCatalogPortDeps = {
   agents: AgentRepository;
   createAgent: CreateAgentInput;
-  /** Desk bus: tool-path writes must reach the UI without a page reload. */
   deskEvents: DeskEventsPort;
-  /** Thread ownership guard for `remove`; omitted = no threads exist for the host. */
   threads?: ThreadRepository;
   models?: LlmModelRepository;
   providers?: LlmProviderRepository;
   pluginAgents?: PluginAgentsRef;
 };
-
 export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
   constructor(private readonly deps: SqliteAgentsCatalogPortDeps) {}
-
   list(
     scope: CapabilityScope,
-    filter?: { role?: string; name?: string },
+    filter?: {
+      role?: string;
+      name?: string;
+    },
   ): Promise<AgentCatalogSummary[]> {
     const rows = this.deps.agents.listByWorkspace(scope.workspaceId);
     const base = rows
       .filter((row) => {
-        // Top-level agents plus this run's own delegates (spawn targets).
         if (row.parentId !== null && row.parentId !== scope.agentId) {
           return false;
         }
@@ -66,8 +61,6 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
         parentId: row.parentId,
         ...(row.color !== null ? { color: row.color } : {}),
       }));
-    // B3: plugin-агенты видит только агент, у которого их плагин включён
-    // (closed-world пересечение того же образца, что `effectivePlugins`).
     const agentEnabled = this.deps.agents.findById(scope.agentId)?.enabledPlugins;
     return this.pluginAgentsOf(scope.workspaceId).then((pluginAgents) => {
       const summaries = pluginAgents.list();
@@ -76,18 +69,14 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
       return [...base, ...summaries.filter((entry) => enabled.has(pluginOwnerOf(entry.id)))];
     });
   }
-
   async get(scope: CapabilityScope, id: string): Promise<AgentDefinition | null> {
     const agent = this.deps.agents.findById(id);
     if (agent !== undefined && agent.workspaceId === scope.workspaceId) {
       return toAgentDefinition(agent, this.deps);
     }
-    // DB ids are UUIDs without `:`; a colon marks a plugin catalog id.
     if (!id.includes(':')) {
       return null;
     }
-    // B3-паритет с `list()`: plugin-агент недоступен агенту, у которого его
-    // плагин выключен, — то же not-found, что для неизвестного id.
     const owner = pluginOwnerOf(id);
     const agentEnabled = this.deps.agents.findById(scope.agentId)?.enabledPlugins;
     if (!effectivePluginNames([owner], agentEnabled).has(owner)) {
@@ -96,7 +85,6 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     const pluginAgents = await this.pluginAgentsOf(scope.workspaceId);
     return pluginAgents.get(id);
   }
-
   private pluginAgentsOf(workspaceId: string): Promise<PluginAgentCatalog> {
     const resolve = this.deps.pluginAgents?.current;
     if (resolve === undefined || resolve === null) {
@@ -104,13 +92,11 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     }
     return resolve(workspaceId).catch(() => emptyPluginAgents);
   }
-
   async create(
     scope: CapabilityScope,
     input: AgentCatalogCreateInput,
   ): Promise<AgentCatalogCreated> {
     const model = resolveModelFields(input.model, scope.workspaceId, this.deps);
-    // This port owns tool-path desk emissions; the wired CreateAgentUseCase has no emitter.
     const created = await this.deps.createAgent.execute({
       workspaceId: scope.workspaceId,
       name: input.name,
@@ -141,18 +127,14 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
       ...(def.permissions ? { permissions: def.permissions } : {}),
     };
   }
-
   patch(scope: CapabilityScope, id: string, patch: AgentCatalogPatch): Promise<void> {
     const agent = this.deps.agents.findById(id);
     if (!agent || agent.workspaceId !== scope.workspaceId) {
       throw new NotFoundError(`agent "${id}" not found`);
     }
-    // Host-side repeat of the tool's ownership rule: delegates created by this agent only.
     if (agent.parentId !== scope.agentId) {
       throw new ValidationError('not your delegate');
     }
-    // Same field handling as UpdateAgentUseCase: only provided keys reach the row,
-    // budget replaces the stored object whole (undefined members serialize away).
     const update: AgentPatch = { updatedAt: new Date().toISOString() };
     if (patch.name !== undefined) {
       const name = patch.name.trim();
@@ -178,13 +160,21 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     this.deps.deskEvents.emit(scope.workspaceId, { type: 'agent', agent: updated });
     return Promise.resolve();
   }
-
-  remove(scope: CapabilityScope, id: string): Promise<{ ok: true } | { error: string }> {
+  remove(
+    scope: CapabilityScope,
+    id: string,
+  ): Promise<
+    | {
+        ok: true;
+      }
+    | {
+        error: string;
+      }
+  > {
     const agent = this.deps.agents.findById(id);
     if (!agent || agent.workspaceId !== scope.workspaceId) {
       return Promise.resolve({ error: 'agent not found' });
     }
-    // Host-side repeat of the tool's ownership rule: delegates created by this agent only.
     if (agent.parentId !== scope.agentId) {
       return Promise.resolve({ error: 'not your delegate' });
     }
@@ -200,12 +190,10 @@ export class SqliteAgentsCatalogPort implements AgentsCatalogPort {
     return Promise.resolve({ ok: true });
   }
 }
-
 const emptyPluginAgents: PluginAgentCatalog = {
   list: () => [],
   get: () => null,
 };
-
 function resolveModelFields(
   model: AgentModelRef | undefined,
   workspaceId: string,
@@ -233,14 +221,9 @@ function resolveModelFields(
   }
   return { modelId: found.id, effort, generation };
 }
-
-/** Catalog id `pluginName:agentName` → plugin owner (`:`-префикс). */
 function pluginOwnerOf(id: string): string {
   return id.split(':')[0] ?? id;
 }
-
-/** B4: одна сборка definition с registry-путём — общий `dbAgentDefinition`
- *  (capabilities → `packs`, hooks, enabledPlugins); дубль с `capabilities`-полем удалён. */
 function toAgentDefinition(agent: Agent, deps: SqliteAgentsCatalogPortDeps): AgentDefinition {
   return dbAgentDefinition(agent, { modelRepo: deps.models, providerRepo: deps.providers });
 }

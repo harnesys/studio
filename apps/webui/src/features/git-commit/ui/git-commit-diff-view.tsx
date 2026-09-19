@@ -2,12 +2,10 @@ import { loader } from '@monaco-editor/react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2Icon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
 import { getGitDiff, gitDiffQueryKey } from '@/shared/api/git';
 import '@/shared/lib/monaco';
 import { detectLanguage } from '@/shared/lib/tool-code';
 import { useTheme } from '@/shared/ui/theme-provider';
-
 import {
   type DiffEditorInstance,
   defineThemes,
@@ -17,7 +15,6 @@ import {
 } from './git-commit-diff-view-types';
 
 let monacoPromise: Promise<unknown> | null = null;
-
 export function GitCommitDiffView({
   workspaceId,
   path,
@@ -26,14 +23,12 @@ export function GitCommitDiffView({
   path: string | null;
 }) {
   const { theme } = useTheme();
-
   const diffQuery = useQuery({
     queryKey: path ? gitDiffQueryKey(workspaceId, path) : ['git-diff-none'],
     queryFn: () => getGitDiff(workspaceId, path as string),
     enabled: Boolean(workspaceId && path),
-    staleTime: 10_000,
+    staleTime: 10000,
   });
-
   if (!path) {
     return (
       <div className="flex flex-1 items-center justify-center p-6 text-muted-foreground text-sm">
@@ -41,7 +36,6 @@ export function GitCommitDiffView({
       </div>
     );
   }
-
   if (diffQuery.isPending) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -49,7 +43,6 @@ export function GitCommitDiffView({
       </div>
     );
   }
-
   if (diffQuery.isError) {
     return (
       <div className="flex flex-1 items-center justify-center p-4 text-destructive text-sm">
@@ -57,12 +50,10 @@ export function GitCommitDiffView({
       </div>
     );
   }
-
   const data = diffQuery.data;
   if (!data) {
     return null;
   }
-
   if (data.isBinary) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
@@ -71,7 +62,6 @@ export function GitCommitDiffView({
       </div>
     );
   }
-
   const original = data.original ?? '';
   const modified = data.status === 'deleted' ? '' : (data.current ?? '');
   if (!original && !modified) {
@@ -81,7 +71,6 @@ export function GitCommitDiffView({
       </div>
     );
   }
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex h-7 shrink-0 items-center gap-2 border-b bg-muted/30 px-3">
@@ -102,7 +91,6 @@ export function GitCommitDiffView({
     </div>
   );
 }
-
 function MonacoDiffEditor({
   theme,
   language,
@@ -118,13 +106,17 @@ function MonacoDiffEditor({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<unknown>(null);
-  const modelsRef = useRef<{ original: unknown; modified: unknown } | null>(null);
+  const modelsRef = useRef<{
+    original: unknown;
+    modified: unknown;
+  } | null>(null);
   const [ready, setReady] = useState(false);
-
   const resolved = resolveTheme(theme);
-
   const disposeModels = useCallback(() => {
-    const models = modelsRef.current as { original: TextModel; modified: TextModel } | null;
+    const models = modelsRef.current as {
+      original: TextModel;
+      modified: TextModel;
+    } | null;
     if (!models) {
       return;
     }
@@ -136,7 +128,6 @@ function MonacoDiffEditor({
     } catch {}
     modelsRef.current = null;
   }, []);
-
   const updateModels = useCallback(
     ({ monaco, editor, lang, orig, mod, filePath }: UpdateModelsParams) => {
       const prevModels = editor.getModel();
@@ -146,7 +137,6 @@ function MonacoDiffEditor({
         } catch {}
       }
       disposeModels();
-
       const originalModel = monaco.editor.createModel(
         orig,
         lang,
@@ -171,8 +161,6 @@ function MonacoDiffEditor({
     },
     [disposeModels],
   );
-
-  // init monaco once
   useEffect(() => {
     if (!monacoPromise) {
       monacoPromise = loader.init();
@@ -184,8 +172,6 @@ function MonacoDiffEditor({
       })
       .catch(() => {});
   }, []);
-
-  // create diff editor
   useEffect(() => {
     if (!ready || !containerRef.current) {
       return;
@@ -234,16 +220,12 @@ function MonacoDiffEditor({
         try {
           ed.setModel(null);
           ed.dispose();
-        } catch {
-          // ignore dispose race
-        }
+        } catch {}
         editorRef.current = null;
       }
       disposeModels();
     };
   }, [ready, path, resolved, language, updateModels, modified, original, disposeModels]);
-
-  // theme sync
   useEffect(() => {
     if (!ready) {
       return;
@@ -255,8 +237,6 @@ function MonacoDiffEditor({
       })
       .catch(() => {});
   }, [resolved, ready]);
-
-  // update models when content/path/language changes
   useEffect(() => {
     if (!ready || !editorRef.current) {
       return;
@@ -279,10 +259,8 @@ function MonacoDiffEditor({
       })
       .catch(() => {});
   }, [language, original, modified, path, ready, updateModels]);
-
   return <div ref={containerRef} className="h-full w-full" />;
 }
-
 function resolveTheme(theme: 'dark' | 'light' | 'system'): 'dark' | 'light' {
   if (theme === 'dark' || theme === 'light') {
     return theme;

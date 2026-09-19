@@ -4,7 +4,6 @@ export function formatClock(iso: string): string {
     minute: '2-digit',
   });
 }
-
 export function formatDayTime(iso: string): string {
   return new Date(iso).toLocaleString([], {
     month: 'short',

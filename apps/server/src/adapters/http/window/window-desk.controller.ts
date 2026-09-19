@@ -6,19 +6,12 @@ import type {
 } from '../../../domain/machine-config.ts';
 import { isLoopbackPeer } from '../loopback.ts';
 import { windowDeskBody, windowHostsBody } from './window-desk.body.ts';
-
 export type WindowDeskControllerDeps = {
   machineConfig: MachineConfigPort;
 };
-
 export class WindowDeskController {
   constructor(private readonly deps: WindowDeskControllerDeps) {}
-
   register(app: Hono): void {
-    /**
-     * Local chicken-egg: loopback may fetch window section (incl. credential)
-     * once without Bearer. Non-loopback always 403. After this, client sends Bearer.
-     */
     app.get('/api/window/bootstrap', (c) => {
       if (!isLoopbackPeer(c)) {
         return c.json({ error: 'forbidden' }, 403);
@@ -26,11 +19,9 @@ export class WindowDeskController {
       const { hosts, desk } = this.deps.machineConfig.read().window;
       return c.json({ hosts, desk });
     });
-
     app.get('/api/window/desk', (c) => {
       return c.json(this.deps.machineConfig.read().window.desk);
     });
-
     app.put('/api/window/desk', async (c) => {
       const body = windowDeskBody.parse(await c.req.json());
       const desk: WindowDesk = {
@@ -40,11 +31,9 @@ export class WindowDeskController {
       const next = this.deps.machineConfig.writeWindow({ desk });
       return c.json(next.window.desk);
     });
-
     app.get('/api/window/hosts', (c) => {
       return c.json({ hosts: this.deps.machineConfig.read().window.hosts });
     });
-
     app.put('/api/window/hosts', async (c) => {
       const body = windowHostsBody.parse(await c.req.json());
       const hosts: WindowHostRecord[] = body.hosts.map((row) => ({

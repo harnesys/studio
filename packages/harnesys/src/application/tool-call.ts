@@ -21,7 +21,6 @@ import {
 } from './tool-approve-checkpoint.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 import { runBatchWorkerPool } from './tool-pool.ts';
-
 export type ToolCallResult = {
   id: string;
   name: string;
@@ -30,7 +29,6 @@ export type ToolCallResult = {
   skipped?: boolean;
   cancelled?: boolean;
 };
-
 export type ToolCallContext = {
   state: Record<string, unknown>;
   output: unknown;
@@ -50,37 +48,39 @@ export type ToolCallContext = {
   hostMaxConcurrency?: number;
   resumePayload?: unknown;
   resumeInterruptId?: string;
-  /** Дочерний ран: гейты отвечают deny вместо AskUserInterrupt. */
   sandbox?: boolean;
-  /** Node types of the active agent's compiled plan; control intents without a matching node are not queued. */
   planNodeTypes?: ReadonlySet<string>;
   toolOutput?: ToolOutputSettings | null;
-  /** Шина хуков рана: PostToolBatch в конце batch-ветки. */
   hooks?: HookEmitCtx;
-  /** Готовый env рана для процессов тулов; отсутствие — process env. */
   env?: Record<string, string>;
-  /** Текущий спикер рана; после handoff-ребайнда отличается от стартового агента. */
   agentId?: string;
 };
-
 function codeError(code: string, message: string): never {
   throw Object.assign(new Error(message), { code });
 }
-
 function evalArgValue(
   v: unknown,
-  slots: { input: unknown; state: Record<string, unknown>; output: unknown; resume: unknown },
+  slots: {
+    input: unknown;
+    state: Record<string, unknown>;
+    output: unknown;
+    resume: unknown;
+  },
 ): unknown {
   if (typeof v === 'string' && v.trim().startsWith('$')) {
     return evalExpr(v, slots);
   }
   return v;
 }
-
 type BatchConcurrency = 'parallel' | 'sequential' | string;
 function resolveConcurrency(
   c: BatchConcurrency,
-  slots: { input: unknown; state: Record<string, unknown>; output: unknown; resume: unknown },
+  slots: {
+    input: unknown;
+    state: Record<string, unknown>;
+    output: unknown;
+    resume: unknown;
+  },
 ): 'parallel' | 'sequential' {
   if (c === 'parallel' || c === 'sequential') {
     return c;
@@ -94,7 +94,6 @@ function resolveConcurrency(
   }
   codeError('concurrency_invalid', `invalid concurrency ${String(c)}`);
 }
-
 function getStateMessages(state: Record<string, unknown>, path?: string): unknown[] | null {
   const key = path ? stateKeyOf(path) : 'messages';
   if (!key) {
@@ -103,21 +102,20 @@ function getStateMessages(state: Record<string, unknown>, path?: string): unknow
   const v = state[key];
   return Array.isArray(v) ? (v as unknown[]) : null;
 }
-
 export async function executeToolCall(
   node: ToolCallFixed | ToolCallBatch,
   ctx: ToolCallContext,
-): Promise<{ results: ToolCallResult[] }> {
+): Promise<{
+  results: ToolCallResult[];
+}> {
   const slots = {
     input: ctx.input ?? null,
     state: ctx.state,
     output: ctx.output ?? null,
     resume: ctx.resume ?? null,
   };
-
   let calls: PreparedToolCall[] = [];
   let concurrency: 'parallel' | 'sequential' = 'parallel';
-
   if ('name' in node && typeof node.name === 'string') {
     const fixed = node as ToolCallFixed;
     const evaluated: Record<string, unknown> = {};
@@ -136,11 +134,22 @@ export async function executeToolCall(
       codeError('tool_call_limit', 'tool_call_limit 32 exceeded');
     }
     concurrency = resolveConcurrency(batch.concurrency, slots);
-    if (batch.barrier && (batch.barrier as { policy?: unknown }).policy !== 'all') {
+    if (
+      batch.barrier &&
+      (
+        batch.barrier as {
+          policy?: unknown;
+        }
+      ).policy !== 'all'
+    ) {
       codeError('barrier_policy', 'barrier.policy must be "all"');
     }
     calls = (raw as unknown[]).map((item, idx) => {
-      const rec = item as { name?: unknown; args?: unknown; id?: unknown };
+      const rec = item as {
+        name?: unknown;
+        args?: unknown;
+        id?: unknown;
+      };
       const name = typeof rec.name === 'string' ? rec.name : String(rec.name ?? '');
       let args: unknown = rec.args;
       if (args && typeof args === 'object' && !Array.isArray(args)) {
@@ -154,8 +163,6 @@ export async function executeToolCall(
       return { name, args: args ?? {}, id };
     });
   }
-
-  // HITL approve path: checkpointed batching lives in tool-approve.ts.
   if ('approve' in node && node.approve) {
     const outcome = await executeApproveBatch({ ...node, concurrency }, calls, ctx);
     const arr = getStateMessages(ctx.state, ctx.messagesPath);
@@ -168,16 +175,12 @@ export async function executeToolCall(
     }
     return { results: outcome.results };
   }
-
   const maxConcurrency =
     concurrency === 'sequential'
       ? 1
       : Math.min(calls.length, ctx.hostMaxConcurrency ?? calls.length);
-
   const results: (ToolCallResult | undefined)[] = new Array(calls.length);
   const toolMessages: (ToolMessage | undefined)[] = [];
-
-  // Restore progress saved before a permission interrupt; saved calls do not re-execute.
   const saved = loadCheckpoint(ctx.state, ctx.nodeId);
   if (saved) {
     for (const { idx, result } of validCheckpointEntries(saved, calls)) {
@@ -193,7 +196,6 @@ export async function executeToolCall(
       });
     }
   }
-
   async function runOne(idx: number): Promise<void> {
     const call = calls[idx];
     if (!call || results[idx] !== undefined) {
@@ -202,10 +204,8 @@ export async function executeToolCall(
     const done = await runSingleToolCall(call, ctx, idx);
     results[idx] = done.result;
     toolMessages[idx] = done.message;
-    // Чекпоинт сразу: ask соседнего вызова не должен потерять этот результат.
     recordCompleted(ctx.state, ctx.nodeId, idx, done.result);
   }
-
   if (concurrency === 'sequential' || maxConcurrency === 1) {
     for (let i = 0; i < calls.length; i += 1) {
       await runOne(i);
@@ -226,7 +226,6 @@ export async function executeToolCall(
       run: runOne,
     });
   }
-
   if (ctx.toolMessages !== 'ordered') {
     const arr = getStateMessages(ctx.state, ctx.messagesPath);
     if (arr) {
@@ -246,7 +245,6 @@ export async function executeToolCall(
       }
     }
   }
-
   clearCheckpoint(ctx.state, ctx.nodeId);
   await emitHook(ctx.hooks, 'PostToolBatch', { tool_results: results as ToolCallResult[] });
   return { results: results as ToolCallResult[] };

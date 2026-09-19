@@ -1,8 +1,3 @@
-/** Инспектор effective set агента (spec 2026-09-15 §4): explain + реестр с
- *  провенансом + видимые сабагенты. Без режимного сужения (вне рана нет активного
- *  режима). `pluginName:agentName` резолвится через каталог-порт той же конвенцией,
- *  что перечислители (`:` → warm IR cache после `get(workspace)`). */
-
 import type { AgentCapabilitiesView } from '@harnesys/studio-shared';
 import type {
   CapabilitySource,
@@ -20,26 +15,20 @@ import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { buildCapabilityUniverse } from './universe.ts';
-
 export type ListAgentCapabilitiesRequest = {
-  /** Пуст + id с `:` (plugin-агент): workspace обязателен запросом. */
   workspaceId?: string;
   agentId: string;
 };
-
 export type ListAgentCapabilitiesInput = {
   execute(request: ListAgentCapabilitiesRequest): Promise<AgentCapabilitiesView>;
 };
-
 export type ListAgentCapabilitiesDeps = {
   agents: AgentRepository;
   workspaces: WorkspaceRepository;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
 };
-
 export class ListAgentCapabilitiesUseCase implements ListAgentCapabilitiesInput {
   constructor(private readonly deps: ListAgentCapabilitiesDeps) {}
-
   async execute(request: ListAgentCapabilitiesRequest): Promise<AgentCapabilitiesView> {
     const row = this.deps.agents.findById(request.agentId);
     const workspaceId = request.workspaceId ?? row?.workspaceId;
@@ -50,7 +39,6 @@ export class ListAgentCapabilitiesUseCase implements ListAgentCapabilitiesInput 
     if (!workspace) {
       throw new NotFoundError('workspace not found');
     }
-    // Прогрев: runtime собирает skills/skills-IR cache, без него `:`-id не резолвится.
     const hx = await this.deps.workspaceHarnesys.get(workspace);
     const def =
       row && row.workspaceId === workspaceId
@@ -88,10 +76,6 @@ export class ListAgentCapabilitiesUseCase implements ListAgentCapabilitiesInput 
     };
   }
 }
-
-/** Loose fs/plugin-registry skills: имена без explain-строки резолвера получают
- *  host-строку (fs-реестр) либо отказ «no source». Резолвер их не видит: они не
- *  выходы паков (plugin-скилы назовёт строкой ниже `explainPlugins`). */
 function explainLooseSkills(
   wanted: string[],
   entries: ExplainEntry[],
@@ -129,12 +113,18 @@ function explainLooseSkills(
   }
   return rows;
 }
-
-/** Plugin-компоненты включённых плагинов (skill/hook/mcp-server): карточка плагина
- *  в UI иначе показывает fallback-hint. grant-статус уже пересчитан в gated IR. */
 function explainPlugins(
-  def: { enabledPlugins?: Record<string, boolean> },
-  plugins: { record: { name: string }; ir: { components: PluginComponent[] } }[],
+  def: {
+    enabledPlugins?: Record<string, boolean>;
+  },
+  plugins: {
+    record: {
+      name: string;
+    };
+    ir: {
+      components: PluginComponent[];
+    };
+  }[],
 ): ExplainEntry[] {
   const rows: ExplainEntry[] = [];
   for (const loaded of plugins) {
@@ -166,7 +156,6 @@ function explainPlugins(
   }
   return rows;
 }
-
 function componentKind(kind: PluginKind): ExplainKind | undefined {
   if (kind === 'skill') {
     return 'skill';
@@ -176,23 +165,42 @@ function componentKind(kind: PluginKind): ExplainKind | undefined {
   }
   return kind === 'mcp-server' ? 'mcp' : undefined;
 }
-
 function componentItem(component: PluginComponent): string | undefined {
   if (component.kind === 'skill') {
-    return (component.spec as { name?: string }).name;
+    return (
+      component.spec as {
+        name?: string;
+      }
+    ).name;
   }
   if (component.kind === 'hook') {
-    const binding = (component.spec as { binding?: { event?: string; id?: string } }).binding;
+    const binding = (
+      component.spec as {
+        binding?: {
+          event?: string;
+          id?: string;
+        };
+      }
+    ).binding;
     return binding?.id ?? binding?.event;
   }
   if (component.kind === 'mcp-server') {
-    return (component.spec as { serverId?: string }).serverId;
+    return (
+      component.spec as {
+        serverId?: string;
+      }
+    ).serverId;
   }
   return undefined;
 }
-
-/** Агентные хуки (`def.hooks`): резолвер их не перечисляет (выход паков пуст). */
-function explainAgentHooks(hooks: { event: string; handler: { type: string } }[]): ExplainEntry[] {
+function explainAgentHooks(
+  hooks: {
+    event: string;
+    handler: {
+      type: string;
+    };
+  }[],
+): ExplainEntry[] {
   return hooks.map((hook) => ({
     item: `${hook.event}→${hook.handler.type}`,
     kind: 'hook' as const,

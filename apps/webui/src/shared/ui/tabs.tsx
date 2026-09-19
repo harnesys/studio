@@ -1,6 +1,5 @@
 import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
 import { cva, type VariantProps } from 'class-variance-authority';
-
 import { cn } from '@/shared/lib/utils';
 
 function Tabs({ className, orientation = 'horizontal', ...props }: TabsPrimitive.Root.Props) {
@@ -13,7 +12,6 @@ function Tabs({ className, orientation = 'horizontal', ...props }: TabsPrimitive
     />
   );
 }
-
 const tabsListVariants = cva(
   'group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[2px] text-muted-foreground data-[variant=line]:rounded-none group-data-horizontal/tabs:h-7 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col',
   {
@@ -28,7 +26,6 @@ const tabsListVariants = cva(
     },
   },
 );
-
 function TabsList({
   className,
   variant = 'default',
@@ -43,7 +40,6 @@ function TabsList({
     />
   );
 }
-
 function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
   return (
     <TabsPrimitive.Tab
@@ -59,7 +55,6 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     />
   );
 }
-
 function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel

@@ -5,7 +5,6 @@ import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
-
 export type PersistHandoffCurrentDeps = {
   lifecycle: RunLifecycleStore;
   threads: ThreadRepository;
@@ -13,8 +12,6 @@ export type PersistHandoffCurrentDeps = {
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
 };
-
-/** Wraps feed.publish: on `agent.handoff` patches thread.agentId and emits desk. */
 export function withHandoffCurrentPersist(
   feed: RunEventFeed,
   deps: PersistHandoffCurrentDeps,
@@ -31,7 +28,6 @@ export function withHandoffCurrentPersist(
     },
   };
 }
-
 function persistHandoffCurrent(
   deps: PersistHandoffCurrentDeps,
   runId: string,
@@ -44,7 +40,6 @@ function persistHandoffCurrent(
     );
   });
 }
-
 async function applyHandoff(
   deps: PersistHandoffCurrentDeps,
   runId: string,

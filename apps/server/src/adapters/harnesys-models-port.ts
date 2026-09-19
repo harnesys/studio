@@ -2,7 +2,6 @@ import type { ModelBinding, ModelRecord, ModelsPort } from 'harnesys';
 import { isDriver, ModelLookupError } from 'harnesys';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import { getHostToolScope } from './host-tool-scope.ts';
-
 export function createHarnesysModelsPort(
   providers: LlmProviderRepository,
   models: LlmModelRepository,

@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
 import { openNewBranchDialog } from '@/features/git-branch';
 import { openCommitDialog } from '@/features/git-commit';
 import { workspaceFilesTreeQueryKey } from '@/shared/api/files';
@@ -14,10 +13,8 @@ import {
   stageGit,
 } from '@/shared/api/git';
 import { toast } from '@/shared/ui/toast';
-
 export function useGitActions(workspaceId: string) {
   const qc = useQueryClient();
-
   const checkoutMutation = useMutation({
     mutationFn: (branch: string) => checkoutGitBranch(workspaceId, branch),
     onSuccess: () => {
@@ -32,7 +29,6 @@ export function useGitActions(workspaceId: string) {
       toast.add({ title: 'Checkout failed', description: msg });
     },
   });
-
   const createMutation = useMutation({
     mutationFn: (input: { name: string; checkout: boolean; from?: string }) =>
       createGitBranch(workspaceId, input),
@@ -45,7 +41,6 @@ export function useGitActions(workspaceId: string) {
       toast.add({ title: 'Create branch failed', description: msg });
     },
   });
-
   const commitMutation = useMutation({
     mutationFn: (message: string) => commitGit(workspaceId, message),
     onSuccess: () => {
@@ -61,7 +56,6 @@ export function useGitActions(workspaceId: string) {
       toast.add({ title: 'Commit failed', description: msg });
     },
   });
-
   const pushMutation = useMutation({
     mutationFn: () => pushGit(workspaceId),
     onSuccess: () => {
@@ -73,7 +67,6 @@ export function useGitActions(workspaceId: string) {
       toast.add({ title: 'Push failed', description: msg });
     },
   });
-
   const pullMutation = useMutation({
     mutationFn: () => pullGit(workspaceId),
     onSuccess: () => {
@@ -89,7 +82,6 @@ export function useGitActions(workspaceId: string) {
       toast.add({ title: 'Update failed', description: msg });
     },
   });
-
   const stageMutation = useMutation({
     mutationFn: (paths: string[]) => stageGit(workspaceId, paths),
     onSuccess: (_data, paths) => {
@@ -106,7 +98,6 @@ export function useGitActions(workspaceId: string) {
       toast.add({ title: 'Stage failed', description: msg });
     },
   });
-
   const handleNewBranch = (from?: string) => {
     void openNewBranchDialog(from).then((result) => {
       if (!result) {
@@ -115,13 +106,18 @@ export function useGitActions(workspaceId: string) {
       createMutation.mutate({ name: result.name, checkout: result.checkout, from });
     });
   };
-
   const handleCommit = () => {
     void openCommitDialog(workspaceId).then((result) => {
       if (!result) {
         return;
       }
-      const pushAfter = Boolean((result as { push?: boolean }).push);
+      const pushAfter = Boolean(
+        (
+          result as {
+            push?: boolean;
+          }
+        ).push,
+      );
       if (!pushAfter) {
         commitMutation.mutate(result.message);
         return;
@@ -133,26 +129,21 @@ export function useGitActions(workspaceId: string) {
       });
     });
   };
-
   const handlePush = () => {
     pushMutation.mutate();
   };
-
   const handlePull = () => {
     pullMutation.mutate();
   };
-
   const handleAddAll = () => {
     stageMutation.mutate([]);
   };
-
   const handleAddSelected = (paths: string[]) => {
     if (paths.length === 0) {
       return;
     }
     stageMutation.mutate(paths);
   };
-
   return {
     checkoutMutation,
     createMutation,

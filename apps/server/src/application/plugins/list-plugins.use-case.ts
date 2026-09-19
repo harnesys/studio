@@ -5,18 +5,14 @@ import { loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
 import { applyGrantGating } from './plugin-grant-gate.ts';
 import { toPluginSummary } from './plugin-summary.ts';
-
 export type ListPluginsRequest = {
   workspaceId: string;
 };
-
 export type ListPluginsInput = {
   execute(request: ListPluginsRequest): Promise<PluginListItem[]>;
 };
-
 export class ListPluginsUseCase implements ListPluginsInput {
   constructor(private readonly plugins: PluginRepository) {}
-
   async execute(request: ListPluginsRequest): Promise<PluginListItem[]> {
     const records = this.plugins.list(request.workspaceId);
     return await Promise.all(
@@ -24,7 +20,6 @@ export class ListPluginsUseCase implements ListPluginsInput {
     );
   }
 }
-
 async function loadListItem(
   record: PluginInstallRecord,
   workspaceId: string,
@@ -66,7 +61,6 @@ async function loadListItem(
     };
   }
 }
-
 function gatedIr(
   record: PluginInstallRecord,
   raw: PluginIr,
@@ -76,7 +70,6 @@ function gatedIr(
   const approved = new Set(plugins.approvals(workspaceId, record.name));
   return applyGrantGating(raw, record.grants, approved);
 }
-
 function unloadedSummary(record: PluginInstallRecord): PluginSummary {
   return {
     workspaceId: record.workspaceId,

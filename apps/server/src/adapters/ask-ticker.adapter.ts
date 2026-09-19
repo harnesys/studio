@@ -4,7 +4,6 @@ import {
   DEFAULT_ASK_TICK_INTERVAL_MS,
   EXPIRED_ASKS_BATCH,
 } from '../config/constants.ts';
-
 export type AskTickerDeps = {
   lifecycle: RunLifecycleStore;
   kick: () => void;
@@ -12,8 +11,9 @@ export type AskTickerDeps = {
   intervalMs?: number;
   onCancelled?: (threadId: string) => void;
 };
-
-export function startAskTicker(deps: AskTickerDeps): { stop(): void } {
+export function startAskTicker(deps: AskTickerDeps): {
+  stop(): void;
+} {
   const ttl = deps.ttlMs ?? ASK_TTL_DEFAULT_MS;
   const sweep = async (): Promise<void> => {
     const expired = await deps.lifecycle.listExpiredAsks({
@@ -29,15 +29,11 @@ export function startAskTicker(deps: AskTickerDeps): { stop(): void } {
         });
         deps.kick();
         deps.onCancelled?.(rec.threadId);
-      } catch {
-        // гонка с respond: transition проиграл CAS, ран уже отвечает
-      }
+      } catch {}
     }
   };
   const interval = setInterval(() => {
-    void sweep().catch(() => {
-      // тикер переживает ошибки
-    });
+    void sweep().catch(() => {});
   }, deps.intervalMs ?? DEFAULT_ASK_TICK_INTERVAL_MS);
   return { stop: () => clearInterval(interval) };
 }

@@ -1,5 +1,4 @@
 import type { CatalogEntry, RegistryKind } from 'harnesys/plugins-catalog';
-
 export type PluginRegistryRecord = {
   id: string;
   name: string;
@@ -12,7 +11,6 @@ export type PluginRegistryRecord = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type PluginRegistryRepository = {
   list(): PluginRegistryRecord[];
   findById(id: string): PluginRegistryRecord | undefined;

@@ -1,24 +1,20 @@
 import type { Driver, ModelBinding, ModelRecord, ProviderConfig } from '../../ports/models.ts';
 import { DRIVERS } from '../../ports/models.ts';
-
 export class ModelLookupError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ModelLookupError';
   }
 }
-
 export class DiscoverError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'DiscoverError';
   }
 }
-
 export function isDriver(value: string): value is Driver {
   return (DRIVERS as readonly string[]).includes(value);
 }
-
 export function bindingOf(provider: ProviderConfig, modelName: string): ModelBinding {
   if (!isDriver(provider.driver)) {
     throw new ModelLookupError(`unknown driver ${provider.driver}`);
@@ -32,7 +28,6 @@ export function bindingOf(provider: ProviderConfig, modelName: string): ModelBin
   }
   return toBinding(provider, record);
 }
-
 export function toBinding(provider: ProviderConfig, record: ModelRecord): ModelBinding {
   if (!isDriver(provider.driver)) {
     throw new ModelLookupError(`unknown driver ${provider.driver}`);

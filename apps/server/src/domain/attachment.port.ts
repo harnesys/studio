@@ -1,5 +1,4 @@
 export type AttachmentKind = 'image' | 'audio' | 'video' | 'file';
-
 export type Attachment = {
   id: string;
   threadId: string;
@@ -11,9 +10,7 @@ export type Attachment = {
   kind: AttachmentKind;
   createdAt: string;
 };
-
 export type AttachmentInsert = Attachment;
-
 export type AttachmentRepository = {
   listByThread(threadId: string): Attachment[];
   listPending(threadId: string): Attachment[];

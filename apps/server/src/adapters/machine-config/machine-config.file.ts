@@ -19,27 +19,22 @@ type RawConfig = {
   window?: unknown;
   [key: string]: unknown;
 };
-
 export type MachineConfigFileOptions = {
   home?: string;
   listen?: string;
 };
-
 export class MachineConfigFileAdapter implements MachineConfigPort {
   private readonly path: string;
   private readonly defaultListen: string;
   private memoryDefaults: MachineConfig | null = null;
-
   constructor(options: MachineConfigFileOptions = {}) {
     const home = options.home ?? defaultHomePath();
     this.path = configJsonPath(home);
     this.defaultListen = options.listen ?? `127.0.0.1:${env.port}`;
   }
-
   read(): MachineConfig {
     return this.load().config;
   }
-
   writeHost(patch: Partial<HostSection>): MachineConfig {
     const { config, extras } = this.load();
     const nextHost: HostSection = {
@@ -58,7 +53,6 @@ export class MachineConfigFileAdapter implements MachineConfigPort {
     this.persist(next, extras);
     return next;
   }
-
   writeWindow(patch: Partial<WindowSection>): MachineConfig {
     const { config, extras } = this.load();
     const nextWindow: WindowSection = {
@@ -69,8 +63,10 @@ export class MachineConfigFileAdapter implements MachineConfigPort {
     this.persist(next, extras);
     return next;
   }
-
-  private load(): { config: MachineConfig; extras: Record<string, unknown> } {
+  private load(): {
+    config: MachineConfig;
+    extras: Record<string, unknown>;
+  } {
     if (!existsSync(this.path)) {
       return { config: this.defaults(), extras: {} };
     }
@@ -90,7 +86,6 @@ export class MachineConfigFileAdapter implements MachineConfigPort {
     const window = normalizeWindow(rawWindow, host);
     return { config: { host, window }, extras };
   }
-
   private defaults(): MachineConfig {
     if (this.memoryDefaults) {
       return this.memoryDefaults;
@@ -113,7 +108,6 @@ export class MachineConfigFileAdapter implements MachineConfigPort {
     };
     return this.memoryDefaults;
   }
-
   private persist(config: MachineConfig, extras: Record<string, unknown>): void {
     mkdirSync(dirname(this.path), { recursive: true });
     const payload = { ...extras, host: config.host, window: config.window };
@@ -122,17 +116,13 @@ export class MachineConfigFileAdapter implements MachineConfigPort {
     renameSync(tmp, this.path);
     try {
       chmodSync(this.path, 0o600);
-    } catch {
-      // Windows / restricted FS: leave default mode
-    }
+    } catch {}
     this.memoryDefaults = null;
   }
 }
-
 function emptyDesk(): WindowDesk {
   return { selectedNodeIds: [], park: {} };
 }
-
 function localWindowHost(host: HostSection): WindowHostRecord {
   return {
     id: 'local',
@@ -141,7 +131,6 @@ function localWindowHost(host: HostSection): WindowHostRecord {
     credential: host.token,
   };
 }
-
 function defaultHostName(): string {
   try {
     return hostname() || 'Host';
@@ -149,7 +138,6 @@ function defaultHostName(): string {
     return 'Host';
   }
 }
-
 function normalizeHost(raw: unknown, defaultListen: string): HostSection {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return {
@@ -183,7 +171,6 @@ function normalizeHost(raw: unknown, defaultListen: string): HostSection {
     nodes: normalizeNodes(obj.nodes),
   };
 }
-
 function normalizeNodes(raw: unknown): HostNodeRecord[] {
   if (!Array.isArray(raw)) {
     return [];
@@ -208,7 +195,6 @@ function normalizeNodes(raw: unknown): HostNodeRecord[] {
   }
   return out;
 }
-
 function normalizeWindow(raw: unknown, host: HostSection): WindowSection {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return {
@@ -223,7 +209,6 @@ function normalizeWindow(raw: unknown, host: HostSection): WindowSection {
     desk: normalizeDesk(obj.desk),
   };
 }
-
 function normalizeHosts(raw: unknown, host: HostSection): WindowHostRecord[] {
   if (!Array.isArray(raw)) {
     return [];
@@ -260,7 +245,6 @@ function normalizeHosts(raw: unknown, host: HostSection): WindowHostRecord[] {
   }
   return out;
 }
-
 function normalizeDesk(raw: unknown): WindowDesk {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return emptyDesk();

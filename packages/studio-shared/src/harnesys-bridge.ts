@@ -25,5 +25,4 @@ export {
   withChatGenerationParameters,
 };
 export type AgentProjectPaths = AgentPaths;
-
 export type ToolPermission = PermissionGate;

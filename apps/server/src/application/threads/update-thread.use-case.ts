@@ -4,7 +4,6 @@ import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { GetThreadUseCase } from './get-thread.use-case.ts';
-
 export type UpdateThreadRequest = {
   id: string;
   title?: string;
@@ -12,14 +11,11 @@ export type UpdateThreadRequest = {
   workspaceId?: string;
   pinned?: boolean;
 };
-
 export type UpdateThreadInput = {
   execute(request: UpdateThreadRequest): Promise<ThreadRecord>;
 };
-
 export class UpdateThreadUseCase implements UpdateThreadInput {
   private readonly getThread: GetThreadUseCase;
-
   constructor(
     private readonly threads: ThreadRepository,
     private readonly agents: AgentRepository,
@@ -28,7 +24,6 @@ export class UpdateThreadUseCase implements UpdateThreadInput {
   ) {
     this.getThread = new GetThreadUseCase(threads, agents, runEvents, lifecycle);
   }
-
   execute(request: UpdateThreadRequest): Promise<ThreadRecord> {
     const thread = this.threads.findById(request.id);
     if (!thread) {

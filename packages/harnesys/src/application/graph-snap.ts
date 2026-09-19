@@ -1,7 +1,6 @@
 import type { Cursor, Event, Snapshot } from '../domain/snapshot.ts';
 import type { RuntimeState } from '../ports/runtime-state.ts';
 import { hashStr } from './graph-helpers.ts';
-
 export type SnapCtx = {
   sessionId: string;
   runId: string;
@@ -16,7 +15,6 @@ export type SnapCtx = {
   startedAt: number;
   nodeStep: number;
 };
-
 export function mkSnap(ctx: SnapCtx, status: string): Snapshot {
   return {
     sessionId: ctx.sessionId,
@@ -40,7 +38,6 @@ export function mkSnap(ctx: SnapCtx, status: string): Snapshot {
     artifacts: null,
   };
 }
-
 export function mkEv(ctx: SnapCtx, type: string): Event {
   return {
     eventId: crypto.randomUUID(),
@@ -53,7 +50,6 @@ export function mkEv(ctx: SnapCtx, type: string): Event {
     metadata: {},
   };
 }
-
 function pairDanglingToolCalls(state: Record<string, unknown>): Record<string, unknown> {
   const prev = state.messages;
   if (!Array.isArray(prev) || prev.length === 0) {
@@ -87,8 +83,6 @@ function pairDanglingToolCalls(state: Record<string, unknown>): Record<string, u
   }
   return { ...state, messages };
 }
-
-/** A completed lifecycle run can leave the thread snapshot on needs_input. A later send then resumes `act` with empty `$output`. */
 export async function abandonForeignSnapshot(state: RuntimeState, runId: string): Promise<void> {
   const snap = await state.load();
   if (!snap || snap.runId === runId) {

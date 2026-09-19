@@ -1,8 +1,3 @@
-/**
- * CC card palette. Tailwind does not compile dynamic `bg-<name>-500` names,
- * so the class strings live here as a static dictionary; `magenta` maps to
- * the fuchsia scale (the CC name, Tailwind's class).
- */
 export const AGENT_COLOR_CLASSES: Record<string, string> = {
   red: 'bg-red-500',
   orange: 'bg-orange-500',
@@ -14,18 +9,13 @@ export const AGENT_COLOR_CLASSES: Record<string, string> = {
   cyan: 'bg-cyan-500',
   pink: 'bg-pink-500',
 };
-
 const NEUTRAL_COLOR_CLASS = 'bg-muted-foreground/40';
-
-/** Dot class for an agent color; neutral fallback when unset or unknown. */
 export function agentColorClass(color: string | null): string {
   if (color === null) {
     return NEUTRAL_COLOR_CLASS;
   }
   return AGENT_COLOR_CLASSES[color] ?? NEUTRAL_COLOR_CLASS;
 }
-
-/** Avatar tint (soft bg + colored initials) per agent color. */
 export const AGENT_COLOR_TINT_CLASSES: Record<string, string> = {
   red: 'bg-red-500/12 text-red-600 dark:text-red-400',
   orange: 'bg-orange-500/12 text-orange-600 dark:text-orange-400',
@@ -37,10 +27,7 @@ export const AGENT_COLOR_TINT_CLASSES: Record<string, string> = {
   cyan: 'bg-cyan-500/12 text-cyan-600 dark:text-cyan-400',
   pink: 'bg-pink-500/12 text-pink-600 dark:text-pink-400',
 };
-
 const NEUTRAL_TINT_CLASS = 'bg-[color-mix(in_oklab,var(--live)_10%,transparent)]';
-
-/** Avatar tint class; keeps the live-accent fallback when color is unset or unknown. */
 export function agentColorTintClass(color: string | null): string {
   if (color === null) {
     return NEUTRAL_TINT_CLASS;

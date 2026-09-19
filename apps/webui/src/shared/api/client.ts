@@ -1,13 +1,9 @@
 import type { StudioErrorBody } from '@harnesys/studio-shared';
-
 import { getHostCredential } from './host-credential';
 import { resolveApiTarget, setHostOnlineStatus } from './host-router';
-
 export class ApiError extends Error {
   status: number;
-  /** Parsed response body of the failed request (e.g. run-conflict 409 payloads). */
   body?: unknown;
-
   constructor(status: number, message: string, body?: unknown) {
     super(message);
     this.name = 'ApiError';
@@ -15,26 +11,21 @@ export class ApiError extends Error {
     this.body = body;
   }
 }
-
 export type ApiJsonOptions = RequestInit & {
-  /** Force route to this node/host (threads, runs, remote create). */
   nodeId?: string;
   hostId?: string;
 };
-
 export async function apiJson<T>(path: string, init?: ApiJsonOptions): Promise<T> {
   const { nodeId, hostId, ...requestInit } = init ?? {};
   const headers = new Headers(requestInit.headers);
   if (requestInit.body && !(requestInit.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-
   const target = resolveApiTarget(path, { nodeId, hostId });
   const credential = target.credential ?? getHostCredential();
   if (credential && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${credential}`);
   }
-
   let response: Response;
   try {
     response = await fetch(target.url, { ...requestInit, headers });
@@ -43,11 +34,9 @@ export async function apiJson<T>(path: string, init?: ApiJsonOptions): Promise<T
     setHostOnlineStatus(target.hostId, 'offline');
     throw error;
   }
-
   if (response.status === 204) {
     return undefined as T;
   }
-
   if (!response.ok) {
     let message = response.statusText || 'Request failed';
     let body: unknown;
@@ -57,11 +46,8 @@ export async function apiJson<T>(path: string, init?: ApiJsonOptions): Promise<T
       if (error) {
         message = error;
       }
-    } catch {
-      // keep status text
-    }
+    } catch {}
     throw new ApiError(response.status, message, body);
   }
-
   return (await response.json()) as T;
 }

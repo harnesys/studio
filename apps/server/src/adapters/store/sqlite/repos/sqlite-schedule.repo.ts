@@ -10,10 +10,8 @@ import { NotFoundError } from '../../../../domain/studio.error.ts';
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type ScheduleRow, schedulesTable } from '../schema';
-
 export class SqliteScheduleRepo implements ScheduleRepository {
   constructor(private readonly db: StudioDb) {}
-
   listByWorkspace(workspaceId: string): Schedule[] {
     return this.db
       .select()
@@ -22,7 +20,6 @@ export class SqliteScheduleRepo implements ScheduleRepository {
       .all()
       .map(toSchedule);
   }
-
   listByTargetAgent(workspaceId: string, agentId: string): Schedule[] {
     return this.db
       .select()
@@ -33,7 +30,6 @@ export class SqliteScheduleRepo implements ScheduleRepository {
       .all()
       .map(toSchedule);
   }
-
   listDue(nowIso: string): Schedule[] {
     return this.db
       .select()
@@ -48,12 +44,10 @@ export class SqliteScheduleRepo implements ScheduleRepository {
       .all()
       .map(toSchedule);
   }
-
   findById(id: string): Schedule | undefined {
     const row = this.db.select().from(schedulesTable).where(eq(schedulesTable.id, id)).get();
     return row ? toSchedule(row) : undefined;
   }
-
   findByThreadId(threadId: string): Schedule | undefined {
     const row = this.db
       .select()
@@ -62,7 +56,6 @@ export class SqliteScheduleRepo implements ScheduleRepository {
       .get();
     return row ? toSchedule(row) : undefined;
   }
-
   insert(rec: ScheduleInsert): Schedule {
     try {
       const row = this.db.insert(schedulesTable).values(rec).returning().get();
@@ -75,7 +68,6 @@ export class SqliteScheduleRepo implements ScheduleRepository {
       });
     }
   }
-
   update(id: string, patch: SchedulePatch): Schedule {
     try {
       const row = this.db
@@ -92,16 +84,13 @@ export class SqliteScheduleRepo implements ScheduleRepository {
       return mapSqliteError(err, { notFound: 'target agent not found' });
     }
   }
-
   delete(id: string): void {
     this.db.delete(schedulesTable).where(eq(schedulesTable.id, id)).run();
   }
-
   deleteByWorkspace(workspaceId: string): void {
     this.db.delete(schedulesTable).where(eq(schedulesTable.workspaceId, workspaceId)).run();
   }
 }
-
 function toSchedule(row: ScheduleRow): Schedule {
   return {
     id: row.id,

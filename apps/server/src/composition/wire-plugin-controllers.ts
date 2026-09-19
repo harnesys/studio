@@ -29,7 +29,6 @@ import { UpdatePluginUseCase } from '../application/plugins/update-plugin.use-ca
 import type { SecretStore } from '../domain/secret-store.port.ts';
 import type { NodeSupervisor } from './node-supervisor.ts';
 import { requireNode } from './routing-helpers.ts';
-
 export type WirePluginControllersDeps = {
   app: Hono;
   home: string;
@@ -41,7 +40,6 @@ export type WirePluginControllersDeps = {
   secretStore?: SecretStore;
   supervisor?: NodeSupervisor;
 };
-
 export function wirePluginControllers(d: WirePluginControllersDeps): void {
   const lspByWorkspace = createLspByWorkspace(d);
   const syncPluginRegistry = new SyncPluginRegistryUseCase(d.pluginRegistryRepo, d.home);
@@ -55,7 +53,6 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
     addPluginRegistry,
     syncPluginRegistry,
   );
-
   new PluginsController({
     listPlugins: new ListPluginsUseCase(d.pluginRepo),
     installPlugin: new InstallPluginUseCase(
@@ -82,7 +79,6 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
     ),
     removePlugin: new RemovePluginUseCase(d.pluginRepo, d.workspaceHarnesys, lspByWorkspace),
   }).register(d.app);
-
   new PluginRegistriesController({
     listRegistries: new ListPluginRegistriesUseCase(
       d.pluginRegistryRepo,
@@ -97,19 +93,12 @@ export function wirePluginControllers(d: WirePluginControllersDeps): void {
       d.pluginRepo,
     ),
   }).register(d.app);
-
   new LspBridgeController({
     app: d.app,
     workspaceRepo: d.workspaceRepo,
     lsp: d.lsp,
   }).register();
 }
-
-/**
- * Plugin mutations invalidate the runtime plus the workspace LSP sessions.
- * Routing contexts resolve the node-local adapter via the supervisor;
- * node-local wiring uses the workspace repo row plus the shared adapter.
- */
 function createLspByWorkspace(d: WirePluginControllersDeps): LspByWorkspace {
   const supervisor = d.supervisor;
   if (supervisor) {

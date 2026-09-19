@@ -1,11 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { FieldGroup } from '@/shared/ui/field';
-
 import {
   emptyKnowledgeRootFields,
   type KnowledgeRootDraft,
@@ -15,13 +13,11 @@ import {
   toKnowledgeRootDraft,
 } from '../model/knowledge-root-fields';
 import { KnowledgeRootFields } from './knowledge-root-fields';
-
 export function AddKnowledgeRootDialog({ onResolve }: DialogComponentProps<KnowledgeRootDraft>) {
   const form = useForm<KnowledgeRootFieldsInput, unknown, KnowledgeRootFieldsOutput>({
     resolver: zodResolver(knowledgeRootFieldsSchema),
     defaultValues: emptyKnowledgeRootFields(),
   });
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"

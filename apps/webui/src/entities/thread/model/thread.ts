@@ -1,5 +1,4 @@
 import type { ThreadActiveRun, ThreadKind } from '@harnesys/studio-shared';
-
 export type Thread = {
   id: string;
   agentId: string;
@@ -9,21 +8,15 @@ export type Thread = {
   kind: ThreadKind;
   parentThreadId?: string | null;
   forkAt?: string | null;
-  /** Branch only: number of inherited parent events. */
   inheritedEventCount?: number;
   createdAt?: string;
   updatedAt: string;
   unread: boolean;
   pinned?: boolean;
-  /** Last POST /runs mode persisted on the thread. */
   runMode?: string;
-  /** Live run known from the last full record. Drives stream reconnect without refetch. */
   activeRunId?: string | null;
   activeRun?: ThreadActiveRun | null;
 };
-
-// Dev-only fixture kept for visual inspection. Production stores start empty
-// and only fill via `hydrateDesk` or `useThreadStore.create`.
 export const seedThreads: Thread[] = [
   {
     id: '03000000-0000-4000-8000-000000000001',
@@ -116,7 +109,6 @@ export const seedThreads: Thread[] = [
     unread: false,
   },
 ];
-
 export function latestThread(threads: Thread[]): Thread | undefined {
   return [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
 }

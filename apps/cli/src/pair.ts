@@ -2,8 +2,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { harnesysHome } from './paths.ts';
 import { readPidRecord } from './processes.ts';
-
-/** Same resolution rule as the web gate: HOST_TOKEN env, else `host.token` in config.json. */
 export function readHostToken(home: string): string | undefined {
   const fromEnv = process.env.HOST_TOKEN?.trim();
   if (fromEnv) {
@@ -14,7 +12,11 @@ export function readHostToken(home: string): string | undefined {
     return undefined;
   }
   try {
-    const parsed = JSON.parse(readFileSync(path, 'utf8')) as { host?: { token?: unknown } };
+    const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+      host?: {
+        token?: unknown;
+      };
+    };
     const token = parsed.host?.token;
     if (typeof token !== 'string' || token.trim() === '') {
       return undefined;
@@ -24,18 +26,10 @@ export function readHostToken(home: string): string | undefined {
     return undefined;
   }
 }
-
 function fail(message: string): never {
   console.error(`harnesys: ${message}`);
   process.exit(1);
 }
-
-/**
- * `host pair [--port N]`: starts a pairing challenge on the local host.
- * The 6-digit code comes from the API response (the host returns { code, expiresAt });
- * the port is --port > the running server's recorded port. No silent default: without
- * recorded state the command refuses, so it can never land on an unrelated listener.
- */
 export async function commandPair(portOverride: number | undefined): Promise<void> {
   const home = harnesysHome();
   const token = readHostToken(home);
@@ -62,13 +56,16 @@ export async function commandPair(portOverride: number | undefined): Promise<voi
   if (!response.ok) {
     fail(`pair/start failed with HTTP ${response.status}`);
   }
-  const body = (await response.json()) as { code?: unknown; expiresAt?: unknown };
+  const body = (await response.json()) as {
+    code?: unknown;
+    expiresAt?: unknown;
+  };
   if (typeof body.code !== 'string' || typeof body.expiresAt !== 'string') {
     fail(`unexpected pair/start response: ${JSON.stringify(body).slice(0, 120)}`);
   }
   const expiresMs = Date.parse(body.expiresAt);
   const ttlMin = Number.isFinite(expiresMs)
-    ? Math.max(0, Math.round((expiresMs - Date.now()) / 60_000))
+    ? Math.max(0, Math.round((expiresMs - Date.now()) / 60000))
     : undefined;
   console.log(`pairing code: ${body.code}`);
   console.log(

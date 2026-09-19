@@ -17,7 +17,6 @@ import { assembleNotes, type LlmNote } from './llm-notes.ts';
 import { effectiveSkillRegistry, type PackRunOutput } from './packs/pack-run.ts';
 import { formatSkillsCatalog } from './skills/skills-catalog.ts';
 import { formatDeferredCatalog, loadedToolsOf, resolveProgressiveTools } from './tools/exposure.ts';
-
 export type LlmNode = {
   type: 'llm:generate';
   prompt: string;
@@ -26,7 +25,6 @@ export type LlmNode = {
   model?: string | AgentModelRef;
   output?: unknown;
 };
-
 export type LlmContext = {
   agent: AgentDefinition;
   state: Record<string, unknown>;
@@ -38,16 +36,12 @@ export type LlmContext = {
   notes?: LlmNote[];
   notesErrors?: string[];
   packOutputs?: PackRunOutput[];
-  /** FS skill registry (raw); narrowed per agent + pack skills for the prompt section. */
   skills?: SkillRegistry;
   artifacts?: ArtifactStore;
   paths?: PathsConfig;
-  /** Шина хуков рана: Pre/PostModelCall. */
   hooks?: HookEmitCtx;
-  /** Пройденные шаги рана: поле steps в usage PostModelCall. */
   steps?: number;
 };
-
 function attachmentReader(
   artifacts: ArtifactStore | undefined,
   paths: PathsConfig | undefined,
@@ -61,7 +55,6 @@ function attachmentReader(
     return { bytes, mediaType: MIME_MAP[extname(abs).toLowerCase()] };
   };
 }
-
 export type LlmResult = {
   finishReason: string;
   text?: string;
@@ -73,7 +66,6 @@ export type LlmResult = {
   usage?: unknown;
   outputReserved?: boolean;
 };
-
 function ensureMessages(node: LlmNode, state: Record<string, unknown>, input: unknown): void {
   if (!node.messages) {
     return;
@@ -85,10 +77,11 @@ function ensureMessages(node: LlmNode, state: Record<string, unknown>, input: un
   if (state[key] !== undefined) {
     return;
   }
-  const inp = input as { messages?: unknown };
+  const inp = input as {
+    messages?: unknown;
+  };
   state[key] = Array.isArray(inp?.messages) ? [...(inp.messages as unknown[])] : [];
 }
-
 function resolveMessages(node: LlmNode, ctx: LlmContext): unknown[] {
   if (!node.messages) {
     return [];
@@ -105,13 +98,14 @@ function resolveMessages(node: LlmNode, ctx: LlmContext): unknown[] {
     return [];
   }
 }
-
 export async function* runLlmGenerate(
   node: LlmNode,
   ctx: LlmContext,
-): AsyncGenerator<{ type: string; data?: unknown }> {
+): AsyncGenerator<{
+  type: string;
+  data?: unknown;
+}> {
   ensureMessages(node, ctx.state, ctx.input);
-
   const promptDef = ctx.agent.prompts[node.prompt];
   const agentText = promptDef ? promptDef.instructions : '';
   const slots = {
@@ -131,12 +125,8 @@ export async function* runLlmGenerate(
     .filter((part) => part.trim())
     .join('\n\n');
   const resolved = node.tools ?? [...ctx.toolRegistry.keys()];
-  // node.tools — сужение видимости (undefined = весь набор рана, [] = нет тулов),
-  // но deferred-инструменты внутри него по-прежнему подменяются каталогом
-  // через load_tools: прогрессивный набор применяется к списку всегда.
   const progressive = resolveProgressiveTools(resolved, ctx.toolRegistry, loadedToolsOf(ctx.state));
   const toolNames = progressive.toolNames;
-
   const allNotes = ctx.notes ? [...ctx.notes] : [];
   if (
     progressive.deferredPending.length > 0 &&
@@ -147,15 +137,12 @@ export async function* runLlmGenerate(
       text: formatDeferredCatalog(progressive.deferredPending, ctx.toolRegistry),
     });
   }
-  // [tools] [system/instructions] [messages] [tail]: volatile only in the tail;
-  // ephemeral user for this call, not written to state.messages / transcript.
   const tailText = allNotes.length > 0 ? assembleNotes(allNotes) : '';
   const history = await materializeMessageAttachments(
     projected.messages,
     attachmentReader(ctx.artifacts, ctx.paths),
   );
   const requestMessages = tailText ? [...history, { role: 'user', content: tailText }] : history;
-
   yield {
     type: 'model.stats',
     data: {
@@ -166,14 +153,11 @@ export async function* runLlmGenerate(
       notesErrors: ctx.notesErrors ?? [],
     },
   };
-
   const modelRef = resolveAgentModelRef(node.model, ctx.agent);
   const hookModel = { provider: ctx.modelBinding.driver, model: ctx.modelBinding.name };
   const pre = await emitHook(ctx.hooks, 'PreModelCall', { model: hookModel });
   const preBlocked = hookBlockedReason(pre);
   if (preBlocked !== undefined) {
-    // Блок без вызова провайдера: узел получает error-результат через
-    // штатный путь ошибки модели (граф ловит и переводит ран в failed).
     throw codedRunError('model_call_blocked', preBlocked);
   }
   const stream = callModel(
@@ -189,7 +173,6 @@ export async function* runLlmGenerate(
       generation: modelRef?.generation,
     },
   );
-
   let lastChunk: StreamChunk | undefined;
   for await (const chunk of stream) {
     const type = LLM_CHUNK_EVENTS[chunk.type];
@@ -199,10 +182,8 @@ export async function* runLlmGenerate(
       lastChunk = chunk;
     }
   }
-
   if (lastChunk && lastChunk.type === 'completed') {
     const res = lastChunk;
-
     let structured: unknown;
     let outputReserved = false;
     if (res.structured && typeof res.structured === 'object' && res.structured !== null) {
@@ -212,7 +193,6 @@ export async function* runLlmGenerate(
       }
       structured = res.structured;
     }
-
     const out: LlmResult = {
       finishReason: res.finishReason,
       text: res.text,
@@ -224,7 +204,6 @@ export async function* runLlmGenerate(
       usage: res.usage,
       outputReserved,
     };
-
     if (structured && typeof structured === 'object' && structured !== null) {
       const rec = structured as Record<string, unknown>;
       for (const [k, v] of Object.entries(rec)) {
@@ -234,16 +213,13 @@ export async function* runLlmGenerate(
         (out as Record<string, unknown>)[k] = v;
       }
     }
-
     await emitHook(ctx.hooks, 'PostModelCall', {
       model: hookModel,
       usage: { steps: ctx.steps ?? 0, tokens: usageTokensOf(res.usage) },
     });
-
     yield { type: 'model.completed', data: out };
   }
 }
-
 function usageTokensOf(usage: unknown): number {
   if (!usage || typeof usage !== 'object') {
     return 0;
@@ -256,20 +232,10 @@ function usageTokensOf(usage: unknown): number {
   const output = typeof u.outputTokens === 'number' ? u.outputTokens : 0;
   return input + output;
 }
-
-/** Projection for the model call: stable prefix + chat without system roles. */
 export type CompactedProjection = {
-  /** Compaction summary merged into instructions (stable until next compaction). */
   prefix: string;
-  /** History tail: user / assistant / tool only. */
   messages: unknown[];
 };
-
-/**
- * Последний якорь (kind:'compaction') уходит в `prefix` для instructions.
- * Ходы до coveredUntil и сам слот якоря выпадают, хвост остаётся в `messages`.
- * Без якорей: пустой prefix и копия массива.
- */
 export function projectCompacted(messages: readonly unknown[]): CompactedProjection {
   let anchorIndex = -1;
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -293,8 +259,6 @@ export function projectCompacted(messages: readonly unknown[]): CompactedProject
   }
   return { prefix: String(anchor.content ?? ''), messages: out };
 }
-
-/** Flatten projection for token estimates (prefix counted as one system-sized block). */
 export function projectedForEstimate(projected: CompactedProjection): unknown[] {
   if (!projected.prefix.trim()) {
     return projected.messages;

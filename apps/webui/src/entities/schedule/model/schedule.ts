@@ -7,7 +7,6 @@ import {
 
 export { SCHEDULE_HISTORIES, SCHEDULE_STATUSES } from '@harnesys/studio-shared';
 export type { ScheduleHistory, ScheduleStatus };
-
 export function scheduleStatusTone(
   status: ScheduleStatus,
 ): 'idle' | 'live' | 'wait' | 'danger' | 'off' {
@@ -20,7 +19,6 @@ export function scheduleStatusTone(
       return 'danger';
   }
 }
-
 export function scheduleStatusLabel(status: ScheduleStatus): string {
   switch (status) {
     case 'active':
@@ -31,7 +29,6 @@ export function scheduleStatusLabel(status: ScheduleStatus): string {
       return 'Failed';
   }
 }
-
 export function scheduleInk(status: ScheduleStatus): string {
   switch (status) {
     case 'active':
@@ -42,7 +39,6 @@ export function scheduleInk(status: ScheduleStatus): string {
       return 'text-destructive';
   }
 }
-
 export type Schedule = {
   id: string;
   workspaceId: string;
@@ -59,7 +55,6 @@ export type Schedule = {
   lastFiredAt?: string;
   updatedAt: string;
 };
-
 export function toClientSchedule(record: ScheduleRecord): Schedule {
   return {
     id: record.id,

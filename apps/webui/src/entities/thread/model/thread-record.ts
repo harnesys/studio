@@ -1,7 +1,5 @@
 import type { ThreadRecord, ThreadSummary } from '@harnesys/studio-shared';
-
 import type { Thread } from './thread';
-
 export function toClientThread(record: ThreadSummary | ThreadRecord): Thread {
   return {
     id: record.id,

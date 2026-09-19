@@ -1,33 +1,22 @@
 import { DENIED_TOOLS_KEY, NODE_CHECKPOINT_KEY } from '../constants.ts';
 import type { ToolCallResult } from './tool-call.ts';
 
-/** Отказы песочницы дочерних ранов: toolCallId → { tool, reason }. */
 export { DENIED_TOOLS_KEY, NODE_CHECKPOINT_KEY };
-
 export type DeniedToolEntry = {
   tool: string;
   reason: string;
 };
-
 export type NodeCheckpoint = {
   completed: Record<number, ToolCallResult>;
-  /**
-   * Разрешения permission gate по call.id. Переживают resume: параллельный
-   * сосед, бросив AskUserInterrupt, не отменяет уже выданное разрешение,
-   * и следующий resume не переспрашивает этот вызов.
-   */
   granted?: Record<string, true>;
 };
-
 export type ValidCheckpointEntry = {
   idx: number;
   result: ToolCallResult;
 };
-
 function key(nodeId: string): string {
   return NODE_CHECKPOINT_KEY + nodeId;
 }
-
 export function loadCheckpoint(
   state: Record<string, unknown>,
   nodeId: string,
@@ -43,10 +32,11 @@ export function loadCheckpoint(
   }
   return saved;
 }
-
 export function validCheckpointEntries(
   saved: NodeCheckpoint,
-  calls: { id: string }[],
+  calls: {
+    id: string;
+  }[],
 ): ValidCheckpointEntry[] {
   const entries: ValidCheckpointEntry[] = [];
   for (const [k, v] of Object.entries(saved.completed)) {
@@ -66,8 +56,6 @@ export function validCheckpointEntries(
   }
   return entries;
 }
-
-/** Дописывает результат одного вызова в чекпоинт, сохраняя granted и прочие результаты. */
 export function recordCompleted(
   state: Record<string, unknown>,
   nodeId: string,
@@ -78,8 +66,6 @@ export function recordCompleted(
   saved.completed[idx] = result;
   state[key(nodeId)] = saved;
 }
-
-/** Фиксирует разрешение gate по call.id до исполнения вызова. */
 export function recordGranted(
   state: Record<string, unknown>,
   nodeId: string,
@@ -89,8 +75,6 @@ export function recordGranted(
   saved.granted = { ...saved.granted, [callId]: true };
   state[key(nodeId)] = saved;
 }
-
-/** Фиксирует отказ песочницы по toolCallId в корне состояния. */
 export function recordDenied(
   state: Record<string, unknown>,
   toolCallId: string,
@@ -103,8 +87,6 @@ export function recordDenied(
       : {};
   state[DENIED_TOOLS_KEY] = { ...rec, [toolCallId]: entry };
 }
-
-/** Список отказов песочницы из корня состояния; битые записи пропускаются. */
 export function deniedToolsList(state: Record<string, unknown>): DeniedToolEntry[] {
   const cur = state[DENIED_TOOLS_KEY];
   if (!cur || typeof cur !== 'object' || Array.isArray(cur)) {
@@ -122,7 +104,6 @@ export function deniedToolsList(state: Record<string, unknown>): DeniedToolEntry
   }
   return out;
 }
-
 export function saveCheckpoint(
   state: Record<string, unknown>,
   nodeId: string,
@@ -130,7 +111,6 @@ export function saveCheckpoint(
 ): void {
   state[key(nodeId)] = checkpoint;
 }
-
 export function clearCheckpoint(state: Record<string, unknown>, nodeId: string): void {
   delete state[key(nodeId)];
 }

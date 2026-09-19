@@ -1,10 +1,7 @@
 import { type Control, Controller } from 'react-hook-form';
-
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
-
 import type { AddRegistryFieldsInput, InstallPluginFieldsInput } from '../model/plugin-fields';
-
 export function InstallPluginFields({ control }: { control: Control<InstallPluginFieldsInput> }) {
   return (
     <>
@@ -68,7 +65,6 @@ export function InstallPluginFields({ control }: { control: Control<InstallPlugi
     </>
   );
 }
-
 export function AddRegistryFields({ control }: { control: Control<AddRegistryFieldsInput> }) {
   return (
     <Controller

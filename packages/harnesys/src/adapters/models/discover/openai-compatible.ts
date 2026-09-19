@@ -6,7 +6,6 @@ import { parseOpenAIList } from './openai.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { OPENAI_COMPATIBLE_DEFAULT_URL };
-
 export async function listOpenAICompatibleModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   if (!input.apiUrl?.trim()) {
     throw new DiscoverError('openai-compatible requires apiUrl');

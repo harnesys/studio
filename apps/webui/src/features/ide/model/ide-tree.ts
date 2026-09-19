@@ -1,8 +1,10 @@
 import { EDITOR_SPLIT_MAX_RATIO, EDITOR_SPLIT_MIN_RATIO } from '@/shared/config/constants';
-
 export type IdeSplitSide = 'left' | 'right';
 export type IdeSplitNode =
-  | { kind: 'group'; groupId: string }
+  | {
+      kind: 'group';
+      groupId: string;
+    }
   | {
       kind: 'split';
       splitId: string;
@@ -10,20 +12,17 @@ export type IdeSplitNode =
       first: IdeSplitNode;
       second: IdeSplitNode;
     };
-
 export function firstGroupOfLayout(node: IdeSplitNode): string {
   return node.kind === 'group' ? node.groupId : firstGroupOfLayout(node.first);
 }
-
 export function lastGroupOfLayout(node: IdeSplitNode): string {
   return node.kind === 'group' ? node.groupId : lastGroupOfLayout(node.second);
 }
-
-export function setSplitRatioState<T extends { layout: IdeSplitNode | null }>(
-  ws: T,
-  splitId: string,
-  ratio: number,
-): T | null {
+export function setSplitRatioState<
+  T extends {
+    layout: IdeSplitNode | null;
+  },
+>(ws: T, splitId: string, ratio: number): T | null {
   const clamped = Math.min(EDITOR_SPLIT_MAX_RATIO, Math.max(EDITOR_SPLIT_MIN_RATIO, ratio));
   const layout = updateRatio(ws.layout, splitId, clamped);
   if (layout === ws.layout) {
@@ -31,7 +30,6 @@ export function setSplitRatioState<T extends { layout: IdeSplitNode | null }>(
   }
   return { ...ws, layout };
 }
-
 export function collapseLayout(node: IdeSplitNode | null, groupId: string): IdeSplitNode | null {
   if (!node) {
     return null;
@@ -49,7 +47,6 @@ export function collapseLayout(node: IdeSplitNode | null, groupId: string): IdeS
   }
   return { ...node, first, second };
 }
-
 export function replaceGroup(
   node: IdeSplitNode | null,
   groupId: string,
@@ -68,7 +65,6 @@ export function replaceGroup(
   }
   return { ...node, first, second };
 }
-
 function updateRatio(
   node: IdeSplitNode | null,
   splitId: string,

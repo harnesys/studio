@@ -1,6 +1,5 @@
 import type { ComponentType } from 'react';
 import { create } from 'zustand';
-
 import type { OverlayComponentProps, OverlayKind, OverlayOptions, OverlayState } from './types';
 
 const empty: OverlayState = {
@@ -9,7 +8,6 @@ const empty: OverlayState = {
   options: null,
   resolver: null,
 };
-
 type OverlayStore = OverlayState & {
   open: (
     kind: OverlayKind,
@@ -20,7 +18,6 @@ type OverlayStore = OverlayState & {
   close: () => void;
   patchOptions: (partial: Partial<OverlayOptions>) => void;
 };
-
 export const useOverlayStore = create<OverlayStore>((set) => ({
   ...empty,
   open(kind, component, options, resolver) {
@@ -38,7 +35,6 @@ export const useOverlayStore = create<OverlayStore>((set) => ({
     });
   },
 }));
-
 export function patchOverlayOptions(partial: Partial<OverlayOptions>): void {
   useOverlayStore.getState().patchOptions(partial);
 }

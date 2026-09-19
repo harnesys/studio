@@ -1,9 +1,7 @@
 import type { Agent } from '@/entities/agent';
 import type { Schedule } from '@/entities/schedule';
 import { alert, dialog } from '@/shared/services/overlay';
-
 import { ScheduleConfigDialog } from '../ui/schedule-config-dialog';
-
 export function openScheduleConfigDialog(
   agents: Agent[],
   workspaceId: string,
@@ -16,7 +14,6 @@ export function openScheduleConfigDialog(
     data: { agents, workspaceId, schedule: schedule ?? null },
   });
 }
-
 export function confirmDeleteSchedule(schedule: Schedule) {
   return alert.confirm({
     title: `Delete ${schedule.name}?`,

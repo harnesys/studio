@@ -1,6 +1,5 @@
 import type { JsonSchema } from '../domain/json-schema.ts';
 import type { ArtifactStore } from './artifacts.ts';
-
 export type SideEffect =
   | 'pure'
   | 'read'
@@ -9,35 +8,31 @@ export type SideEffect =
   | 'financial'
   | 'communication'
   | 'credentialed';
-
 export type ToolContext = {
   cwd: string;
-  paths: { allow: string[] };
+  paths: {
+    allow: string[];
+  };
   signal?: AbortSignal;
   artifacts?: ArtifactStore;
   resume?: unknown;
-  /** Дочерний ран: интерактива нет, ask_user отвечает deny-текстом вместо throw. */
   sandbox?: boolean;
-  /** Готовый env рана (PATH = RunTarget.binDirs ++ process env); absent → inherit process env. */
   env?: Record<string, string>;
-  /** Спикер рана на момент вызова: handoff меняет агента посреди рана, паки резолвят скоуп по нему. */
   agentId?: string;
 };
-
 export type ToolExecute = (input: unknown, ctx: ToolContext) => Promise<unknown> | unknown;
-
-/** Per-call override before operation permissions. `undefined` keeps the default path. */
 export type ToolCallGate =
-  | { decision: 'allow' }
-  | { decision: 'ask' }
-  | { decision: 'deny'; reason: string };
-
-/** Экспозиция тула в ходу: прямой показ модели или отложение до `load_tools`.
- *  Свойство показа, не грант: значение по умолчанию берётся из объявления тула,
- *  источник/режим могут перевести `direct ↔ deferred` внутри эффективного набора
- *  (`PackOverride.exposure`, `ModeCapabilityFields.exposure`). */
+  | {
+      decision: 'allow';
+    }
+  | {
+      decision: 'ask';
+    }
+  | {
+      decision: 'deny';
+      reason: string;
+    };
 export type ToolExposure = 'direct' | 'deferred';
-
 export type ToolDefinition = {
   name: string;
   description: string;
@@ -50,17 +45,14 @@ export type ToolDefinition = {
   revealsTools?: boolean;
   gate?: (input: unknown) => ToolCallGate | undefined;
 };
-
 export type ToolCatalogEntry = {
   name: string;
   description: string;
   group?: string;
 };
-
 export type CustomNodeImpl = {
   execute(ctx: unknown): Promise<unknown> | unknown;
 };
-
 export function tool(
   name: string,
   spec: {

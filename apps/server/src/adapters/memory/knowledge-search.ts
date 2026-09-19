@@ -15,7 +15,6 @@ type KnowledgeFtsRow = {
   uri: string;
   rank: number;
 };
-
 export function searchKnowledgeFts(
   db: StudioDb,
   workspaceId: string,
@@ -28,15 +27,13 @@ export function searchKnowledgeFts(
   }
   const sqlite = sqliteClient(db);
   const rows = sqlite
-    .query(
-      `SELECT c.id AS id, c.title AS title, c.text AS text, c.uri AS uri,
+    .query(`SELECT c.id AS id, c.title AS title, c.text AS text, c.uri AS uri,
               bm25(knowledge_chunks_fts) AS rank
        FROM knowledge_chunks_fts
        JOIN knowledge_chunks c ON c.rowid = knowledge_chunks_fts.rowid
        WHERE knowledge_chunks_fts MATCH ? AND c.workspace_id = ?
        ORDER BY rank
-       LIMIT ?`,
-    )
+       LIMIT ?`)
     .all(match, workspaceId, limit) as KnowledgeFtsRow[];
   return rows.map((row) => ({
     id: row.id,
@@ -46,7 +43,6 @@ export function searchKnowledgeFts(
     score: typeof row.rank === 'number' ? -row.rank : undefined,
   }));
 }
-
 export type SearchKnowledgeVectorInput = {
   db: StudioDb;
   workspaceId: string;
@@ -54,7 +50,6 @@ export type SearchKnowledgeVectorInput = {
   limit: number;
   embeddings: EmbeddingsPort | undefined;
 };
-
 export async function searchKnowledgeVector(
   input: SearchKnowledgeVectorInput,
 ): Promise<KnowledgeHit[]> {

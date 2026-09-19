@@ -1,6 +1,5 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { FileTextIcon, Link2Icon } from 'lucide-react';
-
 import type { MapInfo } from '../model/map-groups';
 import type { SpawnInfo } from '../model/spawn-groups';
 import { chunkEvents, groupActivityChunks } from '../model/tool-run-summary';
@@ -9,7 +8,6 @@ import { ActivityRail } from './activity-rail';
 import { AskLine } from './ask-line';
 import { ThinkingLine } from './thinking-line';
 import { ToolGroup } from './tool-group';
-
 export function ActivityItems({
   events,
   live,
@@ -28,7 +26,6 @@ export function ActivityItems({
   onOpenSpawn?: (id: string) => void;
 }) {
   const items = groupActivityChunks(chunkEvents(events));
-
   return (
     <ActivityRail live={live}>
       {items.map((item, index) => {
@@ -95,7 +92,13 @@ export function ActivityItems({
             </ActivityLine>
           );
         }
-        const fileHint = String((chunk.event as { file?: unknown }).file ?? '');
+        const fileHint = String(
+          (
+            chunk.event as {
+              file?: unknown;
+            }
+          ).file ?? '',
+        );
         return (
           <ActivityLine key={`file:${fileHint}`} icon={FileTextIcon} label="File" hint={fileHint} />
         );

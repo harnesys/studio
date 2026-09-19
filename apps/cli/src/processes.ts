@@ -9,16 +9,12 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { logFilePath, logsDir, pidFilePath, runDir } from './paths.ts';
-
-/** Pidfiles hold JSON: the pid plus what is needed to reach/start the component again. */
 export type PidRecord = {
   pid: number;
   port: number;
   startedAt: string;
-  /** Spawn-env overrides recorded at start (PORT/WEB_PORT/UPSTREAM/STATIC_DIR). */
   env?: Record<string, string>;
 };
-
 export function readPidRecord(home: string, name: string): PidRecord | undefined {
   const path = pidFilePath(home, name);
   if (!existsSync(path)) {
@@ -48,7 +44,6 @@ export function readPidRecord(home: string, name: string): PidRecord | undefined
     return undefined;
   }
 }
-
 export function isPidAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);
@@ -57,20 +52,13 @@ export function isPidAlive(pid: number): boolean {
     return (error as NodeJS.ErrnoException).code === 'EPERM';
   }
 }
-
 function writePidRecord(home: string, name: string, record: PidRecord): void {
   mkdirSync(runDir(home), { recursive: true });
   writeFileSync(pidFilePath(home, name), JSON.stringify(record));
 }
-
 export function removePidFile(home: string, name: string): void {
   rmSync(pidFilePath(home, name), { force: true });
 }
-
-/**
- * Spawns a detached long-running child with stdout+stderr appended to its log file,
- * records the pidfile, and returns the pid. The parent does not wait on the child.
- */
 export function spawnDetached(options: {
   bin: string;
   env: Record<string, string>;
@@ -100,8 +88,6 @@ export function spawnDetached(options: {
     closeSync(logFd);
   }
 }
-
-/** SIGTERM, wait up to `timeoutMs`, SIGKILL fallback. Returns when the pid is gone. */
 async function killPid(pid: number, timeoutMs: number): Promise<void> {
   try {
     process.kill(pid, 'SIGTERM');
@@ -115,13 +101,9 @@ async function killPid(pid: number, timeoutMs: number): Promise<void> {
   if (isPidAlive(pid)) {
     try {
       process.kill(pid, 'SIGKILL');
-    } catch {
-      // lost the race: the process exited between the check and the kill
-    }
+    } catch {}
   }
 }
-
-/** Stops the component behind the pidfile; stale pidfiles are cleaned up either way. */
 export async function terminate(
   home: string,
   name: string,
@@ -137,12 +119,9 @@ export async function terminate(
   removePidFile(home, name);
   return 'stopped';
 }
-
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-/** Last `maxLines` lines of a log file; empty when the file does not exist yet. */
 export function tailLines(home: string, name: string, maxLines: number): string[] {
   const path = logFilePath(home, name);
   if (!existsSync(path)) {
@@ -154,8 +133,6 @@ export function tailLines(home: string, name: string, maxLines: number): string[
   }
   return lines.slice(-maxLines);
 }
-
-/** Follows a growing log file from its current end; returns a stop function. */
 export function followFile(path: string, onChunk: (chunk: string) => void): () => void {
   let offset = existsSync(path) ? statSync(path).size : 0;
   let stopped = false;
@@ -172,9 +149,7 @@ export function followFile(path: string, onChunk: (chunk: string) => void): () =
             offset = 0;
           }
         }
-      } catch {
-        // rotated or temporarily unreadable; retry next tick
-      }
+      } catch {}
       await sleep(400);
     }
   };

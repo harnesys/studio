@@ -86,5 +86,4 @@ const data: IconifyJSON = {
     },
   },
 };
-
 addCollection(data);

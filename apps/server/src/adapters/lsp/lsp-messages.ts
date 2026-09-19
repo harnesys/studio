@@ -8,7 +8,6 @@ const SEVERITY: Record<number, LspDiagnosticSeverity> = {
   3: 'information',
   4: 'hint',
 };
-
 export function toDiagnostic(
   raw: unknown,
   uri: string,
@@ -52,7 +51,6 @@ export function toDiagnostic(
   }
   return diagnostic;
 }
-
 export function normalizeLocations(raw: unknown, workspaceRoot: string): LspLocation[] {
   if (raw == null) {
     return [];
@@ -67,7 +65,6 @@ export function normalizeLocations(raw: unknown, workspaceRoot: string): LspLoca
   }
   return out;
 }
-
 function toLocation(raw: unknown, workspaceRoot: string): LspLocation | undefined {
   if (!isRecord(raw)) {
     return undefined;
@@ -91,7 +88,6 @@ function toLocation(raw: unknown, workspaceRoot: string): LspLocation | undefine
     endCharacter: range.end.character,
   };
 }
-
 function locationUri(raw: Record<string, unknown>): string | undefined {
   if (typeof raw.targetUri === 'string') {
     return raw.targetUri;
@@ -101,7 +97,6 @@ function locationUri(raw: Record<string, unknown>): string | undefined {
   }
   return undefined;
 }
-
 function locationRange(raw: Record<string, unknown>): unknown {
   if (isRecord(raw.targetSelectionRange)) {
     return raw.targetSelectionRange;
@@ -111,7 +106,6 @@ function locationRange(raw: Record<string, unknown>): unknown {
   }
   return raw.range;
 }
-
 export function normalizeHover(raw: unknown): LspHover | null {
   if (!isRecord(raw)) {
     return null;
@@ -140,7 +134,6 @@ export function normalizeHover(raw: unknown): LspHover | null {
   }
   return hover;
 }
-
 function formatHoverContents(raw: unknown): string | undefined {
   if (typeof raw === 'string') {
     return raw;
@@ -156,19 +149,16 @@ function formatHoverContents(raw: unknown): string | undefined {
   }
   return undefined;
 }
-
 function fileUrlToPath(uri: string): string {
   if (uri.startsWith('file:')) {
     return fileURLToPath(uri);
   }
   return uri;
 }
-
 function toRel(absPath: string, workspaceRoot: string): string {
   const rel = relative(workspaceRoot, absPath);
   return rel.startsWith('..') ? absPath : rel.split(sep).join('/');
 }
-
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

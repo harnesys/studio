@@ -9,17 +9,19 @@ export type MonacoInstance = {
     parse: (value: string) => unknown;
   };
 };
-
 export type TextModel = {
   dispose: () => void;
 };
-
 export type DiffEditorInstance = {
-  setModel: (model: { original: unknown; modified: unknown } | null) => void;
+  setModel: (
+    model: {
+      original: unknown;
+      modified: unknown;
+    } | null,
+  ) => void;
   getModel: () => unknown | null;
   dispose: () => void;
 };
-
 export type UpdateModelsParams = {
   monaco: MonacoInstance;
   editor: DiffEditorInstance;
@@ -28,7 +30,6 @@ export type UpdateModelsParams = {
   mod: string;
   filePath: string;
 };
-
 export function defineThemes(monaco: unknown) {
   const m = monaco as {
     editor: {
@@ -60,7 +61,5 @@ export function defineThemes(monaco: unknown) {
         'editorGutter.background': '#f4f5f6',
       },
     });
-  } catch {
-    // theme already defined
-  }
+  } catch {}
 }

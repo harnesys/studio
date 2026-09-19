@@ -8,31 +8,26 @@ import { Label } from '@/shared/ui/label';
 import { Markdown } from '@/shared/ui/markdown';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { toast } from '@/shared/ui/toast';
-
 import { rejectAsk, respondToAsk } from '../model/hitl-actions';
 import { type PendingHitl, pendingHitl } from '../model/pending-hitl';
 import { summarizeToolInput } from '../model/tool-input-summary';
 import { HitlPreview } from './hitl-preview';
 import { HitlShell } from './hitl-shell';
-
 export function HitlPrompt() {
   const thread = useSelectedThread();
   const events = useThreadEvents(thread?.id ?? null);
   const pending = pendingHitl(events);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const askId = pending?.askId;
-
   useEffect(() => {
     if (!askId) {
       return;
     }
     shellRef.current?.querySelector('textarea')?.focus();
   }, [askId]);
-
   if (!pending) {
     return null;
   }
-
   if (pending.source === 'budget') {
     return (
       <div ref={shellRef} className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
@@ -40,9 +35,7 @@ export function HitlPrompt() {
       </div>
     );
   }
-
   const isConfirm = pending.source === 'permission' || pending.source === 'approve';
-
   return (
     <div ref={shellRef} className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="hitl-prompt">
       {isConfirm ? (
@@ -53,7 +46,6 @@ export function HitlPrompt() {
     </div>
   );
 }
-
 function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: string }) {
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState('');
@@ -68,7 +60,6 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
   const summary = summarizeToolInput(name, inputStr);
   const pathLine = summary.lines.find((line) => line.label === 'path')?.value;
   const detailLines = summary.lines.filter((line) => line.label !== 'path');
-
   const decide = async (allow: boolean) => {
     if (busy) {
       return;
@@ -88,7 +79,6 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
       setBusy(false);
     }
   };
-
   return (
     <HitlShell>
       <div className="flex flex-col gap-1 px-3 pt-2.5">
@@ -144,7 +134,6 @@ function ConfirmCard({ pending, threadId }: { pending: PendingHitl; threadId: st
     </HitlShell>
   );
 }
-
 function BudgetCard({ pending, threadId }: { pending: PendingHitl; threadId: string }) {
   const [busy, setBusy] = useState(false);
   const decide = async (continueRun: boolean) => {
@@ -199,15 +188,17 @@ function BudgetCard({ pending, threadId }: { pending: PendingHitl; threadId: str
     </HitlShell>
   );
 }
-
 function AskCard({ pending, threadId }: { pending: PendingHitl; threadId: string }) {
   const schema = pending.schema as Record<string, unknown> | undefined;
-  const options = (schema?.options as Array<{ id: string; label: string }>) ?? [];
+  const options =
+    (schema?.options as Array<{
+      id: string;
+      label: string;
+    }>) ?? [];
   const multi = Boolean(schema?.multi);
   const [selected, setSelected] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-
   const toggle = (id: string) => {
     setSelected((prev) => {
       if (multi) {
@@ -216,7 +207,6 @@ function AskCard({ pending, threadId }: { pending: PendingHitl; threadId: string
       return prev.includes(id) ? [] : [id];
     });
   };
-
   const submit = async () => {
     if (busy) {
       return;
@@ -244,9 +234,7 @@ function AskCard({ pending, threadId }: { pending: PendingHitl; threadId: string
       setBusy(false);
     }
   };
-
   const canSubmit = selected.length > 0 || text.trim().length > 0;
-
   return (
     <HitlShell>
       <div className="flex flex-col gap-1 px-3 pt-2.5">

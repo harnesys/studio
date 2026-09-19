@@ -4,7 +4,6 @@ export type ToolRunStat = {
   durationMs: number;
   tokens?: number;
 };
-
 export type MessageUsage = {
   model: string;
   promptTokens: number;
@@ -18,7 +17,6 @@ export type MessageUsage = {
   costUsd?: number;
   steps?: number;
 };
-
 export type UsageRollup = {
   promptTokens: number;
   generatedTokens: number;
@@ -30,36 +28,30 @@ export type UsageRollup = {
   calls: number;
   steps: number;
 };
-
-/** Prompt/context size of the last model call — what fills the context window. */
 export function tokensUsed(usage: MessageUsage): number {
   return usage.promptTokens;
 }
-
 export function tokensLeft(usage: MessageUsage): number {
   return Math.max(0, usage.contextTokens - tokensUsed(usage));
 }
-
 export function contextUsedRatio(usage: MessageUsage): number {
   if (usage.contextTokens <= 0) {
     return 0;
   }
   return Math.min(1, tokensUsed(usage) / usage.contextTokens);
 }
-
 export function formatTokenCount(value: number): string {
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(value % 1_000_000 === 0 ? 0 : 2)}M`;
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(value % 1000000 === 0 ? 0 : 2)}M`;
   }
-  if (value >= 10_000) {
-    return `${(value / 1_000).toFixed(value % 1_000 === 0 ? 0 : 1)}K`;
+  if (value >= 10000) {
+    return `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}K`;
   }
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(2)}K`;
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(2)}K`;
   }
   return String(value);
 }
-
 export function formatDuration(ms: number): string {
   if (ms < 1000) {
     return `${ms}ms`;
@@ -72,7 +64,6 @@ export function formatDuration(ms: number): string {
   const rest = Math.round(seconds % 60);
   return `${minutes}m ${rest}s`;
 }
-
 type GenerationUsage = {
   input?: number;
   output?: number;
@@ -81,7 +72,6 @@ type GenerationUsage = {
   cacheWrite?: number;
   reasoning?: number;
 };
-
 export function usageFromGeneration(
   usage: GenerationUsage | null | undefined,
 ): MessageUsage | undefined {
@@ -100,7 +90,6 @@ export function usageFromGeneration(
     reasoningTokens: usage.reasoning,
   };
 }
-
 export function rollupUsage(items: MessageUsage[]): UsageRollup {
   return items.reduce<UsageRollup>(
     (sum, item) => ({
@@ -127,18 +116,16 @@ export function rollupUsage(items: MessageUsage[]): UsageRollup {
     },
   );
 }
-
 export function estimateTokens(content: string): number {
   const words = content.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words * 1.3));
 }
-
 export function contextWindowForModel(model: string): number {
   if (model.includes('4')) {
-    return 256_000;
+    return 256000;
   }
   if (model.includes('3')) {
-    return 131_000;
+    return 131000;
   }
-  return 128_000;
+  return 128000;
 }

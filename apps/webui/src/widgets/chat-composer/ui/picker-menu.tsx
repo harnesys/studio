@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { pickerItems } from '../model/composer-providers';
 import type { SkillOption } from '../model/skill-source';
-
-export type PickerAnchor = { left: number; bottom: number };
-
+export type PickerAnchor = {
+  left: number;
+  bottom: number;
+};
 export type SkillPickerProps = {
   options: SkillOption[];
   loading: boolean;
@@ -12,7 +13,6 @@ export type SkillPickerProps = {
   onClose(): void;
   onEsc(): void;
 };
-
 export function SkillPicker({
   options,
   loading,
@@ -27,7 +27,6 @@ export function SkillPicker({
   const safeActive = active < items.length ? active : 0;
   const latest = useRef({ items, safeActive, query, onPick, onClose, onEsc });
   latest.current = { items, safeActive, query, onPick, onClose, onEsc };
-
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.isComposing || event.defaultPrevented) {
@@ -76,9 +75,7 @@ export function SkillPicker({
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, []);
-
   const emptyLine = emptyStateLine(options.length, loading, query);
-
   return (
     <div
       className="z-50 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-md"
@@ -95,9 +92,7 @@ export function SkillPicker({
             <li key={option.name}>
               <button
                 type="button"
-                className={`flex w-full items-start gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                  isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'
-                }`}
+                className={`flex w-full items-start gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'}`}
                 onMouseEnter={() => setActive(index)}
                 onClick={() => onPick(option)}
               >
@@ -116,12 +111,10 @@ export function SkillPicker({
     </div>
   );
 }
-
 function consume(event: KeyboardEvent): void {
   event.preventDefault();
   event.stopPropagation();
 }
-
 function emptyStateLine(optionCount: number, loading: boolean, query: string): string {
   if (optionCount > 0) {
     return `No skills match "${query}"`;

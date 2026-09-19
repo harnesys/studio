@@ -1,5 +1,4 @@
 import type { CapabilityScope } from '../domain/pack.ts';
-
 export type ThreadSummary = {
   id: string;
   title: string;
@@ -8,7 +7,6 @@ export type ThreadSummary = {
   agentName: string;
   hasSchedule: boolean;
 };
-
 export type ThreadsPort = {
   list(scope: CapabilityScope): Promise<ThreadSummary[]>;
 };

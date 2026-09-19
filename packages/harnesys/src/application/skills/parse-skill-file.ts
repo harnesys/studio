@@ -1,16 +1,13 @@
 import matter from 'gray-matter';
 import type { SkillDocument } from '../../domain/skill.ts';
-
 export class InvalidSkillFileError extends Error {
   readonly path: string;
-
   constructor(message: string, path: string) {
     super(message);
     this.name = 'InvalidSkillFileError';
     this.path = path;
   }
 }
-
 function requireFrontmatterString(
   data: Record<string, unknown>,
   key: string,
@@ -25,7 +22,6 @@ function requireFrontmatterString(
   }
   return value;
 }
-
 function optionalFrontmatterString(data: Record<string, unknown>, key: string): string | undefined {
   const value = data[key];
   if (value === undefined || value === null) {
@@ -39,7 +35,6 @@ function optionalFrontmatterString(data: Record<string, unknown>, key: string): 
   }
   return value;
 }
-
 export function parseSkillFile(content: string, fileLabel: string): SkillDocument {
   let parsed: matter.GrayMatterFile<string>;
   try {
@@ -48,7 +43,6 @@ export function parseSkillFile(content: string, fileLabel: string): SkillDocumen
     const message = cause instanceof Error ? cause.message : String(cause);
     throw new InvalidSkillFileError(message, fileLabel);
   }
-
   const data = parsed.data;
   if (typeof data !== 'object' || data === null || Array.isArray(data)) {
     throw new InvalidSkillFileError(
@@ -56,7 +50,6 @@ export function parseSkillFile(content: string, fileLabel: string): SkillDocumen
       fileLabel,
     );
   }
-
   const record: Record<string, unknown> = { ...data };
   const name = requireFrontmatterString(record, 'name', fileLabel);
   const description = requireFrontmatterString(record, 'description', fileLabel);
@@ -70,7 +63,6 @@ export function parseSkillFile(content: string, fileLabel: string): SkillDocumen
       fileLabel,
     );
   }
-
   if (whenToUse === undefined) {
     return { name, description, instructions };
   }

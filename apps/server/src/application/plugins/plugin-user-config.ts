@@ -7,20 +7,14 @@ import {
 } from 'harnesys';
 import type { PluginOptionValue } from '../../domain/plugin.port.ts';
 
-type ConfigOptionComponent = PluginComponent & { spec: ConfigOptionSpec };
-
+type ConfigOptionComponent = PluginComponent & {
+  spec: ConfigOptionSpec;
+};
 export function isConfigOptionComponent(
   component: PluginComponent,
 ): component is ConfigOptionComponent {
   return component.kind === 'config-option' && 'title' in component.spec;
 }
-
-/**
- * userConfig-биндинг плагина: сохранённые опции записи (`record.options`)
- * поверх схемы (`spec.default`), sensitive-ключи — из схемы. Значения
- * sensitive-опций в записи не хранятся (SecretStore, E3) — до их появления
- * exec-подстановка sensitive-ссылок отказывает с diagnostic.
- */
 export function pluginUserConfig(
   ir: PluginIr,
   stored: Record<string, PluginOptionValue>,
@@ -42,13 +36,6 @@ export function pluginUserConfig(
   }
   return { values, sensitiveKeys };
 }
-
-/**
- * Exec-подстановка `${user_config.*}` в LSP-спеке: command, args, env,
- * workspaceFolder. Неразрешённая ссылка — ошибочный исход, сервер хост
- * отбрасывает с diagnostic. `initializationOptions`/`settings` — не
- * exec-контекст, остаются как объявлены.
- */
 export function substituteLspSpec(
   spec: LspServerSpec,
   userConfig: UserConfigContentOptions,

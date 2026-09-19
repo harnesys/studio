@@ -7,7 +7,6 @@ import {
   type WebhookDraft,
 } from '@/entities/webhook';
 import { createWebhookRecord } from '@/shared/api';
-
 export async function createWebhook(
   workspaceId: string,
   draft: WebhookDraft,

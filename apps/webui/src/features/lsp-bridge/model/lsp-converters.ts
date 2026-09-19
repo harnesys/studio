@@ -1,15 +1,10 @@
 import type * as monacoNs from 'monaco-editor';
-
 export type MonacoApi = typeof monacoNs;
-
 export const LSP_MARKER_OWNER = 'lsp';
-
 const TS_LIKE_LANGUAGES = new Set(['typescript', 'javascript']);
-
 export function supportsBuiltinToggle(languageId: string): boolean {
   return TS_LIKE_LANGUAGES.has(languageId);
 }
-
 export function captureBuiltinDiagnostics(
   monaco: MonacoApi,
   languageId: string,
@@ -23,7 +18,6 @@ export function captureBuiltinDiagnostics(
     javascript: { ...ts.javascriptDefaults.getDiagnosticsOptions() },
   };
 }
-
 export function applyBuiltinDiagnostics(monaco: MonacoApi, options: Record<string, unknown>): void {
   const ts = monaco.languages.typescript;
   if (!ts) {
@@ -32,7 +26,6 @@ export function applyBuiltinDiagnostics(monaco: MonacoApi, options: Record<strin
   ts.typescriptDefaults.setDiagnosticsOptions(options as never);
   ts.javascriptDefaults.setDiagnosticsOptions(options as never);
 }
-
 export function applyMarkers(
   monaco: MonacoApi,
   model: monacoNs.editor.ITextModel,
@@ -43,15 +36,20 @@ export function applyMarkers(
     .filter((item): item is monacoNs.editor.IMarkerData => item !== undefined);
   monaco.editor.setModelMarkers(model, LSP_MARKER_OWNER, markers);
 }
-
 function toMonacoMarker(raw: unknown): monacoNs.editor.IMarkerData | undefined {
   if (raw === null || typeof raw !== 'object') {
     return undefined;
   }
   const item = raw as {
     range?: {
-      start?: { line?: unknown; character?: unknown };
-      end?: { line?: unknown; character?: unknown };
+      start?: {
+        line?: unknown;
+        character?: unknown;
+      };
+      end?: {
+        line?: unknown;
+        character?: unknown;
+      };
     };
     message?: unknown;
     severity?: unknown;
@@ -82,9 +80,7 @@ function toMonacoMarker(raw: unknown): monacoNs.editor.IMarkerData | undefined {
     source: typeof item.source === 'string' ? item.source : undefined,
   };
 }
-
 function markerSeverity(severity: unknown): monacoNs.MarkerSeverity {
-  // LSP: 1 error, 2 warning, 3 information, 4 hint. Monaco: 8/4/2/1.
   if (severity === 1) {
     return 8;
   }
@@ -96,18 +92,22 @@ function markerSeverity(severity: unknown): monacoNs.MarkerSeverity {
   }
   return 1;
 }
-
 export function toLspPosition(position: { lineNumber: number; column: number }): {
   line: number;
   character: number;
 } {
   return { line: position.lineNumber - 1, character: position.column - 1 };
 }
-
 export function toMonacoRange(range: unknown): monacoNs.IRange {
   const item = range as {
-    start?: { line?: number; character?: number };
-    end?: { line?: number; character?: number };
+    start?: {
+      line?: number;
+      character?: number;
+    };
+    end?: {
+      line?: number;
+      character?: number;
+    };
     startLine?: number;
     startCharacter?: number;
     endLine?: number;
@@ -124,12 +124,14 @@ export function toMonacoRange(range: unknown): monacoNs.IRange {
     endColumn: endCharacter + 1,
   };
 }
-
 export function toMonacoHover(result: unknown): monacoNs.languages.Hover | null {
   if (result === null || typeof result !== 'object') {
     return null;
   }
-  const hover = result as { contents?: unknown; range?: unknown };
+  const hover = result as {
+    contents?: unknown;
+    range?: unknown;
+  };
   const contents = hoverContents(hover.contents);
   if (contents.length === 0) {
     return null;
@@ -139,8 +141,9 @@ export function toMonacoHover(result: unknown): monacoNs.languages.Hover | null 
     ...(hover.range ? { range: toMonacoRange(hover.range) } : {}),
   };
 }
-
-function hoverContents(raw: unknown): { value: string }[] {
+function hoverContents(raw: unknown): {
+  value: string;
+}[] {
   const blocks: string[] = [];
   const visit = (item: unknown): void => {
     if (typeof item === 'string') {
@@ -152,7 +155,11 @@ function hoverContents(raw: unknown): { value: string }[] {
       return;
     }
     if (item !== null && typeof item === 'object') {
-      const record = item as { kind?: unknown; value?: unknown; language?: unknown };
+      const record = item as {
+        kind?: unknown;
+        value?: unknown;
+        language?: unknown;
+      };
       if (typeof record.value === 'string') {
         blocks.push(codeBlockOrPlain(record.kind, record.value, record.language));
       }
@@ -161,7 +168,6 @@ function hoverContents(raw: unknown): { value: string }[] {
   visit(raw);
   return blocks.map((value) => ({ value }));
 }
-
 function codeBlockOrPlain(kind: unknown, value: string, language: unknown): string {
   if (language === undefined && kind !== 'markdown') {
     return value;
@@ -169,7 +175,6 @@ function codeBlockOrPlain(kind: unknown, value: string, language: unknown): stri
   const name = typeof language === 'string' ? language : 'ts';
   return `\`\`\`${name}\n${value}\n\`\`\``;
 }
-
 export function toMonacoLocations(
   result: unknown,
   monaco: MonacoApi,
@@ -178,7 +183,10 @@ export function toMonacoLocations(
   const out: monacoNs.languages.Location[] = [];
   for (const item of list) {
     if (item !== null && typeof item === 'object') {
-      const location = item as { uri?: unknown; range?: unknown };
+      const location = item as {
+        uri?: unknown;
+        range?: unknown;
+      };
       if (typeof location.uri === 'string') {
         out.push({
           uri: monaco.Uri.parse(location.uri),

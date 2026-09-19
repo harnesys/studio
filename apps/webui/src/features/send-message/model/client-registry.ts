@@ -6,7 +6,6 @@ import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread } from '@/shared/api';
 import { trace } from '@/shared/lib/trace';
-
 import {
   createRunStreamClient,
   type RunStreamClient,
@@ -16,13 +15,10 @@ import {
 
 export type { RunStreamClient };
 
-/** Per-(threadId, runId) registry: root run and every running spawn get their own client. */
 const clientsByRun = new Map<string, RunStreamClient>();
-
 function registryKey(threadId: string, runId: string): string {
   return `${threadId}:${runId}`;
 }
-
 export function getClientForRun(
   threadId: string,
   runId: string,
@@ -48,8 +44,6 @@ export function getClientForRun(
   clientsByRun.set(key, client);
   return client;
 }
-
-/** Root-run semantics: flips thread-level run bookkeeping, then connects. */
 export function connectThreadRun(threadId: string, runId: string): void {
   const store = useSessionStore.getState();
   if (store.activeRuns[threadId]) {
@@ -59,12 +53,9 @@ export function connectThreadRun(threadId: string, runId: string): void {
   }
   getClientForRun(threadId, runId, true).connect();
 }
-
-/** Spawn-safe: connects a run stream without touching thread-level run bookkeeping. */
 export function connectRunStream(threadId: string, runId: string): void {
   getClientForRun(threadId, runId, false).connect();
 }
-
 export function useRunStreamState(threadId: string | null): RunStreamState | null {
   const runId = useSessionStore((state) =>
     threadId ? state.activeRuns[threadId]?.runId || null : null,
@@ -81,7 +72,6 @@ export function useRunStreamState(threadId: string | null): RunStreamState | nul
   }, [threadId, runId]);
   return state;
 }
-
 export function useRunStreamStateFor(
   runId: string | null,
   threadId: string | null,
@@ -98,14 +88,12 @@ export function useRunStreamStateFor(
   }, [threadId, runId]);
   return state;
 }
-
 export function maybeMarkUnread(threadId: string): void {
   if (useThreadStore.getState().isViewingAtEnd(threadId)) {
     return;
   }
   useThreadStore.getState().markUnread(threadId);
 }
-
 function onStreamEvent(threadId: string, event: SessionEvent): void {
   const store = useSessionStore.getState();
   store.appendEvent(threadId, event);
@@ -121,8 +109,6 @@ function onStreamEvent(threadId: string, event: SessionEvent): void {
     });
   }
 }
-
-/** Live handoff: update current speaker before desk SSE arrives (tab/URL follow via ide-sync). */
 function patchThreadCurrentAgent(threadId: string, agentId: string): void {
   const thread = useThreadStore.getState().byId(threadId);
   if (!thread || thread.agentId === agentId) {
@@ -134,7 +120,6 @@ function patchThreadCurrentAgent(threadId: string, agentId: string): void {
   }
   useThreadStore.getState().upsert({ ...thread, agentId });
 }
-
 async function onRunTerminal(threadId: string, runId: string, rootRun: boolean): Promise<void> {
   const store = useSessionStore.getState();
   if (rootRun && runId) {
@@ -145,14 +130,11 @@ async function onRunTerminal(threadId: string, runId: string, rootRun: boolean):
     useThreadStore.getState().upsert(toClientThread(record));
     useSessionStore.getState().reconcileEvents(threadId, record.events);
     noteUnreadAfterReconcile(threadId, record.unread);
-    // План живёт отдельно от событий треда: desk SSE мог пропустить кадр,
-    // инспектор сверяется с базой по завершении рана.
     void loadThreadPlan(threadId);
   } catch (error) {
     trace('client', 'terminal reconcile failed', error instanceof Error ? error.message : error);
   }
 }
-
 function noteUnreadAfterReconcile(threadId: string, serverUnread: boolean): void {
   if (useThreadStore.getState().isViewingAtEnd(threadId)) {
     useThreadStore.getState().markRead(threadId);

@@ -3,24 +3,14 @@ export type SearchResult = {
   url: string;
   snippet: string;
 };
-
 export type SearchProvider = {
   search: (query: string) => Promise<SearchResult[]>;
 };
-
 const MAX_RESULTS = 5;
-
 const DUCKDUCKGO_MIN_DELAY_MS = 2000;
 const SEARXNG_MIN_DELAY_MS = 1000;
-const SEARXNG_TIMEOUT_MS = 10_000;
-
+const SEARXNG_TIMEOUT_MS = 10000;
 const FAILURE_HINT = 'Stop retrying and tell the user that web search is temporarily unavailable.';
-
-/**
- * Последовательный лимитер: задачи встают в очередь, между стартами запросов
- * проходит не меньше minDelayMs. Параллельные вызовы search() не рвут
- * check-then-act гонку, как раньше, а выстраиваются друг за другом.
- */
 function createLimiter(minDelayMs: number): <T>(task: () => Promise<T>) => Promise<T> {
   let lastRequestAt = 0;
   let tail: Promise<unknown> = Promise.resolve();
@@ -37,22 +27,17 @@ function createLimiter(minDelayMs: number): <T>(task: () => Promise<T>) => Promi
     return next;
   };
 }
-
 function describeFailure(provider: string, error: unknown): Error {
   const detail = error instanceof Error ? error.message : String(error);
   return new Error(`${provider}: ${detail}. ${FAILURE_HINT}`);
 }
-
-/** Один лимитер на процесс: DDG считает запросы с одного IP, а не с одного агента. */
 const duckduckgoLimiter = createLimiter(DUCKDUCKGO_MIN_DELAY_MS);
-
 const DUCKDUCKGO_HEADERS = {
   'user-agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
   accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   'accept-language': 'en-US,en;q=0.9',
 };
-
 export function duckduckgoSearch(): SearchProvider {
   return {
     search: (query) =>
@@ -78,15 +63,16 @@ export function duckduckgoSearch(): SearchProvider {
       }),
   };
 }
-
 const RESULT_LINK_REGEX = /<a[^>]+class="result__a"[^>]+href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g;
 const RESULT_SNIPPET_REGEX = /<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
-
 function parseDuckduckgoHtml(body: string): SearchResult[] {
   if (body.includes('no-results') || body.includes('try to focus')) {
     return [];
   }
-  const links: Array<{ url: string; title: string }> = [];
+  const links: Array<{
+    url: string;
+    title: string;
+  }> = [];
   for (const match of body.matchAll(RESULT_LINK_REGEX)) {
     if (match[1] === undefined) {
       continue;
@@ -113,7 +99,6 @@ function parseDuckduckgoHtml(body: string): SearchResult[] {
   }
   return results;
 }
-
 function unwrapDuckduckgoRedirect(url: string): string {
   if (!url.startsWith('//duckduckgo.com/l/')) {
     return url;
@@ -121,13 +106,12 @@ function unwrapDuckduckgoRedirect(url: string): string {
   const resolved = new URL(url, 'https://duckduckgo.com');
   return resolved.searchParams.get('uddg') ?? url;
 }
-
 function stripTags(html: string): string {
   return html.replace(/<[^>]+>/g, '').trim();
 }
-
-export type SearxngOptions = { url: string };
-
+export type SearxngOptions = {
+  url: string;
+};
 export function searxngSearch(options: SearxngOptions): SearchProvider {
   const limiter = createLimiter(SEARXNG_MIN_DELAY_MS);
   const base = options.url.replace(/\/+$/, '');
@@ -160,7 +144,10 @@ export function searxngSearch(options: SearxngOptions): SearchProvider {
       }),
   };
 }
-
 type SearxngResponse = {
-  results?: Array<{ title?: string; url?: string; content?: string }>;
+  results?: Array<{
+    title?: string;
+    url?: string;
+    content?: string;
+  }>;
 };

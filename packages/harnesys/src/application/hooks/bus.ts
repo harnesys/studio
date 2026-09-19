@@ -8,26 +8,22 @@ import {
   runHookHandler,
 } from './executors.ts';
 import { matchesBinding } from './matchers.ts';
-
-/** Рантайм-контекст шины: пути, базовый env и опциональные хост-возможности (план C1). */
 export type HookRuntimeCtx = {
   cwd: string;
   projectDir: string;
   envBase: Record<string, string>;
   mcpToolCall?: (server: string, tool: string, input: Record<string, unknown>) => Promise<unknown>;
   promptModel?: (prompt: string, model?: string) => Promise<string>;
-  /** Вывод хука `{"sessionTitle": ...}`: хост переименовывает тред (спека §2.1). */
   renameSession?: (title: string) => void;
-  /** Точка логов диагностик хуков: `hook_failed`/`hook_timeout` не молчат. */
   logger?: Logger;
 };
-
 export type HookOutcome = {
   effects: HookEffect[];
-  blocked?: HookEffect & { kind: 'block' };
+  blocked?: HookEffect & {
+    kind: 'block';
+  };
   diagnostics: PluginDiagnostic[];
 };
-
 export type HookBus = {
   emit(event: HookEventName, payload: HookPayload): Promise<HookOutcome>;
   emitNotification(text: string, type: string): void;
@@ -35,7 +31,6 @@ export type HookBus = {
   bindings(): HookBinding[];
   close(): Promise<void>;
 };
-
 export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntimeCtx }): HookBus {
   const { bindings, ctx } = input;
   const registry = new Set<HookProcessEntry>();
@@ -47,13 +42,11 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
   let pendingDiagnostics: PluginDiagnostic[] = [];
   let lastPayload: HookPayload | undefined;
   const asyncRuns = new Set<Promise<void>>();
-
   function logDiagnostics(event: HookEventName, diagnostics: PluginDiagnostic[]): void {
     for (const diagnostic of diagnostics) {
       ctx.logger?.warn(`[hooks] ${event} ${diagnostic.code}: ${diagnostic.message}`);
     }
   }
-
   async function emit(event: HookEventName, payload: HookPayload): Promise<HookOutcome> {
     lastPayload = payload;
     const matched = bindings.filter((b) => matchesBinding(b, payload));
@@ -96,7 +89,6 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
     }
     return foldOutcome(event, results, diagnostics);
   }
-
   function emitNotification(text: string, type: string): void {
     const base = lastPayload;
     const payload: HookPayload = {
@@ -111,11 +103,9 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
     };
     void emit(payload.event, payload).catch(() => {});
   }
-
   function drainDeferred(): HookEffect[] {
     return deferred.splice(0, deferred.length);
   }
-
   async function close(): Promise<void> {
     for (const entry of registry) {
       entry.kill('close');
@@ -125,7 +115,6 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
     deferred.length = 0;
     pendingDiagnostics = [];
   }
-
   async function runBinding(
     b: HookBinding,
     payload: HookPayload,
@@ -152,12 +141,8 @@ export function createHookBus(input: { bindings: HookBinding[]; ctx: HookRuntime
       };
     }
   }
-
   return { emit, emitNotification, drainDeferred, bindings: () => bindings, close };
 }
-
-/** Свёртка результатов в порядке binding'ов (план C1): первый block, конкатенация context,
- * первый update_input/update_output; ask только из PreToolUse, stop только из Stop/SubagentStop. */
 function foldOutcome(
   event: HookEventName,
   results: HookHandlerResult[],
@@ -165,11 +150,43 @@ function foldOutcome(
 ): HookOutcome {
   const effects: HookEffect[] = [];
   const contexts: string[] = [];
-  let blocked: (HookEffect & { kind: 'block' }) | undefined;
-  let updateInput: Extract<HookEffect, { kind: 'update_input' }> | undefined;
-  let updateOutput: Extract<HookEffect, { kind: 'update_output' }> | undefined;
-  let ask: Extract<HookEffect, { kind: 'ask' }> | undefined;
-  let stop: Extract<HookEffect, { kind: 'stop' }> | undefined;
+  let blocked:
+    | (HookEffect & {
+        kind: 'block';
+      })
+    | undefined;
+  let updateInput:
+    | Extract<
+        HookEffect,
+        {
+          kind: 'update_input';
+        }
+      >
+    | undefined;
+  let updateOutput:
+    | Extract<
+        HookEffect,
+        {
+          kind: 'update_output';
+        }
+      >
+    | undefined;
+  let ask:
+    | Extract<
+        HookEffect,
+        {
+          kind: 'ask';
+        }
+      >
+    | undefined;
+  let stop:
+    | Extract<
+        HookEffect,
+        {
+          kind: 'stop';
+        }
+      >
+    | undefined;
   for (const res of results) {
     diagnostics.push(...res.diagnostics);
     for (const eff of res.effects) {
@@ -214,11 +231,9 @@ function foldOutcome(
   }
   return { effects, blocked, diagnostics };
 }
-
 function isAsync(b: HookBinding): boolean {
   return b.handler.type === 'command' && b.handler.async === true;
 }
-
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.length > 0 ? error.message : String(error);
 }

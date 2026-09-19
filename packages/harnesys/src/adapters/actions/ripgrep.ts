@@ -3,15 +3,16 @@ import {
   DEFAULT_GREP_TIMEOUT_MS,
   MAX_GREP_LINE_CHARS,
 } from '../../constants.ts';
-
-export type RipgrepRow = { file: string; line: number; text: string };
-
+export type RipgrepRow = {
+  file: string;
+  line: number;
+  text: string;
+};
 export type RipgrepRun = {
   rows: RipgrepRow[];
   truncated: boolean;
   timedOut: boolean;
 };
-
 type RipgrepOptions = {
   cwd: string;
   env?: Record<string, string>;
@@ -20,22 +21,17 @@ type RipgrepOptions = {
   timeoutMs?: number;
   signal?: AbortSignal;
 };
-
 type RipgrepProcess = Bun.Subprocess<'ignore', 'pipe', 'pipe'>;
-
 type RipgrepState = {
   truncated: boolean;
   timedOut: boolean;
   stopped: boolean;
   stop(): void;
 };
-
 const STDERR_CAPTURE_CHARS = 8 * 1024;
 const MAX_JSON_RECORD_CHARS = 1024 * 1024;
-const KILL_DRAIN_TIMEOUT_MS = 1_000;
-
+const KILL_DRAIN_TIMEOUT_MS = 1000;
 let rgPathPromise: Promise<string | null> | undefined;
-
 export function resolveRipgrep(env?: Record<string, string>): Promise<string | null> {
   if (rgPathPromise === undefined) {
     rgPathPromise = Promise.resolve(
@@ -44,7 +40,6 @@ export function resolveRipgrep(env?: Record<string, string>): Promise<string | n
   }
   return rgPathPromise;
 }
-
 export async function runRipgrep(args: string[], opts: RipgrepOptions): Promise<RipgrepRun> {
   const rg = await resolveRipgrep(opts.env);
   if (rg === null) {
@@ -65,12 +60,15 @@ export async function runRipgrep(args: string[], opts: RipgrepOptions): Promise<
   }
   return { rows, truncated: truncated || state.timedOut, timedOut: state.timedOut };
 }
-
 function spawnRipgrep(
   rg: string,
   args: string[],
   opts: RipgrepOptions,
-): { proc: RipgrepProcess; state: RipgrepState; dispose(): void } {
+): {
+  proc: RipgrepProcess;
+  state: RipgrepState;
+  dispose(): void;
+} {
   const proc = Bun.spawn([rg, ...args], {
     cwd: opts.cwd,
     env: opts.env,
@@ -89,9 +87,7 @@ function spawnRipgrep(
       state.stopped = true;
       try {
         proc.kill();
-      } catch {
-        // already exited
-      }
+      } catch {}
     },
   };
   const timer = setTimeout(() => {
@@ -113,20 +109,32 @@ function spawnRipgrep(
     },
   };
 }
-
-type PendingRows = { file: string; rows: RipgrepRow[]; chars: number };
-
-type RowSink = { rows: RipgrepRow[]; chars: number };
-
-type RowBudget = { limit: number; chars: number };
-
-type RowBuffers = { pending: PendingRows | null; truncated: boolean; budget: RowBudget };
-
+type PendingRows = {
+  file: string;
+  rows: RipgrepRow[];
+  chars: number;
+};
+type RowSink = {
+  rows: RipgrepRow[];
+  chars: number;
+};
+type RowBudget = {
+  limit: number;
+  chars: number;
+};
+type RowBuffers = {
+  pending: PendingRows | null;
+  truncated: boolean;
+  budget: RowBudget;
+};
 async function readMatchRows(
   proc: RipgrepProcess,
   state: RipgrepState,
   opts: RipgrepOptions,
-): Promise<{ rows: RipgrepRow[]; truncated: boolean }> {
+): Promise<{
+  rows: RipgrepRow[];
+  truncated: boolean;
+}> {
   const sink: RowSink = { rows: [], chars: 0 };
   const buffers: RowBuffers = {
     pending: null,
@@ -155,7 +163,6 @@ async function readMatchRows(
   flushPending(sink, buffers.pending);
   return { rows: sink.rows, truncated: buffers.truncated };
 }
-
 function flushPending(sink: RowSink, pending: PendingRows | null): void {
   if (pending === null) {
     return;
@@ -163,8 +170,6 @@ function flushPending(sink: RowSink, pending: PendingRows | null): void {
   sink.rows.push(...pending.rows);
   sink.chars += pending.chars;
 }
-
-/** Returns true when the output budget is exhausted and the search must stop. */
 function acceptRecord(record: RipgrepJsonRecord, sink: RowSink, buffers: RowBuffers): boolean {
   if (record.type === 'end') {
     if (typeof record.data?.binary_offset === 'number') {
@@ -198,7 +203,6 @@ function acceptRecord(record: RipgrepJsonRecord, sink: RowSink, buffers: RowBuff
   }
   return false;
 }
-
 async function* iterateJsonLines(stream: ReadableStream<Uint8Array>): AsyncGenerator<string> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -236,7 +240,6 @@ async function* iterateJsonLines(stream: ReadableStream<Uint8Array>): AsyncGener
     reader.cancel().catch(() => undefined);
   }
 }
-
 export function clipGrepLine(text: string, maxChars: number = MAX_GREP_LINE_CHARS): string {
   const clean = text.replace(/[\r\n]+$/, '');
   if (clean.length <= maxChars) {
@@ -247,17 +250,19 @@ export function clipGrepLine(text: string, maxChars: number = MAX_GREP_LINE_CHAR
   const safe = last >= 0xd800 && last <= 0xdbff ? clipped.slice(0, -1) : clipped;
   return `${safe}...`;
 }
-
 type RipgrepJsonRecord = {
   type?: string;
   data?: {
-    path?: { text?: string };
-    lines?: { text?: string };
+    path?: {
+      text?: string;
+    };
+    lines?: {
+      text?: string;
+    };
     line_number?: number;
     binary_offset?: number;
   };
 };
-
 function parseRecord(raw: string): RipgrepJsonRecord | undefined {
   if (raw.length === 0) {
     return undefined;
@@ -268,7 +273,6 @@ function parseRecord(raw: string): RipgrepJsonRecord | undefined {
     return undefined;
   }
 }
-
 function matchRow(record: RipgrepJsonRecord): RipgrepRow | undefined {
   const pathText = record.data?.path?.text;
   const lineText = record.data?.lines?.text;
@@ -281,7 +285,6 @@ function matchRow(record: RipgrepJsonRecord): RipgrepRow | undefined {
     text: clipGrepLine(lineText),
   };
 }
-
 async function readCappedStream(
   stream: ReadableStream<Uint8Array>,
   capChars: number,
@@ -299,7 +302,6 @@ async function readCappedStream(
   reader.cancel().catch(() => undefined);
   return text;
 }
-
 function drainDelay(): Promise<null> {
   return new Promise((resolve) => {
     setTimeout(() => resolve(null), KILL_DRAIN_TIMEOUT_MS);

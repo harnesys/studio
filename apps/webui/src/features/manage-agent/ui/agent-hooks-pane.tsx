@@ -2,7 +2,6 @@ import type { HookEventName, HookHandler, HooksBinding } from 'harnesys';
 import { NATIVE_HOOK_EVENTS } from 'harnesys/domain';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
-
 import { Button } from '@/shared/ui/button';
 import { Pane } from '@/shared/ui/capability-rows';
 import { Input } from '@/shared/ui/input';
@@ -10,19 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const HANDLER_TYPES = ['command', 'prompt', 'http'] as const;
 type UiHandlerType = (typeof HANDLER_TYPES)[number];
-
 const HANDLER_TYPE_LABELS: Record<UiHandlerType, string> = {
   command: 'Run command',
   prompt: 'Prompt model',
   http: 'Call url',
 };
-
 const DEFAULT_HANDLERS: Record<UiHandlerType, () => HookHandler> = {
   command: () => ({ type: 'command', command: '' }),
   prompt: () => ({ type: 'prompt', prompt: '' }),
   http: () => ({ type: 'http', url: '' }),
 };
-
 export function AgentHooksPane({
   value,
   onChange,
@@ -31,20 +27,16 @@ export function AgentHooksPane({
   onChange: (next: HooksBinding[]) => void;
 }) {
   const [hooks, setHooks] = useState(value);
-
   function commit(next: HooksBinding[]) {
     setHooks(next);
     onChange(next);
   }
-
   function patch(index: number, patch: Partial<HooksBinding>) {
     commit(hooks.map((hook, i) => (i === index ? { ...hook, ...patch } : hook)));
   }
-
   function patchHandler(index: number, handler: HookHandler) {
     patch(index, { handler });
   }
-
   function switchHandlerType(index: number, next: UiHandlerType) {
     const current = hooks[index]?.handler;
     if (current?.type === next) {
@@ -52,15 +44,12 @@ export function AgentHooksPane({
     }
     patchHandler(index, DEFAULT_HANDLERS[next]());
   }
-
   function addHook() {
     commit([...hooks, { event: 'UserPromptSubmit', handler: DEFAULT_HANDLERS.command() }]);
   }
-
   function removeHook(index: number) {
     commit(hooks.filter((_, i) => i !== index));
   }
-
   return (
     <Pane
       testId="agent-hooks-pane"
@@ -81,7 +70,6 @@ export function AgentHooksPane({
       ) : null}
       {hooks.map((hook, index) => (
         <HookRow
-          // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional bindings
           key={index}
           hook={hook}
           onEvent={(event) => patch(index, { event })}
@@ -94,7 +82,6 @@ export function AgentHooksPane({
     </Pane>
   );
 }
-
 function HookRow({
   hook,
   onEvent,
@@ -161,7 +148,6 @@ function HookRow({
     </div>
   );
 }
-
 function HandlerFields({
   handler,
   disabled,
@@ -206,7 +192,6 @@ function HandlerFields({
   }
   return null;
 }
-
 function EventSelect({
   value,
   onChange,
@@ -237,11 +222,9 @@ function EventSelect({
     </Select>
   );
 }
-
 function isHookEventName(value: string | null): value is HookEventName {
   return typeof value === 'string' && (NATIVE_HOOK_EVENTS as readonly string[]).includes(value);
 }
-
 function isUiHandlerType(value: string | null): value is UiHandlerType {
   return typeof value === 'string' && (HANDLER_TYPES as readonly string[]).includes(value);
 }

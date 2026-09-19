@@ -4,9 +4,7 @@ import type {
   ScheduleRecord,
   ScheduleStatus,
 } from '@harnesys/studio-shared';
-
 import { apiJson } from './client';
-
 export type CreateScheduleInput = {
   name: string;
   targetAgentId: string;
@@ -17,7 +15,6 @@ export type CreateScheduleInput = {
   historyLast?: number;
   threadId?: string;
 };
-
 export type UpdateScheduleInput = {
   name?: string;
   status?: ScheduleStatus;
@@ -29,18 +26,15 @@ export type UpdateScheduleInput = {
   historyLast?: number;
   threadId?: string;
 };
-
 export function listSchedules(workspaceId: string) {
   return apiJson<ScheduleRecord[]>(`/api/workspaces/${workspaceId}/schedules`);
 }
-
 export function createScheduleRecord(workspaceId: string, body: CreateScheduleInput) {
   return apiJson<CreateScheduleResponse>(`/api/workspaces/${workspaceId}/schedules`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
-
 export function updateScheduleRecord(
   workspaceId: string,
   scheduleId: string,
@@ -51,7 +45,6 @@ export function updateScheduleRecord(
     body: JSON.stringify(body),
   });
 }
-
 export function deleteScheduleRecord(workspaceId: string, scheduleId: string) {
   return apiJson<void>(`/api/workspaces/${workspaceId}/schedules/${scheduleId}`, {
     method: 'DELETE',

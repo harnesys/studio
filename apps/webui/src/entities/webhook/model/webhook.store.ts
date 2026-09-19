@@ -1,14 +1,11 @@
 import { create } from 'zustand';
-
 import type { Webhook, WebhookStatus } from './webhook';
-
 export type WebhookDraft = {
   name: string;
   targetAgentId: string;
   detail?: string;
   threadId?: string;
 };
-
 export type WebhookPatch = {
   name?: string;
   status?: WebhookStatus;
@@ -16,7 +13,6 @@ export type WebhookPatch = {
   detail?: string;
   endpoint?: string;
 };
-
 type WebhookStore = {
   items: Webhook[];
   byId: (id: string) => Webhook | undefined;
@@ -26,14 +22,10 @@ type WebhookStore = {
   update: (webhookId: string, patch: WebhookPatch) => void;
   remove: (webhookId: string) => void;
 };
-
 export const useWebhookStore = create<WebhookStore>((set, get) => ({
   items: [],
-
   byId: (id) => get().items.find((item) => item.id === id),
-
   inWorkspace: (workspaceId) => get().items.filter((item) => item.workspaceId === workspaceId),
-
   upsert: (webhook) => {
     set((state) => ({
       items: state.items.some((item) => item.id === webhook.id)
@@ -41,13 +33,11 @@ export const useWebhookStore = create<WebhookStore>((set, get) => ({
         : [...state.items, webhook],
     }));
   },
-
   replaceWorkspace: (workspaceId, webhooks) => {
     set((state) => ({
       items: [...state.items.filter((item) => item.workspaceId !== workspaceId), ...webhooks],
     }));
   },
-
   update: (webhookId, patch) => {
     const current = get().items.find((item) => item.id === webhookId);
     if (!current) {
@@ -72,7 +62,6 @@ export const useWebhookStore = create<WebhookStore>((set, get) => ({
       ),
     }));
   },
-
   remove: (webhookId) => {
     set((state) => ({
       items: state.items.filter((item) => item.id !== webhookId),

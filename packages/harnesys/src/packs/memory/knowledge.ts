@@ -3,16 +3,15 @@ import { definePack } from '../../domain/pack.ts';
 import type { KnowledgePort } from '../../ports/memory.ts';
 import { createKnowledgeTools } from './create-knowledge-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
-
-export type KnowledgeMemoryPorts = { knowledge: KnowledgePort };
-
+export type KnowledgeMemoryPorts = {
+  knowledge: KnowledgePort;
+};
 function topKOf(spec: Record<string, unknown> | undefined): number | undefined {
   const value = spec?.topK;
   return typeof value === 'number' && Number.isFinite(value) && value > 0
     ? Math.floor(value)
     : undefined;
 }
-
 export const knowledgeMemoryCapability = definePack<KnowledgeMemoryPorts, Record<string, unknown>>({
   name: 'knowledge-memory',
   version: '1.0.0',

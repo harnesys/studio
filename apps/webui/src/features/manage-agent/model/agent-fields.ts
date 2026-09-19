@@ -10,7 +10,6 @@ import type {
 import { filterGenerationSettings, withChatGenerationParameters } from '@harnesys/studio-shared';
 import type { PermissionMap } from 'harnesys';
 import { z } from 'zod';
-
 import { agentModesSchema, fieldsToMode, modeToFields } from './agent-mode-fields';
 
 const optionalAmount = z
@@ -18,7 +17,6 @@ const optionalAmount = z
   .transform((value) => value.trim())
   .refine((value) => value === '' || Number.isFinite(Number(value)), 'Must be a number')
   .transform((value) => (value === '' ? undefined : Number(value)));
-
 const optionalPositiveInt = z
   .string()
   .transform((value) => value.trim())
@@ -27,7 +25,6 @@ const optionalPositiveInt = z
     'Must be a positive number',
   )
   .transform((value) => (value === '' ? undefined : Math.floor(Number(value))));
-
 export const agentFieldsSchema = z.object({
   name: z.string().trim().min(1, 'Name required'),
   role: z.string(),
@@ -56,10 +53,8 @@ export const agentFieldsSchema = z.object({
     .optional(),
   color: z.string().nullable().optional(),
 });
-
 export type AgentFieldsInput = z.input<typeof agentFieldsSchema>;
 export type AgentFieldsOutput = z.output<typeof agentFieldsSchema>;
-
 export type AgentGenerationField =
   | 'temperature'
   | 'topP'
@@ -68,8 +63,10 @@ export type AgentGenerationField =
   | 'presencePenalty'
   | 'seed'
   | 'maxTokens';
-
-const FIELD_PARAMS: { field: AgentGenerationField; params: string[] }[] = [
+const FIELD_PARAMS: {
+  field: AgentGenerationField;
+  params: string[];
+}[] = [
   { field: 'temperature', params: ['temperature'] },
   { field: 'topP', params: ['top_p'] },
   { field: 'topK', params: ['top_k'] },
@@ -78,7 +75,6 @@ const FIELD_PARAMS: { field: AgentGenerationField; params: string[] }[] = [
   { field: 'seed', params: ['seed'] },
   { field: 'maxTokens', params: ['max_tokens', 'max_completion_tokens'] },
 ];
-
 export function emptyAgentFields(): AgentFieldsInput {
   return {
     name: '',
@@ -106,7 +102,6 @@ export function emptyAgentFields(): AgentFieldsInput {
     color: null,
   };
 }
-
 export function agentFieldsFrom(agent: {
   name: string;
   role: string;
@@ -150,7 +145,6 @@ export function agentFieldsFrom(agent: {
     budgetPolicy: agent.budget?.policy ?? 'ask',
   };
 }
-
 export function toAgentDraft(values: AgentFieldsOutput): {
   name: string;
   role: string;
@@ -211,7 +205,6 @@ export function toAgentDraft(values: AgentFieldsOutput): {
     color: values.color ?? null,
   };
 }
-
 export function modelEfforts(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
@@ -223,7 +216,6 @@ export function modelEfforts(
   }
   return levels;
 }
-
 export function modelSupportedParameters(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
@@ -235,7 +227,6 @@ export function modelSupportedParameters(
   const stored = model.host?.supported_parameters ?? model.supported_parameters;
   return withChatGenerationParameters(stored);
 }
-
 export function generationFieldVisible(
   supported: string[] | undefined,
   field: AgentGenerationField,
@@ -249,17 +240,18 @@ export function generationFieldVisible(
   }
   return entry.params.some((name) => supported.includes(name));
 }
-
 export function hasGenerationFields(supported: string[] | undefined): boolean {
   return FIELD_PARAMS.some((item) => generationFieldVisible(supported, item.field));
 }
-
 export function sanitizeForModel(
   modelId: string | null,
   effort: string | null | undefined,
   generation: AgentGenerationSettings | null | undefined,
   providers: ProviderPublic[],
-): { effort: string | null; generation: AgentGenerationSettings | null } {
+): {
+  effort: string | null;
+  generation: AgentGenerationSettings | null;
+} {
   const levels = modelEfforts(modelId, providers);
   const nextEffort = effort && levels.includes(effort as Effort) ? effort : null;
   const supported = modelSupportedParameters(modelId, providers);
@@ -269,7 +261,6 @@ export function sanitizeForModel(
     generation: filtered ?? null,
   };
 }
-
 function compactGeneration(settings: AgentGenerationSettings): AgentGenerationSettings | null {
   if (!settings) {
     return null;
@@ -286,7 +277,6 @@ function compactGeneration(settings: AgentGenerationSettings): AgentGenerationSe
   }
   return wrote ? out : null;
 }
-
 function compactToolOutput(settings: ToolOutputSettings): ToolOutputSettings | null {
   const out: ToolOutputSettings = {};
   let wrote = false;
@@ -300,7 +290,6 @@ function compactToolOutput(settings: ToolOutputSettings): ToolOutputSettings | n
   }
   return wrote ? out : null;
 }
-
 function findModel(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
@@ -316,7 +305,6 @@ function findModel(
   }
   return undefined;
 }
-
 function stringify(value: number | undefined): string {
   return value === undefined ? '' : String(value);
 }

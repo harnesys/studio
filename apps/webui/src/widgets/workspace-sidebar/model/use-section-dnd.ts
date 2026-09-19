@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useAccordionStore } from './accordion.store';
 
-type DropHint = { id: string; before: boolean };
-
+type DropHint = {
+  id: string;
+  before: boolean;
+};
 type SectionDragProps = {
   draggable: boolean;
   onDragStart: (event: React.DragEvent<HTMLButtonElement>) => void;
@@ -11,7 +13,6 @@ type SectionDragProps = {
   onDrop: (event: React.DragEvent<HTMLButtonElement>) => void;
   onDragEnd: (event: React.DragEvent<HTMLButtonElement>) => void;
 };
-
 export function useSectionDnd(): {
   draggingId: string | null;
   dropHintFor: (id: string) => 'before' | 'after' | null;
@@ -19,19 +20,16 @@ export function useSectionDnd(): {
 } {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropHint, setDropHint] = useState<DropHint | null>(null);
-
   const dropHintFor = (id: string): 'before' | 'after' | null => {
     if (dropHint?.id !== id) {
       return null;
     }
     return dropHint.before ? 'before' : 'after';
   };
-
   const reset = () => {
     setDraggingId(null);
     setDropHint(null);
   };
-
   const commit = (draggedId: string, targetId: string, before: boolean) => {
     const order = useAccordionStore.getState().order;
     if (!order.includes(draggedId) || !order.includes(targetId) || draggedId === targetId) {
@@ -45,7 +43,6 @@ export function useSectionDnd(): {
     next.splice(insertAt, 0, draggedId);
     useAccordionStore.getState().setOrder(next);
   };
-
   const headerProps = (id: string): SectionDragProps => ({
     draggable: true,
     onDragStart: (event) => {
@@ -77,6 +74,5 @@ export function useSectionDnd(): {
     },
     onDragEnd: reset,
   });
-
   return { draggingId, dropHintFor, headerProps };
 }

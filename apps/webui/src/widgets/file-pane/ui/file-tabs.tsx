@@ -10,12 +10,10 @@ import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/locat
 import { cn } from '@/shared/lib/utils';
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
 import { ScrollArea } from '@/shared/ui/scroll-area';
-
 export function FileTabs() {
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const { tabs, activePath } = useWorkspaceOpenFiles(workspaceId);
   const activeTabRef = useRef<HTMLDivElement | null>(null);
-
   useLayoutEffect(() => {
     const tab = activeTabRef.current;
     if (!tab) {
@@ -31,11 +29,9 @@ export function FileTabs() {
       tab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
     }
   }, []);
-
   if (!workspaceId || tabs.length === 0) {
     return null;
   }
-
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1" data-testid="file-tabs">
       <ScrollArea className="min-w-0 flex-1">

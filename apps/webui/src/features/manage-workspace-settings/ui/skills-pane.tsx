@@ -2,7 +2,6 @@ import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, PuzzleIcon, RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
-
 import { pluginStatusBadge, pluginStatusText } from '@/features/manage-agent';
 import { openCreateSkillDialog } from '@/features/manage-workspace-skills';
 import {
@@ -23,7 +22,6 @@ export function SkillsPane({ workspaceId }: { workspaceId: string }) {
   });
   const skills = skillsQuery.data?.skills ?? [];
   const [expandedName, setExpandedName] = useState<string | null>(null);
-
   const reload = useMutation({
     mutationFn: () => {
       if (!workspaceId) {
@@ -39,7 +37,6 @@ export function SkillsPane({ workspaceId }: { workspaceId: string }) {
       toast.add({ title: 'Skills reloaded' });
     },
   });
-
   const create = useMutation({
     mutationFn: (body: CreateWorkspaceSkillRequest) => {
       if (!workspaceId) {
@@ -55,7 +52,6 @@ export function SkillsPane({ workspaceId }: { workspaceId: string }) {
       toast.add({ title: 'Skill created', description: result.skill.name });
     },
   });
-
   return (
     <div className="flex flex-col gap-2" data-testid="skills-pane">
       <RowHeader label="Skills" count={skillsQuery.isPending ? undefined : skills.length}>
@@ -163,7 +159,6 @@ export function SkillsPane({ workspaceId }: { workspaceId: string }) {
     </div>
   );
 }
-
 function pluginSkillTitle(name: string, pluginName: string): string {
   const prefix = `${pluginName}:`;
   return name.startsWith(prefix) ? name.slice(prefix.length) : name;

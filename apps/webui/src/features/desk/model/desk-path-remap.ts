@@ -1,8 +1,6 @@
 import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { remapWorkspacePath } from '@/shared/lib/workspace-path';
 import type { WorkspaceOpenFiles } from './desk.store';
-
-/** Move open-file tabs onto their new paths, following descendants of moved directories. */
 export function remapWorkspaceOpenFiles(
   files: WorkspaceOpenFiles,
   moves: WorkspaceMoveItem[],

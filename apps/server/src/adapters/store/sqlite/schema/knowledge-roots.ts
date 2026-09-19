@@ -1,6 +1,5 @@
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { workspacesTable } from './workspaces.ts';
-
 export const knowledgeRootsTable = sqliteTable(
   'knowledge_roots',
   {
@@ -17,6 +16,5 @@ export const knowledgeRootsTable = sqliteTable(
     }),
   }),
 );
-
 export type KnowledgeRootRow = typeof knowledgeRootsTable.$inferSelect;
 export type KnowledgeRootInsert = typeof knowledgeRootsTable.$inferInsert;

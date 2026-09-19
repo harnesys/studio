@@ -3,9 +3,7 @@ import type { PluginComponent, PluginIr, PluginKind } from 'harnesys';
 import type { PluginInstallRecord } from '../../domain/plugin.port.ts';
 import { isConfigOptionComponent } from './plugin-user-config.ts';
 
-/** Placeholder for a sensitive option value present in SQLite storage. */
 const MASKED_OPTION = '••••••••';
-
 export function toPluginSummary(record: PluginInstallRecord, ir: PluginIr): PluginSummary {
   const summary: PluginSummary = {
     workspaceId: record.workspaceId,
@@ -41,7 +39,6 @@ export function toPluginSummary(record: PluginInstallRecord, ir: PluginIr): Plug
   }
   return summary;
 }
-
 function toComponentSummary(component: PluginComponent): PluginComponentSummary {
   const item: PluginComponentSummary = {
     kind: component.kind,
@@ -53,7 +50,6 @@ function toComponentSummary(component: PluginComponent): PluginComponentSummary 
   }
   return item;
 }
-
 function maskedOptions(record: PluginInstallRecord, ir: PluginIr) {
   const sensitive = new Set(
     ir.components
@@ -67,7 +63,6 @@ function maskedOptions(record: PluginInstallRecord, ir: PluginIr) {
   }
   return options;
 }
-
 function countKind(ir: PluginIr, kind: PluginKind): number {
   return ir.components.filter((component) => component.kind === kind).length;
 }

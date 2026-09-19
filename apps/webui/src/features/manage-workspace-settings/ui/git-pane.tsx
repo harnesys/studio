@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { GitBranchIcon } from 'lucide-react';
-
 import { getGitStatus, gitStatusQueryKey } from '@/shared/api/git';
 import { Badge } from '@/shared/ui/badge';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
@@ -8,38 +7,28 @@ import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 
 type DecorationsMode = 'auto' | 'on' | 'off';
-
 function getDecorationsMode(): DecorationsMode {
   try {
     const v = localStorage.getItem('git-decorations');
     if (v === 'on' || v === 'off' || v === 'auto') {
       return v;
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
   return 'auto';
 }
-
 export function GitPane({ workspaceId }: { workspaceId: string }) {
   const statusQuery = useQuery({
     queryKey: gitStatusQueryKey(workspaceId),
     queryFn: () => getGitStatus(workspaceId),
     enabled: Boolean(workspaceId),
   });
-
   const status = statusQuery.data;
   const isGit = status?.isGit === true;
-
   const handleDecorationsChange = (value: string) => {
     try {
       localStorage.setItem('git-decorations', value);
-    } catch {
-      // ignore
-    }
-    // force reload file-status queries on next mount
+    } catch {}
   };
-
   if (!workspaceId) {
     return (
       <FieldGroup>
@@ -50,7 +39,6 @@ export function GitPane({ workspaceId }: { workspaceId: string }) {
       </FieldGroup>
     );
   }
-
   if (statusQuery.isLoading) {
     return (
       <FieldGroup>
@@ -58,7 +46,6 @@ export function GitPane({ workspaceId }: { workspaceId: string }) {
       </FieldGroup>
     );
   }
-
   return (
     <FieldGroup className="gap-5">
       <Field>
@@ -77,9 +64,20 @@ export function GitPane({ workspaceId }: { workspaceId: string }) {
           </div>
           {status &&
           'gitVersion' in status &&
-          (status as { gitVersion?: string | null }).gitVersion ? (
+          (
+            status as {
+              gitVersion?: string | null;
+            }
+          ).gitVersion ? (
             <FieldDescription>
-              Git {(status as { gitVersion?: string }).gitVersion}
+              Git{' '}
+              {
+                (
+                  status as {
+                    gitVersion?: string;
+                  }
+                ).gitVersion
+              }
             </FieldDescription>
           ) : (
             <FieldDescription>Git not found on server.</FieldDescription>

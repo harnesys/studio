@@ -1,8 +1,4 @@
-export {
-  confirmDeletePin,
-  openAddPinDialog,
-  openEditPinDialog,
-} from './model/pin-dialogs';
+export { confirmDeletePin, openAddPinDialog, openEditPinDialog } from './model/pin-dialogs';
 export type { PinDraft } from './model/pin-fields';
 export {
   confirmDeleteSemantic,

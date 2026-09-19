@@ -1,7 +1,6 @@
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { Thread, ThreadRepository } from '../../domain/thread.port.ts';
 import type { WebhookRepository } from '../../domain/webhook.port.ts';
-
 export type BindWebhookThreadInput = {
   threads: ThreadRepository;
   webhooks: WebhookRepository;
@@ -10,7 +9,6 @@ export type BindWebhookThreadInput = {
   threadId: string;
   exceptWebhookId?: string;
 };
-
 export function requireBindableWebhookThread(input: BindWebhookThreadInput): Thread {
   const threadId = input.threadId.trim();
   if (!threadId) {

@@ -22,7 +22,6 @@ import type { ThreadRepository } from '../src/domain/thread.port.ts';
 import type { UnitOfWork } from '../src/domain/unit-of-work.port.ts';
 import type { WebhookRepository } from '../src/domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../src/domain/workspace.port.ts';
-
 export type TestStoreRepos = {
   workspace: WorkspaceRepository;
   agent: AgentRepository;
@@ -34,31 +33,27 @@ export type TestStoreRepos = {
   runtimeState: RuntimeStateRepository;
   attachment: AttachmentRepository;
 };
-
-export type TestStoreDb = StudioDb & { $client: Database };
-
+export type TestStoreDb = StudioDb & {
+  $client: Database;
+};
 export type TestStore = {
   db: TestStoreDb;
   repos: TestStoreRepos;
   uow: UnitOfWork;
   cleanup: () => void;
 };
-
 export type Seed = Record<string, never>;
-
 export function createSqliteTestStore(seed: Seed = {}): Promise<TestStore> {
   void seed;
   const sqlite = new Database(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON');
   const db = drizzle(sqlite, { schema }) as TestStoreDb;
   bootstrapDatabase(db);
-
   const runtimeStateFactory: RuntimeStateRepository = {
     forState(threadId: string) {
       return new SqliteRuntimeState(db, threadId, threadId);
     },
   };
-
   const repos: TestStoreRepos = {
     workspace: new SqliteWorkspaceRepo(db),
     agent: new SqliteAgentRepo(db),
@@ -70,7 +65,6 @@ export function createSqliteTestStore(seed: Seed = {}): Promise<TestStore> {
     runtimeState: runtimeStateFactory,
     attachment: new SqliteAttachmentRepo(db),
   };
-
   return Promise.resolve({
     db,
     repos,

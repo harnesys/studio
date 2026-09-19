@@ -4,36 +4,25 @@ import { ConflictError, NotFoundError, ValidationError } from '../../domain/stud
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../../domain/workspace-files.port.ts';
 import { resolveWorkspaceRelPath } from './workspace-path.ts';
-
 export type MoveWorkspaceFilesRequest = {
   workspaceId: string;
   items: WorkspaceMoveItem[];
 };
-
 export type MoveWorkspaceFilesInput = {
   execute(req: MoveWorkspaceFilesRequest): Promise<WorkspaceMoveResult>;
 };
-
 type ResolvedMove = {
   fromRel: string;
   toRel: string;
   fromAbs: string;
   toAbs: string;
 };
-
 const MAX_ITEMS = 500;
-
-/**
- * Batch move/rename inside a workspace. Paths are validated for the whole batch
- * before anything touches disk, then applied one by one; a mid-batch failure
- * rolls the already applied moves back, so the result is all-or-nothing.
- */
 export class MoveWorkspaceFilesUseCase implements MoveWorkspaceFilesInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly files: WorkspaceFilesPort,
   ) {}
-
   async execute(req: MoveWorkspaceFilesRequest): Promise<WorkspaceMoveResult> {
     const workspace = this.workspaces.findById(req.workspaceId);
     if (!workspace) {
@@ -45,16 +34,13 @@ export class MoveWorkspaceFilesUseCase implements MoveWorkspaceFilesInput {
     if (req.items.length > MAX_ITEMS) {
       throw new ValidationError(`too many items (max ${MAX_ITEMS})`);
     }
-
     const moves = await this.plan(workspace.path, req.items);
     await this.apply(moves);
     return { moved: moves.map(({ fromRel, toRel }) => ({ from: fromRel, to: toRel })) };
   }
-
   private async plan(root: string, items: WorkspaceMoveItem[]): Promise<ResolvedMove[]> {
     const moves: ResolvedMove[] = [];
     const destinations = new Set<string>();
-
     for (const item of items) {
       const fromRel = normalizeRel(item.from);
       const toRel = normalizeRel(item.to);
@@ -64,10 +50,8 @@ export class MoveWorkspaceFilesUseCase implements MoveWorkspaceFilesInput {
       if (fromRel === toRel) {
         throw new ValidationError(`source and destination are the same: ${fromRel}`);
       }
-
       const fromAbs = resolveWorkspaceRelPath(root, fromRel);
       const toAbs = resolveWorkspaceRelPath(root, toRel);
-
       if (isInside(fromAbs, toAbs)) {
         throw new ConflictError(`cannot move ${fromRel} into itself`);
       }
@@ -75,7 +59,6 @@ export class MoveWorkspaceFilesUseCase implements MoveWorkspaceFilesInput {
         throw new ConflictError(`duplicate destination: ${toRel}`);
       }
       destinations.add(toAbs);
-
       const source = await this.files.stat(fromAbs);
       if (!source) {
         throw new NotFoundError(`Source ${fromRel} not found`);
@@ -83,15 +66,11 @@ export class MoveWorkspaceFilesUseCase implements MoveWorkspaceFilesInput {
       if (await this.files.stat(toAbs)) {
         throw new ConflictError(`Destination already exists: ${toRel}`);
       }
-
       moves.push({ fromRel, toRel, fromAbs, toAbs });
     }
-
     this.rejectNestedMoves(moves);
     return moves;
   }
-
-  /** Moving a directory carries its descendants, so listing them separately is an error. */
   private rejectNestedMoves(moves: ResolvedMove[]): void {
     for (const move of moves) {
       const source = resolve(move.fromAbs);
@@ -105,7 +84,6 @@ export class MoveWorkspaceFilesUseCase implements MoveWorkspaceFilesInput {
       }
     }
   }
-
   private async apply(moves: ResolvedMove[]): Promise<void> {
     const done: ResolvedMove[] = [];
     for (const move of moves) {
@@ -120,22 +98,17 @@ export class MoveWorkspaceFilesUseCase implements MoveWorkspaceFilesInput {
       }
     }
   }
-
   private async rollback(done: ResolvedMove[]): Promise<void> {
     for (const move of [...done].reverse()) {
       try {
         await this.files.move(move.toAbs, move.fromAbs);
-      } catch {
-        // Rollback is best effort; the original error is the one that surfaces.
-      }
+      } catch {}
     }
   }
 }
-
 function normalizeRel(path: string): string {
   return path.replace(/^\/+/, '').replaceAll('\\', '/').replace(/\/+$/, '');
 }
-
 function isInside(parentAbs: string, childAbs: string): boolean {
   const rel = relative(resolve(parentAbs), resolve(childAbs));
   return rel !== '' && !rel.startsWith('..');

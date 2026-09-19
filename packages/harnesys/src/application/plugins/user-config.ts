@@ -1,29 +1,14 @@
-/**
- * Подстановка `${user_config.KEY}` (спека §3 config-option): exec-контексты
- * (argv-хуки, MCP/LSP) подставляют значения, контент скиллов/агентов —
- * выбрасывает sensitive-ссылки, не подставляя их значения.
- */
 export type UserConfigValue = string | number | boolean;
-
-/** Сохранённые значения опций плагина; sensitive приходят из секрет-хранилища хоста. */
 export type UserConfigValues = Record<string, UserConfigValue>;
-
-/** Опции подстановки в контент: sensitive-ключи выбрасываются даже при известном значении. */
 export type UserConfigContentOptions = {
   values: UserConfigValues;
   sensitiveKeys: ReadonlySet<string>;
 };
-
-/** Ссылка не разрешается: ключ не объявлен схемой или значение недоступно. */
-export type ConfigError = { key: string; message: string };
-
+export type ConfigError = {
+  key: string;
+  message: string;
+};
 const USER_CONFIG_REF = /\$\{user_config\.([A-Za-z0-9_]+)\}/g;
-
-/**
- * Exec-контекст: каждая ссылка обязана разрешиться. Значение в `options` —
- * подстановка; sensitive без значения — отказ (хост не достал секрет);
- * неизвестный ключ — отказ (опечатка или схема изменилась).
- */
 export function substituteUserConfig(
   value: string,
   options: UserConfigValues,
@@ -45,11 +30,6 @@ export function substituteUserConfig(
   });
   return error ?? out;
 }
-
-/**
- * Контент скиллов/агентов: разрешённые ссылки подставляются, sensitive и
- * неразрешённые — выбрасываются (литерал `${user_config.*}` в промпт не течёт).
- */
 export function substituteUserConfigContent(
   text: string,
   options: UserConfigContentOptions,

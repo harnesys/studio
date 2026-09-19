@@ -9,18 +9,15 @@ import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { kindFromMediaType, MAX_ATTACHMENT_BYTES, modelAccepts } from './attachment-kind.ts';
 import { attachmentRelPath, sanitizeFileName } from './studio-files.ts';
-
 export type CreateThreadAttachmentRequest = {
   threadId: string;
   name: string;
   mediaType: string;
   bytes: Uint8Array;
 };
-
 export type CreateThreadAttachmentInput = {
   execute(request: CreateThreadAttachmentRequest): Promise<ThreadAttachment>;
 };
-
 export type CreateThreadAttachmentDeps = {
   threads: ThreadRepository;
   agents: AgentRepository;
@@ -29,7 +26,6 @@ export type CreateThreadAttachmentDeps = {
   attachments: AttachmentRepository;
   attachmentsFs: AttachmentsPort;
 };
-
 export class CreateThreadAttachmentUseCase implements CreateThreadAttachmentInput {
   private readonly threads: ThreadRepository;
   private readonly agents: AgentRepository;
@@ -37,7 +33,6 @@ export class CreateThreadAttachmentUseCase implements CreateThreadAttachmentInpu
   private readonly workspaces: WorkspaceRepository;
   private readonly attachments: AttachmentRepository;
   private readonly attachmentsFs: AttachmentsPort;
-
   constructor(deps: CreateThreadAttachmentDeps) {
     this.threads = deps.threads;
     this.agents = deps.agents;
@@ -46,7 +41,6 @@ export class CreateThreadAttachmentUseCase implements CreateThreadAttachmentInpu
     this.attachments = deps.attachments;
     this.attachmentsFs = deps.attachmentsFs;
   }
-
   async execute(request: CreateThreadAttachmentRequest): Promise<ThreadAttachment> {
     if (request.bytes.byteLength === 0) {
       throw new ValidationError('attachment is empty');

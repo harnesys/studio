@@ -23,19 +23,11 @@ import {
 import { logger } from '../../config/logger.ts';
 import type { HostNodeRecord } from '../../domain/machine-config.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
-
 export type CutoverResult = {
   migrated: string[];
   skipped: string[];
   bakPath: string | null;
 };
-
-/**
- * Stopped-host cutover: copy domain+catalog rows from `~/.harnesys/studio.db`
- * into each node's `<workspace>/.harnesys/workspace.db`, seed FS overlays,
- * rename studio.db → studio.db.bak. Idempotent: existing non-empty workspace.db
- * is skipped.
- */
 export function cutoverStudioDb(home: string = defaultHomePath()): CutoverResult {
   const config = new MachineConfigFileAdapter({ home });
   const nodes = config.read().host.nodes;
@@ -43,10 +35,8 @@ export function cutoverStudioDb(home: string = defaultHomePath()): CutoverResult
     logger.info({ scope: 'cutover' }, 'host.nodes empty; nothing to migrate');
     return { migrated: [], skipped: [], bakPath: null };
   }
-
   const legacyPath = studioDbPath(home);
   if (!existsSync(legacyPath)) {
-    // Ensure each ready node has a workspace.db identity file even without legacy.
     const migrated: string[] = [];
     const skipped: string[] = [];
     for (const node of nodes) {
@@ -59,10 +49,8 @@ export function cutoverStudioDb(home: string = defaultHomePath()): CutoverResult
     }
     return { migrated, skipped, bakPath: null };
   }
-
   const migrated: string[] = [];
   const skipped: string[] = [];
-
   for (const node of nodes) {
     const dest = workspaceDbPath(node.path);
     if (hasNonEmptyDb(dest)) {
@@ -74,7 +62,6 @@ export function cutoverStudioDb(home: string = defaultHomePath()): CutoverResult
     migrated.push(node.id);
     logger.info({ scope: 'cutover' }, `migrated ${node.id} → ${dest}`);
   }
-
   let bakPath: string | null = null;
   if (existsSync(legacyPath)) {
     bakPath = studioDbBakPath(home);
@@ -86,15 +73,12 @@ export function cutoverStudioDb(home: string = defaultHomePath()): CutoverResult
     renameSync(legacyPath, bakPath);
     logger.info({ scope: 'cutover' }, `renamed ${legacyPath} → ${bakPath}`);
   }
-
   return { migrated, skipped, bakPath };
 }
-
 function migrateNode(legacyPath: string, home: string, node: HostNodeRecord): void {
   mkdirSync(studioDir(node.path), { recursive: true });
   const destPath = workspaceDbPath(node.path);
   bootstrap(createSqliteConnection(destPath));
-
   const raw = new Database(destPath);
   for (const pragma of ['PRAGMA foreign_keys = ON', 'PRAGMA journal_mode = WAL']) {
     raw.exec(pragma);
@@ -109,23 +93,25 @@ function migrateNode(legacyPath: string, home: string, node: HostNodeRecord): vo
     raw.exec('DETACH DATABASE legacy;');
     raw.close();
   }
-
   seedSkills(home, node.path);
   seedPresets(home, node.path);
   seedPlugins(home, node, destPath);
 }
-
 function copyIdentity(raw: Database, node: HostNodeRecord): void {
   raw.exec(`DELETE FROM workspaces;`);
   const legacy = raw
     .query('SELECT id, name, path, created_at FROM legacy.workspaces WHERE id = ?')
-    .get(node.id) as { id: string; name: string; path: string; created_at: string } | null;
+    .get(node.id) as {
+    id: string;
+    name: string;
+    path: string;
+    created_at: string;
+  } | null;
   const createdAt = legacy?.created_at ?? new Date().toISOString();
   raw
     .query('INSERT INTO workspaces (id, name, path, created_at) VALUES (?, ?, ?, ?)')
     .run(node.id, node.name, node.path, createdAt);
 }
-
 function copyWorkspaceScoped(raw: Database, workspaceId: string): void {
   const tables = [
     'agents',
@@ -156,18 +142,13 @@ function copyWorkspaceScoped(raw: Database, workspaceId: string): void {
       `INSERT OR IGNORE INTO ${table} SELECT * FROM legacy.${table} WHERE workspace_id = '${escapeSql(workspaceId)}';`,
     );
   }
-
-  // Models follow providers of this node.
   if (legacyHasTable(raw, 'llm_models') && legacyHasTable(raw, 'llm_providers')) {
-    raw.exec(
-      `INSERT OR IGNORE INTO llm_models
+    raw.exec(`INSERT OR IGNORE INTO llm_models
        SELECT m.* FROM legacy.llm_models m
        INNER JOIN legacy.llm_providers p ON p.id = m.provider_id
-       WHERE p.workspace_id = '${escapeSql(workspaceId)}';`,
-    );
+       WHERE p.workspace_id = '${escapeSql(workspaceId)}';`);
   }
 }
-
 function copyThreadScoped(raw: Database, workspaceId: string): void {
   if (!legacyHasTable(raw, 'threads')) {
     return;
@@ -175,7 +156,6 @@ function copyThreadScoped(raw: Database, workspaceId: string): void {
   raw.exec(
     `INSERT OR IGNORE INTO threads SELECT * FROM legacy.threads WHERE workspace_id = '${escapeSql(workspaceId)}';`,
   );
-
   const viaThread = [
     ['snapshots', 'thread_id'],
     ['attachments', 'thread_id'],
@@ -187,25 +167,19 @@ function copyThreadScoped(raw: Database, workspaceId: string): void {
     if (!legacyHasTable(raw, table)) {
       continue;
     }
-    raw.exec(
-      `INSERT OR IGNORE INTO ${table}
+    raw.exec(`INSERT OR IGNORE INTO ${table}
        SELECT t.* FROM legacy.${table} t
        INNER JOIN legacy.threads th ON th.id = t.${col}
-       WHERE th.workspace_id = '${escapeSql(workspaceId)}';`,
-    );
+       WHERE th.workspace_id = '${escapeSql(workspaceId)}';`);
   }
-
   if (legacyHasTable(raw, 'thread_plan_items') && legacyHasTable(raw, 'thread_plans')) {
-    raw.exec(
-      `INSERT OR IGNORE INTO thread_plan_items
+    raw.exec(`INSERT OR IGNORE INTO thread_plan_items
        SELECT i.* FROM legacy.thread_plan_items i
        INNER JOIN legacy.thread_plans p ON p.id = i.plan_id
        INNER JOIN legacy.threads th ON th.id = p.thread_id
-       WHERE th.workspace_id = '${escapeSql(workspaceId)}';`,
-    );
+       WHERE th.workspace_id = '${escapeSql(workspaceId)}';`);
   }
 }
-
 function copyPluginRegistries(raw: Database): void {
   if (legacyHasTable(raw, 'plugin_registries')) {
     raw.exec('INSERT OR IGNORE INTO plugin_registries SELECT * FROM legacy.plugin_registries;');
@@ -216,7 +190,6 @@ function copyPluginRegistries(raw: Database): void {
     );
   }
 }
-
 function seedSkills(home: string, workspacePath: string): void {
   const src = systemSkillsPath(home);
   const dest = workspaceSkillsPath(workspacePath);
@@ -225,7 +198,6 @@ function seedSkills(home: string, workspacePath: string): void {
   }
   copyDirContentsIfEmpty(src, dest);
 }
-
 function seedPresets(home: string, workspacePath: string): void {
   for (const sub of ['agents', 'modes'] as const) {
     const src = systemPresetsPath(sub, home);
@@ -237,19 +209,20 @@ function seedPresets(home: string, workspacePath: string): void {
     copyDirContentsIfEmpty(src, dest);
   }
 }
-
 function seedPlugins(home: string, node: HostNodeRecord, destDbPath: string): void {
   const hostPlugins = pluginsPath(home);
   if (!existsSync(hostPlugins)) {
     return;
   }
   mkdirSync(workspacePluginsPath(node.path), { recursive: true });
-
   const db = new Database(destDbPath);
   const rows = db
     .query('SELECT name, path, data_path FROM plugins WHERE workspace_id = ?')
-    .all(node.id) as Array<{ name: string; path: string; data_path: string }>;
-
+    .all(node.id) as Array<{
+    name: string;
+    path: string;
+    data_path: string;
+  }>;
   for (const row of rows) {
     const name = row.name;
     const srcCheckout = existsSync(row.path) ? row.path : pluginInstallPath(home, name);
@@ -271,7 +244,6 @@ function seedPlugins(home: string, node: HostNodeRecord, destDbPath: string): vo
   }
   db.close();
 }
-
 function ensureIdentityDb(node: HostNodeRecord): void {
   const storePath = workspaceDbPath(node.path);
   bootstrap(createSqliteConnection(storePath));
@@ -284,7 +256,6 @@ function ensureIdentityDb(node: HostNodeRecord): void {
   }
   raw.close();
 }
-
 function hasNonEmptyDb(path: string): boolean {
   if (!existsSync(path)) {
     return false;
@@ -295,7 +266,6 @@ function hasNonEmptyDb(path: string): boolean {
     return false;
   }
 }
-
 function copyDirContentsIfEmpty(src: string, dest: string): void {
   mkdirSync(dest, { recursive: true });
   const entries = Array.from(new Bun.Glob('*').scanSync({ cwd: dest }));
@@ -304,19 +274,18 @@ function copyDirContentsIfEmpty(src: string, dest: string): void {
   }
   cpSync(src, dest, { recursive: true });
 }
-
 function legacyHasTable(raw: Database, name: string): boolean {
   const row = raw
     .query("SELECT name FROM legacy.sqlite_master WHERE type='table' AND name = ?")
     .get(name);
   return row !== null;
 }
-
 function legacyHasColumn(raw: Database, table: string, column: string): boolean {
-  const rows = raw.query(`PRAGMA legacy.table_info(${table})`).all() as Array<{ name: string }>;
+  const rows = raw.query(`PRAGMA legacy.table_info(${table})`).all() as Array<{
+    name: string;
+  }>;
   return rows.some((row) => row.name === column);
 }
-
 function escapeSql(value: string): string {
   return value.replaceAll("'", "''");
 }

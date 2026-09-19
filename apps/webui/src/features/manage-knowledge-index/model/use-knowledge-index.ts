@@ -5,7 +5,6 @@ import type {
   UpsertKnowledgeSettingsRequest,
 } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
 import {
   ApiError,
   cancelKnowledgeIndex,
@@ -24,7 +23,6 @@ import {
   upsertKnowledgeRoot,
 } from '@/shared/api';
 import { toast } from '@/shared/ui/toast';
-
 export function useKnowledgeIndex(
   workspaceId: string | undefined,
   fileStatus?: KnowledgeFileStatus,
@@ -32,7 +30,6 @@ export function useKnowledgeIndex(
   const queryClient = useQueryClient();
   const enabled = Boolean(workspaceId);
   const id = workspaceId ?? '';
-
   const settingsQuery = useQuery({
     ...knowledgeSettingsQuery(id),
     enabled,
@@ -53,7 +50,6 @@ export function useKnowledgeIndex(
     ...knowledgeFilesQuery(id, { status: fileStatus }),
     enabled,
   });
-
   async function invalidateAll() {
     if (!workspaceId) {
       return;
@@ -68,14 +64,12 @@ export function useKnowledgeIndex(
       }),
     ]);
   }
-
   function setIndexState(state: KnowledgeIndexState) {
     if (!workspaceId) {
       return;
     }
     queryClient.setQueryData(knowledgeIndexStateQueryKey(workspaceId), state);
   }
-
   const saveSettings = useMutation({
     mutationFn: (body: UpsertKnowledgeSettingsRequest) => {
       if (!workspaceId) {
@@ -96,7 +90,6 @@ export function useKnowledgeIndex(
       });
     },
   });
-
   const upsertRoot = useMutation({
     mutationFn: (body: UpsertKnowledgeRootRequest) => {
       if (!workspaceId) {
@@ -115,7 +108,6 @@ export function useKnowledgeIndex(
       });
     },
   });
-
   const removeRoot = useMutation({
     mutationFn: (path: string) => {
       if (!workspaceId) {
@@ -128,7 +120,6 @@ export function useKnowledgeIndex(
       toast.add({ title: 'Knowledge root removed', description: path });
     },
   });
-
   const reindex = useMutation({
     mutationFn: () => {
       if (!workspaceId) {
@@ -153,7 +144,6 @@ export function useKnowledgeIndex(
       });
     },
   });
-
   const cancel = useMutation({
     mutationFn: () => {
       if (!workspaceId) {
@@ -178,7 +168,6 @@ export function useKnowledgeIndex(
       });
     },
   });
-
   return {
     settingsQuery,
     rootsQuery,

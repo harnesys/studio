@@ -1,9 +1,7 @@
 import type { ComponentType } from 'react';
-
 import { ConfirmAlert, type ConfirmAlertVariant } from './confirm-alert';
 import { useOverlayStore } from './store';
 import type { AlertComponentProps, AlertOptions } from './types';
-
 export function openAlert<TResult, TData = unknown>(
   component: ComponentType<AlertComponentProps<TResult, TData>>,
   options: AlertOptions<TData>,
@@ -22,7 +20,6 @@ export function openAlert<TResult, TData = unknown>(
       );
   });
 }
-
 type ConfirmOptions = {
   title: string;
   description?: string;
@@ -31,7 +28,6 @@ type ConfirmOptions = {
   variant?: ConfirmAlertVariant;
   testId?: string;
 };
-
 function confirm(options: ConfirmOptions): Promise<boolean> {
   return openAlert(ConfirmAlert, {
     title: options.title,
@@ -44,7 +40,6 @@ function confirm(options: ConfirmOptions): Promise<boolean> {
     },
   }).then((result) => !!result);
 }
-
 export const alert = {
   open: openAlert,
   confirm,

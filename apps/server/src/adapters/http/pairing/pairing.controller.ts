@@ -3,14 +3,11 @@ import { redeemPairing, startPairing } from '../../../application/pairing/pairin
 import { logger } from '../../../config/logger.ts';
 import type { MachineConfigPort } from '../../../domain/machine-config.ts';
 import { pairingRedeemBody } from './pairing.body.ts';
-
 export type PairingControllerDeps = {
   machineConfig: MachineConfigPort;
 };
-
 export class PairingController {
   constructor(private readonly deps: PairingControllerDeps) {}
-
   register(app: Hono): void {
     app.post('/api/host/pair/start', (c) => {
       const started = startPairing();
@@ -20,7 +17,6 @@ export class PairingController {
       );
       return c.json(started);
     });
-
     app.post('/api/host/pair/redeem', async (c) => {
       const body = pairingRedeemBody.parse(await c.req.json());
       if (redeemPairing(body.code) !== 'ok') {

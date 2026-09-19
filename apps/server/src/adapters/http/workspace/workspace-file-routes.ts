@@ -11,16 +11,13 @@ import {
   writeWorkspaceFileContentBody,
 } from './workspace.body.ts';
 import type { WorkspaceControllerDeps } from './workspace.controller.ts';
-
 export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): void {
   app.get('/api/workspaces/:id/skills', async (c) => {
     return c.json(await deps.listWorkspaceSkills.execute({ workspaceId: c.req.param('id') }));
   });
-
   app.post('/api/workspaces/:id/skills/reload', async (c) => {
     return c.json(await deps.reloadWorkspaceSkills.execute({ workspaceId: c.req.param('id') }));
   });
-
   app.post('/api/workspaces/:id/skills', async (c) => {
     const body = createWorkspaceSkillBody.parse(await c.req.json());
     const result = await deps.createWorkspaceSkill.execute({
@@ -32,19 +29,15 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.json(result, 201);
   });
-
   app.get('/api/workspaces/:id/mcp', async (c) => {
     return c.json(await deps.getWorkspaceMcp.execute({ workspaceId: c.req.param('id') }));
   });
-
   app.get('/api/workspaces/:id/mcp/config', async (c) => {
     return c.json(await deps.getWorkspaceMcpConfig.execute({ workspaceId: c.req.param('id') }));
   });
-
   app.post('/api/workspaces/:id/mcp/reload', async (c) => {
     return c.json(await deps.reloadWorkspaceMcp.execute({ workspaceId: c.req.param('id') }));
   });
-
   app.put('/api/workspaces/:id/mcp/servers/:serverId', async (c) => {
     const body = upsertWorkspaceMcpServerBody.parse(await c.req.json());
     const result = await deps.upsertWorkspaceMcpServer.execute({
@@ -60,7 +53,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.json(result);
   });
-
   app.delete('/api/workspaces/:id/mcp/servers/:serverId', async (c) => {
     await deps.deleteWorkspaceMcpServer.execute({
       workspaceId: c.req.param('id'),
@@ -68,7 +60,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.body(null, 204);
   });
-
   app.put('/api/workspaces/:id/mcp/servers/:serverId/state', async (c) => {
     const body = setMcpServerStateBody.parse(await c.req.json());
     return c.json(
@@ -79,7 +70,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
       }),
     );
   });
-
   app.post('/api/workspaces/:id/mcp/servers/:serverId/restart', async (c) => {
     return c.json(
       await deps.restartMcpServer.execute({
@@ -88,12 +78,10 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
       }),
     );
   });
-
   app.post('/api/workspaces/:id/reveal', async (c) => {
     await deps.revealWorkspace.execute({ id: c.req.param('id') });
     return c.body(null, 204);
   });
-
   app.get('/api/workspaces/:id/files/tree', async (c) => {
     const hidden = c.req.query('hidden');
     const { entries } = await deps.listWorkspaceFileTree.execute({
@@ -102,7 +90,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.json(entries);
   });
-
   app.get('/api/workspaces/:id/files', async (c) => {
     const subPath = c.req.query('path') ?? '';
     const { entries } = await deps.listWorkspaceFiles.execute({
@@ -111,7 +98,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.json(entries);
   });
-
   app.post('/api/workspaces/:id/files', async (c) => {
     const body = createWorkspaceFileBody.parse(await c.req.json());
     const result = await deps.createWorkspaceFile.execute({
@@ -121,7 +107,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.json(result, 201);
   });
-
   app.delete('/api/workspaces/:id/files', async (c) => {
     const body = deleteWorkspaceFileBody.parse(await c.req.json());
     await deps.deleteWorkspaceFile.execute({
@@ -130,7 +115,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.body(null, 204);
   });
-
   app.post('/api/workspaces/:id/files/move', async (c) => {
     const body = moveWorkspaceFilesBody.parse(await c.req.json());
     const result = await deps.moveWorkspaceFiles.execute({
@@ -139,7 +123,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.json(result);
   });
-
   app.get('/api/workspaces/:id/files/content', async (c) => {
     const path = c.req.query('path') ?? '';
     const result = await deps.getWorkspaceFileContent.execute({
@@ -153,7 +136,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
       },
     });
   });
-
   app.put('/api/workspaces/:id/files/content', async (c) => {
     const body = writeWorkspaceFileContentBody.parse(await c.req.json());
     const result = await deps.writeWorkspaceFileContent.execute({
@@ -163,7 +145,6 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     });
     return c.json(result);
   });
-
   app.get('/api/workspaces/:id/files/watch', async (c) => {
     const wsId = c.req.param('id');
     const workspaces = await deps.listWorkspaces.execute();
@@ -171,16 +152,13 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     if (!ws) {
       return c.body(null, 404);
     }
-
     c.header('Cache-Control', 'no-cache, no-transform');
     c.header('X-Accel-Buffering', 'no');
     c.header('Connection', 'keep-alive');
-
     return streamSSE(c, async (stream) => {
       const keepAlive = setInterval(() => {
         void stream.write(':\n\n').catch(() => {});
-      }, 15_000);
-
+      }, 15000);
       const unwatch = deps.filesWatcher.watch(wsId, ws.path, (event) => {
         void stream
           .writeSSE({
@@ -189,28 +167,23 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
           })
           .catch(() => {});
       });
-
       stream.onAbort(() => {
         clearInterval(keepAlive);
         unwatch();
       });
-
       await new Promise<void>((resolve) => {
         stream.onAbort(resolve);
       });
     });
   });
-
   app.get('/api/desk/watch', (c) => {
     c.header('Cache-Control', 'no-cache, no-transform');
     c.header('X-Accel-Buffering', 'no');
     c.header('Connection', 'keep-alive');
-
     return streamSSE(c, async (stream) => {
       const keepAlive = setInterval(() => {
         void stream.write(':\n\n').catch(() => {});
       }, SSE_KEEP_ALIVE_MS);
-
       const unsubscribe = deps.deskEvents.subscribeAll((event) => {
         void stream
           .writeSSE({
@@ -219,18 +192,15 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
           })
           .catch(() => {});
       });
-
       stream.onAbort(() => {
         clearInterval(keepAlive);
         unsubscribe();
       });
-
       await new Promise<void>((resolve) => {
         stream.onAbort(resolve);
       });
     });
   });
-
   app.get('/api/workspaces/:id/desk/watch', async (c) => {
     const wsId = c.req.param('id');
     const workspaces = await deps.listWorkspaces.execute();
@@ -238,16 +208,13 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
     if (!ws) {
       return c.body(null, 404);
     }
-
     c.header('Cache-Control', 'no-cache, no-transform');
     c.header('X-Accel-Buffering', 'no');
     c.header('Connection', 'keep-alive');
-
     return streamSSE(c, async (stream) => {
       const keepAlive = setInterval(() => {
         void stream.write(':\n\n').catch(() => {});
       }, SSE_KEEP_ALIVE_MS);
-
       const unsubscribe = deps.deskEvents.subscribe(wsId, (event) => {
         void stream
           .writeSSE({
@@ -256,12 +223,10 @@ export function registerFileRoutes(app: Hono, deps: WorkspaceControllerDeps): vo
           })
           .catch(() => {});
       });
-
       stream.onAbort(() => {
         clearInterval(keepAlive);
         unsubscribe();
       });
-
       await new Promise<void>((resolve) => {
         stream.onAbort(resolve);
       });

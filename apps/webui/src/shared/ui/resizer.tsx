@@ -8,7 +8,6 @@ type ResizerProps = {
   orientation?: 'horizontal' | 'vertical';
   onResizeStart: (event: ReactMouseEvent) => void;
 };
-
 export function Resizer({
   label,
   testId,

@@ -1,5 +1,4 @@
 import type { WorkspaceFileEntry, WorkspaceFileEvent } from '@harnesys/studio-shared';
-
 export type FilesWatcherInput = {
   watch(
     workspaceId: string,
@@ -8,5 +7,4 @@ export type FilesWatcherInput = {
   ): () => void;
   listTree(workspacePath: string): Promise<WorkspaceFileEntry[]>;
 };
-
 export type FilesWatcherPort = FilesWatcherInput;

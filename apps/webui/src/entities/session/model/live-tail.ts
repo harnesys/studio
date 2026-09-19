@@ -1,28 +1,22 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { useSyncExternalStore } from 'react';
-
 export type LiveTailKind = 'reasoning' | 'text' | null;
-
 export type LiveTail = {
   kind: LiveTailKind;
   id: string | undefined;
   text: string;
 };
-
 const EMPTY: LiveTail = { kind: null, id: undefined, text: '' };
-
 const tails = new Map<string, LiveTail>();
 const sealed = new Set<string>();
 const listeners = new Map<string, Set<() => void>>();
 const scheduled = new Set<string>();
-
 export function getLiveTail(threadId: string | undefined): LiveTail {
   if (!threadId) {
     return EMPTY;
   }
   return tails.get(threadId) ?? EMPTY;
 }
-
 export function subscribeLiveTail(
   threadId: string | undefined,
   onStoreChange: () => void,
@@ -43,7 +37,6 @@ export function subscribeLiveTail(
     }
   };
 }
-
 function notify(threadId: string): void {
   if (scheduled.has(threadId)) {
     return;
@@ -65,11 +58,6 @@ function notify(threadId: string): void {
   }
   setTimeout(run, 16);
 }
-
-/**
- * Пишет открытый text/reasoning-блок. `continue` — тот же слот,
- * `open` — новый блок (первый токен или слот после seal).
- */
 export function ingestLiveDelta(threadId: string, event: SessionEvent): 'open' | 'continue' {
   if (event.type !== 'reasoning-delta' && event.type !== 'text-delta') {
     return 'continue';
@@ -88,18 +76,14 @@ export function ingestLiveDelta(threadId: string, event: SessionEvent): 'open' |
   notify(threadId);
   return 'open';
 }
-
-/** Следующая дельта с тем же id — новый блок (между ними был tool/start/end). */
 export function sealLiveTail(threadId: string): void {
   sealed.add(threadId);
 }
-
 export function clearLiveTail(threadId: string): void {
   tails.delete(threadId);
   sealed.delete(threadId);
   notify(threadId);
 }
-
 export function clearLiveTails(threadIds: string[]): void {
   for (const id of threadIds) {
     tails.delete(id);
@@ -107,8 +91,6 @@ export function clearLiveTails(threadIds: string[]): void {
     notify(id);
   }
 }
-
-/** Подписка только у живого листа (Thought, последний markdown). Без threadId — пусто. */
 export function useLiveTail(threadId: string | undefined): LiveTail {
   return useSyncExternalStore(
     (onStoreChange) => subscribeLiveTail(threadId, onStoreChange),

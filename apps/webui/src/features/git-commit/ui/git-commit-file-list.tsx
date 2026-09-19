@@ -1,6 +1,5 @@
 import type { GitFileStatus } from '@harnesys/studio-shared';
 import { FileIcon, FilePlusIcon, FileXIcon, PencilIcon } from 'lucide-react';
-
 import { cn } from '@/shared/lib/utils';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 
@@ -8,7 +7,6 @@ type FileEntry = {
   path: string;
   status: GitFileStatus;
 };
-
 export function GitCommitFileList({
   files,
   selectedPath,
@@ -23,13 +21,11 @@ export function GitCommitFileList({
   if (isLoading) {
     return <div className="p-3 text-muted-foreground text-xs">Loading changes…</div>;
   }
-
   if (files.length === 0) {
     return (
       <div className="p-6 text-center text-muted-foreground text-sm">No changes to commit</div>
     );
   }
-
   return (
     <ScrollArea className="flex-1">
       <div className="p-1">
@@ -77,7 +73,6 @@ export function GitCommitFileList({
     </ScrollArea>
   );
 }
-
 function StatusIcon({ status }: { status: GitFileStatus }) {
   if (status === 'added' || status === 'untracked') {
     return <FilePlusIcon className="size-3" />;
@@ -90,7 +85,6 @@ function StatusIcon({ status }: { status: GitFileStatus }) {
   }
   return <FileIcon className="size-3" />;
 }
-
 function statusColor(status: GitFileStatus): string {
   switch (status) {
     case 'added':
@@ -110,7 +104,6 @@ function statusColor(status: GitFileStatus): string {
       return 'text-muted-foreground';
   }
 }
-
 function badgeColor(status: GitFileStatus): string {
   switch (status) {
     case 'added':
@@ -129,7 +122,6 @@ function badgeColor(status: GitFileStatus): string {
       return 'bg-muted text-muted-foreground';
   }
 }
-
 function statusLabel(status: GitFileStatus): string {
   if (status === 'untracked') {
     return 'U';

@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-
 import { groupTools } from '@/entities/tool-catalog';
 import {
   type WorkspaceTool,
@@ -30,14 +29,11 @@ export function ToolsPane({ workspaceId }: { workspaceId: string }) {
     serverIds,
   );
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
   const loading = query.isPending || mcpConfigQuery.isPending || capabilitiesQuery.isPending;
   const total = packs.length + groups.length;
-
   function toggle(id: string) {
     setExpandedId((current) => (current === id ? null : id));
   }
-
   return (
     <div className="flex flex-col gap-2" data-testid="tools-pane">
       {loading && <p className="text-muted-foreground text-sm">Loading packages…</p>}
@@ -106,7 +102,6 @@ export function ToolsPane({ workspaceId }: { workspaceId: string }) {
     </div>
   );
 }
-
 function ToolItem({ tool }: { tool: WorkspaceTool }) {
   return <RowItem testId={`tool-${tool.name}`} title={tool.name} description={tool.description} />;
 }

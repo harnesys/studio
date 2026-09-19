@@ -12,13 +12,11 @@ import {
   WrenchIcon,
 } from 'lucide-react';
 import { type Control, Controller, type FieldPath, useWatch } from 'react-hook-form';
-
 import { cn } from '@/shared/lib/utils';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
-
 import {
   type AddModelInput,
   type AddModelOutput,
@@ -37,7 +35,6 @@ const MODALITY_ICONS = {
   video: VideoIcon,
   file: FileIcon,
 } as const;
-
 const FEATURE_ICONS = {
   tools: WrenchIcon,
   structured: BracesIcon,
@@ -45,7 +42,6 @@ const FEATURE_ICONS = {
   reasoning: BrainIcon,
   cache: DatabaseIcon,
 } as const;
-
 const MODALITY_ON = {
   text: 'bg-sky-500/15 text-sky-500',
   image: 'bg-emerald-500/15 text-emerald-500',
@@ -53,7 +49,6 @@ const MODALITY_ON = {
   video: 'bg-orange-500/15 text-orange-500',
   file: 'bg-slate-500/15 text-slate-500',
 } as const;
-
 export function ModelFields({
   control,
 }: {
@@ -66,7 +61,6 @@ export function ModelFields({
   const fields = control as Control<ModelFieldsInput>;
   const features = useWatch({ control: fields, name: 'features' }) ?? [];
   const hasReasoning = features.includes('reasoning');
-
   return (
     <>
       <Controller
@@ -200,7 +194,6 @@ export function ModelFields({
     </>
   );
 }
-
 function AmountField({
   control,
   name,
@@ -237,7 +230,6 @@ function AmountField({
     />
   );
 }
-
 function ModalityRow({
   label,
   value,

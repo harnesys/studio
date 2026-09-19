@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-
 import { modelGroups, modelOptions } from '../model/model-groups';
 
 type ModelSelectProps = {
@@ -23,7 +22,6 @@ type ModelSelectProps = {
   size?: 'sm' | 'default';
   workspaceId?: string;
 };
-
 export function ModelSelect({
   value,
   onChange,
@@ -41,7 +39,6 @@ export function ModelSelect({
   const items = modelOptions(groups);
   const empty = items.length === 0;
   const selectedLabel = items.find((item) => item.value === value)?.name;
-
   return (
     <Select
       items={items.map((item) => ({ value: item.value, label: item.name }))}

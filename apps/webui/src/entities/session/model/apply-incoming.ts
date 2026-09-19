@@ -1,30 +1,20 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-
 import { isToolInputStream, mergeDeltaContinuation, mergeIncomingEvent } from './coalesce-events';
 import { eventKey, stableEventKey } from './event-keys';
-
 export type ThreadLog = {
   events: SessionEvent[];
   seenAt: Record<string, number>;
   seqCeil: Record<string, number>;
 };
-
 export type ApplyIncomingResult = ThreadLog & {
   accepted: number;
-  /** true, если принят кадр, который не продолжает хвостовую дельту. */
   immediateEpoch: boolean;
 };
-
 function isCoalescedStream(event: SessionEvent): boolean {
   return (
     event.type === 'text-delta' || event.type === 'reasoning-delta' || isToolInputStream(event)
   );
 }
-
-/**
- * Применяет пачку кадров к логу треда. Дельты мутируют рабочую копию
- * (без O(n) копий на токен); continuation не плодит seenAt-ключи.
- */
 export function applyIncomingEvents(
   current: ThreadLog,
   incoming: SessionEvent[],
@@ -38,7 +28,6 @@ export function applyIncomingEvents(
   let seenCopy: Record<string, number> | undefined;
   let accepted = 0;
   let immediateEpoch = false;
-
   const workingEvents = (): SessionEvent[] => {
     if (eventsCopy === undefined) {
       eventsCopy = current.events.slice();
@@ -46,7 +35,6 @@ export function applyIncomingEvents(
     }
     return eventsCopy;
   };
-
   for (const event of incoming) {
     if (
       event.runId !== undefined &&
@@ -63,7 +51,6 @@ export function applyIncomingEvents(
       seqCeil[event.runId] = event.seq;
     }
     accepted += 1;
-
     if (isCoalescedStream(event)) {
       const list = workingEvents();
       const tail = list[list.length - 1];
@@ -85,7 +72,6 @@ export function applyIncomingEvents(
       });
       continue;
     }
-
     const list = workingEvents();
     const key = eventKey(event);
     const index = list.findIndex((ev) => eventKey(ev) === key);
@@ -103,10 +89,8 @@ export function applyIncomingEvents(
       return seenCopy;
     });
   }
-
   return { events, seenAt, seqCeil, accepted, immediateEpoch };
 }
-
 function rememberSeen(event: SessionEvent, now: number, copy: () => Record<string, number>): void {
   const key = stableEventKey(event);
   if (key === undefined) {

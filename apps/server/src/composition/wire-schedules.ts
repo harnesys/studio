@@ -19,7 +19,6 @@ import type { ScheduleRepository } from '../domain/schedule.port.ts';
 import type { SemanticSessionCleanup } from '../domain/semantic-session.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
-
 export type WireSchedulesDeps = {
   app: Hono;
   db?: StudioDb;
@@ -37,7 +36,6 @@ export type WireSchedulesDeps = {
   semanticSessions?: SemanticSessionCleanup;
   queue: ScheduleFireQueue;
 };
-
 export function wireSchedules(deps: WireSchedulesDeps): void {
   const queue = deps.queue;
   const fireDueSchedules = new FireDueSchedulesUseCase({
@@ -53,7 +51,6 @@ export function wireSchedules(deps: WireSchedulesDeps): void {
   if (deps.startTicker) {
     startScheduleTicker(fireDueSchedules);
   }
-
   new ScheduleController({
     listSchedules: new ListSchedulesUseCase(deps.schedules, deps.workspaces),
     createSchedule: new CreateScheduleUseCase({

@@ -2,15 +2,16 @@ import type { Dirent } from 'node:fs';
 import { readdir, stat } from 'node:fs/promises';
 import type { WorkspaceFileEvent, WorkspaceFileEventKind } from '@harnesys/studio-shared';
 
-type SnapshotEntry = { kind: 'file' | 'dir'; mtimeMs: number | null };
+type SnapshotEntry = {
+  kind: 'file' | 'dir';
+  mtimeMs: number | null;
+};
 export type DirSnapshot = Map<string, SnapshotEntry>;
-
 export async function snapshot(dirPath: string, skipDirs: Set<string>): Promise<DirSnapshot> {
   const map: DirSnapshot = new Map();
   await walk(dirPath, '', map, skipDirs);
   return map;
 }
-
 async function walk(
   dir: string,
   rel: string,
@@ -44,10 +45,8 @@ async function walk(
     map.set(relPath, { kind: 'file', mtimeMs });
   }
 }
-
 export function diff(prev: DirSnapshot, curr: DirSnapshot): WorkspaceFileEvent[] {
   const events: WorkspaceFileEvent[] = [];
-
   for (const [relPath, entry] of curr) {
     const before = prev.get(relPath);
     if (!before) {
@@ -64,16 +63,13 @@ export function diff(prev: DirSnapshot, curr: DirSnapshot): WorkspaceFileEvent[]
       events.push(eventFromPath('change', relPath));
     }
   }
-
   for (const [relPath] of prev) {
     if (!curr.has(relPath)) {
       events.push(eventFromPath('delete', relPath));
     }
   }
-
   return events;
 }
-
 function eventFromPath(kind: WorkspaceFileEventKind, relPath: string): WorkspaceFileEvent {
   const lastSlash = relPath.lastIndexOf('/');
   return {

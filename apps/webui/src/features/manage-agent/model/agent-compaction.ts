@@ -1,6 +1,5 @@
 import type { PortRef } from '@harnesys/studio-shared';
 import { THRESHOLD_SUMMARY_NAME } from '@harnesys/studio-shared';
-
 export type CompactionDraft = {
   enabled: boolean;
   thresholdRatio: string;
@@ -10,7 +9,6 @@ export type CompactionDraft = {
   summaryProvider: string;
   summaryModel: string;
 };
-
 export function compactionDraftFrom(ref: PortRef): CompactionDraft {
   if (!ref) {
     return {
@@ -35,7 +33,6 @@ export function compactionDraftFrom(ref: PortRef): CompactionDraft {
     summaryModel: summary.model,
   };
 }
-
 export function toCompactionPortRef(draft: CompactionDraft): PortRef {
   if (!draft.enabled) {
     return null;
@@ -56,31 +53,32 @@ export function toCompactionPortRef(draft: CompactionDraft): PortRef {
   }
   return { name: THRESHOLD_SUMMARY_NAME, spec };
 }
-
-function summaryModelFrom(value: unknown): { provider: string; model: string } {
+function summaryModelFrom(value: unknown): {
+  provider: string;
+  model: string;
+} {
   if (typeof value !== 'object' || value === null) {
     return { provider: '', model: '' };
   }
-  const record = value as { provider?: unknown; model?: unknown };
+  const record = value as {
+    provider?: unknown;
+    model?: unknown;
+  };
   return {
     provider: typeof record.provider === 'string' ? record.provider : '',
     model: typeof record.model === 'string' ? record.model : '',
   };
 }
-
 function stringifyNumber(value: unknown, fallback: string): string {
   return typeof value === 'number' && Number.isFinite(value) ? String(value) : fallback;
 }
-
 function stringifyOptional(value: unknown): string {
   return typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
 }
-
 function parseRatio(value: string, fallback: number): number {
   const next = Number(value.trim());
   return Number.isFinite(next) ? next : fallback;
 }
-
 function parseOptionalInt(value: string): number | undefined {
   const trimmed = value.trim();
   if (!trimmed) {

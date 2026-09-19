@@ -1,13 +1,10 @@
 import { cn } from '@/shared/lib/utils';
-
 export type StatusDotTone = 'idle' | 'live' | 'wait' | 'danger' | 'off';
-
 type StatusDotProps = {
   tone: StatusDotTone;
   className?: string;
   label?: string;
 };
-
 export function StatusDot({ tone, className, label }: StatusDotProps) {
   return (
     <span

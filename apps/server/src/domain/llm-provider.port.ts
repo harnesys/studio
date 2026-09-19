@@ -10,7 +10,6 @@ export type LlmProvider = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type LlmProviderInsert = {
   id: string;
   workspaceId: string;
@@ -23,7 +22,6 @@ export type LlmProviderInsert = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type LlmProviderPatch = Partial<{
   name: string;
   driver: string;
@@ -32,7 +30,6 @@ export type LlmProviderPatch = Partial<{
   headers: Record<string, string>;
   enabled: boolean;
 }>;
-
 export type LlmProviderRepository = {
   list(workspaceId: string): LlmProvider[];
   findById(workspaceId: string, id: string): LlmProvider | undefined;
@@ -41,7 +38,6 @@ export type LlmProviderRepository = {
   update(workspaceId: string, id: string, patch: LlmProviderPatch): LlmProvider;
   delete(workspaceId: string, id: string): void;
 };
-
 export type LlmModel = {
   id: string;
   providerId: string;
@@ -51,7 +47,6 @@ export type LlmModel = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type LlmModelInsert = {
   id: string;
   providerId: string;
@@ -61,13 +56,11 @@ export type LlmModelInsert = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type LlmModelPatch = Partial<{
   name: string;
   kind: string;
   metadata: unknown;
 }>;
-
 export type LlmModelRepository = {
   listByProvider(providerId: string): LlmModel[];
   findById(id: string): LlmModel | undefined;

@@ -23,7 +23,6 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { useSidebar } from '@/shared/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
-
 export function AgentThreadRow({
   thread,
   selected,
@@ -57,7 +56,6 @@ export function AgentThreadRow({
   const statusTone = runState === 'waiting' ? 'text-live/70' : 'text-live';
   const isBranch = Boolean(thread.parentThreadId);
   const hasMenu = Boolean(onPinToggle || onDelete);
-
   return (
     <div
       className={cn(
@@ -142,7 +140,6 @@ export function AgentThreadRow({
     </div>
   );
 }
-
 function threadIcon(kind: ThreadKind): ReactNode {
   if (kind === 'schedule') {
     return <CalendarClockIcon className="size-3.5" />;

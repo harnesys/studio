@@ -3,25 +3,20 @@ import type {
   IncompleteField,
   ProviderModelPublic,
 } from '@harnesys/studio-shared';
-
 import type { ModelFieldsDraft } from '@/features/manage-model';
-
 export type ModelRow = {
   name: string;
   saved: boolean;
   stored?: ProviderModelPublic;
   found?: DiscoveredModelView;
 };
-
 const INCOMPLETE_FIELD_LABELS: Record<IncompleteField, string> = {
   context_length: 'Context',
   pricing: 'Input / output cost',
 };
-
 export function incompleteFieldLabel(field: IncompleteField): string {
   return INCOMPLETE_FIELD_LABELS[field];
 }
-
 export function getMissingFields(row: ModelRow): IncompleteField[] {
   if (row.found?.missing) {
     const meta = row.stored?.metadata as ModelFieldsDraft | undefined;
@@ -40,7 +35,6 @@ export function getMissingFields(row: ModelRow): IncompleteField[] {
   }
   return [];
 }
-
 export function modelRows(
   stored: ProviderModelPublic[],
   found: DiscoveredModelView[] | null,

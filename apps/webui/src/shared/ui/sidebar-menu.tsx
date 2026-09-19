@@ -1,5 +1,4 @@
 'use client';
-
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { cva, type VariantProps } from 'class-variance-authority';
@@ -19,7 +18,6 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<'ul'>) {
     />
   );
 }
-
 function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
   return (
     <li
@@ -30,7 +28,6 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
     />
   );
 }
-
 const sidebarMenuButtonVariants = cva(
   'peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&_svg]:size-4 [&_svg]:shrink-0',
   {
@@ -52,7 +49,6 @@ const sidebarMenuButtonVariants = cva(
     },
   },
 );
-
 function SidebarMenuButton({
   render,
   isActive = false,
@@ -83,17 +79,14 @@ function SidebarMenuButton({
       active: isActive,
     },
   });
-
   if (!tooltip) {
     return comp;
   }
-
   if (typeof tooltip === 'string') {
     tooltip = {
       children: tooltip,
     };
   }
-
   return (
     <Tooltip>
       {comp}
@@ -106,7 +99,6 @@ function SidebarMenuButton({
     </Tooltip>
   );
 }
-
 function SidebarMenuAction({
   className,
   render,
@@ -136,7 +128,6 @@ function SidebarMenuAction({
     },
   });
 }
-
 function SidebarMenuBadge({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -150,7 +141,6 @@ function SidebarMenuBadge({ className, ...props }: React.ComponentProps<'div'>) 
     />
   );
 }
-
 function SidebarMenuSkeleton({
   className,
   showIcon = false,
@@ -158,11 +148,9 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<'div'> & {
   showIcon?: boolean;
 }) {
-  // Random width between 50 to 90%.
   const [width] = React.useState(() => {
     return `${Math.floor(Math.random() * 40) + 50}%`;
   });
-
   return (
     <div
       data-slot="sidebar-menu-skeleton"
@@ -183,7 +171,6 @@ function SidebarMenuSkeleton({
     </div>
   );
 }
-
 function SidebarMenuSub({ className, ...props }: React.ComponentProps<'ul'>) {
   return (
     <ul
@@ -197,7 +184,6 @@ function SidebarMenuSub({ className, ...props }: React.ComponentProps<'ul'>) {
     />
   );
 }
-
 function SidebarMenuSubItem({ className, ...props }: React.ComponentProps<'li'>) {
   return (
     <li
@@ -208,7 +194,6 @@ function SidebarMenuSubItem({ className, ...props }: React.ComponentProps<'li'>)
     />
   );
 }
-
 function SidebarMenuSubButton({
   render,
   size = 'md',

@@ -32,13 +32,11 @@ export function WorkspaceHeader() {
   const focus = useStudioLocation();
   const workspaceId = studioFocusWorkspaceId(focus);
   const [menuWorkspaceId, setMenuWorkspaceId] = useState<string | null>(null);
-
   useEffect(() => {
     if (workspaceId) {
       seedWorkspaceSelection(workspaceId);
     }
   }, [workspaceId]);
-
   const onToggle = (id: string) => {
     const turningOff = selected.includes(id);
     toggle(id);
@@ -56,7 +54,6 @@ export function WorkspaceHeader() {
       );
     }
   };
-
   const onDesk = workspaces.filter((item) => selected.includes(item.id));
   const strip = onDesk.slice(0, WORKSPACE_TAB_CAP);
   const stripOverflow = onDesk.slice(WORKSPACE_TAB_CAP);
@@ -66,7 +63,6 @@ export function WorkspaceHeader() {
   const ghostsOverflow = offDesk.slice(freeSlots);
   const emptySlots = Math.max(0, WORKSPACE_TAB_CAP - strip.length - ghosts.length);
   const emptySlotIds = Array.from({ length: emptySlots }, (_, index) => `empty-slot-${index}`);
-
   const createWorkspace = () => {
     void openCreateWorkspaceDialog().then((created) => {
       if (created) {
@@ -74,7 +70,6 @@ export function WorkspaceHeader() {
       }
     });
   };
-
   if (workspaces.length === 0) {
     return (
       <div
@@ -98,7 +93,6 @@ export function WorkspaceHeader() {
       </div>
     );
   }
-
   return (
     <div
       className="flex flex-col gap-1 group-data-[collapsible=icon]:items-center"

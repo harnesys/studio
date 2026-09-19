@@ -6,8 +6,6 @@ import type { CursorMcpJson, McpServerEntries, StdioEntry, UrlEntry } from '../.
 import { assertInsideRoot } from './plugin-conformance.ts';
 import type { UserConfigContentOptions } from './user-config.ts';
 import { substituteUserConfig } from './user-config.ts';
-
-/** Источник MCP-серверов одного плагина: specs из IR плюс корни и userConfig. */
 export type PluginMcpBinding = {
   name: PluginName;
   pluginRoot: string;
@@ -15,31 +13,15 @@ export type PluginMcpBinding = {
   servers: McpServerSpec[];
   userConfig?: UserConfigContentOptions;
 };
-
 export type MergedPluginMcp = {
   mcp: CursorMcpJson;
   diagnostics: PluginDiagnostic[];
 };
-
-/** Префикс ключа сервера: адресация mcp_tool/hook — `plugin:<name>:<id>`. */
 const SERVER_KEY_PREFIX = 'plugin:';
-
-/**
- * Scoped-имя инструментов плагинного сервера (спека §2.2, инвариант GAPS):
- * `mcp__plugin_<plugin>_<server>__<tool>`; символы вне [A-Za-z0-9_-] → `_`.
- */
 function scopedToolPrefix(pluginName: string, serverId: string): string {
   const sanitize = (value: string): string => value.replace(/[^A-Za-z0-9_-]/g, '_');
   return `mcp__plugin_${sanitize(pluginName)}_${sanitize(serverId)}__`;
 }
-
-/**
- * IR-specs → CursorMcpJson: нормализация в Stdio/UrlEntry, подстановка
- * `${user_config.*}` в exec-поля (command/args/env/url), containment `cwd`
- * внутри pluginRoot/pluginData; ссылка, которая не разрешается, отбрасывает
- * сервер с diagnostic. База сливается первой, серверы плагинов не спорят
- * с ней и между собой — ключи префиксованы именем плагина.
- */
 export function mergePluginMcpFragments(
   base: CursorMcpJson,
   plugins: PluginMcpBinding[],
@@ -57,7 +39,6 @@ export function mergePluginMcpFragments(
   }
   return { mcp: { mcpServers }, diagnostics };
 }
-
 function bindServerEntry(
   spec: McpServerSpec,
   plugin: PluginMcpBinding,
@@ -77,9 +58,13 @@ function bindServerEntry(
     return undefined;
   }
 }
-
 function bindStdioEntry(
-  config: Extract<McpServerConfig, { type: 'stdio' }>,
+  config: Extract<
+    McpServerConfig,
+    {
+      type: 'stdio';
+    }
+  >,
   plugin: PluginMcpBinding,
 ): StdioEntry {
   const entry: StdioEntry = { command: substitute(config.command, plugin) };
@@ -100,9 +85,13 @@ function bindStdioEntry(
   }
   return entry;
 }
-
 function bindUrlEntry(
-  config: Extract<McpServerConfig, { type: 'streamable-http' | 'sse' }>,
+  config: Extract<
+    McpServerConfig,
+    {
+      type: 'streamable-http' | 'sse';
+    }
+  >,
   plugin: PluginMcpBinding,
 ): UrlEntry {
   const entry: UrlEntry = {
@@ -114,9 +103,7 @@ function bindUrlEntry(
   }
   return entry;
 }
-
 class McpContainmentError extends Error {}
-
 function assertCwdInsidePlugin(cwd: string, plugin: PluginMcpBinding): void {
   const resolved = resolve(cwd);
   if (
@@ -127,7 +114,6 @@ function assertCwdInsidePlugin(cwd: string, plugin: PluginMcpBinding): void {
   }
   throw new McpContainmentError(`cwd escapes plugin root: ${cwd}`);
 }
-
 function substitute(value: string, plugin: PluginMcpBinding): string {
   if (plugin.userConfig === undefined || !value.includes('${user_config.')) {
     return value;

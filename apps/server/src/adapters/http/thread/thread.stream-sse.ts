@@ -4,11 +4,9 @@ import { streamSSE } from 'hono/streaming';
 import { SSE_KEEP_ALIVE_MS } from '../../../config/constants.ts';
 import { trace } from '../../../libs/trace.ts';
 
-/** Кадры завершения рана в журнале. У спавнов lifecycle-записи нет — по ним стрим закрывается. */
 function isRunEndFrame(event: SessionEvent): boolean {
   return event.type === 'done' || event.type === 'error' || event.type === 'ask';
 }
-
 export function streamSse(
   c: Context,
   runId: string,
@@ -41,7 +39,7 @@ export function streamSse(
             data: JSON.stringify(ev),
           });
           if (isRunEndFrame(ev) && (await lifecycle.get(runId)) === null) {
-            break; // спавн: lifecycle-записи нет, журнал рана дошёл до терминала
+            break;
           }
         }
         const rec = await lifecycle.get(runId);

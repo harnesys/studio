@@ -7,10 +7,8 @@ import type {
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type AttachmentRow, attachmentsTable, threadsTable } from '../schema';
-
 export class SqliteAttachmentRepo implements AttachmentRepository {
   constructor(private readonly db: StudioDb) {}
-
   listByThread(threadId: string): Attachment[] {
     return this.db
       .select()
@@ -19,7 +17,6 @@ export class SqliteAttachmentRepo implements AttachmentRepository {
       .all()
       .map(toAttachment);
   }
-
   listPending(threadId: string): Attachment[] {
     return this.db
       .select()
@@ -28,12 +25,10 @@ export class SqliteAttachmentRepo implements AttachmentRepository {
       .all()
       .map(toAttachment);
   }
-
   findById(id: string): Attachment | undefined {
     const row = this.db.select().from(attachmentsTable).where(eq(attachmentsTable.id, id)).get();
     return row ? toAttachment(row) : undefined;
   }
-
   insert(rec: AttachmentInsert): Attachment {
     try {
       const row = this.db.insert(attachmentsTable).values(rec).returning().get();
@@ -42,7 +37,6 @@ export class SqliteAttachmentRepo implements AttachmentRepository {
       return mapSqliteError(err, { notFound: 'thread not found' });
     }
   }
-
   attach(entryId: string, ids: string[], threadId: string): void {
     if (ids.length === 0) {
       return;
@@ -57,11 +51,9 @@ export class SqliteAttachmentRepo implements AttachmentRepository {
       mapSqliteError(err, { notFound: 'entry not found' });
     }
   }
-
   delete(id: string): void {
     this.db.delete(attachmentsTable).where(eq(attachmentsTable.id, id)).run();
   }
-
   deleteByWorkspace(workspaceId: string, threadIds?: string[]): void {
     if (threadIds) {
       if (threadIds.length === 0) {
@@ -81,7 +73,6 @@ export class SqliteAttachmentRepo implements AttachmentRepository {
     }
   }
 }
-
 function toAttachment(row: AttachmentRow): Attachment {
   return {
     id: row.id,

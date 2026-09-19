@@ -3,7 +3,6 @@ import { type ReactNode, useState } from 'react';
 import { workspaceMcpQuery, workspaceSkillsQuery } from '@/shared/api';
 import { Pane, Row, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Switch } from '@/shared/ui/switch';
-
 import {
   isChecked,
   mcpServerPluginOf,
@@ -12,15 +11,11 @@ import {
   stripPluginPrefix,
 } from '../model/capability-allowlist';
 
-/**
- * Loose-resource allowlists of the agent (spec §2): skills and MCP servers the
- * agent may use. Tool checkboxes are gone (capability_set model): tools arrive
- * with sources; the effective set is the explain preview in agent-config-category-panes.
- */
-
-type Group<T> = { plugin: string | null; label: string; items: T[] };
-
-/** Direct installs first, then one section per plugin the agent has enabled. */
+type Group<T> = {
+  plugin: string | null;
+  label: string;
+  items: T[];
+};
 function buildGroups<T>(
   items: T[],
   pluginOf: (item: T) => string | null,
@@ -50,7 +45,6 @@ function buildGroups<T>(
   }
   return groups;
 }
-
 export function DraftGrantedSkills({
   workspaceId,
   skills,
@@ -76,7 +70,6 @@ export function DraftGrantedSkills({
       (skill.origin.kind === 'plugin' ? skill.origin.pluginName : null),
     enabledPlugins,
   );
-
   return (
     <Pane
       label="Skills"
@@ -137,7 +130,6 @@ export function DraftGrantedSkills({
     </Pane>
   );
 }
-
 export function DraftGrantedMcpServers({
   workspaceId,
   mcpServers,
@@ -160,7 +152,6 @@ export function DraftGrantedMcpServers({
     enabledPlugins,
   );
   const [expandedServerId, setExpandedServerId] = useState<string | null>(null);
-
   return (
     <Pane
       label="MCP"
@@ -257,12 +248,9 @@ export function DraftGrantedMcpServers({
     </Pane>
   );
 }
-
-/** MCP tool names arrive as `server__tool` — rows show the short part. */
 function shortToolName(name: string): string {
   return name.includes('__') ? name.split('__').slice(1).join('__') : name;
 }
-
 function SectionGroup({
   label,
   count,

@@ -19,13 +19,11 @@ import type { MemorySearchBackend } from './memory-backend.ts';
 import { sqliteClient } from './sqlite-client.ts';
 
 export type { MemorySearchBackend };
-
 export type SqliteEpisodicPortOptions = {
   backend?: MemorySearchBackend;
   embeddings?: EmbeddingsPort;
   topK?: number;
 };
-
 type FtsHitRow = {
   thread_id: string;
   entry_id: string;
@@ -33,12 +31,10 @@ type FtsHitRow = {
   text: string;
   rank: number;
 };
-
 export class SqliteEpisodicPort implements EpisodicPort {
   private backend: MemorySearchBackend;
   private embeddings: EmbeddingsPort | undefined;
   private topK: number;
-
   constructor(
     private readonly db: StudioDb,
     options: SqliteEpisodicPortOptions = {},
@@ -47,15 +43,12 @@ export class SqliteEpisodicPort implements EpisodicPort {
     this.embeddings = options.embeddings;
     this.topK = options.topK ?? 8;
   }
-
   setBackend(backend: MemorySearchBackend): void {
     this.backend = backend;
   }
-
   setEmbeddings(embeddings: EmbeddingsPort | undefined): void {
     this.embeddings = embeddings;
   }
-
   async index(input: EpisodicIndexInput): Promise<void> {
     const wantVector = this.backend === 'vector';
     if (wantVector && !this.embeddings?.available()) {
@@ -64,7 +57,6 @@ export class SqliteEpisodicPort implements EpisodicPort {
       );
     }
     this.deleteRange(input.workspaceId, input.threadId, input.fromSeq, input.toSeq);
-
     const rows = this.db
       .select()
       .from(runEventsTable)
@@ -77,7 +69,6 @@ export class SqliteEpisodicPort implements EpisodicPort {
       )
       .orderBy(runEventsTable.timestamp, runEventsTable.seq)
       .all();
-
     const now = new Date().toISOString();
     for (const row of rows) {
       const metadata = row.metadata ? JSON.parse(row.metadata) : {};
@@ -90,12 +81,10 @@ export class SqliteEpisodicPort implements EpisodicPort {
         output: metadata.output,
         prompt: metadata.prompt,
       } as SessionEvent;
-
       const pieces = chunkText(eventIndexText(event));
       if (pieces.length === 0) {
         continue;
       }
-
       const vectors =
         wantVector && this.embeddings ? await this.embeddings.embed(pieces) : undefined;
       for (let i = 0; i < pieces.length; i++) {
@@ -117,7 +106,6 @@ export class SqliteEpisodicPort implements EpisodicPort {
       }
     }
   }
-
   search(input: EpisodicSearchInput): Promise<EpisodicHit[]> {
     const limit = input.limit ?? this.topK;
     if (this.backend === 'vector') {
@@ -125,7 +113,6 @@ export class SqliteEpisodicPort implements EpisodicPort {
     }
     return Promise.resolve(this.searchFts(input, limit));
   }
-
   private searchFts(input: EpisodicSearchInput, limit: number): EpisodicHit[] {
     const match = buildFtsMatchQuery(input.query);
     if (!match) {
@@ -134,26 +121,22 @@ export class SqliteEpisodicPort implements EpisodicPort {
     const sqlite = sqliteClient(this.db);
     const rows = input.threadId
       ? (sqlite
-          .query(
-            `SELECT c.thread_id AS thread_id, c.entry_id AS entry_id, c.seq AS seq, c.text AS text,
+          .query(`SELECT c.thread_id AS thread_id, c.entry_id AS entry_id, c.seq AS seq, c.text AS text,
                     bm25(episodic_chunks_fts) AS rank
              FROM episodic_chunks_fts
              JOIN episodic_chunks c ON c.rowid = episodic_chunks_fts.rowid
              WHERE episodic_chunks_fts MATCH ? AND c.workspace_id = ? AND c.thread_id = ?
              ORDER BY rank
-             LIMIT ?`,
-          )
+             LIMIT ?`)
           .all(match, input.workspaceId, input.threadId, limit) as FtsHitRow[])
       : (sqlite
-          .query(
-            `SELECT c.thread_id AS thread_id, c.entry_id AS entry_id, c.seq AS seq, c.text AS text,
+          .query(`SELECT c.thread_id AS thread_id, c.entry_id AS entry_id, c.seq AS seq, c.text AS text,
                     bm25(episodic_chunks_fts) AS rank
              FROM episodic_chunks_fts
              JOIN episodic_chunks c ON c.rowid = episodic_chunks_fts.rowid
              WHERE episodic_chunks_fts MATCH ? AND c.workspace_id = ?
              ORDER BY rank
-             LIMIT ?`,
-          )
+             LIMIT ?`)
           .all(match, input.workspaceId, limit) as FtsHitRow[]);
     return rows.map((row) => ({
       threadId: row.thread_id,
@@ -163,7 +146,6 @@ export class SqliteEpisodicPort implements EpisodicPort {
       score: typeof row.rank === 'number' ? -row.rank : undefined,
     }));
   }
-
   private async searchVector(input: EpisodicSearchInput, limit: number): Promise<EpisodicHit[]> {
     if (!this.embeddings?.available()) {
       throw new ValidationError(
@@ -200,8 +182,6 @@ export class SqliteEpisodicPort implements EpisodicPort {
     scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     return scored.slice(0, limit);
   }
-
-  /** Drop chunks previously produced for a covered seq range (optional reindex hygiene). */
   deleteRange(workspaceId: string, threadId: string, fromSeq: number, toSeq: number): void {
     this.db
       .delete(episodicChunksTable)

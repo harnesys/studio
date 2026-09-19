@@ -61,10 +61,7 @@ export type {
   BudgetPolicy,
 } from './src/agent.ts';
 export { defaultAgentCompaction } from './src/agent-runtime-defaults.ts';
-export type {
-  AgentCapabilitiesView,
-  AgentCapabilityRegistryEntry,
-} from './src/capabilities.ts';
+export type { AgentCapabilitiesView, AgentCapabilityRegistryEntry } from './src/capabilities.ts';
 export type {
   AgentGenerationSettings,
   AgentProjectPaths,
@@ -181,9 +178,7 @@ export type {
   WorkspaceMcpTransport,
   WorkspaceSkill,
 } from './src/workspace-config.ts';
-
 export type AttachmentKind = 'image' | 'audio' | 'video' | 'file';
-
 export type ThreadAttachment = {
   id: string;
   kind: AttachmentKind;
@@ -191,7 +186,6 @@ export type ThreadAttachment = {
   mediaType: string;
   path: string;
 };
-
 export type HumanEntry = {
   id: string;
   text?: string;
@@ -199,18 +193,13 @@ export type HumanEntry = {
   attachments?: ThreadAttachment[];
   origin?: string;
 };
-
 export const SCHEDULE_STATUSES = ['active', 'paused', 'failed'] as const;
 export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
-
-/** Library SchedulerPort still speaks PermissionMode; consumed by the studio bridge only. */
 export type { PermissionMode, ScheduleHistory } from 'harnesys/domain';
 export { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys/domain';
-
 export function isScheduleHistory(value: string): value is ScheduleHistory {
   return (SCHEDULE_HISTORIES as readonly string[]).includes(value);
 }
-
 export type ScheduleRecord = {
   id: string;
   workspaceId: string;
@@ -228,14 +217,11 @@ export type ScheduleRecord = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type CreateScheduleResponse = {
   schedule: ScheduleRecord;
   thread: ThreadRecordType;
 };
-
 export type WebhookStatus = ScheduleStatus;
-
 export type WebhookRecord = {
   id: string;
   workspaceId: string;
@@ -249,12 +235,10 @@ export type WebhookRecord = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type CreateWebhookResponse = {
   webhook: WebhookRecord;
   thread: ThreadRecordType;
 };
-
 export type {
   HostNodeStatus,
   IdeTabKind,
@@ -270,14 +254,12 @@ export type {
   WindowHostRecord,
   WorkspaceRecord,
 } from './src/window-desk.ts';
-
 export type WorkspaceStatus = {
   exists: boolean;
   kind: 'folder' | 'git';
   branch?: string;
   dirty?: boolean;
 };
-
 export type {
   GitBranch,
   GitCheckoutRequest,
@@ -289,47 +271,73 @@ export type {
   GitStatusCounts,
   GitStatusResponse,
 } from './src/git.ts';
-
 export type StudioErrorBody = {
   error: string;
 };
-
 export type WorkspaceFileEntry = {
   name: string;
   kind: 'file' | 'dir';
   path: string;
   size?: number;
   modifiedAt?: string;
-  /** Directory listed without its children (heavy safety dir in hidden tree mode). Expand via single-level listing. */
   pruned?: boolean;
 };
-
 export type WorkspaceFileEventKind = 'change' | 'create' | 'delete';
-
 export type WorkspaceFileEvent = {
   kind: WorkspaceFileEventKind;
   dir: string;
   name: string;
 };
-
 export * from './src/plan-types.ts';
 export type { TerminalSessionRecord } from './src/terminal.ts';
 export { isTextAttachment } from './src/text-attachment.ts';
 export * from './src/workspace-files.ts';
-
 export type DeskEvent =
-  | { type: 'thread'; thread: ThreadRecordType }
-  | { type: 'schedule'; schedule: ScheduleRecord }
-  | { type: 'schedule-deleted'; id: string }
-  | { type: 'plan'; plan: ThreadPlanRecord }
-  | { type: 'plan-deleted'; threadId: string }
-  | { type: 'webhook'; webhook: WebhookRecord }
-  | { type: 'webhook-deleted'; id: string }
-  | { type: 'agent'; agent: AgentRecordType }
-  | { type: 'agent-deleted'; id: string }
-  | { type: 'terminal'; workspaceId: string; jobId: string }
-  | { type: 'run-finish'; threadId: string };
-
+  | {
+      type: 'thread';
+      thread: ThreadRecordType;
+    }
+  | {
+      type: 'schedule';
+      schedule: ScheduleRecord;
+    }
+  | {
+      type: 'schedule-deleted';
+      id: string;
+    }
+  | {
+      type: 'plan';
+      plan: ThreadPlanRecord;
+    }
+  | {
+      type: 'plan-deleted';
+      threadId: string;
+    }
+  | {
+      type: 'webhook';
+      webhook: WebhookRecord;
+    }
+  | {
+      type: 'webhook-deleted';
+      id: string;
+    }
+  | {
+      type: 'agent';
+      agent: AgentRecordType;
+    }
+  | {
+      type: 'agent-deleted';
+      id: string;
+    }
+  | {
+      type: 'terminal';
+      workspaceId: string;
+      jobId: string;
+    }
+  | {
+      type: 'run-finish';
+      threadId: string;
+    };
 export type WorkspaceLspEntry = {
   serverId: string;
   origin: 'file' | string;

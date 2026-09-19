@@ -5,33 +5,24 @@ import type { PluginDiagnostic } from '../../../domain/plugin-diagnostics.ts';
 import type { PluginComponent, SkillSpec } from '../../../domain/plugin-ir.ts';
 import { parseSkillFile } from '../../skills/parse-skill-file.ts';
 import { isPlainObject, type PathOverrideValue } from './manifest-result.ts';
-
-/** Контекст discovery: корень плагина и его имя (префикс идентификаторов). */
 export type DiscoverContext = {
   root: string;
   pluginName: string;
 };
-
-/** Диагностика о потерянной записи каталога. */
 export function entryWarning(filePath: string, message: string): PluginDiagnostic {
   return { level: 'warning', code: 'invalid_component', message, path: filePath };
 }
-
-/** Куда discovery складывает результат: компоненты и диагностика. */
 export type DiscoverySink = {
   components: PluginComponent[];
   diagnostics: PluginDiagnostic[];
 };
-
-/**
- * Skills: `skills/<name>/SKILL.md` (один уровень вложенности, AP §7.1)
- * плюс root `SKILL.md` как одиночный скилл (Claude). `extraDirs` —
- * дополнительные корни из path-override `skills` (Claude: дополняет дефолт).
- */
 export function discoverSkillComponents(
   ctx: DiscoverContext,
   extraDirs: string[] = [],
-): { components: PluginComponent[]; diagnostics: PluginDiagnostic[] } {
+): {
+  components: PluginComponent[];
+  diagnostics: PluginDiagnostic[];
+} {
   const sink: DiscoverySink = { components: [], diagnostics: [] };
   const roots = [path.join(ctx.root, 'skills'), ...extraDirs];
   const seen = new Set<string>();
@@ -54,7 +45,6 @@ export function discoverSkillComponents(
   }
   return sink;
 }
-
 function addSkillFromDir(ctx: DiscoverContext, dir: string, sink: DiscoverySink): void {
   const skillFile = path.join(dir, 'SKILL.md');
   if (!isFile(skillFile)) {
@@ -62,7 +52,6 @@ function addSkillFromDir(ctx: DiscoverContext, dir: string, sink: DiscoverySink)
   }
   addSkillFromFile(ctx, dir, skillFile, sink);
 }
-
 function addSkillFromFile(
   ctx: DiscoverContext,
   dir: string,
@@ -87,8 +76,6 @@ function addSkillFromFile(
     sink.diagnostics.push(entryWarning(skillFile, message));
   }
 }
-
-/** Path-override Claude: строка, список строк или inline-объект → список директорий. */
 export function overrideDirs(root: string, value: PathOverrideValue | undefined): string[] {
   if (value === undefined) {
     return [];
@@ -106,8 +93,6 @@ export function overrideDirs(root: string, value: PathOverrideValue | undefined)
   }
   return [];
 }
-
-/** Path-override Claude: inline-объект (имя → определение), если задан. */
 export function overrideInlineObject(
   value: PathOverrideValue | undefined,
 ): Record<string, unknown> | undefined {
@@ -118,19 +103,15 @@ export function overrideInlineObject(
     ? value
     : undefined;
 }
-
 export function relativeToRoot(root: string, target: string): string {
   return path.relative(root, target).split(path.sep).join('/');
 }
-
 export function isDirectory(target: string): boolean {
   return tryStat(target)?.isDirectory() === true;
 }
-
 export function isFile(target: string): boolean {
   return tryStat(target)?.isFile() === true;
 }
-
 export function readFile(filePath: string, diagnostics: PluginDiagnostic[]): string | undefined {
   try {
     return readFileSync(filePath, 'utf8');
@@ -140,7 +121,6 @@ export function readFile(filePath: string, diagnostics: PluginDiagnostic[]): str
     return undefined;
   }
 }
-
 export function listDir(dir: string, diagnostics: PluginDiagnostic[]): string[] {
   try {
     return readdirSync(dir).sort();
@@ -150,7 +130,6 @@ export function listDir(dir: string, diagnostics: PluginDiagnostic[]): string[] 
     return [];
   }
 }
-
 function tryStat(target: string): Stats | undefined {
   try {
     return statSync(target);

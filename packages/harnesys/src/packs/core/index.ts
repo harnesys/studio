@@ -1,6 +1,5 @@
 import { askUser, mapTool, wait } from '../../adapters/actions/index.ts';
 import { definePack } from '../../domain/pack.ts';
-
 export const coreCapability = definePack<Record<string, unknown>, Record<string, unknown>>({
   name: 'core',
   version: '1.0.0',

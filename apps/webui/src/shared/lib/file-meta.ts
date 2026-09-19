@@ -8,7 +8,6 @@ export function formatBytes(bytes: number): string {
   }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
-
 export function fileExtLabel(name: string, mediaType = ''): string {
   const base = name.replaceAll('\\', '/').split('/').pop() ?? name;
   const dot = base.lastIndexOf('.');

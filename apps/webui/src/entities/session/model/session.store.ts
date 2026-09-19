@@ -1,6 +1,5 @@
 import type { SessionEvent, SessionEventType } from '@harnesys/studio-shared';
 import { create } from 'zustand';
-
 import { applyIncomingEvents } from './apply-incoming';
 import { coalesceStreamDeltas, isToolInputStream } from './coalesce-events';
 import { ceilFromEvents, eventKey, fillSeenAt, stableEventKey, stableKeys } from './event-keys';
@@ -13,31 +12,24 @@ import {
   scheduleEpochFlush,
   takePending,
 } from './pending-appends';
-
 export type ActiveRun = {
   runId: string;
   controller: AbortController;
 };
-
 export type RunFailure = {
   id: string;
   threadId: string;
   text: string;
 };
-
 type SessionStoreState = {
   events: Record<string, SessionEvent[]>;
-  /** Первый замеченный arrival-метка по ключу события в треде. История её не имеет. */
   seenAt: Record<string, Record<string, number>>;
-  /** Принятый максимум seq по ранам треда: дедуп at-least-once доставки фида. */
   seqCeil: Record<string, Record<string, number>>;
   activeRuns: Record<string, ActiveRun>;
   failures: RunFailure[];
   contentEpoch: Record<string, number>;
-  /** Оптимистичные skills отправленного user-события по ключу `ce:${clientEventId}`. */
   sentSkills: Record<string, string[]>;
 };
-
 type SessionStoreActions = {
   eventsOf: (threadId: string) => SessionEvent[];
   replaceEvents: (threadId: string, events: SessionEvent[]) => void;
@@ -56,20 +48,14 @@ type SessionStoreActions = {
   removeForThreads: (threadIds: string[]) => void;
   copyEvents: (fromThreadId: string, toThreadId: string) => void;
 };
-
 const EMPTY_EVENTS: SessionEvent[] = [];
-
-/** Backstop: склеить live-дельты в лог, если долго нет tool/start/end. */
 const EPOCH_DELTA_MS = 400;
-
 function isStreamDeltaType(type: SessionEventType): boolean {
   return type === 'text-delta' || type === 'reasoning-delta';
 }
-
 function bumpEpoch(state: SessionStoreState, threadId: string): Record<string, number> {
   return { ...state.contentEpoch, [threadId]: Date.now() };
 }
-
 function applyBatches(
   state: SessionStoreState,
   batches: Map<string, SessionEvent[]>,
@@ -102,7 +88,6 @@ function applyBatches(
   }
   return next;
 }
-
 export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => {
   const flushPending = () => {
     cancelEpochFlush();
@@ -111,7 +96,6 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     }
     set((state) => applyBatches(state, takePending()));
   };
-
   return {
     events: {},
     seenAt: {},
@@ -120,11 +104,9 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     failures: [],
     contentEpoch: {},
     sentSkills: {},
-
     eventsOf(threadId: string) {
       return get().events[threadId] ?? EMPTY_EVENTS;
     },
-
     replaceEvents(threadId, events) {
       clearLiveTail(threadId);
       const coalesced = coalesceStreamDeltas(events);
@@ -139,23 +121,16 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         };
       });
     },
-
     reconcileEvents(threadId, serverEvents) {
       clearLiveTail(threadId);
       const now = Date.now();
       set((state) => {
         const base = applyBatches(state, takePending());
         const existing = base.events[threadId] ?? EMPTY_EVENTS;
-        // Слияние по ключу сохраняет порядок вставки: позицию держит первое
-        // вхождение (optimistic или live), серверная строка подменяет значение.
-        // Delta-слот якорится seq первого токена блока, поэтому блоки с
-        // переиспользованным id (txt-0) не схлопываются в один.
         const byKey = new Map<string, SessionEvent>();
         for (const ev of existing) {
           byKey.set(eventKey(ev), ev);
         }
-        // Полный серверный лог — источник правды: delta-слоты уже склеены,
-        // подмена по ключу, без конкатенации с live-копией (иначе удвоение текста).
         const serverCoalesced = coalesceStreamDeltas(serverEvents);
         for (const ev of serverCoalesced) {
           byKey.set(eventKey(ev), ev);
@@ -174,7 +149,6 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         };
       });
     },
-
     appendEvent(threadId, event) {
       if (isStreamDeltaType(event.type)) {
         const phase = ingestLiveDelta(threadId, event);
@@ -199,7 +173,6 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       enqueuePending(threadId, event);
       flushPending();
     },
-
     removeEventByClientEventId(threadId, clientEventId) {
       set((state) => {
         const base = applyBatches(state, takePending());
@@ -227,12 +200,10 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         return { ...stripped, seenAt: { ...base.seenAt, [threadId]: restSeen } };
       });
     },
-
     setSentSkills(_threadId, clientEventId, skills) {
       set((state) => ({ sentSkills: { ...state.sentSkills, [`ce:${clientEventId}`]: skills } }));
     },
     sentSkillsFor: (clientEventId) => get().sentSkills[`ce:${clientEventId}`],
-
     startRun(threadId, controller, runId) {
       set((state) => ({
         activeRuns: {
@@ -241,7 +212,6 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         },
       }));
     },
-
     finishRun(threadId, runId) {
       clearLiveTail(threadId);
       set((state) => {
@@ -256,7 +226,6 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         return { activeRuns: rest };
       });
     },
-
     abortRun(threadId) {
       const active = get().activeRuns[threadId];
       if (active) {
@@ -267,7 +236,6 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         return { activeRuns: rest };
       });
     },
-
     setRunId(threadId, runId) {
       set((state) => {
         const active = state.activeRuns[threadId];
@@ -282,21 +250,17 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         };
       });
     },
-
     runIdOf(threadId) {
       return get().activeRuns[threadId]?.runId;
     },
-
     isStreaming(threadId) {
       return Boolean(get().activeRuns[threadId]);
     },
-
     setFailure(failure) {
       set((state) => ({
         failures: [...state.failures.filter((item) => item.id !== failure.id), failure],
       }));
     },
-
     removeForThreads(threadIds) {
       dropPendingThreads(threadIds);
       clearLiveTails(threadIds);
@@ -321,7 +285,6 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         return { ...base, events, seenAt, seqCeil, activeRuns, contentEpoch, sentSkills };
       });
     },
-
     copyEvents(fromThreadId, toThreadId) {
       set((state) => {
         const base = applyBatches(state, takePending());

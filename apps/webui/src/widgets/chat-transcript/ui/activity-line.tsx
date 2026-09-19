@@ -1,21 +1,13 @@
 import { ChevronRightIcon, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useRef, useState } from 'react';
-
 import { useScrollAnchor } from '@/shared/lib/scroll-anchor';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
-
 export type ActivityBadge = {
   text: string;
   tone?: 'default' | 'live' | 'destructive';
 };
-
-/**
- * Shared skeleton for every transcript rail line (tool, ask, thought, tool group).
- * One icon size, one label color, one content indent; the rail line itself is
- * drawn by ActivityRail behind the icon.
- */
 export function ActivityLine({
   icon: Icon,
   label,
@@ -38,7 +30,6 @@ export function ActivityLine({
   failed?: boolean;
   defaultOpen?: boolean;
   hasContent?: boolean;
-  /** false keeps children at rail x0 (nested activity lines). */
   indentContent?: boolean;
   children?: ReactNode;
 }) {
@@ -46,10 +37,7 @@ export function ActivityLine({
   const open = manual ?? defaultOpen;
   const collapsible = hasContent && Boolean(children);
   const headerRef = useRef<HTMLDivElement>(null);
-  // Свернуть/развернуть не должно дёргать ленту: шапка остаётся на том же уровне.
-  // Ключ — только open: появление контента при том же open идёт штатным follow.
   useScrollAnchor(headerRef, Boolean(open));
-
   return (
     <Collapsible open={collapsible ? open : false} onOpenChange={setManual}>
       <div

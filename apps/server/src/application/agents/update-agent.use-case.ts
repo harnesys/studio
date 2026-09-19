@@ -27,23 +27,29 @@ import {
 import { assertAgentGraphValid } from './agent-definition-guard.ts';
 import { isStockReactGraph } from './is-stock-react-graph.ts';
 import { buildReactGraph } from './react-preset.ts';
-
-/** Граф с авторскими списками `tools` на llm-нодах помечается явным намерением:
- *  такие списки переживают чтение (parseGraph не снимает помеченные). */
 export function stampExplicitTools(graph: AgentGraph): AgentGraph {
   const hasTools = Object.values(graph.nodes).some(
     (node) =>
       node !== null &&
       typeof node === 'object' &&
-      (node as { type?: unknown }).type === 'llm:generate' &&
-      Array.isArray((node as { tools?: unknown }).tools),
+      (
+        node as {
+          type?: unknown;
+        }
+      ).type === 'llm:generate' &&
+      Array.isArray(
+        (
+          node as {
+            tools?: unknown;
+          }
+        ).tools,
+      ),
   );
   if (!hasTools || graph.toolPolicy === 'explicit') {
     return graph;
   }
   return { ...graph, toolPolicy: 'explicit' };
 }
-
 export type UpdateAgentRequest = {
   workspaceId: string;
   id: string;
@@ -67,27 +73,21 @@ export type UpdateAgentRequest = {
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
-
 export type UpdateAgentInput = {
   execute(request: UpdateAgentRequest): Promise<Agent>;
 };
-
 export type UpdateAgentUseCaseDeps = {
   models?: LlmModelRepository;
   deskEvents?: DeskEventsPort;
-  /** Write-path §7 validation. Required: an omitted gate silently reopens the update bypass. */
   validateConfig: ValidateAgentConfigInput;
 };
-
 export class UpdateAgentUseCase implements UpdateAgentInput {
   constructor(
     private readonly agents: AgentRepository,
     private readonly deps: UpdateAgentUseCaseDeps,
   ) {}
-
   async execute(request: UpdateAgentRequest): Promise<Agent> {
     const agent = requireAgent(this.agents, request.workspaceId, request.id);
-
     const patch: AgentPatch = {};
     if (request.name !== undefined) {
       const name = request.name.trim();
@@ -100,7 +100,6 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       }
       patch.name = name;
     }
-
     if (request.modelId !== undefined) {
       if (request.modelId !== null && this.deps.models) {
         const foundModel = this.deps.models.findById(request.modelId);
@@ -110,15 +109,12 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       }
       patch.modelId = request.modelId;
     }
-
     if (request.role !== undefined) {
       patch.role = request.role.trim() || 'Operator';
     }
-
     if (request.instructions !== undefined) {
       patch.instructions = request.instructions.trim();
     }
-
     if (request.effort !== undefined) {
       patch.effort = request.effort?.trim() || null;
       if (patch.effort !== null && this.deps.models) {
@@ -131,85 +127,61 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
         }
       }
     }
-
     if (request.generation !== undefined) {
       patch.generation = request.generation;
     }
-
     if (request.toolOutput !== undefined) {
       patch.toolOutput = request.toolOutput;
     }
-
     if (request.compaction !== undefined) {
       patch.compaction = request.compaction;
     }
-
     if (request.skills !== undefined) {
       patch.skills = request.skills;
     }
-
     if (request.mcpServers !== undefined) {
       patch.mcpServers = request.mcpServers;
     }
-
     if (request.budget !== undefined) {
       patch.budget = request.budget;
     }
-
     if (request.capabilities !== undefined) {
       patch.capabilities = request.capabilities;
     }
-    // Stored record was read before the patch: a delegate may never carry the agents pack.
     if (agent.parentId !== null && isAgentsPackEnabled(patch.capabilities ?? agent.capabilities)) {
       throw new ValidationError('agents pack is forbidden for delegates');
     }
-
     if (request.permissions !== undefined) {
       patch.permissions = request.permissions;
     }
-
     if (request.color !== undefined) {
       patch.color = request.color;
     }
-
     if (request.hooks !== undefined) {
       patch.hooks = request.hooks;
     }
-
     if (request.enabledPlugins !== undefined) {
       patch.enabledPlugins = request.enabledPlugins;
     }
-
     if (request.modes !== undefined) {
       validateModeIds(request.modes);
-      // The list is the user's copy: dropping 'ask' here is allowed; only
-      // creation seeds it (see create-agent.use-case).
       patch.modes = request.modes;
     }
-
     if (request.defaultModeId !== undefined) {
       patch.defaultModeId = request.defaultModeId;
-      // Validate against the union of stored and incoming modes.
       const allowedModes = [...agent.modes, ...(patch.modes ?? request.modes ?? [])];
       validateDefaultModeId(request.defaultModeId, allowedModes);
     }
-
     if (request.graph !== undefined) {
       patch.graph = stampExplicitTools(request.graph);
     } else if (request.capabilities !== undefined && isStockReactGraph(agent.graph)) {
-      // Смена источников на сток-графе: пересборка шаблона без снапшота
-      // `think.tools` — набор резолвится на каждый ран, нода видит весь.
       patch.graph = buildReactGraph();
     }
-
     assertAgentGraphValid({
       id: agent.id,
       graph: patch.graph ?? agent.graph,
       budget: patch.budget !== undefined ? patch.budget : agent.budget,
     });
-
-    // §7 write-path (тот же gate, что create): источники/overrides/режимы и
-    // child⊆creator закрывают update-обход; `core` provisioned в патч при записи.
     if (
       request.capabilities !== undefined ||
       request.enabledPlugins !== undefined ||
@@ -230,20 +202,16 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
       if (request.capabilities !== undefined) {
         patch.capabilities = checked.capabilities;
       } else if (checked.capabilities !== agent.capabilities) {
-        // Heal без запроса: валидация provisioned `core`, строка его не имела.
         patch.capabilities = checked.capabilities;
       }
       if (request.modes !== undefined) {
         patch.modes = checked.modes ?? request.modes;
       }
     }
-
     patch.updatedAt = new Date().toISOString();
-
     const previousModelId = agent.modelId;
     const updated = this.agents.update(request.id, patch);
     this.deps.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: updated });
-
     if (
       request.modelId !== undefined &&
       agent.parentId === null &&
@@ -264,7 +232,6 @@ export class UpdateAgentUseCase implements UpdateAgentInput {
         this.deps.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: updatedChild });
       }
     }
-
     return await Promise.resolve(updated);
   }
 }

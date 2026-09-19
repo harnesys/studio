@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/useAwait: async required by RunLifecycleStore port contract
 import { SQLiteError } from 'bun:sqlite';
 import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
 import {
@@ -18,18 +17,15 @@ import {
 } from '../../../../config/constants.ts';
 import type { StudioDb } from '../connection.ts';
 import { type RunRow, runsTable } from '../schema/runs.ts';
-
-/** Task 5 seam: writes events inside the caller's transaction; seq выдаёт
- *  аллокатор стора (RunSeqAllocator), события с присвоенным seq сохраняются как есть. */
 export type RunEventAppendWithinTx = (
   tx: StudioDb,
   runId: string,
   threadId: string,
   events: PendingSessionEvent[],
 ) => SessionEvent[];
-
-type RunEventIdRow = { run_id: string };
-
+type RunEventIdRow = {
+  run_id: string;
+};
 function rowToRecord(row: RunRow): RunRecord {
   return {
     runId: row.runId,
@@ -47,26 +43,35 @@ function rowToRecord(row: RunRow): RunRecord {
     updatedAt: row.updatedAt,
   };
 }
-
 function clientEventIdOf(event: PendingSessionEvent): string | undefined {
-  return (event as { clientEventId?: string }).clientEventId;
+  return (
+    event as {
+      clientEventId?: string;
+    }
+  ).clientEventId;
 }
-
 function interruptIdOf(event: PendingSessionEvent | SessionEvent): string | undefined {
-  return (event as { interruptId?: string }).interruptId;
+  return (
+    event as {
+      interruptId?: string;
+    }
+  ).interruptId;
 }
-
 function maxSeqOf(events: SessionEvent[], base: number): number {
   let max = base;
   for (const event of events) {
-    const seq = (event as { seq?: number }).seq ?? 0;
+    const seq =
+      (
+        event as {
+          seq?: number;
+        }
+      ).seq ?? 0;
     if (seq > max) {
       max = seq;
     }
   }
   return max;
 }
-
 function assertTransitionAllowed(
   record: RunRecord,
   expectedEpoch: number,
@@ -91,13 +96,11 @@ function assertTransitionAllowed(
     }
   }
 }
-
 export class SqliteRunLifecycleStore implements RunLifecycleStore {
   constructor(
     private readonly db: StudioDb,
     private readonly appendWithinTx: RunEventAppendWithinTx,
   ) {}
-
   async create(run: RunCreateInput, events: PendingSessionEvent[] = []): Promise<RunRecord> {
     return this.db.transaction((tx) => {
       for (const event of events) {
@@ -154,12 +157,10 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
       return rowToRecord(row);
     });
   }
-
   async get(runId: string): Promise<RunRecord | null> {
     const row = this.db.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
     return row ? rowToRecord(row) : null;
   }
-
   async activeByThread(threadId: string): Promise<RunRecord | null> {
     const row = this.db
       .select()
@@ -176,7 +177,6 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
       .get();
     return row ? rowToRecord(row) : null;
   }
-
   async childrenByParent(parentRunId: string): Promise<RunRecord[]> {
     return this.db
       .select()
@@ -186,7 +186,6 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
       .all()
       .map(rowToRecord);
   }
-
   async claim(runId: string, instanceId: string, ttlMs: number): Promise<RunRecord | null> {
     const row = this.db
       .update(runsTable)
@@ -202,7 +201,6 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
       .get();
     return row ? rowToRecord(row) : null;
   }
-
   async transition(
     runId: string,
     expectedEpoch: number,
@@ -250,14 +248,12 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
       return rowToRecord(row);
     });
   }
-
   async renewLease(runId: string, instanceId: string, ttlMs: number): Promise<boolean> {
     const row = this.db.get<RunEventIdRow>(
       sql`UPDATE runs SET lease_expires_at = ${Date.now() + ttlMs}, updated_at = ${new Date().toISOString()} WHERE run_id = ${runId} AND lease_instance_id = ${instanceId} AND lease_epoch = (SELECT lease_epoch FROM runs WHERE run_id = ${runId}) RETURNING run_id`,
     );
     return row !== undefined;
   }
-
   async listClaimable(opts?: { limit?: number; before?: string }): Promise<RunRecord[]> {
     const conditions = [eq(runsTable.status, 'queued'), isNull(runsTable.parentRunId)];
     if (opts?.before !== undefined) {
@@ -272,7 +268,6 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
       .all()
       .map(rowToRecord);
   }
-
   async listExpiredAsks(opts?: {
     limit?: number;
     before?: string;
@@ -294,7 +289,6 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
       .all()
       .map(rowToRecord);
   }
-
   async listDueTimers(opts?: { limit?: number; now?: number }): Promise<RunRecord[]> {
     const now = opts?.now ?? Date.now();
     return this.db

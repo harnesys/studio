@@ -31,7 +31,6 @@ function toPlanItemRecord(row: ThreadPlanItemRow): PlanItemRecord {
     updatedAt: row.updatedAt,
   };
 }
-
 function toThreadPlanRecord(
   planRow: ThreadPlanRow,
   itemRows: ThreadPlanItemRow[],
@@ -46,10 +45,8 @@ function toThreadPlanRecord(
     updatedAt: planRow.updatedAt,
   };
 }
-
 export class SqlitePlanRepo implements PlanRepository {
   constructor(private readonly db: StudioDb) {}
-
   getByThreadId(threadId: string): ThreadPlanRecord | null {
     const planRow = this.db
       .select()
@@ -59,17 +56,14 @@ export class SqlitePlanRepo implements PlanRepository {
     if (!planRow) {
       return null;
     }
-
     const itemRows = this.db
       .select()
       .from(threadPlanItemsTable)
       .where(eq(threadPlanItemsTable.planId, planRow.id))
       .orderBy(asc(threadPlanItemsTable.order))
       .all();
-
     return toThreadPlanRecord(planRow, itemRows);
   }
-
   getById(planId: string): ThreadPlanRecord | null {
     const planRow = this.db
       .select()
@@ -79,17 +73,14 @@ export class SqlitePlanRepo implements PlanRepository {
     if (!planRow) {
       return null;
     }
-
     const itemRows = this.db
       .select()
       .from(threadPlanItemsTable)
       .where(eq(threadPlanItemsTable.planId, planRow.id))
       .orderBy(asc(threadPlanItemsTable.order))
       .all();
-
     return toThreadPlanRecord(planRow, itemRows);
   }
-
   savePlan(input: {
     id: string;
     threadId: string;
@@ -100,7 +91,6 @@ export class SqlitePlanRepo implements PlanRepository {
     const now = new Date().toISOString();
     const existing = this.getByThreadId(input.threadId);
     const planId = existing?.id ?? input.id;
-
     if (existing) {
       this.db
         .update(threadPlansTable)
@@ -111,7 +101,6 @@ export class SqlitePlanRepo implements PlanRepository {
         })
         .where(eq(threadPlansTable.id, planId))
         .run();
-
       this.db.delete(threadPlanItemsTable).where(eq(threadPlanItemsTable.planId, planId)).run();
     } else {
       this.db
@@ -126,7 +115,6 @@ export class SqlitePlanRepo implements PlanRepository {
         })
         .run();
     }
-
     if (input.items.length > 0) {
       const itemsToInsert = input.items.map((item, index) => ({
         id: item.id || crypto.randomUUID(),
@@ -140,17 +128,14 @@ export class SqlitePlanRepo implements PlanRepository {
         createdAt: now,
         updatedAt: now,
       }));
-
       this.db.insert(threadPlanItemsTable).values(itemsToInsert).run();
     }
-
     const saved = this.getById(planId);
     if (!saved) {
       throw new NotFoundError('plan not found after save');
     }
     return saved;
   }
-
   updateItemStatus(input: {
     planId: string;
     itemId: string;
@@ -169,7 +154,6 @@ export class SqlitePlanRepo implements PlanRepository {
     if (input.resultNote !== undefined) {
       updateData.resultNote = input.resultNote;
     }
-
     this.db
       .update(threadPlanItemsTable)
       .set(updateData)
@@ -180,7 +164,6 @@ export class SqlitePlanRepo implements PlanRepository {
         ),
       )
       .run();
-
     const updatedRow = this.db
       .select()
       .from(threadPlanItemsTable)
@@ -191,7 +174,6 @@ export class SqlitePlanRepo implements PlanRepository {
         ),
       )
       .get();
-
     if (updatedRow) {
       this.db
         .update(threadPlansTable)
@@ -199,10 +181,8 @@ export class SqlitePlanRepo implements PlanRepository {
         .where(eq(threadPlansTable.id, input.planId))
         .run();
     }
-
     return updatedRow ? toPlanItemRecord(updatedRow) : null;
   }
-
   updatePlanStatus(planId: string, status: PlanStatus): ThreadPlanRecord | null {
     const now = new Date().toISOString();
     this.db
@@ -210,10 +190,8 @@ export class SqlitePlanRepo implements PlanRepository {
       .set({ status, updatedAt: now })
       .where(eq(threadPlansTable.id, planId))
       .run();
-
     return this.getById(planId);
   }
-
   deleteByThreadId(threadId: string): void {
     this.db.delete(threadPlansTable).where(eq(threadPlansTable.threadId, threadId)).run();
   }

@@ -14,7 +14,6 @@ import {
 } from './plugins.body.ts';
 import { setGrantsBody } from './plugins.grants.body.ts';
 import { setPluginOptionBody } from './plugins.options.body.ts';
-
 export type PluginsControllerDeps = {
   listPlugins: ListPluginsInput;
   installPlugin: InstallPluginInput;
@@ -24,19 +23,15 @@ export type PluginsControllerDeps = {
   setPluginOption: SetPluginOptionInput;
   removePlugin: RemovePluginInput;
 };
-
 export class PluginsController {
   constructor(private readonly deps: PluginsControllerDeps) {}
-
   register(app: Hono): void {
     const base = '/api/workspaces/:workspaceId/plugins';
-
     app.get(base, async (c) => {
       return c.json(
         await this.deps.listPlugins.execute({ workspaceId: c.req.param('workspaceId') }),
       );
     });
-
     app.post(`${base}/install`, async (c) => {
       const body = installPluginBody.parse(await c.req.json());
       const result = await this.deps.installPlugin.execute({
@@ -52,7 +47,6 @@ export class PluginsController {
       });
       return c.json(result, 201);
     });
-
     app.post(`${base}/:name/update`, async (c) => {
       const raw = await c.req.json().catch(() => undefined);
       const body = updatePluginBody.parse(raw ?? {});
@@ -63,7 +57,6 @@ export class PluginsController {
       });
       return c.json(result);
     });
-
     app.put(`${base}/:name/grants`, async (c) => {
       const body = setGrantsBody.parse(await c.req.json());
       const plugin = await this.deps.setGrants.execute({
@@ -73,7 +66,6 @@ export class PluginsController {
       });
       return c.json({ plugin });
     });
-
     app.post(`${base}/:name/approvals`, async (c) => {
       const body = approveServerBody.parse(await c.req.json());
       const plugin = await this.deps.approveServer.execute({
@@ -83,7 +75,6 @@ export class PluginsController {
       });
       return c.json({ plugin }, 201);
     });
-
     app.put(`${base}/:name/options`, async (c) => {
       const body = setPluginOptionBody.parse(await c.req.json());
       const result = await this.deps.setPluginOption.execute({
@@ -94,7 +85,6 @@ export class PluginsController {
       });
       return c.json(result);
     });
-
     app.delete(`${base}/:name`, async (c) => {
       const queryDeleteData = c.req.query('deleteData');
       const raw = await c.req.json().catch(() => undefined);

@@ -1,7 +1,6 @@
 import type { HumanEntry, ThreadAttachment } from '@harnesys/studio-shared';
 import { attachmentUrl } from '@/shared/api';
 import { FileChip } from '@/shared/ui/file-chip';
-
 export function MessageAttachments({ entry, threadId }: { entry: HumanEntry; threadId: string }) {
   const attachments = entry.attachments;
   if (!attachments?.length) {
@@ -15,7 +14,6 @@ export function MessageAttachments({ entry, threadId }: { entry: HumanEntry; thr
     </div>
   );
 }
-
 function uniqueAttachments(items: ThreadAttachment[]): ThreadAttachment[] {
   const seen = new Set<string>();
   const out: ThreadAttachment[] = [];
@@ -29,7 +27,6 @@ function uniqueAttachments(items: ThreadAttachment[]): ThreadAttachment[] {
   }
   return out;
 }
-
 function AttachmentPreview({ threadId, item }: { threadId: string; item: ThreadAttachment }) {
   const src = attachmentUrl(threadId, item.id);
   if (item.kind === 'audio') {

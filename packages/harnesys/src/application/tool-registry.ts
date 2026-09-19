@@ -3,7 +3,6 @@ import type { ToolDefinition } from '../ports/tools.ts';
 import { resolveToolAlias } from './tool-aliases.ts';
 
 const ajv = new Ajv({ strict: false, allErrors: true });
-
 export function createToolRegistry(tools: ToolDefinition[] = []): Map<string, ToolDefinition> {
   const map = new Map<string, ToolDefinition>();
   for (const t of tools) {
@@ -14,7 +13,6 @@ export function createToolRegistry(tools: ToolDefinition[] = []): Map<string, To
   }
   return map;
 }
-
 export function mergeTools(
   base: Map<string, ToolDefinition>,
   extra: ToolDefinition[],
@@ -28,11 +26,12 @@ export function mergeTools(
   }
   return merged;
 }
-
-/** Deny-only subtract: agent `disallowedTools` (alias spellings) and MCP groups outside `mcpServers`. */
 export function subtractDeniedTools(
   registry: Map<string, ToolDefinition>,
-  agent: { mcpServers?: string[]; disallowedTools?: string[] },
+  agent: {
+    mcpServers?: string[];
+    disallowedTools?: string[];
+  },
 ): Map<string, ToolDefinition> {
   const blocked = new Set((agent.disallowedTools ?? []).map(resolveToolAlias));
   const allowedServers = new Set(agent.mcpServers ?? []);
@@ -49,11 +48,13 @@ export function subtractDeniedTools(
   }
   return out;
 }
-
 export function validateToolInput(
   schema: unknown,
   data: unknown,
-): { ok: boolean; errors?: string } {
+): {
+  ok: boolean;
+  errors?: string;
+} {
   const valid = ajv.validate(schema as never, data);
   if (valid) {
     return { ok: true };

@@ -1,12 +1,10 @@
 export const PASTE_AS_FILE_CHARS = 1024;
-
 export function fileFromPastedText(text: string, existingNames: string[]): File | undefined {
   if (text.length < PASTE_AS_FILE_CHARS) {
     return undefined;
   }
   return new File([text], pastedTextName(existingNames), { type: 'text/plain' });
 }
-
 function pastedTextName(existingNames: string[]): string {
   const taken = new Set(existingNames);
   if (!taken.has('Pasted text.txt')) {

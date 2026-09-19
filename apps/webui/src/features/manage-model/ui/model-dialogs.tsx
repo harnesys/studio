@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { SparklesIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
@@ -10,7 +9,6 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Spinner } from '@/shared/ui/spinner';
 import { toast } from '@/shared/ui/toast';
-
 import {
   type AddModelInput,
   type AddModelOutput,
@@ -26,10 +24,6 @@ import {
 import { syncModelFromOpenRouter } from '../model/openrouter-sync';
 import { ModelFields } from './model-fields';
 
-/**
- * OpenRouter wins; manual edits survive only where the catalog has no data
- * (empty strings, empty lists). Prevents sync from wiping hand-filled costs.
- */
 function mergeSyncedFields(current: ModelFieldsInput, synced: ModelFieldsInput): ModelFieldsInput {
   const keepCurrent = (syncedValue: string, currentValue: string): string =>
     syncedValue === '' && currentValue !== '' ? currentValue : syncedValue;
@@ -52,20 +46,22 @@ function mergeSyncedFields(current: ModelFieldsInput, synced: ModelFieldsInput):
     reasoningMandatory: synced.reasoningMandatory ?? current.reasoningMandatory,
   };
 }
-
 export function EditModelDialog({
   onResolve,
   data,
 }: DialogComponentProps<
   ModelFieldsDraft,
-  { modelName?: string; confirm: string; initial?: ModelFieldsInput }
+  {
+    modelName?: string;
+    confirm: string;
+    initial?: ModelFieldsInput;
+  }
 >) {
   const form = useForm<ModelFieldsInput, unknown, ModelFieldsOutput>({
     resolver: zodResolver(modelFieldsSchema),
     defaultValues: data?.initial ?? emptyModelFields(),
   });
   const [syncing, setSyncing] = useState(false);
-
   const handleSync = async () => {
     const query = data?.modelName?.trim();
     if (!query) {
@@ -100,7 +96,6 @@ export function EditModelDialog({
       setSyncing(false);
     }
   };
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"
@@ -134,16 +129,18 @@ export function EditModelDialog({
     </form>
   );
 }
-
 export function AddModelDialog({
   onResolve,
-}: DialogComponentProps<{ name: string } & ModelFieldsDraft>) {
+}: DialogComponentProps<
+  {
+    name: string;
+  } & ModelFieldsDraft
+>) {
   const form = useForm<AddModelInput, unknown, AddModelOutput>({
     resolver: zodResolver(addModelSchema),
     defaultValues: { name: '', ...emptyModelFields() },
   });
   const [syncing, setSyncing] = useState(false);
-
   const handleSync = async () => {
     const query = form.getValues('name')?.trim();
     if (!query) {
@@ -181,7 +178,6 @@ export function AddModelDialog({
       setSyncing(false);
     }
   };
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"

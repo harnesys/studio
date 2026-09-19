@@ -1,6 +1,4 @@
 import { env } from '@/shared/config/env';
-
-/** Temporary run diagnostics. Remove after the chat/SSE flow is stable. */
 export function trace(scope: string, message: string, extra?: unknown): void {
   if (!env.trace) {
     return;
@@ -12,7 +10,6 @@ export function trace(scope: string, message: string, extra?: unknown): void {
   }
   console.log(line, extra);
 }
-
 export function preview(value: unknown, limit = 240): string {
   if (typeof value === 'string') {
     return value.length <= limit ? value : `${value.slice(0, limit)}…`;

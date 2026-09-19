@@ -5,11 +5,11 @@ import { ReactNodeViewRenderer } from '@tiptap/react';
 import { EntityChipView } from '../ui/entity-chip-view';
 import type { EntityKind } from './entity-kinds';
 import { isValidEntityRef } from './entity-kinds';
-
-export type InlineEntityAttrs = { kind: EntityKind; ref: string };
-
+export type InlineEntityAttrs = {
+  kind: EntityKind;
+  ref: string;
+};
 export const INLINE_ENTITY_TYPE = 'inlineEntity';
-
 export const InlineEntityNode = Node.create<InlineEntityAttrs>({
   name: INLINE_ENTITY_TYPE,
   group: 'inline',
@@ -54,11 +54,9 @@ export const InlineEntityNode = Node.create<InlineEntityAttrs>({
     return ReactNodeViewRenderer(EntityChipView);
   },
 });
-
 export function $insertInlineEntity(editor: Editor, at: number, attrs: InlineEntityAttrs): void {
   editor.chain().focus().insertContentAt(at, { type: INLINE_ENTITY_TYPE, attrs }).run();
 }
-
 export function isInlineEntityNode(node: ProseMirrorNode): boolean {
   if (node.type.name !== INLINE_ENTITY_TYPE) {
     return false;
@@ -67,7 +65,6 @@ export function isInlineEntityNode(node: ProseMirrorNode): boolean {
   const ref = node.attrs.ref as string;
   return (kind === 'skill' || kind === 'file') && isValidEntityRef(kind, ref);
 }
-
 export function inlineEntityKind(node: ProseMirrorNode): EntityKind | null {
   if (!isInlineEntityNode(node)) {
     return null;

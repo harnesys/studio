@@ -1,4 +1,3 @@
-/** Invert host-global plugins + enabledWorkspaceIds into per-node install rows. */
 import { sql } from 'drizzle-orm';
 import type { StudioDb } from './connection.ts';
 import { pluginRowId } from './repos/sqlite-plugins.adapter.ts';
@@ -7,7 +6,6 @@ const MARKER = 'node_catalog_plugins_v1';
 const CREATE_META = sql.raw(
   'CREATE TABLE IF NOT EXISTS schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
 );
-
 type LegacyPluginRow = {
   id: string;
   name: string;
@@ -25,42 +23,37 @@ type LegacyPluginRow = {
   installed_at: string;
   updated_at: string;
 };
-
 type ApprovalRow = {
   plugin_name: string;
   server_id: string;
   approved_at: string;
 };
-
 export function migrateNodeCatalogPlugins(db: StudioDb): void {
   db.run(CREATE_META);
-  const seen = db.all<{ key: string }>(sql`SELECT key FROM schema_meta WHERE key = ${MARKER}`);
+  const seen = db.all<{
+    key: string;
+  }>(sql`SELECT key FROM schema_meta WHERE key = ${MARKER}`);
   if (seen.length > 0) {
     return;
   }
-
-  const cols = db.all<{ name: string }>(sql.raw('PRAGMA table_info(plugins)'));
+  const cols = db.all<{
+    name: string;
+  }>(sql.raw('PRAGMA table_info(plugins)'));
   const hasWorkspaceId = cols.some((col) => col.name === 'workspace_id');
   const hasEnabled = cols.some((col) => col.name === 'enabled_workspace_ids');
-
   if (!hasEnabled && hasWorkspaceId) {
     db.run(sql`INSERT INTO schema_meta(key, value) VALUES (${MARKER}, '1')`);
     return;
   }
-
   const legacy = hasEnabled
-    ? db.all<LegacyPluginRow>(
-        sql`SELECT id, name, source, revision, path, data_path, format, ir_summary,
+    ? db.all<LegacyPluginRow>(sql`SELECT id, name, source, revision, path, data_path, format, ir_summary,
                    grants, options, enabled_workspace_ids, registry_id, catalog_plugin_name,
                    installed_at, updated_at
-            FROM plugins`,
-      )
+            FROM plugins`)
     : [];
-
   const approvals = db.all<ApprovalRow>(
     sql`SELECT plugin_name, server_id, approved_at FROM plugin_approvals`,
   );
-
   db.run(sql.raw('PRAGMA foreign_keys = OFF;'));
   db.run(
     sql.raw(`CREATE TABLE plugins_node_catalog (
@@ -90,15 +83,13 @@ export function migrateNodeCatalogPlugins(db: StudioDb): void {
       PRIMARY KEY (workspace_id, plugin_name, server_id)
     );`),
   );
-
   for (const plugin of legacy) {
     const enabledIds = parseStringArray(plugin.enabled_workspace_ids);
     const grantsMap = parseGrantsMap(plugin.grants);
     for (const workspaceId of enabledIds) {
       const id = pluginRowId(workspaceId, plugin.name);
       const grants = JSON.stringify(grantsMap[workspaceId] ?? {});
-      db.run(
-        sql`INSERT OR IGNORE INTO plugins_node_catalog (
+      db.run(sql`INSERT OR IGNORE INTO plugins_node_catalog (
           id, workspace_id, name, source, revision, path, data_path, format, ir_summary,
           grants, options, registry_id, catalog_plugin_name, installed_at, updated_at
         ) VALUES (
@@ -106,20 +97,16 @@ export function migrateNodeCatalogPlugins(db: StudioDb): void {
           ${plugin.path}, ${plugin.data_path}, ${plugin.format}, ${plugin.ir_summary},
           ${grants}, ${plugin.options}, ${plugin.registry_id}, ${plugin.catalog_plugin_name},
           ${plugin.installed_at}, ${plugin.updated_at}
-        )`,
-      );
+        )`);
       for (const approval of approvals.filter((row) => row.plugin_name === plugin.name)) {
-        db.run(
-          sql`INSERT OR IGNORE INTO plugin_approvals_node_catalog (
+        db.run(sql`INSERT OR IGNORE INTO plugin_approvals_node_catalog (
             workspace_id, plugin_name, server_id, approved_at
           ) VALUES (
             ${workspaceId}, ${approval.plugin_name}, ${approval.server_id}, ${approval.approved_at}
-          )`,
-        );
+          )`);
       }
     }
   }
-
   db.run(sql.raw('DROP TABLE plugins;'));
   db.run(sql.raw('ALTER TABLE plugins_node_catalog RENAME TO plugins;'));
   db.run(sql.raw('DROP TABLE plugin_approvals;'));
@@ -130,10 +117,8 @@ export function migrateNodeCatalogPlugins(db: StudioDb): void {
     ),
   );
   db.run(sql.raw('PRAGMA foreign_keys = ON;'));
-
   db.run(sql`INSERT INTO schema_meta(key, value) VALUES (${MARKER}, '1')`);
 }
-
 function parseStringArray(raw: string): string[] {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -145,7 +130,6 @@ function parseStringArray(raw: string): string[] {
     return [];
   }
 }
-
 function parseGrantsMap(raw: string): Record<string, Record<string, boolean>> {
   try {
     const parsed: unknown = JSON.parse(raw);

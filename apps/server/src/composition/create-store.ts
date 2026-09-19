@@ -13,20 +13,15 @@ import { SqliteWebhookRepo } from '../adapters/store/sqlite/repos/sqlite-webhook
 import { SqliteWorkspaceRepo } from '../adapters/store/sqlite/repos/sqlite-workspace.repo.ts';
 import { defaultHomePath, workspaceDbPath } from '../adapters/store/studio-layout.ts';
 import { ValidationError } from '../domain/studio.error.ts';
-
 export type StudioStoreOptions = {
-  /** Absolute path to the sqlite file. Required unless `db` is injected. */
   dbPath?: string;
-  /** Injected connection (tests / cutover helpers). Skips bootstrap. */
   db?: StudioDb;
   home?: string;
 };
-
 export type StudioStore = {
   home: string;
   dbPath: string;
   db: StudioDb;
-  /** true when caller injected db (skip bootstrap and ticker side-effects). */
   externalDb: boolean;
   workspaceRepo: SqliteWorkspaceRepo;
   agentRepo: SqliteAgentRepo;
@@ -40,8 +35,6 @@ export type StudioStore = {
   pluginRepo: SqlitePluginsAdapter;
   pluginRegistryRepo: SqlitePluginRegistriesAdapter;
 };
-
-/** Opens one domain sqlite (`workspace.db` or injected). No host catalog. */
 export function createStudioStore(options: StudioStoreOptions = {}): StudioStore {
   const home = options.home ?? defaultHomePath();
   const externalDb = options.db !== undefined;
@@ -53,7 +46,6 @@ export function createStudioStore(options: StudioStoreOptions = {}): StudioStore
   if (!externalDb) {
     bootstrap(db);
   }
-
   return {
     home,
     dbPath,
@@ -72,8 +64,6 @@ export function createStudioStore(options: StudioStoreOptions = {}): StudioStore
     pluginRegistryRepo: new SqlitePluginRegistriesAdapter(db),
   };
 }
-
-/** Convenience: store for a workspace folder path. */
 export function createWorkspaceStore(workspacePath: string, home?: string): StudioStore {
   return createStudioStore({ dbPath: workspaceDbPath(workspacePath), home });
 }

@@ -8,37 +8,29 @@ import type { ToolCallResult } from './tool-call.ts';
 import { buildToolMessage, type ToolMessage } from './tool-message.ts';
 
 export { SANDBOX_DENY_PREFIX };
-
 export type PermissionGateCall = {
   name: string;
   args: unknown;
   id: string;
 };
-
 export type PermissionGateContext = {
   nodeExecutionId: string;
   resumePayload?: unknown;
   resumeInterruptId?: string;
-  /** Чекпоинт батча (granted/completed) живёт в состоянии и переживает resume. */
   state: Record<string, unknown>;
   nodeId: string;
-  /** Дочерний ран: вопросы запрещены, gate отвечает deny вместо AskUserInterrupt. */
   sandbox?: boolean;
-  /** Шина хуков рана: PermissionRequest перед ask-веткой. */
   hooks?: HookEmitCtx;
 };
-
 export type PermissionGateDone = {
   result: ToolCallResult;
   message: ToolMessage;
 };
-
 const PERMISSION_RESUME_SCHEMA = {
   type: 'object',
   properties: { approved: { type: 'boolean' } },
   required: ['approved'],
 } as JsonSchema;
-
 export function permissionResumeCallIndex(ctx: PermissionGateContext): number | null {
   const id = ctx.resumeInterruptId;
   if (typeof id !== 'string' || !id.startsWith('perm/')) {
@@ -51,32 +43,29 @@ export function permissionResumeCallIndex(ctx: PermissionGateContext): number | 
   const parsed = Number(tail);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
-
 export function isForeignPermissionResume(ctx: PermissionGateContext, callIdx: number): boolean {
   const resumeIdx = permissionResumeCallIndex(ctx);
   return resumeIdx !== null && resumeIdx !== callIdx;
 }
-
 function resumeApproved(ctx: PermissionGateContext): boolean | null {
   const payload = ctx.resumePayload;
   if (payload === null || typeof payload !== 'object') {
     return null;
   }
-  const approved = (payload as { approved?: unknown }).approved;
+  const approved = (
+    payload as {
+      approved?: unknown;
+    }
+  ).approved;
   return typeof approved === 'boolean' ? approved : null;
 }
-
 export type SandboxDenyKind = 'permission' | 'approval' | 'user input';
-
 export function sandboxDenyText(tool: string, what: SandboxDenyKind): string {
   return `${SANDBOX_DENY_PREFIX}${tool} requires ${what}, no interactive user here; parent must provide, pre-approve, or do it itself`;
 }
-
-/** Sandbox denial for tools writing parent-shared state; not a permission ask, so no kind. */
 export function sandboxSharedStateDenyText(tool: string): string {
   return `${SANDBOX_DENY_PREFIX}${tool} writes state shared with the parent thread or workspace; the parent must do it itself`;
 }
-
 export function throwPermissionAsk(
   call: PermissionGateCall,
   ctx: PermissionGateContext,
@@ -91,9 +80,6 @@ export function throwPermissionAsk(
     resumeSchema: PERMISSION_RESUME_SCHEMA,
   });
 }
-
-// Skipped outcome for a resume the user did not approve. Permission resumes
-// (perm/ prefix) report 'denied by user'; batch rejections report 'rejected by user'.
 export function skippedGateResult(
   call: PermissionGateCall,
   ctx: PermissionGateContext,
@@ -104,15 +90,6 @@ export function skippedGateResult(
     message: buildToolMessage({ toolCallId: call.id, name: call.name, content }),
   };
 }
-
-// Gate decision for a permission-ask tool call. Returns the denied outcome,
-// null when the call may execute, and throws AskUserInterrupt to park the run.
-// A batch approval ({approved:true} without perm/ prefix) covers permission and
-// leaves the payload for the approve loop; only the matching perm/ resume is consumed.
-// Выданное разрешение записывается в чекпоинт батча: иначе один resume
-// разрешает ровно один вызов, а остальные переспрашиваются до бесконечности.
-// PermissionRequest срабатывает перед ask-веткой: block → deny с причиной без
-// вопроса, ask → без изменений (уже ask); update_input результат не мутирует.
 export async function applyPermissionGate(input: {
   call: PermissionGateCall;
   ctx: PermissionGateContext;

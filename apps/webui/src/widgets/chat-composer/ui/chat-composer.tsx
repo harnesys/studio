@@ -38,7 +38,6 @@ import { ContextRing } from './context-ring';
 import { EffortSelect } from './effort-select';
 import { ModeSelect } from './mode-select';
 import { UnverifiedModelCard } from './unverified-model-card';
-
 export function ChatComposer() {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
@@ -56,7 +55,6 @@ export function ChatComposer() {
     thread ? (state.activeRuns[thread.id]?.runId ?? null) : null,
   );
   const hitl = pendingHitl(events);
-  // Draft text lives in the editor; React keeps only sendability so typing never re-renders.
   const [hasText, setHasText] = useState(false);
   const [pending, setPending] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
@@ -96,14 +94,12 @@ export function ChatComposer() {
   } else if (agent) {
     placeholder = `Message ${agent.name}…`;
   }
-
   useEffect(() => {
     const next = selectedEffort(levels, effort ?? agent?.effort ?? undefined, modelDefaultEffort);
     if (next !== effort) {
       setEffort(next);
     }
   }, [levels, effort, agent?.effort, modelDefaultEffort]);
-
   const agentModes = agent?.modes ?? [];
   useEffect(() => {
     if (scheduleMode && knownMode(agentModes, scheduleMode)) {
@@ -120,7 +116,6 @@ export function ChatComposer() {
     }
     setMode(DEFAULT_MODE_ID);
   }, [thread?.runMode, scheduleMode, agent?.defaultModeId, agentModes]);
-
   return (
     <div className="relative mx-auto w-full max-w-3xl px-4 pb-3" data-testid="chat-composer">
       {streamLabel ? (
@@ -274,19 +269,16 @@ export function ChatComposer() {
       </div>
     </div>
   );
-
   function handleDraftChange(next: ComposerPayload) {
     const nextHasText = next.text.trim().length > 0;
     setHasText((prev) => (prev === nextHasText ? prev : nextHasText));
   }
-
   function addFiles(files: File[]) {
     const accepted = addComposerFiles(files, inputModalities, setPending);
     for (const file of accepted) {
       editorRef.current?.insertFileMention(file.name);
     }
   }
-
   function submit() {
     if (!thread) {
       return;
@@ -303,7 +295,6 @@ export function ChatComposer() {
       setPending,
     });
   }
-
   function runSlashCommand(command: SlashCommand) {
     if (!thread) {
       return;
@@ -314,7 +305,6 @@ export function ChatComposer() {
       setSending,
     });
   }
-
   function pasteIsHandled(data: DataTransfer) {
     return (
       filesFromClipboard(data).length > 0 ||
@@ -327,7 +317,6 @@ export function ChatComposer() {
     );
   }
 }
-
 function streamStatusLabel(state: string | null): string | null {
   switch (state) {
     case 'connecting':

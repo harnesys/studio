@@ -1,4 +1,3 @@
-/** Build a safe FTS5 MATCH query: quote each token for phrase-OR search. */
 export function buildFtsMatchQuery(query: string): string | undefined {
   const tokens = query
     .trim()

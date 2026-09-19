@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
@@ -8,23 +7,25 @@ import { DialogFooter } from '@/shared/ui/dialog';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-
 import {
   type CreateBranchInput,
   type CreateBranchOutput,
   createBranchSchema,
   emptyBranch,
 } from '../model/git-branch';
-
 export function NewBranchDialog({
   onResolve,
   data,
-}: DialogComponentProps<CreateBranchOutput, { from?: string }>) {
+}: DialogComponentProps<
+  CreateBranchOutput,
+  {
+    from?: string;
+  }
+>) {
   const form = useForm<CreateBranchInput, unknown, CreateBranchOutput>({
     resolver: zodResolver(createBranchSchema),
     defaultValues: emptyBranch(data?.from),
   });
-
   return (
     <form
       className="flex flex-col gap-4"

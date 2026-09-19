@@ -6,7 +6,6 @@ import type {
 import { z } from 'zod';
 
 const TRANSPORTS = ['stdio', 'http', 'sse'] as const satisfies readonly WorkspaceMcpTransport[];
-
 export const mcpFieldsSchema = z
   .object({
     serverId: z
@@ -38,15 +37,12 @@ export const mcpFieldsSchema = z
       ctx.addIssue({ code: 'custom', path: ['headersText'], message: headers.error });
     }
   });
-
 export type McpFieldsInput = z.input<typeof mcpFieldsSchema>;
 export type McpFieldsOutput = z.output<typeof mcpFieldsSchema>;
-
 export type McpServerDraft = {
   serverId: string;
   body: UpsertWorkspaceMcpServerRequest;
 };
-
 export function emptyMcpFields(): McpFieldsInput {
   return {
     serverId: '',
@@ -59,7 +55,6 @@ export function emptyMcpFields(): McpFieldsInput {
     headersText: '',
   };
 }
-
 export function mcpFieldsFrom(server: WorkspaceMcpConfigServer): McpFieldsInput {
   return {
     serverId: server.serverId,
@@ -72,17 +67,14 @@ export function mcpFieldsFrom(server: WorkspaceMcpConfigServer): McpFieldsInput 
     headersText: recordToHeaderLines(server.headers),
   };
 }
-
 export function toMcpServerDraft(values: McpFieldsOutput): McpServerDraft {
   const env = parseEnvLines(values.envText).value;
   const headers = parseHeaderLines(values.headersText).value;
   const args = parseArgsLines(values.argsText);
-
   const body: UpsertWorkspaceMcpServerRequest = {
     enabled: values.enabled,
     transport: values.transport,
   };
-
   if (values.transport === 'stdio') {
     body.command = values.command.trim();
     if (args.length > 0) {
@@ -97,24 +89,26 @@ export function toMcpServerDraft(values: McpFieldsOutput): McpServerDraft {
       body.headers = headers;
     }
   }
-
   return { serverId: values.serverId, body };
 }
-
-export const TRANSPORT_ITEMS: { value: WorkspaceMcpTransport; label: string }[] = [
+export const TRANSPORT_ITEMS: {
+  value: WorkspaceMcpTransport;
+  label: string;
+}[] = [
   { value: 'stdio', label: 'stdio' },
   { value: 'http', label: 'http' },
   { value: 'sse', label: 'sse' },
 ];
-
 function parseArgsLines(text: string): string[] {
   return text
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 }
-
-function parseEnvLines(text: string): { value?: Record<string, string>; error?: string } {
+function parseEnvLines(text: string): {
+  value?: Record<string, string>;
+  error?: string;
+} {
   const lines = text
     .split('\n')
     .map((line) => line.trim())
@@ -137,8 +131,10 @@ function parseEnvLines(text: string): { value?: Record<string, string>; error?: 
   }
   return { value: result };
 }
-
-function parseHeaderLines(text: string): { value?: Record<string, string>; error?: string } {
+function parseHeaderLines(text: string): {
+  value?: Record<string, string>;
+  error?: string;
+} {
   const lines = text
     .split('\n')
     .map((line) => line.trim())
@@ -161,7 +157,6 @@ function parseHeaderLines(text: string): { value?: Record<string, string>; error
   }
   return { value: result };
 }
-
 function recordToEnvLines(record?: Record<string, string>): string {
   if (!record) {
     return '';
@@ -170,7 +165,6 @@ function recordToEnvLines(record?: Record<string, string>): string {
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
 }
-
 function recordToHeaderLines(record?: Record<string, string>): string {
   if (!record) {
     return '';

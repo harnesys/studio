@@ -6,22 +6,17 @@ import { useIdeStore } from '@/features/ide';
 import { confirmDeleteThread, openNewThread } from '@/features/switch-thread';
 import { deleteThreadRecord, setThreadPinned } from '@/shared/api';
 import { studioPath } from '@/shared/config/routes';
-
-/** Desk state for opening a thread: ide tab, focused thread, active thread id. */
 export function openThreadRecord(thread: Thread, workspaceId: string): void {
   useIdeStore.getState().openThread(workspaceId, thread.agentId, thread.id);
   useDeskStore.getState().setFocusedThreadId(thread.id);
   setActiveThreadId(thread.agentId, thread.id);
 }
-
 export function useThreadActions(workspaceId: string) {
   const navigate = useNavigate();
-
   const openThread = (thread: Thread) => {
     openThreadRecord(thread, workspaceId);
     void navigate(studioPath.thread(workspaceId, thread.id));
   };
-
   const createThread = (agentId: string) => {
     void openNewThread(agentId, workspaceId).then((threadId) => {
       if (!threadId) {
@@ -33,7 +28,6 @@ export function useThreadActions(workspaceId: string) {
       }
     });
   };
-
   const togglePin = (thread: Thread) => {
     const next = thread.pinned !== true;
     void setThreadPinned(thread.id, next)
@@ -42,7 +36,6 @@ export function useThreadActions(workspaceId: string) {
         useThreadStore.getState().setPinned(thread.id, record ? record.pinned : next);
       });
   };
-
   const removeThread = (thread: Thread) => {
     if (thread.kind !== 'chat') {
       return;
@@ -60,14 +53,10 @@ export function useThreadActions(workspaceId: string) {
         });
     });
   };
-
   return { openThread, createThread, togglePin, removeThread };
 }
-
-/** Opens a thread in its own workspace, wherever it lives (inbox rows). */
 export function useOpenThread() {
   const navigate = useNavigate();
-
   return (thread: Thread) => {
     if (!thread.workspaceId) {
       return;

@@ -9,7 +9,6 @@ import {
   rejectRun,
   respondToRun,
 } from '@/shared/api';
-
 export type RunStreamState =
   | 'connecting'
   | 'queued'
@@ -18,41 +17,43 @@ export type RunStreamState =
   | 'reconnecting'
   | 'terminal'
   | 'offline';
-
 export type SessionStoreApi = ReturnType<typeof useSessionStore.getState>;
-
 export type RunStreamClientDeps = {
   threadId: string;
   runId: string;
-  /** Root clients own thread-level run bookkeeping; spawn clients must not touch it. */
   rootRun: boolean;
   store: SessionStoreApi;
   onEvent: (event: SessionEvent) => void;
-  /** Fires once when the connected run reaches a terminal state. */
   onTerminal: (runId: string) => void;
-  /** Registry hook: drop the client from the map when stop() is called. */
   onStop: () => void;
 };
-
 export type RunStreamClient = {
-  /** Idempotent: reconnecting a live client is ignored; terminal/offline restarts. */
   connect(): void;
-  respond(askId: string, payload: unknown, opts?: { clientEventId?: string }): Promise<void>;
-  reject(askId: string, note?: string, opts?: { clientEventId?: string }): Promise<void>;
+  respond(
+    askId: string,
+    payload: unknown,
+    opts?: {
+      clientEventId?: string;
+    },
+  ): Promise<void>;
+  reject(
+    askId: string,
+    note?: string,
+    opts?: {
+      clientEventId?: string;
+    },
+  ): Promise<void>;
   cancel(): Promise<void>;
-  /** Manual retry after offline. */
   reconnect(): void;
   stop(): void;
   getState(): RunStreamState;
   onTransition(listener: (state: RunStreamState) => void): () => void;
 };
-
 const lastSeqByRun = new Map<string, number>();
 const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 const MAX_FAILURES = 5;
 const BASE_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 30000;
-
 function parseJson<T>(data: string): T | undefined {
   try {
     return JSON.parse(data) as T;
@@ -60,7 +61,6 @@ function parseJson<T>(data: string): T | undefined {
     return undefined;
   }
 }
-
 class StreamClient implements RunStreamClient {
   private readonly threadId: string;
   private readonly runId: string;
@@ -76,7 +76,6 @@ class StreamClient implements RunStreamClient {
   private terminated = false;
   private opening = 0;
   private started = false;
-
   constructor(deps: RunStreamClientDeps) {
     this.threadId = deps.threadId;
     this.runId = deps.runId;
@@ -85,51 +84,53 @@ class StreamClient implements RunStreamClient {
     this.onTerminal = deps.onTerminal;
     this.onStop = deps.onStop;
   }
-
   connect(): void {
     if (this.started && this.state !== 'terminal' && this.state !== 'offline') {
       return;
     }
     this.start(lastSeqByRun.get(this.runId) ?? 0);
   }
-
-  respond(askId: string, payload: unknown, opts?: { clientEventId?: string }): Promise<void> {
+  respond(
+    askId: string,
+    payload: unknown,
+    opts?: {
+      clientEventId?: string;
+    },
+  ): Promise<void> {
     return this.mutate((runId) => respondToRun(runId, askId, payload, opts));
   }
-
-  reject(askId: string, note?: string, opts?: { clientEventId?: string }): Promise<void> {
+  reject(
+    askId: string,
+    note?: string,
+    opts?: {
+      clientEventId?: string;
+    },
+  ): Promise<void> {
     return this.mutate((runId) => rejectRun(runId, askId, note, opts));
   }
-
   cancel(): Promise<void> {
     return this.mutate((runId) => cancelRun(runId));
   }
-
   reconnect(): void {
     this.failures = 0;
     if (this.state !== 'terminal') {
       this.start(lastSeqByRun.get(this.runId) ?? 0);
     }
   }
-
   stop(): void {
     this.reset();
     this.started = false;
     this.onStop();
   }
-
   getState(): RunStreamState {
     return this.state;
   }
-
   onTransition(listener: (state: RunStreamState) => void): () => void {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
     };
   }
-
-  /** POST then reconnect the tail; 409 also reconnects, never retries. Other errors throw. */
   private async mutate(call: (runId: string) => Promise<void>): Promise<void> {
     try {
       await call(this.runId);
@@ -140,7 +141,6 @@ class StreamClient implements RunStreamClient {
     }
     this.start(lastSeqByRun.get(this.runId) ?? 0);
   }
-
   private setState(next: RunStreamState): void {
     if (this.state === next) {
       return;
@@ -150,7 +150,6 @@ class StreamClient implements RunStreamClient {
       listener(next);
     }
   }
-
   private reset(): void {
     this.opening += 1;
     this.controller?.abort();
@@ -160,7 +159,6 @@ class StreamClient implements RunStreamClient {
       this.timer = undefined;
     }
   }
-
   private start(fromSeq: number): void {
     this.reset();
     this.started = true;
@@ -168,7 +166,6 @@ class StreamClient implements RunStreamClient {
     this.setState('connecting');
     void this.open(this.runId, fromSeq, this.opening);
   }
-
   private async open(runId: string, fromSeq: number, token: number): Promise<void> {
     const controller = new AbortController();
     this.controller = controller;
@@ -237,25 +234,22 @@ class StreamClient implements RunStreamClient {
     }
     await this.onSilentDrop(runId, token);
   }
-
   private onRunPaused(data: string): void {
-    const parsed = parseJson<{ runId?: string; status?: string }>(data);
+    const parsed = parseJson<{
+      runId?: string;
+      status?: string;
+    }>(data);
     if (parsed?.status && TERMINAL_STATUSES.has(parsed.status)) {
       this.finishTerminal();
       return;
     }
-    // control:wait parks as waiting; keep reconnecting until the timer wakes the run.
     if (parsed?.status === 'waiting') {
       this.scheduleReconnect(this.runId, this.opening);
       return;
     }
     this.setState('paused');
   }
-
   private async onSilentDrop(runId: string, token: number): Promise<void> {
-    // Spawns register their lifecycle row on the first journaled child event, so an
-    // early poll can 404 until then; a dropped spawn stream reconnects until events
-    // or offline. Thread activeRun status says nothing about them.
     if (!this.rootRun) {
       this.scheduleReconnect(runId, token);
       return;
@@ -282,10 +276,8 @@ class StreamClient implements RunStreamClient {
       this.setState('paused');
       return;
     }
-    // waiting / running / queued: reopen the stream (timer wake or transient drop).
     this.scheduleReconnect(runId, token);
   }
-
   private scheduleReconnect(runId: string, token: number): void {
     this.failures += 1;
     if (this.failures >= MAX_FAILURES) {
@@ -304,7 +296,6 @@ class StreamClient implements RunStreamClient {
       Math.min(BASE_BACKOFF_MS * 2 ** (this.failures - 1), MAX_BACKOFF_MS),
     );
   }
-
   private finishTerminal(): void {
     this.setState('terminal');
     if (!this.terminated) {
@@ -313,7 +304,6 @@ class StreamClient implements RunStreamClient {
     }
   }
 }
-
 export function createRunStreamClient(deps: RunStreamClientDeps): RunStreamClient {
   return new StreamClient(deps);
 }

@@ -9,9 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-
 export const DEDICATED_THREAD_VALUE = 'dedicated';
-
 export function ScheduleThreadField({
   workspaceId,
   agentId,
@@ -49,7 +47,6 @@ export function ScheduleThreadField({
   if (currentThreadId && !items.some((item) => item.value === currentThreadId)) {
     items.push({ value: currentThreadId, label: 'Current thread' });
   }
-
   return (
     <Field>
       <FieldLabel htmlFor="schedule-thread">Wake thread</FieldLabel>
@@ -83,10 +80,12 @@ export function ScheduleThreadField({
     </Field>
   );
 }
-
 function bindableThreads(input: {
   threads: Thread[];
-  schedules: { threadId: string; workspaceId: string }[];
+  schedules: {
+    threadId: string;
+    workspaceId: string;
+  }[];
   workspaceId: string;
   agentId: string;
   currentThreadId?: string;
@@ -113,7 +112,6 @@ function bindableThreads(input: {
   }
   return matched;
 }
-
 function threadLabel(thread: Thread): string {
   const title = thread.title.trim() || 'Untitled';
   if (thread.kind === 'schedule') {

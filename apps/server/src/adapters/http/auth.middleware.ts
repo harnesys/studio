@@ -1,6 +1,4 @@
 import type { MiddlewareHandler } from 'hono';
-
-/** Paths that skip Bearer (and query token) checks. */
 export function isHostAuthExempt(method: string, path: string): boolean {
   if (method === 'GET' && path === '/health') {
     return true;
@@ -16,11 +14,6 @@ export function isHostAuthExempt(method: string, path: string): boolean {
   }
   return false;
 }
-
-/**
- * Require `Authorization: Bearer <host.token>`, or `?token=` (WebSocket / EventSource).
- * Exempt: GET /health, GET /api/window/bootstrap, POST pair/redeem, POST webhook fire.
- */
 export function requireHostToken(token: string): MiddlewareHandler {
   return async (c, next) => {
     if (isHostAuthExempt(c.req.method, c.req.path)) {

@@ -1,36 +1,25 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-
 import { cn } from '@/shared/lib/utils';
-
 export type FeedNoticeTone = 'neutral' | 'live' | 'accent' | 'danger';
-
 const TONE_RAIL: Record<FeedNoticeTone, string> = {
   neutral: 'bg-muted-foreground/35',
   live: 'bg-live',
   accent: 'bg-foreground/25',
   danger: 'bg-destructive',
 };
-
 const TONE_SURFACE: Record<FeedNoticeTone, string> = {
   neutral: 'bg-muted/25',
   live: 'bg-[color-mix(in_oklab,var(--live)_7%,transparent)]',
   accent: 'bg-muted/20',
   danger: 'bg-destructive/8',
 };
-
 const TONE_LABEL: Record<FeedNoticeTone, string> = {
   neutral: 'text-muted-foreground',
   live: 'text-live',
   accent: 'text-foreground/80',
   danger: 'text-destructive',
 };
-
-/**
- * Единый каркас meta-элементов ленты: system, schedule, compaction, error.
- * Слева тонкая tone-рейка, сверху строка метки, ниже тело. Новые типы
- * добавляют tone + icon + meta, не новый layout.
- */
 export function FeedNotice({
   tone = 'neutral',
   icon: Icon,
@@ -96,7 +85,6 @@ export function FeedNotice({
     </div>
   );
 }
-
 export function FeedNoticeMetaSep() {
   return <span className="text-border">·</span>;
 }

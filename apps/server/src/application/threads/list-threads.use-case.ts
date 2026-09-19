@@ -5,15 +5,12 @@ import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { activeRunOf } from './active-run-record.ts';
 import { pinnedFields, readFields, runModeFields } from './thread.helpers.ts';
-
 export type ListThreadsRequest = {
   workspaceId?: string;
 };
-
 export type ListThreadsInput = {
   execute(request?: ListThreadsRequest): Promise<ThreadSummary[]>;
 };
-
 export class ListThreadsUseCase implements ListThreadsInput {
   constructor(
     private readonly threads: ThreadRepository,
@@ -21,7 +18,6 @@ export class ListThreadsUseCase implements ListThreadsInput {
     private readonly agents: AgentRepository,
     private readonly lifecycle?: RunLifecycleStore,
   ) {}
-
   async execute(request?: ListThreadsRequest): Promise<ThreadSummary[]> {
     const workspaceId = request?.workspaceId ?? this.workspaces.list()[0]?.id;
     if (!workspaceId) {

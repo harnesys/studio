@@ -1,5 +1,4 @@
 import type { PortRef } from 'harnesys';
-
 export function defaultAgentCompaction(): PortRef {
   return {
     name: 'threshold-summary',

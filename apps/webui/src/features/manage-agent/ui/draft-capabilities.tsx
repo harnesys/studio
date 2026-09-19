@@ -2,7 +2,6 @@ import type { PluginListItem } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { agentCapabilitiesQuery, pluginsQuery, workspaceCapabilitiesQuery } from '@/shared/api';
 import { RowList } from '@/shared/ui/capability-rows';
-
 import {
   CORE_SOURCE,
   isSourceGranted,
@@ -16,12 +15,6 @@ import {
 } from '../model/draft-overrides';
 import { AgentSourceCard } from './agent-source-card';
 import { PackSettingsFields, packHasSettings } from './pack-settings';
-
-/**
- * Sources list: packs-universe (read-only workspace endpoint) ∪ workspace-enabled
- * plugins. Grant switches write the `capabilities` PackAssignment-map (packs) and
- * the `enabledPlugins` map (plugins); per-tool tuning lives on the pack cards.
- */
 export function DraftCapabilities({
   workspaceId,
   agentId,
@@ -33,7 +26,6 @@ export function DraftCapabilities({
 }: {
   workspaceId: string;
   agentId: string | null;
-  /** Delegates cannot spawn: hide the `agents` pack. */
   isDelegate: boolean;
   capabilities: PackAssignmentMap;
   enabledPlugins: Record<string, boolean>;
@@ -51,7 +43,6 @@ export function DraftCapabilities({
     (pack) => !(isDelegate && pack.name === 'agents'),
   );
   const plugins = pluginsListQuery.data ?? [];
-
   function togglePlugin(name: string, enable: boolean) {
     const next: Record<string, boolean> = {};
     for (const item of pluginsListQuery.data ?? []) {
@@ -60,7 +51,6 @@ export function DraftCapabilities({
     next[name] = enable;
     onPluginsChange(next);
   }
-
   return (
     <div className="flex flex-col gap-4">
       <section className="flex min-w-0 flex-col gap-1">
@@ -150,12 +140,10 @@ export function DraftCapabilities({
     </div>
   );
 }
-
 function pluginInventory(item: PluginListItem): string {
   const plugin = item.plugin;
   return `${plugin.skillCount} skills · ${plugin.hookCount} hooks · ${plugin.agentCount} agents · ${plugin.commandCount} commands`;
 }
-
 function SourceGroupLabel({ label, count }: { label: string; count?: number }) {
   return (
     <p className="flex items-baseline gap-1.5 pt-1 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">

@@ -3,25 +3,20 @@ import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesy
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { collectWorkspaceSkills } from './list-workspace-skills.use-case.ts';
-
 export type ReloadWorkspaceSkillsRequest = {
   workspaceId: string;
 };
-
 export type ReloadWorkspaceSkillsResponse = {
   skills: WorkspaceSkill[];
 };
-
 export type ReloadWorkspaceSkillsInput = {
   execute(request: ReloadWorkspaceSkillsRequest): Promise<ReloadWorkspaceSkillsResponse>;
 };
-
 export class ReloadWorkspaceSkillsUseCase implements ReloadWorkspaceSkillsInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
   ) {}
-
   async execute(request: ReloadWorkspaceSkillsRequest): Promise<ReloadWorkspaceSkillsResponse> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {

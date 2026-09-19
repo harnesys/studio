@@ -15,34 +15,27 @@ import { evaluateCutoverGate, logCutoverRefusal } from './cutover-gate.ts';
 import { createNodeSupervisor } from './node-supervisor.ts';
 import { registerStudioHttp } from './register-http.ts';
 import { tryCreateHostSecretStore } from './secret-store-boot.ts';
-
 export type StudioOptions = {
   workspace?: WorkspacePort;
   workspaceFiles?: WorkspaceFilesPort;
   attachments?: AttachmentsPort;
   home?: string;
 };
-
-/** Composition root: host config → N node runtimes → http. */
 export function createStudio(options: StudioOptions = {}): Hono {
   const home = options.home ?? defaultHomePath();
   const machineConfig = new MachineConfigFileAdapter({ home });
   const nodeRegistry = new HostNodeRegistry({ config: machineConfig });
-
-  // One-shot: empty host.nodes ← legacy studio.db workspaces table (ids/paths only).
   if (existsSync(studioDbPath(home))) {
     nodeRegistry.migrateFromLegacyStudioDbIfEmpty(() => readLegacyWorkspaceNodes(home));
   } else {
     nodeRegistry.migrateFromLegacyStudioDbIfEmpty(() => []);
   }
-
   const nodes = nodeRegistry.list();
   const gate = evaluateCutoverGate(nodes, home);
   if (!gate.ok) {
     logCutoverRefusal(gate.reason);
     return refuseApp(gate.reason);
   }
-
   const platform = createStudioPlatform(options);
   const secretStore = tryCreateHostSecretStore();
   const supervisor = createNodeSupervisor({
@@ -51,7 +44,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
     secretStore,
     home,
   });
-
   for (const node of nodes) {
     if (nodeRegistry.status(node.id) !== 'ready') {
       logger.warn({ scope: 'boot' }, `skip unavailable node ${node.id} path=${node.path}`);
@@ -73,7 +65,6 @@ export function createStudio(options: StudioOptions = {}): Hono {
       );
     }
   }
-
   return registerStudioHttp({
     supervisor,
     platform,
@@ -83,19 +74,19 @@ export function createStudio(options: StudioOptions = {}): Hono {
     secretStore,
   });
 }
-
 function readLegacyWorkspaceNodes(home: string): HostNodeRecord[] {
   try {
     const db = createSqliteConnection(studioDbPath(home));
-    const rows = db.all<{ id: string; name: string; path: string }>(
-      sql.raw('select id, name, path from workspaces order by created_at'),
-    );
+    const rows = db.all<{
+      id: string;
+      name: string;
+      path: string;
+    }>(sql.raw('select id, name, path from workspaces order by created_at'));
     return rows.map((row) => ({ id: row.id, name: row.name, path: row.path }));
   } catch {
     return [];
   }
 }
-
 function refuseApp(reason: string): Hono {
   const app = new Hono();
   app.get('/health', (c) => c.json({ ok: false, error: reason }, 503));

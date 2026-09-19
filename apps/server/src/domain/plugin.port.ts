@@ -1,11 +1,7 @@
 import type { GrantClass, PluginName } from '@harnesys/studio-shared';
-
 export type PluginInstallFormat = 'agent-plugins' | 'claude-compat' | 'unknown';
-
 export type PluginGrants = Partial<Record<GrantClass, boolean>>;
-
 export type PluginOptionValue = string | number | boolean;
-
 export type PluginInstallRecord = {
   workspaceId: string;
   name: PluginName;
@@ -21,13 +17,10 @@ export type PluginInstallRecord = {
   installedAt: string;
   updatedAt: string;
 };
-
 export type PluginRepository = {
   list(workspaceId: string): PluginInstallRecord[];
-  /** All install rows across nodes (catalog decorate / dependency scans). */
   listAll(): PluginInstallRecord[];
   findByName(workspaceId: string, name: PluginName): PluginInstallRecord | undefined;
-  /** First install of this name on any node (host-wide catalog decorate). */
   findByNameAny(name: PluginName): PluginInstallRecord | undefined;
   upsert(rec: PluginInstallRecord): PluginInstallRecord;
   delete(workspaceId: string, name: PluginName): void;
@@ -49,7 +42,6 @@ export type PluginRepository = {
   isServerDisabled(name: PluginName, serverId: string, workspaceId: string): boolean;
   listDisabledServers(workspaceId: string): PluginServerDisable[];
 };
-
 export type PluginServerDisable = {
   pluginName: PluginName;
   serverId: string;

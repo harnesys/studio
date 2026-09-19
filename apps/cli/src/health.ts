@@ -2,12 +2,7 @@ import { sleep } from './processes.ts';
 
 const POLL_INTERVAL_MS = 300;
 const ATTEMPT_TIMEOUT_MS = 2000;
-
-/**
- * GET-only health probe loop: HEAD is not an option (the web gate answers 401 to
- * anything but GET /healthz). Resolves false after `timeoutMs`.
- */
-export async function waitHealthy(url: string, timeoutMs = 15_000): Promise<boolean> {
+export async function waitHealthy(url: string, timeoutMs = 15000): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await healthyOnce(url)) {
@@ -17,7 +12,6 @@ export async function waitHealthy(url: string, timeoutMs = 15_000): Promise<bool
   }
   return false;
 }
-
 export async function healthyOnce(url: string): Promise<boolean> {
   try {
     const response = await fetch(url, {

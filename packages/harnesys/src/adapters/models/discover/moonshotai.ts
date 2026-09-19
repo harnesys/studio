@@ -5,7 +5,6 @@ import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { MOONSHOTAI_DEFAULT_URL };
-
 export function listMoonshotAIModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, MOONSHOTAI_DEFAULT_URL),
@@ -14,7 +13,6 @@ export function listMoonshotAIModels(input: DiscoverInput): Promise<DiscoveredMo
     parse: parseMoonshotAIList,
   });
 }
-
 export function parseMoonshotAIList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -25,7 +23,6 @@ export function parseMoonshotAIList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapMoonshotAIModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const name = asString(record?.id);
@@ -35,7 +32,6 @@ function mapMoonshotAIModel(item: unknown): DiscoveredModel | undefined {
   const kind = moonshotaiKind(name);
   const hasReasoning = record.supports_reasoning === true;
   const contextLength = asNumber(record.context_length);
-
   return {
     name,
     kind,
@@ -45,7 +41,6 @@ function mapMoonshotAIModel(item: unknown): DiscoveredModel | undefined {
     raw: item,
   };
 }
-
 function moonshotaiKind(name: string): 'chat' | 'embed' {
   if (/embed/i.test(name)) {
     return 'embed';

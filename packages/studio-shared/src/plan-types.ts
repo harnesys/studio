@@ -2,7 +2,6 @@ import type { PlanItemStatus, PlanStatus, SubagentRole } from 'harnesys/domain';
 
 export type { PlanItemStatus, PlanStatus, SubagentRole } from 'harnesys/domain';
 export { PLAN_ITEM_STATUSES, PLAN_STATUSES, SUBAGENT_ROLES } from 'harnesys/domain';
-
 export type PlanItemRecord = {
   id: string;
   planId: string;
@@ -15,7 +14,6 @@ export type PlanItemRecord = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type ThreadPlanRecord = {
   id: string;
   threadId: string;
@@ -25,22 +23,18 @@ export type ThreadPlanRecord = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type SavePlanItemInput = {
   id?: string;
   title: string;
   description: string;
   subagentRole?: SubagentRole | null;
 };
-
 export type SavePlanRequest = {
   threadId: string;
   overview: string;
   items: SavePlanItemInput[];
-  /** Defaults to draft. Propose-approve uses approved. */
   status?: PlanStatus;
 };
-
 export type UpdatePlanItemRequest = {
   planId: string;
   itemId: string;

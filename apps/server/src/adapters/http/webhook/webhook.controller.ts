@@ -5,7 +5,6 @@ import type { FireWebhookInput } from '../../../application/webhooks/fire-webhoo
 import type { ListWebhooksInput } from '../../../application/webhooks/list-webhooks.use-case.ts';
 import type { UpdateWebhookInput } from '../../../application/webhooks/update-webhook.use-case.ts';
 import { createWebhookBody, fireWebhookBody, updateWebhookBody } from './webhook.body.ts';
-
 export type WebhookControllerDeps = {
   listWebhooks: ListWebhooksInput;
   createWebhook: CreateWebhookInput;
@@ -13,10 +12,8 @@ export type WebhookControllerDeps = {
   deleteWebhook: DeleteWebhookInput;
   fireWebhook: FireWebhookInput;
 };
-
 export class WebhookController {
   constructor(private readonly deps: WebhookControllerDeps) {}
-
   register(app: Hono): void {
     app.get('/api/workspaces/:id/webhooks', async (c) => {
       const webhooks = await this.deps.listWebhooks.execute({
@@ -24,7 +21,6 @@ export class WebhookController {
       });
       return c.json(webhooks);
     });
-
     app.post('/api/workspaces/:id/webhooks', async (c) => {
       const body = createWebhookBody.parse(await c.req.json());
       const created = await this.deps.createWebhook.execute({
@@ -37,7 +33,6 @@ export class WebhookController {
       });
       return c.json(created, 201);
     });
-
     app.patch('/api/workspaces/:id/webhooks/:webhookId', async (c) => {
       const body = updateWebhookBody.parse(await c.req.json());
       const webhook = await this.deps.updateWebhook.execute({
@@ -51,7 +46,6 @@ export class WebhookController {
       });
       return c.json(webhook);
     });
-
     app.delete('/api/workspaces/:id/webhooks/:webhookId', async (c) => {
       await this.deps.deleteWebhook.execute({
         workspaceId: c.req.param('id'),
@@ -59,7 +53,6 @@ export class WebhookController {
       });
       return c.body(null, 204);
     });
-
     app.post('/api/workspaces/:id/hooks/:webhookId', async (c) => {
       const workspaceId = c.req.param('id');
       const webhookId = c.req.param('webhookId');

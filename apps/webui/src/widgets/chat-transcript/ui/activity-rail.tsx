@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
-
 import { cn } from '@/shared/lib/utils';
-
 export function ActivityRail({ children, live = false }: { children: ReactNode; live?: boolean }) {
   return (
     <div className="relative flex flex-col gap-2 pl-1">

@@ -31,7 +31,6 @@ import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
 import type { KnowledgeIndexer } from './knowledge-indexer.ts';
 import { searchKnowledgeFts, searchKnowledgeVector } from './knowledge-search.ts';
 import type { MemorySearchBackend } from './memory-backend.ts';
-
 export type SqliteKnowledgePortOptions = {
   backend?: MemorySearchBackend;
   embeddings?: EmbeddingsPort;
@@ -41,14 +40,12 @@ export type SqliteKnowledgePortOptions = {
   indexRepo?: SqliteKnowledgeIndexRepo;
   indexer?: KnowledgeIndexer;
 };
-
 export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
   private backend: MemorySearchBackend;
   private embeddings: EmbeddingsPort | undefined;
   private topK: number;
   private indexRepo: SqliteKnowledgeIndexRepo | undefined;
   private indexer: KnowledgeIndexer | undefined;
-
   constructor(
     private readonly db: StudioDb,
     private readonly options: SqliteKnowledgePortOptions,
@@ -59,56 +56,45 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
     this.indexRepo = options.indexRepo;
     this.indexer = options.indexer;
   }
-
   setBackend(backend: MemorySearchBackend): void {
     this.backend = backend;
   }
-
   setEmbeddings(embeddings: EmbeddingsPort | undefined): void {
     this.embeddings = embeddings;
     this.indexer?.setEmbeddings(embeddings);
   }
-
   setIndexer(indexer: KnowledgeIndexer, indexRepo?: SqliteKnowledgeIndexRepo): void {
     this.indexer = indexer;
     if (indexRepo) {
       this.indexRepo = indexRepo;
     }
   }
-
   getSettings(workspaceId: string): KnowledgeSettings {
     return this.requireIndexRepo().getSettingsOrDefault(workspaceId);
   }
-
   putSettings(workspaceId: string, patch: UpsertKnowledgeSettingsRequest): KnowledgeSettings {
     return this.requireIndexRepo().putSettings(workspaceId, patch);
   }
-
   getIndexState(workspaceId: string): KnowledgeIndexState {
     return this.indexer?.getState(workspaceId) ?? this.requireIndexRepo().getState(workspaceId);
   }
-
   listFiles(workspaceId: string, status?: KnowledgeFileStatus): KnowledgeFileRecord[] {
     return this.requireIndexRepo().listFiles(workspaceId, status);
   }
-
   countFilesByStatus(workspaceId: string): KnowledgeFilesByStatus {
     return this.requireIndexRepo().countFilesByStatus(workspaceId);
   }
-
   async startReindex(workspaceId: string): Promise<KnowledgeIndexState> {
     const indexer = this.requireIndexerAndPath(workspaceId);
     this.applyWorkspaceBackend(workspaceId);
     await indexer.startFullReindex(workspaceId);
     return this.getIndexState(workspaceId);
   }
-
   cancelIndex(workspaceId: string): KnowledgeIndexState {
     const indexer = this.requireIndexerAndPath(workspaceId);
     indexer.cancel(workspaceId);
     return this.getIndexState(workspaceId);
   }
-
   listRoots(workspaceId: string): KnowledgeRootRecord[] {
     return this.db
       .select()
@@ -117,7 +103,6 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
       .all()
       .map(toRootRecord);
   }
-
   upsertRoot(input: UpsertKnowledgeRootInput): KnowledgeRootRecord {
     const enabled = input.enabled ?? true;
     const existing = this.db
@@ -151,7 +136,6 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
       .get();
     return toRootRecord(row);
   }
-
   deleteRoot(workspaceId: string, path: string): void {
     this.db
       .delete(knowledgeRootsTable)
@@ -160,7 +144,6 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
       )
       .run();
   }
-
   countChunks(workspaceId: string): number {
     const row = this.db
       .select({ value: count() })
@@ -169,7 +152,6 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
       .get();
     return row?.value ?? 0;
   }
-
   search(input: KnowledgeSearchInput): Promise<KnowledgeHit[]> {
     const limit = input.limit ?? this.topK;
     const backend = this.applyWorkspaceBackend(input.workspaceId);
@@ -184,7 +166,6 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
     }
     return Promise.resolve(searchKnowledgeFts(this.db, input.workspaceId, input.query, limit));
   }
-
   read(input: KnowledgeReadInput): Promise<KnowledgeReadResult> {
     const row = this.db
       .select()
@@ -205,20 +186,17 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
       ...(row.uri ? { uri: row.uri } : {}),
     });
   }
-
   async reindex(input: KnowledgeReindexInput): Promise<void> {
     const indexer = this.requireIndexerAndPath(input.workspaceId);
     this.applyWorkspaceBackend(input.workspaceId);
     await indexer.reindexAndWait(input.workspaceId);
   }
-
   private applyWorkspaceBackend(workspaceId: string): MemorySearchBackend {
     const settings = this.indexRepo?.getSettingsOrDefault(workspaceId);
     const backend = settings?.backend ?? this.backend;
     this.setBackend(backend);
     return backend;
   }
-
   private resolveEmbeddings(workspaceId: string): EmbeddingsPort | undefined {
     const settings = this.indexRepo?.getSettingsOrDefault(workspaceId);
     if (settings && this.options.embeddingsDeps) {
@@ -226,14 +204,12 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
     }
     return this.embeddings;
   }
-
   private requireIndexRepo(): SqliteKnowledgeIndexRepo {
     if (!this.indexRepo) {
       throw new ValidationError('knowledge index repo is not configured');
     }
     return this.indexRepo;
   }
-
   private requireIndexerAndPath(workspaceId: string): KnowledgeIndexer {
     if (!this.indexer) {
       throw new ValidationError('knowledge indexer is not configured');
@@ -244,7 +220,6 @@ export class SqliteKnowledgePort implements KnowledgePort, KnowledgeRootsPort {
     return this.indexer;
   }
 }
-
 function toRootRecord(row: KnowledgeRootRow): KnowledgeRootRecord {
   return { workspaceId: row.workspaceId, path: row.path, enabled: row.enabled };
 }

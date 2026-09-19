@@ -7,9 +7,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-
 import type { ComposerMode, ComposerModeItem } from '../model/composer-mode';
-
 export function ModeSelect({
   modes,
   value,
@@ -22,7 +20,6 @@ export function ModeSelect({
   onChange: (mode: ComposerMode) => void;
 }) {
   const current = modes.find((item) => item.value === value) ?? { value, label: value, detail: '' };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

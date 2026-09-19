@@ -1,31 +1,25 @@
 import type { MemoryScopeId, SemanticMemoryPort, SemanticScope } from '../../ports/memory.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
-
 export type CreateSemanticToolsParams = {
   port: SemanticMemoryPort;
   resolveScope: () => MemoryScopeId;
 };
-
 type MemoryWriteInput = {
   scope: SemanticScope;
   text: string;
   key?: string;
 };
-
 type MemoryListInput = {
   scope?: SemanticScope;
   limit?: number;
 };
-
 type MemoryDeleteInput = {
   id: string;
 };
-
 type MemoryUpdateInput = {
   id: string;
   text: string;
 };
-
 export function createSemanticTools(params: CreateSemanticToolsParams): ToolDefinition[] {
   const { port, resolveScope } = params;
   return [

@@ -19,7 +19,6 @@ import {
 } from './discover.ts';
 import { isPlainObject, type PathOverrideValue } from './manifest-result.ts';
 
-/** Хендлеры, которые парсер умеет читать из манифеста; inline парсеры не производят. */
 const HANDLER_TYPES: ReadonlySet<string> = new Set([
   'command',
   'http',
@@ -27,27 +26,20 @@ const HANDLER_TYPES: ReadonlySet<string> = new Set([
   'prompt',
   'agent',
 ]);
-
 const NATIVE_EVENTS: ReadonlySet<string> = new Set<string>(NATIVE_HOOK_EVENTS);
-
 export type DiscoverHooksOptions = {
   pluginData: string;
   override?: PathOverrideValue;
 };
-
-/**
- * `hooks/hooks.json` (namespace или корень) либо inline-override: ВСЕ события из
- * `HookEventName`; нативные → `HookBinding` c `origin: 'plugin'`, остальные →
- * компонент `dropped` с `event_unsupported`. Группа `{matcher, hooks:[…]}`
- * раскрывается в N биндингов.
- */
 export function discoverHookComponents(
   ctx: DiscoverContext,
   options: DiscoverHooksOptions,
-): { components: PluginComponent[]; diagnostics: PluginDiagnostic[] } {
+): {
+  components: PluginComponent[];
+  diagnostics: PluginDiagnostic[];
+} {
   const components: PluginComponent[] = [];
   const diagnostics: PluginDiagnostic[] = [];
-
   const overridePaths = overrideDirs(ctx.root, options.override);
   const inline = overrideInlineObject(options.override);
   const candidates = [
@@ -86,7 +78,6 @@ export function discoverHookComponents(
     return { components, diagnostics };
   }
   const hooksMap = isPlainObject(raw.hooks) ? raw.hooks : raw;
-
   for (const [eventName, groups] of Object.entries(hooksMap)) {
     if (!NATIVE_EVENTS.has(eventName)) {
       diagnostics.push({
@@ -121,7 +112,6 @@ export function discoverHookComponents(
   }
   return { components, diagnostics };
 }
-
 type GroupContext = {
   components: PluginComponent[];
   diagnostics: PluginDiagnostic[];
@@ -130,7 +120,6 @@ type GroupContext = {
   group: unknown;
   pointer: string;
 };
-
 function collectGroup(ctx: DiscoverContext, options: DiscoverHooksOptions, gc: GroupContext): void {
   if (!isPlainObject(gc.group)) {
     gc.diagnostics.push(entryWarning(gc.label, `${gc.pointer} must be an object`));
@@ -175,11 +164,17 @@ function collectGroup(ctx: DiscoverContext, options: DiscoverHooksOptions, gc: G
     });
   }
 }
-
 type ParsedHandler =
-  | { handler: HookHandler; status: 'native'; inertReason?: undefined }
-  | { handler: HookHandler; status: 'inert'; inertReason: string };
-
+  | {
+      handler: HookHandler;
+      status: 'native';
+      inertReason?: undefined;
+    }
+  | {
+      handler: HookHandler;
+      status: 'inert';
+      inertReason: string;
+    };
 function parseHandler(
   entry: Record<string, unknown>,
   label: string,
@@ -280,7 +275,6 @@ function parseHandler(
       return undefined;
   }
 }
-
 function stringMap(value: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [key, item] of Object.entries(value)) {
@@ -290,7 +284,6 @@ function stringMap(value: Record<string, unknown>): Record<string, string> {
   }
   return out;
 }
-
 const HANDLER_FIELD_KEYS: ReadonlySet<string> = new Set([
   'type',
   'command',
@@ -308,9 +301,7 @@ const HANDLER_FIELD_KEYS: ReadonlySet<string> = new Set([
   'async',
   'env',
 ]);
-
 const COMMAND_SHELLS: ReadonlySet<string> = new Set(['bash', 'powershell']);
-
 function pickCommandShell(
   value: unknown,
   label: string,
@@ -326,7 +317,6 @@ function pickCommandShell(
   diagnostics.push(entryWarning(label, `${pointer}: shell must be "bash" or "powershell"`));
   return undefined;
 }
-
 function pickTimeoutS(entry: Record<string, unknown>): number | undefined {
   if (typeof entry.timeoutS === 'number' && Number.isFinite(entry.timeoutS)) {
     return entry.timeoutS;
@@ -336,16 +326,12 @@ function pickTimeoutS(entry: Record<string, unknown>): number | undefined {
   }
   return undefined;
 }
-
 function isRecordValue(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
-/** Стабильная сериализация: отсортированные ключи, для id-хэша биндинга. */
 function canonicalJson(value: unknown): string {
   return JSON.stringify(sortValue(value));
 }
-
 function sortValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(sortValue);
@@ -359,7 +345,6 @@ function sortValue(value: unknown): unknown {
   }
   return value;
 }
-
 function sha1Short(text: string): string {
   const hasher = new Bun.CryptoHasher('sha1');
   hasher.update(text);

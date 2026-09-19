@@ -2,13 +2,7 @@ import { MODE_ID_RE, MODE_OPS, type PackOverride } from '@harnesys/studio-shared
 import { z } from 'zod';
 
 const modeOpGate = z.enum(['allow', 'ask', 'deny']);
-
 const toolExposureBody = z.enum(['direct', 'deferred']);
-
-/** PackAssignment-литералы (спека 2026-09-15 §3, эталон `packs/registry.ts`):
- *  `true`/объект = вкл, `false`/`null`/отсутствие = выкл. На границе нормализуется
- *  в хранимую форму: `true` → `{}`, `false`/`null` → `null` (явный off).
- *  Объект несёт полный override-набор (`spec` + `disabledTools` + `exposure`). */
 const packAssignmentBody = z
   .union([
     z.literal(true),
@@ -21,7 +15,6 @@ const packAssignmentBody = z
     z.null(),
   ])
   .transform(toStoredAssignment);
-
 function toStoredAssignment(value: true | false | PackOverride | null): PackOverride | null {
   if (value === true) {
     return {};
@@ -31,7 +24,6 @@ function toStoredAssignment(value: true | false | PackOverride | null): PackOver
   }
   return value;
 }
-
 const agentModeBody = z.object({
   id: z.string().regex(MODE_ID_RE, 'lowercase letters, digits, dash').max(48),
   name: z.string().trim().min(1).max(80),
@@ -43,7 +35,6 @@ const agentModeBody = z.object({
   exposure: z.record(z.string(), toolExposureBody).optional(),
   permissions: z.partialRecord(z.enum(MODE_OPS), modeOpGate).optional(),
 });
-
 const generationBody = z
   .object({
     temperature: z.number().optional(),
@@ -56,7 +47,6 @@ const generationBody = z
   })
   .nullable()
   .optional();
-
 const toolOutputBody = z
   .object({
     maxChars: z.number().int().positive().optional(),
@@ -65,7 +55,6 @@ const toolOutputBody = z
   })
   .nullable()
   .optional();
-
 const budgetBody = z
   .object({
     maxSteps: z.number().int().positive().optional(),
@@ -75,29 +64,20 @@ const budgetBody = z
   })
   .nullable()
   .optional();
-
 const capabilitiesBody = z.record(z.string(), packAssignmentBody).optional();
-
-/** Поле `tools` (allowlist) удалена из модели; приход имени на wire — явный отказ. */
 const removedToolsBody = z
   .unknown()
   .refine((value) => value === undefined, 'tools removed; use sources')
   .optional();
-
 const permissionsBody = z.record(z.string(), modeOpGate).nullable().optional();
-
 const colorBody = z.string().trim().min(1).max(32).nullable().optional();
-
 const portRefObject = z.object({
   name: z.string().trim().min(1),
   version: z.string().optional(),
   spec: z.record(z.string(), z.unknown()).optional(),
 });
-
 const portRefBody = portRefObject.nullable();
-
 const compactionBody = portRefBody.optional();
-
 const agentGraphBody = z
   .object({
     nodes: z.record(z.string(), z.object({ type: z.string() }).passthrough()),
@@ -117,10 +97,7 @@ const agentGraphBody = z
     toolPolicy: z.literal('explicit').optional(),
   })
   .optional();
-
 const timeoutS = z.number().int().positive().optional();
-
-// harnesys `HookHandler` union minus `inline` (host code; never from HTTP input).
 const hookHandlerBody = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('command'),
@@ -156,17 +133,14 @@ const hookHandlerBody = z.discriminatedUnion('type', [
     timeoutS,
   }),
 ]);
-
 const hooksBindingBody = z.object({
   event: z.string().trim().min(1),
   matcher: z.string().optional(),
   handler: hookHandlerBody,
   when: z.enum(['agent', 'mode']).optional(),
 });
-
 const hooksBody = z.array(hooksBindingBody).max(32).optional();
 const enabledPluginsBody = z.record(z.string(), z.boolean()).optional();
-
 export const createAgentBody = z.object({
   name: z.string().trim().min(1),
   parentId: z.string().trim().min(1).nullish(),
@@ -190,7 +164,6 @@ export const createAgentBody = z.object({
   defaultModeId: z.string().regex(MODE_ID_RE).max(48).nullish(),
   modes: z.array(agentModeBody).max(24).optional(),
 });
-
 export const updateAgentBody = z.object({
   name: z.string().trim().nullish(),
   modelId: z.string().nullish(),
@@ -213,9 +186,7 @@ export const updateAgentBody = z.object({
   defaultModeId: z.string().regex(MODE_ID_RE).max(48).nullish(),
   modes: z.array(agentModeBody).max(24).optional(),
 });
-
 export const createAgentFromPresetBody = z.object({
   presetId: z.string().trim().min(1),
-  /** Create as spawn delegate under this top-level agent. */
   parentId: z.string().trim().min(1).nullish(),
 });

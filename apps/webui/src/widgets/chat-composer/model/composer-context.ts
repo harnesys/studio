@@ -6,13 +6,11 @@ import {
   generationUsages,
   turnGenerationUsages,
 } from './model-context';
-
 export type ComposerUsage = {
   last: MessageUsage | null;
   run: UsageRollup;
   thread: UsageRollup;
 };
-
 export function composerUsage(
   events: SessionEvent[],
   modelId: string | null | undefined,

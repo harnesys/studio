@@ -1,11 +1,8 @@
 import { type Control, Controller } from 'react-hook-form';
-
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Switch } from '@/shared/ui/switch';
-
 import type { KnowledgeRootFieldsInput } from '../model/knowledge-root-fields';
-
 export function KnowledgeRootFields({ control }: { control: Control<KnowledgeRootFieldsInput> }) {
   return (
     <>

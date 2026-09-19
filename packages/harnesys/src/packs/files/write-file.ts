@@ -6,7 +6,6 @@ import { firstBlockingPattern } from '../../adapters/actions/path-blocklist.ts';
 import { resolveWorkdirPath } from '../../adapters/actions/path-resolve.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
 export function writeFileTool(options: FilesOptions = {}): ToolDefinition {
   const blocklist = options.blocklist ?? DEFAULT_PATH_BLOCKLIST;
   return tool('write_file', {
@@ -24,7 +23,11 @@ export function writeFileTool(options: FilesOptions = {}): ToolDefinition {
       required: ['path', 'content'],
     },
     async execute(input, ctx) {
-      const parsed = input as { path: string; content: string; overwrite?: boolean };
+      const parsed = input as {
+        path: string;
+        content: string;
+        overwrite?: boolean;
+      };
       const absolute = resolveWorkdirPath(ctx.cwd, parsed.path, options.root);
       const blocking = firstBlockingPattern(absolute, blocklist);
       if (blocking) {

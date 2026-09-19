@@ -29,36 +29,33 @@ import {
 } from './tool-permission.ts';
 import { runBatchWorkerPool } from './tool-pool.ts';
 import { validateToolInput } from './tool-registry.ts';
-
 export type ToolCallBatchOutcome = {
   results: ToolCallResult[];
   toolMessages: (ToolMessage | undefined)[];
 };
-
 export type ApproveNodeLike = {
-  approve?: { tools: string[]; reason: string; resumeSchema: JsonSchema };
+  approve?: {
+    tools: string[];
+    reason: string;
+    resumeSchema: JsonSchema;
+  };
   concurrency?: 'parallel' | 'sequential';
 };
-
 export type PreparedToolCall = {
   name: string;
   args: unknown;
   id: string;
 };
-
 export type ApproveResumePayload = {
   approved?: boolean;
 };
-
 export type SingleToolCallDone = {
   result: ToolCallResult;
   message: ToolMessage;
 };
-
 function codeError(code: string, message: string): never {
   throw Object.assign(new Error(message), { code });
 }
-
 export async function runSingleToolCall(
   call: PreparedToolCall,
   ctx: ToolCallContext,
@@ -66,7 +63,6 @@ export async function runSingleToolCall(
 ): Promise<SingleToolCallDone> {
   const message = (content: string): ToolMessage =>
     buildToolMessage({ toolCallId: call.id, name: call.name, content });
-  // Песочница: родителем разделяемое состояние пишет только сам родитель — deny до реестра и пермишенов.
   if (ctx.sandbox && SANDBOX_DENIED_STATE_TOOLS.includes(call.name)) {
     const content = sandboxSharedStateDenyText(call.name);
     return {
@@ -189,8 +185,6 @@ export async function runSingleToolCall(
       tool_output: value,
     });
     const out = hookUpdateOutputOf(post) ?? value;
-    // Песочница: ask_user отвечает deny-текстом вместо throw — детект по
-    // идентичности тула, не по префиксу текста.
     if (ctx.sandbox && call.name === 'ask_user') {
       const reason = typeof out === 'string' ? out : serializeToolOutput(out);
       recordDenied(ctx.state, call.id, { tool: call.name, reason });
@@ -200,13 +194,16 @@ export async function runSingleToolCall(
       };
     }
     if (def.revealsTools) {
-      const loaded = (value as { loaded?: unknown } | null)?.loaded;
+      const loaded = (
+        value as {
+          loaded?: unknown;
+        } | null
+      )?.loaded;
       if (Array.isArray(loaded)) {
         const names = loaded.filter((n): n is string => typeof n === 'string');
         const prev = Array.isArray(ctx.state.loadedTools)
           ? (ctx.state.loadedTools as string[])
           : [];
-        // Кламп по реестру рана: фильтр mcpServers не должен обходиться через load_tools.
         ctx.state.loadedTools = [
           ...new Set([...prev, ...names.filter((n) => ctx.toolRegistry.has(n))]),
         ];
@@ -224,7 +221,14 @@ export async function runSingleToolCall(
       message: message(await presentCallOutput(ctx, call, out)),
     };
   } catch (e) {
-    if ((e as { name?: string }).name === 'AbortError' || ctx.signal.aborted) {
+    if (
+      (
+        e as {
+          name?: string;
+        }
+      ).name === 'AbortError' ||
+      ctx.signal.aborted
+    ) {
       return {
         result: {
           id: call.id,
@@ -237,7 +241,6 @@ export async function runSingleToolCall(
       };
     }
     if (e instanceof AskUserInterrupt) {
-      // Песочница: чужой тул бросил вопрос — deny вместо needs_input (защита).
       if (ctx.sandbox) {
         const reason = sandboxDenyText(call.name, 'user input');
         recordDenied(ctx.state, call.id, { tool: call.name, reason });
@@ -268,7 +271,6 @@ export async function runSingleToolCall(
     };
   }
 }
-
 export async function executeApproveBatch(
   node: ApproveNodeLike,
   calls: PreparedToolCall[],
@@ -292,13 +294,8 @@ export async function executeApproveBatch(
       freeIdx.push(i);
     }
   }
-
   const results: (ToolCallResult | undefined)[] = new Array(calls.length);
   const toolMessages: (ToolMessage | undefined)[] = new Array(calls.length);
-
-  // Restore progress from state (survives crash/resume); saved calls do not re-execute.
-  // Messages rebuild from saved results via the same serializer, so the outcome
-  // stays aligned with calls by index.
   const saved = loadCheckpoint(ctx.state, ctx.nodeId);
   if (saved) {
     for (const { idx, result } of validCheckpointEntries(saved, calls)) {
@@ -314,7 +311,6 @@ export async function executeApproveBatch(
       });
     }
   }
-
   async function runCall(idx: number): Promise<void> {
     const call = calls[idx];
     if (!call || results[idx] !== undefined) {
@@ -323,10 +319,8 @@ export async function executeApproveBatch(
     const done = await runSingleToolCall(call, ctx, idx);
     results[idx] = done.result;
     toolMessages[idx] = done.message;
-    // Чекпоинт сразу: ask соседнего вызова не должен потерять этот результат.
     recordCompleted(ctx.state, ctx.nodeId, idx, done.result);
   }
-
   const pendingFree = freeIdx.filter((i) => results[i] === undefined);
   if (pendingFree.length > 0) {
     const width =
@@ -335,10 +329,6 @@ export async function executeApproveBatch(
         : Math.min(pendingFree.length, ctx.hostMaxConcurrency ?? pendingFree.length);
     await runBatchWorkerPool({ indexes: pendingFree, width, run: runCall });
   }
-
-  // needsApprove calls walk sequentially; each step either consumes the resume
-  // payload or saves the checkpoint and throws AskUserInterrupt.
-  // Песочница: approve-gate отвечает deny, ребёнок продолжает без вопросов.
   for (const callIdx of needsApproveIdx) {
     if (results[callIdx] !== undefined) {
       continue;
@@ -386,8 +376,6 @@ export async function executeApproveBatch(
       });
     }
   }
-
-  // Fill holes from skipped calls so the outcome holds a result per call.
   for (let i = 0; i < calls.length; i++) {
     if (results[i] !== undefined) {
       continue;
@@ -400,7 +388,6 @@ export async function executeApproveBatch(
     results[i] = { id: call.id, name: call.name, result: content, isError: true, skipped: true };
     toolMessages[i] = buildToolMessage({ toolCallId: call.id, name: call.name, content });
   }
-
   clearCheckpoint(ctx.state, ctx.nodeId);
   return { results: results as ToolCallResult[], toolMessages };
 }

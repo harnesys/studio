@@ -5,7 +5,6 @@ type ExplorerHiddenState = {
   showHidden: boolean;
   setShowHidden: (show: boolean) => void;
 };
-
 function load(): boolean {
   try {
     return localStorage.getItem(EXPLORER_SHOW_HIDDEN_STORAGE_KEY) === '1';
@@ -13,7 +12,6 @@ function load(): boolean {
     return false;
   }
 }
-
 export const useExplorerHiddenStore = create<ExplorerHiddenState>((set) => ({
   showHidden: load(),
   setShowHidden: (showHidden) => {

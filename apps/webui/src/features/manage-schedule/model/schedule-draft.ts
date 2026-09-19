@@ -1,7 +1,6 @@
 import { DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 import type { Agent } from '@/entities/agent';
 import type { Schedule, ScheduleHistory, ScheduleStatus } from '@/entities/schedule';
-
 export type ScheduleFormDraft = {
   name: string;
   status: ScheduleStatus;
@@ -13,7 +12,6 @@ export type ScheduleFormDraft = {
   historyLast: number;
   threadId: string;
 };
-
 export function draftFrom(item: Schedule): ScheduleFormDraft {
   return {
     name: item.name,
@@ -27,7 +25,6 @@ export function draftFrom(item: Schedule): ScheduleFormDraft {
     threadId: item.threadId,
   };
 }
-
 export function emptyScheduleDraft(agents: Agent[]): ScheduleFormDraft {
   return {
     name: '',

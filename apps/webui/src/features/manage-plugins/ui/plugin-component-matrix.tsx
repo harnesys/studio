@@ -1,13 +1,16 @@
 import type { ComponentStatus, PluginComponentSummary } from '@harnesys/studio-shared';
 import type { ReactNode } from 'react';
 
-const GROUPS: { status: ComponentStatus; label: string; fallbackReason: string }[] = [
+const GROUPS: {
+  status: ComponentStatus;
+  label: string;
+  fallbackReason: string;
+}[] = [
   { status: 'native', label: 'Native', fallbackReason: '' },
   { status: 'inert', label: 'Inert', fallbackReason: 'not supported here' },
   { status: 'blocked_by_grant', label: 'Blocked', fallbackReason: 'grant required' },
   { status: 'dropped', label: 'Dropped', fallbackReason: 'see diagnostics' },
 ];
-
 export function PluginComponentMatrix({
   components,
   renderAction,
@@ -33,7 +36,6 @@ export function PluginComponentMatrix({
             </p>
             {items.map((component, index) => (
               <MatrixRow
-                // biome-ignore lint/suspicious/noArrayIndexKey: display rows may repeat source pointers
                 key={`${component.kind}:${component.source.file}:${component.source.pointer}:${index}`}
                 component={component}
                 reason={component.inertReason ?? group.fallbackReason}
@@ -46,7 +48,6 @@ export function PluginComponentMatrix({
     </div>
   );
 }
-
 function MatrixRow({
   component,
   reason,

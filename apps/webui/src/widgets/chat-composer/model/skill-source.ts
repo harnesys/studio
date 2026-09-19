@@ -4,13 +4,14 @@ import { useSelectedAgent } from '@/features/desk';
 import { workspaceSkillsQuery } from '@/shared/api';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { isValidEntityRef } from './entity-kinds';
-
-export type SkillOption = { name: string; description: string };
-
-export type ComposerSkillOptions = { options: SkillOption[]; loading: boolean };
-
-// Closed world: a skill is offered only if the agent allowlist names it, its origin
-// can actually load (`workspace` or native `plugin`), and its ref fits the chip and the wire.
+export type SkillOption = {
+  name: string;
+  description: string;
+};
+export type ComposerSkillOptions = {
+  options: SkillOption[];
+  loading: boolean;
+};
 export function useComposerSkillOptions(): ComposerSkillOptions {
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const agent = useSelectedAgent();

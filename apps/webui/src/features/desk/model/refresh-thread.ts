@@ -4,7 +4,6 @@ import { toClientThread, useThreadStore } from '@/entities/thread';
 import { getThread } from '@/shared/api';
 
 const inflight = new Map<string, Promise<ThreadRecord | null>>();
-
 export function refreshThread(threadId: string): Promise<ThreadRecord | null> {
   if (useSessionStore.getState().activeRuns[threadId]) {
     return Promise.resolve(null);

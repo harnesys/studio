@@ -1,11 +1,8 @@
 import { type Control, Controller } from 'react-hook-form';
-
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
-
 import type { PinFieldsInput } from '../model/pin-fields';
-
 export function PinFields({
   control,
   keyLocked = false,

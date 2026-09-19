@@ -1,17 +1,23 @@
 import { bindingOf } from '../adapters/models/binding.ts';
 import type { AgentDefinition, AgentModelRef } from '../domain/agent-definition.ts';
 import type { ModelsPort, ProviderConfig } from '../ports/models.ts';
-
 export type MergeStateFn = (key: string, a: unknown, b: unknown) => unknown;
-
 export function isPort(v: ProviderConfig[] | ModelsPort): v is ModelsPort {
   return typeof (v as ModelsPort).get === 'function';
 }
-
 function resolveModelCoords(
-  ref: string | { provider: string; model: string } | undefined,
+  ref:
+    | string
+    | {
+        provider: string;
+        model: string;
+      }
+    | undefined,
   agent: AgentDefinition,
-): { provider: string; model: string } | null {
+): {
+  provider: string;
+  model: string;
+} | null {
   if (typeof ref === 'string') {
     const mapped = agent.models?.[ref];
     if (mapped) {
@@ -20,8 +26,16 @@ function resolveModelCoords(
     return null;
   }
   if (ref && typeof ref === 'object' && 'provider' in ref) {
-    const pn = (ref as { provider: string }).provider;
-    const mn = (ref as { model: string }).model;
+    const pn = (
+      ref as {
+        provider: string;
+      }
+    ).provider;
+    const mn = (
+      ref as {
+        model: string;
+      }
+    ).model;
     if (pn && mn) {
       return { provider: pn, model: mn };
     }
@@ -32,10 +46,15 @@ function resolveModelCoords(
   }
   return null;
 }
-
 export function findBind(
   models: ProviderConfig[] | ModelsPort,
-  ref: string | { provider: string; model: string } | undefined,
+  ref:
+    | string
+    | {
+        provider: string;
+        model: string;
+      }
+    | undefined,
   agent: AgentDefinition,
 ) {
   const coords = resolveModelCoords(ref, agent);
@@ -56,15 +75,21 @@ export function findBind(
     return null;
   }
 }
-
 export function resolveModelForPort(
-  ref: string | { provider: string; model: string } | undefined,
+  ref:
+    | string
+    | {
+        provider: string;
+        model: string;
+      }
+    | undefined,
   agent: AgentDefinition,
-): { provider: string; model: string } | null {
+): {
+  provider: string;
+  model: string;
+} | null {
   return resolveModelCoords(ref, agent);
 }
-
-/** Full model ref for call settings (effort / generation), including named aliases. */
 export function resolveAgentModelRef(
   ref: string | AgentModelRef | undefined,
   agent: AgentDefinition,
@@ -82,7 +107,6 @@ export function resolveAgentModelRef(
   }
   return agent.model;
 }
-
 export function deepMerge(a: unknown, b: unknown): unknown {
   if (Array.isArray(a) && Array.isArray(b)) {
     return [...a, ...b];
@@ -103,19 +127,20 @@ export function deepMerge(a: unknown, b: unknown): unknown {
   }
   return b;
 }
-
 export function applyReducer(
   key: string,
   prev: unknown,
   next: unknown,
-  opts: { reducers?: Record<string, 'replace' | 'merge'>; mergeState?: MergeStateFn },
+  opts: {
+    reducers?: Record<string, 'replace' | 'merge'>;
+    mergeState?: MergeStateFn;
+  },
 ) {
   if (opts.mergeState) {
     return opts.mergeState(key, prev, next);
   }
   return opts.reducers?.[key] === 'replace' ? next : deepMerge(prev, next);
 }
-
 export function hashStr(s: string): string {
   let h = 0;
   for (let i = 0; i < s.length; i += 1) {
@@ -123,7 +148,6 @@ export function hashStr(s: string): string {
   }
   return String(h);
 }
-
 export function stateKeyOf(expr: string): string | undefined {
   const key = expr
     .trim()

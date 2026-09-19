@@ -1,11 +1,9 @@
 import { threadsForAgent } from '@harnesys/studio-shared';
 import { create } from 'zustand';
-
 import { latestThread, type Thread } from './thread';
 
 type ThreadStore = {
   items: Thread[];
-  /** Whether the open transcript for this thread is stuck to the bottom edge. */
   viewingAtEnd: Record<string, boolean>;
   byId: (id: string) => Thread | undefined;
   forAgent: (agentId: string) => Thread[];
@@ -23,22 +21,16 @@ type ThreadStore = {
   remove: (threadId: string) => void;
   removeForAgent: (agentId: string) => string[];
 };
-
 export const useThreadStore = create<ThreadStore>((set, get) => ({
   items: [],
   viewingAtEnd: {},
-
   byId: (id) => get().items.find((item) => item.id === id),
-
   forAgent: (agentId) => threadsForAgent(get().items, agentId),
-
   latestForAgent: (agentId) => latestThread(get().forAgent(agentId)),
-
   hasUnreadForAgent: (agentId) =>
     get()
       .forAgent(agentId)
       .some((item) => item.unread),
-
   create: (agentId, title = 'New thread') => {
     if (!agentId) {
       return null;
@@ -55,7 +47,6 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
     set((state) => ({ items: [...state.items, thread] }));
     return thread;
   },
-
   upsert: (thread) => {
     set((state) => ({
       items: state.items.some((item) => item.id === thread.id)
@@ -63,13 +54,11 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
         : [...state.items, thread],
     }));
   },
-
   replaceWorkspace: (workspaceId, threads) => {
     set((state) => ({
       items: [...state.items.filter((item) => item.workspaceId !== workspaceId), ...threads],
     }));
   },
-
   markRead: (threadId) => {
     const current = get().items.find((item) => item.id === threadId);
     if (!current?.unread) {
@@ -79,7 +68,6 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
       items: state.items.map((item) => (item.id === threadId ? { ...item, unread: false } : item)),
     }));
   },
-
   markUnread: (threadId) => {
     const current = get().items.find((item) => item.id === threadId);
     if (!current || current.unread) {
@@ -89,13 +77,11 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
       items: state.items.map((item) => (item.id === threadId ? { ...item, unread: true } : item)),
     }));
   },
-
   setPinned: (threadId, pinned) => {
     set((state) => ({
       items: state.items.map((item) => (item.id === threadId ? { ...item, pinned } : item)),
     }));
   },
-
   setViewingAtEnd: (threadId, atEnd) => {
     set((state) => {
       if (state.viewingAtEnd[threadId] === atEnd) {
@@ -106,9 +92,7 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
       };
     });
   },
-
   isViewingAtEnd: (threadId) => Boolean(get().viewingAtEnd[threadId]),
-
   touch: (threadId) => {
     const now = new Date().toISOString();
     set((state) => ({
@@ -117,7 +101,6 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
       ),
     }));
   },
-
   remove: (threadId) => {
     set((state) => {
       const { [threadId]: _, ...viewingAtEnd } = state.viewingAtEnd;
@@ -127,7 +110,6 @@ export const useThreadStore = create<ThreadStore>((set, get) => ({
       };
     });
   },
-
   removeForAgent: (agentId) => {
     const removed = threadsForAgent(get().items, agentId).map((item) => item.id);
     const removedIds = new Set(removed);

@@ -1,6 +1,5 @@
 import type { RouteObject } from 'react-router';
 import { Navigate, Outlet, useParams } from 'react-router';
-
 import { DeskChromeBootstrap } from '@/app/desk-chrome-bootstrap';
 import { DeskSync } from '@/features/desk';
 import { KnowledgeIndexSync } from '@/features/manage-knowledge-index';
@@ -20,11 +19,9 @@ function StudioLayout() {
     </>
   );
 }
-
 function BareWorkspaceRedirect() {
   return <Navigate to={studioPath.desk} replace />;
 }
-
 function LegacyWorkspaceRedirect() {
   const params = useParams();
   const rest = params['*'] ?? '';
@@ -33,7 +30,6 @@ function LegacyWorkspaceRedirect() {
   if (!workspaceId) {
     return <Navigate to={studioPath.desk} replace />;
   }
-
   const kind = segments[1];
   if (kind === 'thread' && segments[2]) {
     return <Navigate to={studioPath.thread(workspaceId, segments[2])} replace />;
@@ -45,10 +41,8 @@ function LegacyWorkspaceRedirect() {
   if (kind === 'settings') {
     return <Navigate to={studioPath.settings(parseWindowSettingsCategory(segments[2]))} replace />;
   }
-
   return <Navigate to={studioPath.desk} replace />;
 }
-
 const routes: RouteObject[] = [
   {
     element: <StudioLayout />,
@@ -56,7 +50,6 @@ const routes: RouteObject[] = [
       { path: 'settings', element: <SettingsPage /> },
       { path: 'settings/:category', element: <SettingsPage /> },
       {
-        // Pathless layout: one WorkspacePage survives `/` ↔ `/:workspaceId/...` navigation.
         element: <WorkspacePage />,
         children: [
           { index: true, element: null },
@@ -80,5 +73,4 @@ const routes: RouteObject[] = [
     ],
   },
 ];
-
 export default routes;

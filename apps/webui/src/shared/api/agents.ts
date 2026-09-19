@@ -11,7 +11,6 @@ import type {
 } from '@harnesys/studio-shared';
 import type { PermissionMap } from 'harnesys';
 import { apiJson } from './client';
-
 export type CreateAgentInput = {
   name: string;
   parentId?: string | null;
@@ -34,7 +33,6 @@ export type CreateAgentInput = {
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
-
 export type UpdateAgentInput = {
   name?: string;
   modelId?: string | null;
@@ -56,7 +54,6 @@ export type UpdateAgentInput = {
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
-
 export type AgentPresetRecord = {
   id: string;
   name: string;
@@ -69,26 +66,24 @@ export type AgentPresetRecord = {
   permissions?: PermissionMap | null;
   graph?: AgentGraph;
 };
-
 export function listAgents(workspaceId: string) {
   return apiJson<AgentRecord[]>(`/api/workspaces/${workspaceId}/agents`);
 }
-
 export function listAgentPresets() {
   return apiJson<AgentPresetRecord[]>('/api/agent-presets');
 }
-
 export function createAgentRecord(workspaceId: string, body: CreateAgentInput) {
   return apiJson<AgentRecord>(`/api/workspaces/${workspaceId}/agents`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
-
 export function createAgentFromPresetRecord(
   workspaceId: string,
   presetId: string,
-  options?: { parentId?: string | null },
+  options?: {
+    parentId?: string | null;
+  },
 ) {
   return apiJson<AgentRecord>(`/api/workspaces/${workspaceId}/agents/from-preset`, {
     method: 'POST',
@@ -98,14 +93,12 @@ export function createAgentFromPresetRecord(
     }),
   });
 }
-
 export function updateAgentRecord(workspaceId: string, agentId: string, body: UpdateAgentInput) {
   return apiJson<AgentRecord>(`/api/workspaces/${workspaceId}/agents/${agentId}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
   });
 }
-
 export function deleteAgentRecord(workspaceId: string, agentId: string) {
   return apiJson<void>(`/api/workspaces/${workspaceId}/agents/${agentId}`, {
     method: 'DELETE',

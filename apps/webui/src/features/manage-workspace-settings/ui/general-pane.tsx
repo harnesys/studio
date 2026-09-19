@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-
 import {
   useDeleteWorkspace,
   usePickWorkspaceFolder,
@@ -17,7 +16,6 @@ import { Button } from '@/shared/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { toast } from '@/shared/ui/toast';
-
 export function GeneralPane({
   workspaceId,
   onClose,
@@ -27,7 +25,6 @@ export function GeneralPane({
 }) {
   const workspacesQuery = useWorkspaces();
   const workspace = (workspacesQuery.data ?? []).find((item) => item.id === workspaceId) ?? null;
-
   if (!workspace) {
     return (
       <p className="text-muted-foreground text-sm" data-testid="workspace-general-missing">
@@ -35,7 +32,6 @@ export function GeneralPane({
       </p>
     );
   }
-
   return (
     <div className="flex flex-col gap-6" data-testid="workspace-general-pane">
       <GeneralSection key={workspace.id} workspace={workspace} />
@@ -43,7 +39,6 @@ export function GeneralPane({
     </div>
   );
 }
-
 function GeneralSection({ workspace }: { workspace: Workspace }) {
   const [name, setName] = useState(workspace.name);
   const [path, setPath] = useState(workspace.path);
@@ -52,7 +47,6 @@ function GeneralSection({ workspace }: { workspace: Workspace }) {
   const invalid = name.trim().length === 0 || path.trim().length === 0;
   const dirty = name.trim() !== workspace.name || path.trim() !== workspace.path;
   const busy = update.isPending || pick.isPending;
-
   const save = () => {
     void update
       .mutateAsync({
@@ -71,7 +65,6 @@ function GeneralSection({ workspace }: { workspace: Workspace }) {
         });
       });
   };
-
   return (
     <section className="flex flex-col gap-4" data-testid="workspace-general">
       <WorkspaceFields
@@ -107,7 +100,6 @@ function GeneralSection({ workspace }: { workspace: Workspace }) {
     </section>
   );
 }
-
 function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClose: () => void }) {
   const navigate = useNavigate();
   const removeWorkspace = useDeleteWorkspace();
@@ -115,7 +107,6 @@ function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClos
   const toggle = useWorkspaceTabsStore((state) => state.toggle);
   const selected = useWorkspaceTabsStore((state) => state.selected);
   const inWindow = selected.includes(workspace.id);
-
   const parkAfterRemove = () => {
     if (useWorkspaceTabsStore.getState().selected.includes(workspace.id)) {
       toggle(workspace.id);
@@ -130,7 +121,6 @@ function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClos
     }
     onClose();
   };
-
   const removeFromWindow = () => {
     if (!inWindow) {
       onClose();
@@ -147,7 +137,6 @@ function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClos
     );
     onClose();
   };
-
   const removeFromHost = () => {
     void alert
       .confirm({
@@ -172,7 +161,6 @@ function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClos
           });
       });
   };
-
   const wipeData = () => {
     void alert
       .confirm({
@@ -209,7 +197,6 @@ function LifecycleSection({ workspace, onClose }: { workspace: Workspace; onClos
           });
       });
   };
-
   return (
     <section className="flex flex-col gap-3" data-testid="workspace-lifecycle">
       <h2 className="font-medium text-sm">Lifecycle</h2>

@@ -4,8 +4,10 @@ import type { AgentGenerationSettings } from './agent-definition.ts';
 export { CHAT_GENERATION_PARAMETERS };
 
 type GenerationField = keyof AgentGenerationSettings;
-
-const FIELD_PARAMS: { field: GenerationField; params: string[] }[] = [
+const FIELD_PARAMS: {
+  field: GenerationField;
+  params: string[];
+}[] = [
   { field: 'temperature', params: ['temperature'] },
   { field: 'topP', params: ['top_p'] },
   { field: 'topK', params: ['top_k'] },
@@ -14,7 +16,6 @@ const FIELD_PARAMS: { field: GenerationField; params: string[] }[] = [
   { field: 'seed', params: ['seed'] },
   { field: 'maxTokens', params: ['max_tokens', 'max_completion_tokens'] },
 ];
-
 export function withChatGenerationParameters(params: string[] | undefined): string[] {
   const out = [...(params ?? [])];
   const seen = new Set(out);
@@ -27,7 +28,6 @@ export function withChatGenerationParameters(params: string[] | undefined): stri
   }
   return out;
 }
-
 export function filterGenerationSettings(
   settings: AgentGenerationSettings | undefined,
   supportedParameters: string[] | undefined,

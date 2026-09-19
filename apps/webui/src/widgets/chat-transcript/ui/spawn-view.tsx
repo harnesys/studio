@@ -7,7 +7,6 @@ import type { IdeTab } from '@/features/ide';
 import { useOpenSpawnTab } from '@/features/ide';
 import { cn } from '@/shared/lib/utils';
 import { StatusDot } from '@/shared/ui/status-dot';
-
 import { agentFallbackName } from '../model/agent-label';
 import { splitRuns } from '../model/run-groups';
 import type { SpawnStatus } from '../model/spawn-groups';
@@ -20,22 +19,12 @@ const DOT_TONE: Record<SpawnStatus, 'live' | 'idle' | 'danger'> = {
   done: 'idle',
   failed: 'danger',
 };
-
 const STATUS_LABEL: Record<SpawnStatus, string> = {
   running: 'running',
   done: 'done',
   failed: 'failed',
 };
-
 const TASK_COLLAPSE_AT = 500;
-
-/**
- * Read-only IDE tab for one spawn of a thread. Events come from the parent
- * thread's journal: extractSpawns separates them from the parent feed, and
- * any runId in the spawn-id set (the spawn itself and nested spawns) is
- * rendered here — nested spawns show as SpawnLines and open their own
- * spawn tabs. No composer, no HitlPrompt, no MessageActions, no retry.
- */
 export function SpawnView({
   tab,
   threadId,
@@ -50,32 +39,29 @@ export function SpawnView({
   const hasEvents = events.length > 0;
   const deskReady = useDeskStore((state) => state.hydrated[tab.workspaceId] === 'ready');
   const openSpawnTab = useOpenSpawnTab();
-
   const { spawns } = extractSpawns(events, seenAt);
   const spawn = spawns.find((item) => item.spawnId === spawnId);
   const agent = useAgentStore((state) => (spawn ? state.byId(spawn.agentId) : undefined));
   const subtreeIds = spawnSubtreeIds(events, spawnId);
   const spawnedEvent = events.find(
-    (ev): ev is SessionEvent & { type: 'agent.spawned' } =>
-      ev.type === 'agent.spawned' && ev.spawnId === spawnId,
+    (
+      ev,
+    ): ev is SessionEvent & {
+      type: 'agent.spawned';
+    } => ev.type === 'agent.spawned' && ev.spawnId === spawnId,
   );
   const spawnedTask = spawnedEvent ? spawnTaskText(spawnedEvent.taskInput) : undefined;
   const [taskExpanded, setTaskExpanded] = useState(false);
   const taskCollapsed =
     spawnedTask !== undefined && Array.from(spawnedTask).length > TASK_COLLAPSE_AT && !taskExpanded;
-
-  // A restored spawn tab has no URL and the parent thread's journal loads
-  // only when that thread's panel mounts — fetch it here once if missing.
   useEffect(() => {
     if (hasEvents || !deskReady) {
       return;
     }
     void refreshThread(threadId).catch(() => {});
   }, [hasEvents, deskReady, threadId]);
-
   const running = spawn?.status === 'running';
   useSpawnStream(threadId, spawnId, running);
-
   if (!spawn) {
     return (
       <div
@@ -86,17 +72,14 @@ export function SpawnView({
       </div>
     );
   }
-
   const onOpenSpawn = (sid: string) => {
     const target = spawns.find((item) => item.spawnId === sid);
     openSpawnTab(tab.workspaceId, target?.agentId ?? '', threadId, sid);
   };
-
   const childEvents = events.filter(
     (ev) => ev.runId !== undefined && (ev.runId === spawnId || subtreeIds.has(ev.runId)),
   );
   const runs = splitRuns(childEvents);
-
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-spawn">
       <div className="flex h-9 shrink-0 items-center gap-2 border-border/60 border-b px-3">

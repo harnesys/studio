@@ -3,17 +3,13 @@ import { Button } from '@/shared/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { type StudioHost, useStudioHostsStore } from '../model/hosts.store';
-
-/** Host linking inside the new workspace form. Pairing backend lands with remote-host v1. */
 export function HostPairFields({ onPaired }: { onPaired: (host: StudioHost) => void }) {
   const pairHost = useStudioHostsStore((state) => state.pairHost);
   const [address, setAddress] = useState('');
   const [code, setCode] = useState('');
   const [pairing, setPairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const canPair = address.trim().length > 0 && code.trim().length > 0 && !pairing;
-
   const pair = () => {
     setPairing(true);
     setError(null);
@@ -24,7 +20,6 @@ export function HostPairFields({ onPaired }: { onPaired: (host: StudioHost) => v
       })
       .finally(() => setPairing(false));
   };
-
   return (
     <div
       className="rounded-lg border border-border/60 border-dashed bg-muted/30 p-3"

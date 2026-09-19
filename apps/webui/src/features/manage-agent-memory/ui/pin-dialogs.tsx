@@ -1,12 +1,10 @@
 import type { PinRecord } from '@harnesys/studio-shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { FieldGroup } from '@/shared/ui/field';
-
 import {
   emptyPinFields,
   type PinDraft,
@@ -17,13 +15,11 @@ import {
   toPinDraft,
 } from '../model/pin-fields';
 import { PinFields } from './pin-fields';
-
 export function AddPinDialog({ onResolve }: DialogComponentProps<PinDraft>) {
   const form = useForm<PinFieldsInput, unknown, PinFieldsOutput>({
     resolver: zodResolver(pinFieldsSchema),
     defaultValues: emptyPinFields(),
   });
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"
@@ -41,16 +37,19 @@ export function AddPinDialog({ onResolve }: DialogComponentProps<PinDraft>) {
     </form>
   );
 }
-
 export function EditPinDialog({
   onResolve,
   data,
-}: DialogComponentProps<PinDraft, { pin: PinRecord }>) {
+}: DialogComponentProps<
+  PinDraft,
+  {
+    pin: PinRecord;
+  }
+>) {
   const form = useForm<PinFieldsInput, unknown, PinFieldsOutput>({
     resolver: zodResolver(pinFieldsSchema),
     defaultValues: data?.pin ? pinFieldsFrom(data.pin) : emptyPinFields(),
   });
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"

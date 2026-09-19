@@ -2,17 +2,13 @@ import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { listWorkspaceFiles } from '@/shared/api/files';
 import { parentDir } from './file-tree-index';
-
 export type LazyChildrenState = {
   fetched: Set<string>;
   roots: Set<string>;
 };
-
 export function createLazyChildrenState(): LazyChildrenState {
   return { fetched: new Set(), roots: new Set() };
 }
-
-/** Single-level fetch for pruned safety dirs (`node_modules`, `.git`) and their subdirs. */
 export function ensurePrunedChildren(args: {
   qc: QueryClient;
   treeKey: QueryKey;

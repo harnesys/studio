@@ -1,12 +1,8 @@
 import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
-
-/** Parent path of a workspace-relative entry path (`''` for root). */
 export function parentDir(path: string): string {
   const index = path.lastIndexOf('/');
   return index === -1 ? '' : path.slice(0, index);
 }
-
-/** Group flat tree entries by parent directory path. */
 export function indexFileTree(entries: WorkspaceFileEntry[]): Map<string, WorkspaceFileEntry[]> {
   const map = new Map<string, WorkspaceFileEntry[]>();
   for (const entry of entries) {
@@ -28,7 +24,6 @@ export function indexFileTree(entries: WorkspaceFileEntry[]): Map<string, Worksp
   }
   return map;
 }
-
 export function childrenOf(
   index: Map<string, WorkspaceFileEntry[]>,
   parentPath: string,

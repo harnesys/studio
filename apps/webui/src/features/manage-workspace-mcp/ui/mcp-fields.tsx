@@ -1,13 +1,10 @@
 import { type Control, Controller, useWatch } from 'react-hook-form';
-
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Switch } from '@/shared/ui/switch';
 import { Textarea } from '@/shared/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import { type McpFieldsInput, TRANSPORT_ITEMS } from '../model/mcp-fields';
-
 export function McpFields({
   control,
   serverIdLocked = false,
@@ -17,7 +14,6 @@ export function McpFields({
 }) {
   const transport = useWatch({ control, name: 'transport' }) ?? 'stdio';
   const isStdio = transport === 'stdio';
-
   return (
     <>
       <Controller

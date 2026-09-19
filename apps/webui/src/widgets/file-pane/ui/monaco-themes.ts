@@ -1,8 +1,6 @@
 import type { OnMount } from '@monaco-editor/react';
 
 type Monaco = Parameters<OnMount>[1];
-
-/** JetBrains New Dark (IntelliJ Dark). Editor/gutter bg stay app `--background`. */
 const C = {
   fg: 'BCBEC4',
   comment: '7A7E85',
@@ -20,9 +18,7 @@ const C = {
   typeParam: '16BAAC',
   invalid: 'F75464',
 } as const;
-
 const monoBracket = `#${C.fg}`;
-
 function cssVar(name: string, fallback: string): string {
   if (typeof window === 'undefined') {
     return fallback;
@@ -30,7 +26,6 @@ function cssVar(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 }
-
 export function defineAppThemes(monaco: Monaco) {
   monaco.editor.defineTheme('harnesys-dark', {
     base: 'vs-dark',
@@ -40,16 +35,13 @@ export function defineAppThemes(monaco: Monaco) {
       { token: 'invalid', foreground: C.invalid },
       { token: 'emphasis', fontStyle: 'italic' },
       { token: 'strong', fontStyle: 'bold' },
-
       { token: 'comment', foreground: C.comment },
       { token: 'comment.doc', foreground: C.docComment, fontStyle: 'italic' },
       { token: 'comment.md', foreground: C.comment },
-
       { token: 'keyword', foreground: C.keyword },
       { token: 'keyword.flow', foreground: C.keyword },
       { token: 'keyword.json', foreground: C.keyword },
       { token: 'keyword.other', foreground: C.keyword },
-
       { token: 'string', foreground: C.string },
       { token: 'string.escape', foreground: C.keyword },
       { token: 'string.key.json', foreground: C.property },
@@ -57,11 +49,9 @@ export function defineAppThemes(monaco: Monaco) {
       { token: 'string.sql', foreground: C.string },
       { token: 'string.yaml', foreground: C.string },
       { token: 'string.html', foreground: C.string },
-
       { token: 'number', foreground: C.number },
       { token: 'number.hex', foreground: C.number },
       { token: 'regexp', foreground: C.regexp },
-
       { token: 'type', foreground: C.fg },
       { token: 'type.identifier', foreground: C.fg },
       { token: 'class', foreground: C.fg },
@@ -70,12 +60,10 @@ export function defineAppThemes(monaco: Monaco) {
       { token: 'enum', foreground: C.fg },
       { token: 'struct', foreground: C.fg },
       { token: 'typeParameter', foreground: C.typeParam },
-
       { token: 'function', foreground: C.function },
       { token: 'function.name', foreground: C.function },
       { token: 'member', foreground: C.method },
       { token: 'method', foreground: C.method },
-
       { token: 'key', foreground: C.property },
       { token: 'variable', foreground: C.fg },
       { token: 'variable.name', foreground: C.fg },
@@ -83,7 +71,6 @@ export function defineAppThemes(monaco: Monaco) {
       { token: 'variable.parameter', foreground: C.fg },
       { token: 'constant', foreground: C.property },
       { token: 'annotation', foreground: C.annotation },
-
       { token: 'tag', foreground: C.tag },
       { token: 'tag.id', foreground: C.tag },
       { token: 'tag.class', foreground: C.tag },
@@ -93,8 +80,6 @@ export function defineAppThemes(monaco: Monaco) {
       { token: 'metatag.content.html', foreground: C.tag },
       { token: 'metatag.html', foreground: C.tag },
       { token: 'metatag.xml', foreground: C.tag },
-
-      // CSS (tokenPostfix .css) — override vs-dark specifics
       { token: 'attribute.name', foreground: C.fg },
       { token: 'attribute.value', foreground: C.fg },
       { token: 'attribute.value.number', foreground: C.number },
@@ -105,12 +90,10 @@ export function defineAppThemes(monaco: Monaco) {
       { token: 'attribute.value.hex.css', foreground: C.number },
       { token: 'attribute.value.html', foreground: C.string },
       { token: 'attribute.value.xml', foreground: C.string },
-
       { token: 'delimiter', foreground: C.fg },
       { token: 'delimiter.bracket', foreground: C.fg },
       { token: 'delimiter.parenthesis', foreground: C.fg },
       { token: 'delimiter.angle', foreground: C.tag },
-      // HTML/XML: < </ > /> same gold as tag names (JetBrains)
       { token: 'delimiter.html', foreground: C.tag },
       { token: 'delimiter.xml', foreground: C.tag },
       { token: 'delimiter.cdata', foreground: C.tag },
@@ -125,24 +108,12 @@ export function defineAppThemes(monaco: Monaco) {
       'editor.lineHighlightBackground': '#1F202466',
       'editor.selectionBackground': '#264F78',
       'editor.inactiveSelectionBackground': '#264F7880',
-      // 'editor.selectionHighlightBackground': '#00000000',
-      // 'editor.selectionHighlightBorder': '#00000000',
-      // 'editor.wordHighlightBackground': '#00000000',
-      // 'editor.wordHighlightBorder': '#00000000',
-      // 'editor.wordHighlightStrongBackground': '#00000000',
-      // 'editor.wordHighlightStrongBorder': '#00000000',
-      // 'editor.wordHighlightTextBackground': '#00000000',
-      // 'editor.wordHighlightTextBorder': '#00000000',
-      // 'editor.symbolHighlightBackground': '#00000000',
-      // 'editor.symbolHighlightBorder': '#00000000',
-      // 'editor.hoverHighlightBackground': '#00000000',
       'editorCursor.foreground': '#CED0D6',
       'editorWidget.background': '#2B2D30',
       'editorWidget.border': '#43454A',
       'editorWidget.foreground': `#${C.fg}`,
       'editorGutter.background': cssVar('--background', '#0f1114'),
       'editorBracketMatch.background': '#43454A',
-      // 'editorBracketMatch.border': '#00000000',
       'editorBracketHighlight.foreground1': monoBracket,
       'editorBracketHighlight.foreground2': monoBracket,
       'editorBracketHighlight.foreground3': monoBracket,
@@ -169,7 +140,6 @@ export function defineAppThemes(monaco: Monaco) {
       'scrollbarSlider.activeBackground': '#8a9098b3',
     },
   });
-
   monaco.editor.defineTheme('harnesys-light', {
     base: 'vs',
     inherit: true,
@@ -181,17 +151,6 @@ export function defineAppThemes(monaco: Monaco) {
       'editorLineNumber.activeForeground': '#9aa1a8',
       'editor.lineHighlightBackground': '#eceeef80',
       'editor.selectionBackground': '#c4622d33',
-      // 'editor.selectionHighlightBackground': '#00000000',
-      // 'editor.selectionHighlightBorder': '#00000000',
-      // 'editor.wordHighlightBackground': '#00000000',
-      // 'editor.wordHighlightBorder': '#00000000',
-      // 'editor.wordHighlightStrongBackground': '#00000000',
-      // 'editor.wordHighlightStrongBorder': '#00000000',
-      // 'editor.wordHighlightTextBackground': '#00000000',
-      // 'editor.wordHighlightTextBorder': '#00000000',
-      // 'editor.symbolHighlightBackground': '#00000000',
-      // 'editor.symbolHighlightBorder': '#00000000',
-      // 'editor.hoverHighlightBackground': '#00000000',
       'editorCursor.foreground': cssVar('--live', '#c4622d'),
       'editorWidget.background': cssVar('--card', '#fbfbfc'),
       'editorWidget.border': cssVar('--border', '#e2e4e7'),

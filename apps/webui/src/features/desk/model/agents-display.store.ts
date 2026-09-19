@@ -8,7 +8,6 @@ type AgentsDisplayState = {
   expand: (agentId: string) => void;
   forget: (agentId: string) => void;
 };
-
 export const useAgentsDisplayStore = create<AgentsDisplayState>()(
   persist(
     (set) => ({

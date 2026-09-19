@@ -13,7 +13,6 @@ import {
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { TOGETHER_DEFAULT_URL };
-
 export function listTogetherModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, TOGETHER_DEFAULT_URL),
@@ -22,7 +21,6 @@ export function listTogetherModels(input: DiscoverInput): Promise<DiscoveredMode
     parse: parseTogetherList,
   });
 }
-
 export function parseTogetherList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -33,7 +31,6 @@ export function parseTogetherList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapTogetherModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const name = asString(record?.id);
@@ -57,7 +54,6 @@ function mapTogetherModel(item: unknown): DiscoveredModel | undefined {
     raw: item,
   };
 }
-
 function togetherKind(
   type: string | undefined,
   name: string,

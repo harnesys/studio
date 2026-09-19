@@ -10,7 +10,6 @@ import { ModelsPane } from './models-pane';
 import { PluginsPane } from './plugins-pane';
 import { SkillsPane } from './skills-pane';
 import { ToolsPane } from './tools-pane';
-
 export function WorkspaceSettingsCategoryPanes({
   category,
   workspaceId,
@@ -31,7 +30,6 @@ export function WorkspaceSettingsCategoryPanes({
     </div>
   );
 }
-
 function CategoryPane({
   category,
   workspaceId,

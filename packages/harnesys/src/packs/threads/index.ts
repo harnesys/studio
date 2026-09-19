@@ -1,9 +1,9 @@
 import { definePack } from '../../domain/pack.ts';
 import type { ThreadsPort } from '../../ports/threads.ts';
 import { createThreadTools } from './create-thread-tools.ts';
-
-export type ThreadsCapabilityPorts = { threads: ThreadsPort };
-
+export type ThreadsCapabilityPorts = {
+  threads: ThreadsPort;
+};
 export const threadsCapability = definePack<ThreadsCapabilityPorts, Record<string, unknown>>({
   name: 'threads',
   version: '1.0.0',

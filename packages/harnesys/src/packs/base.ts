@@ -4,18 +4,15 @@ import { definePack } from '../domain/pack.ts';
 import type { ProcessJobRecord, ProcessJobRegistry } from '../domain/process-job.ts';
 import { processTools } from './shell/process-tools.ts';
 import type { ShellOptions } from './shell/shell.ts';
-
 export type FilesPackSpec = {
   root?: string;
   blocklist?: string[];
 };
-
 export type ShellPackSpec = {
   timeout?: number;
   allowlist?: string[];
   blocklist?: string[];
 };
-
 function filesOptionsFromSpec(spec: Record<string, unknown>): FilesOptions {
   const root =
     typeof spec.root === 'string' && spec.root.trim() !== '' ? spec.root.trim() : undefined;
@@ -25,7 +22,6 @@ function filesOptionsFromSpec(spec: Record<string, unknown>): FilesOptions {
     ...(blocklist !== undefined ? { blocklist } : {}),
   };
 }
-
 function shellOptionsFromSpec(spec: Record<string, unknown>): ShellOptions {
   const timeout =
     typeof spec.timeout === 'number' && Number.isFinite(spec.timeout) ? spec.timeout : undefined;
@@ -37,7 +33,6 @@ function shellOptionsFromSpec(spec: Record<string, unknown>): ShellOptions {
     ...(blocklist !== undefined ? { blocklist } : {}),
   };
 }
-
 function stringList(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -47,7 +42,6 @@ function stringList(value: unknown): string[] | undefined {
   );
   return list.length > 0 ? list : undefined;
 }
-
 export const filesCapability = definePack<Record<string, unknown>, FilesPackSpec>({
   name: 'files',
   version: '1.0.0',
@@ -79,13 +73,11 @@ export const filesCapability = definePack<Record<string, unknown>, FilesPackSpec
   },
   create: (ctx) => ({ tools: files(filesOptionsFromSpec(ctx.spec)) }),
 });
-
 export type ShellPackPorts = {
   jobs: ProcessJobRegistry;
   onPtyJob?: (record: ProcessJobRecord) => void;
   resolveWorkspaceId?: () => string | undefined;
 };
-
 export const shellCapability = definePack<ShellPackPorts, ShellPackSpec>({
   name: 'shell',
   version: '1.0.0',
@@ -94,7 +86,7 @@ export const shellCapability = definePack<ShellPackPorts, ShellPackSpec>({
   specSchema: {
     type: 'object',
     properties: {
-      timeout: { type: 'number', minimum: 1, maximum: 600_000 },
+      timeout: { type: 'number', minimum: 1, maximum: 600000 },
       allowlist: { type: 'array', items: { type: 'string' } },
       blocklist: { type: 'array', items: { type: 'string' } },
     },
@@ -113,7 +105,6 @@ export const shellCapability = definePack<ShellPackPorts, ShellPackSpec>({
     tools: [shell(shellOptionsFromSpec(ctx.spec), ctx.ports), ...processTools(ctx.ports.jobs)],
   }),
 });
-
 export const fetchCapability = definePack<Record<string, unknown>, Record<string, unknown>>({
   name: 'fetch',
   version: '1.0.0',

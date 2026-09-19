@@ -26,8 +26,12 @@ import { BranchRow } from './branch-row';
 import { formatCountsShort } from './git-counts';
 import { SectionMenu } from './section-menu';
 
-type GitStatus = Extract<GitStatusResponse, { isGit: true }>;
-
+type GitStatus = Extract<
+  GitStatusResponse,
+  {
+    isGit: true;
+  }
+>;
 export function useGitStatus(workspaceId: string): GitStatus | null {
   const query = useQuery({
     queryKey: gitStatusQueryKey(workspaceId),
@@ -39,7 +43,6 @@ export function useGitStatus(workspaceId: string): GitStatus | null {
   });
   return query.data?.isGit ? (query.data as GitStatus) : null;
 }
-
 export function GitTitle({ workspaceIds }: { workspaceIds: string[] }) {
   const queries = useQueries({
     queries: workspaceIds.map((workspaceId) => ({
@@ -79,7 +82,6 @@ export function GitTitle({ workspaceIds }: { workspaceIds: string[] }) {
     </span>
   );
 }
-
 export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
   const qc = useQueryClient();
   const status = useGitStatus(workspaceId);
@@ -98,7 +100,6 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
     handleAddSelected,
     handleNewBranch,
   } = useGitActions(workspaceId);
-
   const localBranches = status?.branches?.local ?? [];
   const recentBranches = status?.branches?.recent ?? [];
   const filterQuery = filter.trim().toLowerCase();
@@ -108,7 +109,6 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
   const filteredRecent = filterQuery
     ? recentBranches.filter((b) => b.name.toLowerCase().includes(filterQuery))
     : recentBranches;
-
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: gitStatusQueryKey(workspaceId) });
     void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
@@ -116,7 +116,6 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
     void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
     void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
   };
-
   const handleInit = () => {
     void initGit(workspaceId)
       .then(() => {
@@ -129,7 +128,6 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
         });
       });
   };
-
   if (!status) {
     return (
       <SectionMenu label="Git actions" contentClassName="min-w-52">
@@ -146,14 +144,12 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
       </SectionMenu>
     );
   }
-
   let commitSuffix = '';
   if (status.dirty) {
     commitSuffix = status.counts
       ? ` • ${formatCountsShort(status.counts)}`
       : ` • ${status.dirtyCount}`;
   }
-
   return (
     <SectionMenu label="Git actions" contentClassName="min-w-52">
       <DropdownMenuGroup>
@@ -201,17 +197,7 @@ export function GitSectionMenu({ workspaceId }: { workspaceId: string }) {
           Refresh
         </DropdownMenuItem>
       </DropdownMenuGroup>
-      {/*<div className="px-1 pb-1">*/}
-      {/*  <div className="relative">*/}
-      {/*    <SearchIcon className="pointer-events-none absolute top-1/2 left-1.5 size-3 -translate-y-1/2 text-muted-foreground" />*/}
-      {/*    <Input*/}
-      {/*      value={filter}*/}
-      {/*      onChange={(e) => setFilter(e.target.value)}*/}
-      {/*      placeholder="Filter branches"*/}
-      {/*      className="h-6 pl-6 text-xs"*/}
-      {/*    />*/}
-      {/*  </div>*/}
-      {/*</div>*/}
+
       {filteredRecent.length > 0 ? (
         <>
           <DropdownMenuSeparator />

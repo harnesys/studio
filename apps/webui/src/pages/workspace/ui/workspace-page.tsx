@@ -13,10 +13,8 @@ import { AgentInspector } from '@/widgets/agent-inspector';
 import { FileInspector } from '@/widgets/file-inspector';
 import { IdeHome } from '@/widgets/ide-home';
 import { WorkspaceSidebar } from '@/widgets/workspace-sidebar';
-
 import { useInspectorWidth } from '../model/inspector-width';
 import { IdeLayoutView } from './ide-layout-view';
-
 export function WorkspacePage() {
   return (
     <SidebarProvider
@@ -27,7 +25,6 @@ export function WorkspacePage() {
     </SidebarProvider>
   );
 }
-
 function WorkspaceShell() {
   const params = useParams();
   const focus = useStudioLocation();
@@ -49,11 +46,9 @@ function WorkspaceShell() {
       activeTab.kind === 'webhook');
   const hasTabs = desk.tabs.length > 0;
   const layoutIds = selectedIds.filter((id) => desk.tabs.some((tab) => tab.workspaceId === id));
-
   if (bareWorkspace) {
     return <Navigate to={studioPath.desk} replace />;
   }
-
   return (
     <div ref={shellRef} className="flex min-h-svh w-full" data-testid="workspace-shell">
       <WorkspaceSidebar />

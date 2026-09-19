@@ -22,13 +22,11 @@ const optionalAmount = z
   .transform((value) => value.trim())
   .refine((value) => value === '' || Number.isFinite(Number(value)), 'Must be a number')
   .transform((value) => (value === '' ? undefined : Number(value)));
-
 const optionalPrice = z
   .string()
   .transform((value) => value.trim())
   .refine((value) => value === '' || Number.isFinite(Number(value)), 'Must be a number')
   .transform((value) => (value === '' ? undefined : value));
-
 export const modelFieldsSchema = z
   .object({
     description: z.string().optional(),
@@ -59,18 +57,15 @@ export const modelFieldsSchema = z
       ctx.addIssue({ code: 'custom', path: ['output'], message: 'Required with input' });
     }
   });
-
 export const addModelSchema = modelFieldsSchema.and(
   z.object({
     name: z.string().trim().min(1, 'Name required'),
   }),
 );
-
 export type ModelFieldsInput = z.input<typeof modelFieldsSchema>;
 export type ModelFieldsOutput = z.output<typeof modelFieldsSchema>;
 export type AddModelInput = z.input<typeof addModelSchema>;
 export type AddModelOutput = z.output<typeof addModelSchema>;
-
 export type ModelFieldsDraft = {
   id?: string;
   name?: string;
@@ -84,7 +79,6 @@ export type ModelFieldsDraft = {
   defaultEffort?: Effort;
   reasoningMandatory?: boolean;
 };
-
 export function emptyModelFields(): ModelFieldsInput {
   return {
     description: '',
@@ -100,7 +94,6 @@ export function emptyModelFields(): ModelFieldsInput {
     reasoningMandatory: undefined,
   };
 }
-
 export function metadataFromModel(
   model?: ProviderModelPublic | ModelRecord,
 ): ModelFieldsDraft | undefined {
@@ -112,7 +105,6 @@ export function metadataFromModel(
   }
   return model as ModelFieldsDraft;
 }
-
 export function modelFieldsFrom(row: {
   stored?: ProviderModelPublic | ModelRecord;
   found?: DiscoveredModel;
@@ -141,7 +133,6 @@ export function modelFieldsFrom(row: {
     reasoningMandatory: fields.reasoningMandatory,
   };
 }
-
 export function mergeFields(base?: ModelFieldsDraft, extra?: ModelFieldsDraft): ModelFieldsDraft {
   return {
     id: extra?.id ?? base?.id,
@@ -157,11 +148,9 @@ export function mergeFields(base?: ModelFieldsDraft, extra?: ModelFieldsDraft): 
     reasoningMandatory: extra?.reasoningMandatory ?? base?.reasoningMandatory,
   };
 }
-
 export function toModelDraft(values: ModelFieldsOutput): ModelFieldsDraft {
   const hasPair = values.input !== undefined && values.output !== undefined;
   const hasReasoning = values.features.includes('reasoning');
-
   const featureParams: string[] = [];
   if (values.features.includes('tools')) {
     featureParams.push('tools');
@@ -173,7 +162,6 @@ export function toModelDraft(values: ModelFieldsOutput): ModelFieldsDraft {
     featureParams.push('reasoning', 'reasoning_effort');
   }
   const supported_parameters = withChatGenerationParameters(featureParams);
-
   const pricing: ModelPricing | undefined = hasPair
     ? {
         prompt: String(values.input),
@@ -181,7 +169,6 @@ export function toModelDraft(values: ModelFieldsOutput): ModelFieldsDraft {
         input_cache_read: values.cacheRead ? String(values.cacheRead) : undefined,
       }
     : undefined;
-
   const top_provider: ModelTopProvider | undefined =
     values.context_length !== undefined || values.maxOutput !== undefined
       ? {
@@ -189,7 +176,6 @@ export function toModelDraft(values: ModelFieldsOutput): ModelFieldsDraft {
           max_completion_tokens: values.maxOutput,
         }
       : undefined;
-
   const architecture: ModelArchitecture | undefined =
     values.modalities.input.length > 0 || values.modalities.output.length > 0
       ? {
@@ -197,7 +183,6 @@ export function toModelDraft(values: ModelFieldsOutput): ModelFieldsDraft {
           output_modalities: values.modalities.output,
         }
       : undefined;
-
   return {
     description: values.description ? values.description.trim() : undefined,
     context_length: values.context_length,
@@ -215,7 +200,6 @@ export function toModelDraft(values: ModelFieldsOutput): ModelFieldsDraft {
     reasoningMandatory: hasReasoning ? values.reasoningMandatory : undefined,
   };
 }
-
 function featuresFrom(fields: ModelFieldsDraft): ModelFeature[] {
   const features: ModelFeature[] = [];
   const params = fields.supported_parameters ?? [];
@@ -238,22 +222,18 @@ function featuresFrom(fields: ModelFieldsDraft): ModelFeature[] {
   features.push('streaming');
   return features;
 }
-
 function stringify(value: number | undefined): string {
   return value == null ? '' : String(value);
 }
-
 function stringifyPrice(value: string | undefined): string {
   if (value == null || value === '') {
     return '';
   }
   return value;
 }
-
 export function toggleItem<T>(list: T[], item: T): T[] {
   return list.includes(item) ? list.filter((entry) => entry !== item) : [...list, item];
 }
-
 export const MODALITY_ITEMS: {
   value: Modality;
   label: string;
@@ -264,7 +244,6 @@ export const MODALITY_ITEMS: {
   { value: 'video', label: 'Video' },
   { value: 'file', label: 'File' },
 ];
-
 export const FEATURE_ITEMS: {
   value: ModelFeature;
   label: string;
@@ -275,7 +254,6 @@ export const FEATURE_ITEMS: {
   { value: 'reasoning', label: 'Reasoning' },
   { value: 'cache', label: 'Prompt Cache' },
 ];
-
 export const EFFORT_ITEMS: {
   value: Effort;
   label: string;

@@ -12,11 +12,9 @@ import {
   CategoryLandingEyebrow,
   CategoryLandingTitle,
 } from '@/shared/ui/category-landing';
-
 export function NoThreads({ agent }: { agent: Agent }) {
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const { openThread } = useStudioNavigation();
-
   return (
     <CategoryLanding data-testid="chat-empty-thread">
       <CategoryLandingEyebrow>CLEAR</CategoryLandingEyebrow>

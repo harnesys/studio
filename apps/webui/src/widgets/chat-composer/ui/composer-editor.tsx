@@ -1,5 +1,4 @@
 import './composer-editor.css';
-
 import { Extension } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { HardBreak } from '@tiptap/extension-hard-break';
@@ -28,14 +27,12 @@ import type { SlashCommand } from '../model/slash-commands';
 import { createFileSuggestion, exitFileSuggestion, insertFileChip } from './file-suggestion-menu';
 import { type PickerAnchor, SkillPicker } from './picker-menu';
 import { createSlashSuggestion, exitSlashSuggestion } from './suggestion-menu';
-
 export type ComposerEditorHandle = {
   getPayload(): ComposerPayload;
   clear(): void;
   focus(): void;
   insertFileMention(ref: string): void;
 };
-
 export type ComposerEditorProps = {
   placeholder: string;
   disabled: boolean;
@@ -45,10 +42,8 @@ export type ComposerEditorProps = {
   onSlashCommand(command: SlashCommand): void;
   shouldConsumePaste(data: DataTransfer): boolean;
 };
-
 const EDITOR_CLASS = 'tiptap w-full px-3 py-3 text-[15px] leading-6 min-h-14 outline-none';
 const PICKER_WIDTH = 320;
-
 export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorProps>(
   function ComposerEditor(props, ref) {
     const latest = useRef(props);
@@ -58,9 +53,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
     const pickerAt = useRef(0);
     const pickerToken = useRef('');
     const skills = useComposerSkillOptions();
-
     const closePicker = useCallback(() => setPicker(null), []);
-
     const extensions = useMemo(() => {
       const submitKeymap = Extension.create({
         name: 'composer-submit-keymap',
@@ -88,7 +81,6 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
                     : false;
                 },
                 handleDrop(_view, event) {
-                  // Files stay with the InputGroup drop handler; text/link drops go to ProseMirror.
                   return event.dataTransfer?.types.includes('Files') ?? false;
                 },
               },
@@ -123,12 +115,10 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
         }),
         createFileSuggestion({
           isDisabled: () => latest.current.disabled,
-          // Suggestion must never break typing: on any failure show no items.
           getItems: (query) => safeFileItems(query, latest.current.fileOptions),
         }),
       ];
     }, []);
-
     const editorProps = useMemo(
       () => ({
         attributes: {
@@ -138,7 +128,6 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       }),
       [],
     );
-
     const editor = useEditor({
       extensions,
       editable: !props.disabled,
@@ -148,7 +137,6 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
         latest.current.onChange(serializeComposerDoc(editor.state.doc));
       },
     });
-
     useEffect(() => {
       editor.setEditable(!props.disabled);
       if (props.disabled) {
@@ -157,12 +145,10 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
         closePicker();
       }
     }, [props.disabled, editor, closePicker]);
-
     useEffect(() => {
       placeholderRef.current = props.placeholder;
       editor.view.dispatch(editor.state.tr);
     }, [props.placeholder, editor]);
-
     const pickSkill = useCallback(
       (option: SkillOption) => {
         const at = pickerAt.current;
@@ -176,8 +162,6 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       },
       [editor, closePicker],
     );
-
-    // Spec §3: Esc closes the picker and restores the token text it consumed.
     const escPicker = useCallback(() => {
       const token = pickerToken.current;
       if (token) {
@@ -185,7 +169,6 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       }
       closePicker();
     }, [editor, closePicker]);
-
     const insertFileMention = useCallback(
       (mentionRef: string) => {
         if (latest.current.disabled || !isValidEntityRef('file', mentionRef)) {
@@ -195,7 +178,6 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       },
       [editor],
     );
-
     useImperativeHandle(
       ref,
       () => ({
@@ -206,7 +188,6 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
       }),
       [editor, insertFileMention],
     );
-
     return (
       <>
         <EditorContent
@@ -230,7 +211,6 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
     );
   },
 );
-
 function safeFileItems(query: string, options: FileOption[] | undefined): FileOption[] {
   try {
     return fileItems(query, options ?? []);

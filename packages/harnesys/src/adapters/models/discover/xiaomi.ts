@@ -5,7 +5,6 @@ import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { XIAOMI_DEFAULT_URL };
-
 export function listXiaomiModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, XIAOMI_DEFAULT_URL),
@@ -14,7 +13,6 @@ export function listXiaomiModels(input: DiscoverInput): Promise<DiscoveredModel[
     parse: parseXiaomiList,
   });
 }
-
 export function parseXiaomiList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -25,7 +23,6 @@ export function parseXiaomiList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapXiaomiModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const name = asString(record?.id);
@@ -35,7 +32,6 @@ function mapXiaomiModel(item: unknown): DiscoveredModel | undefined {
   const kind = xiaomiKind(name);
   const contextLength = asNumber(record.context_length) ?? asNumber(record.context_window);
   const maxOutput = asNumber(record.max_output_tokens) ?? asNumber(record.max_completion_tokens);
-
   return {
     name,
     kind,
@@ -45,7 +41,6 @@ function mapXiaomiModel(item: unknown): DiscoveredModel | undefined {
     raw: item,
   };
 }
-
 function xiaomiKind(name: string): 'chat' | 'embed' | 'audio' {
   if (/embed/i.test(name)) {
     return 'embed';

@@ -6,7 +6,6 @@ const WORKSPACE_AVATAR_CLASSES = [
   'bg-cyan-700',
   'bg-rose-700',
 ] as const;
-
 export function workspaceInitial(name: string): string {
   const trimmed = name.trim();
   if (trimmed.length === 0) {
@@ -14,7 +13,6 @@ export function workspaceInitial(name: string): string {
   }
   return trimmed.slice(0, 1).toUpperCase();
 }
-
 export function workspaceAvatarClass(id: string): string {
   let hash = 0;
   for (let i = 0; i < id.length; i += 1) {

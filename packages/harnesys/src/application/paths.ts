@@ -1,10 +1,8 @@
 import type { PathsConfig } from '../ports/paths.ts';
-
 export type ResolvedPaths = {
   allow: string[];
   cwd: string;
 };
-
 function intersectArrays(arrays: string[][]): string[] {
   if (arrays.length === 0) {
     return [];
@@ -19,7 +17,6 @@ function intersectArrays(arrays: string[][]): string[] {
   }
   return result;
 }
-
 export function resolvePaths(
   agentPaths?: PathsConfig,
   runtimePaths?: PathsConfig,
@@ -35,25 +32,20 @@ export function resolvePaths(
   if (sessionPaths?.allow) {
     allowArrays.push(sessionPaths.allow);
   }
-
   const allow = intersectArrays(allowArrays);
-
   if (allow.length === 0) {
     throw Object.assign(
       new Error('paths.allow is required and must not be empty — cannot allow entire disk'),
       { code: 'paths_allow_empty' },
     );
   }
-
   const cwd =
     sessionPaths?.cwd ?? agentPaths?.cwd ?? runtimePaths?.cwd ?? (allow[0] as string | undefined);
   if (!cwd) {
     throw new Error('cwd is required: provide via paths.cwd or allow list');
   }
-
   if (allow.length > 0 && !allow.some((a) => cwd.startsWith(a) || a.startsWith(cwd))) {
     throw new Error(`cwd "${cwd}" is not under any allowed path`);
   }
-
   return { allow, cwd };
 }

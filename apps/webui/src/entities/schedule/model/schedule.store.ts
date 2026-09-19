@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-
 import type { Schedule, ScheduleHistory, ScheduleStatus } from './schedule';
-
 export type SchedulePatch = {
   name?: string;
   status?: ScheduleStatus;
@@ -13,7 +11,6 @@ export type SchedulePatch = {
   historyLast?: number;
   threadId?: string;
 };
-
 type ScheduleStore = {
   items: Schedule[];
   byId: (id: string) => Schedule | undefined;
@@ -23,14 +20,10 @@ type ScheduleStore = {
   update: (scheduleId: string, patch: SchedulePatch) => void;
   remove: (scheduleId: string) => void;
 };
-
 export const useScheduleStore = create<ScheduleStore>((set, get) => ({
   items: [],
-
   byId: (id) => get().items.find((item) => item.id === id),
-
   inWorkspace: (workspaceId) => get().items.filter((item) => item.workspaceId === workspaceId),
-
   upsert: (schedule) => {
     set((state) => ({
       items: state.items.some((item) => item.id === schedule.id)
@@ -38,13 +31,11 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
         : [...state.items, schedule],
     }));
   },
-
   replaceWorkspace: (workspaceId, schedules) => {
     set((state) => ({
       items: [...state.items.filter((item) => item.workspaceId !== workspaceId), ...schedules],
     }));
   },
-
   update: (scheduleId, patch) => {
     const current = get().items.find((item) => item.id === scheduleId);
     if (!current) {
@@ -70,7 +61,6 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
       ),
     }));
   },
-
   remove: (scheduleId) => {
     set((state) => ({
       items: state.items.filter((item) => item.id !== scheduleId),

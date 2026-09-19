@@ -1,5 +1,4 @@
 export type WebhookStatus = 'active' | 'paused' | 'failed';
-
 export type Webhook = {
   id: string;
   workspaceId: string;
@@ -13,9 +12,7 @@ export type Webhook = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type WebhookInsert = Webhook;
-
 export type WebhookPatch = Partial<{
   name: string;
   status: WebhookStatus;
@@ -26,7 +23,6 @@ export type WebhookPatch = Partial<{
   lastFiredAt: string | null;
   updatedAt: string;
 }>;
-
 export type WebhookRepository = {
   listByWorkspace(workspaceId: string): Webhook[];
   listByTargetAgent(workspaceId: string, agentId: string): Webhook[];

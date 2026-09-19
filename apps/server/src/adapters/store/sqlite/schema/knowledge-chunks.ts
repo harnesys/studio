@@ -1,6 +1,5 @@
 import { blob, index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { workspacesTable } from './workspaces.ts';
-
 export const knowledgeChunksTable = sqliteTable(
   'knowledge_chunks',
   {
@@ -19,6 +18,5 @@ export const knowledgeChunksTable = sqliteTable(
     workspaceUriIdx: index('knowledge_chunks_workspace_uri_idx').on(table.workspaceId, table.uri),
   }),
 );
-
 export type KnowledgeChunkRow = typeof knowledgeChunksTable.$inferSelect;
 export type KnowledgeChunkInsert = typeof knowledgeChunksTable.$inferInsert;

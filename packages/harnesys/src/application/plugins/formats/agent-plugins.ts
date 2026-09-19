@@ -11,11 +11,7 @@ import {
   type PluginRootListing,
   pickManifestIdentity,
 } from './manifest-result.ts';
-
-/** Канонический $schema идентификатор манифеста Agent Plugins 1.0.0. */
 export const AGENT_PLUGINS_SCHEMA_ID = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json';
-
-/** Поля закрытого AP-манифеста; всё остальное игнорируется с диагностикой (AP §5.2). */
 const AP_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   '$schema',
   'name',
@@ -28,20 +24,10 @@ const AP_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'keywords',
   'extensions',
 ]);
-
 const MANIFEST_LABEL = 'plugin.json';
-
-/** Распознаёт AP-плагин по корневому `plugin.json`; иначе null. */
 export function detect(listing: PluginRootListing): 'agent-plugins' | null {
   return listing.includes(MANIFEST_LABEL) ? 'agent-plugins' : null;
 }
-
-/**
- * Разбирает закрытый AP-манифест: `validateApManifest` + ручной отбор полей.
- * Неизвестные top-level поля дают warning `unknown_manifest_field` и игнорируются
- * (AP §5.2 report-and-ignore, не фатал); фатальный отказ = error-diagnostic.
- * Манифест закрытый: `pathOverrides`, `userConfig`, `dependencies` всегда пусты (§5.2).
- */
 export function parseManifest(raw: unknown): ManifestResult {
   if (!isPlainObject(raw)) {
     return {
@@ -53,10 +39,8 @@ export function parseManifest(raw: unknown): ManifestResult {
       diagnostics: [manifestFatal(MANIFEST_LABEL, 'must be a JSON object')],
     };
   }
-
   const diagnostics: PluginDiagnostic[] = [];
   const declaredSchema = optionalStringField(raw, '$schema');
-
   if (declaredSchema !== undefined && declaredSchema !== AGENT_PLUGINS_SCHEMA_ID) {
     diagnostics.push({
       level: 'error',
@@ -74,21 +58,16 @@ export function parseManifest(raw: unknown): ManifestResult {
       diagnostics,
     };
   }
-
   for (const key of Object.keys(raw)) {
     if (!AP_MANIFEST_KEYS.has(key)) {
       diagnostics.push(manifestUnknownFieldWarning(MANIFEST_LABEL, key));
     }
   }
-
-  // Нарушения additionalProperties соответствуют уже учтённым неизвестным полям
-  // (top-level) или вложенным неизвестным полям, которые отбор молча игнорирует.
   for (const error of validateApManifest(raw)) {
     if (!isAdditionalPropertiesError(error)) {
       diagnostics.push(manifestSchemaFatal(error, MANIFEST_LABEL));
     }
   }
-
   return {
     identity: pickManifestIdentity(raw),
     declaredSchema,
@@ -99,8 +78,6 @@ export function parseManifest(raw: unknown): ManifestResult {
     diagnostics,
   };
 }
-
-/** AP §8: reverse-domain namespace'ы, значения — объекты; прочее отфильтровывается. */
 function pickExtensions(value: unknown): Record<string, Record<string, unknown>> {
   if (!isPlainObject(value)) {
     return {};

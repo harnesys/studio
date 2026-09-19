@@ -11,7 +11,6 @@ import {
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet } from '@/shared/ui/field';
 import { Switch } from '@/shared/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 export function ChatPane() {
   const {
     detailedStats,
@@ -23,7 +22,6 @@ export function ChatPane() {
     feedDetail,
     setFeedDetail,
   } = useChatPreferences();
-
   return (
     <FieldGroup className="gap-6">
       <Field>

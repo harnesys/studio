@@ -4,23 +4,19 @@ import type { CapabilityScope } from '../../domain/pack.ts';
 import type { PlanItemStatus, SubagentRole } from '../../domain/plan.ts';
 import type { PlanItem, PlanPort } from '../../ports/plan.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
-
 export type CreatePlanToolsParams = {
   plan: PlanPort;
   resolveScope: () => CapabilityScope;
 };
-
 type PlanBodyItem = {
   title: string;
   description: string;
   subagentRole?: SubagentRole;
 };
-
 type PlanBodyInput = {
   overview: string;
   items: PlanBodyItem[];
 };
-
 const PLAN_BODY_INPUT = {
   type: 'object',
   properties: {
@@ -54,35 +50,39 @@ const PLAN_BODY_INPUT = {
   },
   required: ['overview', 'items'],
 } as JsonSchema;
-
-async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+async function runGuard<T>(fn: () => Promise<T>): Promise<
+  | T
+  | {
+      error: string;
+    }
+> {
   try {
     return await fn();
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
-
 function validPlanIds(items: PlanItem[]): string {
   const shown = items.slice(0, 10).map((i) => `${i.order}:${i.id} "${i.title}"`);
   const rest = items.length - shown.length;
   return rest > 0 ? `${shown.join(', ')}, and ${rest} more` : shown.join(', ');
 }
-
-/** Exact id → order number → unique id prefix (length ≥ 8), same order as agents.
- * Normalizes model copy-paste from <active-plan>: strips "id:" prefix, quotes,
- * brackets and trailing punctuation, compares UUIDs case-insensitively. */
 function normalizePlanItemQuery(raw: string): string {
   let query = raw.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
   query = query.replace(/^(id|item)\s*[:=]\s*/i, '');
   query = query.replace(/^[<("'`«»„“‘[]+/, '').replace(/[\])}>"'`«»„“‘.,;:!?]+$/, '');
   return query.trim();
 }
-
 function resolvePlanItemId(
   items: PlanItem[],
   rawQuery: string,
-): { id: string } | { error: string } {
+):
+  | {
+      id: string;
+    }
+  | {
+      error: string;
+    } {
   const query = normalizePlanItemQuery(rawQuery);
   if (!query) {
     return {
@@ -115,7 +115,6 @@ function resolvePlanItemId(
     error: `Plan item "${query}" not found. Valid ids: ${validPlanIds(items)}. Use id, unique id prefix, or order from plan_get.`,
   };
 }
-
 export function createPlanTools(deps: CreatePlanToolsParams): ToolDefinition[] {
   return [
     tool('plan_save', {

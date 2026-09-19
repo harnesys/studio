@@ -1,17 +1,7 @@
 import { ChevronRightIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-
 import { cn } from '@/shared/lib/utils';
 import { StatusDot, type StatusDotTone } from '@/shared/ui/status-dot';
-
-/**
- * Borderless row vocabulary for the Capabilities settings panes (Skills, MCP,
- * Plugins, Packages, Mode Presets) — the same idiom the Providers pane already
- * uses: quiet rows, hairline dividers instead of boxes, mono identifiers,
- * uppercase micro-meta, actions that surface on hover. Local to settings so
- * shared primitives and ConfigEntityCard stay untouched.
- */
-
 export function RowList({
   children,
   className,
@@ -27,15 +17,7 @@ export function RowList({
     </div>
   );
 }
-
-/** Header pinned to the top of a settings-pane scroll area while its rows scroll under it. */
 export const STICKY_PANE_HEADER = 'sticky top-0 z-10 bg-popover pt-2 pb-1';
-
-/**
- * Pane layer every settings tab shares: a RowHeader (name + description, actions
- * as `extra`) and the rows below it at gap-2. `sticky` pins the header while the
- * pane scrolls; panes with their own scroll region pass sticky={false}.
- */
 export function Pane({
   label,
   count,
@@ -69,8 +51,6 @@ export function Pane({
     </div>
   );
 }
-
-/** Section header above a RowList: name + optional count/description + right-aligned actions. */
 export function RowHeader({
   label,
   count,
@@ -103,14 +83,11 @@ export function RowHeader({
     </div>
   );
 }
-
 const CHIP_TONES = {
   neutral: 'bg-muted text-muted-foreground',
   accent: 'bg-primary/15 text-primary',
   danger: 'bg-destructive/15 text-destructive',
 } as const;
-
-/** Tiny tinted chip for non-identifier qualifiers: origin plugin, "built-in", status. */
 export function RowChip({
   children,
   tone = 'neutral',
@@ -132,34 +109,25 @@ export function RowChip({
     </span>
   );
 }
-
 type RowProps = {
   title: string;
-  /** Mono is the identifier look; pass mono={false} for human-readable names. */
   mono?: boolean;
-  /** Dim the title — disabled/off entries. */
   muted?: boolean;
-  /** Small uppercase mono text right after the title: transport, kind, counts. */
   meta?: ReactNode;
-  /** Chips after the meta: origin plugin, built-in, blocked status. */
   chips?: ReactNode;
-  status?: { tone: StatusDotTone; label: string };
-  /** Always-visible second line, truncated — the full text lives in the expand area. */
+  status?: {
+    tone: StatusDotTone;
+    label: string;
+  };
   summary?: ReactNode;
-  /** Click toggles expansion; a chevron is drawn only when provided. */
   onToggle?: () => void;
   expanded?: boolean;
-  /** 'expand' (default): chevron rotates when open. 'open': static chevron — the click navigates. */
   chevron?: 'expand' | 'open';
-  /** Row actions (edit/delete/…). Revealed on hover/focus; kept visible when expanded. */
   actions?: ReactNode;
-  /** Keep actions visible instead of revealing them on hover/focus. */
   alwaysShowActions?: boolean;
   testId?: string;
-  /** Expanded content, aligned under the title. */
   children?: ReactNode;
 };
-
 export function Row({
   title,
   mono = true,
@@ -212,7 +180,6 @@ export function Row({
       </div>
     </div>
   );
-
   return (
     <div
       className={cn(
@@ -249,8 +216,6 @@ export function Row({
     </div>
   );
 }
-
-/** Labelled block inside a row's expand area (Tools, Resources, Connection…). */
 export function RowSection({
   label,
   count,
@@ -272,7 +237,6 @@ export function RowSection({
     </div>
   );
 }
-
 export function RowItem({
   title,
   description,
@@ -291,8 +255,6 @@ export function RowItem({
     </div>
   );
 }
-
-/** Label/value line inside the expand area — how an entry is wired (command, URL, path…). */
 export function RowField({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex min-w-0 gap-2 px-1 py-0.5">

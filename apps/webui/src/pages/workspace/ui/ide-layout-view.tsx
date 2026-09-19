@@ -11,7 +11,6 @@ import { cn } from '@/shared/lib/utils';
 import { Resizer } from '@/shared/ui/resizer';
 import { IdeTabContent } from '@/widgets/ide-content';
 import { IdeGroupTabs, ideDrag, takeIdeDrag } from '@/widgets/ide-tabs';
-
 export function IdeLayoutView({ workspaceId }: { workspaceId: string }) {
   const layout = useIdeStore((state) => state.byWorkspace[workspaceId]?.layout ?? null);
   if (!layout) {
@@ -26,7 +25,6 @@ export function IdeLayoutView({ workspaceId }: { workspaceId: string }) {
     />
   );
 }
-
 function SplitNodeView({
   node,
   workspaceId,
@@ -57,7 +55,6 @@ function SplitNodeView({
     />
   );
 }
-
 function GroupContent({
   workspaceId,
   activeTab,
@@ -74,21 +71,24 @@ function GroupContent({
     </div>
   );
 }
-
 function IdeSplitView({
   node,
   workspaceId,
   leadingGroupId,
   trailingGroupId,
 }: {
-  node: Extract<IdeSplitNode, { kind: 'split' }>;
+  node: Extract<
+    IdeSplitNode,
+    {
+      kind: 'split';
+    }
+  >;
   workspaceId: string;
   leadingGroupId: string;
   trailingGroupId: string;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
-
   const onResizeStart = (event: ReactMouseEvent) => {
     event.preventDefault();
     const box = ref.current?.getBoundingClientRect();
@@ -108,7 +108,6 @@ function IdeSplitView({
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
-
   return (
     <div
       ref={ref}
@@ -143,7 +142,6 @@ function IdeSplitView({
     </div>
   );
 }
-
 function IdeGroupPane({
   workspaceId,
   groupId,
@@ -163,7 +161,6 @@ function IdeGroupPane({
   }
   const activeTab = ws.tabs.find((t) => t.id === group.activeId) ?? null;
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: drop target for editor tabs dragged between groups
     <div
       className={cn(
         'flex min-h-0 min-w-0 flex-1 flex-col',

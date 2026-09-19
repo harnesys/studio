@@ -10,12 +10,10 @@ import { publishDeskThread } from '../threads/publish-desk-thread.ts';
 import type { SendThreadRunInput } from '../threads/send-thread-run.use-case.ts';
 import { isValidCron, nextCronRunAt } from './cron-next.ts';
 import { toScheduleRecord } from './schedule-record.ts';
-
 export type FireDueSchedulesInput = {
   execute(): Promise<void>;
   fireSchedule(scheduleId: string): Promise<void>;
 };
-
 export type FireDueSchedulesDeps = {
   schedules: ScheduleRepository;
   threads: ThreadRepository;
@@ -25,7 +23,6 @@ export type FireDueSchedulesDeps = {
   deskEvents: DeskEventsPort;
   getThread: GetThreadInput;
 };
-
 export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
   private readonly schedules: ScheduleRepository;
   private readonly threads: ThreadRepository;
@@ -34,7 +31,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
   private readonly queue: ScheduleFireQueue;
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
-
   constructor(deps: FireDueSchedulesDeps) {
     this.schedules = deps.schedules;
     this.threads = deps.threads;
@@ -44,7 +40,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     this.deskEvents = deps.deskEvents;
     this.getThread = deps.getThread;
   }
-
   async execute(): Promise<void> {
     const now = new Date().toISOString();
     const due = this.schedules.listDue(now);
@@ -52,7 +47,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
       await this.tryFire(schedule, now);
     }
   }
-
   async fireSchedule(scheduleId: string): Promise<void> {
     const schedule = this.schedules.findById(scheduleId);
     if (schedule?.status !== 'active') {
@@ -60,22 +54,18 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     }
     await this.tryFire(schedule, new Date().toISOString());
   }
-
   private async tryFire(schedule: Schedule, nowIso: string): Promise<void> {
     if (!schedule.detail.trim()) {
       this.advanceOnly(schedule, nowIso);
       return;
     }
-
     if (await this.lifecycle.activeByThread(schedule.threadId)) {
       this.queue.enqueue(schedule.threadId, schedule.id);
       return;
     }
-
     if (!(await this.claim(schedule, nowIso))) {
       return;
     }
-
     try {
       await this.sendThreadRun.execute({
         threadId: schedule.threadId,
@@ -93,7 +83,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
       this.noteError(schedule.threadId, message);
     }
   }
-
   private fail(schedule: Schedule, nowIso: string): void {
     this.schedules.update(schedule.id, {
       status: 'failed',
@@ -101,7 +90,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     });
     this.publishSchedule(schedule.id);
   }
-
   private noteError(threadId: string, _message: string): void {
     if (!this.threads.findById(threadId)) {
       return;
@@ -109,7 +97,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     this.threads.touch(threadId);
     this.publishThread(threadId);
   }
-
   private async claim(schedule: Schedule, nowIso: string): Promise<boolean> {
     const current = this.schedules.findById(schedule.id);
     if (current?.status !== 'active') {
@@ -122,7 +109,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
       this.queue.enqueue(current.threadId, current.id);
       return false;
     }
-
     if (!isValidCron(current.cron)) {
       this.schedules.update(current.id, {
         status: 'failed',
@@ -131,7 +117,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
       this.publishSchedule(current.id);
       return false;
     }
-
     const nextRunAt = nextCronRunAt(current.cron, new Date(nowIso));
     this.schedules.update(current.id, {
       lastFiredAt: nowIso,
@@ -141,7 +126,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     this.publishSchedule(current.id);
     return true;
   }
-
   private advanceOnly(schedule: Schedule, nowIso: string): void {
     if (!isValidCron(schedule.cron)) {
       this.schedules.update(schedule.id, {
@@ -157,7 +141,6 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
     });
     this.publishSchedule(schedule.id);
   }
-
   private publishSchedule(scheduleId: string): void {
     const schedule = this.schedules.findById(scheduleId);
     if (!schedule) {
@@ -168,20 +151,17 @@ export class FireDueSchedulesUseCase implements FireDueSchedulesInput {
       schedule: toScheduleRecord(schedule),
     });
   }
-
   private publishThread(threadId: string): void {
     publishDeskThread(this.getThread, this.deskEvents, threadId);
     notifyIdleIfFree(this.lifecycle, this.queue, threadId);
   }
 }
-
 function cannotStart(error: unknown): boolean {
   if (error instanceof NotFoundError) {
     return true;
   }
   return error instanceof ValidationError && error.message === 'agent has no model';
 }
-
 export function notifyIdleIfFree(
   lifecycle: RunLifecycleStore,
   queue: ScheduleFireQueue,

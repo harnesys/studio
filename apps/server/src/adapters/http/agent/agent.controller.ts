@@ -9,7 +9,6 @@ import type { UpdateAgentInput } from '../../../application/agents/update-agent.
 import type { ListAgentCapabilitiesInput } from '../../../application/capabilities/list-agent-capabilities.use-case.ts';
 import type { AgentGraph } from '../../../domain/agent.port.ts';
 import { createAgentBody, createAgentFromPresetBody, updateAgentBody } from './agent.body.ts';
-
 export type AgentControllerDeps = {
   listAgents: ListAgentsInput;
   listAgentPresets: ListAgentPresetsInput;
@@ -19,30 +18,24 @@ export type AgentControllerDeps = {
   updateAgent: UpdateAgentInput;
   deleteAgent: DeleteAgentInput;
 };
-
 export class AgentController {
   constructor(private readonly deps: AgentControllerDeps) {}
-
   register(app: Hono): void {
     app.get('/api/agents', async (c) => {
       return c.json(await this.deps.listAgents.execute());
     });
-
     app.get('/api/workspaces/:id/agents', async (c) => {
       return c.json(await this.deps.listAgents.execute({ workspaceId: c.req.param('id') }));
     });
-
     app.get('/api/agent-presets', (c) => {
       return c.json(this.deps.listAgentPresets.execute());
     });
-
     app.get('/api/agents/:id/capabilities', async (c) => {
       const workspaceId = c.req.query('workspaceId') || undefined;
       return c.json(
         await this.deps.listAgentCapabilities.execute({ workspaceId, agentId: c.req.param('id') }),
       );
     });
-
     app.post('/api/workspaces/:id/agents', async (c) => {
       const body = createAgentBody.parse(await c.req.json());
       const agent = await this.deps.createAgent.execute({
@@ -70,7 +63,6 @@ export class AgentController {
       });
       return c.json(agent, 201);
     });
-
     app.post('/api/workspaces/:id/agents/from-preset', async (c) => {
       const body = createAgentFromPresetBody.parse(await c.req.json());
       const agent = await this.deps.createAgentFromPreset.execute({
@@ -80,7 +72,6 @@ export class AgentController {
       });
       return c.json(agent, 201);
     });
-
     app.patch('/api/workspaces/:id/agents/:agentId', async (c) => {
       const body = updateAgentBody.parse(await c.req.json());
       const agent = await this.deps.updateAgent.execute({
@@ -108,7 +99,6 @@ export class AgentController {
       });
       return c.json(agent);
     });
-
     app.delete('/api/workspaces/:id/agents/:agentId', async (c) => {
       await this.deps.deleteAgent.execute({
         workspaceId: c.req.param('id'),

@@ -1,8 +1,3 @@
-/**
- * Match a full shell command string.
- * Bun.Glob is path-oriented (`*` does not cross spaces), so command patterns
- * use a small glob→RegExp: `*` → `.*`, `?` → `.`; bare strings are substrings.
- */
 export function firstMatchingCommandPattern(
   command: string,
   patterns: readonly string[],
@@ -18,7 +13,6 @@ export function firstMatchingCommandPattern(
   }
   return undefined;
 }
-
 function matchesCommandPattern(command: string, pattern: string): boolean {
   const hasMagic = pattern.includes('*') || pattern.includes('?');
   if (!hasMagic) {

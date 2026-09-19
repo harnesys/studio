@@ -4,17 +4,14 @@ import type { DeleteScheduleInput } from '../../../application/schedules/delete-
 import type { ListSchedulesInput } from '../../../application/schedules/list-schedules.use-case.ts';
 import type { UpdateScheduleInput } from '../../../application/schedules/update-schedule.use-case.ts';
 import { createScheduleBody, updateScheduleBody } from './schedule.body.ts';
-
 export type ScheduleControllerDeps = {
   listSchedules: ListSchedulesInput;
   createSchedule: CreateScheduleInput;
   updateSchedule: UpdateScheduleInput;
   deleteSchedule: DeleteScheduleInput;
 };
-
 export class ScheduleController {
   constructor(private readonly deps: ScheduleControllerDeps) {}
-
   register(app: Hono): void {
     app.get('/api/workspaces/:id/schedules', async (c) => {
       const schedules = await this.deps.listSchedules.execute({
@@ -22,7 +19,6 @@ export class ScheduleController {
       });
       return c.json(schedules);
     });
-
     app.post('/api/workspaces/:id/schedules', async (c) => {
       const body = createScheduleBody.parse(await c.req.json());
       const created = await this.deps.createSchedule.execute({
@@ -38,7 +34,6 @@ export class ScheduleController {
       });
       return c.json(created, 201);
     });
-
     app.patch('/api/workspaces/:id/schedules/:scheduleId', async (c) => {
       const body = updateScheduleBody.parse(await c.req.json());
       const schedule = await this.deps.updateSchedule.execute({
@@ -56,7 +51,6 @@ export class ScheduleController {
       });
       return c.json(schedule);
     });
-
     app.delete('/api/workspaces/:id/schedules/:scheduleId', async (c) => {
       await this.deps.deleteSchedule.execute({
         workspaceId: c.req.param('id'),

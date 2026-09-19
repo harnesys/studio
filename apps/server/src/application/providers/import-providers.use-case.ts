@@ -4,22 +4,18 @@ import type {
   LlmProvider,
   LlmProviderRepository,
 } from '../../domain/llm-provider.port.ts';
-
 export type ImportProvidersRequest = {
   workspaceId: string;
   providers: ProviderExportEntry[];
 };
-
 export type ImportProvidersInput = {
   execute(request: ImportProvidersRequest): Promise<ImportProvidersSummary>;
 };
-
 export class ImportProvidersUseCase implements ImportProvidersInput {
   constructor(
     private readonly providers: LlmProviderRepository,
     private readonly models: LlmModelRepository,
   ) {}
-
   execute(request: ImportProvidersRequest): Promise<ImportProvidersSummary> {
     const summary: ImportProvidersSummary = {
       providersCreated: 0,
@@ -27,7 +23,6 @@ export class ImportProvidersUseCase implements ImportProvidersInput {
       modelsCreated: 0,
       modelsUpdated: 0,
     };
-
     for (const entry of request.providers) {
       const existing = this.providers.findByName(request.workspaceId, entry.name);
       const provider = existing
@@ -38,7 +33,6 @@ export class ImportProvidersUseCase implements ImportProvidersInput {
       } else {
         summary.providersCreated += 1;
       }
-
       for (const model of entry.models) {
         const existingModel = this.models.findByProviderAndName(provider.id, model.name);
         if (existingModel) {
@@ -58,10 +52,8 @@ export class ImportProvidersUseCase implements ImportProvidersInput {
         }
       }
     }
-
     return Promise.resolve(summary);
   }
-
   private mergeProvider(workspaceId: string, id: string, entry: ProviderExportEntry): LlmProvider {
     return this.providers.update(workspaceId, id, {
       driver: entry.driver,
@@ -71,7 +63,6 @@ export class ImportProvidersUseCase implements ImportProvidersInput {
       enabled: entry.enabled,
     });
   }
-
   private createProvider(workspaceId: string, entry: ProviderExportEntry): LlmProvider {
     const now = new Date().toISOString();
     return this.providers.insert({

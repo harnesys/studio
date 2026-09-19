@@ -14,7 +14,6 @@ import type { DeleteScheduleInput } from '../../application/schedules/delete-sch
 import type { ListSchedulesInput } from '../../application/schedules/list-schedules.use-case.ts';
 import type { PeekScheduleInput } from '../../application/schedules/peek-schedule.use-case.ts';
 import type { UpdateScheduleInput } from '../../application/schedules/update-schedule.use-case.ts';
-
 export type SqliteSchedulerPortDeps = {
   listSchedules: ListSchedulesInput;
   peekSchedule: PeekScheduleInput;
@@ -22,14 +21,11 @@ export type SqliteSchedulerPortDeps = {
   updateSchedule: UpdateScheduleInput;
   deleteSchedule: DeleteScheduleInput;
 };
-
-/** Library SchedulerPort still speaks PermissionMode; unknown ids degrade to 'ask'. */
 function permissionModeFrom(modeId: string): PermissionMode {
   return (PERMISSION_MODES as readonly string[]).includes(modeId)
     ? (modeId as PermissionMode)
     : 'ask';
 }
-
 function toScheduleRecord(row: StudioScheduleRecord): ScheduleRecord {
   return {
     id: row.id,
@@ -49,15 +45,12 @@ function toScheduleRecord(row: StudioScheduleRecord): ScheduleRecord {
     updatedAt: row.updatedAt,
   };
 }
-
 export class SqliteSchedulerPort implements SchedulerPort {
   constructor(private readonly deps: SqliteSchedulerPortDeps) {}
-
   async list(scope: CapabilityScope): Promise<ScheduleRecord[]> {
     const rows = await this.deps.listSchedules.execute({ workspaceId: scope.workspaceId });
     return rows.map(toScheduleRecord);
   }
-
   async peek(scope: CapabilityScope, id: string, last?: number): Promise<SchedulePeekRecord> {
     const result = await this.deps.peekSchedule.execute({
       workspaceId: scope.workspaceId,
@@ -72,7 +65,6 @@ export class SqliteSchedulerPort implements SchedulerPort {
       fires: result.fires,
     };
   }
-
   async create(scope: CapabilityScope, input: ScheduleCreateInput): Promise<ScheduleCreatedRecord> {
     const created = await this.deps.createSchedule.execute({
       workspaceId: scope.workspaceId,
@@ -95,7 +87,6 @@ export class SqliteSchedulerPort implements SchedulerPort {
       },
     };
   }
-
   async update(
     scope: CapabilityScope,
     id: string,
@@ -109,7 +100,6 @@ export class SqliteSchedulerPort implements SchedulerPort {
     });
     return toScheduleRecord(record);
   }
-
   async remove(scope: CapabilityScope, id: string): Promise<void> {
     await this.deps.deleteSchedule.execute({ workspaceId: scope.workspaceId, id });
   }

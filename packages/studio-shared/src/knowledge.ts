@@ -1,15 +1,11 @@
 export type MemorySearchBackend = 'fts' | 'vector';
-
 export type KnowledgeFileStatus = 'pending' | 'indexed' | 'skipped' | 'error';
-
 export type KnowledgeIndexStatus = 'idle' | 'running' | 'error';
-
 export type KnowledgeRootRecord = {
   workspaceId: string;
   path: string;
   enabled: boolean;
 };
-
 export type KnowledgeSettings = {
   workspaceId: string;
   entireWorkspace: boolean;
@@ -19,7 +15,6 @@ export type KnowledgeSettings = {
   watchEnabled: boolean;
   updatedAt: string;
 };
-
 export type UpsertKnowledgeSettingsRequest = {
   entireWorkspace?: boolean;
   backend?: MemorySearchBackend;
@@ -27,7 +22,6 @@ export type UpsertKnowledgeSettingsRequest = {
   embedModel?: string | null;
   watchEnabled?: boolean;
 };
-
 export type KnowledgeFileRecord = {
   workspaceId: string;
   uri: string;
@@ -40,7 +34,6 @@ export type KnowledgeFileRecord = {
   lastError: string | null;
   updatedAt: string;
 };
-
 export type KnowledgeIndexState = {
   workspaceId: string;
   status: KnowledgeIndexStatus;
@@ -52,19 +45,16 @@ export type KnowledgeIndexState = {
   finishedAt: string | null;
   currentUri?: string | null;
 };
-
 export type KnowledgeFilesByStatus = {
   pending: number;
   indexed: number;
   skipped: number;
   error: number;
 };
-
 export type KnowledgeStats = {
   chunkCount: number;
   filesByStatus: KnowledgeFilesByStatus;
 };
-
 export type UpsertKnowledgeRootRequest = {
   path: string;
   enabled?: boolean;

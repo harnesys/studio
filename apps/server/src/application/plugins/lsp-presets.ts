@@ -1,7 +1,5 @@
 import type { LspServerSpec } from 'harnesys';
-
 export type LspPresetSpec = Omit<LspServerSpec, 'serverId'>;
-
 export const TYPESCRIPT_PRESET: Record<string, LspPresetSpec> = {
   typescript: {
     command: 'typescript-language-server',
@@ -14,7 +12,6 @@ export const TYPESCRIPT_PRESET: Record<string, LspPresetSpec> = {
     },
   },
 };
-
 export const PRESET_INSTALL_HINT: Record<string, string> = {
   typescript: 'npm i -g typescript-language-server typescript',
   python: 'pipx install pyright && npm i -g pyright (preset not yet)',

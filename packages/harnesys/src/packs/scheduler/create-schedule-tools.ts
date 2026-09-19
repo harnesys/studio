@@ -2,20 +2,22 @@ import type { CapabilityScope } from '../../domain/pack.ts';
 import type { PermissionMode, ScheduleHistory } from '../../domain/schedule.ts';
 import type { SchedulerPort, ScheduleUpdateInput } from '../../ports/scheduler.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
-
 export type CreateScheduleToolsParams = {
   scheduler: SchedulerPort;
   resolveScope: () => CapabilityScope;
 };
-
-async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+async function runGuard<T>(fn: () => Promise<T>): Promise<
+  | T
+  | {
+      error: string;
+    }
+> {
   try {
     return await fn();
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
-
 type ScheduleSetInput = {
   id?: string;
   name?: string;
@@ -27,21 +29,17 @@ type ScheduleSetInput = {
   historyLast?: number;
   threadId?: string;
 };
-
 type SchedulePauseInput = {
   id: string;
   paused: boolean;
 };
-
 type SchedulePeekInput = {
   id: string;
   last?: number;
 };
-
 type ScheduleDeleteInput = {
   id: string;
 };
-
 export function createScheduleTools(deps: CreateScheduleToolsParams): ToolDefinition[] {
   return [
     tool('schedule_list', {
@@ -179,7 +177,6 @@ export function createScheduleTools(deps: CreateScheduleToolsParams): ToolDefini
     }),
   ];
 }
-
 function resolveCreateThreadId(
   raw: string | undefined,
   currentThreadId: string,

@@ -6,21 +6,17 @@ import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { toThreadAttachment } from './attachment-kind.ts';
 import { sanitizeFileName } from './studio-files.ts';
-
 export type GetThreadAttachmentRequest = {
   threadId: string;
   attachmentId: string;
 };
-
 export type StoredAttachment = {
   bytes: Uint8Array;
   meta: ThreadAttachment;
 };
-
 export type GetThreadAttachmentInput = {
   execute(request: GetThreadAttachmentRequest): Promise<StoredAttachment>;
 };
-
 export class GetThreadAttachmentUseCase implements GetThreadAttachmentInput {
   constructor(
     private readonly threads: ThreadRepository,
@@ -28,7 +24,6 @@ export class GetThreadAttachmentUseCase implements GetThreadAttachmentInput {
     private readonly attachments: AttachmentRepository,
     private readonly attachmentsFs: AttachmentsPort,
   ) {}
-
   async execute(request: GetThreadAttachmentRequest): Promise<StoredAttachment> {
     const thread = this.threads.findById(request.threadId);
     if (!thread) {

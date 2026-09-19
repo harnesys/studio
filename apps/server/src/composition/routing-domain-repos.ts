@@ -18,7 +18,6 @@ import type { WebhookRepository } from '../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
 import type { NodeSupervisor } from './node-supervisor.ts';
 import { nodeForAgent, nodeForThread, requireNode, scan } from './routing-helpers.ts';
-
 export function createRoutingWorkspaceRepo(supervisor: NodeSupervisor): WorkspaceRepository {
   return {
     list: () => supervisor.list().flatMap((entry) => entry.store.workspaceRepo.list()),
@@ -30,7 +29,6 @@ export function createRoutingWorkspaceRepo(supervisor: NodeSupervisor): Workspac
     },
   };
 }
-
 export function createRoutingAgentRepo(supervisor: NodeSupervisor): AgentRepository {
   return {
     listAll: () => supervisor.list().flatMap((e) => e.store.agentRepo.listAll()),
@@ -48,7 +46,6 @@ export function createRoutingAgentRepo(supervisor: NodeSupervisor): AgentReposit
       requireNode(supervisor, workspaceId).store.agentRepo.deleteByWorkspace(workspaceId),
   };
 }
-
 export function createRoutingThreadRepo(supervisor: NodeSupervisor): ThreadRepository {
   return {
     listByWorkspace: (workspaceId) =>
@@ -73,7 +70,6 @@ export function createRoutingThreadRepo(supervisor: NodeSupervisor): ThreadRepos
       requireNode(supervisor, workspaceId).store.threadRepo.deleteByWorkspace(workspaceId),
   };
 }
-
 export function createRoutingScheduleRepo(supervisor: NodeSupervisor): ScheduleRepository {
   return {
     listByWorkspace: (workspaceId) =>
@@ -105,7 +101,6 @@ export function createRoutingScheduleRepo(supervisor: NodeSupervisor): ScheduleR
       requireNode(supervisor, workspaceId).store.scheduleRepo.deleteByWorkspace(workspaceId),
   };
 }
-
 export function createRoutingWebhookRepo(supervisor: NodeSupervisor): WebhookRepository {
   return {
     listByWorkspace: (workspaceId) =>
@@ -136,7 +131,6 @@ export function createRoutingWebhookRepo(supervisor: NodeSupervisor): WebhookRep
       requireNode(supervisor, workspaceId).store.webhookRepo.deleteByWorkspace(workspaceId),
   };
 }
-
 export function createRoutingProviderRepo(supervisor: NodeSupervisor): LlmProviderRepository {
   return {
     list: (workspaceId) =>
@@ -153,7 +147,6 @@ export function createRoutingProviderRepo(supervisor: NodeSupervisor): LlmProvid
       requireNode(supervisor, workspaceId).store.llmProviderRepo.delete(workspaceId, id),
   };
 }
-
 export function createRoutingModelRepo(supervisor: NodeSupervisor): LlmModelRepository {
   return {
     listByProvider: (providerId) => {
@@ -196,7 +189,6 @@ export function createRoutingModelRepo(supervisor: NodeSupervisor): LlmModelRepo
     },
   };
 }
-
 export function createRoutingModePresetRepo(supervisor: NodeSupervisor): ModePresetRepository {
   return {
     list: (workspaceId) =>
@@ -210,7 +202,6 @@ export function createRoutingModePresetRepo(supervisor: NodeSupervisor): ModePre
       requireNode(supervisor, workspaceId).store.modePresetRepo.delete(workspaceId, id),
   };
 }
-
 export function createRoutingPluginRepo(supervisor: NodeSupervisor): PluginRepository {
   return {
     list: (workspaceId) => requireNode(supervisor, workspaceId).store.pluginRepo.list(workspaceId),
@@ -255,7 +246,6 @@ export function createRoutingPluginRepo(supervisor: NodeSupervisor): PluginRepos
       requireNode(supervisor, workspaceId).store.pluginRepo.listDisabledServers(workspaceId),
   };
 }
-
 export function createRoutingPluginRegistryRepo(
   supervisor: NodeSupervisor,
 ): PluginRegistryRepository {
@@ -290,7 +280,6 @@ export function createRoutingPluginRegistryRepo(
       scan(supervisor, (e) => e.store.pluginRegistryRepo.findCatalogEntry(registryId, pluginName)),
   };
 }
-
 export function createRoutingAttachmentRepo(supervisor: NodeSupervisor): AttachmentRepository {
   return {
     listByThread: (threadId) =>

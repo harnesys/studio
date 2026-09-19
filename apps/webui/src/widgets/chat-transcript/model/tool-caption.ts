@@ -1,14 +1,16 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-
 export type ToolCaption = {
   title: string;
   hint: string;
   kind: 'terminal' | 'file' | 'search' | 'globe' | 'pencil' | 'question';
 };
-
 export function toolCaption(
-  call: SessionEvent & { type: 'tool' },
-  result?: SessionEvent & { type: 'tool' },
+  call: SessionEvent & {
+    type: 'tool';
+  },
+  result?: SessionEvent & {
+    type: 'tool';
+  },
 ): ToolCaption {
   const name = call.name;
   const inputStr = toolInput(call);
@@ -174,27 +176,36 @@ export function toolCaption(
   }
   return { kind: 'file', title: humanizeToolName(name), hint: firstLine(inputStr, outputStr) };
 }
-
-function toolInput(call: SessionEvent & { type: 'tool' }): string {
+function toolInput(
+  call: SessionEvent & {
+    type: 'tool';
+  },
+): string {
   const input = call.input;
   if (input != null) {
     return typeof input === 'string' ? input : JSON.stringify(input);
   }
-  const delta = (call as { delta?: string }).delta;
+  const delta = (
+    call as {
+      delta?: string;
+    }
+  ).delta;
   if (typeof delta === 'string' && delta) {
     return delta;
   }
   return '';
 }
-
-function toolOutput(result: SessionEvent & { type: 'tool' }): string {
+function toolOutput(
+  result: SessionEvent & {
+    type: 'tool';
+  },
+): string {
   const output = result.output;
   if (output == null) {
     return '';
   }
   return typeof output === 'string' ? output : JSON.stringify(output);
 }
-
 function fieldsOf(raw: string): Record<string, string> {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -221,7 +232,6 @@ function fieldsOf(raw: string): Record<string, string> {
   }
   return out;
 }
-
 function mapItemCount(inputStr: string, outputStr: string): number | undefined {
   for (const raw of [outputStr, inputStr]) {
     if (!raw) {
@@ -243,18 +253,15 @@ function mapItemCount(inputStr: string, outputStr: string): number | undefined {
   }
   return undefined;
 }
-
 function firstLine(input: string, output: string): string {
   const source = input || output;
   const line = source.split('\n')[0] ?? '';
   return line.length > 80 ? `${line.slice(0, 80)}…` : line;
 }
-
 function baseName(path: string): string {
   const parts = path.split('/').filter(Boolean);
   return parts.at(-1) ?? path;
 }
-
 function humanizeToolName(name: string): string {
   const words = name
     .split(/[_-]+/)

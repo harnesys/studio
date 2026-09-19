@@ -10,20 +10,17 @@ export {
   DEFAULT_TOOL_OUTPUT_MAX_CHARS,
   DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
 };
-
 export type ResolvedToolOutputSettings = {
   maxChars: number;
   headChars: number;
   tailChars: number;
 };
-
 function positiveInt(value: number | undefined | null, fallback: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
     return fallback;
   }
   return Math.floor(value);
 }
-
 export function resolveToolOutputSettings(
   settings?: ToolOutputSettings | null,
 ): ResolvedToolOutputSettings {

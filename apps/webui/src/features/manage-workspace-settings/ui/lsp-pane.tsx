@@ -1,7 +1,6 @@
 import type { WorkspaceLspEntry } from '@harnesys/studio-shared';
 import { FileCode2Icon, PauseIcon, RotateCwIcon } from 'lucide-react';
 import { useState } from 'react';
-
 import { Button } from '@/shared/ui/button';
 import {
   Row,
@@ -15,20 +14,23 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/em
 import type { StatusDotTone } from '@/shared/ui/status-dot';
 import { Textarea } from '@/shared/ui/textarea';
 import { toast } from '@/shared/ui/toast';
-
 import { useWorkspaceLsp } from '../model/use-workspace-lsp';
 
-const PRESET_HINTS: { lang: string; hint: string }[] = [
+const PRESET_HINTS: {
+  lang: string;
+  hint: string;
+}[] = [
   { lang: 'python', hint: 'pipx install pyright && npm i -g pyright (preset not yet)' },
   { lang: 'rust', hint: 'rustup component add rust-analyzer (preset not yet)' },
   { lang: 'go', hint: 'go install golang.org/x/tools/gopls@latest (preset not yet)' },
 ];
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error';
 }
-
-function statusOf(server: WorkspaceLspEntry): { tone: StatusDotTone; label: string } {
+function statusOf(server: WorkspaceLspEntry): {
+  tone: StatusDotTone;
+  label: string;
+} {
   if (server.disabled) {
     return { tone: 'off', label: 'Disabled' };
   }
@@ -40,12 +42,10 @@ function statusOf(server: WorkspaceLspEntry): { tone: StatusDotTone; label: stri
   }
   return { tone: 'off', label: 'Off' };
 }
-
 function extensionList(server: WorkspaceLspEntry): string {
   const exts = Object.keys(server.extensionToLanguage);
   return exts.length > 0 ? exts.join(', ') : 'no extensions';
 }
-
 export function LspPane({ workspaceId }: { workspaceId: string }) {
   const { data, isPending, error, restart, stop, saveRaw, applyPreset } =
     useWorkspaceLsp(workspaceId);
@@ -55,7 +55,6 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [presetBusy, setPresetBusy] = useState(false);
-
   async function runServerAction(serverId: string, action: 'restart' | 'stop') {
     setBusyId(serverId);
     try {
@@ -75,7 +74,6 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
       setBusyId(null);
     }
   }
-
   async function handleSaveRaw() {
     setSaving(true);
     try {
@@ -87,7 +85,6 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
       setSaving(false);
     }
   }
-
   async function handlePreset() {
     setPresetBusy(true);
     try {
@@ -99,7 +96,6 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
       setPresetBusy(false);
     }
   }
-
   return (
     <div className="flex flex-col gap-2" data-testid="lsp-pane">
       <RowHeader

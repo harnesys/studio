@@ -22,7 +22,6 @@ import type { Workspace } from '../domain/workspace.port.ts';
 import type { NodeRuntime, NodeSupervisor } from './node-supervisor.ts';
 import { nodeForThread, requireNode } from './routing-helpers.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
-
 export function createRoutingLifecycle(supervisor: NodeSupervisor): RunLifecycleStore {
   const resolveByRun = async (runId: string): Promise<NodeRuntime> => {
     for (const entry of supervisor.list()) {
@@ -65,13 +64,11 @@ export function createRoutingLifecycle(supervisor: NodeSupervisor): RunLifecycle
       const node = await resolveByRun(runId);
       return node.runtime.runLifecycle.renewLease(runId, instanceId, ttlMs);
     },
-    // Claimer/ticker paths use per-node stores; HTTP must not sweep globally.
     listClaimable: async () => [],
     listExpiredAsks: async () => [],
     listDueTimers: async () => [],
   };
 }
-
 async function nodeForRun(supervisor: NodeSupervisor, runId: string): Promise<NodeRuntime> {
   for (const entry of supervisor.list()) {
     if (
@@ -83,12 +80,10 @@ async function nodeForRun(supervisor: NodeSupervisor, runId: string): Promise<No
   }
   throw new NotFoundError('run not found');
 }
-
 export function createRoutingRunEvents(supervisor: NodeSupervisor): RunEventStore {
   return {
     next: (runId) => {
       for (const entry of supervisor.list()) {
-        // Sync peek: hasRun is async, so prefer first live node for rare HTTP next().
         if (entry.store.threadRepo.listByWorkspace(entry.node.id).length >= 0) {
           return entry.runtime.runEvents.next(runId);
         }
@@ -125,7 +120,6 @@ export function createRoutingRunEvents(supervisor: NodeSupervisor): RunEventStor
       ),
   };
 }
-
 export function createRoutingFeed(supervisor: NodeSupervisor): RunEventFeed {
   return {
     subscribe: (runId, fromSeq) => {
@@ -142,7 +136,6 @@ export function createRoutingFeed(supervisor: NodeSupervisor): RunEventFeed {
     },
   };
 }
-
 export function createRoutingClaimer(supervisor: NodeSupervisor): RunClaimer {
   return {
     kick: () => {
@@ -157,14 +150,12 @@ export function createRoutingClaimer(supervisor: NodeSupervisor): RunClaimer {
     },
   };
 }
-
 export function createRoutingRuntimeStateRepo(supervisor: NodeSupervisor): RuntimeStateRepository {
   return {
     forState: (threadId) =>
       nodeForThread(supervisor, threadId).host.runtimeStateRepo.forState(threadId),
   };
 }
-
 export function createRoutingWorkspaceHarnesys(
   supervisor: NodeSupervisor,
 ): WorkspaceHarnesysRegistry {
@@ -223,17 +214,21 @@ export function createRoutingWorkspaceHarnesys(
   };
   return api as WorkspaceHarnesysRegistry;
 }
-
 function scopeWorkspaceId(arg: unknown): string {
   if (typeof arg === 'string') {
     return arg;
   }
   if (arg && typeof arg === 'object' && 'workspaceId' in arg) {
-    return String((arg as { workspaceId: string }).workspaceId);
+    return String(
+      (
+        arg as {
+          workspaceId: string;
+        }
+      ).workspaceId,
+    );
   }
   throw new NotFoundError('workspace scope missing');
 }
-
 function memoryPortProxy<T extends object>(
   supervisor: NodeSupervisor,
   pick: (memory: StudioMemoryPorts) => T,
@@ -255,7 +250,6 @@ function memoryPortProxy<T extends object>(
     },
   });
 }
-
 export function createRoutingMemory(supervisor: NodeSupervisor): StudioMemoryPorts {
   return {
     pin: memoryPortProxy(supervisor, (m) => m.pin),

@@ -1,7 +1,6 @@
 import { type AgentMode, ASK_MODE, DEFAULT_MODE_ID } from '@harnesys/studio-shared';
 import type { Agent, AgentCapabilitiesMap, AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-
 export function requireAgent(agents: AgentRepository, workspaceId: string, agentId: string): Agent {
   const found = agents.findById(agentId);
   if (!found || found.workspaceId !== workspaceId) {
@@ -9,7 +8,6 @@ export function requireAgent(agents: AgentRepository, workspaceId: string, agent
   }
   return found;
 }
-
 export function validateModeIds(modes: AgentMode[]): void {
   const ids = new Set<string>();
   for (const mode of modes) {
@@ -22,12 +20,9 @@ export function validateModeIds(modes: AgentMode[]): void {
     ids.add(mode.id);
   }
 }
-
-/** Creation-time seed: agents start with a copy of the builtin 'ask' preset. */
 export function ensureAskMode(modes: AgentMode[]): AgentMode[] {
   return modes.some((mode) => mode.id === ASK_MODE.id) ? modes : [...modes, { ...ASK_MODE }];
 }
-
 export function validateDefaultModeId(defaultModeId: string | null, modes: AgentMode[]): void {
   if (defaultModeId === null || defaultModeId === DEFAULT_MODE_ID) {
     return;
@@ -36,7 +31,6 @@ export function validateDefaultModeId(defaultModeId: string | null, modes: Agent
     throw new ValidationError(`unknown defaultModeId: ${defaultModeId}`);
   }
 }
-
 export function isAgentsPackEnabled(capabilities: AgentCapabilitiesMap): boolean {
   const v: unknown = capabilities.agents;
   return v !== undefined && v !== null && v !== false;

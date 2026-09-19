@@ -3,7 +3,6 @@ import type {
   KnowledgeFileStatus,
   KnowledgeFilesByStatus,
 } from '@harnesys/studio-shared';
-
 import { Badge } from '@/shared/ui/badge';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { FieldLabel, FieldSet } from '@/shared/ui/field';
@@ -16,14 +15,12 @@ const FILE_FILTERS = [
   'error',
   'pending',
 ] as const satisfies readonly KnowledgeFileStatus[];
-
 const FILTER_LABELS: Record<KnowledgeFileStatus, string> = {
   indexed: 'Indexed',
   skipped: 'Skipped',
   error: 'Error',
   pending: 'Pending',
 };
-
 type KnowledgeFilesPanelProps = {
   status: KnowledgeFileStatus;
   onStatusChange: (status: KnowledgeFileStatus) => void;
@@ -31,7 +28,6 @@ type KnowledgeFilesPanelProps = {
   counts?: KnowledgeFilesByStatus;
   loading?: boolean;
 };
-
 export function KnowledgeFilesPanel({
   status,
   onStatusChange,
@@ -102,7 +98,6 @@ export function KnowledgeFilesPanel({
     </FieldSet>
   );
 }
-
 function isFileStatus(value: string | undefined): value is KnowledgeFileStatus {
   return value === 'indexed' || value === 'skipped' || value === 'error' || value === 'pending';
 }

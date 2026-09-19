@@ -5,7 +5,6 @@ import type {
 } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-
 import {
   listWorkspaceFiles,
   watchWorkspaceFiles,
@@ -16,22 +15,18 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/fie
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
 import { toast } from '@/shared/ui/toast';
-
 import { EmbedModelSelect } from './embed-model-select';
 import { KnowledgeRootsList } from './knowledge-roots-list';
 
 const BACKENDS: MemorySearchBackend[] = ['fts', 'vector'];
-
 const BACKEND_LABELS: Record<MemorySearchBackend, string> = {
   fts: 'FTS',
   vector: 'Vector',
 };
-
 type KnowledgeRootUpsert = {
   path: string;
   enabled: boolean;
 };
-
 type KnowledgeSettingsFieldsProps = {
   workspaceId?: string;
   settings: KnowledgeSettings;
@@ -48,7 +43,6 @@ type KnowledgeSettingsFieldsProps = {
     watchEnabled?: boolean;
   }) => void;
 };
-
 export function KnowledgeSettingsFields({
   workspaceId,
   settings,
@@ -61,20 +55,16 @@ export function KnowledgeSettingsFields({
 }: KnowledgeSettingsFieldsProps) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState<KnowledgeSettings>(settings);
-
   useEffect(() => {
     setDraft(settings);
   }, [settings]);
-
   const patchDraft = (patch: Partial<KnowledgeSettings>) =>
     setDraft((prev) => ({ ...prev, ...patch }));
-
   const rootFilesQuery = useQuery({
     queryKey: ['workspace-files', workspaceId],
     queryFn: () => listWorkspaceFiles(workspaceId as string),
     enabled: Boolean(workspaceId),
   });
-
   useEffect(() => {
     if (!workspaceId) {
       return;
@@ -83,13 +73,11 @@ export function KnowledgeSettingsFields({
       void qc.invalidateQueries({ queryKey: ['workspace-files', workspaceId] });
     });
   }, [workspaceId, qc]);
-
   const names = new Set((rootFilesQuery.data ?? []).map((entry) => entry.name));
   const hasGitIgnore = names.has('.gitignore');
   const hasHarnesysIgnore = names.has('.harnesysignore');
   const showGitLink = Boolean(workspaceId) && rootFilesQuery.isSuccess && !hasGitIgnore;
   const showHarnesysLink = Boolean(workspaceId) && rootFilesQuery.isSuccess && !hasHarnesysIgnore;
-
   const createIgnoreFile = useMutation({
     mutationFn: (path: '.gitignore' | '.harnesysignore') =>
       writeWorkspaceFileContent(workspaceId as string, { path, content: '' }),
@@ -102,7 +90,6 @@ export function KnowledgeSettingsFields({
       toast.add({ title: 'Failed to create file', description: message });
     },
   });
-
   const hasEmbed = Boolean(draft.embedProvider?.trim()) && Boolean(draft.embedModel?.trim());
   const vectorNeedsEmbed = draft.backend === 'vector' && !hasEmbed;
   const dirty =
@@ -111,7 +98,6 @@ export function KnowledgeSettingsFields({
     draft.embedProvider !== settings.embedProvider ||
     draft.embedModel !== settings.embedModel ||
     draft.watchEnabled !== settings.watchEnabled;
-
   const save = () => {
     onPatch({
       entireWorkspace: draft.entireWorkspace,
@@ -121,7 +107,6 @@ export function KnowledgeSettingsFields({
       watchEnabled: draft.watchEnabled,
     });
   };
-
   return (
     <FieldGroup className="gap-1">
       <Field orientation="horizontal" className="rounded-md px-2 py-2 hover:bg-muted/60">

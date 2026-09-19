@@ -4,15 +4,20 @@ import type {
   GitFileStatusMap,
   GitStatusResponse,
 } from '@harnesys/studio-shared';
-
 export type GitPort = {
   getStatus(cwd: string): Promise<GitStatusResponse>;
   getFileStatus(
     cwd: string,
     subPath?: string,
-  ): Promise<{ map: GitFileStatusMap; truncated: boolean }>;
+  ): Promise<{
+    map: GitFileStatusMap;
+    truncated: boolean;
+  }>;
   getDiff(cwd: string, filePath: string): Promise<GitDiffResponse>;
-  listBranches(cwd: string): Promise<{ local: GitBranch[]; recent: GitBranch[] }>;
+  listBranches(cwd: string): Promise<{
+    local: GitBranch[];
+    recent: GitBranch[];
+  }>;
   checkout(cwd: string, branch: string): Promise<void>;
   createBranch(cwd: string, name: string, checkout: boolean, from?: string): Promise<void>;
   validateBranchName(cwd: string, name: string): Promise<boolean>;

@@ -1,8 +1,6 @@
 import type { Modality } from '@harnesys/studio-shared';
 import { toast } from '@/shared/ui/toast';
-
 import { canAttachFile } from './model-input';
-
 export function addComposerFiles(
   files: File[],
   inputModalities: Modality[] | undefined,

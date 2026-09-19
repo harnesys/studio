@@ -1,9 +1,4 @@
 import { useEffect, useState } from 'react';
-
-/**
- * Текущее время с тиком. Неположительный интервал — статичный `Date.now()`
- * без таймера, для завершённых карточек.
- */
 export function useNow(intervalMs: number): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

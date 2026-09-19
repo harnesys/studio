@@ -5,7 +5,6 @@ import type { Expr } from './expr.ts';
 import type { HooksBinding } from './hook.ts';
 import type { JsonSchema } from './json-schema.ts';
 import type { AgentPacks, PackConfig } from './pack.ts';
-
 export type InterruptReason =
   | 'human_review'
   | 'policy'
@@ -13,7 +12,6 @@ export type InterruptReason =
   | 'definition_migrated'
   | 'work'
   | 'wait';
-
 export type AgentGenerationSettings = {
   temperature?: number;
   topP?: number;
@@ -23,54 +21,55 @@ export type AgentGenerationSettings = {
   seed?: number;
   maxTokens?: number;
 };
-
 export type AgentModelRef = {
   provider: string;
   model: string;
   effort?: string;
   generation?: AgentGenerationSettings;
 };
-
-export type PortRef = { name: string; version?: string; spec?: Record<string, unknown> } | null;
-
-export type AgentPaths = { allow: string[]; cwd?: string };
-
+export type PortRef = {
+  name: string;
+  version?: string;
+  spec?: Record<string, unknown>;
+} | null;
+export type AgentPaths = {
+  allow: string[];
+  cwd?: string;
+};
 export type ToolOutputSettings = {
   maxChars?: number;
   headChars?: number;
   tailChars?: number;
 };
-
 export type AgentNodes = Record<string, Node>;
 export type AgentEdges = Edge[];
-export type AgentGraph = { nodes: AgentNodes; edges: AgentEdges };
-
+export type AgentGraph = {
+  nodes: AgentNodes;
+  edges: AgentEdges;
+};
 export type BudgetPolicy = 'ask' | 'error';
-
 export type AgentBudget = {
   maxSteps?: number;
   maxTokens?: number;
   deadlineMs?: number;
   policy?: BudgetPolicy;
 };
-
-/** Template with $item/$index substituted per control:map worker. */
 export type MapInstruction = string;
-/** Per-item text budget for control:map workers (tokens, truncated at maxTokens * 4 chars). */
 export type MapMaxTokensPerItem = number;
-
 export type AgentDefinition = {
   id: string;
   version?: string;
-  prompts: Record<string, { instructions: string }>;
+  prompts: Record<
+    string,
+    {
+      instructions: string;
+    }
+  >;
   model?: AgentModelRef;
   models?: Record<string, AgentModelRef>;
   fallback?: AgentModelRef[];
-  /** Skill allowlist; omitted/null/[] means none. */
   skills?: string[];
-  /** Имена, вычитаемые из реестра после гранта источников; omitted/[] = no-op. */
   disallowedTools?: string[];
-  /** MCP server allowlist; omitted/null/[] means none. */
   mcpServers?: string[];
   toolOutput?: ToolOutputSettings;
   compaction?: PortRef;
@@ -82,17 +81,16 @@ export type AgentDefinition = {
   graph: AgentGraph;
   budget?: AgentBudget;
   packs?: AgentPacks;
-  /** Base permission map: host uses it as mode ceiling, engine as spawn base. Absent = DEFAULT_PERMISSIONS. */
   permissions?: PermissionMap;
   capabilities?: Record<string, PackConfig | null>;
-  /** Декларативные hook-биндинги агента: события и обработчики этого агента. */
   hooks?: HooksBinding[];
-  /** Переопределение включённости плагинов для агента: имя плагина → вкл/выкл. */
   enabledPlugins?: Record<string, boolean>;
 };
-
-export type Edge = { from: string; to: string; when?: Expr };
-
+export type Edge = {
+  from: string;
+  to: string;
+  when?: Expr;
+};
 export type ToolCallFixed = {
   type: 'tool:call';
   name: string;
@@ -101,12 +99,13 @@ export type ToolCallFixed = {
   concurrency?: never;
   approve?: never;
 };
-
 export type ToolCallBatch = {
   type: 'tool:call';
   calls: Expr;
   concurrency: Expr | 'parallel' | 'sequential';
-  barrier?: { policy: 'all' };
+  barrier?: {
+    policy: 'all';
+  };
   approve?: {
     tools: string[];
     reason: string;
@@ -115,28 +114,35 @@ export type ToolCallBatch = {
   name?: never;
   args?: never;
 };
-
 export type Node =
-  | { type: 'core:start' }
-  | { type: 'core:end'; output?: Expr }
+  | {
+      type: 'core:start';
+    }
+  | {
+      type: 'core:end';
+      output?: Expr;
+    }
   | {
       type: 'llm:generate';
       model?: string | AgentModelRef;
       prompt: string;
       messages?: Expr;
-      /** Narrowing of the run set (never a grant): undefined = whole set, [] = none,
-       *  non-empty = subset (validated ⊆ run registry). */
       tools?: string[];
       output?: JsonSchema;
     }
   | ToolCallFixed
   | ToolCallBatch
-  | { type: 'control:assign'; patch: Record<string, Expr | unknown> }
+  | {
+      type: 'control:assign';
+      patch: Record<string, Expr | unknown>;
+    }
   | {
       type: 'control:spawn';
       calls: Expr;
       concurrency: Expr | 'parallel' | 'sequential';
-      barrier?: { policy: 'all' };
+      barrier?: {
+        policy: 'all';
+      };
     }
   | {
       type: 'control:map';
@@ -144,15 +150,27 @@ export type Node =
       enter: string;
       body: string[];
       concurrency: Expr | 'parallel' | 'sequential';
-      barrier?: { policy: 'all' };
+      barrier?: {
+        policy: 'all';
+      };
       timeoutMs?: number;
       onTimeout?: 'fail' | 'partial';
       instruction?: MapInstruction;
       maxTokensPerItem?: MapMaxTokensPerItem;
     }
-  | { type: 'control:yield'; value?: Expr }
-  | { type: 'control:goto'; target: Expr }
-  | { type: 'control:interrupt'; reason: InterruptReason; resumeSchema: JsonSchema }
+  | {
+      type: 'control:yield';
+      value?: Expr;
+    }
+  | {
+      type: 'control:goto';
+      target: Expr;
+    }
+  | {
+      type: 'control:interrupt';
+      reason: InterruptReason;
+      resumeSchema: JsonSchema;
+    }
   | {
       type: 'control:wait';
       delayMs?: number;
@@ -167,8 +185,10 @@ export type Node =
       agentId: string | Expr;
       input: Expr | Record<string, Expr | unknown>;
     }
-  | { type: `custom:${string}`; config?: JsonSchema | unknown };
-
+  | {
+      type: `custom:${string}`;
+      config?: JsonSchema | unknown;
+    };
 export function defineAgent(def: AgentDefinition): AgentDefinition {
   const diags = validateStructural(def);
   const errors = diags.filter((d) => d.severity === 'error');

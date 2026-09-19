@@ -2,28 +2,22 @@ import type { RunClaimer, RunLifecycleStore } from 'harnesys';
 import type { ThreadSessions } from '../../adapters/thread-sessions.adapter.ts';
 import { NotFoundError, RunConflictError } from '../../domain/studio.error.ts';
 import { mapCodedError } from './map-coded-error.ts';
-
 export type RetryRunRequest = {
   runId: string;
 };
-
 export type RetryRunResponse = {
   runId: string;
 };
-
 export type RetryRunInput = {
   execute(request: RetryRunRequest): Promise<RetryRunResponse>;
 };
-
 export type RetryRunDeps = {
   lifecycle: RunLifecycleStore;
   sessions: ThreadSessions;
   claimer: RunClaimer;
 };
-
 export class RetryRunUseCase implements RetryRunInput {
   constructor(private readonly deps: RetryRunDeps) {}
-
   async execute(request: RetryRunRequest): Promise<RetryRunResponse> {
     const rec = await this.deps.lifecycle.get(request.runId);
     if (!rec) {

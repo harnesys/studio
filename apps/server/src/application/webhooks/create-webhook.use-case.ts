@@ -10,7 +10,6 @@ import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type { GetThreadInput } from '../threads/get-thread.use-case.ts';
 import { requireBindableWebhookThread } from './bind-webhook-thread.ts';
 import { toWebhookRecord, type WebhookRecord } from './webhook-record.ts';
-
 export type CreateWebhookRequest = {
   workspaceId: string;
   name: string;
@@ -19,11 +18,9 @@ export type CreateWebhookRequest = {
   threadId?: string;
   status?: WebhookStatus;
 };
-
 export type CreateWebhookInput = {
   execute(request: CreateWebhookRequest): Promise<CreateWebhookResponse>;
 };
-
 export type CreateWebhookDeps = {
   webhooks: WebhookRepository;
   threads: ThreadRepository;
@@ -34,7 +31,6 @@ export type CreateWebhookDeps = {
   db?: StudioDb;
   publicOrigin?: string;
 };
-
 export class CreateWebhookUseCase implements CreateWebhookInput {
   private readonly webhooks: WebhookRepository;
   private readonly threads: ThreadRepository;
@@ -44,7 +40,6 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
   private readonly getThread: GetThreadInput;
   private readonly db?: StudioDb;
   private readonly publicOrigin?: string;
-
   constructor(deps: CreateWebhookDeps) {
     this.webhooks = deps.webhooks;
     this.threads = deps.threads;
@@ -55,7 +50,6 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
     this.db = deps.db;
     this.publicOrigin = deps.publicOrigin;
   }
-
   async execute(request: CreateWebhookRequest): Promise<CreateWebhookResponse> {
     const name = request.name?.trim();
     if (!name) {
@@ -73,7 +67,6 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
     if (!WEBHOOK_STATUSES.includes(status)) {
       throw new ValidationError('invalid webhook status');
     }
-
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
     const boundThread = request.threadId
@@ -87,7 +80,6 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
       : null;
     const threadId = boundThread?.id ?? crypto.randomUUID();
     const dedicated = boundThread === null;
-
     const perform = (): WebhookRecord => {
       if (dedicated) {
         this.threads.insert({
@@ -118,9 +110,7 @@ export class CreateWebhookUseCase implements CreateWebhookInput {
       });
       return toWebhookRecord(webhook, this.publicOrigin);
     };
-
     const record = this.db ? this.db.transaction(perform) : perform();
-
     this.deskEvents.emit(request.workspaceId, { type: 'webhook', webhook: record });
     if (dedicated) {
       const thread = await this.getThread.execute({ id: threadId });

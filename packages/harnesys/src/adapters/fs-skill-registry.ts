@@ -5,25 +5,20 @@ import { InvalidSkillFileError, parseSkillFile } from '../application/skills/par
 import { MAX_SKILL_FILES } from '../constants.ts';
 import type { SkillDocument, SkillFile, SkillSummary } from '../domain/skill.ts';
 import type { SkillRegistry } from '../ports/skills.ts';
-
 export type FsSkillRegistryOptions = {
   roots: string[];
 };
-
 type StoredSkill = {
   doc: SkillDocument;
   dir: string;
 };
-
 export class FsSkillRegistry implements SkillRegistry {
   readonly #roots: string[];
   #docs = new Map<string, StoredSkill>();
-
   constructor(options: FsSkillRegistryOptions) {
     this.#roots = options.roots;
     this.reload();
   }
-
   reload(): void {
     const docs = new Map<string, StoredSkill>();
     for (const root of this.#roots) {
@@ -31,7 +26,6 @@ export class FsSkillRegistry implements SkillRegistry {
     }
     this.#docs = docs;
   }
-
   list(): SkillSummary[] {
     return [...this.#docs.values()].map(({ doc: { name, description, whenToUse } }) => ({
       name,
@@ -39,7 +33,6 @@ export class FsSkillRegistry implements SkillRegistry {
       ...(whenToUse !== undefined ? { whenToUse } : {}),
     }));
   }
-
   load(id: string): unknown {
     const stored = this.#docs.get(id);
     if (stored === undefined) {
@@ -47,7 +40,6 @@ export class FsSkillRegistry implements SkillRegistry {
     }
     return stored.doc;
   }
-
   loadFile(id: string, relPath: string): SkillFile {
     const stored = this.#docs.get(id);
     if (stored === undefined) {
@@ -75,8 +67,6 @@ export class FsSkillRegistry implements SkillRegistry {
     return { path: relPath, content: raw.toString('utf8') };
   }
 }
-
-/** Skill-relative path resolved, never escaping the skill directory. */
 function resolveSkillFile(dir: string, relPath: string): string {
   if (typeof relPath !== 'string' || relPath.length === 0) {
     throw new Error(`unknown skill file: ${relPath}`);
@@ -87,7 +77,6 @@ function resolveSkillFile(dir: string, relPath: string): string {
   }
   return absolute;
 }
-
 function isBinaryBuffer(probe: Uint8Array): boolean {
   for (let i = 0; i < probe.byteLength; i += 1) {
     if (probe[i] === 0) {
@@ -96,8 +85,6 @@ function isBinaryBuffer(probe: Uint8Array): boolean {
   }
   return false;
 }
-
-/** Supporting files under the skill dir (`SKILL.md` excluded), sorted, capped. */
 function listSkillFiles(dir: string): string[] {
   const out: string[] = [];
   const pending: string[] = [''];
@@ -117,8 +104,13 @@ function listSkillFiles(dir: string): string[] {
   }
   return out.sort();
 }
-
-function splitDirEntries(abs: string, prefix: string): { subdirs: string[]; subfiles: string[] } {
+function splitDirEntries(
+  abs: string,
+  prefix: string,
+): {
+  subdirs: string[];
+  subfiles: string[];
+} {
   const subdirs: string[] = [];
   const subfiles: string[] = [];
   for (const entry of readDirEntries(abs)) {
@@ -134,7 +126,6 @@ function splitDirEntries(abs: string, prefix: string): { subdirs: string[]; subf
   }
   return { subdirs, subfiles };
 }
-
 function readDirEntries(current: string): Dirent[] {
   try {
     const entries = readdirSync(current, { withFileTypes: true });
@@ -143,7 +134,6 @@ function readDirEntries(current: string): Dirent[] {
     return [];
   }
 }
-
 function listSkillMarkdownPaths(root: string): string[] {
   if (!existsSync(root)) {
     return [];
@@ -164,7 +154,6 @@ function listSkillMarkdownPaths(root: string): string[] {
   }
   return paths;
 }
-
 function loadSkillDocument(path: string): SkillDocument {
   let content: string;
   try {
@@ -175,15 +164,12 @@ function loadSkillDocument(path: string): SkillDocument {
   }
   return parseSkillFile(content, path);
 }
-
 function scanRootInto(docs: Map<string, StoredSkill>, root: string): void {
   for (const path of listSkillMarkdownPaths(root)) {
     try {
       const doc = loadSkillDocument(path);
       const dir = dirname(path);
       docs.set(doc.name, { doc: { ...doc, files: listSkillFiles(dir) }, dir });
-    } catch {
-      // Skip malformed skill files; valid siblings stay available.
-    }
+    } catch {}
   }
 }

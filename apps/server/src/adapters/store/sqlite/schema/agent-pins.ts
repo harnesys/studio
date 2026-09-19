@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { workspacesTable } from './workspaces.ts';
-
 export const agentPinsTable = sqliteTable(
   'agent_pins',
   {
@@ -22,6 +21,5 @@ export const agentPinsTable = sqliteTable(
     sourceCheck: check('agent_pins_source_check', sql`${table.source} IN ('agent', 'human')`),
   }),
 );
-
 export type AgentPinRow = typeof agentPinsTable.$inferSelect;
 export type AgentPinInsert = typeof agentPinsTable.$inferInsert;

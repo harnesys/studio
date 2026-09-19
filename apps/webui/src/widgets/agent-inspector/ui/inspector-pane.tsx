@@ -1,17 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-
 import { type Agent, findModelLabel, formatContextWindow } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import { useDesk, useSelectedThread, useThreadEvents } from '@/features/desk';
 import { providersQuery } from '@/shared/api';
 import { formatDayTime } from '@/shared/lib/format-clock';
-
 import { FactRow } from './fact-row';
 import { McpInspector } from './mcp-inspector';
 import { PlanInspector } from './plan-inspector';
 import { Section } from './section';
 import { SkillsInspector } from './skills-inspector';
-
 export function InspectorPane({ agent }: { agent: Agent }) {
   const { workspace } = useDesk();
   const thread = useSelectedThread();
@@ -26,7 +23,6 @@ export function InspectorPane({ agent }: { agent: Agent }) {
       provider.models.map((model) => ({ ...model, providerName: provider.name })),
     )
     .find((model) => model.id === agent.modelId);
-
   return (
     <>
       <PlanInspector />

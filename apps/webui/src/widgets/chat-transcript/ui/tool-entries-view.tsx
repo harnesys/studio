@@ -1,9 +1,7 @@
 import { FileCodeIcon, FileIcon, FolderIcon } from 'lucide-react';
-
 import { cn } from '@/shared/lib/utils';
 import { ExpandableScroll } from '@/shared/ui/expandable-scroll';
 import type { EntriesDetail, GrepDetail, GrepMatchItem, ListEntryItem } from '../model/tool-output';
-
 export function ToolEntriesView({ detail }: { detail: EntriesDetail }) {
   return (
     <div className="ml-4 overflow-hidden rounded-md font-mono text-[12px] leading-5">
@@ -21,7 +19,6 @@ export function ToolEntriesView({ detail }: { detail: EntriesDetail }) {
     </div>
   );
 }
-
 function EntryRow({ item }: { item: ListEntryItem }) {
   const isDir = item.type === 'dir';
   return (
@@ -46,10 +43,8 @@ function EntryRow({ item }: { item: ListEntryItem }) {
     </div>
   );
 }
-
 export function ToolGrepView({ detail }: { detail: GrepDetail }) {
   const grouped = groupMatchesByFile(detail.matches);
-
   return (
     <div className="ml-4 overflow-hidden rounded-md font-mono text-[12px] leading-5">
       <ExpandableScroll>
@@ -88,8 +83,10 @@ export function ToolGrepView({ detail }: { detail: GrepDetail }) {
     </div>
   );
 }
-
-function groupMatchesByFile(matches: GrepMatchItem[]): { file: string; items: GrepMatchItem[] }[] {
+function groupMatchesByFile(matches: GrepMatchItem[]): {
+  file: string;
+  items: GrepMatchItem[];
+}[] {
   const map = new Map<string, GrepMatchItem[]>();
   for (const m of matches) {
     const list = map.get(m.file) ?? [];
@@ -98,7 +95,6 @@ function groupMatchesByFile(matches: GrepMatchItem[]): { file: string; items: Gr
   }
   return Array.from(map.entries()).map(([file, items]) => ({ file, items }));
 }
-
 function formatBytes(bytes: number): string {
   if (bytes < 1024) {
     return `${bytes} B`;

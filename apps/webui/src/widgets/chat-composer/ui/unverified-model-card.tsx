@@ -1,7 +1,6 @@
 import { TriangleAlertIcon, WrenchIcon, ZapIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/shared/ui/hover-card';
-
 export function UnverifiedModelCard({
   modelName,
   children,

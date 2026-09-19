@@ -6,7 +6,6 @@ import { indexKnowledgeFile, upsertWalkEntry } from './knowledge-index-file.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
 import { collectKnowledgePaths, resolveUnderWorkspace, toPosix } from './knowledge-walk.ts';
 import { normalizeUri, uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
-
 export function normalizeEnqueueUri(workspacePath: string, raw: string): string | undefined {
   const trimmed = raw.trim().normalize('NFC');
   if (!trimmed) {
@@ -20,7 +19,6 @@ export function normalizeEnqueueUri(workspacePath: string, raw: string): string 
     return undefined;
   }
 }
-
 export function filterEnqueueUris(
   workspacePath: string,
   uris: string[],
@@ -41,7 +39,6 @@ export function filterEnqueueUris(
   }
   return out;
 }
-
 export async function indexOneUri(input: {
   repo: SqliteKnowledgeIndexRepo;
   workspaceId: string;
@@ -58,7 +55,6 @@ export async function indexOneUri(input: {
     trace('knowledge-indexer', 'skip path outside workspace', { uri: input.uri });
     return;
   }
-
   const exists = await access(abs).then(
     () => true,
     () => false,
@@ -67,7 +63,6 @@ export async function indexOneUri(input: {
     input.repo.deleteUriPrefix(input.workspaceId, input.uri);
     return;
   }
-
   const entries = await collectKnowledgePaths(input.workspacePath, input.uri);
   const updatedAt = new Date().toISOString();
   if (entries.length === 0) {

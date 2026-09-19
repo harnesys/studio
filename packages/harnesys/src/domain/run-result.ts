@@ -1,7 +1,9 @@
 import type { JsonSchema } from './json-schema.ts';
-
-export type Usage = { steps: number; tokens: number; cost?: number };
-
+export type Usage = {
+  steps: number;
+  tokens: number;
+  cost?: number;
+};
 export type RunSuccess = {
   status: 'completed';
   runId: string;
@@ -9,7 +11,6 @@ export type RunSuccess = {
   state: Record<string, unknown>;
   usage: Usage;
 };
-
 export type RunInterrupted = {
   status: 'needs_input';
   runId: string;
@@ -21,7 +22,6 @@ export type RunInterrupted = {
   };
   usage: Usage;
 };
-
 export type RunFailed = {
   status: 'failed' | 'budget_exceeded' | 'timed_out' | 'dead_lettered';
   runId: string;
@@ -30,22 +30,35 @@ export type RunFailed = {
     message: string;
     nodeId?: string;
     retryable?: boolean;
-    cause?: { code: string; message: string; nodeId?: string };
+    cause?: {
+      code: string;
+      message: string;
+      nodeId?: string;
+    };
   };
   state: Record<string, unknown>;
   usage: Usage;
 };
-
 export type RunCancelled = {
   status: 'cancelled';
   runId: string;
   state: Record<string, unknown>;
   usage: Usage;
 };
-
 export type RunResult = RunSuccess | RunInterrupted | RunFailed | RunCancelled;
-
 export type Command =
-  | { type: 'resume'; interruptId: string; payload: unknown }
-  | { type: 'reject'; interruptId: string; note?: string }
-  | { type: 'cancel'; mode: 'graceful' | 'hard'; spawnId?: string };
+  | {
+      type: 'resume';
+      interruptId: string;
+      payload: unknown;
+    }
+  | {
+      type: 'reject';
+      interruptId: string;
+      note?: string;
+    }
+  | {
+      type: 'cancel';
+      mode: 'graceful' | 'hard';
+      spawnId?: string;
+    };

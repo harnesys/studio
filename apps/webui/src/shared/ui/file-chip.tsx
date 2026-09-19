@@ -1,5 +1,4 @@
 import { XIcon } from 'lucide-react';
-
 import { fileExtLabel, formatBytes } from '@/shared/lib/file-meta';
 import {
   Attachment,
@@ -12,7 +11,6 @@ import {
   AttachmentTrigger,
 } from '@/shared/ui/attachment';
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
-
 export function FileChip({
   name,
   mediaType,
@@ -32,7 +30,6 @@ export function FileChip({
   const detail = [fileExtLabel(name, mediaType), bytes != null ? formatBytes(bytes) : null]
     .filter(Boolean)
     .join(' · ');
-
   return (
     <Attachment size="sm" orientation={image ? 'vertical' : 'horizontal'} className="max-w-56">
       <AttachmentMedia variant={previewUrl ? 'image' : 'icon'}>

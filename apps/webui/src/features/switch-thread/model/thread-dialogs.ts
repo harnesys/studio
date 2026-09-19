@@ -1,6 +1,5 @@
 import type { Thread } from '@/entities/thread';
 import { alert } from '@/shared/services/overlay';
-
 export function confirmDeleteThread(thread: Thread) {
   return alert.confirm({
     title: `Delete ${thread.title}?`,

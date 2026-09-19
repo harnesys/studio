@@ -8,12 +8,10 @@ const NAV_ICONS: Record<WindowSettingsCategory, LucideIcon> = {
   chat: MessageSquareIcon,
   hosts: ServerIcon,
 };
-
 type SettingsNavProps = {
   active: WindowSettingsCategory;
   onSelect: (category: WindowSettingsCategory) => void;
 };
-
 export function SettingsNav({ active, onSelect }: SettingsNavProps) {
   return (
     <nav

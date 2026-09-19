@@ -2,12 +2,10 @@ import { type Agent, type AgentDraft, toClientAgent, useAgentStore } from '@/ent
 import { useSessionStore } from '@/entities/session';
 import { type Thread, toClientThread, useThreadStore } from '@/entities/thread';
 import { createAgentRecord, createThreadRecord, listAgents } from '@/shared/api';
-
 export type CreateAgentResult = {
   agent: Agent;
   thread: Thread | null;
 };
-
 export async function createAgent(
   workspaceId: string,
   draft: AgentDraft,
@@ -30,25 +28,20 @@ export async function createAgent(
     ...(draft.permissions !== undefined ? { permissions: draft.permissions } : {}),
     ...(draft.color !== undefined ? { color: draft.color } : {}),
     defaultModeId: draft.defaultModeId ?? null,
-    // Empty list = let the server seed installedByDefault presets + ask (Decision 3).
     ...(draft.modes?.length ? { modes: draft.modes } : {}),
     ...(draft.graph !== undefined ? { graph: draft.graph } : {}),
   });
   const agent = toClientAgent(record);
   useAgentStore.getState().upsert(agent);
-
   if (agent.parentId) {
     return { agent, thread: null };
   }
-
   const threadRecord = await createThreadRecord({ workspaceId, agentId: record.id });
   const thread = toClientThread(threadRecord);
   useThreadStore.getState().upsert(thread);
   useSessionStore.getState().replaceEvents(threadRecord.id, threadRecord.events);
   return { agent, thread };
 }
-
-/** Reload all agents for a workspace into the client store (picks up seeded delegates). */
 export async function refreshWorkspaceAgents(workspaceId: string): Promise<Agent[]> {
   const records = await listAgents(workspaceId);
   const agents = records.map(toClientAgent);

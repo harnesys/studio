@@ -5,24 +5,19 @@ import type {
   GetWorkspaceMcpConfigInput,
   GetWorkspaceMcpConfigResponse,
 } from './get-workspace-mcp-config.use-case.ts';
-
 export type ReloadWorkspaceMcpRequest = {
   workspaceId: string;
 };
-
 export type ReloadWorkspaceMcpResponse = GetWorkspaceMcpConfigResponse;
-
 export type ReloadWorkspaceMcpInput = {
   execute(request: ReloadWorkspaceMcpRequest): Promise<ReloadWorkspaceMcpResponse>;
 };
-
 export class ReloadWorkspaceMcpUseCase implements ReloadWorkspaceMcpInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly getConfig: GetWorkspaceMcpConfigInput,
   ) {}
-
   async execute(request: ReloadWorkspaceMcpRequest): Promise<ReloadWorkspaceMcpResponse> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {

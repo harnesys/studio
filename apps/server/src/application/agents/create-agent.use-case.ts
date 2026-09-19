@@ -14,7 +14,6 @@ import type {
   AgentGraph,
   AgentRepository,
 } from '../../domain/agent.port.ts';
-
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import type { LlmModelRepository } from '../../domain/llm-provider.port.ts';
 import type { ModePresetRepository } from '../../domain/mode-preset.port.ts';
@@ -35,11 +34,9 @@ import { buildReactGraph } from './react-preset.ts';
 import { stampExplicitTools } from './update-agent.use-case.ts';
 
 export { DEFAULT_REACT_BUDGET };
-
 export type CreateAgentRequest = {
   workspaceId: string;
   name: string;
-  /** When set, creates a spawn delegate under that top-level agent. */
   parentId?: string | null;
   modelId?: string | null;
   role?: string;
@@ -50,7 +47,6 @@ export type CreateAgentRequest = {
   compaction?: PortRef;
   skills?: string[];
   mcpServers?: string[];
-  /** When set, stored as-is; otherwise host builds default ReAct. */
   graph?: AgentGraph;
   budget?: AgentBudget | null;
   capabilities?: AgentCapabilitiesMap;
@@ -61,11 +57,9 @@ export type CreateAgentRequest = {
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
-
 export type CreateAgentInput = {
   execute(request: CreateAgentRequest): Promise<Agent>;
 };
-
 export type CreateAgentUseCaseDeps = {
   models?: LlmModelRepository;
   modePresets?: ModePresetRepository;
@@ -73,31 +67,24 @@ export type CreateAgentUseCaseDeps = {
     listSkills: ListWorkspaceSkillsInput;
     listMcp: GetWorkspaceMcpInput;
   };
-  /** Omitted on the catalog-port instance: that port emits desk events itself. */
   deskEvents?: DeskEventsPort;
-  /** Write-path §7 validation (ruling T7: provision core, strict остальное). */
   validateConfig: ValidateAgentConfigInput;
 };
-
 export class CreateAgentUseCase implements CreateAgentInput {
   constructor(
     private readonly agents: AgentRepository,
     private readonly deps: CreateAgentUseCaseDeps,
   ) {}
-
   async execute(request: CreateAgentRequest): Promise<Agent> {
     const name = request.name?.trim();
     if (!name) {
       throw new ValidationError('agent name is required');
     }
-
     if (this.agents.findByName(request.workspaceId, name)) {
       throw new ConflictError('agent name taken in workspace');
     }
-
     const parent = resolveParent(this.agents, request.workspaceId, request.parentId);
     const parentId = parent?.id ?? null;
-
     let modelId: string | null = null;
     if (request.modelId) {
       if (this.deps.models) {
@@ -108,7 +95,6 @@ export class CreateAgentUseCase implements CreateAgentInput {
       }
       modelId = request.modelId;
     }
-
     const role = request.role?.trim() || 'Operator';
     const instructions = request.instructions?.trim() || '';
     const effort = request.effort?.trim() || null;
@@ -165,8 +151,6 @@ export class CreateAgentUseCase implements CreateAgentInput {
     const enabledPlugins = request.enabledPlugins ?? {};
     validateModeIds(modes);
     validateDefaultModeId(defaultModeId, modes);
-    // §7 write-path: источники/overrides/режимы/child⊆creator; `core` provisioned,
-    // остальное — строгий отказ (HTTP 400, tool-path `{error}` через runGuard).
     const checked = await this.deps.validateConfig.execute({
       workspaceId: request.workspaceId,
       parentId,
@@ -176,12 +160,9 @@ export class CreateAgentUseCase implements CreateAgentInput {
       mcpServers,
       modes,
     });
-
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
-
     assertAgentGraphValid({ id, graph, budget });
-
     const created = this.agents.insert({
       id,
       workspaceId: request.workspaceId,
@@ -208,12 +189,9 @@ export class CreateAgentUseCase implements CreateAgentInput {
       createdAt: now,
       updatedAt: now,
     });
-
     this.deps.deskEvents?.emit(request.workspaceId, { type: 'agent', agent: created });
-
     return await Promise.resolve(created);
   }
-
   private seedDefaultModes(workspaceId: string, capabilities: AgentCapabilitiesMap): AgentMode[] {
     const granted = new Set(
       Object.entries(capabilities)
@@ -223,9 +201,6 @@ export class CreateAgentUseCase implements CreateAgentInput {
         })
         .map(([name]) => name),
     );
-    // Сиды совместимые: strict-режим (`mode ⊆ agent`) требует, чтобы seeded-план
-    // не ломал создание агентов без plan-пака; ask/auto без packs проходят всегда.
-    // `core` provisioned валидацией позже и на фильтр не влияет.
     return (this.deps.modePresets?.list(workspaceId) ?? [])
       .filter((preset) => preset.installedByDefault && preset.id !== DEFAULT_MODE_ID)
       .map(modeFromPreset)
@@ -241,8 +216,6 @@ export class CreateAgentUseCase implements CreateAgentInput {
       });
   }
 }
-
-/** Родительская строка делегата (валидация та же, что раньше); null — top-level. */
 function resolveParent(
   agents: AgentRepository,
   workspaceId: string,
@@ -260,8 +233,6 @@ function resolveParent(
   }
   return parent;
 }
-
-/** Single unknown → singular message; several → one plural list. */
 function assertAllKnown(unknown: string[], noun: string): void {
   if (unknown.length === 0) {
     return;

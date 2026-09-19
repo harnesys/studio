@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
-
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
-
 export function StatusIcon({
   label,
   detail,

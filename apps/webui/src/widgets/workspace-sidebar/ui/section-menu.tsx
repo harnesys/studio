@@ -9,7 +9,6 @@ type SectionMenuProps = {
   align?: 'start' | 'center' | 'end';
   contentClassName?: string;
 };
-
 export function SectionMenu({
   label,
   children,

@@ -13,7 +13,6 @@ import {
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { CEREBRAS_DEFAULT_URL };
-
 export function listCerebrasModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, CEREBRAS_DEFAULT_URL),
@@ -22,7 +21,6 @@ export function listCerebrasModels(input: DiscoverInput): Promise<DiscoveredMode
     parse: parseCerebrasList,
   });
 }
-
 export function parseCerebrasList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -33,7 +31,6 @@ export function parseCerebrasList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapCerebrasModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const name = asString(record?.id);
@@ -44,7 +41,6 @@ function mapCerebrasModel(item: unknown): DiscoveredModel | undefined {
   const pricing = asRecord(record.pricing) ?? {};
   const contextLength = asNumber(limits.max_context_length) ?? asNumber(record.context_length);
   const maxOutput = asNumber(limits.max_completion_tokens) ?? asNumber(record.max_output_length);
-
   return {
     name,
     kind: /embed/i.test(name) ? 'embed' : 'chat',

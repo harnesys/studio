@@ -1,10 +1,7 @@
 import { useNavigate } from 'react-router';
-
 import { studioPath, type WindowSettingsCategory } from './routes';
-
 export function useStudioNavigation() {
   const navigate = useNavigate();
-
   return {
     openDesk() {
       void navigate(studioPath.desk);

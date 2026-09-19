@@ -2,11 +2,9 @@ function token(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 }
-
 function mix(tint: string, base: string, amount: number): string {
   return `color-mix(in oklab, ${tint} ${amount}%, ${base})`;
 }
-
 function mindmapThemeCss(opts: {
   muted: string;
   card: string;
@@ -37,7 +35,6 @@ function mindmapThemeCss(opts: {
     sections,
   ].join('');
 }
-
 function scale(colors: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   const fallback = token('--muted', '#eceeef');
@@ -48,7 +45,6 @@ function scale(colors: string[]): Record<string, string> {
   }
   return out;
 }
-
 export function studioMermaidConfig(dark: boolean) {
   const background = token('--background', dark ? '#0f1114' : '#f4f5f6');
   const foreground = token('--foreground', dark ? '#ecedef' : '#16181d');
@@ -77,14 +73,12 @@ export function studioMermaidConfig(dark: boolean) {
     chart2,
     chart4,
   ];
-
   return {
     startOnLoad: false as const,
     securityLevel: 'strict' as const,
     theme: 'base' as const,
     look: 'classic' as const,
     fontFamily: 'IBM Plex Sans Variable, IBM Plex Sans, sans-serif',
-    // Mindmap branch tints (same #id scope as section fills). Final paint is in JS.
     themeCSS: mindmapThemeCss({
       muted,
       card,
@@ -127,7 +121,6 @@ export function studioMermaidConfig(dark: boolean) {
       textHeight: 10,
       dividerMargin: 4,
       titleTopMargin: 8,
-      // Mermaid class renderer v3 reads spacing from `state` (see below).
       nodeSpacing: 20,
       rankSpacing: 24,
     },
@@ -140,7 +133,6 @@ export function studioMermaidConfig(dark: boolean) {
       labelHeight: 12,
       radius: 4,
       edgeLengthFactor: '12',
-      // Used by classDiagram layout (mermaid quirk).
       nodeSpacing: 20,
       rankSpacing: 24,
     },
@@ -236,7 +228,6 @@ export function studioMermaidConfig(dark: boolean) {
       critBorderColor: destructive,
       labelColor: foreground,
       ...scale(palette),
-      // Never use foreground/background/card as slice fills — labels share one color.
       pie1: chart1,
       pie2: chart2,
       pie3: chart4,

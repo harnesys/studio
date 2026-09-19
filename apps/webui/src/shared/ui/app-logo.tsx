@@ -2,11 +2,6 @@ import { useId } from 'react';
 import { cn } from '@/shared/lib/utils';
 
 const LETTER = 'M152 152h250v280h220V152h250v720H622V592H402v280H152Z';
-
-/**
- * Harnesys mark: faceted glass H, letter only, transparent background.
- * Self-colored — ignores currentColor, works on light and dark surfaces.
- */
 export function AppLogo({ className }: { className?: string }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const body = `hg-body-${uid}`;

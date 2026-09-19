@@ -1,4 +1,3 @@
-/** Pack float embedding as little-endian Float32 buffer for SQLite BLOB. */
 export function encodeEmbedding(values: number[]): Buffer {
   const out = Buffer.alloc(values.length * 4);
   for (let i = 0; i < values.length; i++) {
@@ -6,7 +5,6 @@ export function encodeEmbedding(values: number[]): Buffer {
   }
   return out;
 }
-
 export function decodeEmbedding(
   blob: Buffer | Uint8Array | null | undefined,
 ): number[] | undefined {
@@ -20,7 +18,6 @@ export function decodeEmbedding(
   }
   return values;
 }
-
 export function cosineSimilarity(a: number[], b: number[]): number {
   const n = Math.min(a.length, b.length);
   if (n === 0) {

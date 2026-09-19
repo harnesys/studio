@@ -1,5 +1,4 @@
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
-
 import { prefersReducedMotion } from '@/shared/lib/motion';
 import { useScrollAnchor } from '@/shared/lib/scroll-anchor';
 import { cn } from '@/shared/lib/utils';
@@ -7,7 +6,6 @@ import { cn } from '@/shared/lib/utils';
 const PREVIEW = 'max-h-28';
 const FULL = 'max-h-[min(70vh,28rem)]';
 const PIN_THRESHOLD = 32;
-
 export function ExpandableScroll({
   children,
   className,
@@ -23,7 +21,6 @@ export function ExpandableScroll({
   fullClassName?: string;
   fadeClassName?: string | false;
   defaultExpanded?: boolean;
-  /** Живой стрим: окно держит хвост плавным скроллом, More раскрывает выше. */
   follow?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -32,19 +29,13 @@ export function ExpandableScroll({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [canExpand, setCanExpand] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
-  // More/Less держит верх бокса на месте, ленту к низу не прибивает.
   useScrollAnchor(boxRef, expanded);
-
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) {
       return;
     }
-
-    // Watch the content node: the viewport has a fixed max-height, so
-    // observing `el` alone never sees scrollHeight grow during a stream.
     const content = el.firstElementChild ?? el;
-
     const stick = () => {
       frameRef.current = 0;
       if (!pinnedRef.current) {
@@ -63,7 +54,6 @@ export function ExpandableScroll({
       }
       frameRef.current = requestAnimationFrame(stick);
     };
-
     if (follow) {
       pinnedRef.current = true;
       scheduleStick();
@@ -81,7 +71,6 @@ export function ExpandableScroll({
         }
       };
     }
-
     const measure = () => {
       if (expanded) {
         setCanExpand(true);
@@ -89,7 +78,6 @@ export function ExpandableScroll({
       }
       setCanExpand(el.scrollHeight > el.clientHeight + 1);
     };
-
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(content);
@@ -98,8 +86,6 @@ export function ExpandableScroll({
     }
     return () => observer.disconnect();
   }, [expanded, follow]);
-
-  // Живой режим: ручной скролл вверх открепляет хвост, возврат вниз — цепляет обратно.
   const handleScroll = follow
     ? () => {
         const el = ref.current;
@@ -109,13 +95,10 @@ export function ExpandableScroll({
         pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= PIN_THRESHOLD;
       }
     : undefined;
-
-  // Раскрытие во время стрима сразу показывает свежий хвост.
   const toggle = () => {
     pinnedRef.current = true;
     setExpanded((value) => !value);
   };
-
   return (
     <div ref={boxRef} className={cn('relative', className)}>
       <div

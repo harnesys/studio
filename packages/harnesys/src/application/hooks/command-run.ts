@@ -18,22 +18,20 @@ import type {
 
 const DEFAULT_TIMEOUT_S_USER_PROMPT = 30;
 const DEFAULT_TIMEOUT_S = 600;
-
-/** Basename `$SHELL`, при котором Claude/`shell: "bash"` используют этот интерпретатор. */
 const BASH_FAMILY = new Set(['bash', 'zsh', 'sh']);
-
 const COMMAND_PLACEHOLDERS = [
   '${' + 'CLAUDE_PLUGIN_ROOT}',
   '${' + 'CLAUDE_PLUGIN_DATA}',
   '${' + 'CLAUDE_PROJECT_DIR}',
 ];
-
-/** Shell-конструкции вне кавычек не поддерживаются: `|`, `&&`, `$VAR`, globs и т.д. */
 const SHELL_METACHARS: string = '|&;<>$`*?[](){}\\';
-
-/** Исполнитель command-хендлера и весь процесс-менеджмент (нормы 1-7 спеки §2.2). */
 export async function runCommand(
-  h: Extract<HookHandler, { type: 'command' }>,
+  h: Extract<
+    HookHandler,
+    {
+      type: 'command';
+    }
+  >,
   payload: HookPayload,
   ctx: HookRuntimeCtx,
   vars: HookHandlerVars,
@@ -58,7 +56,6 @@ export async function runCommand(
   };
   let proc: Bun.Subprocess<'pipe', 'pipe', 'pipe'>;
   try {
-    // Claude: `shell` только в shell-form (без `args`); при `args` — прямой spawn.
     const shellForm = resolved.handler.args === undefined ? resolved.handler.shell : undefined;
     if (shellForm !== undefined) {
       proc = spawnHookShell(
@@ -128,7 +125,6 @@ export async function runCommand(
     await proc.exited;
   }
 }
-
 async function writeStdinAndAwaitExit(
   proc: Bun.Subprocess<'pipe', 'pipe', 'pipe'>,
   stdinJson: string,
@@ -136,15 +132,16 @@ async function writeStdinAndAwaitExit(
   try {
     proc.stdin.write(stdinJson);
     await proc.stdin.end();
-  } catch {
-    // процесс закрыл stdin раньше записи — исход решает exit code
-  }
+  } catch {}
   return await proc.exited;
 }
-
-/** argv command-хендлера: `args` задан → прямой spawn без шелла; нет → токенизация с кавычками. */
 function buildCommandArgv(
-  h: Extract<HookHandler, { type: 'command' }>,
+  h: Extract<
+    HookHandler,
+    {
+      type: 'command';
+    }
+  >,
   vars: HookHandlerVars,
 ): string[] | undefined {
   if (h.args !== undefined) {
@@ -159,14 +156,21 @@ function buildCommandArgv(
   }
   return tokens.map((token) => expandCommandPlaceholders(token, vars));
 }
-
-type CommandHandler = Extract<HookHandler, { type: 'command' }>;
-
+type CommandHandler = Extract<
+  HookHandler,
+  {
+    type: 'command';
+  }
+>;
 type ResolvedCommandHandler =
-  | { handler: CommandHandler; error?: undefined }
-  | { handler?: undefined; error: string };
-
-/** Exec-подстановка `${user_config.*}` в command/args/env; неразрешённая ссылка — отказ. */
+  | {
+      handler: CommandHandler;
+      error?: undefined;
+    }
+  | {
+      handler?: undefined;
+      error: string;
+    };
 function resolveCommandHandler(
   h: CommandHandler,
   userConfig: UserConfigContentOptions | undefined,
@@ -211,16 +215,12 @@ function resolveCommandHandler(
     },
   };
 }
-
 function expandCommandPlaceholders(token: string, vars: HookHandlerVars): string {
   return token
     .replaceAll(COMMAND_PLACEHOLDERS[0] ?? '', vars.pluginRoot)
     .replaceAll(COMMAND_PLACEHOLDERS[1] ?? '', vars.pluginData)
     .replaceAll(COMMAND_PLACEHOLDERS[2] ?? '', vars.projectDir);
 }
-
-/** Токенизация одной строки: кавычки двойные/одинарные — литералы; каноническая форма
- * Claude `"${CLAUDE_PLUGIN_ROOT}"/scripts/x.sh` проходит; shell-конструкции вне кавычек — invalid. */
 function tokenizeCommand(command: string): string[] | undefined {
   const tokens: string[] = [];
   let current = '';
@@ -276,9 +276,10 @@ function tokenizeCommand(command: string): string[] | undefined {
   }
   return tokens;
 }
-
-type HookSpawnOptions = { cwd: string; env: Record<string, string> };
-
+type HookSpawnOptions = {
+  cwd: string;
+  env: Record<string, string>;
+};
 function spawnBase(options: HookSpawnOptions) {
   return {
     ...options,
@@ -288,12 +289,6 @@ function spawnBase(options: HookSpawnOptions) {
     detached: true,
   };
 }
-
-/**
- * Claude shell-form: строка `command` целиком в интерпретатор.
- * `bash` → `$SHELL` если basename bash/zsh/sh, иначе `bash -c`;
- * `powershell` → `pwsh -NoProfile -Command`.
- */
 function spawnHookShell(
   shell: HookCommandShell,
   command: string,
@@ -305,8 +300,6 @@ function spawnHookShell(
   }
   return Bun.spawn([resolveBashBin(), '-c', command], base);
 }
-
-/** `$SHELL`, если это bash/zsh/sh; иначе литерал `bash` (схема Claude plugin manifest). */
 function resolveBashBin(): string {
   const shell = process.env.SHELL;
   if (shell !== undefined && shell.length > 0) {
@@ -317,8 +310,6 @@ function resolveBashBin(): string {
   }
   return 'bash';
 }
-
-/** Spawn argv; ENOEXEC/EACCES (полиглот без шебанга — канонический `.cmd` Claude) → повтор под bash-family. */
 function spawnHookCommand(
   argv: string[],
   options: HookSpawnOptions,
@@ -333,7 +324,6 @@ function spawnHookCommand(
     return Bun.spawn([resolveBashBin(), ...argv], base);
   }
 }
-
 function isExecFormatError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
@@ -341,8 +331,6 @@ function isExecFormatError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException).code;
   return code === 'ENOEXEC' || code === 'EACCES' || error.message.startsWith('ENOEXEC');
 }
-
-/** Групповое убийство `kill(-pid, SIGKILL)`, при ESRCH фолбэк `kill(pid)` (спека §2.2 п.2). */
 function killProcessGroup(pid: number): void {
   try {
     process.kill(-pid, 'SIGKILL');
@@ -354,8 +342,6 @@ function killProcessGroup(pid: number): void {
     }
   }
 }
-
-/** Env процесса хука: envBase + PLUGIN/CLAUDE-переменные + env хендлера (план C1). */
 function hookProcessEnv(
   ctx: HookRuntimeCtx,
   vars: HookHandlerVars,
@@ -372,8 +358,6 @@ function hookProcessEnv(
   }
   return env;
 }
-
-/** Stdin = Claude-контур: обязательные поля + маппинг таблицы спеки §2.1. */
 export function toStdinPayload(p: HookPayload): Record<string, unknown> {
   const out: Record<string, unknown> = {
     hook_event_name: p.event,
@@ -435,8 +419,6 @@ export function toStdinPayload(p: HookPayload): Record<string, unknown> {
   }
   return out;
 }
-
-/** Таймауты по умолчанию: 30 UserPromptSubmit, 600 остальные command/http/mcp_tool, 30 prompt (план C1). */
 export function defaultTimeoutS(
   event: HookEventName,
   handlerType: 'command' | 'http' | 'mcp_tool' | 'prompt',
@@ -446,7 +428,6 @@ export function defaultTimeoutS(
   }
   return event === 'UserPromptSubmit' ? DEFAULT_TIMEOUT_S_USER_PROMPT : DEFAULT_TIMEOUT_S;
 }
-
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.length > 0 ? error.message : String(error);
 }

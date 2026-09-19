@@ -5,24 +5,22 @@ import type { AgentCatalogCreateInput, AgentsCatalogPort } from '../../ports/age
 import type { AgentRosterEntry } from '../../ports/create-runtime.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
 import { scopeFor } from './scope-for.ts';
-
 export type CreateAgentsToolsParams = {
   agents: AgentsCatalogPort;
   resolveScope: () => CapabilityScope;
 };
-
-async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+async function runGuard<T>(fn: () => Promise<T>): Promise<
+  | T
+  | {
+      error: string;
+    }
+> {
   try {
     return await fn();
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
-/**
- * Наследование модели создателя: если в create-инпуте нет model, подставляем одиночный
- * `model` создающего агента. Явный выбор модели при создании — отдельная будущая фича,
- * поэтому `models`-запись (несколько привязок) не наследуем и не синтезируем model из неё.
- */
 async function withInheritedModel(
   agents: AgentsCatalogPort,
   scope: CapabilityScope,
@@ -34,25 +32,26 @@ async function withInheritedModel(
   const creator = await agents.get(scope, scope.agentId);
   return creator?.model ? { ...input, model: creator.model } : input;
 }
-
 type AgentsListInput = {
   role?: string;
   name?: string;
 };
-
 function rowLevel(row: { plugin?: boolean; parentId?: string | null }) {
   if (row.plugin) {
     return 'plugin';
   }
   return row.parentId ? 'delegate' : 'top';
 }
-
 function spawnCallsShapeError(calls: unknown[]): string | null {
   for (let idx = 0; idx < calls.length; idx += 1) {
     const item = calls[idx];
     const rec =
       item && typeof item === 'object'
-        ? (item as { agentId?: unknown; budget?: unknown; input?: unknown })
+        ? (item as {
+            agentId?: unknown;
+            budget?: unknown;
+            input?: unknown;
+          })
         : null;
     const agentId = rec?.agentId;
     if (typeof agentId !== 'string' || !agentId) {
@@ -72,10 +71,13 @@ function spawnCallsShapeError(calls: unknown[]): string | null {
   }
   return null;
 }
-
 function spawnCallsTargetError(calls: unknown[], roster: AgentRosterEntry[]): string | null {
   for (const item of calls) {
-    const agentId = (item as { agentId: string }).agentId;
+    const agentId = (
+      item as {
+        agentId: string;
+      }
+    ).agentId;
     const hit = resolveAgentTarget(agentId, roster);
     if ('error' in hit) {
       return hit.error;
@@ -83,7 +85,6 @@ function spawnCallsTargetError(calls: unknown[], roster: AgentRosterEntry[]): st
   }
   return null;
 }
-
 export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition[] {
   return [
     tool('agents_list', {
@@ -185,7 +186,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
             return { error: 'name, role, and instructions are required' };
           }
           const packsRaw = input.packs ?? input.capabilities ?? {};
-          const next: AgentCatalogCreateInput & { capabilities?: unknown } = { ...input };
+          const next: AgentCatalogCreateInput & {
+            capabilities?: unknown;
+          } = { ...input };
           delete next.capabilities;
           next.packs = packsRaw;
           return await deps.agents.create(
@@ -256,7 +259,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
             return { error: 'packs.agents is forbidden for subagents (nesting ban)' };
           }
           const packs = packMap;
-          const next: AgentCatalogCreateInput & { capabilities?: unknown } = {
+          const next: AgentCatalogCreateInput & {
+            capabilities?: unknown;
+          } = {
             ...input,
             parentId: scope.agentId,
           };
@@ -322,7 +327,9 @@ export function createAgentsTools(deps: CreateAgentsToolsParams): ToolDefinition
       },
       execute: async (raw, execCtx) =>
         runGuard(async () => {
-          const rec = (raw ?? {}) as { calls?: unknown };
+          const rec = (raw ?? {}) as {
+            calls?: unknown;
+          };
           if (!Array.isArray(rec.calls)) {
             return { error: 'calls must be an array' };
           }

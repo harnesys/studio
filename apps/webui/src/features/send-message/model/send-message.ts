@@ -3,9 +3,7 @@ import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { ApiError, cancelRun, sendThreadRun } from '@/shared/api';
 import { preview, trace } from '@/shared/lib/trace';
-
 import { connectThreadRun } from './client-registry';
-
 export type SendMessageOptions = {
   threadId: string;
   content: string;
@@ -14,13 +12,11 @@ export type SendMessageOptions = {
   mode?: string;
   skills?: string[];
 };
-
 type RunConflictBody = {
   code?: string;
   runId?: string;
   pendingAskId?: string;
 };
-
 export async function sendMessage(options: SendMessageOptions) {
   const { threadId, content, effort, attachments, mode, skills } = options;
   const trimmed = content.trim();
@@ -28,7 +24,6 @@ export async function sendMessage(options: SendMessageOptions) {
     return;
   }
   trace('client', 'send start', { threadId, text: preview(trimmed) });
-
   const clientEventId = crypto.randomUUID();
   if (skills?.length) {
     useSessionStore.getState().setSentSkills(threadId, clientEventId, skills);
@@ -52,7 +47,6 @@ export async function sendMessage(options: SendMessageOptions) {
       : undefined,
     clientEventId,
   });
-
   try {
     const accepted = await sendThreadRun({
       id: threadId,
@@ -79,7 +73,6 @@ export async function sendMessage(options: SendMessageOptions) {
         return;
       }
       if (body.pendingAskId) {
-        // Ask card is already in the transcript and the composer is blocked: drop the bubble.
         useSessionStore.getState().removeEventByClientEventId(threadId, clientEventId);
         if (startedHere) {
           useSessionStore.getState().finishRun(threadId);

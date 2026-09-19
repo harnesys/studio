@@ -6,28 +6,23 @@ import {
 } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import { listProviders, updateAgentRecord } from '@/shared/api';
-
 import { sanitizeForModel } from './agent-fields';
 import { refreshWorkspaceAgents } from './create-agent';
-
 export async function updateAgent(workspaceId: string, agentId: string, draft: AgentDraft) {
   const current = useAgentStore.getState().byId(agentId);
   if (!current) {
     return;
   }
-
   let effort = draft.effort !== undefined ? draft.effort : current.effort;
   let generation = draft.generation !== undefined ? draft.generation : current.generation;
   const toolOutput = draft.toolOutput !== undefined ? draft.toolOutput : current.toolOutput;
   const budget = draft.budget !== undefined ? draft.budget : current.budget;
-
   if (draft.modelId !== current.modelId) {
     const providers = await listProviders(workspaceId);
     const sanitized = sanitizeForModel(draft.modelId, effort, generation, providers);
     effort = sanitized.effort;
     generation = sanitized.generation;
   }
-
   const record = await updateAgentRecord(workspaceId, agentId, {
     name: draft.name.trim() || current.name,
     role: draft.role,
@@ -57,7 +52,6 @@ export async function updateAgent(workspaceId: string, agentId: string, draft: A
     items: state.items.map((item) => (item.agentId === agentId ? { ...item } : item)),
   }));
 }
-
 export async function updateAgentCapabilities(
   workspaceId: string,
   agentId: string,

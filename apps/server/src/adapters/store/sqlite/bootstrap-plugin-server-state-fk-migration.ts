@@ -1,11 +1,9 @@
-/** Rebuild plugin_server_state FK after plugins uniqueness became (workspace_id, name). */
 import { sql } from 'drizzle-orm';
 import type { StudioDb } from './connection.ts';
-
 export function migratePluginServerStateFk(db: StudioDb): void {
-  const master = db.all<{ sql: string }>(
-    sql`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'plugin_server_state'`,
-  );
+  const master = db.all<{
+    sql: string;
+  }>(sql`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'plugin_server_state'`);
   const createSql = master[0]?.sql ?? '';
   if (createSql === '') {
     return;
@@ -13,7 +11,6 @@ export function migratePluginServerStateFk(db: StudioDb): void {
   if (createSql.includes('REFERENCES plugins(workspace_id, name)')) {
     return;
   }
-
   db.run(sql.raw('PRAGMA foreign_keys = OFF;'));
   db.run(
     sql.raw(`CREATE TABLE plugin_server_state_fk_migration (

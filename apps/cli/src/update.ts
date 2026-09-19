@@ -12,36 +12,24 @@ const ASSET_PLATFORM = (() => {
   }
   return process.platform === 'linux' ? 'linux' : undefined;
 })();
-
 const ASSET_ARCH = (() => {
   if (process.arch === 'x64') {
     return 'x64';
   }
   return process.arch === 'arm64' ? 'arm64' : undefined;
 })();
-
 type ReleaseAsset = {
   name: string;
   browser_download_url: string;
 };
-
 function fail(message: string): never {
   console.error(`harnesys: ${message}`);
   process.exit(1);
 }
-
 function assetNameFor(bin: string): string {
   return `${bin}-${ASSET_PLATFORM}-${ASSET_ARCH}`;
 }
-
-/**
- * `update [--repo owner/name]`: fetches the latest GitHub release, replaces both
- * binaries in the binary directory, restarts whatever was running.
- * Asset naming contract: `<bin>-<platform>-<arch>`, platform darwin|linux, arch x64|arm64.
- */
 export async function commandUpdate(repoFlag: string | undefined): Promise<void> {
-  // HARNESYS_REPO is the primary name (same as the installer); the old
-  // HARNESYS_UPDATE_REPO stays as a compat fallback.
   const repo =
     repoFlag?.trim() ||
     process.env.HARNESYS_REPO?.trim() ||
@@ -52,8 +40,6 @@ export async function commandUpdate(repoFlag: string | undefined): Promise<void>
   }
   const release = await fetchRelease(repo);
   const binDir = resolveBinDir();
-  // Both assets are resolved and staged before anything is replaced: a failure
-  // mid-way aborts with the installed binaries untouched (all-or-nothing).
   const assetForServer = findAsset(release.assets, assetNameFor(SERVER_BIN));
   const assetForWeb = findAsset(release.assets, assetNameFor(WEB_BIN));
   const staged: {
@@ -113,17 +99,15 @@ export async function commandUpdate(repoFlag: string | undefined): Promise<void>
     console.log('nothing was running — updated binaries will be used on next `harnesys up`');
   }
 }
-
 type Release = {
   assets: ReleaseAsset[];
 };
-
 async function fetchRelease(repo: string): Promise<Release> {
   let response: Response;
   try {
     response = await fetch(`${GH_API}/repos/${repo}/releases/latest`, {
       headers: { accept: 'application/vnd.github+json', 'user-agent': 'harnesys-cli' },
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(15000),
     });
   } catch (error) {
     fail(`cannot reach ${GH_API}: ${String(error).slice(0, 120)}`);
@@ -140,7 +124,6 @@ async function fetchRelease(repo: string): Promise<Release> {
   }
   return { assets: body.assets };
 }
-
 function findAsset(assets: ReleaseAsset[], name: string): ReleaseAsset {
   const asset = assets.find((candidate) => candidate.name === name);
   if (!asset) {
@@ -150,12 +133,10 @@ function findAsset(assets: ReleaseAsset[], name: string): ReleaseAsset {
   }
   return asset;
 }
-
-/** Throws so commandUpdate can clean staged files; the caller turns it into a user-facing error. */
 async function download(url: string): Promise<Uint8Array> {
   const response = await fetch(url, {
     headers: { 'user-agent': 'harnesys-cli' },
-    signal: AbortSignal.timeout(120_000),
+    signal: AbortSignal.timeout(120000),
   });
   if (!response.ok) {
     throw new Error(`download failed with HTTP ${response.status}`);

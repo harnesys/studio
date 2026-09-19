@@ -4,10 +4,7 @@ export {
   type LspBridgeArgs,
   type LspBridgeStatus,
 } from './model/lsp-bridge';
-export {
-  restartLspForPath,
-  restartWorkspaceLsp,
-} from './model/lsp-restart';
+export { restartLspForPath, restartWorkspaceLsp } from './model/lsp-restart';
 export {
   type LspSessionEntry,
   useLspSessions,

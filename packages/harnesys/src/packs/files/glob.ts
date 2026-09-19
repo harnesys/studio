@@ -5,7 +5,6 @@ import { createSearchFilter } from '../../adapters/actions/path-blocklist.ts';
 import { resolveWorkdirPath } from '../../adapters/actions/path-resolve.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
 export function globTool(options: FilesOptions = {}): ToolDefinition {
   const blocklist = options.blocklist ?? DEFAULT_PATH_BLOCKLIST;
   return tool('glob', {
@@ -19,7 +18,9 @@ export function globTool(options: FilesOptions = {}): ToolDefinition {
       required: ['pattern'],
     },
     async execute(input, ctx) {
-      const parsed = input as { pattern: string };
+      const parsed = input as {
+        pattern: string;
+      };
       const workdir = resolveWorkdirPath(ctx.cwd, '.', options.root);
       const hidden = await createSearchFilter(workdir, blocklist);
       const matches: string[] = [];

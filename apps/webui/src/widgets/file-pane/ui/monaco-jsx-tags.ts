@@ -1,19 +1,17 @@
 import type { OnMount } from '@monaco-editor/react';
-// @ts-expect-error monaco deep import without declarations
 import { StandaloneServices } from 'monaco-editor/esm/vs/editor/standalone/browser/standaloneServices.js';
-// @ts-expect-error monaco deep import without declarations
 import { IConfigurationService } from 'monaco-editor/esm/vs/platform/configuration/common/configuration.js';
 
 type Monaco = Parameters<OnMount>[1];
-type LineSpan = { start: number; length: number };
-
+type LineSpan = {
+  start: number;
+  length: number;
+};
 const TAG_NAME_RE = /<\/?[A-Za-z][\w:.-]*/g;
 const FRAGMENT_CLOSE_RE = /<\/(?=[\s>])/g;
 const OPENERS = new Set(['(', ')', '{', '}', '[', ']', ';', ',', ':', '?', '&', '|', '=', '>']);
 const TAIL_LIMIT = 64;
-
 let registered = false;
-
 function opensJsx(prefix: string): boolean {
   const trimmed = prefix.replace(/\s+$/, '');
   if (trimmed === '') {
@@ -24,8 +22,6 @@ function opensJsx(prefix: string): boolean {
   }
   return /(^|[^\w$])return$/.test(trimmed);
 }
-
-/** Find `/>` closing a tag whose attributes may hold strings and `{...}` expressions. */
 function findSelfClose(text: string, from: number): number {
   let inString: string | null = null;
   let depth = 0;
@@ -51,7 +47,6 @@ function findSelfClose(text: string, from: number): number {
   }
   return -1;
 }
-
 function collectLineSpans(text: string, tail: string): LineSpan[] {
   const spans: LineSpan[] = [];
   for (const match of text.matchAll(TAG_NAME_RE)) {
@@ -72,7 +67,6 @@ function collectLineSpans(text: string, tail: string): LineSpan[] {
   }
   return spans;
 }
-
 export function ensureJsxTagSemanticTokens(monaco: Monaco) {
   if (registered) {
     return;

@@ -1,8 +1,6 @@
 import type { WebhookRecord } from '@harnesys/studio-shared';
-
 export const WEBHOOK_STATUSES = ['active', 'paused', 'failed'] as const;
 export type WebhookStatus = (typeof WEBHOOK_STATUSES)[number];
-
 export function webhookStatusTone(
   status: WebhookStatus,
 ): 'idle' | 'live' | 'wait' | 'danger' | 'off' {
@@ -15,7 +13,6 @@ export function webhookStatusTone(
       return 'danger';
   }
 }
-
 export function webhookStatusLabel(status: WebhookStatus): string {
   switch (status) {
     case 'active':
@@ -26,7 +23,6 @@ export function webhookStatusLabel(status: WebhookStatus): string {
       return 'Failed';
   }
 }
-
 export function webhookInk(status: WebhookStatus): string {
   switch (status) {
     case 'active':
@@ -37,7 +33,6 @@ export function webhookInk(status: WebhookStatus): string {
       return 'text-destructive';
   }
 }
-
 export type Webhook = {
   id: string;
   workspaceId: string;
@@ -50,7 +45,6 @@ export type Webhook = {
   lastFiredAt?: string;
   updatedAt: string;
 };
-
 export function toClientWebhook(record: WebhookRecord): Webhook {
   return {
     id: record.id,

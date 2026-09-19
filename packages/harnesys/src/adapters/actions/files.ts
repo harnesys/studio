@@ -6,7 +6,6 @@ import { readFileTool } from '../../packs/files/read-file.ts';
 import { writeFileTool } from '../../packs/files/write-file.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import type { FilesOptions } from './files-options.ts';
-
 export function files(options: FilesOptions = {}): ToolDefinition[] {
   return [
     readFileTool(options),

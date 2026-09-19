@@ -29,7 +29,6 @@ function migrateFileContentQueries(
     qc.removeQueries({ queryKey: key, exact: true });
   }
 }
-
 function navigateIfFocusMoved(
   navigate: ReturnType<typeof useNavigate>,
   pathname: string,
@@ -57,11 +56,6 @@ function navigateIfFocusMoved(
     kind === 'file' ? studioPath.file(workspaceId, next) : studioPath.diff(workspaceId, next);
   void navigate(to, { replace: true });
 }
-
-/**
- * Applies a batch move and pulls every path-keyed consumer onto the new paths:
- * Explorer queries, git decorations, IDE file tabs, URL focus, and open-file state.
- */
 export function useMoveWorkspaceFiles(workspaceId: string) {
   const qc = useQueryClient();
   const navigate = useNavigate();

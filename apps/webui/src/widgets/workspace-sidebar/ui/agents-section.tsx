@@ -17,7 +17,6 @@ import { AgentInlineThreads } from './agent-inline-threads';
 import { WorkspaceGroupLabel } from './workspace-group';
 
 export { AgentsSectionActions } from './agents-section-menu';
-
 export function AgentsSection({
   workspaceIds,
   agents,
@@ -38,7 +37,6 @@ export function AgentsSection({
   const expanded = useAgentsDisplayStore((state) => state.expanded);
   const toggleExpanded = useAgentsDisplayStore((state) => state.toggle);
   const roots = agents.filter((item) => !item.parentId);
-
   useEffect(() => {
     if (!activeThreadId) {
       return;
@@ -54,9 +52,11 @@ export function AgentsSection({
       useAgentsDisplayStore.getState().expand(owner.id);
     }
   }, [activeThreadId, roots]);
-
   const multi = workspaceIds.length > 1;
-  const groups: { workspace: Workspace; agents: Agent[] }[] = [];
+  const groups: {
+    workspace: Workspace;
+    agents: Agent[];
+  }[] = [];
   for (const id of workspaceIds) {
     const workspace = workspaces.find((item) => item.id === id);
     if (!workspace) {
@@ -68,7 +68,6 @@ export function AgentsSection({
     }
     groups.push({ workspace, agents: groupAgents });
   }
-
   if (groups.length === 0) {
     return (
       <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
@@ -76,7 +75,6 @@ export function AgentsSection({
       </p>
     );
   }
-
   const openSettings = (item: Agent) => {
     void openAgentConfigDialog(item, item.workspaceId).then(async (result) => {
       if (!result) {
@@ -92,7 +90,6 @@ export function AgentsSection({
       }
     });
   };
-
   return (
     <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
       {groups.map((group) => (
@@ -119,7 +116,6 @@ export function AgentsSection({
     </div>
   );
 }
-
 function AgentGroupRow({
   agent,
   expanded,
@@ -138,7 +134,6 @@ function AgentGroupRow({
   onSettings: () => void;
 }) {
   const actions = useThreadActions(agent.workspaceId);
-
   return (
     <Fragment>
       <AgentCard

@@ -5,7 +5,6 @@ import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { MISTRAL_DEFAULT_URL };
-
 export function listMistralModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, MISTRAL_DEFAULT_URL),
@@ -14,7 +13,6 @@ export function listMistralModels(input: DiscoverInput): Promise<DiscoveredModel
     parse: parseMistralList,
   });
 }
-
 export function parseMistralList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -25,7 +23,6 @@ export function parseMistralList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapMistralModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const name = asString(record?.id);
@@ -35,7 +32,6 @@ function mapMistralModel(item: unknown): DiscoveredModel | undefined {
   const capabilities = asRecord(record.capabilities) ?? {};
   const kind = mistralKind(name, capabilities);
   const contextLength = asNumber(record.max_context_length);
-
   return {
     name,
     kind,
@@ -45,7 +41,6 @@ function mapMistralModel(item: unknown): DiscoveredModel | undefined {
     raw: item,
   };
 }
-
 function mistralKind(
   name: string,
   capabilities: Record<string, unknown>,

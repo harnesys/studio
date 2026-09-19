@@ -1,44 +1,37 @@
 import type { Edge as FlowEdge, Node as FlowNode } from '@xyflow/react';
 import type { Edge, Expr, Node } from 'harnesys';
-
 export type GraphRankdir = 'TB' | 'LR';
-
-export type GraphNodePosition = { x: number; y: number };
-
+export type GraphNodePosition = {
+  x: number;
+  y: number;
+};
 export type StudioGraphLayout = {
   rankdir: GraphRankdir;
   positions: Record<string, GraphNodePosition>;
 };
-
 export type StudioGraphDocument = {
   nodes: Record<string, Node>;
   edges: Edge[];
   layout?: StudioGraphLayout;
 };
-
 export type HarnesysGraph = {
   nodes: Record<string, Node>;
   edges: Edge[];
 };
-
 export type AgentGraphFlowNodeData = {
   spec: Node;
   rankdir: GraphRankdir;
 };
-
 export type AgentGraphFlowEdgeData = {
   when?: Expr;
 };
-
 export type AgentGraphFlowNode = FlowNode<AgentGraphFlowNodeData, 'agent-graph-node'>;
 export type AgentGraphFlowEdge = FlowEdge<AgentGraphFlowEdgeData>;
-
 const DEFAULT_THINK: Node = {
   type: 'llm:generate',
   prompt: 'main',
   messages: '$state.messages',
 };
-
 const DEFAULT_REACT_NODES: Record<string, Node> = {
   start: { type: 'core:start' },
   think: DEFAULT_THINK,
@@ -49,7 +42,6 @@ const DEFAULT_REACT_NODES: Record<string, Node> = {
   },
   end: { type: 'core:end' },
 };
-
 const DEFAULT_REACT_EDGES: Edge[] = [
   { from: 'start', to: 'think' },
   { from: 'think', to: 'act', when: '$output.finishReason = "tool-calls"' },
@@ -57,18 +49,15 @@ const DEFAULT_REACT_EDGES: Edge[] = [
   { from: 'think', to: 'end' },
   { from: 'act', to: 'think' },
 ];
-
 export function harnesysGraphOf(doc: StudioGraphDocument): HarnesysGraph {
   return { nodes: doc.nodes, edges: doc.edges };
 }
-
 export function defaultReactGraph(): StudioGraphDocument {
   return {
     nodes: { ...DEFAULT_REACT_NODES },
     edges: DEFAULT_REACT_EDGES.map((edge) => ({ ...edge })),
   };
 }
-
 export function toFlow(doc: StudioGraphDocument): {
   nodes: AgentGraphFlowNode[];
   edges: AgentGraphFlowEdge[];
@@ -92,7 +81,6 @@ export function toFlow(doc: StudioGraphDocument): {
   }));
   return { nodes, edges };
 }
-
 export function fromFlow(
   nodes: AgentGraphFlowNode[],
   edges: AgentGraphFlowEdge[],

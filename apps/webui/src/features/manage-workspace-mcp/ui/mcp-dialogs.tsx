@@ -1,12 +1,10 @@
 import type { WorkspaceMcpConfigServer } from '@harnesys/studio-shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { FieldGroup } from '@/shared/ui/field';
-
 import {
   emptyMcpFields,
   type McpFieldsInput,
@@ -17,13 +15,11 @@ import {
   toMcpServerDraft,
 } from '../model/mcp-fields';
 import { McpFields } from './mcp-fields';
-
 export function AddMcpServerDialog({ onResolve }: DialogComponentProps<McpServerDraft>) {
   const form = useForm<McpFieldsInput, unknown, McpFieldsOutput>({
     resolver: zodResolver(mcpFieldsSchema),
     defaultValues: emptyMcpFields(),
   });
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"
@@ -41,16 +37,19 @@ export function AddMcpServerDialog({ onResolve }: DialogComponentProps<McpServer
     </form>
   );
 }
-
 export function EditMcpServerDialog({
   onResolve,
   data,
-}: DialogComponentProps<McpServerDraft, { server: WorkspaceMcpConfigServer }>) {
+}: DialogComponentProps<
+  McpServerDraft,
+  {
+    server: WorkspaceMcpConfigServer;
+  }
+>) {
   const form = useForm<McpFieldsInput, unknown, McpFieldsOutput>({
     resolver: zodResolver(mcpFieldsSchema),
     defaultValues: data?.server ? mcpFieldsFrom(data.server) : emptyMcpFields(),
   });
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"

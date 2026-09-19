@@ -1,8 +1,9 @@
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { inlineEntityKind, isInlineEntityNode } from './inline-entity-node';
-
-export type ComposerPayload = { text: string; skills: string[] };
-
+export type ComposerPayload = {
+  text: string;
+  skills: string[];
+};
 export function serializeComposerDoc(doc: ProseMirrorNode): ComposerPayload {
   const skills: string[] = [];
   const blocks: string[] = [];
@@ -21,7 +22,6 @@ export function serializeComposerDoc(doc: ProseMirrorNode): ComposerPayload {
             skills.push(ref);
           }
         } else if (kind === 'file') {
-          // File mention stays a visible link in the text: the server needs no new field.
           if (text.length > 0 && !text.endsWith(' ')) {
             text += ' ';
           }

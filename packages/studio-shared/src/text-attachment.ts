@@ -10,7 +10,6 @@ const TEXT_MEDIA_PREFIXES = [
   'application/csv',
   'application/x-sh',
 ];
-
 const TEXT_EXTENSIONS = new Set([
   '.txt',
   '.md',
@@ -51,7 +50,6 @@ const TEXT_EXTENSIONS = new Set([
   '.prettierrc',
   '.eslintrc',
 ]);
-
 export function isTextAttachment(mediaType: string, name: string): boolean {
   if (TEXT_MEDIA_PREFIXES.some((prefix) => mediaType.startsWith(prefix))) {
     return true;

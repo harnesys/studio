@@ -1,8 +1,11 @@
 import { CONFLICT_CODES } from '../../config/constants.ts';
 import { NotFoundError, RunConflictError, ValidationError } from '../../domain/studio.error.ts';
-
 export function mapCodedError(error: unknown): Error {
-  const code = (error as { code?: unknown }).code;
+  const code = (
+    error as {
+      code?: unknown;
+    }
+  ).code;
   const message = error instanceof Error ? error.message : 'run failed';
   if (code === 'resume_validation_failed') {
     return new ValidationError(message);

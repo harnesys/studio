@@ -29,11 +29,9 @@ type CronComposerProps = {
   onChange: (cron: string) => void;
   hint?: string;
 };
-
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
-
 export function CronComposer({ value, onChange, hint }: CronComposerProps) {
   const parsed = parseCron(value);
   const preset = parsed ? detectPreset(parsed) : 'custom';
@@ -46,20 +44,17 @@ export function CronComposer({ value, onChange, hint }: CronComposerProps) {
   } else if (hint) {
     rawDescription = `${summary} · ${hint}`;
   }
-
   function applyPreset(next: CronPreset) {
     if (next === 'custom') {
       return;
     }
     onChange(cronFromPreset(next, options));
   }
-
   function patchOptions(patch: Partial<CronComposerOptions>) {
     const nextOptions = { ...options, ...patch };
     const nextPreset = preset === 'custom' ? 'daily' : preset;
     onChange(cronFromPreset(nextPreset, nextOptions));
   }
-
   return (
     <div className="flex flex-col gap-3" data-testid="cron-composer">
       <ToggleGroup

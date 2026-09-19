@@ -3,9 +3,9 @@ import type { AgentsCatalogPort } from '../../ports/agents-catalog.ts';
 import { createAgentLifecycleTools } from './create-agent-lifecycle-tools.ts';
 import { createAgentsHandoffTool } from './create-agents-handoff-tool.ts';
 import { createAgentsTools } from './create-agents-tools.ts';
-
-export type AgentsCapabilityPorts = { agents: AgentsCatalogPort };
-
+export type AgentsCapabilityPorts = {
+  agents: AgentsCatalogPort;
+};
 export const agentsCapability = definePack<AgentsCapabilityPorts, Record<string, unknown>>({
   name: 'agents',
   version: '1.0.0',

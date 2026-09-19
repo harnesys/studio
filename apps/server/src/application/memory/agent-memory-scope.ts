@@ -2,13 +2,11 @@ import type { MemoryScopeId } from 'harnesys';
 import type { AgentRepository } from '../../domain/agent.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-
 export type AgentMemoryScopeRequest = {
   workspaceId: string;
   agentId: string;
   threadId?: string;
 };
-
 export function resolveAgentMemoryScope(
   workspaces: WorkspaceRepository,
   agents: AgentRepository,

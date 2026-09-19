@@ -1,12 +1,10 @@
 import { Skeleton } from '@/shared/ui/skeleton';
-
 export function ChatSkeleton() {
   return (
     <div
       className="fade-in mx-auto flex w-full max-w-3xl animate-in flex-col gap-6 px-4 py-6 duration-200"
       data-testid="chat-skeleton"
     >
-      {/* Turn 1: User message */}
       <div className="flex flex-col items-end gap-2">
         <div className="flex items-center gap-2">
           <Skeleton className="h-3 w-16" />
@@ -17,7 +15,6 @@ export function ChatSkeleton() {
         </div>
       </div>
 
-      {/* Turn 1: Assistant response */}
       <div className="flex flex-col items-start gap-2.5">
         <div className="flex items-center gap-2">
           <Skeleton className="size-5 rounded-full" />
@@ -36,7 +33,6 @@ export function ChatSkeleton() {
         </div>
       </div>
 
-      {/* Turn 2: User message */}
       <div className="flex flex-col items-end gap-2 pt-2">
         <div className="flex items-center gap-2">
           <Skeleton className="h-3 w-14" />
@@ -47,7 +43,6 @@ export function ChatSkeleton() {
         </div>
       </div>
 
-      {/* Turn 2: Assistant response */}
       <div className="flex flex-col items-start gap-2.5">
         <div className="flex items-center gap-2">
           <Skeleton className="size-5 rounded-full" />

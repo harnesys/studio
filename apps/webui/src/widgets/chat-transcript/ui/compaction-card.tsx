@@ -1,10 +1,7 @@
 import { Layers2Icon } from 'lucide-react';
-
 import { Markdown } from '@/shared/ui/markdown';
-
 import type { CompactionSegmentMeta } from '../model/turn-segments';
 import { FeedNotice, FeedNoticeMetaSep } from './feed-notice';
-
 export function CompactionPendingCard() {
   return (
     <FeedNotice
@@ -16,7 +13,6 @@ export function CompactionPendingCard() {
     />
   );
 }
-
 function formatTokenCount(value: number): string {
   if (value >= 1000) {
     const kilo = value / 1000;
@@ -24,7 +20,6 @@ function formatTokenCount(value: number): string {
   }
   return String(value);
 }
-
 export function CompactionMessageCard({
   text,
   meta,

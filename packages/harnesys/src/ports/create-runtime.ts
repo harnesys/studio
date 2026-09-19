@@ -1,5 +1,3 @@
-// biome-ignore-all lint/suspicious/noConfusingVoidType: RuntimeHandle reload/close use void|Promise<void> per docs/05
-
 import type { LlmNoteProvider } from '../application/llm-notes.ts';
 import type { PackCatalogEntry } from '../application/packs/tool-names.ts';
 import type { RunClaimer } from '../application/run-claimer.ts';
@@ -23,23 +21,16 @@ import type { RuntimeState } from './runtime-state.ts';
 import type { SessionHandle } from './session.ts';
 import type { SkillRegistry } from './skills.ts';
 import type { CustomNodeImpl, ToolCatalogEntry, ToolDefinition } from './tools.ts';
-
 export type AgentRosterEntry = {
   id: string;
   name: string;
   parentId?: string | null;
-  /** Плагин-владелец записи; absent = host-агент. Резолвер гейтит plugin-строки по `enabledPlugins`. */
   plugin?: string;
 };
-
 export type AgentsResolve = {
   resolve: (id: string, parent?: AgentDefinition) => AgentDefinition | undefined;
-  /** Optional roster for fuzzy spawn-target resolution (prefix/name).
-   *  Absent → exact-id resolution only. `parent` is the running agent's def;
-   *  hosts scope the roster to its workspace/plugin grants. */
   list?: (parent?: AgentDefinition) => AgentRosterEntry[];
 };
-
 export type CreateRuntimeOptions = {
   models: ProviderConfig[] | ModelsPort;
   tools?: ToolDefinition[];
@@ -48,7 +39,6 @@ export type CreateRuntimeOptions = {
   agents: AgentsResolve;
   permissions?: PermissionMap;
   paths?: PathsConfig;
-  /** Runtime-wide hook bindings (host-inline `origin: 'host'` included); merged with RunTarget.hooks per run. */
   hooks?: HookBinding[];
   notes?: LlmNoteProvider[];
   packs?: PackRegistration[];
@@ -56,20 +46,19 @@ export type CreateRuntimeOptions = {
   nodes?: Record<string, CustomNodeImpl>;
   toolMessages?: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
-  stream?: { chunkIntervalMs?: number; chunkSize?: number };
+  stream?: {
+    chunkIntervalMs?: number;
+    chunkSize?: number;
+  };
   onDefinitionMismatch?: 'reject' | 'compile-new-and-map-cursor';
-  /** Journal wiring for SessionHandle. Host-owned; no in-memory fallback.
-   *  The claimer is host-owned, never created here. */
   lifecycle: RunLifecycleStore;
   events: RunEventStore;
   feed?: RunEventFeed;
   claimer?: RunClaimer;
   instanceId?: string;
   targets?: RunTargets;
-  /** Host diagnostics sink; defaults to the library console logger. */
   logger?: Logger;
 };
-
 export type RuntimeHandle = {
   run(
     agent: AgentDefinition | string,
@@ -92,7 +81,9 @@ export type RuntimeHandle = {
   resume(
     state: RuntimeState,
     command: Command,
-    opts: { definition: AgentDefinition },
+    opts: {
+      definition: AgentDefinition;
+    },
   ): Promise<RunResult>;
   compile(def: AgentDefinition): unknown;
   check(def: AgentDefinition): unknown;
@@ -112,7 +103,6 @@ export type RuntimeHandle = {
   };
   tools: {
     list(): ToolCatalogEntry[];
-    /** Merged registry (base tools + skills + MCP); the graph's per-runtime tool source. */
     registry(): Map<string, ToolDefinition>;
   };
   mcp: {

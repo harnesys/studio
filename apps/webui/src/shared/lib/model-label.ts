@@ -1,5 +1,4 @@
 import type { ProviderPublic } from '@harnesys/studio-shared';
-
 export function findModelLabel(
   modelId: string | null | undefined,
   providers: ProviderPublic[],

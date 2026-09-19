@@ -4,19 +4,16 @@ import type { Logger as RuntimeLogger } from 'harnesys';
 import pino, { type Logger } from 'pino';
 import { HOME_DIR_NAME, LOGS_DIR } from './constants.ts';
 import { env } from './env.ts';
-
 export const LOGS_HOME = join(env.harnesysHome ?? join(homedir(), HOME_DIR_NAME), LOGS_DIR);
-
 function dayStamp(d: Date = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
-
 export function logFilePath(day: string = dayStamp()): string {
   return join(LOGS_HOME, `studio-${day}.log`);
 }
-
-/** Append-only NDJSON file sink, rolls over to a new dated file at UTC midnight. */
-function fileSink(): { write(chunk: string): void } {
+function fileSink(): {
+  write(chunk: string): void;
+} {
   let day = dayStamp();
   let dest = pino.destination({ dest: logFilePath(day), sync: true, mkdir: true });
   return {
@@ -30,7 +27,6 @@ function fileSink(): { write(chunk: string): void } {
     },
   };
 }
-
 const LEVEL_TAGS: Record<number, string> = {
   10: 'TRC',
   20: 'DBG',
@@ -48,9 +44,9 @@ const LEVEL_COLORS: Record<number, string> = {
   60: '\x1b[35m',
 };
 const RESET = '\x1b[0m';
-
-/** Human-readable console sink; falls back to the raw line when parsing fails. */
-function consoleSink(): { write(chunk: string): void } {
+function consoleSink(): {
+  write(chunk: string): void;
+} {
   return {
     write(chunk: string): void {
       const trimmed = chunk.trimEnd();
@@ -73,7 +69,12 @@ function consoleSink(): { write(chunk: string): void } {
       if (typeof rec.msg === 'string') {
         parts.push(rec.msg);
       }
-      const err = rec.err as { message?: string; stack?: string } | undefined;
+      const err = rec.err as
+        | {
+            message?: string;
+            stack?: string;
+          }
+        | undefined;
       const rest: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(rec)) {
         if (
@@ -106,7 +107,6 @@ function consoleSink(): { write(chunk: string): void } {
     },
   };
 }
-
 const prod = env.production;
 const KNOWN_LEVELS = new Set(['trace', 'debug', 'info', 'warn', 'error', 'fatal']);
 const rawOverride = process.env.HARNESYS_LOG_LEVEL;
@@ -123,18 +123,13 @@ if (levelOverride) {
     entry.level = levelOverride;
   }
 }
-
-/** Process logger: NDJSON under `~/.harnesys/logs`, readable lines in console. */
 export const logger: Logger = pino(
   { level: rootLevel, base: { pid: process.pid } },
   pino.multistream(streams),
 );
-
 export function childLogger(scope: string): Logger {
   return logger.child({ scope });
 }
-
-/** Adapt pino to the `harnesys` runtime Logger port. */
 export function toRuntimeLogger(scope: string): RuntimeLogger {
   const child = logger.child({ scope });
   const sink =

@@ -1,13 +1,10 @@
 import type { WorkspaceTool } from '@harnesys/studio-shared';
-
 export type ToolGroup = {
   id: string;
   label: string;
   hint?: string;
   tools: WorkspaceTool[];
 };
-
-/** Runtime pack groups from `packages/harnesys/src/packs`; MCP servers are not packages. */
 export const TOOL_GROUP_ORDER = [
   'core',
   'files',
@@ -20,8 +17,13 @@ export const TOOL_GROUP_ORDER = [
   'schedules',
   'webhooks',
 ] as const;
-
-export const TOOL_GROUP_META: Record<string, { label: string; hint?: string }> = {
+export const TOOL_GROUP_META: Record<
+  string,
+  {
+    label: string;
+    hint?: string;
+  }
+> = {
   core: { label: 'Core' },
   files: { label: 'Files' },
   lsp: { label: 'LSP' },
@@ -33,12 +35,6 @@ export const TOOL_GROUP_META: Record<string, { label: string; hint?: string }> =
   schedules: { label: 'Schedules' },
   webhooks: { label: 'Webhooks' },
 };
-
-/**
- * Group a flat tool catalog by runtime package.
- * Tools that belong to an MCP server (group equals server id, or the name
- * carries the `<serverId>__` prefix) are excluded; they live on the MCP tab.
- */
 export function groupTools(
   tools: WorkspaceTool[],
   mcpServerIds: Iterable<string> = [],
@@ -55,7 +51,6 @@ export function groupTools(
       byGroup.set(id, [tool]);
     }
   }
-
   const known = TOOL_GROUP_ORDER.filter((id) => byGroup.has(id)).map((id) => ({
     id,
     ...TOOL_GROUP_META[id],
@@ -71,7 +66,6 @@ export function groupTools(
     }));
   return [...known, ...unknown];
 }
-
 function isMcpTool(tool: WorkspaceTool, serverIds: Set<string>): boolean {
   if (tool.group && serverIds.has(tool.group)) {
     return true;
@@ -83,12 +77,10 @@ function isMcpTool(tool: WorkspaceTool, serverIds: Set<string>): boolean {
   }
   return false;
 }
-
 function labelFromGroupId(id: string): string {
   const spaced = id.replace(/[-_]+/g, ' ').trim();
   return spaced ? `${spaced[0].toUpperCase()}${spaced.slice(1)}` : id;
 }
-
 function sortByName(tools: WorkspaceTool[]): WorkspaceTool[] {
   return [...tools].sort((a, b) => a.name.localeCompare(b.name));
 }

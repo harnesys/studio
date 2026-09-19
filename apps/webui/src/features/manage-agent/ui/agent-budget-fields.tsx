@@ -1,21 +1,19 @@
 import { type Control, Controller } from 'react-hook-form';
-
 import { Field, FieldError, FieldGroup, FieldLabel, FieldSet } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 
 type AgentFieldsControl = Control<AgentFieldsInput, unknown, AgentFieldsOutput>;
-
 type BudgetField = 'budgetMaxSteps' | 'budgetMaxTokens' | 'budgetDeadlineSec';
-
-const FIELDS: { name: BudgetField; label: string }[] = [
+const FIELDS: {
+  name: BudgetField;
+  label: string;
+}[] = [
   { name: 'budgetMaxSteps', label: 'Max steps' },
   { name: 'budgetMaxTokens', label: 'Max tokens' },
   { name: 'budgetDeadlineSec', label: 'Deadline, sec' },
 ];
-
 export function AgentBudgetFields({
   control,
   idPrefix,

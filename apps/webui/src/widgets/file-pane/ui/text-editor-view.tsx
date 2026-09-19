@@ -6,7 +6,6 @@ import { type EditorCursor, EditorStatusBar } from './editor-status-bar';
 import { MarkdownFilePreview } from './markdown-file-preview';
 
 type Monaco = Parameters<OnMount>[1];
-
 type TextEditorViewProps = {
   workspaceId: string;
   path: string;
@@ -30,7 +29,6 @@ type TextEditorViewProps = {
   onRestartFileServer: () => void;
   toModelPath: (path: string) => string;
 };
-
 export function TextEditorView({
   workspaceId,
   path,

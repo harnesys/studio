@@ -28,7 +28,6 @@ import { defineAppThemes } from './monaco-themes';
 import { TextEditorView } from './text-editor-view';
 
 type FileContent = string;
-
 export function TextEditor({
   workspaceId,
   path,
@@ -52,7 +51,6 @@ export function TextEditor({
     queryKey: ['workspace-file-content', workspaceId, path],
     queryFn: () => readWorkspaceFileText(workspaceId, path),
   });
-
   useEffect(() => {
     if (Object.hasOwn(draftsRef.current, path)) {
       setViewPath(path);
@@ -65,11 +63,9 @@ export function TextEditor({
     setDrafts((prev) => (Object.hasOwn(prev, path) ? prev : { ...prev, [path]: text }));
     setViewPath(path);
   }, [path, contentQuery.data]);
-
   const savingRef = useRef<Set<string>>(new Set());
   const lastActiveRef = useRef<string | null>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-
   const persistFile = useCallback(
     async (targetPath: string, content: string) => {
       await writeWorkspaceFileContent(workspaceId, { path: targetPath, content });
@@ -83,8 +79,6 @@ export function TextEditor({
     },
     [workspaceId, qc],
   );
-
-  /** Autosave unit: persist only when the draft differs from the server copy. */
   const flushIfDirty = useCallback(
     async (targetPath: string) => {
       if (savingRef.current.has(targetPath)) {
@@ -103,15 +97,12 @@ export function TextEditor({
       try {
         await persistFile(targetPath, draft);
       } catch {
-        // keep the dirty flag; the next focus change or Ctrl+S retries
       } finally {
         savingRef.current.delete(targetPath);
       }
     },
     [workspaceId, qc, persistFile],
   );
-
-  /** Autosave: flush the previously shown file when focus moves to another file. */
   useEffect(() => {
     const prevPath = lastActiveRef.current;
     lastActiveRef.current = path;
@@ -134,11 +125,8 @@ export function TextEditor({
     }
     void flushIfDirty(prevPath);
   }, [path, workspaceId, flushIfDirty]);
-
   const flushRef = useRef(flushIfDirty);
   flushRef.current = flushIfDirty;
-
-  /** Autosave: flush the open file when the editor or window loses focus. */
   useEffect(() => {
     const flushActive = () => {
       const active = lastActiveRef.current;
@@ -158,7 +146,6 @@ export function TextEditor({
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
-
   useEffect(() => {
     return () => {
       const active = lastActiveRef.current;
@@ -167,7 +154,6 @@ export function TextEditor({
       }
     };
   }, [flushIfDirty]);
-
   const saveMutation = useMutation({
     mutationFn: (input: { path: string; content: string }) =>
       writeWorkspaceFileContent(workspaceId, input),
@@ -181,7 +167,6 @@ export function TextEditor({
       void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'file-status'] });
     },
   });
-
   const activePath = viewPath;
   const value = activePath ? (drafts[activePath] ?? '') : '';
   const serverText =
@@ -189,7 +174,6 @@ export function TextEditor({
       ? (contentQuery.data ?? '')
       : (qc.getQueryData<FileContent>(['workspace-file-content', workspaceId, activePath ?? '']) ??
         '');
-
   const save = useCallback(() => {
     if (!activePath || activePath !== path) {
       return;
@@ -200,8 +184,6 @@ export function TextEditor({
     }
     saveMutation.mutate({ path, content: draft });
   }, [activePath, path, drafts, dirty, saveMutation]);
-
-  /** Manual language override per workspace file, persisted across reloads. */
   const selectLanguage = useCallback(
     (targetPath: string, language: string | null) => {
       const key = editorLanguageKey(workspaceId, targetPath);
@@ -216,7 +198,6 @@ export function TextEditor({
     },
     [workspaceId, langOverrides],
   );
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
@@ -227,12 +208,9 @@ export function TextEditor({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [save]);
-
   const importLinksDisposeRef = useRef<(() => void) | null>(null);
   const editorSubsDisposeRef = useRef<(() => void) | null>(null);
-
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
-
   const detectedLanguage = activePath ? (detectLanguage(activePath) ?? 'plaintext') : 'plaintext';
   const languageOverride = activePath
     ? (langOverrides[editorLanguageKey(workspaceId, activePath)] ?? null)
@@ -244,14 +222,12 @@ export function TextEditor({
     pulse: lspPulse,
     restartFileServer,
   } = useEditorLspBridge(workspaceId, activePath, language);
-
   useLayoutEffect(() => {
     setMonacoImportLinkContext({
       workspaceId,
       filePath: viewPath ?? path,
     });
   }, [workspaceId, viewPath, path]);
-
   useEffect(() => {
     return () => {
       editorSubsDisposeRef.current?.();
@@ -261,13 +237,11 @@ export function TextEditor({
       importLinksDisposeRef.current = null;
     };
   }, []);
-
   const handleBeforeMount = (monaco: Parameters<OnMount>[1]) => {
     defineAppThemes(monaco);
     ensureJsxTagSemanticTokens(monaco);
     ensureMonacoImportLinkProviders(monaco);
   };
-
   const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     const flushOnEditorBlur = () => {
@@ -289,19 +263,12 @@ export function TextEditor({
     };
     importLinksDisposeRef.current?.();
     importLinksDisposeRef.current = bindMonacoImportLinkOpener(editor, monaco);
-    editor.updateOptions({
-      // occurrencesHighlight: 'off',
-      // selectionHighlight: false,
-    });
-    // Re-apply theme after define to ensure transparent highlights take effect
-    // (defineAppThemes called in beforeMount, but may have been cached)
+    editor.updateOptions({});
     defineAppThemes(monaco);
     ensureJsxTagSemanticTokens(monaco);
     monaco.editor.setTheme(editorThemeName(theme));
   };
-
   const options = createEditorOptions();
-
   if (!activePath) {
     if (contentQuery.isError) {
       return (
@@ -316,7 +283,6 @@ export function TextEditor({
       </div>
     );
   }
-
   return (
     <TextEditorView
       workspaceId={workspaceId}

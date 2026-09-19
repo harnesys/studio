@@ -1,6 +1,5 @@
 import type { Agent } from '@/entities/agent';
 import type { Webhook, WebhookStatus } from '@/entities/webhook';
-
 export type WebhookFormDraft = {
   name: string;
   status: WebhookStatus;
@@ -8,7 +7,6 @@ export type WebhookFormDraft = {
   detail: string;
   threadId?: string;
 };
-
 export function draftFrom(item: Webhook): WebhookFormDraft {
   return {
     name: item.name,
@@ -18,7 +16,6 @@ export function draftFrom(item: Webhook): WebhookFormDraft {
     threadId: item.threadId,
   };
 }
-
 export function emptyWebhookDraft(agents: Agent[]): WebhookFormDraft {
   return {
     name: '',

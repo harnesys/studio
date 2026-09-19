@@ -18,37 +18,30 @@ import type { PluginRepository } from '../../domain/plugin.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { componentGrantClass } from '../plugins/plugin-grant-gate.ts';
-
 export type GetWorkspaceMcpConfigRequest = {
   workspaceId: string;
 };
-
 export type GetWorkspaceMcpConfigResponse = {
   servers: WorkspaceMcpConfigServer[];
 };
-
 export type GetWorkspaceMcpConfigInput = {
   execute(request: GetWorkspaceMcpConfigRequest): Promise<GetWorkspaceMcpConfigResponse>;
 };
-
 export class GetWorkspaceMcpConfigUseCase implements GetWorkspaceMcpConfigInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly pluginRepo?: PluginRepository,
   ) {}
-
   async execute(request: GetWorkspaceMcpConfigRequest): Promise<GetWorkspaceMcpConfigResponse> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {
       throw new NotFoundError('workspace not found');
     }
-
     const raw = readWorkspaceMcpJson(workspace.path);
     const hx = await this.workspaceHarnesys.get(workspace);
     const plugins = await this.workspaceHarnesys.loadEnabledPlugins(workspace.id);
     const live = new Map((await hx.mcp.list()).map((s) => [s.serverId, s]));
-
     const servers: WorkspaceMcpConfigServer[] = [];
     for (const [serverId, entry] of Object.entries(raw)) {
       const fields = mcpEntryToFields(entry);
@@ -61,30 +54,26 @@ export class GetWorkspaceMcpConfigUseCase implements GetWorkspaceMcpConfigInput 
         origin: { kind: 'workspace' },
       });
     }
-
     const disabled = new Set(
       (this.pluginRepo?.listDisabledServers(workspace.id) ?? []).map(
         (entry) => `${entry.pluginName}:${entry.serverId}`,
       ),
     );
-
     for (const loaded of plugins) {
       servers.push(...pluginServers(loaded, live, disabled));
     }
-
     return { servers };
   }
 }
-
-/**
- * Карточки плагинных серверов по всем статусам IR-представления: native матчется
- * с live по ключу `plugin:<name>:<id>` (mergePluginMcpFragments), остальные живут
- * без live-статуса. Exec-поля (command/args/env/url) не отдаём: в gated-IR они
- * подставлены из userConfig и могут содержать секреты.
- */
 function pluginServers(
   loaded: LoadedWorkspacePlugin,
-  live: Map<string, { connected: boolean; tools: unknown[] }>,
+  live: Map<
+    string,
+    {
+      connected: boolean;
+      tools: unknown[];
+    }
+  >,
   disabled: ReadonlySet<string>,
 ): WorkspaceMcpConfigServer[] {
   const originBase = { kind: 'plugin', pluginName: loaded.record.name } as const;
@@ -119,14 +108,14 @@ function pluginServers(
   }
   return servers;
 }
-
 function specServerId(component: PluginComponent): string {
   const spec = component.spec as Partial<McpServerSpec>;
   return typeof spec.serverId === 'string' ? spec.serverId : '';
 }
-
 function pluginTransport(component: PluginComponent): WorkspaceMcpTransport {
-  const spec = component.spec as Partial<McpServerSpec> & { raw?: unknown };
+  const spec = component.spec as Partial<McpServerSpec> & {
+    raw?: unknown;
+  };
   const config = spec.config;
   if (config !== undefined) {
     if (config.type === 'stdio') {
@@ -139,6 +128,12 @@ function pluginTransport(component: PluginComponent): WorkspaceMcpTransport {
   }
   const raw = spec.raw;
   const hasUrl =
-    typeof raw === 'object' && raw !== null && typeof (raw as { url?: unknown }).url === 'string';
+    typeof raw === 'object' &&
+    raw !== null &&
+    typeof (
+      raw as {
+        url?: unknown;
+      }
+    ).url === 'string';
   return hasUrl ? 'http' : 'stdio';
 }

@@ -2,7 +2,6 @@ import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type * as React from 'react';
-
 import { cn } from '@/shared/lib/utils';
 
 function BubbleGroup({ className, ...props }: React.ComponentProps<'div'>) {
@@ -14,7 +13,6 @@ function BubbleGroup({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 const bubbleVariants = cva(
   'group/bubble relative flex w-fit min-w-0 max-w-[80%] flex-col gap-1 data-[variant=ghost]:max-w-full data-[align=end]:self-end group-data-[align=end]/message:self-end',
   {
@@ -41,7 +39,6 @@ const bubbleVariants = cva(
     },
   },
 );
-
 function Bubble({
   variant = 'default',
   align = 'start',
@@ -61,7 +58,6 @@ function Bubble({
     />
   );
 }
-
 function BubbleContent({ className, render, ...props }: useRender.ComponentProps<'div'>) {
   return useRender({
     defaultTagName: 'div',
@@ -80,7 +76,6 @@ function BubbleContent({ className, render, ...props }: useRender.ComponentProps
     },
   });
 }
-
 const bubbleReactionsVariants = cva(
   'absolute z-10 flex w-fit shrink-0 items-center justify-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-sm ring-3 ring-card has-[button]:p-0',
   {
@@ -100,7 +95,6 @@ const bubbleReactionsVariants = cva(
     },
   },
 );
-
 function BubbleReactions({
   side = 'bottom',
   align = 'end',

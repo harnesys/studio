@@ -5,13 +5,15 @@ import { useThreadEvents } from '@/features/desk';
 import { listWorkspaceFilesTree, workspaceFilesTreeQueryKey } from '@/shared/api/files';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { isValidEntityRef } from './entity-kinds';
-
 export type FileOptionSource = 'upload' | 'attachment' | 'workspace';
-export type FileOption = { ref: string; source: FileOptionSource };
-
-export type ComposerFileOptions = { options: FileOption[]; loading: boolean };
-
-// Pending uploads first, then thread attachments, then workspace files.
+export type FileOption = {
+  ref: string;
+  source: FileOptionSource;
+};
+export type ComposerFileOptions = {
+  options: FileOption[];
+  loading: boolean;
+};
 export function useComposerFileOptions(
   threadId: string | null,
   pendingNames: string[],
@@ -22,9 +24,8 @@ export function useComposerFileOptions(
     queryKey: workspaceFilesTreeQueryKey(workspaceId ?? ''),
     queryFn: () => listWorkspaceFilesTree(workspaceId ?? ''),
     enabled: Boolean(workspaceId),
-    staleTime: 60_000,
+    staleTime: 60000,
   });
-
   const options = useMemo<FileOption[]>(() => {
     const seen = new Set<string>();
     const next: FileOption[] = [];
@@ -52,10 +53,8 @@ export function useComposerFileOptions(
     }
     return next;
   }, [pendingNames, events, tree.data]);
-
   return { options, loading: tree.isPending };
 }
-
 function filePathsFromTree(entries: WorkspaceFileEntry[]): string[] {
   const out: string[] = [];
   for (const entry of entries) {

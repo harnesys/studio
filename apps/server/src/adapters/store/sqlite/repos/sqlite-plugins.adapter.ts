@@ -17,10 +17,8 @@ import {
   pluginServerStateTable,
   pluginsTable,
 } from '../schema';
-
 export class SqlitePluginsAdapter implements PluginRepository {
   constructor(private readonly db: StudioDb) {}
-
   list(workspaceId: string): PluginInstallRecord[] {
     return this.db
       .select()
@@ -30,11 +28,9 @@ export class SqlitePluginsAdapter implements PluginRepository {
       .all()
       .map(toRecord);
   }
-
   listAll(): PluginInstallRecord[] {
     return this.db.select().from(pluginsTable).orderBy(pluginsTable.name).all().map(toRecord);
   }
-
   findByName(workspaceId: string, name: PluginName): PluginInstallRecord | undefined {
     const row = this.db
       .select()
@@ -43,12 +39,10 @@ export class SqlitePluginsAdapter implements PluginRepository {
       .get();
     return row ? toRecord(row) : undefined;
   }
-
   findByNameAny(name: PluginName): PluginInstallRecord | undefined {
     const row = this.db.select().from(pluginsTable).where(eq(pluginsTable.name, name)).get();
     return row ? toRecord(row) : undefined;
   }
-
   upsert(rec: PluginInstallRecord): PluginInstallRecord {
     try {
       const id = pluginRowId(rec.workspaceId, rec.name);
@@ -73,7 +67,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
       return mapSqliteError(err, { conflict: 'plugin exists' });
     }
   }
-
   delete(workspaceId: string, name: PluginName): void {
     this.db
       .delete(pluginsTable)
@@ -98,7 +91,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
       )
       .run();
   }
-
   setServerDisabled(
     name: PluginName,
     serverId: string,
@@ -129,7 +121,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
       )
       .run();
   }
-
   isServerDisabled(name: PluginName, serverId: string, workspaceId: string): boolean {
     const row = this.db
       .select({ serverId: pluginServerStateTable.serverId })
@@ -144,7 +135,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
       .get();
     return row !== undefined;
   }
-
   listDisabledServers(workspaceId: string): PluginServerDisable[] {
     return this.db
       .select({
@@ -155,7 +145,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
       .where(eq(pluginServerStateTable.workspaceId, workspaceId))
       .all();
   }
-
   setGrants(workspaceId: string, name: PluginName, classes: GrantClass[]): PluginInstallRecord {
     const current = this.findByName(workspaceId, name);
     if (!current) {
@@ -167,7 +156,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
     }
     return this.updateRow(workspaceId, name, { grants: JSON.stringify(grants) });
   }
-
   setOption(
     workspaceId: string,
     name: PluginName,
@@ -181,7 +169,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
     const options: Record<string, PluginOptionValue> = { ...current.options, [key]: value };
     return this.updateRow(workspaceId, name, { options: JSON.stringify(options) });
   }
-
   approveServer(workspaceId: string, name: PluginName, serverId: string): void {
     this.db
       .insert(pluginApprovalsTable)
@@ -194,7 +181,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
       .onConflictDoNothing()
       .run();
   }
-
   approvals(workspaceId: string, name: PluginName): string[] {
     return this.db
       .select({ serverId: pluginApprovalsTable.serverId })
@@ -208,7 +194,6 @@ export class SqlitePluginsAdapter implements PluginRepository {
       .all()
       .map((row) => row.serverId);
   }
-
   private updateRow(
     workspaceId: string,
     name: PluginName,
@@ -230,11 +215,9 @@ export class SqlitePluginsAdapter implements PluginRepository {
     }
   }
 }
-
 export function pluginRowId(workspaceId: string, name: string): string {
   return `${workspaceId}::${name}`;
 }
-
 function toRow(rec: PluginInstallRecord) {
   return {
     source: rec.source,
@@ -249,14 +232,12 @@ function toRow(rec: PluginInstallRecord) {
     updatedAt: rec.updatedAt,
   };
 }
-
 function toMap(value: unknown): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return {};
   }
   return value as Record<string, unknown>;
 }
-
 function parseJsonMap(raw: string): Record<string, unknown> {
   try {
     return toMap(JSON.parse(raw));
@@ -264,11 +245,9 @@ function parseJsonMap(raw: string): Record<string, unknown> {
     return {};
   }
 }
-
 function parseFormat(raw: string | null): PluginInstallFormat {
   return raw === 'agent-plugins' || raw === 'claude-compat' ? raw : 'unknown';
 }
-
 function toRecord(row: PluginRow): PluginInstallRecord {
   const record: PluginInstallRecord = {
     workspaceId: row.workspaceId,
@@ -291,7 +270,6 @@ function toRecord(row: PluginRow): PluginInstallRecord {
   }
   return record;
 }
-
 function parseGrants(raw: string): PluginGrants {
   const parsed = parseJsonMap(raw);
   const grants: PluginGrants = {};
@@ -302,7 +280,6 @@ function parseGrants(raw: string): PluginGrants {
   }
   return grants;
 }
-
 function parseOptions(raw: string): Record<string, PluginOptionValue> {
   const parsed = parseJsonMap(raw);
   const options: Record<string, PluginOptionValue> = {};

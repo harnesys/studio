@@ -1,38 +1,28 @@
-// biome-ignore-all lint/suspicious/noConfusingVoidType: McpRegistry host port uses void|Promise<void> verbatim
 import type { McpResourceInfo } from '../domain/mcp.ts';
 import type { ToolDefinition } from './tools.ts';
-
 export type StdioEntry = {
   command: string;
   args?: string[];
   env?: Record<string, string>;
   cwd?: string;
   enabled?: boolean;
-  /** Префикс имён инструментов реестра; плагинные сервера получают scoped-форму Claude. */
   toolPrefix?: string;
 };
-
 export type UrlEntry = {
   url: string;
   headers?: Record<string, string>;
   type?: 'sse' | 'http';
   enabled?: boolean;
-  /** См. StdioEntry.toolPrefix. */
   toolPrefix?: string;
 };
-
 export type CursorMcpJson = {
   mcpServers: McpServerEntries;
 };
-
-/** Карта серверов `CursorMcpJson`; именованный алиас вместо индексного доступа. */
 export type McpServerEntries = Record<string, StdioEntry | UrlEntry>;
-
 export type McpServerToolInfo = {
   name: string;
   description: string;
 };
-
 export type McpServerInfo = {
   serverId: string;
   transport: string;
@@ -40,7 +30,6 @@ export type McpServerInfo = {
   tools: McpServerToolInfo[];
   resources: McpResourceInfo[];
 };
-
 export type McpRegistry = {
   loadJson(json: CursorMcpJson): void | Promise<void>;
   enable(id: string): void | Promise<void>;

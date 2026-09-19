@@ -18,7 +18,6 @@ import { remapWorkspacePaths } from './ide-path-remap';
 import { loadPersisted, normalizeIdeFilePath, persist, tabIdFor } from './ide-persist';
 
 export { firstGroupOfLayout, type IdeSplitNode, lastGroupOfLayout } from './ide-tree';
-
 export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff' | 'schedule' | 'webhook' | 'terminal';
 export type IdeTab = {
   id: string;
@@ -34,13 +33,13 @@ export type IdeTab = {
   dirty?: boolean;
 };
 export type { IdeGroup, IdeSplitSide, IdeWorkspaceState } from './ide-layout';
-
 export type VisibleDesk = {
   tabs: IdeTab[];
   activeId: string | null;
 };
-
-type IdeState = { byWorkspace: Record<string, IdeWorkspaceState> };
+type IdeState = {
+  byWorkspace: Record<string, IdeWorkspaceState>;
+};
 type IdeStore = IdeState & {
   openThread: (workspaceId: string, agentId: string, threadId: string) => void;
   openSpawn: (workspaceId: string, agentId: string, threadId: string, spawnId: string) => void;
@@ -72,10 +71,8 @@ type IdeStore = IdeState & {
   closeGroup: (workspaceId: string, groupId: string) => void;
   setSplitRatio: (workspaceId: string, splitId: string, ratio: number) => void;
 };
-
 const EMPTY_WORKSPACE: IdeWorkspaceState = createEmptyWorkspace();
 const EMPTY_IDE_TABS: IdeWorkspaceState = EMPTY_WORKSPACE;
-
 function applyWs(state: IdeState, workspaceId: string, next: IdeWorkspaceState): IdeState {
   if (next.groups.length === 0) {
     const byWorkspace = { ...state.byWorkspace };
@@ -84,14 +81,12 @@ function applyWs(state: IdeState, workspaceId: string, next: IdeWorkspaceState):
   }
   return { byWorkspace: { ...state.byWorkspace, [workspaceId]: next } };
 }
-
 export const useIdeStore = create<IdeStore>((set) => {
   const withWs = (
     state: IdeState,
     workspaceId: string,
     next: IdeWorkspaceState | null,
   ): IdeState => (next ? applyWs(state, workspaceId, next) : state);
-
   return {
     byWorkspace: loadPersisted(),
     openThread: (workspaceId, agentId, threadId) =>
@@ -263,13 +258,10 @@ export const useIdeStore = create<IdeStore>((set) => {
       ),
   };
 });
-
 useIdeStore.subscribe((state) => persist(state.byWorkspace));
-
 function pick(state: IdeState, workspaceId: string): IdeWorkspaceState {
   return state.byWorkspace[workspaceId] ?? EMPTY_WORKSPACE;
 }
-
 export function useIdeTabs(workspaceId: string | null) {
   return useIdeStore((state) => {
     if (!workspaceId) {
@@ -278,7 +270,6 @@ export function useIdeTabs(workspaceId: string | null) {
     return state.byWorkspace[workspaceId] ?? EMPTY_IDE_TABS;
   });
 }
-
 export function useIdeGroup(workspaceId: string | null, groupId: string): IdeGroup | null {
   return useIdeStore((state) => {
     if (!workspaceId) {
@@ -287,7 +278,6 @@ export function useIdeGroup(workspaceId: string | null, groupId: string): IdeGro
     return state.byWorkspace[workspaceId]?.groups.find((g) => g.id === groupId) ?? null;
   });
 }
-
 export function ideTabId(kind: IdeTabKind, key: string): string {
   return tabIdFor(kind, key);
 }

@@ -1,7 +1,6 @@
 import type { LspPort } from '../../ports/lsp.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
 export function createLspTools(lsp: LspPort): ToolDefinition[] {
   return [
     tool('lsp_diagnostics', {
@@ -18,7 +17,9 @@ export function createLspTools(lsp: LspPort): ToolDefinition[] {
         required: ['path'],
       },
       execute(input, ctx) {
-        const parsed = input as { path: string };
+        const parsed = input as {
+          path: string;
+        };
         return lsp.diagnostics({ cwd: ctx.cwd, path: parsed.path });
       },
     }),
@@ -37,7 +38,11 @@ export function createLspTools(lsp: LspPort): ToolDefinition[] {
         required: ['path', 'line', 'character'],
       },
       execute(input, ctx) {
-        const parsed = input as { path: string; line: number; character: number };
+        const parsed = input as {
+          path: string;
+          line: number;
+          character: number;
+        };
         return lsp.definition({
           cwd: ctx.cwd,
           path: parsed.path,
@@ -61,7 +66,11 @@ export function createLspTools(lsp: LspPort): ToolDefinition[] {
         required: ['path', 'line', 'character'],
       },
       execute(input, ctx) {
-        const parsed = input as { path: string; line: number; character: number };
+        const parsed = input as {
+          path: string;
+          line: number;
+          character: number;
+        };
         return lsp.references({
           cwd: ctx.cwd,
           path: parsed.path,
@@ -85,7 +94,11 @@ export function createLspTools(lsp: LspPort): ToolDefinition[] {
         required: ['path', 'line', 'character'],
       },
       execute(input, ctx) {
-        const parsed = input as { path: string; line: number; character: number };
+        const parsed = input as {
+          path: string;
+          line: number;
+          character: number;
+        };
         return lsp.hover({
           cwd: ctx.cwd,
           path: parsed.path,

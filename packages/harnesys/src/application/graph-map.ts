@@ -26,27 +26,29 @@ import { evalExpr } from './expr-eval.ts';
 import type { GraphOpts } from './graph.ts';
 import { mkSnap, type SnapCtx } from './graph-snap.ts';
 import type { LlmNoteProvider } from './llm-notes.ts';
-
 export type MapNodeSpec = {
   type: 'control:map';
   items: Expr;
   enter: string;
   body: string[];
   concurrency: Expr | 'parallel' | 'sequential';
-  barrier?: { policy: 'all' };
+  barrier?: {
+    policy: 'all';
+  };
   timeoutMs?: number;
   onTimeout?: 'fail' | 'partial';
   instruction?: MapInstruction;
   maxTokensPerItem?: MapMaxTokensPerItem;
 };
-
 export type MapResultItem = {
   index: number;
   item: unknown;
   output: unknown | null;
-  error?: { code: string; message: string };
+  error?: {
+    code: string;
+    message: string;
+  };
 };
-
 export type MapEmission = {
   type: 'map.item.started' | 'map.item.completed' | 'map.item.failed';
   metadata: {
@@ -57,22 +59,18 @@ export type MapEmission = {
     message?: string;
   };
 };
-
 export type MapNodeOutcome = {
   results: MapResultItem[];
   emissions: MapEmission[];
   timedOut: boolean;
 };
-
 export type MapSlots = {
   input: unknown;
   state: Record<string, unknown>;
   output: unknown;
   resume: unknown;
 };
-
 const MAP_START_ID = '__map_start';
-
 function resolveConcurrency(
   c: Expr | 'parallel' | 'sequential',
   slots: MapSlots,
@@ -89,7 +87,6 @@ function resolveConcurrency(
   }
   throw codedRunError('concurrency_invalid', `invalid concurrency ${String(c)}`);
 }
-
 function buildWorkerGraph(parent: AgentGraph, enter: string, body: string[]): AgentGraph {
   const bodySet = new Set(body);
   const nodes: Record<string, Node> = {
@@ -115,7 +112,6 @@ function buildWorkerGraph(parent: AgentGraph, enter: string, body: string[]): Ag
   ];
   return { nodes, edges };
 }
-
 function workerOutputFromState(state: Record<string, unknown>, snap: Snapshot | null): unknown {
   if (snap?.status === 'completed') {
     const msgs = state.messages;
@@ -126,13 +122,10 @@ function workerOutputFromState(state: Record<string, unknown>, snap: Snapshot | 
   }
   return null;
 }
-
-/**
- * A completed worker is only a successful item when it produced a usable
- * answer: a tool-call finish has no executor inside the map body, and empty
- * text yields nothing to the parent.
- */
-function validateWorkerOutput(out: unknown): { code: string; message: string } | null {
+function validateWorkerOutput(out: unknown): {
+  code: string;
+  message: string;
+} | null {
   const rec = out && typeof out === 'object' ? (out as Record<string, unknown>) : null;
   if (!rec) {
     return { code: 'map_item_empty', message: 'map worker produced no output' };
@@ -149,7 +142,6 @@ function validateWorkerOutput(out: unknown): { code: string; message: string } |
   }
   return null;
 }
-
 type SeedWorkerArgs = {
   child: RuntimeState;
   parentState: Record<string, unknown>;
@@ -159,8 +151,6 @@ type SeedWorkerArgs = {
   index: number;
   instruction?: MapInstruction;
 };
-
-/** Parent-run control queues and resume payload must not leak into a worker. */
 const WORKER_STATE_DROP_KEYS = [
   STATE_SPAWNS_KEY,
   STATE_SPAWN_RESULTS_KEY,
@@ -171,24 +161,22 @@ const WORKER_STATE_DROP_KEYS = [
   STATE_WAIT_UNTIL_MS_KEY,
   '$resume',
 ];
-
 const mapWorkerNote: LlmNoteProvider = () => [
   {
     tag: 'map_worker',
     text: 'You are a map worker handling one item of a fan-out. Tools are not available in this run: never emit a tool call (map included). Answer with plain text for the current Map item only.',
   },
 ];
-
 function renderMapInstruction(template: MapInstruction, itemText: string, index: number): string {
   return template.split('$index').join(String(index)).split('$item').join(itemText);
 }
-
-/** Worker input is the item task itself; core:start turns it into the only user message. */
 function mapItemInput(
   index: number,
   item: unknown,
   instruction?: MapInstruction,
-): { text: string } {
+): {
+  text: string;
+} {
   const itemText = typeof item === 'string' ? item : JSON.stringify(item, null, 2);
   if (instruction && instruction.trim().length > 0) {
     return {
@@ -199,12 +187,9 @@ function mapItemInput(
     text: `Map item [${index}]:\n${itemText}\n\nRespond with the result for this item only.`,
   };
 }
-
-/** Cut a worker text result to a per-item token budget (estimated via chars-per-token). */
 function truncateToMaxTokens(content: string, maxTokens: MapMaxTokensPerItem): string {
   return content.slice(0, maxTokens * CHARS_PER_TOKEN_ESTIMATE);
 }
-
 async function seedWorkerState(args: SeedWorkerArgs): Promise<void> {
   const { child, parentState, parentOpts, runId, item, index, instruction } = args;
   const parentSnap = await parentOpts.state.load();
@@ -237,9 +222,7 @@ async function seedWorkerState(args: SeedWorkerArgs): Promise<void> {
   }
   await child.commit(snap, [], { kind: 'recorded', sequence: 0 });
 }
-
 type ChildRunner = (opts: GraphOpts) => AsyncIterable<Event>;
-
 type RunWorkerArgs = {
   parent: GraphOpts;
   index: number;
@@ -253,7 +236,6 @@ type RunWorkerArgs = {
   instruction?: MapInstruction;
   maxTokensPerItem?: MapMaxTokensPerItem;
 };
-
 async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
   const {
     parent,
@@ -310,8 +292,18 @@ async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
     }
   } catch (err) {
     const code =
-      err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
-        ? (err as { code: string }).code
+      err &&
+      typeof err === 'object' &&
+      typeof (
+        err as {
+          code?: unknown;
+        }
+      ).code === 'string'
+        ? (
+            err as {
+              code: string;
+            }
+          ).code
         : 'map_worker_failed';
     const message = err instanceof Error && err.message ? err.message : 'map worker failed';
     return { index, item, output: null, error: { code, message } };
@@ -351,7 +343,6 @@ async function runOneWorker(args: RunWorkerArgs): Promise<MapResultItem> {
     error: { code: status, message: `map worker ended with status ${status}` },
   };
 }
-
 export type PreparedMap = {
   items: unknown[];
   concurrency: 'parallel' | 'sequential';
@@ -363,7 +354,6 @@ export type PreparedMap = {
   instruction?: MapInstruction;
   maxTokensPerItem?: MapMaxTokensPerItem;
 };
-
 export function prepareMap(
   node: MapNodeSpec,
   parent: GraphOpts,
@@ -395,7 +385,6 @@ export function prepareMap(
   const workerDef: AgentDefinition = {
     ...parent.agent,
     graph,
-    // Workers share parent budget wall via abort; avoid nested ask on child budget.
     budget: parent.agent.budget
       ? { ...parent.agent.budget, policy: 'error' }
       : { maxSteps: 50, policy: 'error' },
@@ -414,11 +403,6 @@ export function prepareMap(
     ...(maxTokensPerItem !== undefined ? { maxTokensPerItem } : {}),
   };
 }
-
-/**
- * Yields map.item.started for each worker before work, then completed/failed
- * as each worker settles. Return value is the barrier outcome for the parent node.
- */
 export async function* executeMap(
   prepared: PreparedMap,
   parent: GraphOpts,
@@ -440,7 +424,6 @@ export async function* executeMap(
   if (items.length === 0) {
     return { results: [], emissions: [], timedOut: false };
   }
-
   const workerIds = items.map(() => crypto.randomUUID());
   for (let i = 0; i < items.length; i += 1) {
     yield {
@@ -448,7 +431,6 @@ export async function* executeMap(
       metadata: { nodeId, index: i, workerId: workerIds[i] as string },
     };
   }
-
   const ac = new AbortController();
   const onParentAbort = (): void => ac.abort(parent.signal?.reason);
   parent.signal?.addEventListener('abort', onParentAbort, { once: true });
@@ -460,7 +442,6 @@ export async function* executeMap(
       ac.abort('map_timeout');
     }, timeoutMs);
   }
-
   const runIdx = (index: number): Promise<MapResultItem> =>
     runOneWorker({
       parent,
@@ -475,7 +456,6 @@ export async function* executeMap(
       ...(instruction !== undefined ? { instruction } : {}),
       ...(maxTokensPerItem !== undefined ? { maxTokensPerItem } : {}),
     });
-
   const emissionOf = (item: MapResultItem): MapEmission => {
     const workerId = workerIds[item.index] as string;
     if (item.error) {
@@ -495,7 +475,6 @@ export async function* executeMap(
       metadata: { nodeId, index: item.index, workerId },
     };
   };
-
   const emissions: MapEmission[] = [];
   try {
     if (concurrency === 'sequential') {
@@ -547,10 +526,8 @@ export async function* executeMap(
     }
     parent.signal?.removeEventListener('abort', onParentAbort);
   }
-
   if (timedOut && onTimeout === 'fail') {
     throw codedRunError('map_timeout', `map timed out after ${timeoutMs}ms`);
   }
-
   return { results: results.filter(Boolean), emissions, timedOut };
 }

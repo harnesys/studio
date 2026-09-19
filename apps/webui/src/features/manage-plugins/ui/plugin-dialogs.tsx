@@ -7,13 +7,11 @@ import type {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-
 import { addPluginRegistry, installPlugin } from '@/shared/api';
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { FieldGroup } from '@/shared/ui/field';
-
 import {
   type AddRegistryFieldsInput,
   type AddRegistryFieldsOutput,
@@ -28,13 +26,16 @@ import {
 import { AddRegistryFields, InstallPluginFields } from './plugin-fields';
 
 const INSTALL_STAGES = ['resolving', 'cloning', 'loading', 'saving'] as const;
-
 export function InstallPluginDialog({
   onResolve,
   data,
 }: DialogComponentProps<
   PluginMutationResponse,
-  { workspaceId: string; prefill?: InstallPluginRequest } | undefined
+  | {
+      workspaceId: string;
+      prefill?: InstallPluginRequest;
+    }
+  | undefined
 >) {
   const workspaceId = data?.workspaceId ?? '';
   const prefill = data?.prefill;
@@ -50,7 +51,6 @@ export function InstallPluginDialog({
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const busy = stage !== null && error === null;
-
   async function runInstall(values: InstallPluginFieldsOutput) {
     if (!workspaceId) {
       setError('No workspace');
@@ -68,7 +68,6 @@ export function InstallPluginDialog({
       setError(err instanceof Error ? err.message : 'Install failed');
     }
   }
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"
@@ -100,18 +99,20 @@ export function InstallPluginDialog({
     </form>
   );
 }
-
 export function InstallCatalogPluginDialog({
   onResolve,
   data,
 }: DialogComponentProps<
   PluginMutationResponse,
-  { workspaceId: string; registryId: string; pluginName: string }
+  {
+    workspaceId: string;
+    registryId: string;
+    pluginName: string;
+  }
 >) {
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
-
   async function runInstall() {
     if (!data?.workspaceId) {
       return;
@@ -131,7 +132,6 @@ export function InstallCatalogPluginDialog({
       setError(err instanceof Error ? err.message : 'Install failed');
     }
   }
-
   if (!started) {
     return (
       <div className="flex min-h-0 flex-col gap-4">
@@ -149,7 +149,6 @@ export function InstallCatalogPluginDialog({
       </div>
     );
   }
-
   return (
     <div className="flex min-h-0 flex-col gap-4">
       <p className="text-muted-foreground text-sm" data-testid="install-catalog-stage">
@@ -169,7 +168,6 @@ export function InstallCatalogPluginDialog({
     </div>
   );
 }
-
 export function AddRegistryDialog({
   onResolve,
 }: DialogComponentProps<PluginRegistrySummary, undefined>) {
@@ -180,7 +178,6 @@ export function AddRegistryDialog({
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const busy = stage !== null && error === null;
-
   async function runAdd(values: AddRegistryFieldsOutput) {
     setError(null);
     setStage('fetching catalog');
@@ -194,7 +191,6 @@ export function AddRegistryDialog({
       setError(err instanceof Error ? err.message : 'Add marketplace failed');
     }
   }
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"
@@ -218,7 +214,6 @@ export function AddRegistryDialog({
     </form>
   );
 }
-
 function stageLabel(stage: string): string {
   if (stage === 'resolving') {
     return 'Resolving source…';
@@ -240,5 +235,4 @@ function stageLabel(stage: string): string {
   }
   return stage;
 }
-
 void INSTALL_STAGES;

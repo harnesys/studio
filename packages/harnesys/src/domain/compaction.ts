@@ -1,7 +1,6 @@
 import type { AgentModelRef } from './agent-definition.ts';
 
 export { THRESHOLD_SUMMARY_NAME } from '../constants.ts';
-
 export type CompactionSpec = {
   thresholdRatio?: number;
   protectRecentRatio?: number;
@@ -9,7 +8,6 @@ export type CompactionSpec = {
   auto?: boolean;
   summaryModel?: AgentModelRef;
 };
-
 export type ParsedCompactionSpec = {
   thresholdRatio: number;
   protectRecentRatio: number;
@@ -17,21 +15,26 @@ export type ParsedCompactionSpec = {
   auto: boolean;
   summaryModel?: AgentModelRef;
 };
-
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
   const n = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
   return Math.min(max, Math.max(min, n));
 }
-
 function isModelRef(value: unknown): value is AgentModelRef {
   return Boolean(
     value &&
       typeof value === 'object' &&
-      typeof (value as { provider?: unknown }).provider === 'string' &&
-      typeof (value as { model?: unknown }).model === 'string',
+      typeof (
+        value as {
+          provider?: unknown;
+        }
+      ).provider === 'string' &&
+      typeof (
+        value as {
+          model?: unknown;
+        }
+      ).model === 'string',
   );
 }
-
 export function parseThresholdSpec(spec?: Record<string, unknown>): ParsedCompactionSpec {
   const raw = spec ?? {};
   const reserve =
@@ -46,7 +49,6 @@ export function parseThresholdSpec(spec?: Record<string, unknown>): ParsedCompac
     summaryModel: isModelRef(raw.summaryModel) ? raw.summaryModel : undefined,
   };
 }
-
 export type CompactionMessage = {
   role: 'assistant';
   kind: 'compaction';
@@ -55,13 +57,26 @@ export type CompactionMessage = {
   coveredFrom: number;
   coveredUntil: number;
   reason: 'threshold' | 'manual';
-  stats: { tokensBefore: number; tokensAfter: number; coveredCount: number; usage?: unknown };
-  model?: { provider: string; model: string };
+  stats: {
+    tokensBefore: number;
+    tokensAfter: number;
+    coveredCount: number;
+    usage?: unknown;
+  };
+  model?: {
+    provider: string;
+    model: string;
+  };
   createdAt: string;
 };
-
 export function isCompactionMessage(value: unknown): value is CompactionMessage {
   return Boolean(
-    value && typeof value === 'object' && (value as { kind?: unknown }).kind === 'compaction',
+    value &&
+      typeof value === 'object' &&
+      (
+        value as {
+          kind?: unknown;
+        }
+      ).kind === 'compaction',
   );
 }

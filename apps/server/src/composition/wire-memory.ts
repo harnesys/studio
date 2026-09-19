@@ -34,7 +34,6 @@ import type { AgentRepository } from '../domain/agent.port.ts';
 import type { FilesWatcherInput } from '../domain/files-watcher.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
-
 export type StudioMemoryPorts = {
   pin: SqlitePinPort;
   semantic: SqliteSemanticPort;
@@ -45,19 +44,16 @@ export type StudioMemoryPorts = {
   knowledgeIndexEvents: KnowledgeIndexEventsAdapter;
   embeddings: StudioEmbeddings;
 };
-
 export type CreateStudioMemoryDeps = {
   providers: LlmProviderRepository;
   models: LlmModelRepository;
   workspaces: WorkspaceRepository;
   filesWatcher?: FilesWatcherInput;
 };
-
 export type WireMemoryHttpDeps = {
   agents: AgentRepository;
   workspaces: WorkspaceRepository;
 };
-
 export function createStudioMemory(db: StudioDb, deps: CreateStudioMemoryDeps): StudioMemoryPorts {
   const embeddingsDeps = { providers: deps.providers, models: deps.models };
   const embeddings = new StudioEmbeddings(embeddingsDeps);
@@ -107,7 +103,6 @@ export function createStudioMemory(db: StudioDb, deps: CreateStudioMemoryDeps): 
     embeddings,
   };
 }
-
 export function registerMemoryHttp(
   app: Hono,
   memory: StudioMemoryPorts,
@@ -123,7 +118,6 @@ export function registerMemoryHttp(
     deleteSemantic: new DeleteSemanticUseCase(memory.semantic, deps.workspaces, deps.agents),
     searchEpisodic: new SearchEpisodicUseCase(memory.episodic, deps.workspaces),
   }).register(app);
-
   new KnowledgeController({
     listKnowledgeRoots: new ListKnowledgeRootsUseCase(memory.knowledge, deps.workspaces),
     upsertKnowledgeRoot: new UpsertKnowledgeRootUseCase(memory.knowledge, deps.workspaces),

@@ -1,12 +1,10 @@
 import type { EpisodicPort, PortRef } from 'harnesys';
-
 export type EpisodicOnCompactedInput = {
   episodic: EpisodicPort;
   workspaceId: string;
   threadId: string;
   episodicRef: PortRef | undefined;
 };
-
 export function createEpisodicOnCompacted(
   input: EpisodicOnCompactedInput,
 ): (range: { fromSeq: number; toSeq: number; compactionEntryId?: string }) => Promise<void> {
@@ -30,7 +28,6 @@ export function createEpisodicOnCompacted(
     });
   };
 }
-
 function indexOnCompactEnabled(ref: Exclude<PortRef, null>): boolean {
   const value = ref.spec?.indexOnCompact;
   return value !== false;

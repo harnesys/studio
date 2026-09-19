@@ -12,15 +12,11 @@ import type {
 import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 import { gateShellCommand } from './shell-gate.ts';
-
 export type ShellOptions = {
   timeout?: number;
-  /** Globs matched against the full command string; matches skip permission ask. */
   allowlist?: readonly string[];
-  /** Globs matched against the full command string; matches hard-deny before permission ask. */
   blocklist?: readonly string[];
 };
-
 export type ShellExecuteInput = {
   command: string;
   timeout_ms?: number;
@@ -28,32 +24,27 @@ export type ShellExecuteInput = {
   block_until_ms?: number;
   open_in_terminal?: boolean;
 };
-
 export type ShellBlockingResult = {
   exitCode: number | null;
   stdout: string;
   stderr: string;
   durationMs: number;
 };
-
 export type ShellBackgroundResult = {
   jobId: string;
   mode: ProcessJobMode;
   status: ProcessJobStatus;
   title: string;
 };
-
 export type ShellStartErrorResult = {
   jobId: '';
   error: string;
 };
-
 export type ShellWaitedResult = ShellBlockingResult & {
   jobId: string;
   mode: ProcessJobMode;
   status: ProcessJobStatus;
 };
-
 export type ShellWaitTimeoutResult = {
   jobId: string;
   mode: ProcessJobMode;
@@ -61,7 +52,6 @@ export type ShellWaitTimeoutResult = {
   outputSoFar: string;
   timedOutWaiting: true;
 };
-
 export type ShellBlockingArgs = {
   command: string;
   timeoutMs: number;
@@ -69,19 +59,15 @@ export type ShellBlockingArgs = {
   ports: ShellPorts;
   mode: ProcessJobMode;
 };
-
 export type ShellBackgroundArgs = {
   input: ShellExecuteInput;
   ctx: ToolContext;
   ports: ShellPorts;
   mode: ProcessJobMode;
 };
-
 export type ShellPorts = {
   jobs?: ProcessJobRegistry;
-  /** Host hook fired after a `pty` job starts (Studio publishes a desk event). */
   onPtyJob?: (record: ProcessJobRecord) => void;
-  /** Host hook resolving the current workspace (Studio reads the run scope). */
   resolveWorkspaceId?: () => string | undefined;
 };
 export function shell(options: ShellOptions = {}, ports: ShellPorts = {}): ToolDefinition {
@@ -120,14 +106,12 @@ export function shell(options: ShellOptions = {}, ports: ShellPorts = {}): ToolD
     },
   });
 }
-
 function requireJobs(jobs: ProcessJobRegistry | undefined): ProcessJobRegistry {
   if (!jobs) {
     throw new Error('shell background jobs unavailable: ProcessJobRegistry not wired');
   }
   return jobs;
 }
-
 function waitForJobExit(
   jobs: ProcessJobRegistry,
   id: string,
@@ -169,7 +153,6 @@ function waitForJobExit(
     signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
-
 async function runBlocking(args: ShellBlockingArgs): Promise<ShellBlockingResult> {
   const { command, timeoutMs, ctx, ports, mode } = args;
   if (mode === 'pipes') {
@@ -200,7 +183,6 @@ async function runBlocking(args: ShellBlockingArgs): Promise<ShellBlockingResult
     durationMs: Math.round(performance.now() - started),
   };
 }
-
 async function runBackground(
   args: ShellBackgroundArgs,
 ): Promise<
@@ -255,12 +237,14 @@ async function runBackground(
     timedOutWaiting: true,
   };
 }
-
 async function runOnHost(
   command: string,
   timeoutMs: number,
   cwd: string,
-  opts: { signal?: AbortSignal; env?: Record<string, string> },
+  opts: {
+    signal?: AbortSignal;
+    env?: Record<string, string>;
+  },
 ) {
   const { signal, env } = opts;
   const started = performance.now();
@@ -311,7 +295,6 @@ async function runOnHost(
     signal?.removeEventListener('abort', onAbort);
   }
 }
-
 function killProcessGroup(pid: number): void {
   try {
     process.kill(-pid, 'SIGKILL');

@@ -15,9 +15,14 @@ import {
 
 export type { SkipReason } from './knowledge-walk-ignore.ts';
 export { toPosix } from './knowledge-walk-ignore.ts';
-
 export type KnowledgePath =
-  | { kind: 'index'; absPath: string; uri: string; sizeBytes: number; mtimeMs: number }
+  | {
+      kind: 'index';
+      absPath: string;
+      uri: string;
+      sizeBytes: number;
+      mtimeMs: number;
+    }
   | {
       kind: 'skip';
       absPath: string;
@@ -26,7 +31,6 @@ export type KnowledgePath =
       sizeBytes?: number;
       mtimeMs?: number;
     };
-
 export function resolveUnderWorkspace(workspacePath: string, rootPath: string): string {
   const absWorkspace = resolve(workspacePath);
   const abs = resolve(absWorkspace, rootPath);
@@ -35,8 +39,6 @@ export function resolveUnderWorkspace(workspacePath: string, rootPath: string): 
   }
   return abs;
 }
-
-/** Indexable absolute paths only (compat for sqlite-knowledge). */
 export async function collectTextFiles(workspacePath: string, rootPath: string): Promise<string[]> {
   const entries = await collectKnowledgePaths(workspacePath, rootPath);
   const out: string[] = [];
@@ -47,7 +49,6 @@ export async function collectTextFiles(workspacePath: string, rootPath: string):
   }
   return out;
 }
-
 export async function collectKnowledgePaths(
   workspacePath: string,
   rootPath: string,
@@ -56,14 +57,11 @@ export async function collectKnowledgePaths(
   const absRoot = resolveUnderWorkspace(workspacePath, rootPath);
   const harnesysIg = await loadIgnoreFile(join(absWorkspace, '.harnesysignore'));
   const gitLayers = await initialGitLayers(absWorkspace, absRoot);
-
   const info = await stat(absRoot).catch(() => undefined);
   if (!info) {
     return [];
   }
-
   const rootUri = normalizeUri(toPosix(relative(absWorkspace, absRoot))).normalize('NFC');
-
   if (info.isFile()) {
     const fileUri = rootUri || basename(absRoot);
     const entry = await classifyFile({
@@ -74,7 +72,6 @@ export async function collectKnowledgePaths(
     });
     return entry ? [entry] : [];
   }
-
   if (rootUri !== '') {
     const reason = entrySkipReason({
       name: basename(absRoot),
@@ -87,7 +84,6 @@ export async function collectKnowledgePaths(
       return [{ kind: 'skip', absPath: absRoot, uri: rootUri, reason }];
     }
   }
-
   const out: KnowledgePath[] = [];
   await walkDir({
     absDir: absRoot,
@@ -98,7 +94,6 @@ export async function collectKnowledgePaths(
   });
   return out;
 }
-
 async function walkDir(input: {
   absDir: string;
   dirUri: string;
@@ -152,7 +147,6 @@ async function walkDir(input: {
     }
   }
 }
-
 async function classifyFile(input: {
   absPath: string;
   uri: string;

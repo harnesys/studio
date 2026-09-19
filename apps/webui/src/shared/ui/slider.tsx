@@ -1,5 +1,4 @@
 import { Slider as SliderPrimitive } from '@base-ui/react/slider';
-
 import { cn } from '@/shared/lib/utils';
 
 function Slider({
@@ -22,7 +21,6 @@ function Slider({
   } else {
     _values = [min, max];
   }
-
   return (
     <SliderPrimitive.Root
       className={cn('data-vertical:h-full data-horizontal:w-full', className)}
@@ -47,8 +45,6 @@ function Slider({
         {Array.from({ length: _values.length }, (_, index) => (
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
-            // Thumb identity is its position in a fixed-length control.
-            // biome-ignore lint/suspicious/noArrayIndexKey: slider thumbs are positional
             key={index}
             className="relative block size-3 shrink-0 select-none rounded-full border border-live bg-live ring-live/30 transition-[color,box-shadow] after:absolute after:-inset-2 hover:ring-3 focus-visible:outline-hidden focus-visible:ring-3 active:ring-3 disabled:pointer-events-none disabled:opacity-50"
           />

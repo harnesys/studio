@@ -1,19 +1,12 @@
 import type { WorkspaceMcpConfigServer, WorkspaceMcpServer } from '@harnesys/studio-shared';
-
 export type McpServerStatusChip = string | undefined;
-
-/** Short row title for plugin servers: `plugin:<name>:` prefix stripped. */
 export function pluginServerTitle(serverId: string, pluginName: string): string {
   const prefix = `plugin:${pluginName}:`;
   return serverId.startsWith(prefix) ? serverId.slice(prefix.length) : serverId;
 }
-
-/** Component pointer for approvals API: same as the short title. */
 export function pluginServerPointer(serverId: string, pluginName: string): string {
   return pluginServerTitle(serverId, pluginName);
 }
-
-/** One reason per row: user stop > approval > grant > offline tools line. */
 export function serverSummary(
   server: WorkspaceMcpConfigServer,
   live: WorkspaceMcpServer | undefined,
@@ -37,11 +30,8 @@ export function serverSummary(
   if (origin.kind === 'plugin' && origin.status !== 'native' && statusChip) {
     return `${origin.status} · see plugin diagnostics`;
   }
-  return `${server.toolCount} ${server.toolCount === 1 ? 'tool' : 'tools'}${
-    live?.resources.length ? ` · ${live.resources.length} resources` : ''
-  }${!server.enabled ? ' · disabled in .harnesys/mcp.json' : ''}`;
+  return `${server.toolCount} ${server.toolCount === 1 ? 'tool' : 'tools'}${live?.resources.length ? ` · ${live.resources.length} resources` : ''}${!server.enabled ? ' · disabled in .harnesys/mcp.json' : ''}`;
 }
-
 export function serverStatusHint(server: WorkspaceMcpConfigServer): string {
   if (server.disabledByUser) {
     return 'Stopped — start it to load tools.';
@@ -57,7 +47,6 @@ export function serverStatusHint(server: WorkspaceMcpConfigServer): string {
     ? 'Not loaded in this session — reload to connect.'
     : 'Disabled — enable it to load tools.';
 }
-
 export function shortToolName(name: string): string {
   return name.includes('__') ? name.split('__').slice(1).join('__') : name;
 }

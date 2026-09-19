@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { threadsTable } from './threads.ts';
-
 export const attachmentsTable = sqliteTable(
   'attachments',
   {
@@ -28,6 +27,5 @@ export const attachmentsTable = sqliteTable(
       .where(sql`${table.entryId} IS NULL`),
   }),
 );
-
 export type AttachmentRow = typeof attachmentsTable.$inferSelect;
 export type AttachmentInsert = typeof attachmentsTable.$inferInsert;

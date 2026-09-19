@@ -1,6 +1,5 @@
 import { toClientWebhook, useWebhookStore, type Webhook } from '@/entities/webhook';
 import { type UpdateWebhookInput, updateWebhookRecord } from '@/shared/api';
-
 export async function updateWebhook(
   workspaceId: string,
   webhookId: string,

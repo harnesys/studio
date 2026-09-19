@@ -1,6 +1,5 @@
 import { Toggle as TogglePrimitive } from '@base-ui/react/toggle';
 import { cva, type VariantProps } from 'class-variance-authority';
-
 import { cn } from '@/shared/lib/utils';
 
 const toggleVariants = cva(
@@ -34,7 +33,6 @@ const toggleVariants = cva(
     },
   },
 );
-
 function Toggle({
   className,
   variant = 'default',

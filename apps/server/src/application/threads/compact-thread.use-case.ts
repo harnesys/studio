@@ -31,20 +31,22 @@ import { buildCapabilityUniverse } from '../capabilities/universe.ts';
 import { createEpisodicOnCompacted } from '../memory/episodic-on-compacted.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
-
 export type CompactThreadRequest = {
   threadId: string;
   signal?: AbortSignal;
 };
-
 export type CompactStreamItem =
-  | { kind: 'event'; event: SessionEvent }
-  | { kind: 'result'; response: CompactThreadResponse };
-
+  | {
+      kind: 'event';
+      event: SessionEvent;
+    }
+  | {
+      kind: 'result';
+      response: CompactThreadResponse;
+    };
 export type CompactThreadInput = {
   executeStream(request: CompactThreadRequest): AsyncGenerator<CompactStreamItem>;
 };
-
 export type CompactJournalPort = {
   appendForThread(
     threadId: string,
@@ -52,7 +54,6 @@ export type CompactJournalPort = {
     events: PendingSessionEvent[],
   ): SessionEvent[] | Promise<SessionEvent[]>;
 };
-
 export type CompactThreadDeps = {
   threads: ThreadRepository;
   agents: AgentRepository;
@@ -68,17 +69,10 @@ export type CompactThreadDeps = {
   runHooks: ThreadRunHooks;
   lifecycle: RunLifecycleStore;
 };
-
-/** Хук-шина рана для PreCompact/PostCompact на ручном проходе (спека §2.3). */
 export type ThreadRunHooks = {
   ensure(threadId: string): Promise<HookEmitCtx | undefined>;
   release(threadId: string): Promise<void>;
 };
-
-/**
- * Тот же срез, что run-engine `eventToSessionEvent` для PASSTHROUGH model.*
- * прохода компакции (авто в graph и ручной /compact).
- */
 function sessionEventFromCompactionPass(ev: {
   type: string;
   data?: unknown;
@@ -115,10 +109,8 @@ function sessionEventFromCompactionPass(ev: {
   }
   return null;
 }
-
 export class CompactThreadUseCase implements CompactThreadInput {
   constructor(private readonly deps: CompactThreadDeps) {}
-
   async *executeStream(request: CompactThreadRequest): AsyncGenerator<CompactStreamItem> {
     const thread = this.deps.threads.findById(request.threadId);
     if (!thread) {
@@ -142,7 +134,6 @@ export class CompactThreadUseCase implements CompactThreadInput {
     if (active) {
       throw new RunConflictError({ runId: active.runId });
     }
-
     const state = this.deps.runtimeStates.forState(thread.id);
     const snap = await state.load();
     if (!snap) {
@@ -152,23 +143,15 @@ export class CompactThreadUseCase implements CompactThreadInput {
     const st: Record<string, unknown> = { ...(snap.state as Record<string, unknown>) };
     const journalRunId = `compact:${crypto.randomUUID()}`;
     const signal = request.signal ?? new AbortController().signal;
-
     await this.deps.lifecycle.create({ runId: journalRunId, threadId: thread.id });
-
     let message: CompactionMessage | undefined;
     const hooks = await this.deps.runHooks.ensure(thread.id);
-    // Тот же штатный вход в scope, что withScope у рана: всё исполнение прохода
-    // (резолв биндинга, universe, резолвер, дренаж) живёт внутри одного scope.
-    // Генератор не пересекает границу scope живьём — события расходятся журналом.
     const streamed: SessionEvent[] = [];
     try {
       await runInHostToolScope(
         { workspaceId: workspace.id, agentId: agentRow.id, threadId: thread.id },
         async () => {
           const binding = await resolveDefaultBinding(this.deps.models, def);
-          // Тот же авторитетный набор, что собирает ран (резолвер composition-root без
-          // полей режима: имена от экспозиции не зависят) — toolsJson промпта/оценки
-          // не расходится с грантом агента.
           const universe = buildCapabilityUniverse(workspace, {
             hx,
             workspaceHarnesys: this.deps.workspaceHarnesys,
@@ -224,7 +207,6 @@ export class CompactThreadUseCase implements CompactThreadInput {
       yield { kind: 'result', response: { compacted: false } };
       return;
     }
-
     const sequence = snap.sequence + 1;
     const event: Event = {
       eventId: crypto.randomUUID(),
@@ -247,7 +229,6 @@ export class CompactThreadUseCase implements CompactThreadInput {
       kind: 'recorded',
       sequence,
     });
-
     const compactionAssigned = await this.deps.runEvents.appendForThread(thread.id, journalRunId, [
       {
         type: 'compaction',
@@ -263,12 +244,10 @@ export class CompactThreadUseCase implements CompactThreadInput {
     for (const sessionEvent of compactionAssigned) {
       yield { kind: 'event', event: sessionEvent };
     }
-
     await this.deps.lifecycle.transition(journalRunId, 0, {
       from: 'queued',
       to: 'completed',
     });
-
     try {
       await createEpisodicOnCompacted({
         episodic: this.deps.episodic,
@@ -287,7 +266,6 @@ export class CompactThreadUseCase implements CompactThreadInput {
       );
     }
     publishDeskThread(this.deps.getThread, this.deps.deskEvents, thread.id);
-
     yield {
       kind: 'result',
       response: {
@@ -301,7 +279,6 @@ export class CompactThreadUseCase implements CompactThreadInput {
     };
   }
 }
-
 async function resolveDefaultBinding(
   models: ModelsPort,
   def: AgentDefinition,

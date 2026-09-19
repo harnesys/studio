@@ -4,10 +4,8 @@ import type { StudioDb } from '../store/sqlite/connection.ts';
 import { mapSqliteError } from '../store/sqlite/errors.ts';
 import { type AgentPinRow, agentPinsTable } from '../store/sqlite/schema';
 import { fitLinesToBudget } from './fit-budget.ts';
-
 export class SqlitePinPort implements PinPort {
   constructor(private readonly db: StudioDb) {}
-
   list(scope: MemoryScopeId): Promise<PinRecord[]> {
     const rows = this.db
       .select()
@@ -22,7 +20,6 @@ export class SqlitePinPort implements PinPort {
       .all();
     return Promise.resolve(rows.map(toPinRecord));
   }
-
   upsert(scope: MemoryScopeId, input: PinUpsertInput): Promise<PinRecord> {
     const updatedAt = new Date().toISOString();
     try {
@@ -57,7 +54,6 @@ export class SqlitePinPort implements PinPort {
       );
     }
   }
-
   remove(scope: MemoryScopeId, key: string): Promise<void> {
     this.db
       .delete(agentPinsTable)
@@ -71,8 +67,6 @@ export class SqlitePinPort implements PinPort {
       .run();
     return Promise.resolve();
   }
-
-  /** Wipe all pins kept under an agent name (agent deleted, name orphaned). */
   deleteByAgentName(input: { workspaceId: string; agentName: string }): void {
     this.db
       .delete(agentPinsTable)
@@ -84,14 +78,12 @@ export class SqlitePinPort implements PinPort {
       )
       .run();
   }
-
   async projectForWindow(scope: MemoryScopeId, budgetTokens: number): Promise<string> {
     const pins = await this.list(scope);
     const lines = pins.map((pin) => `${pin.key}: ${pin.text}`);
     return fitLinesToBudget(lines, budgetTokens);
   }
 }
-
 function toPinRecord(row: AgentPinRow): PinRecord {
   return {
     key: row.key,

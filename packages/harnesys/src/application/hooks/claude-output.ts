@@ -1,12 +1,7 @@
 import type { HookEffect, HookEventName } from '../../domain/hook.ts';
 import type { PluginDiagnostic, PluginDiagnosticCode } from '../../domain/plugin-diagnostics.ts';
-
-/** Строковые значения вывода хука обрезаются до 10 000 символов (спека §2.1). */
-export const HOOK_STRING_MAX = 10_000;
-
+export const HOOK_STRING_MAX = 10000;
 const DIAG_OUTPUT_MAX = 2000;
-
-/** Строковые значения вывода command/http/mcp_tool-хука в контракте Claude (спека §2.1). */
 export type ClaudeHookJson = {
   continue?: unknown;
   stopReason?: unknown;
@@ -18,24 +13,18 @@ export type ClaudeHookJson = {
   sessionTitle?: unknown;
   initialUserMessage?: unknown;
 };
-
-/** sessionTitle переименовывает тред через `HookRuntimeCtx.renameSession`; кап по контракту Claude. */
 export const HOOK_TITLE_MAX = 200;
-
 export type ClaudeOutputMapping = {
   effects: HookEffect[];
   diagnostics: PluginDiagnostic[];
   sessionTitle?: string;
 };
-
 export type CommandExitInput = {
   event: HookEventName;
   exitCode: number | null;
   stdout: string;
   stderr: string;
 };
-
-/** Парсинг stdout-JSON; не-объект или невалидный JSON = undefined. */
 export function parseClaudeJsonObject(text: string): ClaudeHookJson | undefined {
   const trimmed = text.trim();
   if (trimmed.length === 0 || !trimmed.startsWith('{')) {
@@ -51,8 +40,6 @@ export function parseClaudeJsonObject(text: string): ClaudeHookJson | undefined 
     return undefined;
   }
 }
-
-/** Маппинг полей вывода JSON на эффекты (спека §2.1). */
 export function mapClaudeJsonFields(out: ClaudeHookJson): ClaudeOutputMapping {
   const effects: HookEffect[] = [];
   const diagnostics: PluginDiagnostic[] = [];
@@ -79,7 +66,6 @@ export function mapClaudeJsonFields(out: ClaudeHookJson): ClaudeOutputMapping {
         : { kind: 'stop', reason: truncateHookString(reason) },
     );
   }
-  // systemMessage принимается без эффекта: пользовательского канала в модели эффектов нет
   const hso = out.hookSpecificOutput;
   if (hso !== undefined) {
     if (typeof hso !== 'object' || hso === null || Array.isArray(hso)) {
@@ -93,9 +79,6 @@ export function mapClaudeJsonFields(out: ClaudeHookJson): ClaudeOutputMapping {
   }
   return { effects, diagnostics, sessionTitle: sessionTitle.slice(0, HOOK_TITLE_MAX) };
 }
-
-/** Маппинг exit code команды на исход: exit 2 = block, валидный JSON решает на любом коде,
- * plain stdout → context только на UserPromptSubmit/SessionStart (спека §2.1). */
 export function mapCommandExit(input: CommandExitInput): ClaudeOutputMapping {
   const parsed = parseClaudeJsonObject(input.stdout);
   if (input.exitCode === 2) {
@@ -122,8 +105,6 @@ export function mapCommandExit(input: CommandExitInput): ClaudeOutputMapping {
   );
   return { effects: [], diagnostics: [warning('hook_failed', message)] };
 }
-
-/** Захваченные к моменту убийства stdout/stderr — в сообщение diagnostic (спека §2.2 п.7). */
 export function appendCapturedOutput(message: string, stdout: string, stderr: string): string {
   const chunks: string[] = [];
   const trimmedOut = stdout.trim();
@@ -136,11 +117,9 @@ export function appendCapturedOutput(message: string, stdout: string, stderr: st
   }
   return chunks.length === 0 ? message : `${message} | ${chunks.join(' | ')}`;
 }
-
 export function truncateHookString(value: string): string {
   return value.length > HOOK_STRING_MAX ? value.slice(0, HOOK_STRING_MAX) : value;
 }
-
 function mapHookSpecific(
   hso: Record<string, unknown>,
   out: ClaudeHookJson,
@@ -181,15 +160,12 @@ function mapHookSpecific(
     effects.push({ kind: 'context', text: truncateHookString(additionalContext) });
   }
 }
-
 function strValue(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
-
 function clip(value: string): string {
   return value.length > DIAG_OUTPUT_MAX ? `${value.slice(0, DIAG_OUTPUT_MAX)}…` : value;
 }
-
 function warning(code: PluginDiagnosticCode, message: string): PluginDiagnostic {
   return { level: 'warning', code, message };
 }

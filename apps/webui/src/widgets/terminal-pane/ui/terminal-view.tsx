@@ -1,20 +1,34 @@
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { useEffect, useRef, useState } from 'react';
-
 import { hostTokenQuery } from '@/shared/api/host-credential';
 import { hostWsBase } from '@/shared/config/env';
 import { cn } from '@/shared/lib/utils';
-
 import '@xterm/xterm/css/xterm.css';
 
 type ServerMessage =
-  | { type: 'history'; data: string }
-  | { type: 'out'; data: string }
-  | { type: 'exit'; code: number | null };
-
-type ClientMessage = { type: 'in'; data: string } | { type: 'resize'; cols: number; rows: number };
-
+  | {
+      type: 'history';
+      data: string;
+    }
+  | {
+      type: 'out';
+      data: string;
+    }
+  | {
+      type: 'exit';
+      code: number | null;
+    };
+type ClientMessage =
+  | {
+      type: 'in';
+      data: string;
+    }
+  | {
+      type: 'resize';
+      cols: number;
+      rows: number;
+    };
 export function TerminalView({
   workspaceId,
   sessionId,
@@ -25,13 +39,11 @@ export function TerminalView({
   const hostRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'connecting' | 'live' | 'exited' | 'error'>('connecting');
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const host = hostRef.current;
     if (!host) {
       return;
     }
-
     const term = new Terminal({
       cursorBlink: true,
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
@@ -48,18 +60,15 @@ export function TerminalView({
     term.loadAddon(fit);
     term.open(host);
     fit.fit();
-
     let disposed = false;
     let exited = false;
     let ws: WebSocket | null = null;
     let resizeObserver: ResizeObserver | null = null;
-
     const send = (message: ClientMessage) => {
       if (ws?.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(message));
       }
     };
-
     const connect = () => {
       const token = hostTokenQuery();
       const tokenQs = token ? `&${token}` : '';
@@ -68,7 +77,6 @@ export function TerminalView({
       ws = new WebSocket(
         `${hostWsBase()}/api/terminals/${encodeURIComponent(sessionId)}?cols=${cols}&rows=${rows}${tokenQs}`,
       );
-
       ws.onopen = () => {
         if (disposed) {
           return;
@@ -78,7 +86,6 @@ export function TerminalView({
         fit.fit();
         send({ type: 'resize', cols: term.cols, rows: term.rows });
       };
-
       ws.onmessage = (event) => {
         if (disposed || typeof event.data !== 'string') {
           return;
@@ -102,7 +109,6 @@ export function TerminalView({
           );
         }
       };
-
       ws.onerror = () => {
         if (disposed || exited) {
           return;
@@ -110,7 +116,6 @@ export function TerminalView({
         setStatus('error');
         setError('Terminal connection failed');
       };
-
       ws.onclose = () => {
         if (disposed || exited) {
           return;
@@ -119,27 +124,20 @@ export function TerminalView({
         setError('Terminal disconnected');
       };
     };
-
     const dataDisposable = term.onData((data) => {
       send({ type: 'in', data });
     });
-
     const resizeDisposable = term.onResize(({ cols, rows }) => {
       send({ type: 'resize', cols, rows });
     });
-
     resizeObserver = new ResizeObserver(() => {
       try {
         fit.fit();
-      } catch {
-        // host may be hidden
-      }
+      } catch {}
     });
     resizeObserver.observe(host);
-
     connect();
     void workspaceId;
-
     return () => {
       disposed = true;
       dataDisposable.dispose();
@@ -149,7 +147,6 @@ export function TerminalView({
       term.dispose();
     };
   }, [sessionId, workspaceId]);
-
   return (
     <div className="relative flex min-h-0 flex-1 flex-col" data-testid="ide-terminal">
       <div ref={hostRef} className="min-h-0 flex-1 px-2 py-2" />

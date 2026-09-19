@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 export const createWorkspaceBody = z
   .object({
     path: z.string().trim().nullish(),
@@ -8,30 +7,24 @@ export const createWorkspaceBody = z
   .refine((value) => Boolean(value.path) || Boolean(value.name), {
     message: 'path or name is required',
   });
-
 export const updateWorkspaceBody = z.object({
   name: z.string().trim().nullish(),
   path: z.string().trim().nullish(),
 });
-
 export const createWorkspaceFileBody = z.object({
   path: z.string().trim().min(1),
   kind: z.enum(['file', 'dir']),
 });
-
 export const deleteWorkspaceFileBody = z.object({
   path: z.string().trim().min(1),
 });
-
 export const moveWorkspaceFilesBody = z.object({
   items: z.array(z.object({ from: z.string().trim().min(1), to: z.string().trim().min(1) })).min(1),
 });
-
 export const writeWorkspaceFileContentBody = z.object({
   path: z.string().trim().min(1),
   content: z.string(),
 });
-
 export const createWorkspaceSkillBody = z.object({
   name: z
     .string()
@@ -41,29 +34,23 @@ export const createWorkspaceSkillBody = z.object({
   whenToUse: z.string().trim().min(1).optional(),
   instructions: z.string().trim().min(1),
 });
-
 export const gitCheckoutBody = z.object({
   branch: z.string().trim().min(1),
 });
-
 export const gitCreateBranchBody = z.object({
   name: z.string().trim().min(1),
   checkout: z.boolean().optional(),
   from: z.string().trim().min(1).optional(),
 });
-
 export const gitCommitBody = z.object({
   message: z.string().trim().min(1).max(2000),
 });
-
 export const gitStageBody = z.object({
   paths: z.array(z.string().trim().min(1)).max(500).optional().default([]),
 });
-
 export const setMcpServerStateBody = z.object({
   enabled: z.boolean(),
 });
-
 export const upsertWorkspaceMcpServerBody = z
   .object({
     enabled: z.boolean().optional(),

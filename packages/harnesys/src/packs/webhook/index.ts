@@ -1,9 +1,9 @@
 import { definePack } from '../../domain/pack.ts';
 import type { WebhookPort } from '../../ports/webhook.ts';
 import { createWebhookTools } from './create-webhook-tools.ts';
-
-export type WebhookCapabilityPorts = { webhook: WebhookPort };
-
+export type WebhookCapabilityPorts = {
+  webhook: WebhookPort;
+};
 export const webhookCapability = definePack<WebhookCapabilityPorts, Record<string, unknown>>({
   name: 'webhook',
   version: '1.0.0',

@@ -1,16 +1,13 @@
 import { cn } from '@/shared/lib/utils';
-
 import {
   WORKSPACE_SETTINGS_GROUPS,
   type WorkspaceSettingsCategory,
 } from '../model/workspace-settings-nav';
-
 export type WorkspaceSettingsNavProps = {
   category: WorkspaceSettingsCategory;
   onSelect: (category: WorkspaceSettingsCategory) => void;
   className?: string;
 };
-
 export function WorkspaceSettingsNav({ category, onSelect, className }: WorkspaceSettingsNavProps) {
   return (
     <nav

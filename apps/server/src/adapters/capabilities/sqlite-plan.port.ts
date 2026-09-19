@@ -11,14 +11,12 @@ import type { DeletePlanInput } from '../../application/plans/delete-plan.use-ca
 import type { GetThreadPlanInput } from '../../application/plans/get-thread-plan.use-case.ts';
 import type { SavePlanInput } from '../../application/plans/save-plan.use-case.ts';
 import type { UpdatePlanItemInput } from '../../application/plans/update-plan-item.use-case.ts';
-
 export type SqlitePlanPortDeps = {
   savePlan: SavePlanInput;
   updatePlanItem: UpdatePlanItemInput;
   getThreadPlan: GetThreadPlanInput;
   deletePlan: DeletePlanInput;
 };
-
 function toSnapshot(plan: ThreadPlanRecord): PlanSnapshot {
   return {
     id: plan.id,
@@ -37,13 +35,15 @@ function toSnapshot(plan: ThreadPlanRecord): PlanSnapshot {
     ),
   };
 }
-
 export class SqlitePlanPort implements PlanPort {
   constructor(private readonly deps: SqlitePlanPortDeps) {}
-
   async save(
     scope: CapabilityScope,
-    input: { overview: string; items: PlanSaveItemInput[]; status?: PlanStatus },
+    input: {
+      overview: string;
+      items: PlanSaveItemInput[];
+      status?: PlanStatus;
+    },
   ): Promise<PlanSnapshot> {
     const plan = await this.deps.savePlan.execute({
       threadId: scope.threadId,
@@ -53,10 +53,14 @@ export class SqlitePlanPort implements PlanPort {
     });
     return toSnapshot(plan);
   }
-
   async updateItem(
     _scope: CapabilityScope,
-    input: { planId: string; itemId: string; status: PlanItemStatus; resultNote?: string | null },
+    input: {
+      planId: string;
+      itemId: string;
+      status: PlanItemStatus;
+      resultNote?: string | null;
+    },
   ): Promise<PlanSnapshot> {
     const result = await this.deps.updatePlanItem.execute({
       planId: input.planId,
@@ -66,13 +70,13 @@ export class SqlitePlanPort implements PlanPort {
     });
     return toSnapshot(result.plan);
   }
-
   async get(scope: CapabilityScope): Promise<PlanSnapshot | null> {
     const plan = await this.deps.getThreadPlan.execute({ threadId: scope.threadId });
     return plan ? toSnapshot(plan) : null;
   }
-
-  delete(scope: CapabilityScope): Promise<{ deleted: boolean }> {
+  delete(scope: CapabilityScope): Promise<{
+    deleted: boolean;
+  }> {
     return this.deps.deletePlan.execute({ threadId: scope.threadId });
   }
 }

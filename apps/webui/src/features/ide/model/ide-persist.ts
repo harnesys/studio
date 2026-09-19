@@ -2,15 +2,12 @@ import type { WindowDeskPark } from '@harnesys/studio-shared';
 import { schedulePersistDeskChrome } from '@/features/desk';
 import type { IdeTab, IdeTabKind } from './ide.store';
 import { collapseLayout, type IdeGroup, type IdeWorkspaceState } from './ide-layout';
-
 export function tabIdFor(kind: IdeTabKind, key: string): string {
   return `${kind}:${key}`;
 }
-
 export function normalizeIdeFilePath(path: string): string {
   return path.replace(/^\/+/, '');
 }
-
 function normalizeIdeFileTab(tab: IdeTab): IdeTab {
   if (tab.kind !== 'file' || !tab.path) {
     return tab;
@@ -18,7 +15,6 @@ function normalizeIdeFileTab(tab: IdeTab): IdeTab {
   const path = normalizeIdeFilePath(tab.path);
   return { ...tab, path, id: tabIdFor('file', path) };
 }
-
 export function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | null {
   const remapped = new Map<string, string>();
   const tabs = dedupeTabs(
@@ -90,7 +86,6 @@ export function sanitizeWorkspace(ws: IdeWorkspaceState): IdeWorkspaceState | nu
       : (kept[0]?.id ?? null);
   return { tabs: aliveTabs, activeId, activeGroupId, groups: kept, layout };
 }
-
 function dedupeTabs(tabs: IdeTab[]): IdeTab[] {
   const seen = new Set<string>();
   return tabs.filter((tab) => {
@@ -101,7 +96,6 @@ function dedupeTabs(tabs: IdeTab[]): IdeTab[] {
     return true;
   });
 }
-
 export function parkToIdeState(park: WindowDeskPark): Record<string, IdeWorkspaceState> {
   const valid: Record<string, IdeWorkspaceState> = {};
   for (const [id, ws] of Object.entries(park)) {
@@ -120,12 +114,9 @@ export function parkToIdeState(park: WindowDeskPark): Record<string, IdeWorkspac
   }
   return valid;
 }
-
-/** Boot starts empty; hydrateDeskChrome fills park via setDeskParkWriter. */
 export function loadPersisted(): Record<string, IdeWorkspaceState> {
   return {};
 }
-
 export function persist(_byWorkspace: Record<string, IdeWorkspaceState>) {
   schedulePersistDeskChrome();
 }

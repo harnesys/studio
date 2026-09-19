@@ -9,7 +9,6 @@ const HOP_BY_HOP = new Set([
   'upgrade',
   'host',
 ]);
-
 function filterHeaders(headers: Headers): Headers {
   const filtered = new Headers();
   headers.forEach((value, name) => {
@@ -19,17 +18,10 @@ function filterHeaders(headers: Headers): Headers {
   });
   return filtered;
 }
-
 function targetUrl(upstream: URL, pathname: string, search: string): string {
   const prefix = upstream.pathname.replace(/\/$/, '');
   return `${upstream.origin}${prefix}${pathname}${search}`;
 }
-
-/**
- * Forwards a proxied HTTP request to the upstream host.
- * Request bodies are buffered (API payloads are small); response bodies stream
- * untouched, which keeps SSE (/api/desk/watch) unbuffered.
- */
 export async function proxyRequest(request: Request, upstream: URL): Promise<Response> {
   const url = new URL(request.url);
   const method = request.method;

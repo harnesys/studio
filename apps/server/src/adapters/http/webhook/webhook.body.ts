@@ -1,6 +1,5 @@
 import { SCHEDULE_STATUSES } from '@harnesys/studio-shared';
 import { z } from 'zod';
-
 export const createWebhookBody = z.object({
   name: z.string().trim().min(1),
   targetAgentId: z.string().uuid(),
@@ -8,7 +7,6 @@ export const createWebhookBody = z.object({
   threadId: z.string().uuid().optional(),
   status: z.enum(SCHEDULE_STATUSES).optional(),
 });
-
 export const updateWebhookBody = z.object({
   name: z.string().trim().min(1).optional(),
   status: z.enum(SCHEDULE_STATUSES).optional(),
@@ -16,5 +14,4 @@ export const updateWebhookBody = z.object({
   detail: z.string().trim().optional(),
   threadId: z.string().uuid().optional(),
 });
-
 export const fireWebhookBody = z.object({ text: z.string().trim().optional() }).optional();

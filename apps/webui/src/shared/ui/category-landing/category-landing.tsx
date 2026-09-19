@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-
 import { cn } from '@/shared/lib/utils';
 
 type CategoryLandingProps = {
@@ -7,7 +6,6 @@ type CategoryLandingProps = {
   className?: string;
   'data-testid'?: string;
 };
-
 export function CategoryLanding({
   children,
   className,
@@ -33,7 +31,6 @@ export function CategoryLanding({
     </div>
   );
 }
-
 export function CategoryLandingEyebrow({ children }: { children: ReactNode }) {
   return (
     <div className="flex items-center gap-2">
@@ -48,7 +45,6 @@ export function CategoryLandingEyebrow({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
 export function CategoryLandingTitle({ children }: { children: ReactNode }) {
   return (
     <>
@@ -57,7 +53,6 @@ export function CategoryLandingTitle({ children }: { children: ReactNode }) {
     </>
   );
 }
-
 export function CategoryLandingDescription({
   children,
   className,
@@ -76,11 +71,9 @@ export function CategoryLandingDescription({
     </p>
   );
 }
-
 export function CategoryLandingActions({ children }: { children: ReactNode }) {
   return <div className="grid gap-2 sm:grid-cols-2">{children}</div>;
 }
-
 export function CategoryLandingSectionLabel({
   children,
   icon,
@@ -95,7 +88,6 @@ export function CategoryLandingSectionLabel({
     </p>
   );
 }
-
 export function CategoryLandingSection({
   label,
   icon,
@@ -112,7 +104,6 @@ export function CategoryLandingSection({
     </section>
   );
 }
-
 type ActionCardProps = {
   icon: ReactNode;
   title: string;
@@ -120,7 +111,6 @@ type ActionCardProps = {
   meta?: string;
   onClick: () => void;
 };
-
 export function CategoryLandingActionCard({
   icon,
   title,
@@ -156,11 +146,9 @@ export function CategoryLandingActionCard({
     </button>
   );
 }
-
 export function CategoryLandingList({ children }: { children: ReactNode }) {
   return <ul className="flex flex-col gap-0.5">{children}</ul>;
 }
-
 type ListItemProps = {
   icon: ReactNode;
   title: string;
@@ -168,7 +156,6 @@ type ListItemProps = {
   status?: ReactNode;
   onClick: () => void;
 };
-
 export function CategoryLandingListItem({ icon, title, subtitle, status, onClick }: ListItemProps) {
   return (
     <li>
@@ -193,11 +180,9 @@ export function CategoryLandingListItem({ icon, title, subtitle, status, onClick
     </li>
   );
 }
-
 export function CategoryLandingStarterList({ children }: { children: ReactNode }) {
   return <div className="flex flex-col gap-1.5">{children}</div>;
 }
-
 export function CategoryLandingStarter({
   children,
   onClick,

@@ -1,9 +1,7 @@
 import type { CapabilityScope } from '../domain/pack.ts';
 import type { RunLifecycleStatus } from './run-lifecycle-store.ts';
 import type { SessionEvent } from './session.ts';
-
 export type WebhookStatus = 'active' | 'paused' | 'failed';
-
 export type WebhookRecord = {
   id: string;
   workspaceId: string;
@@ -17,27 +15,23 @@ export type WebhookRecord = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type WebhookCreateInput = {
   name: string;
   targetAgentId?: string;
   detail?: string;
   status?: WebhookStatus;
 };
-
 export type WebhookUpdateInput = {
   name?: string;
   status?: WebhookStatus;
   targetAgentId?: string;
   detail?: string;
 };
-
 export type WebhookThreadActiveRun = {
   runId: string;
   status: RunLifecycleStatus;
   leaseExpired?: boolean;
 };
-
 export type WebhookCreatedThread = {
   id: string;
   title: string;
@@ -52,12 +46,10 @@ export type WebhookCreatedThread = {
   events: SessionEvent[];
   activeRun: WebhookThreadActiveRun | null;
 };
-
 export type WebhookCreatedRecord = {
   webhook: WebhookRecord;
   thread: WebhookCreatedThread;
 };
-
 export type WebhookPort = {
   list(scope: CapabilityScope): Promise<WebhookRecord[]>;
   create(scope: CapabilityScope, input: WebhookCreateInput): Promise<WebhookCreatedRecord>;

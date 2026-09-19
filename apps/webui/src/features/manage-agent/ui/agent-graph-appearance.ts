@@ -14,7 +14,6 @@ import {
   Undo2Icon,
   WrenchIcon,
 } from 'lucide-react';
-
 import type { GraphNodeGroup } from '../model/agent-graph-catalog';
 import { specByType } from '../model/agent-graph-catalog';
 
@@ -32,13 +31,11 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   'control:wait': HourglassIcon,
   'control:interrupt': PauseCircleIcon,
 };
-
 export type GraphTypeTint = {
   iconWrap: string;
   label: string;
   handle: string;
 };
-
 const GROUP_TINT: Record<GraphNodeGroup, GraphTypeTint> = {
   core: {
     iconWrap: 'bg-muted text-muted-foreground',
@@ -62,11 +59,9 @@ const GROUP_TINT: Record<GraphNodeGroup, GraphTypeTint> = {
     handle: '!bg-[color:var(--sidebar-ring)]',
   },
 };
-
 export function graphTypeIcon(type: string): LucideIcon {
   return TYPE_ICONS[type] ?? PuzzleIcon;
 }
-
 export function graphTypeTint(type: string): GraphTypeTint {
   const group = specByType(type)?.group ?? 'core';
   return GROUP_TINT[group];

@@ -8,37 +8,23 @@ import type { SqliteWorkspaceRepo } from '../../store/sqlite/repos/sqlite-worksp
 import { upgradeWebSocket } from './bun-websocket.ts';
 
 const FILE_SCHEME = 'file://';
-
-/**
- * Stable connection key. hono/bun builds a fresh WSContext per event, so the
- * context object cannot key connection state; the wrapped native socket can.
- */
 function rawOf(ws: WSContext): object {
-  return (ws as { raw?: object }).raw ?? ws;
+  return (
+    (
+      ws as {
+        raw?: object;
+      }
+    ).raw ?? ws
+  );
 }
-
 type ConnectionState = {
-  /** Undefined while the language server is still starting. */
   session?: StdioLspSession;
   unsubscribe?: () => void;
-  /** Client messages received before the session was ready. */
   pending: string[];
-  /** LSP languageId per the plugin config; overrides the client's value in didOpen. */
   languageId?: string;
 };
-
-/**
- * Raw LSP-over-WebSocket bridge for the Studio editor.
- * GET /api/lsp?workspace=<id>&path=<relative file path>
- *
- * The client speaks plain LSP JSON-RPC with document URIs shaped `file:///<relative>`;
- * this controller rewrites them to absolute `file://` URIs of the workspace checkout
- * on the way in, and back on the way out, so one session serves both the editor and
- * the agent lsp_* tools.
- */
 export class LspBridgeController {
   private readonly connections = new WeakMap<object, ConnectionState>();
-
   constructor(
     private readonly deps: {
       app: Hono;
@@ -46,7 +32,6 @@ export class LspBridgeController {
       lsp: StudioLspAdapter;
     },
   ) {}
-
   register(): void {
     this.deps.app.get('/api/lsp', async (c) => {
       const workspaceId = c.req.query('workspace') ?? '';
@@ -58,7 +43,6 @@ export class LspBridgeController {
       if (!(await this.deps.lsp.hasServerFor(workspace.path, relPath))) {
         return c.json({ error: 'no LSP server for this file' }, 404);
       }
-
       const upgrade = upgradeWebSocket(() => ({
         onOpen: (_evt, ws) => {
           this.connections.set(rawOf(ws), { pending: [] });
@@ -77,7 +61,6 @@ export class LspBridgeController {
       return upgrade(c, async () => {});
     });
   }
-
   private async connect(workspaceId: string, relPath: string, ws: WSContext): Promise<void> {
     const workspace = this.deps.workspaceRepo.findById(workspaceId);
     if (!workspace) {
@@ -99,19 +82,16 @@ export class LspBridgeController {
     state.session = session;
     state.unsubscribe = unsubscribe;
     state.languageId = await this.deps.lsp.languageIdFor(workspace.path, relPath);
-    // Flush messages the client sent while the language server was starting.
     for (const raw of state.pending.splice(0)) {
       this.forwardRaw(ws, raw);
     }
   }
-
   private forward(ws: WSContext, data: unknown): void {
     const state = this.connections.get(rawOf(ws));
     if (!state || typeof data !== 'string') {
       return;
     }
     if (!state.session) {
-      // Language server still starting — buffer instead of dropping.
       if (state.pending.length < 100) {
         state.pending.push(data);
       }
@@ -119,7 +99,6 @@ export class LspBridgeController {
     }
     this.forwardRaw(ws, data);
   }
-
   private forwardRaw(ws: WSContext, data: string): void {
     const state = this.connections.get(rawOf(ws));
     if (!state?.session) {
@@ -135,10 +114,12 @@ export class LspBridgeController {
       const root = state.session.workspaceRoot;
       const message = parsed as {
         method?: string;
-        params?: { textDocument?: { languageId?: string } };
+        params?: {
+          textDocument?: {
+            languageId?: string;
+          };
+        };
       };
-      // The editor's language id (e.g. Monaco 'typescript') does not distinguish
-      // ts from tsx; the plugin config does, and tsserver picks the script kind by it.
       if (
         message.method === 'textDocument/didOpen' &&
         message.params?.textDocument &&
@@ -151,14 +132,12 @@ export class LspBridgeController {
       );
     }
   }
-
   private teardown(ws: WSContext): void {
     const state = this.connections.get(rawOf(ws));
     state?.unsubscribe?.();
     this.connections.delete(ws);
   }
 }
-
 function rewriteUris<T>(value: T, map: (uri: string) => string): T {
   if (typeof value === 'string') {
     return (value.startsWith(FILE_SCHEME) ? map(value) : value) as T;
@@ -175,8 +154,6 @@ function rewriteUris<T>(value: T, map: (uri: string) => string): T {
   }
   return value;
 }
-
-/** `file:///src/main.tsx` (editor form) → absolute file URI inside the workspace. */
 function editorToAbsoluteUri(uri: string, workspaceRoot: string): string {
   if (!uri.startsWith(FILE_SCHEME) || uri === FILE_SCHEME) {
     return uri;
@@ -188,16 +165,12 @@ function editorToAbsoluteUri(uri: string, workspaceRoot: string): string {
   }
   return uri;
 }
-
-/** Absolute file URI under the workspace root → `file:///relative` (editor form). */
 function absoluteToEditorUri(uri: string, rootHref: string): string {
   if (rootHref !== FILE_SCHEME && uri.startsWith(`${rootHref}/`)) {
     return `${FILE_SCHEME}/${uri.slice(rootHref.length + 1)}`;
   }
   return uri;
 }
-
-/** WebSocket close reasons are capped (~123 bytes); keep the leading detail. */
 function truncateCloseReason(reason: string): string {
   return reason.length <= 120 ? reason : `${reason.slice(0, 117)}...`;
 }

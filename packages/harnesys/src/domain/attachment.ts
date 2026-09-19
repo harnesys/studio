@@ -1,5 +1,4 @@
 export type AttachmentKind = 'image' | 'audio' | 'video' | 'file';
-
 export type Attachment = {
   id: string;
   kind: AttachmentKind;

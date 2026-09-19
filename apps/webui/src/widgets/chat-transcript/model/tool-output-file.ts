@@ -1,5 +1,4 @@
 import { type CodeLine, detectLanguage, textToLines } from '@/shared/lib/tool-code';
-
 import type {
   EntriesDetail,
   FileDetail,
@@ -8,11 +7,9 @@ import type {
   ListEntryItem,
 } from './tool-detail-types';
 import { has, type JsonObject, str } from './tool-json';
-
 export function isFileOutput(obj: JsonObject | undefined): boolean {
   return obj !== undefined && typeof obj.content === 'string' && has(obj, 'totalLines');
 }
-
 export function parseFileDetail(
   obj: JsonObject | undefined,
   raw: string,
@@ -28,7 +25,6 @@ export function parseFileDetail(
   const numbered = parseNumberedLines(content);
   const totalLines = obj && typeof obj.totalLines === 'number' ? obj.totalLines : undefined;
   const truncated = obj && typeof obj.truncated === 'boolean' ? obj.truncated : undefined;
-
   if (numbered) {
     const rawClean = numbered.map((l) => l.text).join('\n');
     return {
@@ -41,7 +37,6 @@ export function parseFileDetail(
       rawContent: rawClean,
     };
   }
-
   const lines = textToLines(content);
   return {
     type: 'file',
@@ -53,7 +48,6 @@ export function parseFileDetail(
     rawContent: content,
   };
 }
-
 function parseNumberedLines(text: string): CodeLine[] | undefined {
   const rows = text.split('\n');
   const lines: CodeLine[] = [];
@@ -70,11 +64,9 @@ function parseNumberedLines(text: string): CodeLine[] | undefined {
   }
   return lines.length > 0 ? lines : undefined;
 }
-
 export function isListDirOutput(obj: JsonObject | undefined): boolean {
   return obj !== undefined && Array.isArray(obj.entries);
 }
-
 export function parseListDirDetail(
   obj: JsonObject | undefined,
   input: JsonObject | undefined,
@@ -95,11 +87,9 @@ export function parseListDirDetail(
   const truncated = obj && typeof obj.truncated === 'boolean' ? obj.truncated : undefined;
   return { type: 'entries', path: pathStr, truncated, items };
 }
-
 export function isGlobOutput(obj: JsonObject | undefined): boolean {
   return obj !== undefined && Array.isArray(obj.matches) && typeof obj.pattern === 'string';
 }
-
 export function parseGlobDetail(
   obj: JsonObject | undefined,
   input: JsonObject | undefined,
@@ -112,7 +102,6 @@ export function parseGlobDetail(
     .map((name) => ({ name, type: 'file' as const }));
   return { type: 'entries', pattern, items };
 }
-
 export function isGrepOutput(obj: JsonObject | undefined): boolean {
   return (
     obj !== undefined &&
@@ -121,7 +110,6 @@ export function isGrepOutput(obj: JsonObject | undefined): boolean {
     typeof (obj.matches[0] as JsonObject)?.file === 'string'
   );
 }
-
 export function parseGrepDetail(
   obj: JsonObject | undefined,
   input: JsonObject | undefined,

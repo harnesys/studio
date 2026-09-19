@@ -28,22 +28,21 @@ import {
   terminate,
 } from './processes.ts';
 import { isUnitActive, restartUnit, stopUnit, unitName } from './systemd.ts';
-
 export type UpOptions = {
   hostPort: number;
   webPort: number;
   withUi: boolean;
 };
-
 const STATUS_HEALTH_TIMEOUT_MS = 3000;
-
-type StartContext = { home: string; hostPort: number; webPort: number };
-
+type StartContext = {
+  home: string;
+  hostPort: number;
+  webPort: number;
+};
 function fail(message: string): never {
   console.error(`harnesys: ${message}`);
   process.exit(1);
 }
-
 function parseTarget(target: string | undefined): ComponentName[] {
   const names = parseTargetOrUndefined(target);
   if (!names) {
@@ -51,11 +50,6 @@ function parseTarget(target: string | undefined): ComponentName[] {
   }
   return names;
 }
-
-/**
- * STATIC_DIR precedence for (re)spawning webui: explicit env now > recorded at
- * previous start > computed default (paths.resolveStaticDir).
- */
 export function effectiveStaticDir(previous: PidRecord | undefined): string {
   const explicit = process.env.STATIC_DIR?.trim();
   if (explicit) {
@@ -63,7 +57,6 @@ export function effectiveStaticDir(previous: PidRecord | undefined): string {
   }
   return previous?.env?.STATIC_DIR ?? resolveStaticDir();
 }
-
 export function staticDirAvailable(dir: string): boolean {
   try {
     return statSync(dir).isDirectory();
@@ -71,7 +64,6 @@ export function staticDirAvailable(dir: string): boolean {
     return false;
   }
 }
-
 function requireStaticDir(dir: string): void {
   if (staticDirAvailable(dir)) {
     return;
@@ -80,7 +72,6 @@ function requireStaticDir(dir: string): void {
     `WebUI static assets not found at ${dir} — the WebUI needs a repo checkout (\`bun run build:client\`) or the Docker compose stack (\`deploy/\`); this install can run the host only`,
   );
 }
-
 async function startComponent(
   name: ComponentName,
   context: StartContext,
@@ -128,10 +119,10 @@ async function startComponent(
   console.log(`ok ${name.padEnd(5)} → ${componentUrl(port)} (pid ${pid})`);
   return 'started';
 }
-
-/** `up [--with-ui] [--port N] [--web-port N]`; the --install-systemd path lives in systemd.ts. */
 export async function commandUp(
-  options: UpOptions & { installSystemd: boolean },
+  options: UpOptions & {
+    installSystemd: boolean;
+  },
   runSystemd: () => void | Promise<void>,
 ): Promise<void> {
   if (options.installSystemd) {
@@ -151,7 +142,6 @@ export async function commandUp(
     await startComponent('webui', context, previousWeb);
   }
 }
-
 export async function commandDown(): Promise<void> {
   const home = harnesysHome();
   for (const name of ['webui', 'server'] as const) {
@@ -174,7 +164,6 @@ export async function commandDown(): Promise<void> {
     }
   }
 }
-
 export async function commandStatus(): Promise<void> {
   const home = harnesysHome();
   const rows: string[][] = [['component', 'pid', 'port', 'state']];
@@ -207,8 +196,6 @@ export async function commandStatus(): Promise<void> {
     console.log(index === 0 ? line : line.trimEnd());
   }
 }
-
-/** Port encoded in a recorded UPSTREAM URL, when the host pidfile itself is gone. */
 function portFromUpstream(upstream: string | undefined): number | undefined {
   if (!upstream) {
     return undefined;
@@ -220,16 +207,12 @@ function portFromUpstream(upstream: string | undefined): number | undefined {
     return undefined;
   }
 }
-
-/**
- * Restart never falls back to default ports — that would silently land on the live
- * stand (or on 47474). Ports come from --port/--web-port or the recorded pidfiles;
- * with neither, the command refuses. systemd-managed components restart via
- * systemctl and need no recorded state.
- */
 export async function commandRestart(
   target: string | undefined,
-  ports: { port?: number; webPort?: number },
+  ports: {
+    port?: number;
+    webPort?: number;
+  },
 ): Promise<void> {
   const home = harnesysHome();
   ensureStateDirs(home);
@@ -267,14 +250,12 @@ export async function commandRestart(
     await startComponent(name, context, name === 'server' ? previousServer : previousWeb);
   }
 }
-
-/** Used by `update`: bounces only the pidfile-managed components that are alive. */
 export async function restartRunningComponents(): Promise<ComponentName[]> {
   const home = harnesysHome();
   const alive = new Map<ComponentName, PidRecord>();
   for (const name of ['server', 'webui'] as const) {
     if (isUnitActive(name)) {
-      continue; // systemd-managed: update restarts the unit instead
+      continue;
     }
     const record = readPidRecord(home, name);
     if (record && isPidAlive(record.pid)) {

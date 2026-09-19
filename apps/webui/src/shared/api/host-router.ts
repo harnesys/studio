@@ -1,46 +1,35 @@
 import type { WindowHostRecord } from '@harnesys/studio-shared';
-
 import { env } from '@/shared/config/env';
 import { getWindowHosts } from './host-credential';
-
 export type NodeRoute = {
   nodeId: string;
   hostId: string;
   baseUrl: string;
   credential: string;
 };
-
 export type StudioHostOnlineStatus = 'online' | 'offline';
-
 const nodeRoutes = new Map<string, NodeRoute>();
 const threadToNode = new Map<string, string>();
 const runToNode = new Map<string, string>();
 const hostStatus = new Map<string, StudioHostOnlineStatus>();
-
 export function routeForNode(nodeId: string): NodeRoute | undefined {
   return nodeRoutes.get(nodeId);
 }
-
 export function rememberNodeRoute(route: NodeRoute): void {
   nodeRoutes.set(route.nodeId, route);
 }
-
 export function rememberThreadNode(threadId: string, nodeId: string): void {
   threadToNode.set(threadId, nodeId);
 }
-
 export function nodeIdForThread(threadId: string): string | undefined {
   return threadToNode.get(threadId);
 }
-
 export function rememberRunNode(runId: string, nodeId: string): void {
   runToNode.set(runId, nodeId);
 }
-
 export function nodeIdForRun(runId: string): string | undefined {
   return runToNode.get(runId);
 }
-
 export function forgetNodeRoutesForHost(hostId: string): void {
   for (const [nodeId, route] of nodeRoutes) {
     if (route.hostId === hostId) {
@@ -48,15 +37,12 @@ export function forgetNodeRoutesForHost(hostId: string): void {
     }
   }
 }
-
 export function setHostOnlineStatus(hostId: string, status: StudioHostOnlineStatus): void {
   hostStatus.set(hostId, status);
 }
-
 export function getHostOnlineStatus(hostId: string): StudioHostOnlineStatus {
   return hostStatus.get(hostId) ?? 'online';
 }
-
 export function listHostOnlineStatuses(): Record<string, StudioHostOnlineStatus> {
   const out: Record<string, StudioHostOnlineStatus> = {};
   for (const [id, status] of hostStatus) {
@@ -64,20 +50,15 @@ export function listHostOnlineStatuses(): Record<string, StudioHostOnlineStatus>
   }
   return out;
 }
-
 export function isLocalHostId(hostId: string): boolean {
   return hostId === 'local';
 }
-
 export function findWindowHost(hostId: string): WindowHostRecord | undefined {
   return getWindowHosts().find((host) => host.id === hostId);
 }
-
 export function trimBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/$/, '');
 }
-
-/** Absolute URL for a path on a host; local goes through env.localHostOrigin (desktop: no same-origin proxy). */
 export function urlForHost(host: Pick<WindowHostRecord, 'id' | 'baseUrl'>, path: string): string {
   if (isLocalHostId(host.id)) {
     const p = path.startsWith('/') ? path : `/${path}`;
@@ -86,25 +67,21 @@ export function urlForHost(host: Pick<WindowHostRecord, 'id' | 'baseUrl'>, path:
   const base = trimBaseUrl(host.baseUrl);
   return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
 }
-
 export type ApiTarget = {
   url: string;
   credential: string | null;
   hostId: string;
 };
-
-/**
- * Resolve fetch target for an API path.
- * Workspace-scoped paths use the owning host; unknown paths use local.
- */
 export function resolveApiTarget(
   path: string,
-  hint?: { nodeId?: string; hostId?: string },
+  hint?: {
+    nodeId?: string;
+    hostId?: string;
+  },
 ): ApiTarget {
   const pathname = path.split('?')[0] ?? path;
   const hosts = getWindowHosts();
   const local = hosts.find((host) => host.id === 'local') ?? hosts[0];
-
   let route: NodeRoute | undefined;
   if (hint?.nodeId) {
     route = routeForNode(hint.nodeId);
@@ -139,7 +116,6 @@ export function resolveApiTarget(
       }
     }
   }
-
   if (route) {
     const host = findWindowHost(route.hostId);
     if (host) {
@@ -155,7 +131,6 @@ export function resolveApiTarget(
       hostId: route.hostId,
     };
   }
-
   if (local) {
     return {
       url: urlForHost(local, path),
@@ -163,6 +138,5 @@ export function resolveApiTarget(
       hostId: local.id,
     };
   }
-
   return { url: path, credential: null, hostId: 'local' };
 }

@@ -4,7 +4,6 @@ import { logger } from './config/logger.ts';
 
 const home = defaultHomePath();
 logger.info({ scope: 'cutover' }, `cutover start home=${home}`);
-
 try {
   const result = cutoverStudioDb(home);
   logger.info(

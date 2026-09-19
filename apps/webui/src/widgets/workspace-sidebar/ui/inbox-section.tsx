@@ -10,7 +10,6 @@ import { cn } from '@/shared/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 import { useOpenThread } from '../model/thread-actions';
 import { WorkspaceGroupLabel } from './workspace-group';
-
 export function InboxSection({
   workspaceIds,
   threads,
@@ -26,8 +25,10 @@ export function InboxSection({
   const workspaces = workspacesQuery.data ?? [];
   const agents = useAgentStore((state) => state.items);
   const openThread = useOpenThread();
-
-  const groups: { workspace: Workspace; threads: Thread[] }[] = [];
+  const groups: {
+    workspace: Workspace;
+    threads: Thread[];
+  }[] = [];
   for (const id of workspaceIds) {
     const workspace = workspaces.find((item) => item.id === id);
     if (!workspace) {
@@ -41,7 +42,6 @@ export function InboxSection({
     }
     groups.push({ workspace, threads: groupThreads });
   }
-
   if (groups.length === 0) {
     return (
       <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
@@ -49,14 +49,11 @@ export function InboxSection({
       </p>
     );
   }
-
   const agentName = (thread: Thread): string => {
     const agent: Agent | undefined = agents.find((item) => item.id === thread.agentId);
     return agent?.name ?? thread.agentId;
   };
-
   const multi = workspaceIds.length > 1;
-
   return (
     <div className="flex flex-col gap-0.5 pb-1">
       {groups.map((group) => (
@@ -79,7 +76,6 @@ export function InboxSection({
     </div>
   );
 }
-
 function InboxRow({
   thread,
   agentName,
@@ -129,7 +125,6 @@ function InboxRow({
     </div>
   );
 }
-
 function threadIcon(kind: ThreadKind): ReactNode {
   if (kind === 'schedule') {
     return <CalendarClockIcon className="size-3.5" />;

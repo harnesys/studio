@@ -1,13 +1,9 @@
-/**
- * Минимальный semver для диапазонов зависимостей плагинов: сравнение версий
- * и диапазоны `~ ^ >= =`. Prerelease excluded: версия с `-`/`+`-хвостом или
- * неполная строка не удовлетворяет ни одному диапазону.
- */
-export type Semver = { major: number; minor: number; patch: number };
-
+export type Semver = {
+  major: number;
+  minor: number;
+  patch: number;
+};
 const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)$/;
-
-/** Строгий `x.y.z`; prerelease/build-хвост и неполные версии дают undefined. */
 function parseSemver(value: string): Semver | undefined {
   const match = SEMVER_PATTERN.exec(value.trim());
   if (!match) {
@@ -19,8 +15,6 @@ function parseSemver(value: string): Semver | undefined {
     patch: Number(match[3]),
   };
 }
-
-/** -1 / 0 / 1: a < b, a == b, a > b — по major, затем minor, затем patch. */
 function compareSemver(a: Semver, b: Semver): number {
   if (a.major !== b.major) {
     return a.major < b.major ? -1 : 1;
@@ -33,11 +27,6 @@ function compareSemver(a: Semver, b: Semver): number {
   }
   return 0;
 }
-
-/**
- * Удовлетворяет ли версия диапазону: `~x.y.z`, `^x.y.z`, `>=x.y.z`, `=x.y.z`
- * или голый `x.y.z` (точное равенство). Неразборуемая версия или диапазон — false.
- */
 export function semverSatisfies(version: string, range: string): boolean {
   const subject = parseSemver(version);
   const trimmed = range.trim();
@@ -70,8 +59,6 @@ export function semverSatisfies(version: string, range: string): boolean {
   }
   return compareSemver(subject, rangeUpperBound(base, operator)) < 0;
 }
-
-/** Верхняя граница (эксклюзивная): `~` → minor+1, `^` → npm-правила для 0.x. */
 function rangeUpperBound(base: Semver, operator: '~' | '^'): Semver {
   if (operator === '~') {
     return { major: base.major, minor: base.minor + 1, patch: 0 };

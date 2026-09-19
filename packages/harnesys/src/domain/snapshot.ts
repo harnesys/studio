@@ -1,11 +1,15 @@
 import type { JsonSchema } from './json-schema.ts';
-
 export type CommitKind = 'intent' | 'recorded';
-
 export type CursorPhase = 'scheduled' | 'intent' | 'executing' | 'recorded' | 'unknown' | 'failed';
-
 export type Cursor = {
-  nodes: Record<string, { phase: CursorPhase; nodeExecutionId: string; attempt?: number }>;
+  nodes: Record<
+    string,
+    {
+      phase: CursorPhase;
+      nodeExecutionId: string;
+      attempt?: number;
+    }
+  >;
   pending?: unknown;
   interrupt?: {
     interruptId: string;
@@ -14,17 +18,21 @@ export type Cursor = {
     nodeId: string;
     source?: string;
     output?: unknown;
-    /** control:wait mode; used by timer ticker. */
     waitMode?: 'sleep' | 'gate';
-    /** control:wait onTimeout; used by timer ticker for gate. */
     onTimeout?: 'fail' | 'continue' | 'interrupt';
   };
   cancellation?: unknown;
-  budget?: { steps: number; tokens: number; startedAt: number };
+  budget?: {
+    steps: number;
+    tokens: number;
+    startedAt: number;
+  };
   barriers?: Record<string, unknown>;
-  timers?: { id: string; fireAt: number }[];
+  timers?: {
+    id: string;
+    fireAt: number;
+  }[];
 };
-
 export type Snapshot = {
   sessionId: string;
   runId: string;
@@ -38,7 +46,6 @@ export type Snapshot = {
   cursor: Cursor;
   artifacts: unknown;
 };
-
 export type Event = {
   eventId: string;
   type: string;

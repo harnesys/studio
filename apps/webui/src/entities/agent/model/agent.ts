@@ -9,15 +9,11 @@ import type {
   ToolOutputSettings,
 } from '@harnesys/studio-shared';
 import type { PermissionMap } from 'harnesys';
-
 export const AGENT_STATUSES = ['idle', 'running', 'waiting', 'error', 'offline'] as const;
-
 export type AgentStatus = (typeof AGENT_STATUSES)[number];
-
 export type Agent = {
   id: string;
   workspaceId: string;
-  /** Null = top-level; set = spawn delegate under that agent. */
   parentId: string | null;
   name: string;
   modelId: string | null;
@@ -32,13 +28,9 @@ export type Agent = {
   mcpServers: string[];
   graph: AgentGraph;
   capabilities: Record<string, PackAssignment | null>;
-  /** Base permission map (mode ceiling / spawn base); null = DEFAULT_PERMISSIONS. */
   permissions: PermissionMap | null;
-  /** Card color (CC palette); null = host default. */
   color: string | null;
-  /** Declarative hook bindings for this agent; empty = none. */
   hooks: HooksBinding[];
-  /** Per-agent plugin enable overrides; full map when set (sparse map disables the rest). */
   enabledPlugins: Record<string, boolean>;
   defaultModeId: string | null;
   modes: AgentMode[];
@@ -49,7 +41,6 @@ export type Agent = {
   lastActiveAt: string;
   currentTask: string;
 };
-
 export type AgentDraft = {
   name: string;
   role: string;
@@ -70,7 +61,6 @@ export type AgentDraft = {
   defaultModeId?: string | null;
   modes?: AgentMode[];
 };
-
 export type AgentPatch = Partial<
   Pick<
     Agent,
@@ -93,14 +83,12 @@ export type AgentPatch = Partial<
     | 'modes'
   >
 >;
-
 export type AgentCapabilitiesPatch = {
   skills?: string[];
   mcpServers?: string[];
   hooks?: HooksBinding[];
   enabledPlugins?: Record<string, boolean>;
 };
-
 export function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
@@ -111,7 +99,6 @@ export function initialsFromName(name: string): string {
   }
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
-
 export function statusTone(status: AgentStatus): 'idle' | 'live' | 'wait' | 'danger' | 'off' {
   switch (status) {
     case 'running':
@@ -126,7 +113,6 @@ export function statusTone(status: AgentStatus): 'idle' | 'live' | 'wait' | 'dan
       return 'idle';
   }
 }
-
 export function statusLabel(status: AgentStatus): string {
   switch (status) {
     case 'idle':
@@ -141,17 +127,15 @@ export function statusLabel(status: AgentStatus): string {
       return 'Offline';
   }
 }
-
 export function formatContextWindow(value: number): string {
-  if (value >= 1_000_000) {
-    return `${value / 1_000_000}M`;
+  if (value >= 1000000) {
+    return `${value / 1000000}M`;
   }
-  if (value >= 1_000) {
-    return `${value / 1_000}k`;
+  if (value >= 1000) {
+    return `${value / 1000}k`;
   }
   return String(value);
 }
-
 export function agentStarters(agent: Agent): string[] {
   return [
     `What would you do first as ${agent.name}?`,

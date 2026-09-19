@@ -17,7 +17,6 @@ function userContentParts(content: unknown[]): Record<string, unknown>[] {
       });
       continue;
     }
-    // Legacy fold shape before materialize mapped to AI SDK file parts.
     if (part.type === 'image' || part.type === 'audio' || part.type === 'video') {
       parts.push({
         type: 'file',
@@ -28,8 +27,6 @@ function userContentParts(content: unknown[]): Record<string, unknown>[] {
   }
   return parts;
 }
-
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: branches for message shapes
 export function toModelMessages(raw: unknown[]): unknown[] {
   const out: unknown[] = [];
   for (const item of raw as Record<string, unknown>[]) {

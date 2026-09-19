@@ -13,9 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-
 import { useOverlayStore } from './store';
-
 export function OverlayProvider() {
   return (
     <>
@@ -24,10 +22,8 @@ export function OverlayProvider() {
     </>
   );
 }
-
 function DialogHost() {
   const { kind, component: Component, options, resolver, close } = useOverlayStore();
-
   function handleOpenChange(isOpen: boolean) {
     if (isOpen || !options) {
       return;
@@ -41,11 +37,9 @@ function DialogHost() {
       close();
     }
   }
-
   if (kind !== 'dialog' || !Component || !options) {
     return null;
   }
-
   return (
     <Dialog open onOpenChange={handleOpenChange}>
       <DialogContent
@@ -65,10 +59,8 @@ function DialogHost() {
     </Dialog>
   );
 }
-
 function AlertHost() {
   const { kind, component: Component, options, resolver, close } = useOverlayStore();
-
   function handleOpenChange(isOpen: boolean) {
     if (isOpen || !options) {
       return;
@@ -82,11 +74,9 @@ function AlertHost() {
       close();
     }
   }
-
   if (kind !== 'alert' || !Component || !options) {
     return null;
   }
-
   return (
     <AlertDialog open onOpenChange={handleOpenChange}>
       <AlertDialogContent

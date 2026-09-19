@@ -1,9 +1,6 @@
 export type PermissionGate = 'allow' | 'ask' | 'deny';
-
 export type PermissionMap = Record<string, PermissionGate>;
-
 export { DEFAULT_PERMISSIONS } from '../constants.ts';
-
 export function resolveToolPermission(operations: string[], map: PermissionMap): PermissionGate {
   if (operations.length === 0) {
     return 'allow';

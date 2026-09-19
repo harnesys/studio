@@ -18,7 +18,6 @@ import { ScrollArea } from '@/shared/ui/scroll-area';
 import { SidebarTrigger } from '@/shared/ui/sidebar';
 import { ideDrag, setIdeDrag, takeIdeDrag } from '../model/ide-dnd';
 import { TabIcon, useTabLabel } from './tab-meta';
-
 export function IdeGroupTabs({
   workspaceId,
   groupId,
@@ -43,7 +42,6 @@ export function IdeGroupTabs({
         .map((id) => ws.tabs.find((t) => t.id === id))
         .filter((t): t is NonNullable<typeof t> => Boolean(t))
     : [];
-
   useLayoutEffect(() => {
     const el = activeRef.current;
     if (!el) {
@@ -59,15 +57,12 @@ export function IdeGroupTabs({
       el.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
     }
   }, []);
-
   if (!group) {
     return null;
   }
   const activeId = group.activeId;
   const hasActiveTab = ws.tabs.some((t) => t.id === ws.activeId);
-
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: drop target for tabs dragged between editor groups
     <div
       className={cn(
         'flex h-10 shrink-0 items-center gap-1 pr-2 pl-3 transition-colors duration-150',
@@ -184,7 +179,6 @@ export function IdeGroupTabs({
       ) : null}
     </div>
   );
-
   function handleSelect(tab: (typeof tabs)[number]) {
     useIdeStore.getState().setDeskActive(workspaceId, tab.id, selectedIds);
     if (tab.threadId) {
@@ -202,7 +196,6 @@ export function IdeGroupTabs({
       void navigate(path);
     }
   }
-
   function handleCloseTab(tabId: string) {
     const before = useIdeStore.getState().byWorkspace[workspaceId];
     const closing = before?.tabs.find((tab) => tab.id === tabId) ?? null;
@@ -224,25 +217,21 @@ export function IdeGroupTabs({
       handleSelect(next);
     }
   }
-
   function handleCloseActive() {
     if (activeId) {
       handleCloseTab(activeId);
     }
   }
-
   function handleCloseAll() {
     useIdeStore.getState().closeAll(workspaceId);
     void navigate(studioPath.desk);
   }
-
   function navigateHomeIfEmpty() {
     if (!useIdeStore.getState().byWorkspace[workspaceId]) {
       void navigate(studioPath.desk);
     }
   }
 }
-
 function IdeTabView({
   tab,
   workspaceId,

@@ -19,14 +19,11 @@ import { mapSqliteError } from '../errors.ts';
 import { type AgentRow, agentsTable } from '../schema';
 import { parseGraph } from './agent-graph-json.ts';
 import { parsePermissionMap } from './agent-permissions-json.ts';
-
 export class SqliteAgentRepo implements AgentRepository {
   constructor(private readonly db: StudioDb) {}
-
   listAll(): Agent[] {
     return this.db.select().from(agentsTable).all().map(toAgent);
   }
-
   listByWorkspace(workspaceId: string): Agent[] {
     return this.db
       .select()
@@ -35,12 +32,10 @@ export class SqliteAgentRepo implements AgentRepository {
       .all()
       .map(toAgent);
   }
-
   findById(id: string): Agent | undefined {
     const row = this.db.select().from(agentsTable).where(eq(agentsTable.id, id)).get();
     return row ? toAgent(row) : undefined;
   }
-
   findByName(workspaceId: string, name: string): Agent | undefined {
     const row = this.db
       .select()
@@ -49,7 +44,6 @@ export class SqliteAgentRepo implements AgentRepository {
       .get();
     return row ? toAgent(row) : undefined;
   }
-
   insert(rec: AgentInsert): Agent {
     try {
       const {
@@ -91,7 +85,6 @@ export class SqliteAgentRepo implements AgentRepository {
       return mapSqliteError(err, { conflict: 'agent name taken in workspace' });
     }
   }
-
   update(id: string, patch: AgentPatch): Agent {
     try {
       const {
@@ -139,16 +132,13 @@ export class SqliteAgentRepo implements AgentRepository {
       return mapSqliteError(err, { conflict: 'agent name taken in workspace' });
     }
   }
-
   delete(id: string): void {
     this.db.delete(agentsTable).where(eq(agentsTable.id, id)).run();
   }
-
   deleteByWorkspace(workspaceId: string): void {
     this.db.delete(agentsTable).where(eq(agentsTable.workspaceId, workspaceId)).run();
   }
 }
-
 function toAgent(row: AgentRow): Agent {
   return {
     id: row.id,
@@ -177,19 +167,12 @@ function toAgent(row: AgentRow): Agent {
     updatedAt: row.updatedAt,
   };
 }
-
 function coalesceCompaction(value: PortRef | undefined): PortRef {
   if (value === undefined) {
     return defaultAgentCompaction();
   }
   return value;
 }
-
-/**
- * Stored pack assignments use the `capabilities_json` column. `true`
- * normalizes to `{}`; objects pass through; `false`, `null`, and
- * `undefined` drop the key.
- */
 function parsePacks(raw: string | null): AgentCapabilitiesMap {
   const parsed = parseJsonObject<AgentCapabilitiesMap>(raw) ?? {};
   const out: AgentCapabilitiesMap = {};
@@ -201,15 +184,12 @@ function parsePacks(raw: string | null): AgentCapabilitiesMap {
   }
   return out;
 }
-
 function serializeJson(value: object | null | undefined): string | null {
   if (value == null) {
     return null;
   }
   return JSON.stringify(value);
 }
-
-/** Shape-guard for stored hook bindings: keep entries with an event name and a handler object. */
 function parseHooks(raw: string | null): HooksBinding[] {
   if (!raw) {
     return [];
@@ -240,8 +220,6 @@ function parseHooks(raw: string | null): HooksBinding[] {
     return [];
   }
 }
-
-/** Boolean-valued entries only; anything else in the column drops. */
 function parseEnabledPlugins(raw: string | null): Record<string, boolean> {
   const parsed = parseJsonObject<Record<string, unknown>>(raw) ?? {};
   const out: Record<string, boolean> = {};
@@ -252,15 +230,12 @@ function parseEnabledPlugins(raw: string | null): Record<string, boolean> {
   }
   return out;
 }
-
-/** Persists JSON including literal `null` (explicit off). */
 function serializeJsonColumn(value: unknown): string | null {
   if (value === undefined) {
     return null;
   }
   return JSON.stringify(value);
 }
-
 function parseJsonColumn<T>(raw: string | null): T | null | undefined {
   if (raw == null) {
     return undefined;
@@ -271,7 +246,6 @@ function parseJsonColumn<T>(raw: string | null): T | null | undefined {
     return undefined;
   }
 }
-
 function parseJsonObject<T extends object>(raw: string | null): T | null {
   if (!raw) {
     return null;
@@ -286,7 +260,6 @@ function parseJsonObject<T extends object>(raw: string | null): T | null {
     return null;
   }
 }
-
 function parseStringList(raw: string): string[] {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -298,7 +271,6 @@ function parseStringList(raw: string): string[] {
     return [];
   }
 }
-
 function parseAgentModes(raw: string): AgentMode[] {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -319,7 +291,6 @@ function parseAgentModes(raw: string): AgentMode[] {
       ) {
         continue;
       }
-      // 'ask' is a legal builtin copy on the agent (Decision 3); only duplicates drop.
       if (!isModeId(candidate.id) || seen.has(candidate.id)) {
         continue;
       }

@@ -8,10 +8,8 @@ import {
   CategoryLandingStarterList,
   CategoryLandingTitle,
 } from '@/shared/ui/category-landing';
-
 export function ThreadEmpty({ agent, threadId }: { agent: Agent; threadId: string }) {
   const starters = agentStarters(agent);
-
   return (
     <CategoryLanding data-testid="chat-empty-thread" className="fade-in animate-in duration-200">
       <CategoryLandingEyebrow>READY</CategoryLandingEyebrow>

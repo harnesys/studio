@@ -10,9 +10,7 @@ import { SpawnView, ThreadPanel } from '@/widgets/chat-transcript';
 import { MediaPreview, TextEditor } from '@/widgets/file-pane';
 import { TerminalView } from '@/widgets/terminal-pane';
 import { ThreadJournal } from '@/widgets/thread-journal';
-
 import { ScheduleSurface, WebhookSurface } from './automation-surface';
-
 export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: string }) {
   const isHydrating = useDeskStore((state) => state.hydrated[workspaceId] !== 'ready');
   const thread = useThreadStore((state) =>

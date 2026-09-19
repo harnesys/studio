@@ -1,21 +1,16 @@
 import { create } from 'zustand';
 import type { LspBridgeStatus } from './lsp-bridge';
-
 export type LspSessionEntry = {
   path: string;
   languageId: string;
   status: LspBridgeStatus;
 };
-
 const EMPTY_SESSIONS: LspSessionEntry[] = [];
-
 type LspSessionsState = {
   byWorkspace: Record<string, LspSessionEntry[]>;
   upsert: (workspaceId: string, entry: LspSessionEntry) => void;
   remove: (workspaceId: string, path: string) => void;
 };
-
-/** Client-side registry of attached LSP bridges, per workspace. Ephemeral, no persist. */
 export const useLspSessionsStore = create<LspSessionsState>((set) => ({
   byWorkspace: {},
   upsert: (workspaceId, entry) =>
@@ -50,7 +45,6 @@ export const useLspSessionsStore = create<LspSessionsState>((set) => ({
       };
     }),
 }));
-
 export function useLspSessions(workspaceId: string | null): LspSessionEntry[] {
   return useLspSessionsStore((state) =>
     workspaceId ? (state.byWorkspace[workspaceId] ?? EMPTY_SESSIONS) : EMPTY_SESSIONS,

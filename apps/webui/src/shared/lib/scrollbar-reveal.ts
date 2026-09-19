@@ -1,7 +1,5 @@
 const IDLE_MS = 600;
-
 const timers = new WeakMap<Element, number>();
-
 function reveal(el: Element) {
   el.setAttribute('data-scrolling', '');
   const prev = timers.get(el);
@@ -16,7 +14,6 @@ function reveal(el: Element) {
     }, IDLE_MS),
   );
 }
-
 document.addEventListener(
   'scroll',
   (event) => {

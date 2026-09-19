@@ -1,6 +1,4 @@
 import type { SessionEvent } from 'harnesys';
-
-/** Flatten a session event into indexable text for episodic chunks. */
 export function eventIndexText(event: SessionEvent): string {
   if (event.type === 'text-delta') {
     return event.text?.trim() ?? '';

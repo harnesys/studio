@@ -1,7 +1,6 @@
 import hljs from 'highlight.js/lib/common';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { useState } from 'react';
-
 import type { CodeLine } from '@/shared/lib/tool-code';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -16,7 +15,6 @@ type ToolCodeViewProps = {
   defaultExpanded?: boolean;
   className?: string;
 };
-
 export function ToolCodeView({
   lines,
   language,
@@ -27,9 +25,7 @@ export function ToolCodeView({
   className,
 }: ToolCodeViewProps) {
   const [copied, setCopied] = useState(false);
-
   const rawFull = copyText ?? lines.map((l) => l.text).join('\n');
-
   const code = lines.map((l) => l.text).join('\n');
   let highlighted = '';
   if (language && hljs.getLanguage(language)) {
@@ -43,13 +39,11 @@ export function ToolCodeView({
     number: line.number,
     html: htmlLines[idx] ?? escapeHtml(line.text),
   }));
-
   const onCopy = async () => {
     await navigator.clipboard.writeText(rawFull);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-
   return (
     <div
       className={cn(
@@ -82,7 +76,6 @@ export function ToolCodeView({
                 <td className="overflow-x-auto whitespace-pre py-0.5 pr-4 pl-3.5 align-top font-mono text-foreground/90">
                   <span
                     className="hljs inline-block min-w-full"
-                    // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js escaped tokens
                     dangerouslySetInnerHTML={{ __html: row.html || ' ' }}
                   />
                 </td>
@@ -94,7 +87,6 @@ export function ToolCodeView({
     </div>
   );
 }
-
 function escapeHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')

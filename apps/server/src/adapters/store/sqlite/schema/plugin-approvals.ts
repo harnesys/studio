@@ -1,5 +1,4 @@
 import { primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-
 export const pluginApprovalsTable = sqliteTable(
   'plugin_approvals',
   {
@@ -12,5 +11,4 @@ export const pluginApprovalsTable = sqliteTable(
     pk: primaryKey({ columns: [table.workspaceId, table.pluginName, table.serverId] }),
   }),
 );
-
 export type PluginApprovalRow = typeof pluginApprovalsTable.$inferSelect;

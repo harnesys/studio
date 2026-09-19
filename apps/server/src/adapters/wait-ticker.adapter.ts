@@ -1,18 +1,14 @@
 import type { PendingSessionEvent, RunLifecycleStore, RunTargets } from 'harnesys';
 import { DEFAULT_WAIT_TICK_INTERVAL_MS, EXPIRED_ASKS_BATCH } from '../config/constants.ts';
-
 export type WaitTickerDeps = {
   lifecycle: RunLifecycleStore;
   targets: RunTargets;
   kick: () => void;
   intervalMs?: number;
 };
-
-/**
- * Wakes `waiting` runs whose waitFireAt has passed.
- * sleep → resume { timedOut: false }; gate timeout → onTimeout policy from snapshot.
- */
-export function startWaitTicker(deps: WaitTickerDeps): { stop(): void } {
+export function startWaitTicker(deps: WaitTickerDeps): {
+  stop(): void;
+} {
   const sweep = async (): Promise<void> => {
     const due = await deps.lifecycle.listDueTimers({
       limit: EXPIRED_ASKS_BATCH,
@@ -28,7 +24,6 @@ export function startWaitTicker(deps: WaitTickerDeps): { stop(): void } {
         const interrupt = snap?.cursor.interrupt;
         const waitMode = interrupt?.waitMode ?? (interrupt?.source === 'timer' ? 'sleep' : 'gate');
         const onTimeout = interrupt?.onTimeout ?? 'fail';
-
         if (waitMode === 'gate' && onTimeout === 'fail') {
           await deps.lifecycle.transition(rec.runId, rec.leaseEpoch, {
             from: 'waiting',
@@ -45,7 +40,6 @@ export function startWaitTicker(deps: WaitTickerDeps): { stop(): void } {
           deps.kick();
           continue;
         }
-
         if (waitMode === 'gate' && onTimeout === 'interrupt') {
           await deps.lifecycle.transition(rec.runId, rec.leaseEpoch, {
             from: 'waiting',
@@ -64,7 +58,6 @@ export function startWaitTicker(deps: WaitTickerDeps): { stop(): void } {
           deps.kick();
           continue;
         }
-
         const timedOut = waitMode === 'gate';
         await deps.lifecycle.transition(rec.runId, rec.leaseEpoch, {
           from: 'waiting',
@@ -80,9 +73,7 @@ export function startWaitTicker(deps: WaitTickerDeps): { stop(): void } {
           ],
         });
         deps.kick();
-      } catch {
-        // CAS lost to respond/cancel
-      }
+      } catch {}
     }
   };
   const intervalMs = deps.intervalMs ?? DEFAULT_WAIT_TICK_INTERVAL_MS;

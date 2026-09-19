@@ -2,21 +2,16 @@ import { definePack } from '../../domain/pack.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 import { duckduckgoSearch, searxngSearch } from './search-providers.ts';
-
 export type WebSearchProviderName = 'duckduckgo' | 'searxng';
-
 export const WEB_SEARCH_PROVIDERS: readonly WebSearchProviderName[] = ['duckduckgo', 'searxng'];
-
 export type WebSearchPackSpec = {
   provider?: WebSearchProviderName;
   searxngUrl?: string;
   maxResults?: number;
 };
-
 const DEFAULT_SEARXNG_URL = 'http://localhost:8888';
 const DEFAULT_MAX_RESULTS = 5;
 const MAX_RESULTS_LIMIT = 20;
-
 export const webSearchCapability = definePack<Record<string, unknown>, WebSearchPackSpec>({
   name: 'web_search',
   version: '1.0.0',
@@ -44,7 +39,6 @@ export const webSearchCapability = definePack<Record<string, unknown>, WebSearch
   },
   create: (ctx) => ({ tools: [webSearchTool(webSearchSpecOf(ctx.spec))] }),
 });
-
 export function webSearchTool(spec: WebSearchPackSpec): ToolDefinition {
   const provider =
     spec.provider === 'searxng'
@@ -66,7 +60,10 @@ export function webSearchTool(spec: WebSearchPackSpec): ToolDefinition {
       required: ['query'],
     },
     execute: async (raw) => {
-      const input = raw as { query?: string; max_results?: number };
+      const input = raw as {
+        query?: string;
+        max_results?: number;
+      };
       const query = input.query?.trim() ?? '';
       if (query === '') {
         return { error: 'query is required' };
@@ -82,7 +79,6 @@ export function webSearchTool(spec: WebSearchPackSpec): ToolDefinition {
     },
   });
 }
-
 function webSearchSpecOf(spec: Record<string, unknown>): WebSearchPackSpec {
   const provider = readProvider(spec);
   const searxngUrl = readSearxngUrl(spec);
@@ -96,19 +92,16 @@ function webSearchSpecOf(spec: Record<string, unknown>): WebSearchPackSpec {
     ...(maxResults !== undefined ? { maxResults } : {}),
   };
 }
-
 function readProvider(spec: Record<string, unknown>): WebSearchProviderName | undefined {
   if (spec.provider === 'duckduckgo' || spec.provider === 'searxng') {
     return spec.provider;
   }
   return undefined;
 }
-
 function readSearxngUrl(spec: Record<string, unknown>): string | undefined {
   const url = typeof spec.searxngUrl === 'string' ? spec.searxngUrl.trim() : '';
   return url === '' ? undefined : url;
 }
-
 function clampMaxResults(value: number | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 1) {
     return DEFAULT_MAX_RESULTS;

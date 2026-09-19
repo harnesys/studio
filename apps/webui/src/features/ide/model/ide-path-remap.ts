@@ -2,17 +2,10 @@ import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { normalizeWorkspacePath, remapWorkspacePath } from '@/shared/lib/workspace-path';
 import type { IdeTab } from './ide.store';
 import type { IdeWorkspaceState } from './ide-layout';
-
 export type IdePathRemap = {
   tabs: IdeTab[];
-  /** old tab id → new tab id, for groups and active pointers. */
   idByOldId: Map<string, string>;
 };
-
-/**
- * Move file/diff tabs onto their new paths. Tab ids are path-derived, so a moved
- * file gets a new id and every group pointer must follow.
- */
 export function remapTabPaths(tabs: IdeTab[], moves: WorkspaceMoveItem[]): IdePathRemap {
   const idByOldId = new Map<string, string>();
   const next = tabs.map((tab) => {
@@ -30,8 +23,6 @@ export function remapTabPaths(tabs: IdeTab[], moves: WorkspaceMoveItem[]): IdePa
   });
   return { tabs: next, idByOldId };
 }
-
-/** Workspace state after a move, or null when no open file was affected. */
 export function remapWorkspacePaths(
   ws: IdeWorkspaceState,
   moves: WorkspaceMoveItem[],

@@ -1,18 +1,15 @@
 import type { EpisodicPort, MemoryScopeId } from '../../ports/memory.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
-
 export type CreateEpisodicToolsParams = {
   port: EpisodicPort;
   resolveScope: () => MemoryScopeId;
   topK?: number | (() => number | undefined);
 };
-
 type RecallSearchInput = {
   query: string;
   threadId?: string;
   limit?: number;
 };
-
 export function createEpisodicTools(params: CreateEpisodicToolsParams): ToolDefinition[] {
   const { port, resolveScope } = params;
   const configuredTopK = params.topK;

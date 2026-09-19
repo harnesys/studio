@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-
 import { providersQuery } from '@/shared/api';
 import {
   Select,
@@ -10,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-
 import {
   EMBED_NONE,
   embedModelGroups,
@@ -26,7 +24,6 @@ type EmbedModelSelectProps = {
   disabled?: boolean;
   id?: string;
 };
-
 export function EmbedModelSelect({
   workspaceId,
   embedProvider,
@@ -42,7 +39,6 @@ export function EmbedModelSelect({
     value === EMBED_NONE
       ? null
       : groups.flatMap((group) => group.models).find((item) => item.value === value);
-
   return (
     <Select
       items={[

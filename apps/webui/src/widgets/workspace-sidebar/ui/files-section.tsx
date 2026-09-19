@@ -40,7 +40,6 @@ import { ExplorerContent } from './explorer-content';
 import { SectionMenu } from './section-menu';
 
 type RootDropState = 'valid' | 'invalid' | null;
-
 export function ExplorerTitle({ workspaceIds }: { workspaceIds: string[] }) {
   const indexQueries = useQueries({
     queries: workspaceIds.map((workspaceId) => ({
@@ -49,7 +48,6 @@ export function ExplorerTitle({ workspaceIds }: { workspaceIds: string[] }) {
     })),
   });
   const isIndexing = indexQueries.some((query) => query.data?.status === 'running');
-
   return (
     <span className="flex items-center gap-1.5">
       Explorer
@@ -63,11 +61,9 @@ export function ExplorerTitle({ workspaceIds }: { workspaceIds: string[] }) {
     </span>
   );
 }
-
 export function ExplorerActions() {
   const showHidden = useExplorerHiddenStore((state) => state.showHidden);
   const setShowHidden = useExplorerHiddenStore((state) => state.setShowHidden);
-
   return (
     <SectionMenu label="Explorer actions" contentClassName="min-w-44">
       <DropdownMenuGroup>
@@ -79,18 +75,15 @@ export function ExplorerActions() {
     </SectionMenu>
   );
 }
-
 export function ExplorerFolderMenu({
   workspaceId,
   dirPath,
 }: {
   workspaceId: string;
-  /** Empty string = workspace root. */
   dirPath: string;
 }) {
   const start = useExplorerDraftStore((state) => state.start);
   const label = dirPath || 'workspace root';
-
   const copyPath = async () => {
     const text = dirPath || '.';
     try {
@@ -100,7 +93,6 @@ export function ExplorerFolderMenu({
       toast.add({ title: 'Could not copy path' });
     }
   };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -154,11 +146,9 @@ export function ExplorerFolderMenu({
     </DropdownMenu>
   );
 }
-
 function canMoveToWorkspaceRoot(paths: string[]): boolean {
   return canDropInto(paths, '') && buildMoveItems(paths, '').length > 0;
 }
-
 function ExplorerWorkspaceRoot({
   workspaceId,
   name,
@@ -174,7 +164,6 @@ function ExplorerWorkspaceRoot({
 }) {
   const moveMutation = useMoveWorkspaceFiles(workspaceId);
   const [dropState, setDropState] = useState<RootDropState>(null);
-
   const handleDragOver = (event: React.DragEvent) => {
     const drag = moveDrag();
     if (!drag || drag.workspaceId !== workspaceId) {
@@ -190,13 +179,11 @@ function ExplorerWorkspaceRoot({
     event.dataTransfer.dropEffect = 'move';
     setDropState('valid');
   };
-
   const handleDragLeave = (event: React.DragEvent) => {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
       setDropState(null);
     }
   };
-
   const handleDrop = (event: React.DragEvent) => {
     setDropState(null);
     const drag = moveDrag();
@@ -211,9 +198,7 @@ function ExplorerWorkspaceRoot({
       moveMutation.mutate(items);
     }
   };
-
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: workspace catalog row is a drop target for moves to root
     <div
       className={cn(
         'group/ws relative flex items-center rounded-md hover:bg-sidebar-accent/70',
@@ -254,13 +239,11 @@ function ExplorerWorkspaceRoot({
     </div>
   );
 }
-
 export function ExplorerTrees({ workspaceIds }: { workspaceIds: string[] }) {
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
   const [expandedRoots, setExpandedRoots] = useState<Set<string>>(() => new Set(workspaceIds));
   const multi = workspaceIds.length > 1;
-
   useEffect(() => {
     setExpandedRoots((prev) => {
       const next = new Set(prev);
@@ -275,7 +258,6 @@ export function ExplorerTrees({ workspaceIds }: { workspaceIds: string[] }) {
       return next;
     });
   }, [workspaceIds]);
-
   if (workspaceIds.length === 0) {
     return (
       <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
@@ -283,7 +265,6 @@ export function ExplorerTrees({ workspaceIds }: { workspaceIds: string[] }) {
       </p>
     );
   }
-
   return (
     <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
       {workspaceIds.map((id) => {

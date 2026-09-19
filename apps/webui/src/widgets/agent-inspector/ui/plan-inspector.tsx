@@ -1,12 +1,10 @@
 import { useEffect } from 'react';
-
 import type { PlanItemStatus } from '@/entities/plan';
 import { loadThreadPlan, planProgress, usePlanStore } from '@/entities/plan';
 import { useSessionStore } from '@/entities/session';
 import { useSelectedThread } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
-
 import { Section } from './section';
 
 const STATUS_LABEL: Record<PlanItemStatus, string> = {
@@ -16,7 +14,6 @@ const STATUS_LABEL: Record<PlanItemStatus, string> = {
   failed: 'failed',
   cancelled: 'cancelled',
 };
-
 const MARKER_CLASS: Record<PlanItemStatus, string> = {
   pending: 'border border-muted-foreground/40 bg-background',
   in_progress: 'animate-pulse bg-live',
@@ -24,7 +21,6 @@ const MARKER_CLASS: Record<PlanItemStatus, string> = {
   failed: 'bg-destructive',
   cancelled: 'bg-muted-foreground/40',
 };
-
 export function PlanInspector() {
   const thread = useSelectedThread();
   const threadId = thread?.id ?? null;
@@ -32,21 +28,16 @@ export function PlanInspector() {
   const streaming = useSessionStore((state) =>
     threadId ? Boolean(state.activeRuns[threadId]) : false,
   );
-
   useEffect(() => {
     if (threadId) {
       void loadThreadPlan(threadId);
     }
   }, [threadId]);
-
-  // Desk SSE уже пушит plan-события живьём; догрузка после рана и по фокусу
-  // закрывает пропущенные кадры и держит инспектор на реальном состоянии.
   useEffect(() => {
     if (threadId && !streaming) {
       void loadThreadPlan(threadId);
     }
   }, [threadId, streaming]);
-
   useEffect(() => {
     if (!threadId) {
       return;
@@ -59,13 +50,10 @@ export function PlanInspector() {
       window.removeEventListener('focus', onFocus);
     };
   }, [threadId]);
-
   if (!threadId || !plan || plan.items.length === 0) {
     return null;
   }
-
   const { done, total } = planProgress(plan);
-
   return (
     <Section label="Plan" hint={`${done}/${total}`}>
       <ol className="flex flex-col" data-testid="plan-inspector">

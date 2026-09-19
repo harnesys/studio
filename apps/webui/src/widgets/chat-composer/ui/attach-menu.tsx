@@ -1,6 +1,5 @@
 import { AudioLinesIcon, FileIcon, ImageIcon, PlusIcon, VideoIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,16 +7,18 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { InputGroupButton } from '@/shared/ui/input-group';
-
 import { type AttachKind, acceptFor } from '../model/model-input';
 
-const ITEMS: { kind: AttachKind; label: string; icon: typeof ImageIcon }[] = [
+const ITEMS: {
+  kind: AttachKind;
+  label: string;
+  icon: typeof ImageIcon;
+}[] = [
   { kind: 'image', label: 'Image', icon: ImageIcon },
   { kind: 'audio', label: 'Audio', icon: AudioLinesIcon },
   { kind: 'video', label: 'Video', icon: VideoIcon },
   { kind: 'file', label: 'File', icon: FileIcon },
 ];
-
 export function AttachMenu({
   allowed,
   disabled,
@@ -30,7 +31,6 @@ export function AttachMenu({
   const input = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const blocked = disabled || allowed.length === 0;
-
   return (
     <>
       <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -72,7 +72,6 @@ export function AttachMenu({
       />
     </>
   );
-
   function openPicker(kind: AttachKind) {
     const node = input.current;
     if (!node) {

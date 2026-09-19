@@ -1,5 +1,4 @@
 import type { GitStatusCounts } from '@harnesys/studio-shared';
-
 export function formatCountsShort(counts: GitStatusCounts): string {
   const parts: string[] = [];
   if (counts.untracked) {
@@ -25,7 +24,6 @@ export function formatCountsShort(counts: GitStatusCounts): string {
   }
   return parts.join(' ');
 }
-
 export function GitCounts({ counts }: { counts: GitStatusCounts }) {
   const items: React.ReactNode[] = [];
   if (counts.untracked) {

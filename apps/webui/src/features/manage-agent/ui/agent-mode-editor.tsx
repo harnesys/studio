@@ -8,7 +8,6 @@ import { Input } from '@/shared/ui/input';
 import { Switch } from '@/shared/ui/switch';
 import { Textarea } from '@/shared/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 import { MODE_INSTRUCTIONS_MAX } from '../model/agent-mode-fields';
 import {
@@ -34,7 +33,6 @@ type AgentModeEditorProps = {
   onSetDefault: (next: boolean) => void;
   base: PermissionMap | null;
 };
-
 const GATES: {
   name: 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp' | 'permAgents';
   label: string;
@@ -46,20 +44,14 @@ const GATES: {
   { name: 'permMcp', label: 'MCP tools', op: 'mcp' },
   { name: 'permAgents', label: 'Create agents', op: 'agents' },
 ];
-
 const GATE_SEVERITY: Record<PermissionGate, number> = { allow: 0, ask: 1, deny: 2 };
 const GATE_VALUES: PermissionGate[] = ['allow', 'ask', 'deny'];
-
-/** A mode gate may only match or exceed the agent base gate, never loosen it. */
 function allowedGates(baseGate: PermissionGate): PermissionGate[] {
   return GATE_VALUES.filter((gate) => GATE_SEVERITY[gate] >= GATE_SEVERITY[baseGate]);
 }
-
-/** Absent base op follows DEFAULT_PERMISSIONS: every gated mode op defaults to 'ask'. */
 function baseGateFor(base: PermissionMap | null, op: ModeOp): PermissionGate {
   return base?.[op] ?? 'ask';
 }
-
 export function AgentModeEditor({
   form,
   index,
@@ -73,9 +65,6 @@ export function AgentModeEditor({
 }: AgentModeEditorProps) {
   const mode = useWatch({ control: form.control, name: `modes.${index}` });
   const selectedSkills = mode?.skills ?? [];
-  // Map-форма: `mode.packs` — preload-подмножество (пустая карта = preload всего
-  // агентского набора); per-tool сужение — плоские `mode.disabledTools`/`mode.exposure`
-  // (тот же PackOverride-формат, который применяет резолвер).
   const modePacks = mode?.packs ?? {};
   const preloadEmpty = Object.keys(modePacks).length === 0;
   const modeOverride = {
@@ -84,32 +73,26 @@ export function AgentModeEditor({
   };
   const instructions = form.watch(`modes.${index}.instructions`) ?? '';
   const instructionsError = form.formState.errors.modes?.[index]?.instructions?.message;
-
   function toggleSkills(skillName: string) {
     const next = selectedSkills.includes(skillName)
       ? selectedSkills.filter((item) => item !== skillName)
       : [...selectedSkills, skillName];
     form.setValue(`modes.${index}.skills`, next, { shouldDirty: true });
   }
-
   function setModePacks(next: PackAssignmentMap) {
     form.setValue(`modes.${index}.packs`, next, { shouldDirty: true });
   }
-
   function toggleModeGrant(packName: string, next: boolean) {
     setModePacks(setSourceGrant(expandEmptyPreload(modePacks, packNames), packName, next));
   }
-
   function toggleModeTool(tool: string, disable: boolean) {
     const next = withDisabledTool(modeOverride, tool, disable).disabledTools ?? [];
     form.setValue(`modes.${index}.disabledTools`, next, { shouldDirty: true });
   }
-
   function setModeExposure(tool: string, exposure: ToolExposure) {
     const next = withToolExposure(modeOverride, tool, exposure).exposure ?? {};
     form.setValue(`modes.${index}.exposure`, next, { shouldDirty: true });
   }
-
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid="agent-mode-editor">
       <div className="flex items-center justify-between gap-3 py-2">
@@ -240,7 +223,6 @@ export function AgentModeEditor({
     </div>
   );
 }
-
 function Checklist({
   title,
   emptyHint,
@@ -283,7 +265,6 @@ function Checklist({
     </section>
   );
 }
-
 function isGate(value: string): value is ModeOpGate {
   return value === 'allow' || value === 'ask' || value === 'deny';
 }

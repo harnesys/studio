@@ -1,6 +1,4 @@
 import type { AgentRepository } from '../../domain/agent.port.ts';
-
-/** First free display name: `Coder`, then `Coder 2`, `Coder 3`, … */
 export function uniqueAgentName(
   agents: AgentRepository,
   workspaceId: string,

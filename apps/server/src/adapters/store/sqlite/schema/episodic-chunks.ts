@@ -8,7 +8,6 @@ import {
 } from 'drizzle-orm/sqlite-core';
 import { threadsTable } from './threads.ts';
 import { workspacesTable } from './workspaces.ts';
-
 export const episodicChunksTable = sqliteTable(
   'episodic_chunks',
   {
@@ -34,6 +33,5 @@ export const episodicChunksTable = sqliteTable(
     threadSeqIdx: index('episodic_chunks_thread_seq_idx').on(table.threadId, table.seq),
   }),
 );
-
 export type EpisodicChunkRow = typeof episodicChunksTable.$inferSelect;
 export type EpisodicChunkInsert = typeof episodicChunksTable.$inferInsert;

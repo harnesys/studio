@@ -1,5 +1,4 @@
 import './agent-graph-flow.css';
-
 import {
   applyEdgeChanges,
   applyNodeChanges,
@@ -12,10 +11,8 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useCallback } from 'react';
-
 import { Button } from '@/shared/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import type {
   AgentGraphFlowEdge,
   AgentGraphFlowNode,
@@ -27,7 +24,6 @@ import { AGENT_GRAPH_DND_TYPE } from './agent-graph-palette';
 
 const NODE_TYPES = { 'agent-graph-node': AgentGraphNode };
 const DEFAULT_EDGE_OPTIONS = { type: 'default' as const };
-
 export type AgentGraphCanvasProps = {
   nodes: AgentGraphFlowNode[];
   edges: AgentGraphFlowEdge[];
@@ -35,10 +31,15 @@ export type AgentGraphCanvasProps = {
   onNodesChange: (nodes: AgentGraphFlowNode[]) => void;
   onEdgesChange: (edges: AgentGraphFlowEdge[]) => void;
   onRankdirChange: (rankdir: GraphRankdir) => void;
-  onDropType: (type: string, position: { x: number; y: number }) => void;
+  onDropType: (
+    type: string,
+    position: {
+      x: number;
+      y: number;
+    },
+  ) => void;
   onSelectionChange: (selection: { nodeIds: string[]; edgeIds: string[] }) => void;
 };
-
 export function AgentGraphCanvas({
   nodes,
   edges,
@@ -50,21 +51,18 @@ export function AgentGraphCanvas({
   onSelectionChange,
 }: AgentGraphCanvasProps) {
   const { screenToFlowPosition, fitView } = useReactFlow();
-
   const handleNodesChange = useCallback(
     (changes: NodeChange<AgentGraphFlowNode>[]) => {
       onNodesChange(applyNodeChanges(changes, nodes));
     },
     [nodes, onNodesChange],
   );
-
   const handleEdgesChange = useCallback(
     (changes: EdgeChange<AgentGraphFlowEdge>[]) => {
       onEdgesChange(applyEdgeChanges(changes, edges));
     },
     [edges, onEdgesChange],
   );
-
   const isValidConnection = useCallback(
     (connection: Connection | AgentGraphFlowEdge) => {
       const source = nodes.find((node) => node.id === connection.source);
@@ -82,7 +80,6 @@ export function AgentGraphCanvas({
     },
     [nodes],
   );
-
   const onConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target) {
@@ -104,7 +101,6 @@ export function AgentGraphCanvas({
     },
     [edges, isValidConnection, onEdgesChange],
   );
-
   const runAutoLayout = useCallback(() => {
     const positions = layoutGraph(
       nodes.map((node) => ({ id: node.id })),
@@ -122,7 +118,6 @@ export function AgentGraphCanvas({
       void fitView({ padding: 0.2, duration: 200 });
     });
   }, [edges, fitView, nodes, onNodesChange, rankdir]);
-
   const setRankdir = useCallback(
     (next: GraphRankdir) => {
       onRankdirChange(next);
@@ -135,7 +130,6 @@ export function AgentGraphCanvas({
     },
     [nodes, onNodesChange, onRankdirChange],
   );
-
   return (
     <div className="agent-graph-flow absolute inset-0 min-h-0 min-w-0">
       <div className="pointer-events-auto absolute right-2 bottom-2 z-20 flex items-center gap-1.5">

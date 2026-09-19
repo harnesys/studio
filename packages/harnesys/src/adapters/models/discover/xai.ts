@@ -5,7 +5,6 @@ import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { XAI_DEFAULT_URL };
-
 export function listXaiModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, XAI_DEFAULT_URL),
@@ -14,7 +13,6 @@ export function listXaiModels(input: DiscoverInput): Promise<DiscoveredModel[]> 
     parse: parseXaiList,
   });
 }
-
 export function parseXaiList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -25,17 +23,14 @@ export function parseXaiList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapXaiModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const name = asString(record?.id);
   if (!record || !name) {
     return undefined;
   }
-
   const contextLength = asNumber(record.context_length);
   const hasReasoning = /reasoning|grok-3|grok-4/i.test(name);
-
   return {
     name,
     kind: 'chat',

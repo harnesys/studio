@@ -1,14 +1,12 @@
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 import type { McpConnection, RawToolDescriptor } from './mcp-connector.port.ts';
-
 export type CreateMcpToolParams = {
   serverId: string;
   prefix: string;
   raw: RawToolDescriptor;
   conn: McpConnection;
 };
-
 export function createMcpTool(params: CreateMcpToolParams): ToolDefinition {
   const { serverId, prefix, raw, conn } = params;
   return tool(`${prefix}${raw.name}`, {

@@ -4,42 +4,30 @@ import { pathToFileURL } from 'node:url';
 import type { LspServerSpec } from 'harnesys';
 import type { LspDiagnostic } from 'harnesys/lsp';
 import { isRecord } from './lsp-messages.ts';
-
-/**
- * Per-session document state: open/close lifecycle, monotonically increasing
- * document versions, disk-change resync (agent edits, editor saves) and the
- * latest publishDiagnostics cache.
- */
 export class LspDocuments {
   private readonly opened = new Set<string>();
   private readonly diagnosticsByUri = new Map<string, LspDiagnostic[]>();
   private readonly versions = new Map<string, number>();
   private readonly mtimeByUri = new Map<string, number>();
   private readonly lastSentText = new Map<string, string>();
-
   constructor(
     private readonly config: LspServerSpec,
     private readonly send: (message: object) => void,
   ) {}
-
   supportsPath(filePath: string): boolean {
     const ext = extname(filePath);
     return ext in this.config.extensionToLanguage;
   }
-
   async diagnostics(absPath: string): Promise<LspDiagnostic[]> {
     await this.ensureOpen(absPath);
     await this.syncIfChangedOnDisk(absPath);
     const uri = pathToFileURL(absPath).href;
-    // The server publishes diagnostics after analyzing the file; wait for the
-    // first publish for this uri, then serve from the map on every later call.
-    const deadline = Date.now() + 20_000;
+    const deadline = Date.now() + 20000;
     while (!this.diagnosticsByUri.has(uri) && Date.now() < deadline) {
       await sleep(100);
     }
     return this.diagnosticsByUri.get(uri) ?? [];
   }
-
   async ensureOpen(absPath: string): Promise<void> {
     const uri = pathToFileURL(absPath).href;
     if (this.opened.has(uri)) {
@@ -61,14 +49,6 @@ export class LspDocuments {
     this.lastSentText.set(uri, text);
     this.mtimeByUri.delete(uri);
   }
-
-  /**
-   * The file may have been edited outside this session (agent tools, editor save).
-   * If mtime changed since the last sync, push the fresh content as a full-text
-   * didChange and drop cached diagnostics so the next read waits for a fresh publish.
-   * When the disk text equals what was already sent (e.g. the editor bridge pushed
-   * the same buffer), only the mtime marker moves — no duplicate didChange.
-   */
   async syncIfChangedOnDisk(absPath: string): Promise<void> {
     const uri = pathToFileURL(absPath).href;
     if (!this.opened.has(uri)) {
@@ -89,15 +69,11 @@ export class LspDocuments {
     }
     this.mtimeByUri.set(uri, mtimeMs);
   }
-
-  /** Resync only when this document is already open in the session (watcher push). */
   async syncIfOpened(absPath: string): Promise<void> {
     if (this.opened.has(pathToFileURL(absPath).href)) {
       await this.syncIfChangedOnDisk(absPath);
     }
   }
-
-  /** Watcher push: close the document if open (file moved or deleted on disk). */
   closeIfOpened(absPath: string): void {
     const uri = pathToFileURL(absPath).href;
     if (!this.opened.has(uri)) {
@@ -114,8 +90,6 @@ export class LspDocuments {
     this.mtimeByUri.delete(uri);
     this.lastSentText.delete(uri);
   }
-
-  /** Normalize an outgoing didChange from an external client (editor bridge). */
   normalizeOutgoingDidChange(message: Record<string, unknown>): void {
     if (message.method !== 'textDocument/didChange' || !isRecord(message.params)) {
       return;
@@ -134,8 +108,6 @@ export class LspDocuments {
     }
     this.diagnosticsByUri.delete(doc.uri);
   }
-
-  /** Store a normalized publishDiagnostics payload. */
   publish(
     uri: string,
     rawList: unknown[],
@@ -148,7 +120,6 @@ export class LspDocuments {
         .filter((item): item is LspDiagnostic => item !== undefined),
     );
   }
-
   private sendDidChange(uri: string, text: string): void {
     this.send({
       jsonrpc: '2.0',
@@ -161,14 +132,12 @@ export class LspDocuments {
     this.lastSentText.set(uri, text);
     this.diagnosticsByUri.delete(uri);
   }
-
   private bumpVersion(uri: string): number {
     const next = (this.versions.get(uri) ?? 0) + 1;
     this.versions.set(uri, next);
     return next;
   }
 }
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -7,7 +7,6 @@ import type {
 import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
-
 import {
   changedOptionValues,
   confirmRemovePlugin,
@@ -47,17 +46,14 @@ import { toast } from '@/shared/ui/toast';
 
 const SERVER_APPROVAL_REASON = 'needs_server_approval';
 const MCP_SERVER_KIND = 'mcp-server';
-
 export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const pluginsListQuery = useQuery(pluginsQuery(workspaceId));
   const items = pluginsListQuery.data ?? [];
   const [expandedName, setExpandedName] = useState<string | null>(null);
-
   async function invalidatePlugins() {
     await invalidatePluginAndMcp(queryClient, workspaceId);
   }
-
   const reload = useMutation({
     mutationFn: () => listPlugins(workspaceId),
     onSuccess: async () => {
@@ -65,7 +61,6 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
       toast.add({ title: 'Plugins reloaded' });
     },
   });
-
   const update = useMutation({
     mutationFn: (name: string) => updatePlugin(workspaceId, name),
     onSuccess: async (result) => {
@@ -79,7 +74,6 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
       });
     },
   });
-
   const remove = useMutation({
     mutationFn: (name: string) => removePlugin(workspaceId, name),
     onSuccess: async (_result, name) => {
@@ -87,9 +81,7 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
       toast.add({ title: 'Plugin removed', description: name });
     },
   });
-
   const busy = update.isPending || remove.isPending;
-
   return (
     <div className="flex flex-col gap-2" data-testid="plugins-installed-tab">
       <RowHeader label="Installed" count={pluginsListQuery.isPending ? undefined : items.length}>
@@ -223,14 +215,11 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
     </div>
   );
 }
-
-/** Everything the drawer showed, now inline: source, components, grants, settings, diagnostics. */
 function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId: string }) {
   const plugin = item.plugin;
   const queryClient = useQueryClient();
   const [grants, setGrants] = useState(() => plugin.grants);
   const [drafts, setDrafts] = useState<PluginOptionDraft[]>(() => optionDrafts(plugin));
-
   const grantsMutation = useMutation({
     mutationFn: (classes: GrantClass[]) => {
       if (!workspaceId) {
@@ -242,7 +231,6 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
       await invalidatePluginAndMcp(queryClient, workspaceId);
     },
   });
-
   const approveMutation = useMutation({
     mutationFn: (serverId: string) => approvePluginServer(workspaceId, plugin.name, { serverId }),
     onSuccess: async (_result, serverId) => {
@@ -250,9 +238,13 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
       toast.add({ title: 'Server approved', description: serverId });
     },
   });
-
   const optionsMutation = useMutation({
-    mutationFn: (changes: { key: string; value: PluginOptionValue }[]) => {
+    mutationFn: (
+      changes: {
+        key: string;
+        value: PluginOptionValue;
+      }[],
+    ) => {
       if (!workspaceId) {
         throw new Error('No workspace');
       }
@@ -270,11 +262,9 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
       toast.add({ title: 'Options saved' });
     },
   });
-
   const busy = grantsMutation.isPending || approveMutation.isPending || optionsMutation.isPending;
   const grantList = grantedClasses(grants);
   const optionChanges = changedOptionValues(drafts);
-
   return (
     <div className="flex flex-col pb-1" data-testid={`plugin-detail-${plugin.name}`}>
       {plugin.description ? (
@@ -363,7 +353,6 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
         <RowSection label="Diagnostics" count={item.diagnostics.length}>
           {item.diagnostics.map((diagnostic, index) => (
             <DiagnosticLine
-              // biome-ignore lint/suspicious/noArrayIndexKey: display-only lines may repeat codes
               key={`${diagnostic.level}:${diagnostic.code}:${index}`}
               diagnostic={diagnostic}
             />
@@ -373,7 +362,6 @@ function PluginDetail({ item, workspaceId }: { item: PluginListItem; workspaceId
     </div>
   );
 }
-
 async function invalidatePluginAndMcp(queryClient: QueryClient, workspaceId?: string | null) {
   if (!workspaceId) {
     return;
@@ -384,7 +372,6 @@ async function invalidatePluginAndMcp(queryClient: QueryClient, workspaceId?: st
     queryClient.invalidateQueries({ queryKey: workspaceMcpQueryKey(workspaceId) }),
   ]);
 }
-
 function DiagnosticChip({ diagnostics }: { diagnostics: PluginDiagnostic[] }) {
   const errors = diagnostics.filter((diagnostic) => diagnostic.level === 'error').length;
   const warnings = diagnostics.length - errors;
@@ -403,7 +390,6 @@ function DiagnosticChip({ diagnostics }: { diagnostics: PluginDiagnostic[] }) {
     </>
   );
 }
-
 function DiagnosticLine({ diagnostic }: { diagnostic: PluginDiagnostic }) {
   return (
     <div className="flex min-w-0 gap-2 px-1 py-0.5">

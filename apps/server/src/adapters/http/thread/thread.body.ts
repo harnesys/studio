@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 const optionalText = z.string().trim().nullish();
-
 export const createThreadBody = z.object({
   title: optionalText,
   agentId: z.string().trim().nullish(),
@@ -11,7 +10,6 @@ export const createThreadBody = z.object({
   parentThreadId: z.string().trim().nullish(),
   forkAt: z.string().trim().nullish(),
 });
-
 export const updateThreadBody = z.object({
   title: optionalText,
   agentId: z.string().trim().nullish(),
@@ -19,7 +17,6 @@ export const updateThreadBody = z.object({
   kind: z.enum(['chat', 'schedule']).optional(),
   pinned: z.boolean().optional(),
 });
-
 export const sendThreadRunBody = z
   .object({
     clientId: z.string().uuid().optional(),
@@ -39,12 +36,10 @@ export const sendThreadRunBody = z
   .refine((value) => (value.skills?.length ? (value.text?.length ?? 0) > 0 : true), {
     message: 'skills require text',
   });
-
 export const respondRunBody = z.object({
   askId: z.string().trim().min(1),
   payload: z.unknown().optional(),
 });
-
 export const rejectRunBody = z.object({
   askId: z.string().trim().min(1),
   note: z.string().trim().optional(),

@@ -13,24 +13,15 @@ import type {
   GetWorkspaceMcpConfigInput,
   GetWorkspaceMcpConfigResponse,
 } from './get-workspace-mcp-config.use-case.ts';
-
 export type SetMcpServerStateRequest = {
   workspaceId: string;
   serverId: string;
   enabled: boolean;
 };
-
 export type SetMcpServerStateResponse = GetWorkspaceMcpConfigResponse;
-
 export type SetMcpServerStateInput = {
   execute(request: SetMcpServerStateRequest): Promise<SetMcpServerStateResponse>;
 };
-
-/**
- * Single on/off switch for both server kinds. Workspace servers persist
- * `enabled` in `.harnesys/mcp.json`; plugin servers persist a per-workspace
- * disabled row (approval and grants are kept, so re-enable is instant).
- */
 export class SetMcpServerStateUseCase implements SetMcpServerStateInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
@@ -38,7 +29,6 @@ export class SetMcpServerStateUseCase implements SetMcpServerStateInput {
     private readonly plugins: PluginRepository,
     private readonly getConfig: GetWorkspaceMcpConfigInput,
   ) {}
-
   async execute(request: SetMcpServerStateRequest): Promise<SetMcpServerStateResponse> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {
@@ -52,7 +42,6 @@ export class SetMcpServerStateUseCase implements SetMcpServerStateInput {
     await this.workspaceHarnesys.invalidate(workspace.id);
     return this.getConfig.execute({ workspaceId: request.workspaceId });
   }
-
   private async setPluginState(
     workspaceId: string,
     serverId: string,
@@ -67,8 +56,6 @@ export class SetMcpServerStateUseCase implements SetMcpServerStateInput {
     const specId = await this.resolveSpecId(workspaceId, pluginName, pointer);
     this.plugins.setServerDisabled(pluginName, specId, workspaceId, !enabled);
   }
-
-  /** Approval rows are keyed by spec.serverId; fall back to the config-key pointer. */
   private async resolveSpecId(
     workspaceId: string,
     pluginName: string,
@@ -77,12 +64,14 @@ export class SetMcpServerStateUseCase implements SetMcpServerStateInput {
     const loaded = await this.workspaceHarnesys.loadEnabledPlugins(workspaceId);
     const entry = loaded.find((item) => item.record.name === pluginName);
     const component = entry?.ir.components.find(
-      (item): item is PluginComponent & { spec: McpServerSpec } =>
-        item.kind === 'mcp-server' && item.source.pointer === pointer,
+      (
+        item,
+      ): item is PluginComponent & {
+        spec: McpServerSpec;
+      } => item.kind === 'mcp-server' && item.source.pointer === pointer,
     );
     return component?.spec.serverId ?? pointer;
   }
-
   private setWorkspaceState(workspacePath: string, serverId: string, enabled: boolean): void {
     const map = readWorkspaceMcpJson(workspacePath);
     const entry = map[serverId];

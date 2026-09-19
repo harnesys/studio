@@ -2,8 +2,6 @@ export type FileIconConfig = {
   icon: string;
   className: string;
 };
-
-/** Ported from Jax `shared/utils/file-icon.ts` (mdi via Iconify). */
 const EXT_TO_ICON: Record<string, FileIconConfig> = {
   pdf: { icon: 'mdi:file-pdf-box', className: 'text-red-300' },
   md: { icon: 'mdi:language-markdown', className: 'text-purple-400' },
@@ -40,7 +38,6 @@ const EXT_TO_ICON: Record<string, FileIconConfig> = {
   webp: { icon: 'mdi:file-image-outline', className: 'text-cyan-300' },
   svg: { icon: 'mdi:file-image-outline', className: 'text-cyan-300' },
 };
-
 const MIME_TO_ICON: Record<string, FileIconConfig> = {
   'application/pdf': { icon: 'mdi:file-pdf-box', className: 'text-red-300' },
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
@@ -83,11 +80,9 @@ const MIME_TO_ICON: Record<string, FileIconConfig> = {
   'text/xml': { icon: 'mdi:code-tags', className: 'text-orange-400' },
   'application/xml': { icon: 'mdi:code-tags', className: 'text-orange-400' },
 };
-
 export function getFileIcon(fileName: string, mimeType?: string | null): FileIconConfig {
   const base = fileName.replaceAll('\\', '/').split('/').pop() ?? fileName;
   const ext = base.includes('.') ? (base.split('.').pop()?.toLowerCase() ?? '') : '';
-
   if (mimeType) {
     if (mimeType.startsWith('image/')) {
       return { icon: 'mdi:file-image-outline', className: 'text-cyan-300' };
@@ -97,13 +92,11 @@ export function getFileIcon(fileName: string, mimeType?: string | null): FileIco
       return mimeMatch;
     }
   }
-
   if (ext) {
     const extMatch = EXT_TO_ICON[ext];
     if (extMatch) {
       return extMatch;
     }
   }
-
   return { icon: 'mdi:file-outline', className: 'text-muted-foreground' };
 }

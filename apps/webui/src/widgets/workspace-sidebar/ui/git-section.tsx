@@ -10,7 +10,6 @@ import { cn } from '@/shared/lib/utils';
 import { gitFileStatusLabel } from './git-file-decorations';
 import { useGitStatus } from './git-menu';
 import { WorkspaceGroupLabel } from './workspace-group';
-
 export function GitSection({
   workspaceIds,
   groupActions,
@@ -20,7 +19,6 @@ export function GitSection({
 }) {
   const workspacesQuery = useWorkspaces();
   const workspaces = workspacesQuery.data ?? [];
-
   if (workspaceIds.length === 0) {
     return (
       <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
@@ -28,9 +26,7 @@ export function GitSection({
       </p>
     );
   }
-
   const multi = workspaceIds.length > 1;
-
   return (
     <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
       {workspaceIds.map((id) => {
@@ -51,7 +47,6 @@ export function GitSection({
     </div>
   );
 }
-
 function GitWorkspaceGroup({
   workspaceId,
   workspaceName,
@@ -66,7 +61,6 @@ function GitWorkspaceGroup({
   const navigate = useNavigate();
   const gitStatus = useGitStatus(workspaceId);
   const gitColors = useGitStatusColors((state) => state.colors);
-
   const fileStatusQuery = useQuery({
     queryKey: gitFileStatusQueryKey(workspaceId),
     queryFn: () => getGitFileStatus(workspaceId),
@@ -75,17 +69,14 @@ function GitWorkspaceGroup({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-
   const map = fileStatusQuery.data?.map ?? {};
   const files = Object.entries(map)
     .filter(([, s]) => s !== 'ignored')
     .map(([path, status]) => ({ path, status }))
     .sort((a, b) => a.path.localeCompare(b.path));
-
   const branchLabel = gitStatus
     ? (gitStatus.branch ?? gitStatus.head?.slice(0, 7) ?? 'HEAD')
     : null;
-
   return (
     <div data-testid={`git-workspace-${workspaceId}`}>
       {showHeader ? <WorkspaceGroupLabel name={workspaceName} visible actions={actions} /> : null}

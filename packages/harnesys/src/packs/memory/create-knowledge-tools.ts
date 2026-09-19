@@ -1,21 +1,17 @@
 import type { KnowledgePort, MemoryScopeId } from '../../ports/memory.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
-
 export type CreateKnowledgeToolsParams = {
   port: KnowledgePort;
   resolveScope: () => MemoryScopeId;
   topK?: number | (() => number | undefined);
 };
-
 type KnowledgeSearchToolInput = {
   query: string;
   limit?: number;
 };
-
 type KnowledgeReadToolInput = {
   id: string;
 };
-
 export function createKnowledgeTools(params: CreateKnowledgeToolsParams): ToolDefinition[] {
   const { port, resolveScope } = params;
   const configuredTopK = params.topK;

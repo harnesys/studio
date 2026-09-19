@@ -5,24 +5,18 @@ import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { activeRunOf } from './active-run-record.ts';
 import { pinnedFields, readFields, runModeFields } from './thread.helpers.ts';
-
 export type MarkThreadReadRequest = {
   id: string;
 };
-
 export type MarkThreadReadInput = {
   execute(request: MarkThreadReadRequest): Promise<ThreadSummary>;
 };
-
-/** Marks read and returns the light summary: this endpoint fires often, so the
- *  full event payload of GetThread would bloat every response. */
 export class MarkThreadReadUseCase implements MarkThreadReadInput {
   constructor(
     private readonly threads: ThreadRepository,
     private readonly agents: AgentRepository,
     private readonly lifecycle: RunLifecycleStore,
   ) {}
-
   async execute(request: MarkThreadReadRequest): Promise<ThreadSummary> {
     const thread = this.threads.findById(request.id);
     if (!thread) {

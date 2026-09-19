@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
-
 import {
   createModePreset,
   deleteModePreset,
@@ -32,11 +31,15 @@ function contentPatch(draft: ModePresetDraft): ModePresetPatch {
     installedByDefault: draft.installedByDefault,
   };
 }
-
 type PresetEditing =
-  | { kind: 'edit'; preset: ModePresetRecord }
-  | { kind: 'draft'; preset: ModePresetRecord | null };
-
+  | {
+      kind: 'edit';
+      preset: ModePresetRecord;
+    }
+  | {
+      kind: 'draft';
+      preset: ModePresetRecord | null;
+    };
 export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const presetsQuery = useQuery(modePresetsQuery(workspaceId));
@@ -54,11 +57,9 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
   const packNames = (packsQuery.data?.capabilities ?? [])
     .filter((pack) => !pack.name.endsWith('-memory'))
     .map((pack) => pack.name);
-
   async function refreshCache() {
     await queryClient.invalidateQueries({ queryKey: modePresetsQueryKeyFor(workspaceId) });
   }
-
   const create = useMutation({
     mutationFn: (draft: ModePresetDraft) => createModePreset(workspaceId, { ...draft }),
     onSuccess: async (created) => {
@@ -71,7 +72,6 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
       });
     },
   });
-
   const update = useMutation({
     mutationFn: (input: { preset: ModePresetRecord; draft: ModePresetDraft }) =>
       updateModePreset(
@@ -91,7 +91,6 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
       });
     },
   });
-
   const remove = useMutation({
     mutationFn: (id: string) => deleteModePreset(workspaceId, id),
     onSuccess: async () => {
@@ -104,7 +103,6 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
       });
     },
   });
-
   function confirmRemove(preset: ModePresetRecord) {
     void alert
       .confirm({
@@ -119,15 +117,12 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
         }
       });
   }
-
   function toggleEdit(preset: ModePresetRecord) {
     setEditing((current) =>
       current?.kind === 'edit' && current.preset.id === preset.id ? null : { kind: 'edit', preset },
     );
   }
-
   const draft = editing?.kind === 'draft' ? editing : null;
-
   return (
     <div className="flex flex-col gap-2" data-testid="mode-presets-pane">
       <RowHeader label="Presets" count={presetsQuery.isPending ? undefined : presets.length}>

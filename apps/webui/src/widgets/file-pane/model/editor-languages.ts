@@ -1,11 +1,5 @@
 import { EDITOR_LANGUAGES_STORAGE_KEY } from '@/shared/config/constants';
-
-/**
- * Manual file-type overrides, keyed `<workspaceId>/<path>`. Used for files
- * without a recognizable extension (Dockerfile, dotfiles, extensionless scripts).
- */
 export type EditorLanguageOverrides = Record<string, string>;
-
 export function loadEditorLanguages(): EditorLanguageOverrides {
   try {
     const raw = localStorage.getItem(EDITOR_LANGUAGES_STORAGE_KEY);
@@ -27,15 +21,11 @@ export function loadEditorLanguages(): EditorLanguageOverrides {
     return {};
   }
 }
-
 export function saveEditorLanguages(overrides: EditorLanguageOverrides): void {
   try {
     localStorage.setItem(EDITOR_LANGUAGES_STORAGE_KEY, JSON.stringify(overrides));
-  } catch {
-    // ignore quota / private mode
-  }
+  } catch {}
 }
-
 export function editorLanguageKey(workspaceId: string, path: string): string {
   return `${workspaceId}/${path}`;
 }

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-
 import {
   hostStatusLabel,
   LOCAL_HOST,
@@ -11,25 +10,20 @@ import { getHostOnlineStatus } from '@/shared/api/host-router';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { FieldDescription } from '@/shared/ui/field';
-
-/** Window host registry: status + revoke local copy (does not wipe remote). */
 export function HostsPane() {
   const syncFromWindowHosts = useStudioHostsStore((state) => state.syncFromWindowHosts);
   const revokeHost = useStudioHostsStore((state) => state.revokeHost);
   const remotes = useStudioHostsStore((state) => state.remotes);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     syncFromWindowHosts();
   }, [syncFromWindowHosts]);
-
   const local: StudioHost = {
     ...LOCAL_HOST,
     status: getHostOnlineStatus(LOCAL_HOST_ID),
   };
   const hosts = [local, ...remotes];
-
   return (
     <div className="flex flex-col gap-4" data-testid="settings-hosts-pane">
       <FieldDescription>

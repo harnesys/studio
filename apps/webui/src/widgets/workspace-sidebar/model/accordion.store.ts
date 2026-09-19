@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { SIDEBAR_ACCORDION_STORAGE_KEY } from '@/shared/config/constants';
-
 export type AccordionState = {
   collapsed: Record<string, boolean>;
   sizes: Record<string, number>;
@@ -11,7 +10,6 @@ export type AccordionState = {
   setOrder: (order: string[]) => void;
   setVisibility: (id: string, visible: boolean) => void;
 };
-
 const DEFAULT_SIZES: Record<string, number> = {
   inbox: 1,
   agents: 1,
@@ -20,7 +18,6 @@ const DEFAULT_SIZES: Record<string, number> = {
   git: 1,
   terminal: 1,
 };
-
 const DEFAULT_COLLAPSED: Record<string, boolean> = {
   inbox: false,
   agents: false,
@@ -29,13 +26,10 @@ const DEFAULT_COLLAPSED: Record<string, boolean> = {
   git: true,
   terminal: true,
 };
-
 const DEFAULT_ORDER: string[] = ['agents', 'explorer', 'automations', 'git', 'terminal'];
-
 function isValidSize(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
-
 function sanitizeSizes(input: Record<string, number> | undefined): Record<string, number> {
   const next = { ...DEFAULT_SIZES };
   if (!input) {
@@ -48,11 +42,6 @@ function sanitizeSizes(input: Record<string, number> | undefined): Record<string
   }
   return next;
 }
-
-/**
- * Shares of free sidebar height between currently expanded sections.
- * Normalized to sum 1, so layout never depends on absolute stored magnitudes.
- */
 export function normalizeShares(
   expanded: string[],
   sizes: Record<string, number>,
@@ -68,7 +57,6 @@ export function normalizeShares(
   }
   return Object.fromEntries(expanded.map((id, index) => [id, weights[index] / total]));
 }
-
 function sanitizeOrder(input: string[] | undefined): string[] {
   const next: string[] = [];
   const seen = new Set<string>();
@@ -86,7 +74,6 @@ function sanitizeOrder(input: string[] | undefined): string[] {
   }
   return next;
 }
-
 function sanitizeHidden(input: Record<string, boolean> | undefined): Record<string, boolean> {
   const next: Record<string, boolean> = {};
   for (const id of DEFAULT_ORDER) {
@@ -94,7 +81,6 @@ function sanitizeHidden(input: Record<string, boolean> | undefined): Record<stri
   }
   return next;
 }
-
 function load(): {
   collapsed: Record<string, boolean>;
   sizes: Record<string, number>;
@@ -125,7 +111,6 @@ function load(): {
     hidden: sanitizeHidden(undefined),
   };
 }
-
 function persist(state: {
   collapsed: Record<string, boolean>;
   sizes: Record<string, number>;
@@ -136,7 +121,6 @@ function persist(state: {
     localStorage.setItem(SIDEBAR_ACCORDION_STORAGE_KEY, JSON.stringify(state));
   } catch {}
 }
-
 export const useAccordionStore = create<AccordionState>((set) => {
   const initial = load();
   return {

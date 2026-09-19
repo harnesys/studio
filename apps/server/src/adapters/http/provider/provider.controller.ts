@@ -11,7 +11,6 @@ import type { ListProvidersInput } from '../../../application/providers/list-pro
 import type { UpdateProviderInput } from '../../../application/providers/update-provider.use-case.ts';
 import type { UpdateProviderModelInput } from '../../../application/providers/update-provider-model.use-case.ts';
 import { createProviderBody, importProvidersBody, updateProviderBody } from './provider.body.ts';
-
 export type ProviderControllerDeps = {
   listProviders: ListProvidersInput;
   getProvider: GetProviderInput;
@@ -25,19 +24,15 @@ export type ProviderControllerDeps = {
   updateProviderModel: UpdateProviderModelInput;
   deleteProviderModel: DeleteProviderModelInput;
 };
-
 export class ProviderController {
   constructor(private readonly deps: ProviderControllerDeps) {}
-
   register(app: Hono): void {
     const base = '/api/workspaces/:workspaceId/providers';
-
     app.get(base, async (c) => {
       return c.json(
         await this.deps.listProviders.execute({ workspaceId: c.req.param('workspaceId') }),
       );
     });
-
     app.post(base, async (c) => {
       const body = createProviderBody.parse(await c.req.json());
       const provider = await this.deps.createProvider.execute({
@@ -50,13 +45,11 @@ export class ProviderController {
       });
       return c.json(provider, 201);
     });
-
     app.get(`${base}/export`, async (c) => {
       return c.json(
         await this.deps.exportProviders.execute({ workspaceId: c.req.param('workspaceId') }),
       );
     });
-
     app.post(`${base}/import`, async (c) => {
       const body = importProvidersBody.parse(await c.req.json());
       return c.json(
@@ -66,7 +59,6 @@ export class ProviderController {
         }),
       );
     });
-
     app.get(`${base}/:id`, async (c) => {
       return c.json(
         await this.deps.getProvider.execute({
@@ -75,7 +67,6 @@ export class ProviderController {
         }),
       );
     });
-
     app.patch(`${base}/:id`, async (c) => {
       const body = updateProviderBody.parse(await c.req.json());
       return c.json(
@@ -86,7 +77,6 @@ export class ProviderController {
         }),
       );
     });
-
     app.delete(`${base}/:id`, async (c) => {
       await this.deps.deleteProvider.execute({
         workspaceId: c.req.param('workspaceId'),
@@ -94,7 +84,6 @@ export class ProviderController {
       });
       return c.body(null, 204);
     });
-
     app.post(`${base}/:id/discover`, async (c) => {
       const found = await this.deps.discoverProviderModels.execute({
         workspaceId: c.req.param('workspaceId'),
@@ -102,9 +91,12 @@ export class ProviderController {
       });
       return c.json({ found });
     });
-
     app.post(`${base}/:id/models`, async (c) => {
-      const body = (await c.req.json()) as { name: string; kind?: string; metadata?: unknown };
+      const body = (await c.req.json()) as {
+        name: string;
+        kind?: string;
+        metadata?: unknown;
+      };
       const model = await this.deps.createProviderModel.execute({
         workspaceId: c.req.param('workspaceId'),
         providerId: c.req.param('id'),
@@ -114,9 +106,12 @@ export class ProviderController {
       });
       return c.json(model, 201);
     });
-
     app.patch(`${base}/:id/models/:modelId`, async (c) => {
-      const body = (await c.req.json()) as { name?: string; kind?: string; metadata?: unknown };
+      const body = (await c.req.json()) as {
+        name?: string;
+        kind?: string;
+        metadata?: unknown;
+      };
       const model = await this.deps.updateProviderModel.execute({
         workspaceId: c.req.param('workspaceId'),
         providerId: c.req.param('id'),
@@ -127,7 +122,6 @@ export class ProviderController {
       });
       return c.json(model);
     });
-
     app.delete(`${base}/:id/models/:modelId`, async (c) => {
       await this.deps.deleteProviderModel.execute({
         workspaceId: c.req.param('workspaceId'),

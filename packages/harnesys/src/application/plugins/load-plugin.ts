@@ -21,12 +21,9 @@ import { discoverExtraComponents } from './formats/extras.ts';
 import { discoverHookComponents } from './formats/hooks.ts';
 import { isPlainObject } from './formats/manifest-result.ts';
 import { discoverMcpComponents } from './formats/mcp.ts';
-
 export const HARNESYS_STUDIO_EXTENSION_DIR = 'com.harnesys.studio';
-
 export class PluginLoadError extends Error {
   readonly path?: string;
-
   constructor(message: string, filePath?: string) {
     super(message);
     this.name = 'PluginLoadError';
@@ -35,25 +32,20 @@ export class PluginLoadError extends Error {
     }
   }
 }
-
 export class UnknownPluginLayoutError extends PluginLoadError {
   constructor(root: string) {
     super(`unknown plugin layout: ${root}`, root);
     this.name = 'UnknownPluginLayoutError';
   }
 }
-
 export type LoadPluginIrOptions = {
   root: string;
   pluginData: string;
 };
-
 export type LoadPluginIrResult = {
   ir: PluginIr;
   diagnostics: PluginDiagnostic[];
 };
-
-/** Layout detect → манифест (formats) → discovery (formats) → PluginIr. */
 export function loadPluginIrFromDirectory(
   options: LoadPluginIrOptions,
 ): Promise<LoadPluginIrResult> {
@@ -64,7 +56,6 @@ export function loadPluginIrFromDirectory(
   if (layout === 'unknown') {
     throw new UnknownPluginLayoutError(root);
   }
-
   const manifestPath =
     layout === 'agent-plugins'
       ? path.join(root, 'plugin.json')
@@ -76,16 +67,12 @@ export function loadPluginIrFromDirectory(
       : claudeCompat.parseManifest(rawManifest);
   const full =
     layout === 'claude-compat' ? claudeCompat.parseClaudeManifestFull(rawManifest) : undefined;
-
   const namespaceDir = path.join(root, HARNESYS_STUDIO_EXTENSION_DIR);
   const inventoryRoot =
     layout === 'agent-plugins' && isDirectory(namespaceDir) ? namespaceDir : root;
   const ctx: DiscoverContext = { root, pluginName: manifest.identity.name };
   const inv: DiscoverContext = { root: inventoryRoot, pluginName: manifest.identity.name };
   const overrides = manifest.pathOverrides;
-
-  // Namespace (com.harnesys.studio/) — дом хуков/мониторов/агентов/команд AP-плагина;
-  // skills, mcp.json, lsp, bin/, settings.json читаются от корня (спека §1.3).
   const skills = discoverSkillComponents(ctx, overrideDirs(root, overrides.skills));
   const commands = discoverCommandComponents(
     inv,
@@ -109,7 +96,6 @@ export function loadPluginIrFromDirectory(
     lspOverride: overrides.lspServers,
     lspServersInline: isPlainObject(rawManifest) ? rawManifest.lspServers : undefined,
   });
-
   const userConfig = manifest.userConfig.map((spec) => configOptionComponent(spec));
   const components: PluginComponent[] = [
     ...skills.components,
@@ -129,7 +115,6 @@ export function loadPluginIrFromDirectory(
     ...mcp.diagnostics,
     ...extras.diagnostics,
   ];
-
   const ir: PluginIr = {
     identity: manifest.identity,
     sourceFormat: layout,
@@ -140,7 +125,6 @@ export function loadPluginIrFromDirectory(
   };
   return Promise.resolve({ ir, diagnostics });
 }
-
 function detectLayout(listing: string[]): PluginSourceFormat | 'unknown' {
   if (listing.includes('plugin.json')) {
     return 'agent-plugins';
@@ -150,7 +134,6 @@ function detectLayout(listing: string[]): PluginSourceFormat | 'unknown' {
   }
   return 'unknown';
 }
-
 function configOptionComponent(spec: ConfigOptionSpec): PluginComponent {
   const component: PluginComponent = {
     kind: 'config-option',
@@ -160,7 +143,6 @@ function configOptionComponent(spec: ConfigOptionSpec): PluginComponent {
   };
   return component;
 }
-
 function computeGrants(components: PluginComponent[]): PluginGrants {
   let needsProcess = false;
   let needsNetwork = false;
@@ -177,7 +159,6 @@ function computeGrants(components: PluginComponent[]): PluginGrants {
   }
   return { needsProcess, needsNetwork };
 }
-
 function isProcessComponent(component: PluginComponent): boolean {
   if (
     component.kind === 'monitor' ||
@@ -194,7 +175,6 @@ function isProcessComponent(component: PluginComponent): boolean {
   }
   return false;
 }
-
 function isNetworkComponent(component: PluginComponent): boolean {
   if (component.kind === 'hook' && 'binding' in component.spec) {
     return component.spec.binding.handler.type === 'http';
@@ -204,7 +184,6 @@ function isNetworkComponent(component: PluginComponent): boolean {
   }
   return false;
 }
-
 function listRoot(root: string): string[] {
   try {
     return readdirSync(root);
@@ -213,7 +192,6 @@ function listRoot(root: string): string[] {
     throw new PluginLoadError(message, root);
   }
 }
-
 function readRequiredJson(filePath: string): unknown {
   let text: string;
   try {

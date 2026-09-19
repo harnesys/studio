@@ -3,7 +3,6 @@ import { check, index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { agentsTable } from './agents.ts';
 import { threadsTable } from './threads.ts';
 import { workspacesTable } from './workspaces.ts';
-
 export const webhooksTable = sqliteTable(
   'webhooks',
   {
@@ -36,6 +35,5 @@ export const webhooksTable = sqliteTable(
     threadIdx: index('webhooks_thread_idx').on(table.threadId),
   }),
 );
-
 export type WebhookRow = typeof webhooksTable.$inferSelect;
 export type WebhookInsert = typeof webhooksTable.$inferInsert;

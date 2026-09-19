@@ -2,12 +2,10 @@ import { textToLines } from '@/shared/lib/tool-code';
 import { Markdown } from '@/shared/ui/markdown';
 import { ToolCodeView } from '@/shared/ui/tool-code-view';
 import { ToolDiffView } from '@/shared/ui/tool-diff-view';
-
 import type { ToolInputPreview } from '../model/tool-input-summary';
 
 const HITL_VIEW = 'ml-0 mt-1';
 const HITL_PREVIEW = 'max-h-36';
-
 export function HitlPreview({ preview }: { preview: ToolInputPreview }) {
   switch (preview.kind) {
     case 'code':

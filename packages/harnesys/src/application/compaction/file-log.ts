@@ -3,16 +3,12 @@ import path from 'node:path';
 import { resolveWorkdirPath } from '../../adapters/actions/path-resolve.ts';
 import type { CompactionMessage } from '../../domain/compaction.ts';
 import type { PathsConfig } from '../../ports/paths.ts';
-
-/** ISO-время с ':', заменённым на '-': проходит sanitizeFileName, сортируется хронологически. */
 export function compactionFileName(iso: string): string {
   return `${iso.replaceAll(':', '-')}.md`;
 }
-
 export function compactionRelPath(sessionId: string, fileName: string): string {
   return `.harnesys/threads/${sessionId}/compactions/${fileName}`;
 }
-
 export function compactionFileBody(message: CompactionMessage, modelLabel: string): string {
   const header = [
     `# ${message.createdAt}`,
@@ -24,8 +20,6 @@ export function compactionFileBody(message: CompactionMessage, modelLabel: strin
   ].join('\n');
   return `${header}\n\n${message.content}\n`;
 }
-
-/** Один файл на компакцию; коллизия секунды разрешается суффиксом. Без cwd — null. */
 export async function writeCompactionFile(input: {
   paths?: PathsConfig;
   sessionId: string;

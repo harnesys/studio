@@ -7,16 +7,12 @@ import { encodeEmbedding } from './embedding-vec.ts';
 import type { EmbeddingsPort } from './embeddings.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
 import type { KnowledgePath } from './knowledge-walk.ts';
-
 export function sha1Hex(content: string): string {
   return createHash('sha1').update(content).digest('hex');
 }
-
-/** Content hash keyed by index mode so backend/embed changes bust skip. */
 export function knowledgeContentHash(raw: string, indexModeKey: string): string {
   return sha1Hex(`${indexModeKey}\0${raw}`);
 }
-
 export function upsertWalkEntry(
   repo: SqliteKnowledgeIndexRepo,
   workspaceId: string,
@@ -59,17 +55,19 @@ export function upsertWalkEntry(
     updatedAt,
   });
 }
-
 export type IndexFileResult = 'unchanged' | 'indexed' | 'error';
-
 export async function indexKnowledgeFile(input: {
   repo: SqliteKnowledgeIndexRepo;
   workspaceId: string;
-  entry: Extract<KnowledgePath, { kind: 'index' }>;
+  entry: Extract<
+    KnowledgePath,
+    {
+      kind: 'index';
+    }
+  >;
   wantVector: boolean;
   embeddings: EmbeddingsPort | undefined;
   updatedAt: string;
-  /** fts | vector:provider/model — included in stored contentHash. */
   indexModeKey: string;
   signal?: AbortSignal;
 }): Promise<IndexFileResult> {
@@ -95,7 +93,6 @@ export async function indexKnowledgeFile(input: {
         return 'unchanged';
       }
     }
-
     const pieces = chunkText(raw);
     const title = entry.uri.split('/').pop() ?? entry.uri;
     trace('knowledge-indexer', 'file chunks', {
@@ -111,7 +108,6 @@ export async function indexKnowledgeFile(input: {
       if (signal?.aborted) {
         throw new DOMException('Aborted', 'AbortError');
       }
-      // Batch to keep payload bounded and allow mid-file cancellation
       const batchSize = KNOWLEDGE_EMBED_BATCH_SIZE;
       vectors = [];
       for (let i = 0; i < pieces.length; i += batchSize) {
@@ -146,7 +142,6 @@ export async function indexKnowledgeFile(input: {
         vectors.push(...batchVectors);
       }
     }
-
     repo.deleteChunksForUri(workspaceId, entry.uri);
     if (pieces.length > 0) {
       repo.insertChunks(
@@ -161,7 +156,6 @@ export async function indexKnowledgeFile(input: {
         })),
       );
     }
-
     repo.upsertFile({
       workspaceId,
       uri: entry.uri,
@@ -200,7 +194,6 @@ export async function indexKnowledgeFile(input: {
     return 'error';
   }
 }
-
 function isAbortError(err: unknown): boolean {
   return (
     (err instanceof DOMException && err.name === 'AbortError') ||

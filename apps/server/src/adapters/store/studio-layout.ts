@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import {
   ATTACHMENTS_DIR,
+  bundledAssetsRoot,
   CONFIG_FILE,
   DB_BAK_FILE,
   DB_FILE,
@@ -15,7 +16,6 @@ import {
   STUDIO_DIR_LEGACY,
   WORKSPACE_DB_FILE,
 } from '../../config/constants.ts';
-import { bundledAssetsRoot } from '../../config/constants.ts';
 import { env } from '../../config/env.ts';
 
 export {
@@ -33,51 +33,30 @@ export {
   WORKSPACE_DB_FILE,
   WORKSPACES_DIR,
 } from '../../config/constants.ts';
-
 export function defaultHomePath(): string {
   return env.harnesysHome ?? join(homedir(), HOME_DIR_NAME);
 }
-
 export function configJsonPath(home: string = defaultHomePath()): string {
   return join(home, CONFIG_FILE);
 }
-
-/** Host-wide skills for every workspace (`~/.harnesys/skills`). */
 export function systemSkillsPath(home: string = defaultHomePath()): string {
   return join(home, SKILLS_DIR);
 }
-
-/**
- * Skills shipped with the app (`apps/server/assets/skills`).
- * Lowest-precedence root: home overrides it, workspace overrides home.
- * A missing directory simply contributes nothing.
- */
 export function bundledSkillsPath(): string {
   return join(bundledAssetsRoot(), SKILLS_DIR);
 }
-
-/** Root of the bundled app assets shipped with the host (`apps/server/assets`). */
 export function bundledAssetsPath(): string {
   return bundledAssetsRoot();
 }
-
-/** Bundled agent/mode preset roots under the bundled assets root. */
 export function bundledPresetsPath(sub: 'agents' | 'modes'): string {
   return join(bundledAssetsRoot(), 'presets', sub);
 }
-
-/** User preset root, shadows bundled: `~/.harnesys/presets/<sub>`. */
 export function systemPresetsPath(
   sub: 'agents' | 'modes',
   home: string = defaultHomePath(),
 ): string {
   return join(home, 'presets', sub);
 }
-
-/**
- * Workspace meta root (`<workspace>/.harnesys`).
- * One-shot rename from legacy `.studio` when the new path is missing.
- */
 export function studioDir(workspacePath: string): string {
   const next = join(workspacePath, STUDIO_DIR);
   const legacy = join(workspacePath, STUDIO_DIR_LEGACY);
@@ -86,11 +65,6 @@ export function studioDir(workspacePath: string): string {
   }
   return next;
 }
-
-/**
- * Workspace skills (`<workspace>/.harnesys/skills`).
- * One-shot migrate from legacy `<workspace>/.agents/skills`.
- */
 export function workspaceSkillsPath(workspacePath: string): string {
   const next = join(studioDir(workspacePath), SKILLS_DIR);
   const legacy = join(workspacePath, '.agents', 'skills');
@@ -101,67 +75,42 @@ export function workspaceSkillsPath(workspacePath: string): string {
   mkdirSync(next, { recursive: true });
   return next;
 }
-
-/**
- * Skill registry roots, ascending precedence: bundled app assets, then
- * workspace overlay. Host `~/.harnesys/skills` is seed-only (cutover/create),
- * not a live root.
- */
 export function skillRegistryRoots(workspacePath: string): string[] {
   return [bundledSkillsPath(), workspaceSkillsPath(workspacePath)];
 }
-
-/** Per-node domain sqlite: `<workspace>/.harnesys/workspace.db`. */
 export function workspaceDbPath(workspacePath: string): string {
   return join(studioDir(workspacePath), WORKSPACE_DB_FILE);
 }
-
 export function studioDbPath(home: string = defaultHomePath()): string {
   return join(home, DB_FILE);
 }
-
 export function studioDbBakPath(home: string = defaultHomePath()): string {
   return join(home, DB_BAK_FILE);
 }
-
-/** Plugin checkouts for a node: `<workspace>/.harnesys/plugins`. */
 export function workspacePluginsPath(workspacePath: string): string {
   return join(studioDir(workspacePath), PLUGINS_DIR);
 }
-
 export function workspacePluginInstallPath(workspacePath: string, name: string): string {
   return join(workspacePluginsPath(workspacePath), name);
 }
-
 export function workspacePluginDataPath(workspacePath: string, name: string): string {
   return join(studioDir(workspacePath), PLUGINS_DATA_DIR, name);
 }
-
-/** User presets under the node meta dir (seed from host on cutover/create). */
 export function workspacePresetsPath(workspacePath: string, sub: 'agents' | 'modes'): string {
   return join(studioDir(workspacePath), 'presets', sub);
 }
-
 export function attachmentsDir(workspacePath: string, threadId: string): string {
   return join(studioDir(workspacePath), 'threads', threadId, ATTACHMENTS_DIR);
 }
-
-/**
- * Host-wide plugin checkouts (`~/.harnesys/plugins`).
- * Phase 4a keeps this path; Phase 4b moves checkouts to `<workspace>/.harnesys/plugins`.
- */
 export function pluginsPath(home: string = defaultHomePath()): string {
   return join(home, PLUGINS_DIR);
 }
-
 export function pluginInstallPath(home: string, name: string): string {
   return join(home, PLUGINS_DIR, name);
 }
-
 export function pluginDataPath(home: string, name: string): string {
   return join(home, PLUGINS_DATA_DIR, name);
 }
-
 export function marketplaceInstallPath(home: string, registryId: string): string {
   return join(home, MARKETPLACES_DIR, registryId);
 }

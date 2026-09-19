@@ -1,9 +1,3 @@
-/** Capability set: источники → грант → overrides → режим → песочница → core-сервисы.
- *  Единственное решение о доступности (spec `docs/superpowers/specs/2026-09-15-capability-set-design.md`);
- *  чиста относительно `def` и `universe`. `pack.create()` вызывается тем же контрактом, что
- *  `buildPackRun` (порты/scope внутри регистраций), поэтому вызов вне рана оборачивается
- *  `runInHostToolScope` на стороне хоста. Словарь провенанса и explain-журнал — в `capability-explain.ts`. */
-
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { HookBinding } from '../domain/hook.ts';
 import type { PackAssignment, PackOverride, PackRegistration } from '../domain/pack.ts';
@@ -39,14 +33,12 @@ export type {
   RunToolEntry,
 } from './capability-explain.ts';
 export { projectToolRegistry } from './capability-explain.ts';
-
 export type ModeCapabilityFields = {
   id: string;
   packs?: Record<string, PackAssignment>;
   disabledTools?: string[];
   exposure?: Record<string, ToolExposure>;
 };
-
 export type CapabilityUniverse = {
   registrations: PackRegistration[];
   baseRegistry: Map<string, ToolDefinition>;
@@ -55,10 +47,8 @@ export type CapabilityUniverse = {
   makeLoadTools: (registry: RunRegistry) => ToolDefinition;
   makeLoadSkill?: () => ToolDefinition[];
   mode?: ModeCapabilityFields;
-  /** Слой ребёнка спавна (`sandboxUniverse`): вычесть тулы группы `agents`. */
   sandbox?: boolean;
 };
-
 export type CapabilitySet = {
   registry: RunRegistry;
   packOutputs: PackRunMap;
@@ -71,30 +61,22 @@ export type CapabilitySet = {
   explain: ExplainEntry[];
   fatal: string[];
 };
-
-/** Сервисы, грантимые только через `pack:core`; такие имена из baseRegistry — не грант хоста. */
 export const CORE_SERVICE_TOOLS = ['load_tools', 'load_skill', 'Skill'];
-
-/** Кадр вселенной ребёнка спавна: то же наполнение плюс флаг слоя песочницы (spec §7.4). */
 export function sandboxUniverse(universe: CapabilityUniverse): CapabilityUniverse {
   return { ...universe, sandbox: true };
 }
-
 const CORE_PACK = 'core';
-
 type Assembly = {
   registry: RunRegistry;
   ex: ExplainLog;
   fatal: string[];
 };
-
 type PackLayer = {
   outputs: PackRunMap;
   enabled: PackRunOutput[];
   excluded: Set<string>;
   registered: Set<string>;
 };
-
 export function resolveCapabilitySet(
   def: AgentDefinition,
   universe: CapabilityUniverse,
@@ -119,8 +101,6 @@ export function resolveCapabilitySet(
     packOutputs: layer.outputs,
     skills: collected.skills,
     mcpServers,
-    // plugin hooks/pathEntries приходят только с плагинами (регистраторы хоста, T6+);
-    // у паковых выходов таких полей пока нет, поля готовы под будущее.
     hooks: [],
     subagents,
     notes: collected.notes,
@@ -129,7 +109,6 @@ export function resolveCapabilitySet(
     fatal: asm.fatal,
   };
 }
-
 function buildPackLayer(def: AgentDefinition, universe: CapabilityUniverse): PackLayer {
   const { outputs, enabled, excluded } = buildPackRun(def, universe.registrations);
   return {
@@ -139,7 +118,6 @@ function buildPackLayer(def: AgentDefinition, universe: CapabilityUniverse): Pac
     registered: new Set(universe.registrations.map((r) => r.pack.name)),
   };
 }
-
 function grantHostTools(asm: Assembly, def: AgentDefinition, universe: CapabilityUniverse): void {
   const allowedServers = new Set(def.mcpServers ?? []);
   for (const [name, tool] of universe.baseRegistry) {
@@ -157,7 +135,6 @@ function grantHostTools(asm: Assembly, def: AgentDefinition, universe: Capabilit
     asm.ex.granted(name, 'tool', source, reason);
   }
 }
-
 function reportAssignments(asm: Assembly, def: AgentDefinition, layer: PackLayer): void {
   for (const [name, assignment] of Object.entries(def.packs ?? {})) {
     if (!isOn(assignment)) {
@@ -179,7 +156,6 @@ function reportAssignments(asm: Assembly, def: AgentDefinition, layer: PackLayer
     }
   }
 }
-
 function grantPackTools(asm: Assembly, layer: PackLayer): void {
   for (const out of layer.enabled) {
     const source: CapabilitySource = `${PACK_PREFIX}${out.reg.pack.name}`;
@@ -198,7 +174,6 @@ function grantPackTools(asm: Assembly, layer: PackLayer): void {
     }
   }
 }
-
 function applySourceOverrides(asm: Assembly, def: AgentDefinition, layer: PackLayer): void {
   for (const out of layer.enabled) {
     const ovr = overrideOf(def.packs?.[out.reg.pack.name]);
@@ -206,7 +181,6 @@ function applySourceOverrides(asm: Assembly, def: AgentDefinition, layer: PackLa
     applySourceExposure(asm, out, ovr);
   }
 }
-
 function subtractSourceDisabled(asm: Assembly, out: PackRunOutput, ovr: PackOverride): void {
   const source: CapabilitySource = `${PACK_PREFIX}${out.reg.pack.name}`;
   for (const name of ovr.disabledTools ?? []) {
@@ -219,7 +193,6 @@ function subtractSourceDisabled(asm: Assembly, out: PackRunOutput, ovr: PackOver
     asm.ex.disabled(name, 'tool', source, `${source} disabledTools override`);
   }
 }
-
 function applySourceExposure(asm: Assembly, out: PackRunOutput, ovr: PackOverride): void {
   const source: CapabilitySource = `${PACK_PREFIX}${out.reg.pack.name}`;
   for (const [name, exposure] of Object.entries(ovr.exposure ?? {})) {
@@ -237,7 +210,6 @@ function applySourceExposure(asm: Assembly, out: PackRunOutput, ovr: PackOverrid
     }
   }
 }
-
 function subtractDisallowed(asm: Assembly, def: AgentDefinition): void {
   const blocked = new Set((def.disallowedTools ?? []).map(resolveToolAlias));
   for (const [name, entry] of asm.registry) {
@@ -248,7 +220,6 @@ function subtractDisallowed(asm: Assembly, def: AgentDefinition): void {
     asm.ex.disabled(name, 'tool', entry.source, 'agent disallowedTools');
   }
 }
-
 function applyMode(
   asm: Assembly,
   def: AgentDefinition,
@@ -265,9 +236,6 @@ function applyMode(
   markModePreload(asm, mode);
   subtractModeLists(asm, mode);
 }
-
-/** Пустая/отсутствующая `mode.packs` = полный preload (ничего не откладывается);
- *  при непустой карте тулы паков вне неё переходят в `deferred`. */
 function markModePreload(asm: Assembly, mode: ModeCapabilityFields): void {
   const preload = mode.packs;
   if (preload === undefined || Object.keys(preload).length === 0) {
@@ -282,7 +250,6 @@ function markModePreload(asm: Assembly, mode: ModeCapabilityFields): void {
     asm.ex.droppedByMode(name, 'tool', entry.source, `mode:${mode.id} preload`);
   }
 }
-
 function subtractModeLists(asm: Assembly, mode: ModeCapabilityFields): void {
   for (const name of (mode.disabledTools ?? []).map(resolveToolAlias)) {
     const entry = asm.registry.get(name);
@@ -300,9 +267,6 @@ function subtractModeLists(asm: Assembly, mode: ModeCapabilityFields): void {
     entry.exposure = exposure;
   }
 }
-
-/** Песочница ребёнка (spec §7.4): вложенный спавн запрещён — тулы пака `agents` вырезаются.
- *  Тот же набор удалений, что до T6 считал движок в `graph-spawn.ts` (`def.group === 'agents'`). */
 function applySandbox(asm: Assembly, universe: CapabilityUniverse): void {
   if (universe.sandbox !== true) {
     return;
@@ -315,8 +279,6 @@ function applySandbox(asm: Assembly, universe: CapabilityUniverse): void {
     asm.ex.deniedByUniverse(name, 'tool', entry.source, 'spawn sandbox');
   }
 }
-
-/** Core-сервисы последним слоем: служебные тулы поверх всех сужений, грант — только через `core`. */
 function grantCoreServices(
   asm: Assembly,
   def: AgentDefinition,

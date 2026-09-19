@@ -1,12 +1,10 @@
 import type { MemoryRecord, SemanticScope } from '@harnesys/studio-shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { FieldGroup } from '@/shared/ui/field';
-
 import {
   emptySemanticFields,
   type SemanticDraft,
@@ -17,16 +15,19 @@ import {
   toSemanticDraft,
 } from '../model/semantic-fields';
 import { SemanticFields } from './semantic-fields';
-
 export function AddSemanticDialog({
   onResolve,
   data,
-}: DialogComponentProps<SemanticDraft, { scope?: SemanticScope }>) {
+}: DialogComponentProps<
+  SemanticDraft,
+  {
+    scope?: SemanticScope;
+  }
+>) {
   const form = useForm<SemanticFieldsInput, unknown, SemanticFieldsOutput>({
     resolver: zodResolver(semanticFieldsSchema),
     defaultValues: emptySemanticFields(data?.scope ?? 'long'),
   });
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"
@@ -44,16 +45,19 @@ export function AddSemanticDialog({
     </form>
   );
 }
-
 export function EditSemanticDialog({
   onResolve,
   data,
-}: DialogComponentProps<SemanticDraft, { row: MemoryRecord }>) {
+}: DialogComponentProps<
+  SemanticDraft,
+  {
+    row: MemoryRecord;
+  }
+>) {
   const form = useForm<SemanticFieldsInput, unknown, SemanticFieldsOutput>({
     resolver: zodResolver(semanticFieldsSchema),
     defaultValues: data?.row ? semanticFieldsFrom(data.row) : emptySemanticFields(),
   });
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"

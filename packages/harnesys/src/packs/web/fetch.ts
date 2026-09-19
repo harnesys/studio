@@ -1,7 +1,6 @@
 import { DEFAULT_HTTP_TIMEOUT_MS, MAX_HTTP_TIMEOUT_MS, METHODS } from '../../constants.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
 export function fetchTool(): ToolDefinition {
   return tool('fetch', {
     group: 'core',
@@ -75,7 +74,6 @@ export function fetchTool(): ToolDefinition {
     },
   });
 }
-
 function assertHttpUrl(url: string): void {
   let parsed: URL;
   try {

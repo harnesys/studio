@@ -1,6 +1,5 @@
 import type { Driver } from '@harnesys/studio-shared';
 import { DRIVERS } from '@harnesys/studio-shared';
-
 export const DRIVER_LABELS: Record<Driver, string> = {
   openai: 'OpenAI',
   'openai-compatible': 'OpenAI compatible',
@@ -23,5 +22,4 @@ export const DRIVER_LABELS: Record<Driver, string> = {
   alibaba: 'Alibaba',
   moonshotai: 'Moonshot AI',
 };
-
 export const DRIVER_ITEMS = DRIVERS.map((value) => ({ value, label: DRIVER_LABELS[value] }));

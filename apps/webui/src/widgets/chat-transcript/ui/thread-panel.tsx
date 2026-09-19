@@ -34,7 +34,6 @@ import { ThreadEmpty } from './thread-empty';
 
 const EMPTY_FAILURES: RunFailure[] = [];
 const EMPTY_BRANCH_CHILDREN: Record<string, BranchChild[]> = {};
-
 export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agent }) {
   const events = useThreadEvents(threadId);
   const thread = useThreadStore((state) => state.byId(threadId));
@@ -95,11 +94,9 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
       return next.length === 0 ? EMPTY_FAILURES : next;
     }),
   );
-
   if (!synced && events.length === 0 && !streaming && !compacting) {
     return <ChatSkeleton />;
   }
-
   if (events.length === 0 && !streaming && !compacting) {
     return (
       <>
@@ -108,10 +105,8 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
       </>
     );
   }
-
   const compactLive = compacting && ownRuns.some(isCompactRun);
   const showFork = Boolean(thread?.parentThreadId) && inheritedRuns.length > 0;
-
   return (
     <MessageScrollerProvider
       autoScroll={true}
@@ -154,8 +149,6 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
               const runStreaming =
                 (streaming && last && !compacting) || (compacting && last && isCompactRun(run));
               const first = run.events[0];
-              // Ключ стабилен с первого рендера: иначе приход первого тула перемонтирует
-              // MessageScrollerItem и примитив паркует вьюпорт к якорю поверх истории читателя.
               const runKey =
                 run.id ??
                 (first?.type === 'user' ? first.clientEventId : undefined) ??
@@ -204,7 +197,6 @@ export function ThreadPanel({ threadId, agent }: { threadId: string; agent: Agen
     </MessageScrollerProvider>
   );
 }
-
 function EmptyThreadReadSync({ threadId }: { threadId: string }) {
   useEffect(() => {
     useThreadStore.getState().setViewingAtEnd(threadId, true);
@@ -215,8 +207,6 @@ function EmptyThreadReadSync({ threadId }: { threadId: string }) {
   }, [threadId]);
   return null;
 }
-
-/** Кнопка живого края со счётчиком непрочитанного: пока вьюпорт отцеплен, капает unseen. */
 function LiveEdgeControls({ threadId }: { threadId: string }) {
   const { end } = useMessageScrollerScrollable();
   const total = useSessionStore((state) => state.events[threadId]?.length ?? 0);
@@ -235,26 +225,20 @@ function LiveEdgeControls({ threadId }: { threadId: string }) {
     </MessageScrollerButton>
   );
 }
-
-/** Track bottom-edge visibility and persist read when stuck to end. */
 function ThreadReadSync({ threadId }: { threadId: string }) {
   const { end } = useMessageScrollerScrollable();
   const contentEpoch = useSessionStore((state) => state.contentEpoch[threadId] ?? 0);
   const viewingAtEnd = !end;
-
   useEffect(() => {
     useThreadStore.getState().setViewingAtEnd(threadId, viewingAtEnd);
-    // contentEpoch: re-mark when new events arrive while pinned to bottom.
     if (viewingAtEnd && contentEpoch >= 0) {
       scheduleMarkThreadRead(threadId);
     }
   }, [threadId, viewingAtEnd, contentEpoch]);
-
   useEffect(() => {
     return () => {
       useThreadStore.getState().setViewingAtEnd(threadId, false);
     };
   }, [threadId]);
-
   return null;
 }

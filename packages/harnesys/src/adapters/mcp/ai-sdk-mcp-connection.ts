@@ -7,16 +7,13 @@ import type {
   RawResourceReadResult,
   RawToolDescriptor,
 } from '../../application/mcp/mcp-connector.port.ts';
-
 export class AiSdkMcpConnection implements McpConnection {
   readonly serverId: string;
   readonly #client: MCPClient;
-
   constructor(serverId: string, client: MCPClient) {
     this.serverId = serverId;
     this.#client = client;
   }
-
   async listTools(): Promise<RawToolDescriptor[]> {
     const listed = await this.#client.listTools();
     const out: RawToolDescriptor[] = [];
@@ -30,14 +27,12 @@ export class AiSdkMcpConnection implements McpConnection {
     }
     return out;
   }
-
   callTool(name: string, input: unknown): Promise<unknown> {
     return this.#client.callTool({
       name,
       arguments: toCallArguments(input),
     });
   }
-
   async listResources(cursor?: string): Promise<ListResourcesPage> {
     const listed =
       cursor === undefined
@@ -69,7 +64,6 @@ export class AiSdkMcpConnection implements McpConnection {
     }
     return page;
   }
-
   async readResource(uri: string): Promise<RawResourceReadResult> {
     const read = await this.#client.readResource({ uri });
     const contents: RawResourceContent[] = [];
@@ -78,12 +72,10 @@ export class AiSdkMcpConnection implements McpConnection {
     }
     return { contents };
   }
-
   close(): Promise<void> {
     return this.#client.close();
   }
 }
-
 function toResourceContent(item: {
   uri: string;
   name?: string;
@@ -104,10 +96,13 @@ function toResourceContent(item: {
   assignResourceMeta(content, item);
   return content;
 }
-
 function assignResourceMeta(
   content: RawResourceContent,
-  item: { name?: string; title?: string; mimeType?: string },
+  item: {
+    name?: string;
+    title?: string;
+    mimeType?: string;
+  },
 ): void {
   if (item.name !== undefined) {
     content.name = item.name;
@@ -119,18 +114,15 @@ function assignResourceMeta(
     content.mimeType = item.mimeType;
   }
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
 function toInputSchema(value: unknown): Record<string, unknown> {
   if (!isRecord(value)) {
     return { type: 'object' };
   }
   return value;
 }
-
 function toCallArguments(input: unknown): Record<string, unknown> {
   if (!isRecord(input)) {
     return {};

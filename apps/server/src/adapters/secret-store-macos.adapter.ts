@@ -2,16 +2,9 @@ import type { PluginName } from '@harnesys/studio-shared';
 import type { SecretStore } from '../domain/secret-store.port.ts';
 import { ValidationError } from '../domain/studio.error.ts';
 
-/** Claude userConfig reference size (~2 KB); the adapter owns the hard limit. */
 const MAX_SECRET_VALUE_BYTES = 2048;
 const SERVICE = 'com.harnesys.studio.plugins';
 const DELETE_NOT_FOUND_CODE = 44;
-
-/**
- * SecretStore over the macOS Keychain via the `security` CLI,
- * service `com.harnesys.studio.plugins`, account `<nodeId>:<pluginId>:<key>`.
- * Throws from the constructor when unavailable — composition decides what to do.
- */
 export class MacosSecretStoreAdapter implements SecretStore {
   constructor() {
     if (process.platform !== 'darwin') {
@@ -21,7 +14,6 @@ export class MacosSecretStoreAdapter implements SecretStore {
       throw new ValidationError('SecretStore requires the macOS `security` CLI');
     }
   }
-
   async get(nodeId: string, pluginId: PluginName, key: string): Promise<string | null> {
     const res = await runSecurity([
       'find-generic-password',
@@ -36,7 +28,6 @@ export class MacosSecretStoreAdapter implements SecretStore {
     }
     return res.stdout.trimEnd();
   }
-
   async set(nodeId: string, pluginId: PluginName, key: string, value: string): Promise<void> {
     if (Buffer.byteLength(value, 'utf8') > MAX_SECRET_VALUE_BYTES) {
       throw new ValidationError(
@@ -59,7 +50,6 @@ export class MacosSecretStoreAdapter implements SecretStore {
       );
     }
   }
-
   async delete(nodeId: string, pluginId: PluginName, key: string): Promise<void> {
     const res = await runSecurity([
       'delete-generic-password',
@@ -75,18 +65,17 @@ export class MacosSecretStoreAdapter implements SecretStore {
     }
   }
 }
-
 export function account(nodeId: string, pluginId: PluginName, key: string): string {
   return `${nodeId}:${pluginId}:${key}`;
 }
-
-/** Pre-4b account shape `pluginId:key`. */
 export function legacyAccount(pluginId: PluginName, key: string): string {
   return `${pluginId}:${key}`;
 }
-
-type SecurityResult = { code: number; stdout: string; stderr: string };
-
+type SecurityResult = {
+  code: number;
+  stdout: string;
+  stderr: string;
+};
 async function runSecurity(args: string[]): Promise<SecurityResult> {
   const proc = Bun.spawn(['security', ...args], {
     stdout: 'pipe',
@@ -100,8 +89,6 @@ async function runSecurity(args: string[]): Promise<SecurityResult> {
   ]);
   return { code, stdout, stderr };
 }
-
-/** Copy Keychain item from legacy account to node-scoped account when present. */
 export async function migrateLegacySecret(
   nodeId: string,
   pluginId: PluginName,

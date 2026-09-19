@@ -1,27 +1,20 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { stableEventKey } from '@/entities/session';
-
 import type { SpawnSeenAt } from './spawn-groups';
-
 export type MapItemStatus = 'running' | 'done' | 'failed';
-
 export type MapItemInfo = {
   index: number;
   workerId: string;
   status: MapItemStatus;
-  /** Хвост последнего text/reasoning воркера. */
   preview?: string;
   code?: string;
   message?: string;
   startedAt?: number;
   lastSeenAt?: number;
 };
-
 export type MapInfo = {
   nodeId: string;
-  /** Parent run that owns map.started / map.completed. */
   parentRunId?: string;
-  /** map toolCallId paired by order within the parent run. */
   toolCallId?: string;
   count: number;
   concurrency?: string;
@@ -33,17 +26,14 @@ export type MapInfo = {
   startedAt?: number;
   completedAt?: number;
 };
-
 export type MapGroups = {
   feedEvents: SessionEvent[];
   maps: MapInfo[];
 };
-
 type MapDraft = {
   info: MapInfo;
   itemsByWorker: Map<string, MapItemInfo>;
 };
-
 type ItemDraft = {
   info: MapItemInfo;
   deltaId: string | undefined;
@@ -51,16 +41,13 @@ type ItemDraft = {
   reasoningId: string | undefined;
   reasoningText: string;
 };
-
 const PREVIEW_MAX = 120;
-
 function truncate(text: string): string {
   if (text.length <= PREVIEW_MAX) {
     return text;
   }
   return `${Array.from(text).slice(0, PREVIEW_MAX).join('')}…`;
 }
-
 function seenOr(
   prev: number | undefined,
   seenAt: SpawnSeenAt | undefined,
@@ -75,7 +62,6 @@ function seenOr(
   }
   return seenAt[key] ?? prev;
 }
-
 function isMapStructural(ev: SessionEvent): ev is SessionEvent & {
   type:
     | 'map.started'
@@ -92,7 +78,6 @@ function isMapStructural(ev: SessionEvent): ev is SessionEvent & {
     ev.type === 'map.completed'
   );
 }
-
 function pairToolCallIds(events: SessionEvent[], maps: MapInfo[]): void {
   const pendingByRun = new Map<string, string[]>();
   for (const ev of events) {
@@ -120,7 +105,6 @@ function pairToolCallIds(events: SessionEvent[], maps: MapInfo[]): void {
     }
   }
 }
-
 type LegacyAttachArgs = {
   events: SessionEvent[];
   maps: MapInfo[];
@@ -128,11 +112,6 @@ type LegacyAttachArgs = {
   spawnIds: Set<string>;
   seenAt: SpawnSeenAt | undefined;
 };
-
-/**
- * Legacy journals (no map.item.started): orphan runIds between map.started
- * and map.completed belong to that map. Spawn ids are excluded by caller.
- */
 function attachLegacyWorkers(args: LegacyAttachArgs): void {
   const { events, maps, knownWorkers, spawnIds, seenAt } = args;
   if (maps.length === 0) {
@@ -177,23 +156,18 @@ function attachLegacyWorkers(args: LegacyAttachArgs): void {
     knownWorkers.add(ev.runId);
   }
 }
-
-/**
- * Вынимает события map-воркеров из ленты родителя (как extractSpawns).
- * Связь: map.item.started.workerId; для старых журналов — orphan runId
- * в окне map.started…map.completed.
- */
 export function extractMaps(
   events: SessionEvent[],
   seenAt?: SpawnSeenAt,
-  opts?: { spawnIds?: Iterable<string> },
+  opts?: {
+    spawnIds?: Iterable<string>;
+  },
 ): MapGroups {
   const spawnIds = new Set(opts?.spawnIds ?? []);
   const drafts: MapDraft[] = [];
   let current: MapDraft | undefined;
   const workerIds = new Set<string>();
   const itemDrafts = new Map<string, ItemDraft>();
-
   for (const ev of events) {
     if (ev.type === 'map.started') {
       const info: MapInfo = {
@@ -257,15 +231,12 @@ export function extractMaps(
       current = undefined;
     }
   }
-
   const maps = drafts.map((d) => {
     d.info.items.sort((a, b) => a.index - b.index);
     return d.info;
   });
-
   attachLegacyWorkers({ events, maps, knownWorkers: workerIds, spawnIds, seenAt });
   pairToolCallIds(events, maps);
-
   for (const map of maps) {
     for (const item of map.items) {
       if (!itemDrafts.has(item.workerId)) {
@@ -279,7 +250,6 @@ export function extractMaps(
       }
     }
   }
-
   const feedEvents: SessionEvent[] = [];
   for (const ev of events) {
     if (isMapStructural(ev)) {
@@ -318,14 +288,11 @@ export function extractMaps(
     }
     feedEvents.push(ev);
   }
-
   return { feedEvents, maps };
 }
-
 export function mapForToolCall(maps: MapInfo[], toolCallId: string): MapInfo | undefined {
   return maps.find((map) => map.toolCallId === toolCallId);
 }
-
 export function mapLineHint(map: MapInfo): string {
   const done = map.items.filter((item) => item.status !== 'running').length;
   const mode = map.concurrency === 'sequential' ? 'sequential' : 'parallel';

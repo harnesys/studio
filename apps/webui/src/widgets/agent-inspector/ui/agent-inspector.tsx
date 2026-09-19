@@ -1,18 +1,14 @@
 import { type InspectorTab, useDeskStore, useSelectedAgent } from '@/features/desk';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-
 import { InspectorPane } from './inspector-pane';
 import { MemoryPane } from './memory-pane';
-
 export function AgentInspector({ width }: { width: number }) {
   const agent = useSelectedAgent();
   const inspectorTab = useDeskStore((state) => state.inspectorTab);
-
   if (!agent) {
     return null;
   }
-
   return (
     <aside
       className="flex h-svh shrink-0 flex-col self-stretch bg-background"

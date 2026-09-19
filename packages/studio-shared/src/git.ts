@@ -7,14 +7,11 @@ export type GitFileStatus =
   | 'ignored'
   | 'deleted'
   | 'renamed';
-
 export type GitFileStatusMap = Record<string, GitFileStatus>;
-
 export type GitBranch = {
   name: string;
   current: boolean;
 };
-
 export type GitStatusCounts = {
   added: number;
   modified: number;
@@ -24,9 +21,10 @@ export type GitStatusCounts = {
   conflicted: number;
   renamed: number;
 };
-
 export type GitStatusBase =
-  | { isGit: false }
+  | {
+      isGit: false;
+    }
   | {
       isGit: true;
       branch: string | null;
@@ -40,24 +38,26 @@ export type GitStatusBase =
       noCommits: boolean;
       truncated?: boolean;
     };
-
 export type GitStatusResponse = GitStatusBase & {
   gitVersion?: string | null;
-  gitUser?: { name: string | null; email: string | null } | null;
+  gitUser?: {
+    name: string | null;
+    email: string | null;
+  } | null;
   remote?: string | null;
-  branches?: { local: GitBranch[]; recent: GitBranch[] };
+  branches?: {
+    local: GitBranch[];
+    recent: GitBranch[];
+  };
 };
-
 export type GitCheckoutRequest = {
   branch: string;
 };
-
 export type GitCreateBranchRequest = {
   name: string;
   checkout?: boolean;
   from?: string;
 };
-
 export type GitDiffResponse = {
   path: string;
   status: GitFileStatus;

@@ -1,11 +1,9 @@
 import type { McpServerConfig } from '../../domain/mcp.ts';
-
 export type RawToolDescriptor = {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
 };
-
 export type RawResourceDescriptor = {
   uri: string;
   name: string;
@@ -14,12 +12,10 @@ export type RawResourceDescriptor = {
   mimeType?: string;
   size?: number;
 };
-
 export type ListResourcesPage = {
   resources: RawResourceDescriptor[];
   nextCursor?: string;
 };
-
 export type RawResourceTextContent = {
   uri: string;
   name?: string;
@@ -27,7 +23,6 @@ export type RawResourceTextContent = {
   mimeType?: string;
   text: string;
 };
-
 export type RawResourceBlobContent = {
   uri: string;
   name?: string;
@@ -35,11 +30,10 @@ export type RawResourceBlobContent = {
   mimeType?: string;
   blob: string;
 };
-
 export type RawResourceContent = RawResourceTextContent | RawResourceBlobContent;
-
-export type RawResourceReadResult = { contents: RawResourceContent[] };
-
+export type RawResourceReadResult = {
+  contents: RawResourceContent[];
+};
 export type McpConnection = {
   serverId: string;
   listTools(): Promise<RawToolDescriptor[]>;
@@ -48,7 +42,6 @@ export type McpConnection = {
   readResource(uri: string): Promise<RawResourceReadResult>;
   close(): Promise<void>;
 };
-
 export type McpConnector = {
   connect(config: McpServerConfig): Promise<McpConnection>;
 };

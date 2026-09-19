@@ -11,7 +11,6 @@ const UNAVAILABLE_EMBEDDINGS: EmbeddingsPort = {
   embed: () =>
     Promise.reject(new Error('knowledge vector backend needs embedProvider and embedModel')),
 };
-
 export function modelRefFromSettings(
   settings: KnowledgeSettingsRecord,
 ): EmbeddingModelRef | undefined {
@@ -20,8 +19,6 @@ export function modelRefFromSettings(
   }
   return { provider: settings.embedProvider, model: settings.embedModel };
 }
-
-/** Fingerprint for index skip keys; changes when backend/embed model change. */
 export function knowledgeIndexModeKey(settings: KnowledgeSettingsRecord): string {
   if (settings.backend !== 'vector') {
     return 'fts';
@@ -30,8 +27,6 @@ export function knowledgeIndexModeKey(settings: KnowledgeSettingsRecord): string
   const model = settings.embedModel?.trim() ?? '';
   return `vector:${provider}/${model}`;
 }
-
-/** Knowledge embeddings: explicit embed model only; no catalog fallback. */
 export function embeddingsForSettings(
   deps: StudioEmbeddingsDeps,
   settings: KnowledgeSettingsRecord,

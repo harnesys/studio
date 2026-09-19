@@ -1,6 +1,5 @@
 import { type HumanEntry, visibleScheduledText } from '@harnesys/studio-shared';
 import { useState } from 'react';
-
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { deleteTurn } from '@/features/send-message';
 import { branchThread } from '@/features/switch-thread';
@@ -14,7 +13,6 @@ import { Textarea } from '@/shared/ui/textarea';
 import { toast } from '@/shared/ui/toast';
 import { MessageActions } from './message-actions';
 import { MessageAttachments } from './message-attachments';
-
 export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: string }) {
   const [editing, setEditing] = useState(false);
   const agent = useSelectedAgent();
@@ -23,7 +21,6 @@ export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: 
   const { openThread } = useStudioNavigation();
   const rawText = entry.text ?? '';
   const visibleText = visibleMessageText(rawText);
-
   return (
     <Message align="end" className="py-0">
       <MessageContent className="gap-1.5">
@@ -37,7 +34,6 @@ export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: 
             initial={visibleText}
             onCancel={() => setEditing(false)}
             onSave={(_content) => {
-              // TODO: Reimplement edit human text for session events
               setEditing(false);
             }}
           />
@@ -80,7 +76,6 @@ export function UserMessage({ entry, threadId }: { entry: HumanEntry; threadId: 
     </Message>
   );
 }
-
 function EditDraft({
   initial,
   onSave,
@@ -91,7 +86,6 @@ function EditDraft({
   onCancel: () => void;
 }) {
   const [value, setValue] = useState(initial);
-
   return (
     <div className="flex w-full max-w-xl flex-col gap-2">
       <Textarea
@@ -110,7 +104,6 @@ function EditDraft({
     </div>
   );
 }
-
 function visibleMessageText(text: string): string {
   const body = visibleScheduledText(text);
   const cut = body.search(/\n\nAttached:\n/);

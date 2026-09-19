@@ -11,28 +11,22 @@ import {
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { commandItems } from '../model/composer-providers';
 import type { SlashCommand } from '../model/slash-commands';
-
 export const slashSuggestionKey = new PluginKey('composer-slash');
-
 export function exitSlashSuggestion(view: EditorView): void {
   exitSuggestion(view, slashSuggestionKey);
 }
-
 export type SlashSuggestionOptions = {
   isDisabled(): boolean;
   onExecute(command: SlashCommand): void;
   onPicker(command: SlashCommand, at: number, editor: Editor, consumed: string): void;
 };
-
 export type SuggestionMenuHandle = {
   onKeyDown(event: KeyboardEvent): boolean;
 };
-
 export type SuggestionMenuProps = {
   items: SlashCommand[];
   onSelect(command: SlashCommand): void;
 };
-
 export function createSlashSuggestion(options: SlashSuggestionOptions) {
   return Extension.create({
     name: 'composer-slash-suggestion',
@@ -64,18 +58,15 @@ export function createSlashSuggestion(options: SlashSuggestionOptions) {
     },
   });
 }
-
 function createSlashMenuRenderer() {
   let component: ReactRenderer<SuggestionMenuHandle, SuggestionMenuProps> | null = null;
   let unmount: (() => void) | null = null;
-
   const destroy = () => {
     unmount?.();
     component?.destroy();
     component = null;
     unmount = null;
   };
-
   return {
     onStart: (props: SuggestionProps<SlashCommand, SlashCommand>) => {
       destroy();
@@ -93,12 +84,10 @@ function createSlashMenuRenderer() {
     onExit: destroy,
   };
 }
-
 export const SuggestionMenu = forwardRef<SuggestionMenuHandle, SuggestionMenuProps>(
   function SuggestionMenu({ items, onSelect }, ref) {
     const [active, setActive] = useState(0);
     const safeActive = active < items.length ? active : 0;
-
     useImperativeHandle(
       ref,
       () => ({
@@ -107,7 +96,6 @@ export const SuggestionMenu = forwardRef<SuggestionMenuHandle, SuggestionMenuPro
       }),
       [items, safeActive, onSelect],
     );
-
     return (
       <div
         className="w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-md"
@@ -120,9 +108,7 @@ export const SuggestionMenu = forwardRef<SuggestionMenuHandle, SuggestionMenuPro
               <li key={command.name}>
                 <button
                   type="button"
-                  className={`flex w-full items-start gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                    isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'
-                  }`}
+                  className={`flex w-full items-start gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'}`}
                   onMouseEnter={() => setActive(index)}
                   onClick={() => onSelect(command)}
                 >
@@ -137,14 +123,12 @@ export const SuggestionMenu = forwardRef<SuggestionMenuHandle, SuggestionMenuPro
     );
   },
 );
-
 type MenuKeydownState = {
   items: SlashCommand[];
   active: number;
   onSelect(command: SlashCommand): void;
   setActive(update: (index: number) => number): void;
 };
-
 function handleMenuKeyDown(event: KeyboardEvent, state: MenuKeydownState): boolean {
   const { items, active, onSelect, setActive } = state;
   if (event.isComposing) {

@@ -1,6 +1,5 @@
 import { type AnySQLiteColumn, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { threadsTable } from './threads.ts';
-
 export const runsTable = sqliteTable(
   'runs',
   {
@@ -26,6 +25,5 @@ export const runsTable = sqliteTable(
     waitFireIdx: index('runs_wait_fire_idx').on(table.status, table.waitFireAt),
   }),
 );
-
 export type RunRow = typeof runsTable.$inferSelect;
 export type RunInsert = typeof runsTable.$inferInsert;

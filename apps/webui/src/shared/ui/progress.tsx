@@ -1,5 +1,4 @@
 import { Progress as ProgressPrimitive } from '@base-ui/react/progress';
-
 import { cn } from '@/shared/lib/utils';
 
 function Progress({ className, children, value, ...props }: ProgressPrimitive.Root.Props) {
@@ -17,7 +16,6 @@ function Progress({ className, children, value, ...props }: ProgressPrimitive.Ro
     </ProgressPrimitive.Root>
   );
 }
-
 function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
   return (
     <ProgressPrimitive.Track
@@ -30,7 +28,6 @@ function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
     />
   );
 }
-
 function ProgressIndicator({ className, ...props }: ProgressPrimitive.Indicator.Props) {
   return (
     <ProgressPrimitive.Indicator
@@ -40,7 +37,6 @@ function ProgressIndicator({ className, ...props }: ProgressPrimitive.Indicator.
     />
   );
 }
-
 function ProgressLabel({ className, ...props }: ProgressPrimitive.Label.Props) {
   return (
     <ProgressPrimitive.Label
@@ -50,7 +46,6 @@ function ProgressLabel({ className, ...props }: ProgressPrimitive.Label.Props) {
     />
   );
 }
-
 function ProgressValue({ className, ...props }: ProgressPrimitive.Value.Props) {
   return (
     <ProgressPrimitive.Value

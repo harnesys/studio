@@ -1,15 +1,14 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { LoaderCircleIcon, MessageCircleQuestionIcon } from 'lucide-react';
-
 import { cn } from '@/shared/lib/utils';
 import { ActivityLine } from './activity-line';
-
-/** Transcript projection for ask events. Interactive answer lives in HitlPrompt. */
 export function AskLine({
   event,
   live,
 }: {
-  event: SessionEvent & { type: 'ask' };
+  event: SessionEvent & {
+    type: 'ask';
+  };
   runId?: string;
   live?: boolean;
 }) {
@@ -19,7 +18,6 @@ export function AskLine({
   if (event.source === 'budget') {
     label = 'Budget limit reached';
   }
-
   return (
     <ActivityLine
       icon={MessageCircleQuestionIcon}

@@ -1,6 +1,5 @@
 import { Field, FieldLabel } from '@/shared/ui/field';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 export function ConcurrencyField({
   value,
   onChange,
@@ -28,7 +27,6 @@ export function ConcurrencyField({
     </Field>
   );
 }
-
 export function concurrencyString(value: unknown): string {
   return typeof value === 'string' ? value : 'parallel';
 }

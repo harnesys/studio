@@ -1,5 +1,4 @@
 import type { Driver, StudioModel, StudioModelView } from './catalog.ts';
-
 export type ProviderRecord = {
   id: string;
   name: string;
@@ -10,25 +9,21 @@ export type ProviderRecord = {
   enabled: boolean;
   models: StudioModel[];
 };
-
 export type ProviderPublic = Omit<ProviderRecord, 'apiKey' | 'models'> & {
   hasKey: boolean;
   models: ProviderModelPublic[];
 };
-
 export type ProviderModelPublic = Omit<StudioModelView, 'kind'> & {
   kind: string;
   metadata: unknown;
   createdAt: string;
   updatedAt: string;
 };
-
 export type ProviderExportModel = {
   name: string;
   kind: string;
   metadata?: unknown;
 };
-
 export type ProviderExportEntry = {
   name: string;
   driver: Driver;
@@ -38,17 +33,14 @@ export type ProviderExportEntry = {
   enabled: boolean;
   models: ProviderExportModel[];
 };
-
 export type ProviderExportBundle = {
   version: 1;
   exportedAt: string;
   providers: ProviderExportEntry[];
 };
-
 export type ImportProvidersRequest = {
   providers: ProviderExportEntry[];
 };
-
 export type ImportProvidersSummary = {
   providersCreated: number;
   providersUpdated: number;

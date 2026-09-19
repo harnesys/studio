@@ -17,14 +17,15 @@ import {
   UnavailableError,
   ValidationError,
 } from '../../domain/studio.error.ts';
-
 export const handleHttpError: ErrorHandler = (err, c) => {
   const { status, error } = toStudioError(err);
   const body: StudioErrorBody = { error };
   return c.json(body, status);
 };
-
-function toStudioError(err: unknown): { status: ContentfulStatusCode; error: string } {
+function toStudioError(err: unknown): {
+  status: ContentfulStatusCode;
+  error: string;
+} {
   if (err instanceof ZodError) {
     return { status: 400, error: zodMessage(err) };
   }
@@ -60,7 +61,6 @@ function toStudioError(err: unknown): { status: ContentfulStatusCode; error: str
   }
   return { status: 500, error: err instanceof Error ? err.message : 'internal' };
 }
-
 function zodMessage(err: ZodError): string {
   const issue = err.issues[0];
   if (!issue) {

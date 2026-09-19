@@ -1,9 +1,7 @@
 import { WrenchIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-
 import { ACTIVITY_COLLAPSE_MIN } from '@/shared/config/constants';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
-
 import type { MapInfo } from '../model/map-groups';
 import type { SpawnInfo } from '../model/spawn-groups';
 import type { GroupActivityChunk } from '../model/tool-run-summary';
@@ -15,12 +13,6 @@ import { ThinkingLine } from './thinking-line';
 import { ToolLine } from './tool-line';
 
 const HINT_PARTS = 3;
-
-/**
- * Свернувшаяся группа активности между текстом агента: тулы, мысли и спавны.
- * Свёрнутый заголовок — сводка по типам со счётчиком ошибок; живой ран
- * или режим Full показывают плоский список без сворачивания.
- */
 export function ToolGroup({
   chunks,
   live,
@@ -40,7 +32,6 @@ export function ToolGroup({
 }) {
   const feedDetail = useChatPreferences((state) => state.feedDetail);
   const collapse = feedDetail === 'quiet' && !runLive && chunks.length >= ACTIVITY_COLLAPSE_MIN;
-
   if (!collapse) {
     return (
       <div className="flex flex-col gap-1">
@@ -59,14 +50,12 @@ export function ToolGroup({
       </div>
     );
   }
-
   const spawnsById = new Map((spawns ?? []).map((item) => [item.spawnId, item]));
   const summary = summarizeActivity(chunks, spawnsById);
   const hint = summary.parts.slice(0, HINT_PARTS).join(' · ');
   const extra = summary.parts.length > HINT_PARTS ? ` +${summary.parts.length - HINT_PARTS}` : null;
   const badges: ActivityBadge[] =
     summary.failed > 0 ? [{ text: `${summary.failed} failed`, tone: 'destructive' }] : [];
-
   return (
     <ActivityLine
       icon={WrenchIcon}
@@ -94,7 +83,6 @@ export function ToolGroup({
     </ActivityLine>
   );
 }
-
 function renderChunk({
   chunk,
   index,

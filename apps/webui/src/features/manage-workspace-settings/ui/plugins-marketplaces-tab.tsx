@@ -2,7 +2,6 @@ import type { PluginRegistrySummary } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
-
 import { confirmRemoveRegistry, openAddRegistryDialog } from '@/features/manage-plugins';
 import {
   pluginCatalogQueryKey,
@@ -22,18 +21,15 @@ import {
 } from '@/shared/ui/capability-rows';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/shared/ui/empty';
 import { toast } from '@/shared/ui/toast';
-
 export function PluginsMarketplacesTab() {
   const queryClient = useQueryClient();
   const registriesQuery = useQuery(pluginRegistriesQuery());
   const items = registriesQuery.data ?? [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
   async function invalidate() {
     await queryClient.invalidateQueries({ queryKey: pluginRegistriesQueryKey });
     await queryClient.invalidateQueries({ queryKey: pluginCatalogQueryKey });
   }
-
   const refresh = useMutation({
     mutationFn: (id: string) => refreshPluginRegistry(id),
     onSuccess: async (registry) => {
@@ -47,7 +43,6 @@ export function PluginsMarketplacesTab() {
       });
     },
   });
-
   const remove = useMutation({
     mutationFn: (id: string) => removePluginRegistry(id),
     onSuccess: async () => {
@@ -55,7 +50,6 @@ export function PluginsMarketplacesTab() {
       toast.add({ title: 'Marketplace removed' });
     },
   });
-
   return (
     <div className="flex flex-col gap-2" data-testid="plugins-marketplaces-tab">
       <RowHeader label="Marketplaces" count={registriesQuery.isPending ? undefined : items.length}>
@@ -116,7 +110,6 @@ export function PluginsMarketplacesTab() {
     </div>
   );
 }
-
 function registryStatus(item: PluginRegistrySummary): {
   label: string;
   tone: 'neutral' | 'accent' | 'danger';
@@ -129,7 +122,6 @@ function registryStatus(item: PluginRegistrySummary): {
   }
   return { label: 'pending', tone: 'accent' };
 }
-
 function syncLabel(item: PluginRegistrySummary): string {
   if (item.lastError) {
     return item.lastError;
@@ -139,7 +131,6 @@ function syncLabel(item: PluginRegistrySummary): string {
   }
   return 'Never synced';
 }
-
 function RegistryRow({
   item,
   busy,

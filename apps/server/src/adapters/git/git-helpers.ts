@@ -1,5 +1,4 @@
 import type { GitFileStatus, GitFileStatusMap } from '@harnesys/studio-shared';
-
 export function parsePorcelain(raw: string): GitFileStatusMap {
   const map: GitFileStatusMap = {};
   if (!raw) {
@@ -19,7 +18,6 @@ export function parsePorcelain(raw: string): GitFileStatusMap {
   }
   return map;
 }
-
 export function xyToStatus(xy: string): GitFileStatus {
   if (xy === '??') {
     return 'untracked';
@@ -55,7 +53,6 @@ export function xyToStatus(xy: string): GitFileStatus {
   }
   return 'modified';
 }
-
 export function statusRank(status: GitFileStatus): number {
   switch (status) {
     case 'conflicted':

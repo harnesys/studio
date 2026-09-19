@@ -6,7 +6,6 @@ import type { CatalogEntry, CatalogRenames } from 'harnesys/plugins-catalog';
 import { findMarketplaceManifest, parseClaudeMarketplace } from 'harnesys/plugins-catalog';
 import type { PluginRegistryRepository } from '../../domain/plugin-registry.port.ts';
 
-/** Component-definition fields a marketplace entry may declare under `strict: false`. */
 type MaterializeComponentField =
   | 'skills'
   | 'commands'
@@ -14,7 +13,6 @@ type MaterializeComponentField =
   | 'hooks'
   | 'mcpServers'
   | 'lspServers';
-
 const COMPONENT_FIELDS: MaterializeComponentField[] = [
   'skills',
   'commands',
@@ -23,9 +21,7 @@ const COMPONENT_FIELDS: MaterializeComponentField[] = [
   'mcpServers',
   'lspServers',
 ];
-
 const RENAMES_CHAIN_MAX = 10;
-
 export type CatalogPluginMaterializeMeta = {
   name: string;
   description?: string;
@@ -33,22 +29,11 @@ export type CatalogPluginMaterializeMeta = {
   strict?: boolean;
   components?: Partial<Record<MaterializeComponentField, unknown>>;
 };
-
 export type CatalogPluginMaterializeResult = {
   materialized: boolean;
   wroteLspServers: boolean;
   replacedByEntry: boolean;
 };
-
-/**
- * Claude `strict: true` entries with a missing layout (or missing lspServers) get
- * the manifest synthesized/enriched from the catalog entry.
- *
- * Claude `strict: false` entries (e.g. typescript-lsp) keep identity and components
- * in marketplace.json — the entry is the entire definition. The manifest is rebuilt
- * from entry fields; plugin.json component declarations are dropped (Claude treats
- * them as a conflict, the entry wins).
- */
 export async function materializeCatalogPluginIfNeeded(
   checkout: string,
   meta: CatalogPluginMaterializeMeta,
@@ -56,7 +41,6 @@ export async function materializeCatalogPluginIfNeeded(
   if (meta.strict === false) {
     return replaceManifestFromEntry(checkout, meta);
   }
-
   const manifestPath = join(checkout, '.claude-plugin', 'plugin.json');
   const hasLayout = hasRecognizedPluginLayout(checkout);
   const existing = hasLayout && existsSync(manifestPath) ? readJsonObject(manifestPath) : undefined;
@@ -65,7 +49,6 @@ export async function materializeCatalogPluginIfNeeded(
   if (hasLayout && !needsLsp) {
     return { materialized: false, wroteLspServers: false, replacedByEntry: false };
   }
-
   const dir = join(checkout, '.claude-plugin');
   await mkdir(dir, { recursive: true });
   const manifest: Record<string, unknown> = {
@@ -88,7 +71,6 @@ export async function materializeCatalogPluginIfNeeded(
     replacedByEntry: false,
   };
 }
-
 async function replaceManifestFromEntry(
   checkout: string,
   meta: CatalogPluginMaterializeMeta,
@@ -96,7 +78,6 @@ async function replaceManifestFromEntry(
   const manifestPath = join(checkout, '.claude-plugin', 'plugin.json');
   const hasLayout = hasRecognizedPluginLayout(checkout);
   const existing = hasLayout && existsSync(manifestPath) ? readJsonObject(manifestPath) : undefined;
-
   const manifest: Record<string, unknown> = { name: meta.name };
   if (meta.description) {
     manifest.description = meta.description;
@@ -110,7 +91,6 @@ async function replaceManifestFromEntry(
       manifest[field] = value;
     }
   }
-
   if (existing && stableStringify(existing) === stableStringify(manifest)) {
     return { materialized: false, wroteLspServers: false, replacedByEntry: false };
   }
@@ -122,8 +102,6 @@ async function replaceManifestFromEntry(
     replacedByEntry: hasLayout,
   };
 }
-
-/** Materialize from marketplace root + collect install diagnostics. */
 export async function prepareCatalogCheckout(
   checkout: string,
   marketplaceRoot: string,
@@ -151,7 +129,6 @@ export async function prepareCatalogCheckout(
   }
   return diagnostics;
 }
-
 export function readMarketplacePluginMeta(
   marketplaceRoot: string,
   pluginName: string,
@@ -180,12 +157,9 @@ export function readMarketplacePluginMeta(
         ...(components ? { components } : {}),
       };
     }
-  } catch {
-    // fall through
-  }
+  } catch {}
   return { name: pluginName };
 }
-
 function readEntryComponents(
   entry: Record<string, unknown>,
 ): Partial<Record<MaterializeComponentField, unknown>> | undefined {
@@ -198,12 +172,6 @@ function readEntryComponents(
   }
   return Object.keys(components).length > 0 ? components : undefined;
 }
-
-/**
- * Catalog entry lookup with `renames` fallback: when `pluginName` is missing from
- * the catalog, follow the marketplace `renames` map (former name → current name;
- * `null` marks removal) up to `renames` chain length guard.
- */
 export function findCatalogEntryWithRenames(
   registries: PluginRegistryRepository,
   registryId: string,
@@ -235,7 +203,6 @@ export function findCatalogEntryWithRenames(
   }
   return undefined;
 }
-
 function readMarketplaceRenames(marketplaceRoot: string): CatalogRenames | undefined {
   const location = findMarketplaceManifest(marketplaceRoot);
   if (!location) {
@@ -248,20 +215,12 @@ function readMarketplaceRenames(marketplaceRoot: string): CatalogRenames | undef
     return undefined;
   }
 }
-
 export type CatalogVersionInput = {
   entry: CatalogEntry;
   manifestVersion?: string;
-  /** Git sha of the marketplace checkout; applies to git-backed sources. */
   registryRevision?: string;
-  /** Content revision of the materialized source: npm package version or archive digest(12). */
   sourceRevision?: string;
 };
-
-/**
- * Version precedence: manifest > entry > git sha (git-backed sources) >
- * archive sha256(12) / npm package version > 'unknown'.
- */
 export function resolveCatalogEntryVersion(input: CatalogVersionInput): string {
   if (input.manifestVersion) {
     return input.manifestVersion;
@@ -287,15 +246,12 @@ export function resolveCatalogEntryVersion(input: CatalogVersionInput): string {
   }
   return 'unknown';
 }
-
 function hasRecognizedPluginLayout(checkout: string): boolean {
   return (
     existsSync(join(checkout, 'plugin.json')) ||
     existsSync(join(checkout, '.claude-plugin', 'plugin.json'))
   );
 }
-
-/** `version` from `.claude-plugin/plugin.json` (or root plugin.json) of a checkout. */
 export function readPluginManifestVersion(checkout: string): string | undefined {
   const nested = join(checkout, '.claude-plugin', 'plugin.json');
   const root = join(checkout, 'plugin.json');
@@ -307,7 +263,6 @@ export function readPluginManifestVersion(checkout: string): string | undefined 
   }
   return asString(manifest?.version);
 }
-
 function readJsonObject(filePath: string): Record<string, unknown> | undefined {
   try {
     const raw: unknown = JSON.parse(readFileSync(filePath, 'utf8'));
@@ -316,12 +271,9 @@ function readJsonObject(filePath: string): Record<string, unknown> | undefined {
     return undefined;
   }
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
-/** Key-order-insensitive JSON comparison for manifest equality. */
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(',')}]`;
@@ -332,7 +284,6 @@ function stableStringify(value: unknown): string {
   }
   return JSON.stringify(value) ?? 'null';
 }
-
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 }

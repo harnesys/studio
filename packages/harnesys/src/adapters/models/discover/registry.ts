@@ -20,14 +20,11 @@ import { listTogetherModels } from './together.ts';
 import { listXaiModels } from './xai.ts';
 import { listXiaomiModels } from './xiaomi.ts';
 import { listZaiModels } from './zai.ts';
-
 export type ListModels = (input: DiscoverInput) => Promise<DiscoveredModel[]>;
-
 type DriverDiscover = {
   defaultApiUrl: string;
   list: ListModels;
 };
-
 const drivers: Record<Driver, DriverDiscover> = {
   openai: { defaultApiUrl: 'https://api.openai.com/v1', list: listOpenAIModels },
   'openai-compatible': {
@@ -62,7 +59,6 @@ const drivers: Record<Driver, DriverDiscover> = {
   },
   moonshotai: { defaultApiUrl: 'https://api.moonshot.ai/v1', list: listMoonshotAIModels },
 };
-
 export function discoverAdapter(driver: string): DriverDiscover {
   if (!(DRIVERS as readonly string[]).includes(driver)) {
     throw new DiscoverError(`unknown driver ${driver}`);

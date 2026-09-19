@@ -1,7 +1,5 @@
 import type { ModeOpPermissions, ModePreset, PackAssignment } from '@harnesys/studio-shared';
-
 export type ModePresetInsert = ModePreset;
-
 export type ModePresetPatch = Partial<{
   name: string;
   description: string;
@@ -12,7 +10,6 @@ export type ModePresetPatch = Partial<{
   installedByDefault: boolean;
   updatedAt: string;
 }>;
-
 export type ModePresetRepository = {
   list(workspaceId: string): ModePreset[];
   findById(workspaceId: string, id: string): ModePreset | undefined;

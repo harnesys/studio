@@ -44,7 +44,6 @@ import { wireControllers } from './wire-controllers.ts';
 import { registerMemoryHttp } from './wire-memory.ts';
 import { wireSchedules } from './wire-schedules.ts';
 import { wireWebhooks } from './wire-webhooks.ts';
-
 export type RegisterStudioHttpArgs = {
   supervisor: NodeSupervisor;
   platform: StudioPlatform;
@@ -53,13 +52,10 @@ export type RegisterStudioHttpArgs = {
   home: string;
   secretStore?: SecretStore;
 };
-
 export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
   const { supervisor, platform, machineConfig, nodeRegistry, home } = args;
   const app = new Hono();
   const hostToken = machineConfig.read().host.token;
-
-  // Dogfood multi-host: allow window origin (Vite) or any Origin for remote absolute fetches.
   app.use(
     '*',
     cors({
@@ -70,11 +66,9 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
       maxAge: 86400,
     }),
   );
-
   new HealthController().register(app);
   app.use('*', requireHostToken(hostToken));
   new PairingController({ machineConfig }).register(app);
-
   const workspaceRepo = createRoutingWorkspaceRepo(supervisor);
   const agentRepo = createRoutingAgentRepo(supervisor);
   const threadRepo = createRoutingThreadRepo(supervisor);
@@ -94,7 +88,6 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
   const workspaceHarnesys = createRoutingWorkspaceHarnesys(supervisor);
   const runtimeStateRepo = createRoutingRuntimeStateRepo(supervisor);
   const modelsPort: ModelsPort = createHarnesysModelsPort(llmProviderRepo, llmModelRepo);
-
   const getThread: GetThreadInput = {
     execute: (request) => {
       const node = supervisor.findByThreadId(request.id);
@@ -141,7 +134,6 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
   const threadRegistry = new RoutingThreadRegistry(supervisor);
   const secretStore = args.secretStore ?? tryCreateHostSecretStore();
   const lsp = createRoutingLsp(supervisor);
-
   wireControllers({
     app,
     home,
@@ -182,12 +174,10 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
     sendThreadRun,
     supervisor,
   });
-
   registerMemoryHttp(app, memory, {
     agents: agentRepo,
     workspaces: workspaceRepo,
   });
-
   wireSchedules({
     app,
     db: undefined,
@@ -205,7 +195,6 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
     semanticSessions: memory.semantic,
     queue: routingScheduleQueue(supervisor, 'schedule'),
   });
-
   wireWebhooks({
     app,
     db: undefined as never,
@@ -222,15 +211,12 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
     queue: routingScheduleQueue(supervisor, 'webhook'),
     machineConfig,
   });
-
   app.onError(handleHttpError);
   return app;
 }
-
 function pathsEqual(a: string, b: string): boolean {
   return a.replace(/\/$/, '') === b.replace(/\/$/, '');
 }
-
 function routingScheduleQueue(
   supervisor: NodeSupervisor,
   kind: 'schedule' | 'webhook',
@@ -263,7 +249,6 @@ function routingScheduleQueue(
   };
   return queue;
 }
-
 class RoutingThreadRegistry extends ThreadRuntimeRegistry {
   constructor(private readonly supervisor: NodeSupervisor) {
     super({
@@ -272,7 +257,6 @@ class RoutingThreadRegistry extends ThreadRuntimeRegistry {
       },
     });
   }
-
   override threadOf(threadId: string, runtime: RuntimeHandle, agentId: string, cwd?: string) {
     const node = this.supervisor.findByThreadId(threadId);
     if (!node) {
@@ -280,12 +264,10 @@ class RoutingThreadRegistry extends ThreadRuntimeRegistry {
     }
     return node.host.threadRegistry.threadOf(threadId, runtime, agentId, cwd);
   }
-
   override forget(threadId: string): void {
     this.supervisor.findByThreadId(threadId)?.host.threadRegistry.forget(threadId);
   }
 }
-
 function createRoutingLsp(supervisor: NodeSupervisor): StudioLspAdapter {
   return new Proxy({} as StudioLspAdapter, {
     get(_target, prop) {

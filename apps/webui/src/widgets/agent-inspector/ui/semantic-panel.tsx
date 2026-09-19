@@ -2,7 +2,6 @@ import type { MemoryRecord, SemanticScope } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-
 import type { Agent } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import { useSelectedThread } from '@/features/desk';
@@ -18,15 +17,16 @@ import { formatDayTime } from '@/shared/lib/format-clock';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/ui/toast';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import { Section } from './section';
 
-const SCOPES: ReadonlyArray<{ value: SemanticScope | 'all'; label: string }> = [
+const SCOPES: ReadonlyArray<{
+  value: SemanticScope | 'all';
+  label: string;
+}> = [
   { value: 'all', label: 'all' },
   { value: 'long', label: 'long' },
   { value: 'session', label: 'session' },
 ];
-
 export function SemanticPanel({ agent }: { agent: Agent }) {
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const thread = useSelectedThread();
@@ -36,14 +36,12 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
     (state) => thread !== null && Boolean(state.activeRuns[thread.id]),
   );
   const wasStreaming = useRef(streaming);
-
   const filterScope = scope === 'all' ? undefined : scope;
   const query = useQuery({
     ...agentSemanticQuery(workspaceId ?? '', agent.id, { scope: filterScope }),
     enabled: Boolean(workspaceId),
   });
   const rows = query.data ?? [];
-
   useEffect(() => {
     if (wasStreaming.current && !streaming && workspaceId) {
       void queryClient.invalidateQueries({
@@ -52,7 +50,6 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
     }
     wasStreaming.current = streaming;
   }, [streaming, workspaceId, agent.id, queryClient]);
-
   async function invalidate() {
     if (!workspaceId) {
       return;
@@ -61,7 +58,6 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
       queryKey: ['workspaces', workspaceId, 'agents', agent.id, 'semantic'],
     });
   }
-
   const save = useMutation({
     mutationFn: async (draft: SemanticDraft) => {
       if (!workspaceId) {
@@ -86,7 +82,6 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
       toast.add({ title: 'Memory saved', description: row.key ?? row.scope });
     },
   });
-
   const remove = useMutation({
     mutationFn: (id: string) => {
       if (!workspaceId) {
@@ -99,9 +94,7 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
       toast.add({ title: 'Memory deleted' });
     },
   });
-
   const busy = save.isPending || remove.isPending;
-
   return (
     <Section
       label="Semantic"
@@ -177,7 +170,6 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
     </Section>
   );
 }
-
 function SemanticRow({
   row,
   busy,

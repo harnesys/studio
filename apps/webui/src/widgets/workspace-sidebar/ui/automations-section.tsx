@@ -24,9 +24,7 @@ import { AutomationsSectionCreateButton } from './automation-create-picker-dialo
 import { ScheduleRow } from './schedule-row';
 import { WebhookRow } from './webhook-row';
 import { WorkspaceGroupLabel } from './workspace-group';
-
 export const AutomationsSectionActions = AutomationsSectionCreateButton;
-
 export type AutomationsSectionProps = {
   workspaceIds: string[];
   agents: Agent[];
@@ -38,13 +36,11 @@ export type AutomationsSectionProps = {
   onSelectDone: () => void;
   groupActions?: (workspaceId: string) => ReactNode;
 };
-
 type AutomationEntry = {
   key: string;
   updatedAt: string;
   node: ReactNode;
 };
-
 export function AutomationsSection({
   workspaceIds,
   agents,
@@ -60,14 +56,12 @@ export function AutomationsSection({
   const workspaces = workspacesQuery.data ?? [];
   const navigate = useNavigate();
   const { openDesk } = useStudioNavigation();
-
   const openScheduleTab = (item: Schedule) => {
     useIdeStore
       .getState()
       .openSchedule(item.workspaceId, item.id, item.threadId, item.targetAgentId);
     void navigate(studioPath.schedule(item.workspaceId, item.id));
   };
-
   const openWebhookTab = (item: Webhook) => {
     const agentId = useThreadStore.getState().byId(item.threadId)?.agentId;
     useIdeStore
@@ -75,7 +69,6 @@ export function AutomationsSection({
       .openWebhook(item.workspaceId, item.id, item.threadId, agentId ?? item.targetAgentId);
     void navigate(studioPath.webhook(item.workspaceId, item.id));
   };
-
   const buildEntries = (workspaceId: string, workspaceAgents: Agent[]): AutomationEntry[] => {
     const groupSchedules = schedules.filter((item) => item.workspaceId === workspaceId);
     const groupWebhooks = webhooks.filter((item) => item.workspaceId === workspaceId);
@@ -158,9 +151,11 @@ export function AutomationsSection({
     entries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return entries;
   };
-
   const multi = workspaceIds.length > 1;
-  const groups: { workspace: Workspace; entries: AutomationEntry[] }[] = [];
+  const groups: {
+    workspace: Workspace;
+    entries: AutomationEntry[];
+  }[] = [];
   for (const id of workspaceIds) {
     const workspace = workspaces.find((item) => item.id === id);
     if (!workspace) {
@@ -173,7 +168,6 @@ export function AutomationsSection({
     }
     groups.push({ workspace, entries });
   }
-
   if (groups.length === 0) {
     return (
       <p className="px-2 py-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
@@ -181,7 +175,6 @@ export function AutomationsSection({
       </p>
     );
   }
-
   return (
     <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
       {groups.map((group) => (

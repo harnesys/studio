@@ -1,5 +1,4 @@
 'use client';
-
 import { PanelLeftIcon } from 'lucide-react';
 import type * as React from 'react';
 import { cn } from '@/shared/lib/utils';
@@ -23,7 +22,6 @@ function Sidebar({
   collapsible?: 'offcanvas' | 'icon' | 'none';
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
-
   if (collapsible === 'none') {
     return (
       <div
@@ -38,7 +36,6 @@ function Sidebar({
       </div>
     );
   }
-
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -64,7 +61,6 @@ function Sidebar({
       </Sheet>
     );
   }
-
   return (
     <div
       className="group peer hidden text-sidebar-foreground md:block"
@@ -74,7 +70,6 @@ function Sidebar({
       data-side={side}
       data-slot="sidebar"
     >
-      {/* This is what handles the sidebar gap on desktop */}
       <div
         data-slot="sidebar-gap"
         className={cn(
@@ -91,7 +86,6 @@ function Sidebar({
         data-side={side}
         className={cn(
           'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear data-[side=right]:right-0 data-[side=left]:left-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] md:flex',
-          // Adjust the padding for floating and inset variants.
           variant === 'floating' || variant === 'inset'
             ? 'p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
             : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l',
@@ -110,10 +104,8 @@ function Sidebar({
     </div>
   );
 }
-
 function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar();
-
   return (
     <Button
       data-sidebar="trigger"
@@ -132,10 +124,8 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
     </Button>
   );
 }
-
 function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
   const { toggleSidebar } = useSidebar();
-
   return (
     <button
       data-sidebar="rail"
@@ -157,7 +147,6 @@ function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
     />
   );
 }
-
 function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
   return (
     <main
@@ -170,7 +159,6 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
     />
   );
 }
-
 function SidebarInput({ className, ...props }: React.ComponentProps<typeof Input>) {
   return (
     <Input
@@ -181,7 +169,6 @@ function SidebarInput({ className, ...props }: React.ComponentProps<typeof Input
     />
   );
 }
-
 function SidebarHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -192,7 +179,6 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function SidebarFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -203,7 +189,6 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function SidebarSeparator({ className, ...props }: React.ComponentProps<typeof Separator>) {
   return (
     <Separator
@@ -214,7 +199,6 @@ function SidebarSeparator({ className, ...props }: React.ComponentProps<typeof S
     />
   );
 }
-
 function SidebarContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div

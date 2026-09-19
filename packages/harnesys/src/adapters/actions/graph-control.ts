@@ -16,9 +16,12 @@ type MapToolInput = {
   instruction?: string;
   maxTokensPerItem?: number;
 };
-
 function parseMapToolInput(input: unknown): MapToolInput {
-  const rec = input as { items?: unknown; instruction?: unknown; maxTokensPerItem?: unknown };
+  const rec = input as {
+    items?: unknown;
+    instruction?: unknown;
+    maxTokensPerItem?: unknown;
+  };
   if (!Array.isArray(rec.items)) {
     throw new Error('items must be an array');
   }
@@ -48,8 +51,6 @@ function parseMapToolInput(input: unknown): MapToolInput {
     ...(typeof rec.maxTokensPerItem === 'number' ? { maxTokensPerItem: rec.maxTokensPerItem } : {}),
   };
 }
-
-/** Queue items for control:map (ReAct → $state.mapItems). */
 export function mapTool(): ToolDefinition {
   return tool(MAP_TOOL, {
     description:
@@ -97,8 +98,6 @@ export function mapTool(): ToolDefinition {
     },
   });
 }
-
-/** Queue a mid-run sleep for control:wait (ReAct → $state.waitUntilMs). */
 export function wait(): ToolDefinition {
   return tool(WAIT_TOOL, {
     description:
@@ -121,7 +120,9 @@ export function wait(): ToolDefinition {
       if (ctx.sandbox) {
         return sandboxDenyText(WAIT_TOOL, 'user input');
       }
-      const rec = input as { delayMs?: unknown };
+      const rec = input as {
+        delayMs?: unknown;
+      };
       const delayMs = typeof rec.delayMs === 'number' ? rec.delayMs : Number.NaN;
       if (!Number.isFinite(delayMs) || delayMs < 1 || delayMs > WAIT_DELAY_MS_MAX) {
         throw new Error(`invalid delayMs ${String(rec.delayMs)}`);

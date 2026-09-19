@@ -1,7 +1,6 @@
 import { contextUsedRatio, type MessageUsage, type UsageRollup } from '@/entities/session';
 import { cn } from '@/shared/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
-
 import { UsageCard } from './usage-card';
 
 type ContextRingProps = {
@@ -11,7 +10,6 @@ type ContextRingProps = {
   window?: number;
   disabled?: boolean;
 };
-
 export function ContextRing({ last, run, thread, window = 0, disabled }: ContextRingProps) {
   const ratio = last ? contextUsedRatio(last) : 0;
   const size = 16;
@@ -22,7 +20,6 @@ export function ContextRing({ last, run, thread, window = 0, disabled }: Context
   const hasStats = Boolean(
     last || window > 0 || (thread && thread.calls > 0) || (run && run.calls > 0),
   );
-
   const ring = (
     <span className="relative inline-flex size-4 items-center justify-center">
       <svg
@@ -57,7 +54,6 @@ export function ContextRing({ last, run, thread, window = 0, disabled }: Context
       </svg>
     </span>
   );
-
   if (!hasStats || disabled) {
     return (
       <span
@@ -70,7 +66,6 @@ export function ContextRing({ last, run, thread, window = 0, disabled }: Context
       </span>
     );
   }
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

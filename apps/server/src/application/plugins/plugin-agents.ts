@@ -16,31 +16,14 @@ import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm
 import type { PluginInstallRecord, PluginRepository } from '../../domain/plugin.port.ts';
 import { buildReactGraph } from '../agents/react-preset.ts';
 import { pluginUserConfig } from './plugin-user-config.ts';
-
-/** Catalog of agents bound from the workspace's enabled plugins (spec §3 agent). */
 export type PluginAgentCatalog = {
   list(): AgentCatalogSummary[];
   get(id: string): AgentDefinition | null;
 };
-
-/** Same shape the registry's `loadEnabledPlugins` returns. */
 export type PluginAgentSource = {
   record: PluginInstallRecord;
   ir: PluginIr;
 };
-
-/**
- * `bindAgentComponents` over the workspace's (grant-gated) plugin IRs.
- * `model: "provider/model"` resolves against Studio model/provider rows; a
- * bare `model` matches when exactly one provider has it, then falls back to a
- * case-insensitive substring match across all providers (alias style:
- * `sonnet`/`opus`/`haiku`). An unresolved model keeps the component without
- * `model`: the engine inherits the parent run model on spawn. Entries rebuild
- * per call; the IRs come from the registry cache. Studio swaps the library's
- * one-shot `start → llm:generate → end` for the host ReAct preset so plugin
- * agents keep working after a tool call.
- */
-// biome-ignore lint/complexity/useMaxParams: registrations is the optional 5th param for pack-index wiring; existing callers unaffected
 export function pluginAgentCatalog(
   entries: PluginAgentSource[],
   models?: LlmModelRepository,
@@ -54,7 +37,13 @@ export function pluginAgentCatalog(
       r.pack.meta.tools.map((t) => [t.name, r.pack.name] as const),
     ),
   );
-  const all = new Map<string, { definition: AgentDefinition; color?: string }>();
+  const all = new Map<
+    string,
+    {
+      definition: AgentDefinition;
+      color?: string;
+    }
+  >();
   for (const entry of entries) {
     const userConfig = pluginUserConfig(entry.ir, entry.record.options);
     const bound = bindAgentComponents(
@@ -68,8 +57,6 @@ export function pluginAgentCatalog(
       all.set(agent.id, {
         definition: {
           ...agent.definition,
-          // Движок добирает бюджет по цепочке spawn-call > def > родитель;
-          // константа здесь перекрыла бы наследование.
           graph: buildReactGraph(),
         },
         ...(agent.color !== undefined ? { color: agent.color } : {}),
@@ -83,7 +70,6 @@ export function pluginAgentCatalog(
         return {
           id,
           name: agentName,
-          // Роль каталожной строки — имя из документа; `plugin: true` до смены level-модели.
           role: agentName,
           plugin: true,
           instructions: entry.definition.prompts.main?.instructions ?? '',
@@ -96,8 +82,6 @@ export function pluginAgentCatalog(
     },
   };
 }
-
-/** All workspace ids that have at least one plugin install row. */
 export function workspaceIdsWithPlugins(repo: PluginRepository): string[] {
   const ids = new Set<string>();
   for (const record of repo.listAll()) {
@@ -105,14 +89,12 @@ export function workspaceIdsWithPlugins(repo: PluginRepository): string[] {
   }
   return [...ids];
 }
-
-type McpServerComponent = PluginComponent & { spec: McpServerSpec };
-
+type McpServerComponent = PluginComponent & {
+  spec: McpServerSpec;
+};
 function isMcpServerComponent(component: PluginComponent): component is McpServerComponent {
   return component.kind === 'mcp-server' && component.status === 'native';
 }
-
-/** One loaded plugin → its fragment for `mergePluginMcpFragments`. */
 export function toMcpBinding(
   entry: PluginAgentSource,
   disabled: ReadonlySet<string>,
@@ -128,24 +110,12 @@ export function toMcpBinding(
     userConfig: pluginUserConfig(entry.ir, entry.record.options),
   };
 }
-
-/** Catalog display name: `pluginName:agentName` → `agentName` (plugin namespace prefix). */
 function pluginAgentName(id: string): string {
   return id.split(':').at(-1) ?? id;
 }
-
-/** Installed plugin records for a workspace node. */
 export function enabledRecords(repo: PluginRepository, workspaceId: string): PluginInstallRecord[] {
   return repo.list(workspaceId);
 }
-
-/**
- * Roster visible to a running agent: host agents of the parent's workspace
- * + plugin agents whose plugin is enabled on the parent
- * (`enabledPlugins[owner] === true`). No parent or no DB row for it → empty:
- * better empty than cross-workspace. The plugin owner is the `pluginName:`
- * prefix of the catalog id.
- */
 export function scopedAgentRoster(
   agents: AgentRepository | undefined,
   parent: AgentDefinition | undefined,
@@ -169,8 +139,6 @@ export function scopedAgentRoster(
   }
   return [...host, ...plugin];
 }
-
-/** `provider/model` → AgentModelRef over Studio rows; null = model stays unset. */
 function resolveModelRef(
   ref: string,
   models?: LlmModelRepository,
@@ -187,7 +155,6 @@ function resolveModelRef(
       ? providers.list(workspaceId).find((row) => hasModel(models, row.id, modelName))
       : providers.findByName(workspaceId, ref.slice(0, separator));
   if (provider === undefined) {
-    // exact miss on a bare alias (sonnet/opus/haiku): substring match across providers
     if (separator === -1) {
       const hit = providers
         .list(workspaceId)
@@ -202,7 +169,6 @@ function resolveModelRef(
   const model = models.findByProviderAndName(provider.id, modelName);
   return model === undefined ? null : { provider: provider.name, model: model.name };
 }
-
 function hasModel(models: LlmModelRepository, providerId: string, modelName: string): boolean {
   return models.findByProviderAndName(providerId, modelName) !== undefined;
 }

@@ -22,7 +22,6 @@ import type {
   UpsertKnowledgeFileInput,
   UpsertKnowledgeSettingsRequest,
 } from './knowledge-index-types.ts';
-
 export type KnowledgeChunkInsertInput = {
   id: string;
   workspaceId: string;
@@ -32,30 +31,23 @@ export type KnowledgeChunkInsertInput = {
   embedding: Buffer | null;
   updatedAt: string;
 };
-
 export class SqliteKnowledgeIndexRepo {
   constructor(private readonly db: StudioDb) {}
-
   getSettingsOrDefault(workspaceId: string): KnowledgeSettingsRecord {
     return getSettingsOrDefault(this.db, workspaceId);
   }
-
   putSettings(workspaceId: string, patch: UpsertKnowledgeSettingsRequest): KnowledgeSettingsRecord {
     return putSettingsRow(this.db, workspaceId, patch);
   }
-
   getState(workspaceId: string): KnowledgeIndexStateRecord {
     return getIndexState(this.db, workspaceId);
   }
-
   upsertState(workspaceId: string, patch: KnowledgeIndexStatePatch): KnowledgeIndexStateRecord {
     return upsertIndexState(this.db, workspaceId, patch);
   }
-
   bumpProcessed(workspaceId: string): void {
     bumpProcessedRow(this.db, workspaceId);
   }
-
   listFiles(workspaceId: string, status?: KnowledgeFileStatus): KnowledgeFileRecord[] {
     const rows =
       status === undefined
@@ -76,7 +68,6 @@ export class SqliteKnowledgeIndexRepo {
             .all();
     return rows.map(toFile);
   }
-
   countFilesByStatus(workspaceId: string): KnowledgeFilesByStatus {
     const rows = this.db
       .select({
@@ -93,7 +84,6 @@ export class SqliteKnowledgeIndexRepo {
     }
     return out;
   }
-
   getFile(workspaceId: string, uri: string): KnowledgeFileRecord | undefined {
     const row = this.db
       .select()
@@ -104,8 +94,6 @@ export class SqliteKnowledgeIndexRepo {
       .get();
     return row ? toFile(row) : undefined;
   }
-
-  /** True when the uri has at least one chunk with a non-null embedding. */
   uriHasEmbeddings(workspaceId: string, uri: string): boolean {
     const row = this.db
       .select({ id: knowledgeChunksTable.id })
@@ -120,7 +108,6 @@ export class SqliteKnowledgeIndexRepo {
       .get();
     return row != null;
   }
-
   upsertFile(input: UpsertKnowledgeFileInput): void {
     this.db
       .insert(knowledgeFilesTable)
@@ -151,7 +138,6 @@ export class SqliteKnowledgeIndexRepo {
       })
       .run();
   }
-
   listFileUris(workspaceId: string): string[] {
     return this.db
       .select({ uri: knowledgeFilesTable.uri })
@@ -160,7 +146,6 @@ export class SqliteKnowledgeIndexRepo {
       .all()
       .map((row) => row.uri);
   }
-
   deleteFileAndChunks(workspaceId: string, uri: string): void {
     const variants = new Set([uri, uri.normalize('NFC'), uri.normalize('NFD')]);
     for (const v of variants) {
@@ -173,7 +158,6 @@ export class SqliteKnowledgeIndexRepo {
         .run();
     }
   }
-
   deleteUriPrefix(workspaceId: string, prefix: string): void {
     for (const uri of this.listFileUris(workspaceId)) {
       if (uri === prefix || uri.startsWith(`${prefix}/`)) {
@@ -181,7 +165,6 @@ export class SqliteKnowledgeIndexRepo {
       }
     }
   }
-
   purgeByFirstSegment(workspaceId: string, names: ReadonlySet<string>): void {
     for (const uri of this.listFileUris(workspaceId)) {
       const slash = uri.indexOf('/');
@@ -191,7 +174,6 @@ export class SqliteKnowledgeIndexRepo {
       }
     }
   }
-
   deleteMissingFiles(workspaceId: string, seenUris: ReadonlySet<string>): void {
     const existing = this.listFileUris(workspaceId);
     for (const uri of existing) {
@@ -200,7 +182,6 @@ export class SqliteKnowledgeIndexRepo {
       }
     }
   }
-
   deleteChunksForUri(workspaceId: string, uri: string): void {
     this.db
       .delete(knowledgeChunksTable)
@@ -209,14 +190,12 @@ export class SqliteKnowledgeIndexRepo {
       )
       .run();
   }
-
   deleteAllChunks(workspaceId: string): void {
     this.db
       .delete(knowledgeChunksTable)
       .where(eq(knowledgeChunksTable.workspaceId, workspaceId))
       .run();
   }
-
   deleteOrphanChunks(workspaceId: string, seenUris: ReadonlySet<string>): void {
     const chunkUris = this.db
       .selectDistinct({ uri: knowledgeChunksTable.uri })
@@ -236,7 +215,6 @@ export class SqliteKnowledgeIndexRepo {
       }
     }
   }
-
   insertChunks(rows: KnowledgeChunkInsertInput[]): void {
     if (rows.length === 0) {
       return;
@@ -244,7 +222,6 @@ export class SqliteKnowledgeIndexRepo {
     this.db.insert(knowledgeChunksTable).values(rows).run();
   }
 }
-
 function toFile(row: KnowledgeFileRow): KnowledgeFileRecord {
   return {
     workspaceId: row.workspaceId,

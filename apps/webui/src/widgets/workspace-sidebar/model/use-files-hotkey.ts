@@ -4,7 +4,6 @@ import { workspaceFilesTreeQueryKey } from '@/shared/api/files';
 import { gitFileStatusQueryKey, stageGit } from '@/shared/api/git';
 import { toast } from '@/shared/ui/toast';
 import { useFileSelectionStore } from './file-selection.store';
-
 export function useFilesHotkey(workspaceId: string) {
   const qc = useQueryClient();
   useEffect(() => {

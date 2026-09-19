@@ -1,12 +1,9 @@
 import { type Control, Controller } from 'react-hook-form';
-
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import { SCOPE_ITEMS, type SemanticFieldsInput } from '../model/semantic-fields';
-
 export function SemanticFields({
   control,
   scopeLocked = false,

@@ -13,7 +13,6 @@ type UsageCardProps = {
   thread: UsageRollup | null;
   window?: number;
 };
-
 export function UsageCard({ last, run, thread, window: windowProp = 0 }: UsageCardProps) {
   const window = last?.contextTokens || windowProp;
   const used = last ? tokensUsed(last) : 0;
@@ -24,7 +23,6 @@ export function UsageCard({ last, run, thread, window: windowProp = 0 }: UsageCa
     left = tokensLeft(last);
   }
   const percent = window > 0 ? Math.round(Math.min(1, used / window) * 100) : 0;
-
   return (
     <div className="flex flex-col gap-3" data-testid="usage-card">
       <div>
@@ -75,7 +73,6 @@ export function UsageCard({ last, run, thread, window: windowProp = 0 }: UsageCa
     </div>
   );
 }
-
 function LastStepRows({ usage }: { usage: MessageUsage }) {
   const cacheRead = usage.cacheReadTokens ?? 0;
   const cacheWrite = usage.cacheWriteTokens ?? 0;
@@ -91,7 +88,6 @@ function LastStepRows({ usage }: { usage: MessageUsage }) {
     </>
   );
 }
-
 function RollupRows({ rollup }: { rollup: UsageRollup }) {
   const cacheMiss = Math.max(0, rollup.promptTokens - rollup.cacheReadTokens);
   return (
@@ -113,7 +109,6 @@ function RollupRows({ rollup }: { rollup: UsageRollup }) {
     </>
   );
 }
-
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-0.5 text-[12px]">

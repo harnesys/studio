@@ -1,9 +1,7 @@
 import type { ThreadAttachment } from '@harnesys/studio-shared';
 import { sendMessage } from '@/features/send-message';
 import { uploadThreadAttachment } from '@/shared/api';
-
 import type { ComposerMode } from './composer-mode';
-
 export type UploadAndSendOptions = {
   threadId: string;
   content: string;
@@ -12,7 +10,6 @@ export type UploadAndSendOptions = {
   mode: ComposerMode;
   skills: string[];
 };
-
 export async function uploadAndSend(options: UploadAndSendOptions): Promise<void> {
   const { threadId, content, effort, files, mode, skills } = options;
   const uploaded: ThreadAttachment[] = [];
@@ -21,7 +18,6 @@ export async function uploadAndSend(options: UploadAndSendOptions): Promise<void
   }
   await sendMessage({ threadId, content, effort, attachments: uploaded, mode, skills });
 }
-
 export function filesFromClipboard(data: DataTransfer): File[] {
   const fromFiles = Array.from(data.files);
   if (fromFiles.length > 0) {

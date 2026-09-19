@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-
-/** Число событий, приростившихся, пока вьюпорт отцеплен от живого края. */
 export function useUnseenCount(total: number, atEnd: boolean): number {
   const baseRef = useRef(total);
   const [unseen, setUnseen] = useState(0);

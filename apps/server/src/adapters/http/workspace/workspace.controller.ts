@@ -39,7 +39,6 @@ import type { FilesWatcherPort } from '../../../domain/files-watcher.port.ts';
 import { createWorkspaceBody, updateWorkspaceBody } from './workspace.body.ts';
 import { registerFileRoutes } from './workspace-file-routes.ts';
 import { registerGitRoutes } from './workspace-git-routes.ts';
-
 export type WorkspaceControllerDeps = {
   listWorkspaces: ListWorkspacesInput;
   pickWorkspace: PickWorkspaceInput;
@@ -79,15 +78,12 @@ export type WorkspaceControllerDeps = {
   filesWatcher: FilesWatcherPort;
   deskEvents: DeskEventsPort;
 };
-
 export class WorkspaceController {
   constructor(private readonly deps: WorkspaceControllerDeps) {}
-
   register(app: Hono): void {
     app.get('/api/workspaces', async (c) => {
       return c.json(await this.deps.listWorkspaces.execute());
     });
-
     app.post('/api/workspaces/pick', async (c) => {
       const picked = await this.deps.pickWorkspace.execute();
       if (!picked) {
@@ -95,7 +91,6 @@ export class WorkspaceController {
       }
       return c.json(picked);
     });
-
     app.post('/api/workspaces', async (c) => {
       const body = createWorkspaceBody.parse(await c.req.json());
       const { workspace } = await this.deps.createWorkspace.execute({
@@ -104,7 +99,6 @@ export class WorkspaceController {
       });
       return c.json(workspace, 201);
     });
-
     app.patch('/api/workspaces/:id', async (c) => {
       const body = updateWorkspaceBody.parse(await c.req.json());
       const workspace = await this.deps.updateWorkspace.execute({
@@ -114,25 +108,23 @@ export class WorkspaceController {
       });
       return c.json(workspace);
     });
-
     app.delete('/api/workspaces/:id', async (c) => {
       await this.deps.deleteWorkspace.execute({ id: c.req.param('id') });
       return c.body(null, 204);
     });
-
     app.post('/api/workspaces/:id/wipe', async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as { wipeFolder?: boolean };
+      const body = (await c.req.json().catch(() => ({}))) as {
+        wipeFolder?: boolean;
+      };
       await this.deps.wipeWorkspace.execute({
         id: c.req.param('id'),
         wipeFolder: body.wipeFolder === true,
       });
       return c.body(null, 204);
     });
-
     app.get('/api/workspaces/:id/status', async (c) => {
       return c.json(await this.deps.getWorkspaceStatus.execute({ id: c.req.param('id') }));
     });
-
     registerGitRoutes(app, this.deps);
     registerFileRoutes(app, this.deps);
   }

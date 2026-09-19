@@ -1,12 +1,10 @@
 import { GitBranchIcon } from 'lucide-react';
-
 import {
   DropdownMenuItem,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/shared/ui/dropdown-menu';
-
 export function BranchRow({
   name,
   current,

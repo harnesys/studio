@@ -17,10 +17,8 @@ export type {
   MemorySearchBackend,
   UpsertKnowledgeSettingsRequest,
 };
-
 export type KnowledgeSettingsRecord = KnowledgeSettings;
 export type KnowledgeIndexStateRecord = KnowledgeIndexState;
-
 export type KnowledgeIndexStatePatch = {
   status?: KnowledgeIndexStatus;
   phase?: string | null;
@@ -30,7 +28,6 @@ export type KnowledgeIndexStatePatch = {
   startedAt?: string | null;
   finishedAt?: string | null;
 };
-
 export type UpsertKnowledgeFileInput = {
   workspaceId: string;
   uri: string;

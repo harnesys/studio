@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-
 import {
   getGitFileStatus,
   getGitStatus,
@@ -14,7 +13,6 @@ import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { Field, FieldError } from '@/shared/ui/field';
 import { Textarea } from '@/shared/ui/textarea';
-
 import {
   type CommitDialogResult,
   type CommitInput,
@@ -29,7 +27,6 @@ type DialogData = {
   message?: string;
   focusPath?: string;
 };
-
 export function GitCommitDialog({
   onResolve,
   data,
@@ -39,29 +36,23 @@ export function GitCommitDialog({
     resolver: zodResolver(commitSchema),
     defaultValues: data?.message ? { message: data.message } : emptyCommit(),
   });
-
   const statusQuery = useQuery({
     queryKey: gitFileStatusQueryKey(workspaceId),
     queryFn: () => getGitFileStatus(workspaceId),
     enabled: Boolean(workspaceId),
   });
-
   const gitStatusQuery = useQuery({
     queryKey: gitStatusQueryKey(workspaceId),
     queryFn: () => getGitStatus(workspaceId),
     enabled: Boolean(workspaceId),
   });
-
   const hasRemote = Boolean(gitStatusQuery.data?.isGit && gitStatusQuery.data.remote);
-
   const statusMap = statusQuery.data?.map ?? {};
   const files = Object.entries(statusMap)
     .filter(([, s]) => s !== 'ignored')
     .map(([path, status]) => ({ path, status }))
     .sort((a, b) => a.path.localeCompare(b.path));
-
   const [selected, setSelected] = useState<string | null>(data?.focusPath ?? null);
-
   useEffect(() => {
     if (files.length === 0) {
       setSelected(null);
@@ -71,12 +62,9 @@ export function GitCommitDialog({
       setSelected(files[0]?.path ?? null);
     }
   }, [files, selected]);
-
   const hasChanges = files.length > 0;
-
   const handleCommit = form.handleSubmit((values) => onResolve?.({ ...values, push: false }));
   const handleCommitPush = form.handleSubmit((values) => onResolve?.({ ...values, push: true }));
-
   return (
     <form className="flex min-h-0 flex-col gap-4" onSubmit={handleCommit}>
       <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border">

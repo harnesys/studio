@@ -22,29 +22,21 @@ const mcpEntrySchema = z
   .refine((e) => e.enabled === false || e.command !== undefined || e.url !== undefined, {
     message: 'MCP server entry requires command or url',
   });
-
 const mcpJsonSchema = z.object({
   mcpServers: z.record(z.string(), mcpEntrySchema),
 });
-
 function mcpJsonPath(workspacePath: string): string {
   return join(studioDir(workspacePath), 'mcp.json');
 }
-
-/** Ключ плагинного сервера в runtime-реестре: `plugin:<name>:<id>` (merge-plugin-runtime). */
 export const PLUGIN_SERVER_KEY_PREFIX = 'plugin:';
-
 export function isPluginServerKey(serverId: string): boolean {
   return serverId.startsWith(PLUGIN_SERVER_KEY_PREFIX);
 }
-
-/** Read `<workspace>/.harnesys/mcp.json` including disabled entries. */
 export function readWorkspaceMcpJson(workspacePath: string): Record<string, StdioEntry | UrlEntry> {
   const path = mcpJsonPath(workspacePath);
   if (!existsSync(path)) {
     return {};
   }
-
   let parsed: unknown;
   try {
     parsed = JSON.parse(readFileSync(path, 'utf8'));
@@ -53,16 +45,12 @@ export function readWorkspaceMcpJson(workspacePath: string): Record<string, Stdi
       `Invalid JSON in ${path}: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
-
   const result = mcpJsonSchema.safeParse(parsed);
   if (!result.success) {
     throw new ValidationError(`Invalid .harnesys/mcp.json: ${result.error.message}`);
   }
-
   return result.data.mcpServers as Record<string, StdioEntry | UrlEntry>;
 }
-
-/** Write `<workspace>/.harnesys/mcp.json` (2-space pretty JSON). */
 export function writeWorkspaceMcpJson(
   workspacePath: string,
   mcpServers: Record<string, StdioEntry | UrlEntry>,
@@ -70,8 +58,6 @@ export function writeWorkspaceMcpJson(
   mkdirSync(studioDir(workspacePath), { recursive: true });
   writeFileSync(mcpJsonPath(workspacePath), `${JSON.stringify({ mcpServers }, null, 2)}\n`, 'utf8');
 }
-
-/** Read `.harnesys/mcp.json` and normalize enabled servers to domain configs. */
 export function loadWorkspaceMcpServers(workspacePath: string): McpServerConfig[] {
   const map = readWorkspaceMcpJson(workspacePath);
   const out: McpServerConfig[] = [];
@@ -83,7 +69,6 @@ export function loadWorkspaceMcpServers(workspacePath: string): McpServerConfig[
   }
   return out;
 }
-
 export function mcpEntryToFields(entry: StdioEntry | UrlEntry): {
   enabled: boolean;
   transport: WorkspaceMcpTransport;
@@ -111,7 +96,6 @@ export function mcpEntryToFields(entry: StdioEntry | UrlEntry): {
     ...(entry.headers !== undefined ? { headers: entry.headers } : {}),
   };
 }
-
 export function fieldsToMcpEntry(fields: UpsertWorkspaceMcpServerRequest): StdioEntry | UrlEntry {
   const enabled = fields.enabled !== false;
   if (fields.transport === 'stdio') {
@@ -135,7 +119,6 @@ export function fieldsToMcpEntry(fields: UpsertWorkspaceMcpServerRequest): Stdio
     ...(!enabled ? { enabled: false } : {}),
   };
 }
-
 function toTransport(entry: StdioEntry | UrlEntry): McpTransport {
   if ('command' in entry) {
     return {

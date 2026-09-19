@@ -50,7 +50,6 @@ import { WriteWorkspaceFileContentUseCase } from '../application/workspaces/writ
 import type { WorkspacePort } from '../domain/workspace.port.ts';
 import type { WorkspaceFilesPort } from '../domain/workspace-files.port.ts';
 import type { NodeSupervisor } from './node-supervisor.ts';
-
 export type WireWorkspaceControllersDeps = {
   app: Hono;
   home: string;
@@ -65,14 +64,12 @@ export type WireWorkspaceControllersDeps = {
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   supervisor?: NodeSupervisor;
 };
-
 export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void {
   const getWorkspaceMcpConfig = new GetWorkspaceMcpConfigUseCase(
     d.workspaceRepo,
     d.workspaceHarnesys,
     d.pluginRepo,
   );
-
   new WorkspaceController({
     listWorkspaces: new ListWorkspacesUseCase(d.nodeRegistry, d.workspaceRepo),
     pickWorkspace: new PickWorkspaceUseCase(d.workspace),
@@ -160,18 +157,15 @@ export function wireWorkspaceControllers(d: WireWorkspaceControllersDeps): void 
     filesWatcher: d.filesWatcher,
     deskEvents: d.deskEvents,
   }).register(d.app);
-
   new ToolsController({
     listWorkspaceTools: new ListWorkspaceToolsUseCase(d.workspaceRepo, d.workspaceHarnesys),
   }).register(d.app);
-
   new CapabilitiesController({
     listWorkspaceCapabilities: new ListWorkspaceCapabilitiesUseCase(
       d.workspaceRepo,
       d.workspaceHarnesys,
     ),
   }).register(d.app);
-
   new TerminalController({
     app: d.app,
     workspaceRepo: d.workspaceRepo,

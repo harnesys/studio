@@ -1,5 +1,4 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-
 export type CompactionSegmentMeta = {
   id: string;
   reason: 'threshold' | 'manual';
@@ -8,25 +7,35 @@ export type CompactionSegmentMeta = {
   tokensBefore: number;
   tokensAfter: number;
 };
-
 export type TurnSegment =
-  | { type: 'activity'; events: SessionEvent[] }
-  | { type: 'user'; event: SessionEvent & { type: 'user' } }
-  | { type: 'text'; text: string; id: string | undefined }
-  | { type: 'compaction'; text: string; meta: CompactionSegmentMeta }
-  | { type: 'handoff'; agentId: string; seq: number | undefined };
-
-/**
- * Единственная проекция «лог событий → сегменты треда». Все пути (live,
- * reconcile, reload) прогоняют сырой лог отсюда: подряд идущие text-delta
- * с равным id сворачиваются в один текстовый блок, смена id или любая
- * активность между дельтами открывает новый блок.
- * `compaction` забирает предшествующий текстовый хвост в карточку саммари.
- */
+  | {
+      type: 'activity';
+      events: SessionEvent[];
+    }
+  | {
+      type: 'user';
+      event: SessionEvent & {
+        type: 'user';
+      };
+    }
+  | {
+      type: 'text';
+      text: string;
+      id: string | undefined;
+    }
+  | {
+      type: 'compaction';
+      text: string;
+      meta: CompactionSegmentMeta;
+    }
+  | {
+      type: 'handoff';
+      agentId: string;
+      seq: number | undefined;
+    };
 export function groupSegments(events: SessionEvent[]): TurnSegment[] {
   const segments: TurnSegment[] = [];
   let activity: SessionEvent[] = [];
-
   const flushActivity = () => {
     if (activity.length === 0) {
       return;
@@ -34,11 +43,15 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
     segments.push({ type: 'activity', events: activity });
     activity = [];
   };
-
   for (const ev of events) {
     if (ev.type === 'user') {
       flushActivity();
-      segments.push({ type: 'user', event: ev as SessionEvent & { type: 'user' } });
+      segments.push({
+        type: 'user',
+        event: ev as SessionEvent & {
+          type: 'user';
+        },
+      });
       continue;
     }
     if (ev.type === 'text-delta') {
@@ -100,14 +113,11 @@ export function groupSegments(events: SessionEvent[]): TurnSegment[] {
   flushActivity();
   return segments;
 }
-
 export function segmentKey(segment: TurnSegment, index: number): string {
   if (segment.type === 'user') {
     return `user-${segment.event.clientEventId ?? `${index}-${segment.event.text.slice(0, 20)}`}`;
   }
   if (segment.type === 'text') {
-    // id блока не уникален между блоками (модель может reuse 'txt-0'),
-    // уникальность даёт позиция в списке сегментов.
     return `text-${index}-${segment.id ?? 'x'}`;
   }
   if (segment.type === 'compaction') {
@@ -121,14 +131,10 @@ export function segmentKey(segment: TurnSegment, index: number): string {
     return `activity-${index}`;
   }
   if (first.type === 'tool') {
-    // toolCallId повторяется между сегментами: провайдер может прислать
-    // text-delta между фазами одного tool call, и activity разрывается.
     return `tool-${index}-${first.toolCallId}`;
   }
   return `activity-${index}`;
 }
-
-/** Ритм вертикальных отступов между сегментами одного треда. */
 export function segmentSpacing(segments: TurnSegment[], index: number): string | undefined {
   if (index === 0) {
     return undefined;

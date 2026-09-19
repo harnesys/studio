@@ -20,21 +20,21 @@ import { resolvePaths } from './paths.ts';
 import { resolvePermissions } from './permissions.ts';
 import type { RunClaimer } from './run-claimer.ts';
 import type { RunEventFeed } from './run-event-feed.ts';
-
 export type RuntimeContext = {
   models: ProviderConfig[] | ModelsPort;
   toolRegistry: Map<string, ToolDefinition>;
   artifacts?: ArtifactStore;
   permissions?: PermissionMap;
   paths?: PathsConfig;
-  /** Runtime-wide hook bindings; land in the default RunTarget and merge into the run bus. */
   hooks?: HookBinding[];
   notes?: LlmNoteProvider[];
   packRegistrations: PackRegistration[];
   skills?: SkillRegistry;
   toolMessages: 'barrier' | 'ordered';
   mergeState?: (key: string, a: unknown, b: unknown) => unknown;
-  agents: { resolve: (id: string) => AgentDefinition | undefined };
+  agents: {
+    resolve: (id: string) => AgentDefinition | undefined;
+  };
   lifecycle: RunLifecycleStore;
   events: RunEventStore;
   feed: RunEventFeed;
@@ -42,13 +42,11 @@ export type RuntimeContext = {
   claimer?: RunClaimer;
   targets?: RunTargets;
 };
-
 export type SessionOpts = {
   state?: RuntimeState;
   permissions?: PermissionMap;
   paths?: PathsConfig;
 };
-
 function memoryState(): RuntimeState {
   return {
     sessionId: crypto.randomUUID(),
@@ -62,7 +60,6 @@ function memoryState(): RuntimeState {
     }),
   };
 }
-
 function normalizeSendInput(input: SendInput): {
   text: string;
   attachments?: Attachment[];
@@ -109,7 +106,6 @@ function normalizeSendInput(input: SendInput): {
     effort: effort || undefined,
   };
 }
-
 function toolOperationsOf(registry: Map<string, ToolDefinition>): string[] {
   const ops: string[] = [];
   for (const [, toolDef] of registry) {
@@ -119,7 +115,6 @@ function toolOperationsOf(registry: Map<string, ToolDefinition>): string[] {
   }
   return ops;
 }
-
 export function createSession(
   agent: AgentDefinition | string,
   opts: SessionOpts,
@@ -151,7 +146,6 @@ export function createSession(
       });
     },
   };
-
   return {
     async send(input, sendOpts) {
       const threadId = state.sessionId;
@@ -179,7 +173,6 @@ export function createSession(
       ctx.claimer?.kick();
       return { runId };
     },
-
     async respond(runId, askId, payload, respondOpts) {
       const rec = await ctx.lifecycle.get(runId);
       if (rec === null) {
@@ -220,7 +213,6 @@ export function createSession(
       });
       ctx.claimer?.kick();
     },
-
     async reject(runId, askId, rejectOpts) {
       const rec = await ctx.lifecycle.get(runId);
       if (rec === null) {
@@ -251,7 +243,6 @@ export function createSession(
       });
       ctx.claimer?.kick();
     },
-
     async cancel(runId) {
       const rec = await ctx.lifecycle.get(runId);
       if (rec === null) {
@@ -267,15 +258,12 @@ export function createSession(
         events: [cancelled],
       });
     },
-
     subscribe(runId, fromSeq) {
       return ctx.feed.subscribe(runId, fromSeq ?? 0);
     },
-
     runOf(runId) {
       return ctx.lifecycle.get(runId);
     },
-
     activeRun(threadId) {
       return ctx.lifecycle.activeByThread(threadId);
     },

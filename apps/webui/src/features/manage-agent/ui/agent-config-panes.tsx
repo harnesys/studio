@@ -1,13 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Controller, type UseFormReturn } from 'react-hook-form';
-
 import { AGENT_COLOR_CLASSES } from '@/entities/agent';
 import { providersQuery } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
-
 import {
   type AgentFieldsInput,
   type AgentFieldsOutput,
@@ -18,7 +16,6 @@ import { AgentEffortField, AgentGenerationFields } from './agent-generation-fiel
 import { ModelSelect } from './model-select';
 
 type AgentFieldsForm = UseFormReturn<AgentFieldsInput, unknown, AgentFieldsOutput>;
-
 export function AgentIdentityPane({ form }: { form: AgentFieldsForm }) {
   return (
     <FieldGroup className="min-h-0 flex-1 gap-3">
@@ -122,7 +119,6 @@ export function AgentIdentityPane({ form }: { form: AgentFieldsForm }) {
     </FieldGroup>
   );
 }
-
 export function AgentModelPane({
   form,
   workspaceId,
@@ -188,7 +184,6 @@ export function AgentModelPane({
     </FieldGroup>
   );
 }
-
 export function AgentLimitsPane({ form }: { form: AgentFieldsForm }) {
   return (
     <FieldGroup className="gap-3">
@@ -196,7 +191,6 @@ export function AgentLimitsPane({ form }: { form: AgentFieldsForm }) {
     </FieldGroup>
   );
 }
-
 function parseOptional(value: string | undefined): number | undefined {
   if (value == null || value.trim() === '') {
     return undefined;
@@ -204,7 +198,6 @@ function parseOptional(value: string | undefined): number | undefined {
   const next = Number(value);
   return Number.isFinite(next) ? next : undefined;
 }
-
 function stringify(value: number | undefined): string {
   return value === undefined ? '' : String(value);
 }

@@ -13,13 +13,17 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import type { MarkdownEditorMode } from '../model/use-markdown-editor-mode';
-
-export type EditorCursor = { line: number; column: number };
+export type EditorCursor = {
+  line: number;
+  column: number;
+};
 export type { MarkdownEditorMode };
 
 const AUTO_LANGUAGE = '__auto';
-
-const LANGUAGE_OPTIONS: { id: string; label: string }[] = [
+const LANGUAGE_OPTIONS: {
+  id: string;
+  label: string;
+}[] = [
   { id: 'plaintext', label: 'Plain Text' },
   { id: 'typescript', label: 'TypeScript' },
   { id: 'javascript', label: 'JavaScript' },
@@ -39,30 +43,25 @@ const LANGUAGE_OPTIONS: { id: string; label: string }[] = [
   { id: 'dockerfile', label: 'Dockerfile' },
   { id: 'ini', label: 'INI' },
 ];
-
 const LSP_DOT: Record<LspBridgeStatus, string> = {
   live: 'bg-emerald-500',
   starting: 'bg-amber-500',
   error: 'bg-red-500',
   off: 'bg-muted-foreground/50',
 };
-
 const LSP_LABEL: Record<LspBridgeStatus, string> = {
   live: 'LSP',
   starting: 'LSP…',
   error: 'LSP error',
   off: 'LSP off',
 };
-
 const LSP_HINT: Record<LspBridgeStatus, string> = {
   live: 'Connected',
   starting: 'Connecting…',
   error: 'Server start failed',
   off: 'No server for this file',
 };
-
 const SEGMENT = 'flex shrink-0 items-center gap-1 px-1 hover:text-foreground';
-
 export function EditorStatusBar({
   workspaceId,
   path,
@@ -100,17 +99,13 @@ export function EditorStatusBar({
   const eol = useMemo(() => (content.includes('\r\n') ? 'CRLF' : 'LF'), [content]);
   const indent = useMemo(() => detectIndent(content), [content]);
   const orderedSessions = useMemo(() => orderSessions(sessions, path), [sessions, path]);
-
   const copyPath = async () => {
     try {
       await navigator.clipboard.writeText(path);
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // clipboard unavailable; the full path stays visible in the tooltip
-    }
+    } catch {}
   };
-
   return (
     <footer
       className="flex h-6 shrink-0 select-none items-center gap-1 border-border/60 border-t bg-muted/30 px-2 text-[11px] text-muted-foreground"
@@ -288,7 +283,6 @@ export function EditorStatusBar({
     </footer>
   );
 }
-
 function orderSessions(sessions: LspSessionEntry[], currentPath: string): LspSessionEntry[] {
   return [...sessions].sort((a, b) => {
     if (a.path === currentPath) {
@@ -300,7 +294,6 @@ function orderSessions(sessions: LspSessionEntry[], currentPath: string): LspSes
     return a.path.localeCompare(b.path);
   });
 }
-
 function formatBytes(bytes: number): string {
   if (bytes < 1024) {
     return `${bytes} B`;
@@ -310,8 +303,6 @@ function formatBytes(bytes: number): string {
   }
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
-
-/** Guess tabs vs spaces from the most common leading indent. */
 function detectIndent(content: string): string {
   let tabs = 0;
   const widths = new Map<number, number>();

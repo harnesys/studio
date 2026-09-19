@@ -7,7 +7,6 @@ import { rememberRunNode, rememberThreadNode } from '@/shared/api/host-router';
 import { useDeskStore } from './desk.store';
 
 const inflight = new Map<string, Promise<void>>();
-
 export function hydrateDesk(workspaceId: string): Promise<void> {
   if (useDeskStore.getState().hydrated[workspaceId] === 'ready') {
     return Promise.resolve();
@@ -33,7 +32,6 @@ export function hydrateDesk(workspaceId: string): Promise<void> {
   inflight.set(workspaceId, task);
   return task;
 }
-
 async function loadDesk(workspaceId: string): Promise<void> {
   const [agents, summaries, schedules, webhooks] = await Promise.all([
     listAgents(workspaceId),

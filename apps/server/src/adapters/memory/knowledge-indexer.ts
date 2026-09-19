@@ -1,5 +1,3 @@
-// biome-ignore-all lint/style/noExcessiveLinesPerFile: indexer owns queue + abort lifecycle, split would fragment cancel semantics
-
 import { KNOWLEDGE_INDEX_SLOW_FILE_MS } from '../../config/constants.ts';
 import type { KnowledgeIndexEventsPort } from '../../domain/knowledge-index-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
@@ -16,7 +14,6 @@ import type {
 import { filterEnqueueUris, indexOneUri } from './knowledge-indexer-uri.ts';
 import { collectKnowledgePaths, type KnowledgePath } from './knowledge-walk.ts';
 import { uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
-
 export type KnowledgeIndexerOptions = {
   resolveWorkspacePath: (workspaceId: string) => string | undefined;
   listEnabledRoots: (workspaceId: string) => string[];
@@ -24,7 +21,6 @@ export type KnowledgeIndexerOptions = {
   embeddingsDeps?: StudioEmbeddingsDeps;
   events?: KnowledgeIndexEventsPort;
 };
-
 type WorkspaceJob = {
   cancel: boolean;
   chain: Promise<void>;
@@ -33,22 +29,18 @@ type WorkspaceJob = {
   currentUri: string | null;
   controller?: AbortController;
 };
-
 export class KnowledgeIndexer {
   private readonly jobs = new Map<string, WorkspaceJob>();
   private embeddings: EmbeddingsPort | undefined;
-
   constructor(
     private readonly repo: SqliteKnowledgeIndexRepo,
     private readonly options: KnowledgeIndexerOptions,
   ) {
     this.embeddings = options.embeddings;
   }
-
   setEmbeddings(embeddings: EmbeddingsPort | undefined): void {
     this.embeddings = embeddings;
   }
-
   private resolveEmbeddings(
     workspaceId: string,
     settings: KnowledgeSettingsRecord,
@@ -58,7 +50,6 @@ export class KnowledgeIndexer {
     }
     return this.embeddings;
   }
-
   getState(workspaceId: string): KnowledgeIndexStateRecord {
     const base = this.repo.getState(workspaceId);
     const job = this.jobs.get(workspaceId);
@@ -67,14 +58,12 @@ export class KnowledgeIndexer {
     }
     return base;
   }
-
   private emitState(workspaceId: string): void {
     if (!this.options.events) {
       return;
     }
     this.options.events.emit(workspaceId, this.getState(workspaceId));
   }
-
   private upsertState(
     workspaceId: string,
     patch: KnowledgeIndexStatePatch,
@@ -83,12 +72,10 @@ export class KnowledgeIndexer {
     this.options.events?.emit(workspaceId, next);
     return next;
   }
-
   private bumpProcessed(workspaceId: string): void {
     this.repo.bumpProcessed(workspaceId);
     this.emitState(workspaceId);
   }
-
   cancel(workspaceId: string): void {
     const job = this.ensureJob(workspaceId);
     job.cancel = true;
@@ -96,7 +83,6 @@ export class KnowledgeIndexer {
     job.pendingUris.length = 0;
     job.controller?.abort();
     trace('knowledge-indexer', 'cancel requested', { workspaceId });
-    // Optimistic transition so POST /index/cancel returns idle immediately
     const state = this.repo.getState(workspaceId);
     if (state.status === 'running') {
       const next = this.repo.upsertState(workspaceId, {
@@ -108,8 +94,6 @@ export class KnowledgeIndexer {
       this.options.events?.emit(workspaceId, next);
     }
   }
-
-  /** Kick a full reindex; resolves when the job is accepted. */
   startFullReindex(workspaceId: string): Promise<void> {
     trace('knowledge-indexer', 'startFullReindex requested', { workspaceId });
     void this.enqueue(workspaceId, () => this.runFullReindex(workspaceId)).catch((err) => {
@@ -120,12 +104,9 @@ export class KnowledgeIndexer {
     });
     return Promise.resolve();
   }
-
-  /** Full reindex; resolves when finished. */
   reindexAndWait(workspaceId: string): Promise<void> {
     return this.enqueue(workspaceId, () => this.runFullReindex(workspaceId));
   }
-
   enqueuePaths(workspaceId: string, uris: string[]): void {
     if (uris.length === 0) {
       return;
@@ -166,7 +147,6 @@ export class KnowledgeIndexer {
     });
     void this.enqueue(workspaceId, () => this.drainIncremental(workspaceId));
   }
-
   private ensureJob(workspaceId: string): WorkspaceJob {
     let job = this.jobs.get(workspaceId);
     if (!job) {
@@ -181,7 +161,6 @@ export class KnowledgeIndexer {
     }
     return job;
   }
-
   private enqueue(workspaceId: string, work: () => Promise<void>): Promise<void> {
     const job = this.ensureJob(workspaceId);
     const run = job.chain.then(async () => {
@@ -210,7 +189,6 @@ export class KnowledgeIndexer {
     );
     return run;
   }
-
   private async runFullReindex(workspaceId: string): Promise<void> {
     const workspacePath = this.options.resolveWorkspacePath(workspaceId);
     if (!workspacePath) {
@@ -230,7 +208,6 @@ export class KnowledgeIndexer {
       });
       throw new ValidationError(message);
     }
-
     const startedAt = new Date().toISOString();
     this.upsertState(workspaceId, {
       status: 'running',
@@ -241,7 +218,6 @@ export class KnowledgeIndexer {
       startedAt,
       finishedAt: null,
     });
-
     const job = this.ensureJob(workspaceId);
     const signal = job.controller?.signal;
     trace('knowledge-indexer', 'runFullReindex start', {
@@ -266,11 +242,16 @@ export class KnowledgeIndexer {
         });
         return;
       }
-
       const seen = new Set<string>();
-      const indexable: Array<Extract<KnowledgePath, { kind: 'index' }>> = [];
+      const indexable: Array<
+        Extract<
+          KnowledgePath,
+          {
+            kind: 'index';
+          }
+        >
+      > = [];
       const indexModeKey = knowledgeIndexModeKey(settings);
-
       for (const root of roots) {
         if (job.cancel) {
           trace('knowledge-indexer', 'scan cancelled', { workspaceId, root });
@@ -300,14 +281,12 @@ export class KnowledgeIndexer {
           elapsedMs: Date.now() - t0,
         });
       }
-
       trace('knowledge-indexer', 'scan phase done', {
         workspaceId,
         totalFiles: indexable.length,
         skippedParents: seen.size - indexable.length,
       });
       this.upsertState(workspaceId, { phase: 'index', total: indexable.length, processed: 0 });
-
       trace('knowledge-indexer', 'index phase start', {
         workspaceId,
         total: indexable.length,
@@ -370,13 +349,10 @@ export class KnowledgeIndexer {
         job.currentUri = null;
         this.bumpProcessed(workspaceId);
       }
-
       if (!job.cancel && !signal?.aborted) {
         this.repo.deleteMissingFiles(workspaceId, seen);
         this.repo.deleteOrphanChunks(workspaceId, seen);
       }
-
-      // If cancel already wrote idle/cancelled optimistically, keep it
       const cur = this.repo.getState(workspaceId);
       if (cur.status === 'running' || job.cancel || signal?.aborted) {
         this.upsertState(workspaceId, {
@@ -413,7 +389,6 @@ export class KnowledgeIndexer {
       job.currentUri = null;
     }
   }
-
   private async drainIncremental(workspaceId: string, signal?: AbortSignal): Promise<void> {
     const job = this.ensureJob(workspaceId);
     const workspacePath = this.options.resolveWorkspacePath(workspaceId);
@@ -429,27 +404,19 @@ export class KnowledgeIndexer {
       job.pendingUris.length = 0;
       return;
     }
-
     const roots = settings.entireWorkspace ? null : this.options.listEnabledRoots(workspaceId);
     const indexModeKey = knowledgeIndexModeKey(settings);
-
-    // Make incremental visible in UI: promote to running state
     const cur = this.repo.getState(workspaceId);
     if (cur.status !== 'running') {
-      // Use actual repo counts as base, not stale cur.total (which may be batch 1/1)
       const byStatus = this.repo.countFilesByStatus(workspaceId);
       const actualCurrentTotal = byStatus.indexed + byStatus.pending;
-      // Estimate new total after batch: +new files, -deletes (quick heuristic: assume updates keep total)
-      // We'll correct to exact count at the end, but set initial total to avoid 1/1 confusion
       let newTotal = actualCurrentTotal;
       const pendingSnapshot = [...job.pendingUris];
       for (const uri of pendingSnapshot) {
         const inDb = !!this.repo.getFile(workspaceId, uri);
         if (!inDb) {
-          // Heuristic: new file if not in DB (create)
           newTotal += 1;
         }
-        // Deletes will be accounted at the end via actual count; keep heuristic simple
       }
       const startProcessed = Math.max(0, newTotal - pendingSnapshot.length);
       this.upsertState(workspaceId, {
@@ -470,12 +437,10 @@ export class KnowledgeIndexer {
         backend: settings.backend,
       });
     } else {
-      // already running (full reindex), just update total
       this.upsertState(workspaceId, {
         total: cur.total + job.pendingUris.length,
       });
     }
-
     let processedInBatch = 0;
     while (job.pendingUris.length > 0 && !job.cancel && !signal?.aborted) {
       const uri = job.pendingUris.shift();
@@ -517,14 +482,11 @@ export class KnowledgeIndexer {
       this.bumpProcessed(workspaceId);
       processedInBatch += 1;
     }
-
-    // Finish watch batch if no more pending and we were the ones who set running
     const after = this.repo.getState(workspaceId);
     if (after.status === 'running' && after.phase === 'watch' && job.pendingUris.length === 0) {
       if (!job.cancel && !signal?.aborted) {
         const byStatus = this.repo.countFilesByStatus(workspaceId);
         const actualTotal = byStatus.indexed + byStatus.pending;
-        // Ensure final state shows overall totals, not 1/1 batch
         this.upsertState(workspaceId, {
           status: 'idle',
           phase: null,
@@ -543,7 +505,6 @@ export class KnowledgeIndexer {
     job.currentUri = null;
   }
 }
-
 function isAbortError(err: unknown): boolean {
   return (
     (err instanceof DOMException && err.name === 'AbortError') ||

@@ -1,8 +1,6 @@
 import type * as React from 'react';
-
 import { cn } from '@/shared/lib/utils';
 import { Input } from '@/shared/ui/input';
-
 export function GraphInput({ className, ...props }: React.ComponentProps<typeof Input>) {
   return (
     <Input

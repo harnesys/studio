@@ -1,5 +1,4 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-
 import { useAgentStore } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import {
@@ -10,11 +9,9 @@ import {
   useThreadStore,
 } from '@/entities/thread';
 import { createThreadRecord, deleteThreadRecord } from '@/shared/api';
-
 export function threadById(threads: Thread[], threadId: string): Thread | null {
   return threads.find((thread) => thread.id === threadId) ?? null;
 }
-
 export async function closeThread(threadId: string): Promise<string | null> {
   const thread = useThreadStore.getState().byId(threadId);
   if (!thread) {
@@ -34,7 +31,6 @@ export async function closeThread(threadId: string): Promise<string | null> {
   }
   return next;
 }
-
 export async function openNewThread(agentId: string, workspaceId: string): Promise<string | null> {
   const agent = useAgentStore.getState().byId(agentId);
   if (!agent) {
@@ -46,8 +42,6 @@ export async function openNewThread(agentId: string, workspaceId: string): Promi
   setActiveThreadId(agentId, record.id);
   return record.id;
 }
-
-/** Create a child thread linked at forkAt. Does not copy parent events. */
 export async function branchThread(
   forkAt: string,
   agentId: string,
@@ -77,7 +71,6 @@ export async function branchThread(
   setActiveThreadId(agent.id, thread.id);
   return thread.id;
 }
-
 function titleSource(events: SessionEvent[], forkAt: string): string {
   for (const event of events) {
     if ('id' in event && event.id === forkAt && 'text' in event && typeof event.text === 'string') {
@@ -90,7 +83,6 @@ function titleSource(events: SessionEvent[], forkAt: string): string {
     .join('');
   return fromRun;
 }
-
 function branchTitle(content: string): string {
   const compact = content.trim().replace(/\s+/g, ' ');
   if (compact.length <= 28) {

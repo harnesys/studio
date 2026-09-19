@@ -1,10 +1,6 @@
 export type { AgentsCapabilityPorts } from './agents/index.ts';
 export { agentsCapability } from './agents/index.ts';
-export {
-  fetchCapability,
-  filesCapability,
-  shellCapability,
-} from './base.ts';
+export { fetchCapability, filesCapability, shellCapability } from './base.ts';
 export { coreCapability } from './core/index.ts';
 export type { LspCapabilityPorts } from './lsp/index.ts';
 export { lspCapability } from './lsp/index.ts';

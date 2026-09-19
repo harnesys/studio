@@ -10,13 +10,11 @@ import { firstBlockingPattern } from '../../adapters/actions/path-blocklist.ts';
 import { resolveWorkdirPath } from '../../adapters/actions/path-resolve.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
 export type ReadFileOutput = {
   content: string;
   totalLines: number;
   truncated: boolean;
 };
-
 export function readFileTool(options: FilesOptions = {}): ToolDefinition {
   const blocklist = options.blocklist ?? DEFAULT_PATH_BLOCKLIST;
   return tool('read_file', {
@@ -35,7 +33,11 @@ export function readFileTool(options: FilesOptions = {}): ToolDefinition {
       required: ['path'],
     },
     async execute(input, ctx) {
-      const parsed = input as { path: string; offset?: number; limit?: number };
+      const parsed = input as {
+        path: string;
+        offset?: number;
+        limit?: number;
+      };
       const absolute = resolveWorkdirPath(ctx.cwd, parsed.path, options.root);
       const blocking = firstBlockingPattern(absolute, blocklist);
       if (blocking) {
@@ -54,7 +56,6 @@ export function readFileTool(options: FilesOptions = {}): ToolDefinition {
     },
   });
 }
-
 export async function collectWindow(
   lines: AsyncIterable<string> | Iterable<string>,
   offset: number,
@@ -88,7 +89,6 @@ export async function collectWindow(
   }
   return { content: kept.join('\n'), totalLines, truncated: full };
 }
-
 async function* iterateLines(file: Bun.BunFile): AsyncGenerator<string> {
   const reader = file.stream().getReader();
   const decoder = new TextDecoder('utf-8', { fatal: false });
@@ -118,7 +118,6 @@ async function* iterateLines(file: Bun.BunFile): AsyncGenerator<string> {
     reader.releaseLock();
   }
 }
-
 async function isBinaryFile(file: Bun.BunFile): Promise<boolean> {
   const probe = new Uint8Array(await file.slice(0, BINARY_PROBE_BYTES).arrayBuffer());
   for (let i = 0; i < probe.byteLength; i += 1) {

@@ -22,7 +22,6 @@ import {
   CategoryLandingTitle,
 } from '@/shared/ui/category-landing';
 import { NewFileDialog } from './new-file-dialog';
-
 export function IdeHome() {
   const workspaceIds = useSelectedWorkspaceIds();
   const workspaceId = workspaceIds[0] ?? null;
@@ -30,7 +29,6 @@ export function IdeHome() {
   const agents = useAgentStore(
     useShallow((s) => (workspaceId ? s.items.filter((a) => a.workspaceId === workspaceId) : [])),
   );
-
   if (!workspaceId) {
     return (
       <CategoryLanding data-testid="ide-home">
@@ -42,7 +40,6 @@ export function IdeHome() {
       </CategoryLanding>
     );
   }
-
   return (
     <CategoryLanding data-testid="ide-home">
       <CategoryLandingEyebrow>HOME</CategoryLandingEyebrow>

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 import type { Agent } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import {
@@ -23,15 +22,12 @@ import {
 } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
 import { draftFrom, emptyWebhookDraft, type WebhookFormDraft } from '../model/webhook-draft';
-
 export type WebhookConfigData = {
   agents: Agent[];
   workspaceId: string;
   webhook: Webhook | null;
 };
-
 const NEW_THREAD_VALUE = 'new';
-
 export function WebhookConfigDialog({
   onResolve,
   data,
@@ -68,7 +64,6 @@ export function WebhookConfigDialog({
         })),
       ];
   const canSave = draft.name.trim().length > 0 && agents.length > 0;
-
   return (
     <>
       <FieldGroup>

@@ -2,38 +2,28 @@ import type { Driver } from 'harnesys/domain';
 
 export type { Driver } from 'harnesys/domain';
 export { DRIVERS, isDriver } from 'harnesys/domain';
-
 export type DriverEndpoint = {
   id: string;
   label: string;
   apiUrl: string;
   group?: string;
 };
-
 export type CatalogDriver = {
   id: Driver;
   defaultUrl: string;
   endpoints: DriverEndpoint[];
 };
-
 export type StudioCatalog = {
   drivers: CatalogDriver[];
 };
-
 export const EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
-
 export type Effort = (typeof EFFORTS)[number];
-
 export type ModelKind = 'chat' | 'embed' | 'image' | 'audio';
-
 export const MODALITIES = ['text', 'audio', 'image', 'video', 'file'] as const;
 export type Modality = (typeof MODALITIES)[number];
-
 export const MODEL_FEATURES = ['tools', 'structured', 'streaming', 'reasoning', 'cache'] as const;
 export type ModelFeature = (typeof MODEL_FEATURES)[number];
-
 export type ModelOrigin = 'local' | 'remote';
-
 export type ModelPricing = {
   prompt: string;
   completion: string;
@@ -42,7 +32,6 @@ export type ModelPricing = {
   input_cache_read?: string;
   input_cache_write?: string;
 };
-
 export type ModelArchitecture = {
   modality?: string;
   input_modalities?: Modality[];
@@ -50,13 +39,11 @@ export type ModelArchitecture = {
   tokenizer?: string;
   instruct_type?: string | null;
 };
-
 export type ModelTopProvider = {
   context_length?: number;
   max_completion_tokens?: number;
   is_moderated?: boolean;
 };
-
 export type ModelFields = {
   id?: string;
   name?: string;
@@ -68,27 +55,21 @@ export type ModelFields = {
   top_provider?: ModelTopProvider;
   supported_parameters?: string[];
   effort?: Effort[];
-  /** Vendor default level (OpenRouter `reasoning.default_effort`); composer initial value. */
   defaultEffort?: Effort;
-  /** Vendor forbids disabling reasoning (OpenRouter `reasoning.mandatory`); `none` is invalid. */
   reasoningMandatory?: boolean;
 };
-
 export type ModelRecord = ModelFields & {
   name: string;
   origin?: ModelOrigin;
   host?: ModelFields;
 };
-
 export type DiscoveredModel = ModelFields & {
   name: string;
   deprecated?: boolean;
   raw?: unknown;
 };
-
 export const INCOMPLETE_FIELDS = ['context_length', 'pricing'] as const;
 export type IncompleteField = (typeof INCOMPLETE_FIELDS)[number];
-
 export type ModelHints = {
   missing: IncompleteField[];
   verified: boolean;
@@ -101,14 +82,11 @@ export type ModelHints = {
     cacheWrite?: number;
   };
 };
-
 export type StudioModel = ModelRecord & {
   id: string;
 };
-
 export type StudioModelView = StudioModel & ModelHints;
 export type DiscoveredModelView = DiscoveredModel & ModelHints;
-
 export function isEffort(value: string): value is Effort {
   return (EFFORTS as readonly string[]).includes(value);
 }

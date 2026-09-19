@@ -42,7 +42,6 @@ function hasCycle(nodes: Record<string, Node>, edges: Edge[]): boolean {
   }
   return found;
 }
-
 function collectPaths(ast: Ast): string[] {
   const paths: string[] = [];
   const walk = (node: Ast): void => {
@@ -67,13 +66,9 @@ function collectPaths(ast: Ast): string[] {
   walk(ast);
   return paths;
 }
-
 type AddDiag = (code: string, severity: DiagnosticSeverity, message: string, path?: string) => void;
-
-/** Keys of the override form `PackOverride` (domain/pack.ts); `PackAssignment` also allows bare booleans. */
 const PACK_OVERRIDE_KEYS = new Set(['spec', 'disabledTools', 'exposure']);
 const TOOL_EXPOSURES: ToolExposure[] = ['direct', 'deferred'];
-
 function checkPackOverride(obj: Record<string, unknown>, key: string, add: AddDiag): void {
   if (obj.spec !== undefined) {
     const spec = obj.spec;
@@ -111,7 +106,6 @@ function checkPackOverride(obj: Record<string, unknown>, key: string, add: AddDi
     }
   }
 }
-
 function checkExprPaths(
   expr: string,
   stateKeys: Set<string>,
@@ -136,7 +130,6 @@ function checkExprPaths(
     }
   }
 }
-
 export function validateStructural(def: AgentDefinition): Diagnostic[] {
   const diags: Diagnostic[] = [];
   const add = (
@@ -157,18 +150,15 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       return false;
     }
   };
-
   const nodes = def.graph.nodes;
   const edges = def.graph.edges;
   const nodeIds = new Set(Object.keys(nodes));
-
   if (typeof def.id !== 'string' || def.id.trim().length === 0) {
     add('id_required', 'error', 'id is required and must be non-empty', 'id');
   }
   if (def.version !== undefined && !SEMVER_RE.test(def.version)) {
     add('version_format', 'error', `version "${def.version}" must be semver`, 'version');
   }
-
   const startIds: string[] = [];
   const endIds: string[] = [];
   for (const [id, n] of Object.entries(nodes)) {
@@ -190,7 +180,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
   if (endIds.length < 1) {
     add('end_count', 'error', `expected at least 1 core:end, got ${endIds.length}`, 'graph.nodes');
   }
-
   const edgesByFrom = new Map<string, Edge[]>();
   for (let i = 0; i < edges.length; i++) {
     const e = edges[i] as Edge;
@@ -211,7 +200,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       edgesByFrom.set(e.from, [e]);
     }
   }
-
   for (const [id, n] of Object.entries(nodes)) {
     if (n.type === 'core:end' || n.type === 'control:goto' || n.type === 'control:yield') {
       continue;
@@ -221,9 +209,7 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       add('outgoing_required', 'error', `node "${id}" requires outgoing edge`, `graph.nodes.${id}`);
     }
   }
-
   validateMapWaitNodes(def, edgesByFrom, add);
-
   for (const [from, list] of edgesByFrom) {
     const withWhen = list.filter((e) => e.when !== undefined);
     const defaults = list.filter((e) => e.when === undefined);
@@ -254,7 +240,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
   }
-
   for (const [id, n] of Object.entries(nodes)) {
     if (n.type === 'llm:generate') {
       if (!def.prompts[n.prompt]) {
@@ -278,7 +263,11 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
         }
       }
       if (n.output && typeof n.output === 'object') {
-        const props = (n.output as { properties?: Record<string, unknown> }).properties;
+        const props = (
+          n.output as {
+            properties?: Record<string, unknown>;
+          }
+        ).properties;
         if (props) {
           for (const k of Object.keys(props)) {
             if (RESERVED.has(k)) {
@@ -293,13 +282,21 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
         }
       }
     }
-    if ((n as { type: string }).type === 'tool:call') {
+    if (
+      (
+        n as {
+          type: string;
+        }
+      ).type === 'tool:call'
+    ) {
       const tc = n as {
         name?: unknown;
         args?: unknown;
         calls?: unknown;
         concurrency?: unknown;
-        barrier?: { policy?: unknown };
+        barrier?: {
+          policy?: unknown;
+        };
       };
       const hasName = typeof tc.name === 'string' && (tc.name as string).length > 0;
       const hasArgs = tc.args !== undefined;
@@ -389,14 +386,12 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
   }
-
   for (const [pid, p] of Object.entries(def.prompts)) {
     for (const m of p.instructions.matchAll(/\{\$[^}]+\}/g)) {
       const inner = m[0].slice(1, -1);
       tryParse(inner, `prompts.${pid}.instructions`);
     }
   }
-
   const stateKeys = new Set<string>(def.state?.initial ? Object.keys(def.state.initial) : []);
   if (stateKeys.size > 0) {
     for (const [id, e] of edges.entries()) {
@@ -447,7 +442,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
   }
-
   if (
     hasCycle(nodes, edges) &&
     def.budget?.maxSteps === undefined &&
@@ -455,7 +449,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
   ) {
     add('cycle_budget', 'error', 'graph has cycle but no budget.maxSteps/deadlineMs', 'budget');
   }
-
   if (def.budget !== undefined) {
     const b = def.budget;
     if (b.policy !== undefined && b.policy !== 'ask' && b.policy !== 'error') {
@@ -477,7 +470,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
   }
-
   if (def.packs !== undefined) {
     if (typeof def.packs !== 'object' || def.packs === null || Array.isArray(def.packs)) {
       add('packs_type', 'error', 'packs must be an object', 'packs');
@@ -510,7 +502,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
   }
-
   const spawnNodes = Object.entries(nodes).filter(([, v]) => v.type === 'control:spawn');
   if (spawnNodes.length > 0 && def.state?.reducers) {
     const replaceKeys = Object.entries(def.state.reducers)
@@ -518,7 +509,11 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       .map(([k]) => k);
     if (replaceKeys.length > 0) {
       const parallel = spawnNodes.filter(([, v]) => {
-        const c = (v as { concurrency: unknown }).concurrency;
+        const c = (
+          v as {
+            concurrency: unknown;
+          }
+        ).concurrency;
         return c === 'parallel' || (typeof c === 'string' && (c as string).trim().startsWith('$'));
       });
       if (parallel.length > 0) {
@@ -543,7 +538,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
   }
-
   for (const [id, n] of Object.entries(nodes)) {
     if (n.type === 'control:spawn' && n.concurrency === 'parallel') {
       let isStatic = false;
@@ -565,7 +559,6 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
   }
-
   if (startIds.length === 1) {
     const startId = startIds[0] as string;
     const visited = new Set<string>([startId]);
@@ -594,6 +587,5 @@ export function validateStructural(def: AgentDefinition): Diagnostic[] {
       }
     }
   }
-
   return diags;
 }

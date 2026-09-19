@@ -1,9 +1,7 @@
 import { z } from 'zod';
-
 export const upsertPinBody = z.object({
   text: z.string(),
 });
-
 export const upsertSemanticBody = z
   .object({
     scope: z.enum(['session', 'long']),
@@ -20,27 +18,22 @@ export const upsertSemanticBody = z
       });
     }
   });
-
 export const updateSemanticBody = z.object({
   text: z.string().trim().min(1),
 });
-
 export const listSemanticQuery = z.object({
   scope: z.enum(['session', 'long']).optional(),
   limit: z.coerce.number().int().positive().max(500).optional(),
 });
-
 export const searchMemoryQuery = z.object({
   query: z.string().trim().min(1),
   threadId: z.string().uuid().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
 });
-
 export const upsertKnowledgeRootBody = z.object({
   path: z.string().trim().min(1),
   enabled: z.boolean().optional(),
 });
-
 export const putKnowledgeSettingsBody = z
   .object({
     entireWorkspace: z.boolean().optional(),
@@ -65,7 +58,6 @@ export const putKnowledgeSettingsBody = z
       });
     }
   });
-
 export const listKnowledgeFilesQuery = z.object({
   status: z.enum(['pending', 'indexed', 'skipped', 'error']).optional(),
 });

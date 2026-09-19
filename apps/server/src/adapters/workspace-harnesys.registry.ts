@@ -41,14 +41,12 @@ import { createHarnesysModelsPort } from './harnesys-models-port.ts';
 import { readWorkspaceMcpJson } from './mcp-json.adapter.ts';
 import { skillRegistryRoots } from './store/studio-layout.ts';
 import { dbAgentDefinition } from './workspace-agent-definitions.ts';
-
 export type WorkspaceHarnesysRepos = {
   agents?: AgentRepository;
   modelRepo?: LlmModelRepository;
   providerRepo?: LlmProviderRepository;
   plugins?: PluginRepository;
 };
-
 export type WorkspaceRuntimeWiring = {
   lifecycle: RunLifecycleStore;
   events: RunEventStore;
@@ -57,33 +55,25 @@ export type WorkspaceRuntimeWiring = {
   instanceId: string;
   logger?: Logger;
 };
-
 export type LoadedWorkspacePlugin = {
   record: PluginInstallRecord;
   ir: PluginIr;
 };
-
 export class WorkspaceHarnesysRegistry {
   private readonly cache = new Map<string, Promise<RuntimeHandle>>();
-  /** Immutable parse-result cache: `${name}@${revision}` → raw IR. Never mutated. */
   private readonly irCache = new Map<string, PluginIr>();
-  /** Composed FS+plugin `SkillRegistry` of the live runtimes. `RuntimeHandle.skills`
-   *  is a list()-only view; run grants build executable `load_skill` over the real one. */
   private readonly skillsCache = new Map<string, SkillRegistry>();
-
   constructor(
     private readonly models: ModelsPort,
     private readonly repos: WorkspaceHarnesysRepos = {},
     private readonly runtime?: WorkspaceRuntimeWiring,
     private readonly packRegistrations: PackRegistration[] = [],
   ) {}
-
   get(workspace: Workspace): Promise<RuntimeHandle> {
     const cached = this.cache.get(workspace.id);
     if (cached) {
       return cached;
     }
-
     const pending = this.create(workspace);
     this.cache.set(workspace.id, pending);
     pending.catch(() => {
@@ -93,11 +83,9 @@ export class WorkspaceHarnesysRegistry {
     });
     return pending;
   }
-
   invalidate(workspaceId: string): Promise<void> {
     return this.forget(workspaceId);
   }
-
   async forget(workspaceId: string): Promise<void> {
     const pending = this.cache.get(workspaceId);
     this.cache.delete(workspaceId);
@@ -111,25 +99,14 @@ export class WorkspaceHarnesysRegistry {
     try {
       const rt = await pending;
       await rt.close();
-    } catch {
-      // create failed; nothing to close
-    }
+    } catch {}
   }
-
-  /**
-   * Host registrations for this workspace. Pack skills reach `load_skill`
-   * through the runtime ctx skills registry, not through a registration,
-   * so run targets resolve against this same list.
-   */
   effectiveRegistrations(_workspace: Workspace): PackRegistration[] {
     return [...this.packRegistrations];
   }
-
-  /** Реальный compose-реестр скилов workspace; `undefined` до прогрева `get(workspace)`. */
   skillsFor(workspaceId: string): SkillRegistry | undefined {
     return this.skillsCache.get(workspaceId);
   }
-
   evictIrFor(prefix: string): void {
     for (const key of [...this.irCache.keys()]) {
       if (key.startsWith(prefix)) {
@@ -137,13 +114,6 @@ export class WorkspaceHarnesysRegistry {
       }
     }
   }
-
-  /**
-   * Workspace-enabled plugins with their grant-gated IR view. The cache keeps
-   * parse statuses only; `blocked_by_grant` / `needs_server_approval` are
-   * recomputed on every load from `record.grants` + server approvals and are
-   * never written back into the cache (spec §4 cache invariant).
-   */
   async loadEnabledPlugins(workspaceId: string): Promise<LoadedWorkspacePlugin[]> {
     const repo = this.repos.plugins;
     if (repo === undefined) {
@@ -158,17 +128,12 @@ export class WorkspaceHarnesysRegistry {
     }
     return loaded;
   }
-
-  /** Plugin agents of this workspace (`pluginName:agentName` catalog ids). */
   async pluginAgents(workspaceId: string): Promise<PluginAgentCatalog> {
     return this.pluginCatalog(workspaceId, await this.loadEnabledPlugins(workspaceId));
   }
-
-  /** Sync catalog from the warm (memoized) IR cache; same contract as resolvePluginAgent. */
   private warmPluginAgents(workspaceId: string): PluginAgentCatalog {
     return this.pluginCatalog(workspaceId, this.cachedLoaded(workspaceId));
   }
-
   private pluginCatalog(workspaceId: string, entries: LoadedWorkspacePlugin[]): PluginAgentCatalog {
     return pluginAgentCatalog(
       entries,
@@ -179,15 +144,9 @@ export class WorkspaceHarnesysRegistry {
       workspaceId,
     );
   }
-
-  /**
-   * Диагностики биндинга агентов (`unresolved_model` и frontmatter-предупреждения)
-   * идут в runtime-логер, тот же формат, что у load-диагностик плагинов.
-   */
   private readonly pluginBindDiagnostic: BindDiagnosticSink = (diagnostic) => {
     this.runtime?.logger?.warn(`[plugins] ${diagnostic.code}: ${diagnostic.message}`);
   };
-
   private async loadIr(record: PluginInstallRecord): Promise<PluginIr | undefined> {
     const key = irCacheKey(record);
     const cached = this.irCache.get(key);
@@ -202,11 +161,9 @@ export class WorkspaceHarnesysRegistry {
       this.irCache.set(key, result.ir);
       return result.ir;
     } catch {
-      // skip failed loads; diagnostics surface via plugin list API
       return undefined;
     }
   }
-
   private gatedIr(
     record: PluginInstallRecord,
     raw: PluginIr,
@@ -216,7 +173,6 @@ export class WorkspaceHarnesysRegistry {
     const approved = new Set(repo?.approvals(workspaceId, record.name) ?? []);
     return { record, ir: applyGrantGating(raw, record.grants, approved) };
   }
-
   private async create(workspace: Workspace): Promise<RuntimeHandle> {
     let mcpJson: CursorMcpJson;
     try {
@@ -243,9 +199,6 @@ export class WorkspaceHarnesysRegistry {
         ),
       ),
     ]);
-    // Grant gating and per-server approvals are already applied to the loaded
-    // IR views; non-native servers never reach the merge. User-stopped servers
-    // stay approved but are excluded here until re-enabled.
     const disabled = new Set(
       (this.repos.plugins?.listDisabledServers(workspace.id) ?? []).map(
         (entry) => `${entry.pluginName}:${entry.serverId}`,
@@ -265,9 +218,6 @@ export class WorkspaceHarnesysRegistry {
         : this.models;
     const runtime = await createRuntime({
       models: modelsPort,
-      // Host base registry is code + auto-MCP only. ask_user/map/wait and the
-      // service tools come with the `core` pack through the capability resolver's
-      // grant (T5); per-agent gating lives in `resolveCapabilitySet`, not here.
       tools: [],
       packs: [...this.packRegistrations],
       agents: {
@@ -282,17 +232,9 @@ export class WorkspaceHarnesysRegistry {
     this.skillsCache.set(workspace.id, skills);
     return runtime;
   }
-
   resolveAgentDefinition(id: string): AgentDefinition | undefined {
     return this.resolveAgent(id);
   }
-
-  /**
-   * `AgentsResolve.resolve`: delegate-строка видна только её родителю,
-   * plugin-таргет — только при `enabledPlugins[owner] === true` у parent;
-   * без parent те же строки не резолвятся (better empty, как в ростере).
-   * Top-level host-строки резолвятся как прежде.
-   */
   resolveAgentForRun(id: string, parent?: AgentDefinition): AgentDefinition | undefined {
     const row = this.repos.agents?.findById(id);
     if (row !== undefined) {
@@ -310,20 +252,11 @@ export class WorkspaceHarnesysRegistry {
     }
     return this.resolvePluginAgent(id);
   }
-
-  /**
-   * Ростер, видимый `parent`: host-агенты его workspace + plugin-агенты
-   * плагинов, включённых у parent; без parent/строки в БД — пустой список
-   * (B3: cross-workspace утечка закрыта). Cold-cache: plugin-строк может не
-   * быть до первого прогрева — следующий resolve() таргета прогреет через
-   * `get(workspace)`.
-   */
   listScopedRoster(parent?: AgentDefinition): AgentRosterEntry[] {
     return scopedAgentRoster(this.repos.agents, parent, (workspaceId) =>
       this.warmPluginAgents(workspaceId).list(),
     );
   }
-
   private resolveAgent(id: string): AgentDefinition | undefined {
     const agent = this.repos.agents?.findById(id);
     if (agent) {
@@ -331,12 +264,6 @@ export class WorkspaceHarnesysRegistry {
     }
     return id.includes(':') ? this.resolvePluginAgent(id) : undefined;
   }
-
-  /**
-   * `pluginName:agentName` via bindAgentComponents over the cached (warm) IRs.
-   * Sync contract of `agents.resolve`: only memoized IRs contribute, so the
-   * first resolve must follow `get(workspace)` / `loadEnabledPlugins`.
-   */
   private resolvePluginAgent(id: string): AgentDefinition | undefined {
     const plugins = this.repos.plugins;
     if (plugins === undefined) {
@@ -350,7 +277,6 @@ export class WorkspaceHarnesysRegistry {
     }
     return undefined;
   }
-
   private cachedLoaded(workspaceId: string): LoadedWorkspacePlugin[] {
     const repo = this.repos.plugins;
     if (repo === undefined) {
@@ -366,12 +292,9 @@ export class WorkspaceHarnesysRegistry {
     return loaded;
   }
 }
-
 function irCacheKey(record: PluginInstallRecord): string {
   return `${record.name}@${record.revision}`;
 }
-
-/** Reader for bindSkillComponents: flat command md files live on disk. */
 function readPluginSkillFile(file: string): string {
   return readFileSync(file, 'utf8');
 }

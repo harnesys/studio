@@ -1,13 +1,10 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
-
 import { useDeskStore } from '@/features/desk';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { studioPath } from '@/shared/config/routes';
-
 import type { IdeTab } from './ide.store';
 import { useIdeStore } from './ide.store';
-
 export function pathForIdeTab(workspaceId: string, tab: IdeTab): string | null {
   if (tab.kind === 'thread' && tab.threadId) {
     return studioPath.thread(workspaceId, tab.threadId);
@@ -32,7 +29,6 @@ export function pathForIdeTab(workspaceId: string, tab: IdeTab): string | null {
   }
   return null;
 }
-
 export function useOpenIdeTab() {
   const navigate = useNavigate();
   return (workspaceId: string, tab: IdeTab) => {
@@ -42,11 +38,6 @@ export function useOpenIdeTab() {
     }
   };
 }
-
-/**
- * Extracted from thread-header.tsx goTo: ide-store tab + desk focus + URL.
- * Hooks (not plain functions) because URL navigation needs the router context.
- */
 export function useOpenThreadTab() {
   const { openThread } = useStudioNavigation();
   return useCallback(
@@ -58,7 +49,6 @@ export function useOpenThreadTab() {
     [openThread],
   );
 }
-
 export function useOpenSpawnTab() {
   const { openSpawn } = useStudioNavigation();
   return useCallback(
@@ -70,7 +60,6 @@ export function useOpenSpawnTab() {
     [openSpawn],
   );
 }
-
 export function useOpenTerminalTab() {
   const { openTerminal } = useStudioNavigation();
   return useCallback(

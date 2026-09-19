@@ -3,7 +3,6 @@ import { Controller, type UseFormReturn } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
 import { cn } from '@/shared/lib/utils';
 import { Pane } from '@/shared/ui/capability-rows';
-
 import type { AgentCapabilitiesDraft } from '../model/agent-config';
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 import type { StudioGraphDocument } from '../model/agent-graph-document';
@@ -33,7 +32,6 @@ type AgentConfigCategoryPanesProps = {
   onCapabilitiesPatch: (patch: Partial<AgentCapabilitiesDraft>) => void;
   onOpenSubagent: (agent: Agent) => void;
 };
-
 export function AgentConfigCategoryPanes({
   category,
   form,

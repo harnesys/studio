@@ -5,7 +5,6 @@ import type {
 } from '@harnesys/studio-shared';
 import { RefreshCwIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -21,7 +20,6 @@ type KnowledgeIndexStatusProps = {
   onReindex: () => void;
   onCancel: () => void;
 };
-
 export function KnowledgeIndexStatus({
   state,
   stats,
@@ -50,8 +48,7 @@ export function KnowledgeIndexStatus({
     return () => clearInterval(id);
   }, [running]);
   const elapsed = formatElapsed(state?.startedAt, state?.finishedAt, running, now);
-  const isSlowVector = running && elapsed && elapsed.rawMs > 20_000 && total > 0;
-
+  const isSlowVector = running && elapsed && elapsed.rawMs > 20000 && total > 0;
   return (
     <Card size="sm" data-testid="knowledge-index-status">
       <CardHeader>
@@ -129,7 +126,6 @@ export function KnowledgeIndexStatus({
     </Card>
   );
 }
-
 function statusTone(status: IndexRunStatus): StatusDotTone {
   if (status === 'running') {
     return 'live';
@@ -139,13 +135,15 @@ function statusTone(status: IndexRunStatus): StatusDotTone {
   }
   return 'idle';
 }
-
 function formatElapsed(
   startedAt: string | null | undefined,
   finishedAt: string | null | undefined,
   running: boolean,
   now?: number,
-): { label: string; rawMs: number } | null {
+): {
+  label: string;
+  rawMs: number;
+} | null {
   if (!startedAt) {
     return null;
   }

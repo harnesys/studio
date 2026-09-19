@@ -5,7 +5,6 @@ import { asNumber, asRecord, asString, asStringList, itemsOf } from './parse.ts'
 import { modelsUrl } from './request.ts';
 
 export { GOOGLE_DEFAULT_URL };
-
 export async function listGoogleModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   const found: DiscoveredModel[] = [];
   let pageToken: string | undefined;
@@ -32,7 +31,6 @@ export async function listGoogleModels(input: DiscoverInput): Promise<Discovered
   } while (pageToken);
   return found;
 }
-
 export function parseGoogleList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json, 'models')) {
@@ -43,7 +41,6 @@ export function parseGoogleList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapGoogleModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const rawName = asString(record?.name);
@@ -66,7 +63,6 @@ function mapGoogleModel(item: unknown): DiscoveredModel | undefined {
     raw: item,
   };
 }
-
 function googleKind(name: string, methods: string[]): 'chat' | 'embed' | 'image' | undefined {
   if (methods.includes('embedContent') || /embed/i.test(name)) {
     return 'embed';
@@ -79,10 +75,8 @@ function googleKind(name: string, methods: string[]): 'chat' | 'embed' | 'image'
   }
   return undefined;
 }
-
 const NONE_LOW_MEDIUM_HIGH = ['none', 'low', 'medium', 'high'];
 const LOW_MEDIUM_HIGH = ['low', 'medium', 'high'];
-
 function googleModelEfforts(name: string): string[] | undefined {
   if (!/gemini/i.test(name)) {
     return undefined;

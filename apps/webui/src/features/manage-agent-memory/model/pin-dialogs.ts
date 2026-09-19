@@ -1,9 +1,6 @@
 import type { PinRecord } from '@harnesys/studio-shared';
-
 import { alert, dialog } from '@/shared/services/overlay';
-
 import { AddPinDialog, EditPinDialog } from '../ui/pin-dialogs';
-
 export function openAddPinDialog() {
   return dialog.open(AddPinDialog, {
     title: 'Add pin',
@@ -12,7 +9,6 @@ export function openAddPinDialog() {
     testId: 'add-pin-dialog',
   });
 }
-
 export function openEditPinDialog(pin: PinRecord) {
   return dialog.open(EditPinDialog, {
     title: 'Edit pin',
@@ -22,7 +18,6 @@ export function openEditPinDialog(pin: PinRecord) {
     data: { pin },
   });
 }
-
 export function confirmDeletePin(key: string) {
   return alert.confirm({
     title: `Delete pin ${key}?`,

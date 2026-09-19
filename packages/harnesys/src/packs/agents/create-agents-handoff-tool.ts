@@ -1,20 +1,20 @@
-/** `agents_handoff` for the `agents` pack: the thread moves only between
- *  top-level agents. Targets with no model are refused here: the rebinding
- *  would strand the next run on `model_unresolved` (the graph-handoff node
- *  carries the same guard as a fallback, with the identical message). */
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
 import type { CreateAgentsToolsParams } from './create-agents-tools.ts';
 import { resolveHandoffTarget } from './handoff-target.ts';
 import { scopeFor } from './scope-for.ts';
 
-async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+async function runGuard<T>(fn: () => Promise<T>): Promise<
+  | T
+  | {
+      error: string;
+    }
+> {
   try {
     return await fn();
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
-
 export function createAgentsHandoffTool(deps: CreateAgentsToolsParams): ToolDefinition {
   return tool('agents_handoff', {
     group: 'agents',
@@ -30,7 +30,11 @@ export function createAgentsHandoffTool(deps: CreateAgentsToolsParams): ToolDefi
     },
     execute: async (raw, execCtx) =>
       runGuard(async () => {
-        const id = ((raw ?? {}) as { agentId?: unknown }).agentId;
+        const id = (
+          (raw ?? {}) as {
+            agentId?: unknown;
+          }
+        ).agentId;
         if (typeof id !== 'string' || !id) {
           return { error: 'agentId must be a non-empty string' };
         }

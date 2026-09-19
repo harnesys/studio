@@ -1,6 +1,5 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { memo } from 'react';
-
 import type { MapInfo, MapItemInfo } from '../model/map-groups';
 import type { SpawnInfo, SpawnToolChip, SpawnToolStat } from '../model/spawn-groups';
 import { AssistantMessageView, FailedMessageView } from './agent-turn';
@@ -16,17 +15,13 @@ function sameEventList(a: SessionEvent[], b: SessionEvent[]): boolean {
   if (a.length === 0) {
     return true;
   }
-  // Completed runs keep the same event object refs at both ends while the
-  // parent only appends; identity check skips Markdown/tool re-renders.
   return a[0] === b[0] && a[a.length - 1] === b[b.length - 1];
 }
-
-type DeltaEvent = SessionEvent & { type: 'text-delta' | 'reasoning-delta' };
-
+type DeltaEvent = SessionEvent & {
+  type: 'text-delta' | 'reasoning-delta';
+};
 const isDelta = (ev: SessionEvent): ev is DeltaEvent =>
   ev.type === 'text-delta' || ev.type === 'reasoning-delta';
-
-/** Live-хвост меняется в store на каждый токен; рисуется через useLiveTail, props тупеют. */
 function sameEventsIgnoringLiveTail(a: SessionEvent[], b: SessionEvent[]): boolean {
   if (a === b) {
     return true;
@@ -44,8 +39,6 @@ function sameEventsIgnoringLiveTail(a: SessionEvent[], b: SessionEvent[]): boole
   }
   return ta === tb;
 }
-
-/** extractSpawns пересобирает массив на каждое событие — сравниваем по полям. */
 function sameSpawns(a: SpawnInfo[] | undefined, b: SpawnInfo[] | undefined): boolean {
   if (a === b) {
     return true;
@@ -72,7 +65,6 @@ function sameSpawns(a: SpawnInfo[] | undefined, b: SpawnInfo[] | undefined): boo
     );
   });
 }
-
 function sameMaps(a: MapInfo[] | undefined, b: MapInfo[] | undefined): boolean {
   if (a === b) {
     return true;
@@ -94,7 +86,6 @@ function sameMaps(a: MapInfo[] | undefined, b: MapInfo[] | undefined): boolean {
     );
   });
 }
-
 function sameMapItems(a: MapItemInfo[], b: MapItemInfo[]): boolean {
   if (a === b) {
     return true;
@@ -114,7 +105,6 @@ function sameMapItems(a: MapItemInfo[], b: MapItemInfo[]): boolean {
     );
   });
 }
-
 function sameToolChips(a: SpawnToolChip[], b: SpawnToolChip[]): boolean {
   if (a === b) {
     return true;
@@ -127,7 +117,6 @@ function sameToolChips(a: SpawnToolChip[], b: SpawnToolChip[]): boolean {
     return other !== undefined && chip.name === other.name && chip.phase === other.phase;
   });
 }
-
 function sameToolStats(
   a: Record<string, SpawnToolStat>,
   b: Record<string, SpawnToolStat>,
@@ -151,7 +140,6 @@ function sameToolStats(
     );
   });
 }
-
 export const RunTurn = memo(
   function RunTurn({
     events,

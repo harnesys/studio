@@ -5,7 +5,6 @@ import {
   visibleScheduledText,
 } from '@harnesys/studio-shared';
 import { AlertCircleIcon, CalendarClockIcon, RotateCcwIcon, TerminalIcon } from 'lucide-react';
-
 import { useLiveTail, useSessionStore } from '@/entities/session';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
@@ -33,7 +32,6 @@ import { HandoffLine } from './handoff-line';
 import { MessageActions } from './message-actions';
 import { ModeTagBadges } from './mode-tag-badge';
 import { ThinkingLine } from './thinking-line';
-
 export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
   return (
     <FeedNotice
@@ -59,7 +57,6 @@ export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: (
     </FeedNotice>
   );
 }
-
 export function SystemMessageView({ text }: { text: string }) {
   if (!text) {
     return null;
@@ -70,7 +67,6 @@ export function SystemMessageView({ text }: { text: string }) {
     </FeedNotice>
   );
 }
-
 export function ActivityBlock({
   events,
   last,
@@ -83,7 +79,6 @@ export function ActivityBlock({
   threadId?: string;
 }) {
   const live = last && streaming;
-
   if (events.length === 0 && live) {
     return (
       <ActivityRail live={true}>
@@ -91,10 +86,8 @@ export function ActivityBlock({
       </ActivityRail>
     );
   }
-
   return <ActivityItems events={events} live={live} threadId={threadId} />;
 }
-
 export function AssistantMessageView({
   events,
   runId,
@@ -124,8 +117,14 @@ export function AssistantMessageView({
   const { openThread } = useStudioNavigation();
   const segments = groupSegments(events);
   const textBlocks = segments.filter(
-    (segment): segment is Extract<TurnSegment, { type: 'text' | 'compaction' }> =>
-      segment.type === 'text' || segment.type === 'compaction',
+    (
+      segment,
+    ): segment is Extract<
+      TurnSegment,
+      {
+        type: 'text' | 'compaction';
+      }
+    > => segment.type === 'text' || segment.type === 'compaction',
   );
   const answerText = textBlocks.map((segment) => segment.text).join('\n\n');
   const hasDone = events.some((ev) => ev.type === 'done');
@@ -138,7 +137,6 @@ export function AssistantMessageView({
   const lastIsUser = lastSegment?.type === 'user';
   const pendingReply =
     streaming && !hasDone && !hasInFlight && (segments.length === 0 || lastIsUser);
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col">
@@ -193,7 +191,6 @@ export function AssistantMessageView({
     </div>
   );
 }
-
 function TurnSegmentView({
   segment,
   live,
@@ -270,10 +267,8 @@ function TurnSegmentView({
       </ActivityRail>
     );
   }
-
   return <LiveMarkdown text={segment.text} live={live} threadId={threadId} blockId={segment.id} />;
 }
-
 function LiveMarkdown({
   text,
   live,
@@ -292,13 +287,15 @@ function LiveMarkdown({
       : text;
   return <Markdown text={display} streaming={live} />;
 }
-
-function isScheduleWakeEvent(event: SessionEvent & { type: 'user' }): boolean {
+function isScheduleWakeEvent(
+  event: SessionEvent & {
+    type: 'user';
+  },
+): boolean {
   return (
     event.origin === 'schedule' || (event.text !== undefined && isScheduledHumanText(event.text))
   );
 }
-
 function ScheduleWakeBanner({ text }: { text: string }) {
   const title = scheduledTaskName(text) ?? 'Schedule';
   const body = visibleScheduledText(text);
@@ -314,8 +311,12 @@ function ScheduleWakeBanner({ text }: { text: string }) {
     </FeedNotice>
   );
 }
-
-function uniqueAttachments<T extends { id: string; path: string }>(items: T[]): T[] {
+function uniqueAttachments<
+  T extends {
+    id: string;
+    path: string;
+  },
+>(items: T[]): T[] {
   const seen = new Set<string>();
   const out: T[] = [];
   for (const item of items) {
@@ -328,13 +329,18 @@ function uniqueAttachments<T extends { id: string; path: string }>(items: T[]): 
   }
   return out;
 }
-
 function AttachmentPreview({
   threadId,
   item,
 }: {
   threadId: string;
-  item: { id: string; kind: string; name: string; mediaType: string; path: string };
+  item: {
+    id: string;
+    kind: string;
+    name: string;
+    mediaType: string;
+    path: string;
+  };
 }) {
   const src = attachmentUrl(threadId, item.id);
   if (item.kind === 'audio') {

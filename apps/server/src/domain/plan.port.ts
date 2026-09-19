@@ -5,7 +5,6 @@ import type {
   SavePlanItemInput,
   ThreadPlanRecord,
 } from '@harnesys/studio-shared';
-
 export type PlanRepository = {
   getByThreadId(threadId: string): ThreadPlanRecord | null;
   getById(planId: string): ThreadPlanRecord | null;

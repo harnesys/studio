@@ -9,7 +9,6 @@ import type { Attachment } from '../../domain/attachment.port.ts';
 
 export type { ThreadAttachment };
 export { MAX_ATTACHMENT_BYTES };
-
 export function toThreadAttachment(row: Attachment): ThreadAttachment {
   return {
     id: row.id,
@@ -19,7 +18,6 @@ export function toThreadAttachment(row: Attachment): ThreadAttachment {
     path: row.path,
   };
 }
-
 export function kindFromMediaType(mediaType: string): AttachmentKind {
   if (mediaType.startsWith('image/')) {
     return 'image';
@@ -32,7 +30,6 @@ export function kindFromMediaType(mediaType: string): AttachmentKind {
   }
   return 'file';
 }
-
 export function modelAccepts(
   input: Modality[] | undefined,
   kind: AttachmentKind,

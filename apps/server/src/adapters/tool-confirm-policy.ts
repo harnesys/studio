@@ -1,12 +1,5 @@
 import { type AgentMode, DEFAULT_MODE_ID, MODE_OPS } from '@harnesys/studio-shared';
 import { DEFAULT_PERMISSIONS, type PermissionMap } from 'harnesys';
-
-// PermissionMap keys are tool operations (ToolDefinition.operations), not tool
-// names: resolveToolPermission/checkPermission look up by operation and fall
-// back to 'ask' for unknown ones. fs.read: read_file/glob/grep/list_dir;
-// fs.write: write_file/edit_file; process: shell; network: fetch; mcp: MCP tools.
-
-/** Run permission map: agent base ceiling, mode overrides only listed ops and never above the base. */
 export function permissionMapForRun(
   base: PermissionMap | null | undefined,
   mode: AgentMode | undefined,

@@ -12,24 +12,15 @@ import {
   findCatalogEntryWithRenames,
   readPluginManifestVersion,
 } from './materialize-catalog-plugin.ts';
-
-/** Зависимость в форме манифеста Claude; голая строка нормализуется к объекту. */
-export type PluginDependencySpec = { name: string; version?: string; marketplace?: string };
-
+export type PluginDependencySpec = {
+  name: string;
+  version?: string;
+  marketplace?: string;
+};
 export type DependencyResolution = {
-  /** Зависимости, разрешённые по каталогу; кандидаты enable-каскада. */
   dependencies: PluginDependencySpec[];
   diagnostics: PluginDiagnostic[];
 };
-
-/**
- * BFS по графу зависимостей установленного плагина: рёбра читаются из
- * `dependencies` манифестов на диске, резолв — по каталогам маркетплейсов.
- * Цикл → `dependency_cycle`; отсутствие записи в каталоге →
- * `dependency_unsatisfied`; диапазон, который не удовлетворяет ни
- * установленной версии, ни версии каталога → `dependency_unsatisfied`.
- * Неразрешённые зависимости в результат не попадают.
- */
 export function resolvePluginDependencies(
   record: PluginInstallRecord,
   registries: PluginRegistryRepository | undefined,
@@ -42,7 +33,6 @@ export function resolvePluginDependencies(
     dep,
     path: [record.name],
   }));
-
   for (let cursor = 0; cursor < queue.length; cursor += 1) {
     const { dep, path } = queue[cursor];
     if (path.includes(dep.name)) {
@@ -79,8 +69,6 @@ export function resolvePluginDependencies(
   }
   return Promise.resolve({ dependencies, diagnostics });
 }
-
-/** Имена установленных на ноде плагинов, чей манифест объявляет зависимость от `name`. */
 export function findDependantNames(
   plugins: PluginRepository,
   workspaceId: string,
@@ -94,8 +82,6 @@ export function findDependantNames(
     )
     .map((record) => record.name);
 }
-
-/** Запись каталога для зависимости: маркетплейс из зависимости, иначе реестр записи, иначе все. */
 function findCatalogEntryFor(
   registries: PluginRegistryRepository | undefined,
   dep: PluginDependencySpec,
@@ -112,7 +98,6 @@ function findCatalogEntryFor(
   }
   return undefined;
 }
-
 function candidateRegistryIds(
   registries: PluginRegistryRepository,
   dep: PluginDependencySpec,
@@ -127,15 +112,12 @@ function candidateRegistryIds(
   }
   return registries.list().map((registry) => registry.id);
 }
-
-/** Диапазон опционален; иначе удовлетворяет установленная версия или версия каталога. */
 function rangeSatisfied(range: string | undefined, candidates: (string | undefined)[]): boolean {
   if (range === undefined) {
     return true;
   }
   return candidates.some((version) => version !== undefined && semverSatisfies(version, range));
 }
-
 function unsatisfiedDiagnostic(dep: PluginDependencySpec, reason: string): PluginDiagnostic {
   return {
     level: 'warning',
@@ -143,11 +125,6 @@ function unsatisfiedDiagnostic(dep: PluginDependencySpec, reason: string): Plugi
     message: `dependency "${dep.name}" ${reason}`,
   };
 }
-
-/**
- * `dependencies` из манифеста чекаута. Нет файла, битый JSON или поле не массив —
- * пустой список: объявленных зависимостей не известно.
- */
 export function manifestDependencies(
   root: string,
   format: PluginInstallFormat,
@@ -159,7 +136,6 @@ export function manifestDependencies(
   }
   return declared.flatMap(parseDependency);
 }
-
 function readRawManifest(
   root: string,
   format: PluginInstallFormat,
@@ -181,11 +157,9 @@ function readRawManifest(
   }
   return undefined;
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
 function parseDependency(value: unknown): PluginDependencySpec[] {
   if (typeof value === 'string') {
     const name = value.trim();

@@ -2,7 +2,6 @@ import type { WebhookRecord } from '@harnesys/studio-shared';
 import type { Webhook } from '../../domain/webhook.port.ts';
 
 export type { WebhookRecord };
-
 export function toWebhookRecord(webhook: Webhook, publicOrigin?: string): WebhookRecord {
   return {
     id: webhook.id,
@@ -18,8 +17,6 @@ export function toWebhookRecord(webhook: Webhook, publicOrigin?: string): Webhoo
     updatedAt: webhook.updatedAt,
   };
 }
-
-/** Prefer host.publicOrigin; keep relative endpoint when unset (UI joins listen/baseUrl). */
 export function withPublicOrigin(endpoint: string, publicOrigin?: string): string {
   if (!publicOrigin || /^https?:\/\//i.test(endpoint)) {
     return endpoint;

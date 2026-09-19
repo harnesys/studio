@@ -8,14 +8,10 @@ import type {
 import { normalizePackAssignment } from 'harnesys';
 import type { Agent } from '../domain/agent.port.ts';
 import type { LlmModelRepository, LlmProviderRepository } from '../domain/llm-provider.port.ts';
-
-/** Model lookup repos for resolving an agent's stored model id. */
 export type AgentModelRepos = {
   modelRepo?: LlmModelRepository;
   providerRepo?: LlmProviderRepository;
 };
-
-/** Stored agent row → engine AgentDefinition (hooks / enabledPlugins included). */
 export function dbAgentDefinition(agent: Agent, repos: AgentModelRepos): AgentDefinition {
   return {
     id: agent.id,
@@ -33,7 +29,6 @@ export function dbAgentDefinition(agent: Agent, repos: AgentModelRepos): AgentDe
     ...(agent.permissions ? { permissions: agent.permissions } : {}),
   };
 }
-
 function resolveModelRef(
   agent: {
     workspaceId: string;
@@ -70,12 +65,6 @@ function resolveModelRef(
     generation,
   };
 }
-
-/**
- * Stored pack assignments use the `capabilities_json` column. `true`
- * normalizes to `{}`; objects pass through; `false`, `null`, and
- * `undefined` drop the key.
- */
 export function normalizeAgentPacks(value: Record<string, unknown>): AgentPacks {
   const packs: AgentPacks = {};
   for (const [name, assignment] of Object.entries(value)) {

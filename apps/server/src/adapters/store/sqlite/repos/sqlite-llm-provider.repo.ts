@@ -9,10 +9,8 @@ import { NotFoundError } from '../../../../domain/studio.error.ts';
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type LlmProviderRow, llmProvidersTable } from '../schema';
-
 export class SqliteLlmProviderRepo implements LlmProviderRepository {
   constructor(private readonly db: StudioDb) {}
-
   list(workspaceId: string): LlmProvider[] {
     return this.db
       .select()
@@ -21,7 +19,6 @@ export class SqliteLlmProviderRepo implements LlmProviderRepository {
       .all()
       .map(toProvider);
   }
-
   findById(workspaceId: string, id: string): LlmProvider | undefined {
     const row = this.db
       .select()
@@ -30,7 +27,6 @@ export class SqliteLlmProviderRepo implements LlmProviderRepository {
       .get();
     return row ? toProvider(row) : undefined;
   }
-
   findByName(workspaceId: string, name: string): LlmProvider | undefined {
     const row = this.db
       .select()
@@ -39,7 +35,6 @@ export class SqliteLlmProviderRepo implements LlmProviderRepository {
       .get();
     return row ? toProvider(row) : undefined;
   }
-
   insert(rec: LlmProviderInsert): LlmProvider {
     try {
       const row = this.db
@@ -52,7 +47,6 @@ export class SqliteLlmProviderRepo implements LlmProviderRepository {
       return mapSqliteError(err, { conflict: 'provider exists' });
     }
   }
-
   update(workspaceId: string, id: string, patch: LlmProviderPatch): LlmProvider {
     try {
       const { headers, ...rest } = patch;
@@ -71,7 +65,6 @@ export class SqliteLlmProviderRepo implements LlmProviderRepository {
       return mapSqliteError(err, { conflict: 'provider exists' });
     }
   }
-
   delete(workspaceId: string, id: string): void {
     this.db
       .delete(llmProvidersTable)
@@ -79,7 +72,6 @@ export class SqliteLlmProviderRepo implements LlmProviderRepository {
       .run();
   }
 }
-
 function toProvider(row: LlmProviderRow): LlmProvider {
   return {
     id: row.id,

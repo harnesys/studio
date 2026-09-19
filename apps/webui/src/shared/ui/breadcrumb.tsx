@@ -9,7 +9,6 @@ function Breadcrumb({ className, ...props }: React.ComponentProps<'nav'>) {
     <nav aria-label="breadcrumb" data-slot="breadcrumb" className={cn(className)} {...props} />
   );
 }
-
 function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
   return (
     <ol
@@ -22,7 +21,6 @@ function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
     />
   );
 }
-
 function BreadcrumbItem({ className, ...props }: React.ComponentProps<'li'>) {
   return (
     <li
@@ -32,7 +30,6 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<'li'>) {
     />
   );
 }
-
 function BreadcrumbLink({ className, render, ...props }: useRender.ComponentProps<'a'>) {
   return useRender({
     defaultTagName: 'a',
@@ -48,7 +45,6 @@ function BreadcrumbLink({ className, render, ...props }: useRender.ComponentProp
     },
   });
 }
-
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
@@ -61,7 +57,6 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
     />
   );
 }
-
 function BreadcrumbSeparator({ children, className, ...props }: React.ComponentProps<'li'>) {
   return (
     <li
@@ -75,7 +70,6 @@ function BreadcrumbSeparator({ children, className, ...props }: React.ComponentP
     </li>
   );
 }
-
 function BreadcrumbEllipsis({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span

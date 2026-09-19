@@ -5,7 +5,6 @@ import { asRecord, asString, asStringList, itemsOf, pricingOf } from './parse.ts
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { OLLAMA_CLOUD_DEFAULT_URL, OLLAMA_DEFAULT_URL };
-
 export function listOllamaModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, OLLAMA_DEFAULT_URL, '/api/tags'),
@@ -14,7 +13,6 @@ export function listOllamaModels(input: DiscoverInput): Promise<DiscoveredModel[
     parse: parseOllamaTags,
   });
 }
-
 export function listOllamaCloudModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, OLLAMA_CLOUD_DEFAULT_URL, '/api/tags'),
@@ -23,7 +21,6 @@ export function listOllamaCloudModels(input: DiscoverInput): Promise<DiscoveredM
     parse: parseOllamaTags,
   });
 }
-
 export function parseOllamaTags(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json, 'models')) {

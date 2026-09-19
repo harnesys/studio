@@ -6,12 +6,6 @@ import { refreshThread, useDeskStore } from '@/features/desk';
 import { connectThreadRun } from '@/features/send-message';
 
 const TERMINAL_RUN_STATUSES = new Set(['completed', 'failed', 'cancelled']);
-
-/**
- * Cache-first thread readiness. Events already in the session store render
- * immediately. Fetches the full record when the store has nothing and desk
- * hydrate settled; reconnects a live server run from that record.
- */
 export function useSyncedThread(threadId: string, workspaceId: string): boolean {
   const hasEvents = useSessionStore((state) => threadId in state.events);
   const hydrated = useDeskStore((state) => state.hydrated[workspaceId] === 'ready');
@@ -20,11 +14,9 @@ export function useSyncedThread(threadId: string, workspaceId: string): boolean 
   );
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const [fetched, setFetched] = useState(false);
-
   useEffect(() => {
     setFetched(false);
   }, []);
-
   useEffect(() => {
     if (hasEvents) {
       if (liveRunId && !streaming) {
@@ -55,10 +47,8 @@ export function useSyncedThread(threadId: string, workspaceId: string): boolean 
       cancelled = true;
     };
   }, [threadId, hasEvents, hydrated, liveRunId, streaming]);
-
   return hasEvents || fetched;
 }
-
 function connectLiveRun(record: ThreadRecord | null): void {
   if (!record) {
     return;

@@ -1,20 +1,22 @@
 import { compactThread } from '@/features/compact-thread';
 import type { EntityKind } from './entity-kinds';
-
 export type SlashCommandContext = {
   threadId: string;
 };
-
 export type SlashCommandOutcome =
-  | { type: 'execute'; run(ctx: SlashCommandContext): Promise<string | undefined> }
-  | { type: 'picker'; kind: EntityKind };
-
+  | {
+      type: 'execute';
+      run(ctx: SlashCommandContext): Promise<string | undefined>;
+    }
+  | {
+      type: 'picker';
+      kind: EntityKind;
+    };
 export type SlashCommand = {
   name: string;
   description: string;
   outcome: SlashCommandOutcome;
 };
-
 export const SLASH_COMMANDS: SlashCommand[] = [
   {
     name: 'compact',

@@ -28,7 +28,6 @@ import {
   updateThreadBody,
 } from './thread.body.ts';
 import { streamSse } from './thread.stream-sse.ts';
-
 export type ThreadControllerDeps = {
   listThreads: ListThreadsInput;
   getThread: GetThreadInput;
@@ -48,19 +47,15 @@ export type ThreadControllerDeps = {
   listThreadPendingAttachments?: ListThreadPendingAttachmentsInput;
   getThreadPlan?: GetThreadPlanInput;
 };
-
 export class ThreadController {
   constructor(private readonly deps: ThreadControllerDeps) {}
-
   register(app: Hono): void {
     app.get('/api/threads', async (c) => {
       return c.json(await this.deps.listThreads.execute());
     });
-
     app.get('/api/workspaces/:id/threads', async (c) => {
       return c.json(await this.deps.listThreads.execute({ workspaceId: c.req.param('id') }));
     });
-
     app.post('/api/threads', async (c) => {
       const body = createThreadBody.parse(await c.req.json());
       const thread = await this.deps.createThread.execute({
@@ -74,11 +69,9 @@ export class ThreadController {
       });
       return c.json(thread, 201);
     });
-
     app.get('/api/threads/:id', async (c) => {
       return c.json(await this.deps.getThread.execute({ id: c.req.param('id') }));
     });
-
     app.get('/api/threads/:id/plan', async (c) => {
       if (!this.deps.getThreadPlan) {
         return c.json({ error: 'not available' }, 404);
@@ -86,7 +79,6 @@ export class ThreadController {
       const plan = await this.deps.getThreadPlan.execute({ threadId: c.req.param('id') });
       return c.json({ plan });
     });
-
     app.get('/api/threads/:id/attachments', async (c) => {
       const threadId = c.req.param('id');
       const pending = c.req.query('pending');
@@ -99,7 +91,6 @@ export class ThreadController {
       }
       return c.json({ items: [] });
     });
-
     app.post('/api/threads/:id/attachments', async (c) => {
       const uploaded = (await c.req.parseBody()).file;
       if (!(uploaded instanceof File)) {
@@ -113,7 +104,6 @@ export class ThreadController {
       });
       return c.json(saved, 201);
     });
-
     app.get('/api/threads/:id/attachments/:attachmentId', async (c) => {
       const stored = await this.deps.getThreadAttachment.execute({
         threadId: c.req.param('id'),
@@ -126,7 +116,6 @@ export class ThreadController {
         'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="${stored.meta.name}"`,
       });
     });
-
     app.post('/api/threads/:id/runs', async (c) => {
       const threadId = c.req.param('id');
       const body = sendThreadRunBody.parse(await c.req.json());
@@ -134,7 +123,6 @@ export class ThreadController {
         threadId,
         text: preview(body.text),
       });
-
       try {
         const response = await this.deps.sendThreadRun.execute({
           threadId,
@@ -153,7 +141,6 @@ export class ThreadController {
         throw error;
       }
     });
-
     app.post('/api/threads/:id/compact', (c) => {
       const threadId = c.req.param('id');
       trace('http', 'POST /compact', { threadId });
@@ -194,7 +181,6 @@ export class ThreadController {
         }
       });
     });
-
     app.get('/api/runs/:id/events', async (c) => {
       const runId = c.req.param('id');
       trace('http', 'GET /runs/:id/events', { runId });
@@ -203,7 +189,6 @@ export class ThreadController {
       const events = await this.deps.streamRunEvents.execute({ runId, fromSeq });
       return streamSse(c, runId, events, this.deps.lifecycle);
     });
-
     app.post('/api/runs/:id/cancel', async (c) => {
       const runId = c.req.param('id');
       trace('http', 'POST /runs/:id/cancel', { runId });
@@ -217,7 +202,6 @@ export class ThreadController {
         throw error;
       }
     });
-
     app.post('/api/runs/:id/retry', async (c) => {
       const runId = c.req.param('id');
       trace('http', 'POST /runs/:id/retry', { runId });
@@ -231,7 +215,6 @@ export class ThreadController {
         throw error;
       }
     });
-
     app.post('/api/runs/:id/respond', async (c) => {
       const runId = c.req.param('id');
       const body = respondRunBody.parse(await c.req.json());
@@ -250,7 +233,6 @@ export class ThreadController {
         throw error;
       }
     });
-
     app.post('/api/runs/:id/reject', async (c) => {
       const runId = c.req.param('id');
       const body = rejectRunBody.parse(await c.req.json());
@@ -269,7 +251,6 @@ export class ThreadController {
         throw error;
       }
     });
-
     app.delete('/api/runs/:id', async (c) => {
       const runId = c.req.param('id');
       trace('http', 'DELETE /runs/:id', { runId });
@@ -283,7 +264,6 @@ export class ThreadController {
         throw error;
       }
     });
-
     app.patch('/api/threads/:id', async (c) => {
       const body = updateThreadBody.parse(await c.req.json());
       const thread = await this.deps.updateThread.execute({
@@ -295,12 +275,10 @@ export class ThreadController {
       });
       return c.json(thread);
     });
-
     app.post('/api/threads/:id/read', async (c) => {
       const thread = await this.deps.markThreadRead.execute({ id: c.req.param('id') });
       return c.json(thread);
     });
-
     app.delete('/api/threads/:id', async (c) => {
       await this.deps.deleteThread.execute({ id: c.req.param('id') });
       return c.body(null, 204);

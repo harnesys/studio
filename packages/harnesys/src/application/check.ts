@@ -5,7 +5,6 @@ import type { AgentsResolve } from '../ports/create-runtime.ts';
 import type { ProviderConfig } from '../ports/models.ts';
 import type { CustomNodeImpl, ToolDefinition } from '../ports/tools.ts';
 import { compile } from './compile.ts';
-
 export type CheckOptions = {
   tools?: Map<string, ToolDefinition>;
   models?: ProviderConfig[];
@@ -13,14 +12,14 @@ export type CheckOptions = {
   nodes?: Record<string, CustomNodeImpl>;
   agents?: AgentsResolve;
 };
-
 export function check(
   def: AgentDefinition,
   opts: CheckOptions = {},
-): { diagnostics: Diagnostic[] } {
+): {
+  diagnostics: Diagnostic[];
+} {
   const { diagnostics } = compile(def);
   const out: Diagnostic[] = [...diagnostics];
-
   const add = (
     code: string,
     severity: DiagnosticSeverity,
@@ -29,7 +28,6 @@ export function check(
   ): void => {
     out.push({ code, severity, message, path });
   };
-
   if (opts.tools) {
     for (const [id, node] of Object.entries(def.graph.nodes)) {
       if (node.type === 'llm:generate' && node.tools) {
@@ -45,7 +43,11 @@ export function check(
         }
       }
       if (node.type === 'tool:call' && 'name' in node) {
-        const name = (node as { name?: string }).name;
+        const name = (
+          node as {
+            name?: string;
+          }
+        ).name;
         if (typeof name === 'string' && !opts.tools.has(name)) {
           add(
             'tools_unresolved',
@@ -57,19 +59,23 @@ export function check(
       }
     }
   }
-
   if (opts.models) {
     const providers = opts.models;
-    const resolveModelRef = (ref: string | { provider: string; model: string }): boolean => {
+    const resolveModelRef = (
+      ref:
+        | string
+        | {
+            provider: string;
+            model: string;
+          },
+    ): boolean => {
       if (typeof ref === 'string') {
         for (const p of providers) {
           if (p.models.some((m) => m.name === ref)) {
             try {
               bindingOf(p, ref);
               return true;
-            } catch {
-              // try next provider
-            }
+            } catch {}
           }
         }
         return false;
@@ -85,7 +91,6 @@ export function check(
         return false;
       }
     };
-
     for (const [id, node] of Object.entries(def.graph.nodes)) {
       if (node.type === 'llm:generate') {
         const m = node.model;
@@ -99,7 +104,14 @@ export function check(
             );
           }
         } else if (m && typeof m === 'object') {
-          if (!resolveModelRef(m as { provider: string; model: string })) {
+          if (
+            !resolveModelRef(
+              m as {
+                provider: string;
+                model: string;
+              },
+            )
+          ) {
             add('model_unresolved', 'error', 'model not resolved', `graph.nodes.${id}.model`);
           }
         } else if (m === undefined && def.model && !resolveModelRef(def.model)) {
@@ -108,7 +120,6 @@ export function check(
       }
     }
   }
-
   for (const [id, node] of Object.entries(def.graph.nodes)) {
     if (node.type.startsWith('custom:')) {
       if (!opts.nodes || !(node.type in opts.nodes)) {
@@ -144,7 +155,6 @@ export function check(
       }
     }
   }
-
   if (opts.agents) {
     for (const [id, node] of Object.entries(def.graph.nodes)) {
       if (node.type === 'control:handoff') {
@@ -162,7 +172,6 @@ export function check(
       }
     }
   }
-
   for (const [id, node] of Object.entries(def.graph.nodes)) {
     if (node.type === 'tool:call' && 'approve' in node && node.approve) {
       const tools = node.approve.tools;
@@ -180,6 +189,5 @@ export function check(
       }
     }
   }
-
   return { diagnostics: out };
 }

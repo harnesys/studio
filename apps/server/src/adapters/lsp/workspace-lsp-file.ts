@@ -2,29 +2,20 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { LspServerSpec, PluginDiagnostic } from 'harnesys';
-
-/** Workspace-local LSP SoT: `<workspace>/.harnesys/lsp.json` (spec §1). */
 export const WORKSPACE_LSP_PATH = '.harnesys/lsp.json';
-
 export type WorkspaceLspFile = {
   raw: unknown;
   servers: LspServerSpec[];
   diagnostics: PluginDiagnostic[];
 };
-
-/** Origin tag for the merged resolve (spec §1); the LSP controller reuses it. */
 export type WorkspaceLspOrigin = 'file' | `plugin:${string}`;
-
-export type WorkspaceLspServer = LspServerSpec & { origin: WorkspaceLspOrigin };
-
-export type WorkspacePluginLspServer = { spec: LspServerSpec; pluginName: string };
-
-/**
- * Read the workspace LSP file. Missing file = empty list, no error.
- * Invalid JSON surfaces as `server_config_invalid`. `disabled: true`
- * entries are excluded from resolve (spec §1); the raw file keeps them
- * so the controller can report the flag.
- */
+export type WorkspaceLspServer = LspServerSpec & {
+  origin: WorkspaceLspOrigin;
+};
+export type WorkspacePluginLspServer = {
+  spec: LspServerSpec;
+  pluginName: string;
+};
 export function readWorkspaceLspFile(root: string): WorkspaceLspFile {
   const path = join(root, WORKSPACE_LSP_PATH);
   if (!existsSync(path)) {
@@ -56,12 +47,6 @@ export function readWorkspaceLspFile(root: string): WorkspaceLspFile {
   const servers = parsed.servers.filter((spec) => !isDisabled(record, spec.serverId));
   return { raw, servers, diagnostics: parsed.diagnostics };
 }
-
-/**
- * Validate + write the workspace LSP file. Rejects when any entry is
- * invalid (missing command, non-object entry); `disabled` entries are
- * accepted, they are exclusion flags, not errors.
- */
 export async function writeWorkspaceLspFile(root: string, raw: unknown): Promise<void> {
   const record = isRecord(raw) ? (raw.servers ?? raw) : raw;
   const parsed = parseWorkspaceLspServers(record);
@@ -74,12 +59,6 @@ export async function writeWorkspaceLspFile(root: string, raw: unknown): Promise
   await mkdir(join(root, '.harnesys'), { recursive: true });
   await writeFile(join(root, WORKSPACE_LSP_PATH), `${JSON.stringify(raw, null, 2)}\n`, 'utf8');
 }
-
-/**
- * Merged resolve per cwd: file servers first, then plugin `lsp-server`
- * components. First wins per extension in the adapter dedupe (`lsp_shadowed`
- * for the losers). Single merge site shared by the host and the controller.
- */
 export function resolveWorkspaceLsp(
   root: string,
   pluginServers: WorkspacePluginLspServer[],
@@ -92,7 +71,6 @@ export function resolveWorkspaceLsp(
     ),
   ];
 }
-
 function parseWorkspaceLspServers(record: unknown): {
   servers: LspServerSpec[];
   diagnostics: PluginDiagnostic[];
@@ -179,15 +157,12 @@ function parseWorkspaceLspServers(record: unknown): {
   }
   return { servers, diagnostics };
 }
-
 function invalid(message: string): PluginDiagnostic {
   return { level: 'error', code: 'server_config_invalid', message, path: WORKSPACE_LSP_PATH };
 }
-
 function optionalMs(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
-
 function isDisabled(record: unknown, serverId: string): boolean {
   if (!isRecord(record)) {
     return false;
@@ -195,7 +170,6 @@ function isDisabled(record: unknown, serverId: string): boolean {
   const entry = record[serverId];
   return isRecord(entry) && entry.disabled === true;
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

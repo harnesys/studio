@@ -22,7 +22,6 @@ type AgentCardProps = {
   onDelete: () => void;
   onNewThread?: () => void;
 };
-
 export function AgentCard({
   agent,
   selected,
@@ -35,7 +34,6 @@ export function AgentCard({
   const iconMode = state === 'collapsed' && !isMobile;
   const status = useAgentLiveStatus(agent.id);
   const hasUnread = useAgentHasUnread(agent.id);
-
   return (
     <div
       className={cn(
@@ -141,7 +139,6 @@ export function AgentCard({
     </div>
   );
 }
-
 function statusInk(status: AgentStatus): string {
   switch (status) {
     case 'running':

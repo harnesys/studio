@@ -2,14 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 import ignore, { type Ignore } from 'ignore';
 import { SAFETY_NAMES } from '../../config/constants.ts';
-
 export type SkipReason = 'gitignore' | 'harnesysignore' | 'binary_or_ext' | 'too_large' | 'safety';
-
 export type GitIgnoreLayer = {
   relDir: string;
   ig: Ignore;
 };
-
 export function entrySkipReason(input: {
   name: string;
   uri: string;
@@ -28,7 +25,6 @@ export function entrySkipReason(input: {
   }
   return undefined;
 }
-
 export async function initialGitLayers(
   absWorkspace: string,
   absRoot: string,
@@ -53,7 +49,6 @@ export async function initialGitLayers(
   }
   return layers;
 }
-
 export async function loadIgnoreFile(absPath: string): Promise<Ignore | undefined> {
   const text = await readFile(absPath, 'utf8').catch(() => undefined);
   if (text === undefined) {
@@ -61,16 +56,12 @@ export async function loadIgnoreFile(absPath: string): Promise<Ignore | undefine
   }
   return ignore().add(text);
 }
-
 export function toPosix(path: string): string {
   return path.split(sep).join('/');
 }
-
 export function normalizeUri(uri: string): string {
   return uri === '.' ? '' : uri;
 }
-
-/** True when uri is exactly a root or nested under one (posix, no leading ./). */
 export function uriUnderEnabledRoots(uri: string, roots: readonly string[]): boolean {
   const normalized = normalizeUri(toPosix(uri).replace(/^\.\//, ''));
   if (normalized === '') {
@@ -87,7 +78,6 @@ export function uriUnderEnabledRoots(uri: string, roots: readonly string[]): boo
   }
   return false;
 }
-
 function ignoredByLayers(layers: GitIgnoreLayer[], uri: string, isDir: boolean): boolean {
   for (const layer of layers) {
     const pathname = pathForLayer(layer.relDir, uri, isDir);
@@ -97,14 +87,12 @@ function ignoredByLayers(layers: GitIgnoreLayer[], uri: string, isDir: boolean):
   }
   return false;
 }
-
 function ignoredByRoot(ig: Ignore | undefined, uri: string, isDir: boolean): boolean {
   if (!ig || uri === '') {
     return false;
   }
   return ig.ignores(isDir ? `${uri}/` : uri);
 }
-
 function pathForLayer(relDir: string, uri: string, isDir: boolean): string | undefined {
   let rel: string;
   if (relDir === '') {

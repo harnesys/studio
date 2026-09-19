@@ -1,20 +1,16 @@
 import type { MemoryScopeId, PinPort } from '../../ports/memory.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
-
 export type CreatePinToolsParams = {
   port: PinPort;
   resolveScope: () => MemoryScopeId;
 };
-
 type PinSetInput = {
   key: string;
   text: string;
 };
-
 type PinRemoveInput = {
   key: string;
 };
-
 export function createPinTools(params: CreatePinToolsParams): ToolDefinition[] {
   const { port, resolveScope } = params;
   return [

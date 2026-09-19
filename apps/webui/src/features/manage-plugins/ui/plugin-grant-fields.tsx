@@ -6,7 +6,6 @@ import {
   grantCheckboxState,
   toggleGrantClass,
 } from '../model/plugin-grants';
-
 export function PluginGrantCheckboxes({
   selection,
   disabled,
@@ -30,7 +29,6 @@ export function PluginGrantCheckboxes({
     </div>
   );
 }
-
 function GrantRow({
   grantClass,
   selection,

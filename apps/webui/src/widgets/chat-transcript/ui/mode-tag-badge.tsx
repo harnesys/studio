@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { type LucideIcon, ZapIcon } from 'lucide-react';
-
 import { workspaceSkillsQuery } from '@/shared/api';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { Badge } from '@/shared/ui/badge';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/shared/ui/hover-card';
-
 import type { DirectiveBadge } from '../model/directive-tag';
-
 export function ModeTagBadges({
   badges,
   sidecarSkills,
@@ -48,7 +45,6 @@ export function ModeTagBadges({
     </span>
   );
 }
-
 function SkillBadge({ name, description }: { name: string; description?: string }) {
   if (!description) {
     return <SkillChip name={name} />;
@@ -63,7 +59,6 @@ function SkillBadge({ name, description }: { name: string; description?: string 
     />
   );
 }
-
 function SkillChip({ name }: { name: string }) {
   return (
     <Badge
@@ -76,7 +71,6 @@ function SkillChip({ name }: { name: string }) {
     </Badge>
   );
 }
-
 function BadgeTooltip({
   icon: Icon,
   label,

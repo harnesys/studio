@@ -3,9 +3,9 @@ import { definePack } from '../../domain/pack.ts';
 import type { PinPort } from '../../ports/memory.ts';
 import { createPinTools } from './create-pin-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
-
-export type PinMemoryPorts = { pin: PinPort };
-
+export type PinMemoryPorts = {
+  pin: PinPort;
+};
 export const pinMemoryCapability = definePack<PinMemoryPorts, Record<string, unknown>>({
   name: 'pin-memory',
   version: '1.0.0',

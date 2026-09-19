@@ -4,42 +4,30 @@ import type { UserConfigContentOptions } from '../plugins/user-config.ts';
 import type { HookRuntimeCtx } from './bus.ts';
 import { mapClaudeJsonFields, parseClaudeJsonObject, truncateHookString } from './claude-output.ts';
 import { defaultTimeoutS, runCommand, toStdinPayload } from './command-run.ts';
-
-/** Источник группового убийства процесса хука (спека §2.2 п.2). */
 export type HookKillSource = 'timeout' | 'abort' | 'close';
-
-/** Запись в реестре процессов шины: адресуемая единица убийства — ветка целиком. */
 export type HookProcessEntry = {
   pid: number;
   kill(source: HookKillSource): void;
   done: Promise<unknown>;
 };
-
-/** Реестр шины: async и in-flight процессы регистрируются при старте, `close()` берёт их отсюда. */
 export type HookProcessRegistry = {
   add(entry: HookProcessEntry): void;
   remove(entry: HookProcessEntry): void;
 };
-
 export type HookHandlerVars = {
   pluginRoot: string;
   pluginData: string;
   projectDir: string;
   registry?: HookProcessRegistry;
   signal?: AbortSignal;
-  /** Exec-подстановка `${user_config.*}` в command-хендлеры; составляют хост-биндеры. */
   userConfig?: UserConfigContentOptions;
 };
-
 export type HookHandlerResult = {
   effects: HookEffect[];
   diagnostics: PluginDiagnostic[];
-  /** Вывод `sessionTitle`: шина отдаёт его в `ctx.renameSession`. */
   sessionTitle?: string;
 };
-
 const MCP_PLACEHOLDER = /^\$\{([A-Za-z0-9_.]+)\}$/;
-
 export function runHookHandler(
   h: HookHandler,
   payload: HookPayload,
@@ -56,17 +44,18 @@ export function runHookHandler(
     case 'prompt':
       return runPrompt(h, payload, ctx, vars);
     case 'agent':
-      // инертный слот до hook-verifier рантайма
       return Promise.resolve({ effects: [], diagnostics: [] });
     case 'inline':
       return runInline(h, payload);
   }
 }
-
-// --- http ---
-
 async function runHttp(
-  h: Extract<HookHandler, { type: 'http' }>,
+  h: Extract<
+    HookHandler,
+    {
+      type: 'http';
+    }
+  >,
   payload: HookPayload,
   vars: HookHandlerVars,
 ): Promise<HookHandlerResult> {
@@ -118,11 +107,13 @@ async function runHttp(
     vars.signal?.removeEventListener('abort', onAbort);
   }
 }
-
-// --- mcp_tool ---
-
 async function runMcpTool(
-  h: Extract<HookHandler, { type: 'mcp_tool' }>,
+  h: Extract<
+    HookHandler,
+    {
+      type: 'mcp_tool';
+    }
+  >,
   payload: HookPayload,
   ctx: HookRuntimeCtx,
   vars: HookHandlerVars,
@@ -156,8 +147,6 @@ async function runMcpTool(
   }
   return mapClaudeJsonFields(parsed);
 }
-
-/** Значения `input` поддерживают подстановку `${dotted.path}` из payload (спека §2.2). */
 function substituteMcpInput(
   input: Record<string, string> | undefined,
   payload: HookPayload,
@@ -180,7 +169,6 @@ function substituteMcpInput(
   }
   return out;
 }
-
 function lookupPayloadPath(payload: HookPayload, dotted: string): unknown {
   let current: unknown = payload;
   for (const segment of dotted.split('.')) {
@@ -191,11 +179,13 @@ function lookupPayloadPath(payload: HookPayload, dotted: string): unknown {
   }
   return current;
 }
-
-// --- prompt ---
-
 async function runPrompt(
-  h: Extract<HookHandler, { type: 'prompt' }>,
+  h: Extract<
+    HookHandler,
+    {
+      type: 'prompt';
+    }
+  >,
   payload: HookPayload,
   ctx: HookRuntimeCtx,
   vars: HookHandlerVars,
@@ -244,8 +234,6 @@ async function runPrompt(
     diagnostics: [warning('hook_invalid_output', 'ответ prompt-хука без поля ok')],
   };
 }
-
-/** `$ARGUMENTS` подставляет JSON payload; без него payload дописывается в конец промпта (спека §2.2). */
 function promptWithPayload(prompt: string, payload: HookPayload): string {
   const args = JSON.stringify(payload);
   if (prompt.includes('$ARGUMENTS')) {
@@ -253,11 +241,13 @@ function promptWithPayload(prompt: string, payload: HookPayload): string {
   }
   return `${prompt}\n\n${args}`;
 }
-
-// --- inline ---
-
 async function runInline(
-  h: Extract<HookHandler, { type: 'inline' }>,
+  h: Extract<
+    HookHandler,
+    {
+      type: 'inline';
+    }
+  >,
   payload: HookPayload,
 ): Promise<HookHandlerResult> {
   try {
@@ -270,15 +260,24 @@ async function runInline(
     };
   }
 }
-
-// --- общие части ---
-
 async function raceTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
-): Promise<{ timedOut: true; value?: undefined } | { timedOut: false; value: T }> {
+): Promise<
+  | {
+      timedOut: true;
+      value?: undefined;
+    }
+  | {
+      timedOut: false;
+      value: T;
+    }
+> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<{ timedOut: true; value?: undefined }>((resolve) => {
+  const timeout = new Promise<{
+    timedOut: true;
+    value?: undefined;
+  }>((resolve) => {
     timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
   });
   try {
@@ -290,7 +289,6 @@ async function raceTimeout<T>(
     clearTimeout(timer);
   }
 }
-
 function resolveJsonObject(value: unknown): Record<string, unknown> | undefined {
   if (typeof value === 'string') {
     return parseClaudeJsonObject(value);
@@ -300,11 +298,9 @@ function resolveJsonObject(value: unknown): Record<string, unknown> | undefined 
   }
   return undefined;
 }
-
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.length > 0 ? error.message : String(error);
 }
-
 function warning(code: PluginDiagnosticCode, message: string): PluginDiagnostic {
   return { level: 'warning', code, message };
 }

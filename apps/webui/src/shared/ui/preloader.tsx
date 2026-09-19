@@ -1,11 +1,9 @@
 import type * as React from 'react';
 import { cn } from '@/shared/lib/utils';
-
 export type PreloaderProps = React.ComponentProps<'div'> & {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'pulse' | 'bar' | 'dots';
 };
-
 export function Preloader({ className, size = 'md', variant = 'dots', ...props }: PreloaderProps) {
   if (variant === 'bar') {
     return (
@@ -19,7 +17,6 @@ export function Preloader({ className, size = 'md', variant = 'dots', ...props }
       </div>
     );
   }
-
   if (variant === 'pulse') {
     const sizeClasses = {
       sm: 'size-2',
@@ -43,13 +40,11 @@ export function Preloader({ className, size = 'md', variant = 'dots', ...props }
       </div>
     );
   }
-
   const dotSizes = {
     sm: 'size-1',
     md: 'size-1.5',
     lg: 'size-2',
   };
-
   return (
     <div
       role="status"

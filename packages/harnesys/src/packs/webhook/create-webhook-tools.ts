@@ -1,20 +1,22 @@
 import type { CapabilityScope } from '../../domain/pack.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
 import type { WebhookPort, WebhookStatus } from '../../ports/webhook.ts';
-
 export type CreateWebhookToolsParams = {
   webhook: WebhookPort;
   resolveScope: () => CapabilityScope;
 };
-
-async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+async function runGuard<T>(fn: () => Promise<T>): Promise<
+  | T
+  | {
+      error: string;
+    }
+> {
   try {
     return await fn();
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
-
 type WebhookSetInput = {
   id?: string;
   name?: string;
@@ -22,11 +24,9 @@ type WebhookSetInput = {
   targetAgentId?: string;
   status?: WebhookStatus;
 };
-
 type WebhookDeleteInput = {
   id: string;
 };
-
 export function createWebhookTools(deps: CreateWebhookToolsParams): ToolDefinition[] {
   return [
     tool('webhook_list', {

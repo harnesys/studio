@@ -1,6 +1,5 @@
 import type { PermissionGate, PermissionMap } from '../ports/permissions.ts';
 import { DEFAULT_PERMISSIONS } from '../ports/permissions.ts';
-
 export function resolvePermissions(
   toolOperations: string[],
   callMap?: PermissionMap,
@@ -15,14 +14,15 @@ export function resolvePermissions(
   }
   return base;
 }
-
 export function checkPermission(
   permissions: PermissionMap,
   operations: string[],
-): { allowed: boolean; gate: PermissionGate; operation?: string } {
+): {
+  allowed: boolean;
+  gate: PermissionGate;
+  operation?: string;
+} {
   for (const op of operations) {
-    // Partial run maps (preset 4-op maps, pane drafts) may lack the op:
-    // fall back to the default gate, then 'ask' for unknown ops.
     const gate = permissions[op] ?? DEFAULT_PERMISSIONS[op] ?? 'ask';
     if (gate === 'deny') {
       return { allowed: false, gate: 'deny', operation: op };
@@ -33,10 +33,7 @@ export function checkPermission(
   }
   return { allowed: true, gate: 'allow' };
 }
-
 const GATE_SEVERITY: Record<PermissionGate, number> = { allow: 0, ask: 1, deny: 2 };
-
-/** More stringent gate wins; unknown ops fall back to DEFAULT_PERMISSIONS then 'ask'. */
 export function intersectPermissions(a: PermissionMap, b: PermissionMap): PermissionMap {
   const ops = new Set([...Object.keys(a), ...Object.keys(b)]);
   const out: PermissionMap = {};

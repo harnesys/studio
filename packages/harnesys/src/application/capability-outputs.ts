@@ -1,19 +1,13 @@
-/** Проекция включённых источников в поля CapabilitySet (skills, notes, subagents, mcpServers)
- *  и их explain-строки. Потребитель собранного набора: грант-решения принимает `capability-set.ts`,
- *  здесь только перечисление и разметка провенанса. */
-
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import type { AgentRosterEntry } from '../ports/create-runtime.ts';
 import type { CapabilitySource, ExplainLog } from './capability-explain.ts';
 import { PACK_PREFIX } from './capability-explain.ts';
 import type { LlmNoteProvider } from './llm-notes.ts';
 import type { PackRunOutput } from './packs/pack-run.ts';
-
 export type CollectedOutputs = {
   skills: string[];
   notes: LlmNoteProvider[];
 };
-
 export function collectPackOutputs(
   ex: ExplainLog,
   def: AgentDefinition,
@@ -45,14 +39,11 @@ export function collectPackOutputs(
   }
   return { skills, notes };
 }
-
 export function explainMcpGrants(ex: ExplainLog, mcpServers: string[]): void {
   for (const server of mcpServers) {
     ex.granted(server, 'mcp', `mcp:${server}`, 'agent mcpServers');
   }
 }
-
-/** Делегаты чужого parent в roster не кладёт хост; резолвер не перепроверяет `parentId`. */
 export function collectSubagents(
   ex: ExplainLog,
   def: AgentDefinition,

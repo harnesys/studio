@@ -1,6 +1,5 @@
 import type { ScheduleRecord } from '@harnesys/studio-shared';
 import type { Schedule } from '../../domain/schedule.port.ts';
-
 export function toScheduleRecord(schedule: Schedule): ScheduleRecord {
   return {
     id: schedule.id,

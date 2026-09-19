@@ -1,8 +1,6 @@
 import type { ComponentOrigin } from '@harnesys/studio-shared';
 
 const SERVER_APPROVAL_REASON = 'needs_server_approval';
-
-/** Accent badge для незагруженного плагинного компонента; native/workspace → undefined. */
 export function pluginStatusBadge(origin: ComponentOrigin): string | undefined {
   if (origin.kind !== 'plugin') {
     return undefined;
@@ -18,8 +16,6 @@ export function pluginStatusBadge(origin: ComponentOrigin): string | undefined {
       return 'invalid';
   }
 }
-
-/** Строка статуса в description; native/workspace → ''. */
 export function pluginStatusText(origin: ComponentOrigin): string {
   if (origin.kind !== 'plugin' || origin.status === 'native') {
     return '';

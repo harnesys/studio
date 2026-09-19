@@ -28,8 +28,6 @@ const REASONING_LEVELS = new Set([
   'xhigh',
   'provider-default',
 ]);
-
-/** Drivers built on `createOpenAICompatible` below. */
 const OPENAI_COMPATIBLE_DRIVERS = new Set([
   'openai-compatible',
   'xiaomi',
@@ -42,12 +40,10 @@ const OPENAI_COMPATIBLE_DRIVERS = new Set([
   'ollama',
   'ollama-cloud',
 ]);
-
 export type EffortStreamOptions = {
   reasoning?: string;
   providerOptions?: Record<string, unknown>;
 };
-
 function reasoningOf(effort: string | undefined): string | undefined {
   if (!effort) {
     return undefined;
@@ -57,13 +53,6 @@ function reasoningOf(effort: string | undefined): string | undefined {
   }
   return REASONING_LEVELS.has(effort) ? effort : undefined;
 }
-
-/**
- * Maps a stored effort to wire options. `max` is not part of top-level
- * `reasoning`, so it rides as `xhigh` plus a native `reasoning_effort`
- * passthrough for OpenAI-compatible endpoints (OpenRouter lists that exact
- * parameter). Unknown endpoints ignore the passthrough.
- */
 export function effortStreamOptions(
   binding: ModelBinding,
   effort: string | undefined,
@@ -78,7 +67,6 @@ export function effortStreamOptions(
   }
   return out;
 }
-
 export function buildProvider(binding: ModelBinding): (modelId: string) => unknown {
   const opts = {
     apiKey: binding.apiKey,
@@ -192,7 +180,6 @@ export function buildProvider(binding: ModelBinding): (modelId: string) => unkno
       });
   }
 }
-
 function ollamaChatBase(apiUrl: string | undefined, fallback: string): string {
   const base = (apiUrl ?? fallback).replace(/\/+$/, '');
   return base.endsWith('/v1') ? base : `${base}/v1`;

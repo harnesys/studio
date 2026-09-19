@@ -7,7 +7,6 @@ import type { WebhookPatch, WebhookRepository, WebhookStatus } from '../../domai
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { requireBindableWebhookThread } from './bind-webhook-thread.ts';
 import { toWebhookRecord, type WebhookRecord } from './webhook-record.ts';
-
 export type UpdateWebhookRequest = {
   workspaceId: string;
   id: string;
@@ -17,11 +16,9 @@ export type UpdateWebhookRequest = {
   detail?: string;
   threadId?: string;
 };
-
 export type UpdateWebhookInput = {
   execute(request: UpdateWebhookRequest): Promise<WebhookRecord>;
 };
-
 export type UpdateWebhookDeps = {
   webhooks: WebhookRepository;
   agents: AgentRepository;
@@ -30,7 +27,6 @@ export type UpdateWebhookDeps = {
   deskEvents: DeskEventsPort;
   publicOrigin?: string;
 };
-
 export class UpdateWebhookUseCase implements UpdateWebhookInput {
   private readonly webhooks: WebhookRepository;
   private readonly agents: AgentRepository;
@@ -38,7 +34,6 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
   private readonly threads: ThreadRepository;
   private readonly deskEvents: DeskEventsPort;
   private readonly publicOrigin?: string;
-
   constructor(deps: UpdateWebhookDeps) {
     this.webhooks = deps.webhooks;
     this.agents = deps.agents;
@@ -47,22 +42,18 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
     this.deskEvents = deps.deskEvents;
     this.publicOrigin = deps.publicOrigin;
   }
-
   async execute(request: UpdateWebhookRequest): Promise<WebhookRecord> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {
       throw new NotFoundError('workspace not found');
     }
-
     const current = this.webhooks.findById(request.id);
     if (!current || current.workspaceId !== request.workspaceId) {
       throw new NotFoundError('webhook not found');
     }
-
     const patch: WebhookPatch = {
       updatedAt: new Date().toISOString(),
     };
-
     if (request.name !== undefined) {
       const name = request.name.trim();
       if (!name) {
@@ -70,14 +61,12 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
       }
       patch.name = name;
     }
-
     if (request.status !== undefined) {
       if (!WEBHOOK_STATUSES.includes(request.status)) {
         throw new ValidationError('invalid webhook status');
       }
       patch.status = request.status;
     }
-
     if (request.targetAgentId !== undefined) {
       const agent = this.agents.findById(request.targetAgentId);
       if (!agent || agent.workspaceId !== request.workspaceId) {
@@ -85,7 +74,6 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
       }
       patch.targetAgentId = agent.id;
     }
-
     if (request.threadId !== undefined && request.threadId !== current.threadId) {
       requireBindableWebhookThread({
         threads: this.threads,
@@ -97,11 +85,9 @@ export class UpdateWebhookUseCase implements UpdateWebhookInput {
       });
       patch.threadId = request.threadId;
     }
-
     if (request.detail !== undefined) {
       patch.detail = request.detail.trim();
     }
-
     const updated = this.webhooks.update(request.id, patch);
     const record = toWebhookRecord(updated, this.publicOrigin);
     this.deskEvents.emit(request.workspaceId, {

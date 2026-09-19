@@ -8,11 +8,15 @@ type FoldResult = {
   data?: Uint8Array;
   mediaType?: string;
 };
-
-export type AttachmentReadFn = (
-  uri: string,
-) => Promise<{ bytes: Uint8Array; mediaType?: string }> | { bytes: Uint8Array; mediaType?: string };
-
+export type AttachmentReadFn = (uri: string) =>
+  | Promise<{
+      bytes: Uint8Array;
+      mediaType?: string;
+    }>
+  | {
+      bytes: Uint8Array;
+      mediaType?: string;
+    };
 function classify(mediaType?: string): 'image' | 'audio' | 'video' | 'file' {
   if (!mediaType) {
     return 'file';
@@ -28,7 +32,6 @@ function classify(mediaType?: string): 'image' | 'audio' | 'video' | 'file' {
   }
   return 'file';
 }
-
 export async function foldAttachments(
   files: SendFile[],
   readFn: AttachmentReadFn,
@@ -37,7 +40,6 @@ export async function foldAttachments(
   for (const file of files) {
     const mediaType = file.mediaType;
     const kind = classify(mediaType);
-
     if (kind === 'file') {
       let name: string;
       if ('name' in file && file.name) {
@@ -50,7 +52,6 @@ export async function foldAttachments(
       results.push({ type: 'text', text: `[file: ${name}]` });
       continue;
     }
-
     if ('bytes' in file) {
       results.push({ type: kind, data: file.bytes, mediaType });
     } else if ('path' in file) {
@@ -60,8 +61,6 @@ export async function foldAttachments(
   }
   return results;
 }
-
-/** Turn `attachments` on user messages into AI SDK content parts; drop the field. */
 export async function materializeMessageAttachments(
   messages: unknown[],
   readFn: AttachmentReadFn,

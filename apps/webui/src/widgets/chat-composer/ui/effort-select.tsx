@@ -8,9 +8,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-
 import { effortLabel } from '../model/agent-effort';
-
 export function EffortSelect({
   levels,
   value,

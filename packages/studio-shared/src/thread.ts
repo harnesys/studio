@@ -1,16 +1,13 @@
 import type { Event, RunLifecycleStatus, SessionEvent, SessionEventType, Snapshot } from 'harnesys';
 
 export type { Event, SessionEvent, SessionEventType, Snapshot };
-
 export const THREAD_KINDS = ['chat', 'schedule', 'webhook'] as const;
 export type ThreadKind = (typeof THREAD_KINDS)[number];
-
 export type ThreadActiveRun = {
   runId: string;
   status: RunLifecycleStatus;
   leaseExpired?: boolean;
 };
-
 export type ThreadRecord = {
   id: string;
   title: string;
@@ -21,24 +18,20 @@ export type ThreadRecord = {
   kind: ThreadKind;
   parentThreadId: string | null;
   forkAt: string | null;
-  /** Branch only: parent events inherited into this record's events. 0 for non-branches. */
   inheritedEventCount: number;
   createdAt: string;
   updatedAt: string;
   lastReadAt: string;
   unread: boolean;
   pinned: boolean;
-  /** Last POST /runs mode persisted on the thread. */
   runMode?: string;
   events: SessionEvent[];
   activeRun: ThreadActiveRun | null;
 };
-
 export type ThreadAgentRef = {
   agentId: string;
   originAgentId: string;
 };
-
 export type ThreadSummary = Pick<
   ThreadRecord,
   | 'id'
@@ -59,21 +52,16 @@ export type ThreadSummary = Pick<
   | 'runMode'
   | 'activeRun'
 >;
-
-/** Threads where the agent is origin or current speaker. */
 export function threadsForAgent<T extends ThreadAgentRef>(
   threads: readonly T[],
   agentId: string,
 ): T[] {
   return threads.filter((thread) => thread.originAgentId === agentId || thread.agentId === agentId);
 }
-
-/** Accepted send: queued run id from the journal. */
 export type AcceptedRunResponse = {
   runId: string;
   status: 'queued';
 };
-
 export type CompactThreadResponse =
   | {
       compacted: true;
@@ -83,4 +71,6 @@ export type CompactThreadResponse =
       tokensBefore: number;
       tokensAfter: number;
     }
-  | { compacted: false };
+  | {
+      compacted: false;
+    };

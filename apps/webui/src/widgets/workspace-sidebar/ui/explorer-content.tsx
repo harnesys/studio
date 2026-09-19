@@ -30,7 +30,6 @@ import { useFileSelectionStore } from '../model/file-selection.store';
 import { childrenOf, indexFileTree } from '../model/file-tree-index';
 import { useFilesHotkey } from '../model/use-files-hotkey';
 import { FileRow, InlineCreateInput } from './file-row';
-
 export function ExplorerContent({
   workspaceId,
   depthOffset = 0,
@@ -57,17 +56,14 @@ export function ExplorerContent({
   const togglePath = useFileSelectionStore((s) => s.togglePath);
   const selectRange = useFileSelectionStore((s) => s.selectRange);
   const activeSelectedPaths = selectionWorkspaceId === workspaceId ? selectedPaths : [];
-
   const showHidden = useExplorerHiddenStore((store) => store.showHidden);
   const treeKey = workspaceFilesTreeQueryKey(workspaceId, showHidden);
   const lazyState = useRef(createLazyChildrenState());
-
   const treeQuery = useQuery({
     queryKey: treeKey,
     queryFn: () => listWorkspaceFilesTree(workspaceId, { includeHidden: showHidden }),
-    staleTime: 60_000,
+    staleTime: 60000,
   });
-
   const gitFileStatusQuery = useQuery({
     queryKey: gitFileStatusQueryKey(workspaceId),
     queryFn: () => getGitFileStatus(workspaceId),
@@ -76,30 +72,24 @@ export function ExplorerContent({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-
   const gitMap = gitFileStatusQuery.data?.map ?? {};
   const gitTruncated = Boolean(gitFileStatusQuery.data?.truncated);
-
   const invalidateTree = () => {
     void qc.invalidateQueries({ queryKey: workspaceFilesTreeQueryKey(workspaceId) });
     void qc.invalidateQueries({ queryKey: gitFileStatusQueryKey(workspaceId) });
     void qc.invalidateQueries({ queryKey: ['workspaces', workspaceId, 'git', 'status'] });
   };
-
   const createMutation = useMutation({
     mutationFn: (input: { path: string; kind: 'file' | 'dir' }) =>
       createWorkspaceFile(workspaceId, input),
     onSuccess: invalidateTree,
   });
-
   const deleteMutation = useMutation({
     mutationFn: (path: string) => deleteWorkspaceFile(workspaceId, path),
     onSuccess: invalidateTree,
   });
-
   const treeIndex = useMemo(() => indexFileTree(treeQuery.data ?? []), [treeQuery.data]);
   const entries = childrenOf(treeIndex, '', showHidden);
-
   const computeVisible = useCallback((): string[] => {
     const out: string[] = [];
     const walk = (parent: string) => {
@@ -113,7 +103,6 @@ export function ExplorerContent({
     walk('');
     return out;
   }, [treeIndex, expandedDirs, showHidden]);
-
   const visibleForStore = computeVisible();
   const setVisiblePaths = useFileSelectionStore((s) => s.setVisiblePaths);
   useEffect(() => {
@@ -121,13 +110,11 @@ export function ExplorerContent({
       setVisiblePaths(visibleForStore);
     }
   }, [visibleForStore, setVisiblePaths, selectionWorkspaceId, workspaceId]);
-
   const activateWorkspace = useCallback(() => {
     if (useFileSelectionStore.getState().workspaceId !== workspaceId) {
       setWorkspace(workspaceId);
     }
   }, [setWorkspace, workspaceId]);
-
   const handleSelect = useCallback(
     (path: string, event?: React.MouseEvent) => {
       activateWorkspace();
@@ -150,7 +137,6 @@ export function ExplorerContent({
     },
     [activateWorkspace, selectSingle, togglePath, selectRange, setFilesActive],
   );
-
   const toggleDir = (dirPath: string) => {
     const expanding = !expandedDirs.has(dirPath);
     setExpandedDirs((prev) => {
@@ -172,7 +158,6 @@ export function ExplorerContent({
       });
     }
   };
-
   const finishCreate = (name: string) => {
     if (!createDraft || !name.trim()) {
       cancelCreate();
@@ -191,12 +176,10 @@ export function ExplorerContent({
     }
     cancelCreate();
   };
-
   const handleDelete = (path: string) => {
     deleteMutation.mutate(path);
     useIdeStore.getState().closeByEntity(workspaceId, 'file', path);
   };
-
   const move = (items: WorkspaceMoveItem[], expandTarget?: string) => {
     if (items.length === 0) {
       return;
@@ -209,11 +192,9 @@ export function ExplorerContent({
       },
     });
   };
-
   const handleMoveInto = (targetDir: string, paths: string[]) => {
     move(buildMoveItems(paths, targetDir), targetDir);
   };
-
   const handleRenameFinish = (path: string, name: string) => {
     setRenamePath(null);
     const trimmed = name.trim();
@@ -226,7 +207,6 @@ export function ExplorerContent({
     }
     move([buildRenameItem(path, trimmed)]);
   };
-
   const handleRootDrop = (event: React.DragEvent) => {
     const drag = moveDrag();
     if (!drag || drag.workspaceId !== workspaceId) {
@@ -243,7 +223,6 @@ export function ExplorerContent({
     setMoveDrag(null);
     move(items);
   };
-
   const handleRootDragOver = (event: React.DragEvent) => {
     const drag = moveDrag();
     if (!drag || drag.workspaceId !== workspaceId) {
@@ -258,18 +237,14 @@ export function ExplorerContent({
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   };
-
   const handleOpen = (path: string) => {
     activateWorkspace();
     openWorkspaceFile(workspaceId, path);
     useIdeStore.getState().openFile(workspaceId, path);
     openFile(workspaceId, path);
   };
-
   useFilesHotkey(selectionWorkspaceId === workspaceId ? workspaceId : '');
-
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: explorer root is a drop target for moves to the workspace root
     <div
       className="flex min-h-full flex-col gap-0.5 group-data-[collapsible=icon]:items-center"
       onDragOver={handleRootDragOver}

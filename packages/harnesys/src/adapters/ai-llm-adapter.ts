@@ -8,12 +8,10 @@ import { toModelMessages } from './ai-llm-messages.ts';
 import { buildProvider, effortStreamOptions } from './ai-llm-provider.ts';
 
 export type { CallModelResult, StreamChunk } from './ai-llm-chunks.ts';
-
 export type CallModelSettings = {
   effort?: string;
   generation?: AgentGenerationSettings;
 };
-
 function applyGeneration(
   streamConfig: Record<string, unknown>,
   generation: AgentGenerationSettings | undefined,
@@ -43,9 +41,6 @@ function applyGeneration(
     streamConfig.maxOutputTokens = generation.maxTokens;
   }
 }
-
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: adapter orchestration
-// biome-ignore lint/complexity/useMaxParams: flexible overload needs 6 params for test vs prod
 export async function* callModel(
   binding: ModelBinding,
   prompt: string,
@@ -59,13 +54,11 @@ export async function* callModel(
   let names: string[] = [];
   let registry: Map<string, ToolDefinition> | undefined;
   let signal: AbortSignal | undefined;
-
   if (Array.isArray(toolNames)) {
     names = toolNames;
   } else if (toolNames instanceof Map) {
     registry = toolNames as Map<string, ToolDefinition>;
   }
-
   if (signalOrRegistry instanceof Map) {
     registry = signalOrRegistry as Map<string, ToolDefinition>;
     signal = maybeSignal;
@@ -75,7 +68,6 @@ export async function* callModel(
       registry = maybeSignal as Map<string, ToolDefinition>;
     }
   }
-
   const driver = binding.driver as string;
   if (driver === 'test' || binding.name === 'test') {
     if (names.length > 0) {
@@ -94,20 +86,14 @@ export async function* callModel(
     yield { type: 'completed', finishReason: 'stop', text: 'hello' };
     return;
   }
-
   const provider = buildProvider(binding);
   const model = provider(binding.model.name) as never;
   const aiTools = toAiTools(names, registry);
-
-  // Stable instructions stay in `system`/`instructions`. AI SDK v7 rejects
-  // role:system inside messages unless allowSystemInMessages. Volatile runtime
-  // notes arrive from llm.ts as a trailing user message after history (prefix cache).
   const ms = toModelMessages(messages).filter((message) => {
     const role = (message as Record<string, unknown>).role;
     return role !== 'system';
   }) as never[];
   const instructions = prompt.trim() ? prompt : undefined;
-
   const streamConfig: Record<string, unknown> = {
     model,
     instructions,
@@ -116,7 +102,6 @@ export async function* callModel(
     tools: aiTools as never,
     abortSignal: signal,
   };
-
   const effortOptions = effortStreamOptions(binding, settings?.effort);
   if (effortOptions.reasoning !== undefined) {
     streamConfig.reasoning = effortOptions.reasoning;
@@ -125,28 +110,31 @@ export async function* callModel(
     streamConfig.providerOptions = effortOptions.providerOptions;
   }
   applyGeneration(streamConfig, settings?.generation);
-
   if (outputSchema) {
     streamConfig.response_format = {
       type: 'json_schema',
       schema: outputSchema,
     };
   }
-
   const result = (await streamText(streamConfig as never)) as never;
-
   let fullText = '';
   let reasoningText = '';
-  const toolCalls: { name: string; args: unknown; id: string }[] = [];
+  const toolCalls: {
+    name: string;
+    args: unknown;
+    id: string;
+  }[] = [];
   const sources: unknown[] = [];
   const files: unknown[] = [];
   let finishReason = 'stop';
   let chunkBuffer = '';
   let chunkCount = 0;
-
-  for await (const part of (result as { stream: AsyncIterable<Record<string, unknown>> }).stream) {
+  for await (const part of (
+    result as {
+      stream: AsyncIterable<Record<string, unknown>>;
+    }
+  ).stream) {
     const type = part.type as string;
-
     if (type === 'text-delta' && typeof part.text === 'string' && part.text) {
       const text = part.text as string;
       const id = String(part.id ?? '');
@@ -161,7 +149,6 @@ export async function* callModel(
       }
       continue;
     }
-
     if (type === 'reasoning-delta' && typeof part.text === 'string' && part.text) {
       const text = part.text as string;
       const id = String(part.id ?? '');
@@ -169,17 +156,14 @@ export async function* callModel(
       yield { type: 'reasoning-delta', text, id };
       continue;
     }
-
     if (type === 'reasoning-start') {
       yield { type: 'reasoning-start', id: String(part.id ?? '') };
       continue;
     }
-
     if (type === 'reasoning-end') {
       yield { type: 'reasoning-end', id: String(part.id ?? '') };
       continue;
     }
-
     if (type === 'tool-input-start') {
       yield {
         type: 'tool-input-start',
@@ -188,7 +172,6 @@ export async function* callModel(
       };
       continue;
     }
-
     if (type === 'tool-input-delta') {
       const delta =
         (typeof part.delta === 'string' ? (part.delta as string) : undefined) ??
@@ -199,12 +182,10 @@ export async function* callModel(
       }
       continue;
     }
-
     if (type === 'tool-input-end') {
       yield { type: 'tool-input-end', id: String(part.id ?? part.toolCallId ?? '') };
       continue;
     }
-
     if (type === 'tool-call') {
       const tc = part as {
         toolName?: string;
@@ -227,102 +208,128 @@ export async function* callModel(
       };
       continue;
     }
-
     if (type === 'source') {
-      const src = (part as { source?: unknown }).source ?? part;
+      const src =
+        (
+          part as {
+            source?: unknown;
+          }
+        ).source ?? part;
       sources.push(src);
       yield { type: 'source', source: src };
       continue;
     }
-
     if (type === 'file' || type === 'reasoning-file') {
-      const f = (part as { file?: unknown }).file ?? part;
+      const f =
+        (
+          part as {
+            file?: unknown;
+          }
+        ).file ?? part;
       files.push(f);
       yield { type: 'file', file: f };
       continue;
     }
-
     if (type === 'finish-step') {
       const fr = part.finishReason as string | undefined;
       if (fr) {
         finishReason = fr;
       }
-      const usage = (part as { usage?: unknown }).usage;
+      const usage = (
+        part as {
+          usage?: unknown;
+        }
+      ).usage;
       if (usage) {
-        // keep last step usage, final finish will override
       }
       continue;
     }
-
     if (type === 'finish') {
       const fr = part.finishReason as string | undefined;
       if (fr) {
         finishReason = fr;
       }
       const usage =
-        (part as { totalUsage?: unknown; usage?: unknown }).totalUsage ??
-        (part as { usage?: unknown }).usage;
+        (
+          part as {
+            totalUsage?: unknown;
+            usage?: unknown;
+          }
+        ).totalUsage ??
+        (
+          part as {
+            usage?: unknown;
+          }
+        ).usage;
       if (usage) {
-        // store for completed
         (globalThis as Record<string, unknown>).__harnesys_last_usage = usage;
       }
       continue;
     }
-
     if (type === 'error') {
-      throw toStreamError((part as { error?: unknown }).error);
+      throw toStreamError(
+        (
+          part as {
+            error?: unknown;
+          }
+        ).error,
+      );
     }
-
     if (type === 'abort') {
-      throw Object.assign(new Error(String((part as { reason?: string }).reason ?? 'aborted')), {
-        name: 'AbortError',
-      });
+      throw Object.assign(
+        new Error(
+          String(
+            (
+              part as {
+                reason?: string;
+              }
+            ).reason ?? 'aborted',
+          ),
+        ),
+        {
+          name: 'AbortError',
+        },
+      );
     }
   }
-
   if (chunkBuffer) {
     yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
   }
-
-  // Присутствие tool-calls важнее подрядчика finishReason: провайдеры свободной
-  // категории присылают 'unknown'/'other'/пустоту вместе с вызовами. Такой шаг
-  // обязан маршрутизироваться в исполнение тулов, иначе вызов зависает в
-  // истории без результата и следующий запрос отвергается провайдером.
-  // Исключение — 'length': аргументы могли обрезаться, исполнение опасно
-  // (висящий вызов чинится синтетическим результатом на завершении рана).
   if (toolCalls.length > 0 && finishReason !== 'tool-calls' && finishReason !== 'length') {
     finishReason = 'tool-calls';
   }
-
-  // also try result promises for usage/structured if not in stream
   let structured: unknown;
   try {
-    const obj = await (result as { object?: PromiseLike<unknown> }).object;
+    const obj = await (
+      result as {
+        object?: PromiseLike<unknown>;
+      }
+    ).object;
     if (obj !== undefined) {
       structured = obj;
     }
-  } catch {
-    // ignore
-  }
-
+  } catch {}
   let usage: unknown = (globalThis as Record<string, unknown>).__harnesys_last_usage;
   try {
-    const u = await (result as { totalUsage?: PromiseLike<unknown> }).totalUsage;
+    const u = await (
+      result as {
+        totalUsage?: PromiseLike<unknown>;
+      }
+    ).totalUsage;
     if (u) {
       usage = u;
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
   try {
-    const u2 = await (result as { usage?: PromiseLike<unknown> }).usage;
+    const u2 = await (
+      result as {
+        usage?: PromiseLike<unknown>;
+      }
+    ).usage;
     if (u2 && !usage) {
       usage = u2;
     }
-  } catch {
-    // ignore
-  }
-
+  } catch {}
   yield {
     type: 'completed',
     finishReason,

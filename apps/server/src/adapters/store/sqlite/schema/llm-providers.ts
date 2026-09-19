@@ -1,5 +1,4 @@
 import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-
 export const llmProvidersTable = sqliteTable(
   'llm_providers',
   {
@@ -21,6 +20,5 @@ export const llmProvidersTable = sqliteTable(
     ),
   }),
 );
-
 export type LlmProviderRow = typeof llmProvidersTable.$inferSelect;
 export type LlmProviderInsert = typeof llmProvidersTable.$inferInsert;

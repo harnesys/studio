@@ -7,11 +7,6 @@ import type {
 } from '../../../../domain/agent.port.ts';
 
 const EMPTY_GRAPH: AgentGraph = { nodes: {}, edges: [] };
-
-/** Parses the stored `graph_json` column; malformed content falls back to the empty graph.
- *  Legacy-снапшоты `tools` на llm-нодах снимаются: единственный источник правды по
- *  набору инструментов — grant-слой (`capabilities_json`), список ноды — только
- *  авторское сужение и живёт лишь под маркером `toolPolicy: 'explicit'`. */
 export function parseGraph(raw: string | null): AgentGraph {
   if (!raw) {
     return EMPTY_GRAPH;
@@ -39,7 +34,6 @@ export function parseGraph(raw: string | null): AgentGraph {
     return EMPTY_GRAPH;
   }
 }
-
 function stripLegacyTools(nodes: Record<string, unknown>): Record<string, Node> {
   const out: Record<string, Node> = {};
   for (const [id, node] of Object.entries(nodes)) {
@@ -58,7 +52,6 @@ function stripLegacyTools(nodes: Record<string, unknown>): Record<string, Node> 
   }
   return out;
 }
-
 function parseLayout(raw: unknown): AgentGraphLayout | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return undefined;
@@ -81,14 +74,12 @@ function parseLayout(raw: unknown): AgentGraphLayout | undefined {
   }
   return { rankdir, positions };
 }
-
 function parseRankdir(raw: unknown): AgentGraphRankdir | undefined {
   if (raw === 'TB' || raw === 'LR') {
     return raw;
   }
   return undefined;
 }
-
 function parsePosition(raw: unknown): AgentGraphPosition | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return undefined;

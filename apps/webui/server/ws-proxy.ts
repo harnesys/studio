@@ -1,26 +1,20 @@
 import type { WebConfig } from './config.ts';
 import { isAuthorized } from './gate.ts';
 
-const WS_OPEN_TIMEOUT_MS = 10_000;
-
-/** Per-connection tunnel state attached to the downstream Bun socket via upgrade data. */
+const WS_OPEN_TIMEOUT_MS = 10000;
 export type WsLink = {
   up?: WebSocket;
   down?: Bun.ServerWebSocket<WsLink>;
   toDown: WsPayload[];
   toUp: WsPayload[];
 };
-
 type WsPayload = string | ArrayBuffer | Uint8Array;
-
 function clampCloseCode(code: number | undefined): number | undefined {
-  // 1005/1006/1015 must never go on the wire; omit so the peer gets a normal close.
   if (code === undefined || code === 1005 || code === 1006 || code === 1015) {
     return undefined;
   }
   return code;
 }
-
 function forwardMessage(message: unknown): WsPayload | undefined {
   if (typeof message === 'string' || message instanceof ArrayBuffer) {
     return message;
@@ -30,30 +24,20 @@ function forwardMessage(message: unknown): WsPayload | undefined {
   }
   return undefined;
 }
-
 export function isWebSocketUpgrade(request: Request): boolean {
   return request.headers.get('upgrade')?.toLowerCase() === 'websocket';
 }
-
 function subprotocols(request: Request): string[] {
   return (request.headers.get('sec-websocket-protocol') ?? '')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
 }
-
 function wsTarget(upstream: URL, url: URL): string {
   const protocol = upstream.protocol === 'https:' ? 'wss:' : 'ws:';
   const prefix = upstream.pathname.replace(/\/$/, '');
   return `${protocol}//${upstream.host}${prefix}${url.pathname}${url.search}`;
 }
-
-/**
- * Handles `Upgrade: websocket` inside the proxied prefixes: dials the upstream
- * WebSocket (awaiting its open, so the negotiated Sec-WebSocket-Protocol can be
- * relayed into the 101 response), then upgrades the browser side. Message frames
- * are piped both ways afterwards; either side closing closes the other.
- */
 export async function handleWsUpgrade(
   request: Request,
   server: Bun.Server<WsLink>,
@@ -102,7 +86,6 @@ export async function handleWsUpgrade(
     link.down?.close(1011, 'upstream error');
   };
   link.up = up;
-
   const opened = await new Promise<boolean>((resolve) => {
     settleOpen = resolve;
     const timer = setTimeout(() => settle(false), WS_OPEN_TIMEOUT_MS);
@@ -122,8 +105,6 @@ export async function handleWsUpgrade(
   up.close();
   return new Response('websocket upgrade failed', { status: 502 });
 }
-
-/** Bun.serve websocket handlers for the downstream (browser) side of the tunnel. */
 export const wsHandlers: Bun.WebSocketHandler<WsLink> = {
   open(down) {
     const link = down.data;

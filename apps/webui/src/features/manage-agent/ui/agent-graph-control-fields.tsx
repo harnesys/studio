@@ -1,9 +1,7 @@
 import type { Node } from 'harnesys';
-
 import { Field, FieldLabel } from '@/shared/ui/field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
-
 import { ConcurrencyField, concurrencyString } from './agent-graph-concurrency-field';
 import {
   INTERRUPT_REASONS,
@@ -19,16 +17,31 @@ import { GraphInput } from './agent-graph-input';
 
 type ControlNode = Extract<
   Node,
-  | { type: 'control:assign' }
-  | { type: 'control:spawn' }
-  | { type: 'control:handoff' }
-  | { type: 'control:goto' }
-  | { type: 'control:map' }
-  | { type: 'control:yield' }
-  | { type: 'control:wait' }
-  | { type: 'control:interrupt' }
+  | {
+      type: 'control:assign';
+    }
+  | {
+      type: 'control:spawn';
+    }
+  | {
+      type: 'control:handoff';
+    }
+  | {
+      type: 'control:goto';
+    }
+  | {
+      type: 'control:map';
+    }
+  | {
+      type: 'control:yield';
+    }
+  | {
+      type: 'control:wait';
+    }
+  | {
+      type: 'control:interrupt';
+    }
 >;
-
 export function ControlNodeFields({
   node,
   onChange,

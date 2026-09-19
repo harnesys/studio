@@ -1,8 +1,6 @@
 import type * as monacoNs from 'monaco-editor';
-
 import { hostTokenQuery } from '@/shared/api/host-credential';
 import { hostWsBase } from '@/shared/config/env';
-
 import {
   applyBuiltinDiagnostics,
   applyMarkers,
@@ -12,31 +10,19 @@ import {
   toMonacoHover,
   toMonacoLocations,
 } from './lsp-converters';
-
 export type LspBridgeStatus = 'starting' | 'live' | 'off' | 'error';
-
 export type LspBridge = {
   dispose(): void;
 };
-
 export type LspBridgeArgs = {
   workspaceId: string;
-  /** Workspace-relative file path, e.g. `src/main.tsx`. */
   path: string;
   monaco: typeof monacoNs;
   onStatus: (status: LspBridgeStatus) => void;
-  /** Fires on every diagnostics publish while live (indicator pulse). */
   onActivity?: () => void;
 };
-
 const CHANGE_DEBOUNCE_MS = 250;
-const REQUEST_TIMEOUT_MS = 10_000;
-
-/**
- * Bridges the Monaco model of an open file to the server-side language server
- * (plugin lspServers) over /api/lsp. Server-side diagnostics replace the
- * built-in TS worker for ts/js models while the bridge is live.
- */
+const REQUEST_TIMEOUT_MS = 10000;
 export function attachLspBridge(args: LspBridgeArgs): LspBridge {
   const { monaco, onStatus, onActivity, workspaceId, path } = args;
   const modelUri = `file:///${path.replace(/^\/+/, '')}`;
@@ -44,7 +30,6 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
   if (!model) {
     return { dispose: () => {} };
   }
-
   const languageId = model.getLanguageId();
   let status: LspBridgeStatus = 'starting';
   let disposed = false;
@@ -53,9 +38,11 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
   let changeTimer: ReturnType<typeof setTimeout> | null = null;
   const pending = new Map<
     string,
-    { resolve: (result: unknown) => void; timer: ReturnType<typeof setTimeout> }
+    {
+      resolve: (result: unknown) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
   >();
-
   const setStatus = (next: LspBridgeStatus) => {
     if (status === next) {
       return;
@@ -64,21 +51,17 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
     onStatus(next);
   };
   setStatus('starting');
-
   const savedDiagnostics = captureBuiltinDiagnostics(monaco, languageId);
-
   const token = hostTokenQuery();
   const tokenQs = token ? `&${token}` : '';
   const ws = new WebSocket(
     `${hostWsBase()}/api/lsp?workspace=${encodeURIComponent(workspaceId)}&path=${encodeURIComponent(path)}${tokenQs}`,
   );
-
   const send = (message: unknown) => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     }
   };
-
   ws.onopen = () => {
     send({
       jsonrpc: '2.0',
@@ -90,15 +73,17 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
     if (savedDiagnostics) {
       applyBuiltinDiagnostics(monaco, { noSemanticValidation: true, noSyntaxValidation: true });
     }
-    // Stay on `starting` until the language server answers; onopen only means
-    // the WebSocket upgraded — session spawn may still fail with 1011.
   };
-
   ws.onmessage = (event) => {
     if (typeof event.data !== 'string') {
       return;
     }
-    let message: { id?: unknown; method?: unknown; params?: unknown; result?: unknown };
+    let message: {
+      id?: unknown;
+      method?: unknown;
+      params?: unknown;
+      result?: unknown;
+    };
     try {
       message = JSON.parse(event.data);
     } catch {
@@ -122,7 +107,10 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
       message.params !== null &&
       typeof message.params === 'object'
     ) {
-      const params = message.params as { uri?: unknown; diagnostics?: unknown };
+      const params = message.params as {
+        uri?: unknown;
+        diagnostics?: unknown;
+      };
       if (params.uri !== modelUri) {
         return;
       }
@@ -131,13 +119,10 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
       onActivity?.();
     }
   };
-
   ws.onclose = (event) => {
     if (disposed) {
       return;
     }
-    // 1011 = server failed to start the language server (see LspBridgeController).
-    // Do not demote that to `off` just because we briefly looked live.
     if (event.code === 1011) {
       setStatus('error');
     } else if (status !== 'error') {
@@ -147,7 +132,6 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
       applyBuiltinDiagnostics(monaco, savedDiagnostics);
     }
   };
-
   const changeSubscription = model.onDidChangeContent(() => {
     if (ws.readyState !== WebSocket.OPEN) {
       return;
@@ -168,7 +152,6 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
       });
     }, CHANGE_DEBOUNCE_MS);
   });
-
   const request = (method: string, params: unknown): Promise<unknown> => {
     if (ws.readyState !== WebSocket.OPEN) {
       return Promise.resolve(null);
@@ -184,7 +167,6 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
       send({ jsonrpc: '2.0', id, method, params });
     });
   };
-
   const hoverProvider = monaco.languages.registerHoverProvider(languageId, {
     provideHover: async (_target, position) => {
       const result = await request('textDocument/hover', {
@@ -194,7 +176,6 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
       return toMonacoHover(result);
     },
   });
-
   const definitionProvider = monaco.languages.registerDefinitionProvider(languageId, {
     provideDefinition: async (_target, position) => {
       const result = await request('textDocument/definition', {
@@ -204,7 +185,6 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
       return toMonacoLocations(result, monaco);
     },
   });
-
   return {
     dispose() {
       if (disposed) {

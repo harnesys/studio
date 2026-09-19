@@ -2,17 +2,14 @@ import type { SavePlanRequest, ThreadPlanRecord } from '@harnesys/studio-shared'
 import type { DeskEventsPort } from '../../domain/desk-events.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { UnitOfWork } from '../../domain/unit-of-work.port.ts';
-
 export type SavePlanInput = {
   execute(request: SavePlanRequest): Promise<ThreadPlanRecord>;
 };
-
 export class SavePlanUseCase implements SavePlanInput {
   constructor(
     private readonly uow: UnitOfWork,
     private readonly deskEvents: DeskEventsPort,
   ) {}
-
   async execute(request: SavePlanRequest): Promise<ThreadPlanRecord> {
     if (!request.threadId?.trim()) {
       throw new ValidationError('threadId is required');
@@ -29,13 +26,11 @@ export class SavePlanUseCase implements SavePlanInput {
         throw new ValidationError(`items[${i}].description is required`);
       }
     }
-
     const { plan, workspaceId } = this.uow.run(({ threads, plans }) => {
       const thread = threads.findById(request.threadId);
       if (!thread) {
         throw new NotFoundError('thread not found');
       }
-
       return {
         plan: plans.savePlan({
           id: crypto.randomUUID(),
@@ -47,12 +42,10 @@ export class SavePlanUseCase implements SavePlanInput {
         workspaceId: thread.workspaceId,
       };
     });
-
     this.deskEvents.emit(workspaceId, {
       type: 'plan',
       plan,
     });
-
     return await Promise.resolve(plan);
   }
 }

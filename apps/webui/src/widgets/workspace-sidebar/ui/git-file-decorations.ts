@@ -1,5 +1,4 @@
 import type { GitFileStatus, GitFileStatusMap } from '@harnesys/studio-shared';
-
 export function gitFileStatusLabel(status: GitFileStatus): string {
   switch (status) {
     case 'untracked':
@@ -22,7 +21,6 @@ export function gitFileStatusLabel(status: GitFileStatus): string {
       return (status as string).slice(0, 1).toUpperCase();
   }
 }
-
 export function getDirAggregatedStatus(
   dirPath: string,
   map?: GitFileStatusMap,
@@ -44,7 +42,6 @@ export function getDirAggregatedStatus(
   }
   return best;
 }
-
 function statusRank(status: GitFileStatus): number {
   switch (status) {
     case 'conflicted':

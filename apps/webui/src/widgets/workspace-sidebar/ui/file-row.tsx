@@ -41,7 +41,6 @@ import { getDirAggregatedStatus } from './git-file-decorations';
 import { InlineCreateInput } from './inline-create-input';
 
 type DropState = 'valid' | 'invalid' | null;
-
 export function FileRow({
   entry,
   parentPath,
@@ -102,7 +101,6 @@ export function FileRow({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-
   let effectiveMap: GitFileStatusMap | undefined;
   if (gitTruncated) {
     if (isDir && isExpanded) {
@@ -113,7 +111,6 @@ export function FileRow({
   } else {
     effectiveMap = gitMap;
   }
-
   const fileGitStatus: GitFileStatus | undefined = !isDir ? effectiveMap?.[fullPath] : undefined;
   const dirAggregated: GitFileStatus | undefined = isDir
     ? getDirAggregatedStatus(fullPath, effectiveMap ?? gitMap)
@@ -122,7 +119,6 @@ export function FileRow({
   const gitColors = useGitStatusColors((state) => state.colors);
   const gitColor = gitStatus ? gitColors[gitStatus] : undefined;
   const gitDecorationClass = gitStatus ? gitStatusColorClass(gitStatus) : undefined;
-
   const children = isDir ? childrenOf(treeIndex, fullPath, showHidden) : [];
   let infoLabel = '';
   if (isDir) {
@@ -130,9 +126,7 @@ export function FileRow({
   } else if (entry.size !== undefined) {
     infoLabel = formatSize(entry.size);
   }
-
   const showCreateHere = createDraft && isDir && createDraft.parentPath === fullPath;
-
   const handleClick = (event: React.MouseEvent) => {
     const hasModifier = event.shiftKey || event.metaKey || event.ctrlKey;
     if (isDir) {
@@ -146,13 +140,11 @@ export function FileRow({
       onSelect(fullPath, event);
     }
   };
-
   const handleDoubleClick = () => {
     if (!isDir) {
       onOpen(fullPath);
     }
   };
-
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     const paths = selected && selectedPaths.length > 0 ? selectedPaths : [fullPath];
     const roots = collapseToRoots(paths);
@@ -160,7 +152,6 @@ export function FileRow({
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData(MOVE_DRAG_MIME, roots.join('\n'));
     event.dataTransfer.setData('text/plain', fullPath);
-
     const label = event.currentTarget.querySelector('[data-drag-label]');
     if (label instanceof HTMLElement) {
       const ghost = label.cloneNode(true) as HTMLElement;
@@ -178,7 +169,6 @@ export function FileRow({
       });
     }
   };
-
   const handleDragOver = (event: React.DragEvent) => {
     const drag = moveDrag();
     if (!isDir || !drag || drag.workspaceId !== workspaceId) {
@@ -194,13 +184,11 @@ export function FileRow({
     event.dataTransfer.dropEffect = 'move';
     setDropState('valid');
   };
-
   const handleDragLeave = (event: React.DragEvent) => {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
       setDropState(null);
     }
   };
-
   const handleDrop = (event: React.DragEvent) => {
     setDropState(null);
     if (!isDir) {
@@ -215,7 +203,6 @@ export function FileRow({
     setMoveDrag(null);
     onMoveInto(fullPath, drag.paths);
   };
-
   return (
     <>
       {renamePath === fullPath ? (
@@ -226,7 +213,6 @@ export function FileRow({
           onFinish={(name) => onRenameFinish(fullPath, name)}
         />
       ) : (
-        // biome-ignore lint/a11y/noStaticElementInteractions: drag source and drop target for explorer file moves
         <div
           className={cn(
             'group/file relative flex items-center rounded-md hover:bg-sidebar-accent/70',
@@ -409,7 +395,6 @@ export function FileRow({
     </>
   );
 }
-
 export { InlineCreateInput } from './inline-create-input';
 
 function formatSize(bytes: number): string {

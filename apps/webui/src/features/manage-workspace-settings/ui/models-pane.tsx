@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { DownloadIcon, PlusIcon, UploadIcon } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
-
 import { initialsFromLabel } from '@/features/manage-agent';
 import { catalogQuery } from '@/shared/api';
 import { alert, dialog } from '@/shared/services/overlay';
@@ -27,7 +26,6 @@ import {
 import { ProviderForm } from './provider-form';
 import { ProviderModelsSection } from './provider-models-section';
 import { ProviderSettingsFields } from './provider-settings-fields';
-
 export function ModelsPane({ workspaceId }: { workspaceId: string }) {
   const catalog = useQuery(catalogQuery).data;
   const providersQuery = useProviders(workspaceId);
@@ -44,10 +42,8 @@ export function ModelsPane({ workspaceId }: { workspaceId: string }) {
   const exportProviders = useExportProviders(workspaceId);
   const importProviders = useImportProviders(workspaceId);
   const importFileRef = useRef<HTMLInputElement>(null);
-
   const selected = providers.find((item) => item.id === selectedProviderId) ?? null;
   const found = selected ? (foundByProvider[selected.id] ?? null) : null;
-
   useEffect(() => {
     if (!workspaceId || providers.length === 0) {
       return;
@@ -57,7 +53,6 @@ export function ModelsPane({ workspaceId }: { workspaceId: string }) {
     }
     setSelectedProviderId(providers[0].id);
   }, [workspaceId, selectedProviderId, providers]);
-
   async function handleExport() {
     try {
       const bundle = await exportProviders.mutateAsync();
@@ -79,7 +74,6 @@ export function ModelsPane({ workspaceId }: { workspaceId: string }) {
       });
     }
   }
-
   async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -100,7 +94,6 @@ export function ModelsPane({ workspaceId }: { workspaceId: string }) {
       });
     }
   }
-
   function handleDeleteProvider(id: string, name: string) {
     void alert
       .confirm({
@@ -123,7 +116,6 @@ export function ModelsPane({ workspaceId }: { workspaceId: string }) {
         });
       });
   }
-
   return (
     <div
       className="grid gap-8 md:grid-cols-[12rem_minmax(0,1fr)] md:gap-x-10 md:gap-y-2"

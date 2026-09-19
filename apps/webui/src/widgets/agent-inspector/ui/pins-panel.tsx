@@ -2,7 +2,6 @@ import type { PinRecord } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-
 import type { Agent } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import { useSelectedThread } from '@/features/desk';
@@ -17,9 +16,7 @@ import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/locat
 import { formatDayTime } from '@/shared/lib/format-clock';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/ui/toast';
-
 import { Section } from './section';
-
 export function PinsPanel({ agent }: { agent: Agent }) {
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const thread = useSelectedThread();
@@ -28,13 +25,11 @@ export function PinsPanel({ agent }: { agent: Agent }) {
     (state) => thread !== null && Boolean(state.activeRuns[thread.id]),
   );
   const wasStreaming = useRef(streaming);
-
   const query = useQuery({
     ...agentPinsQuery(workspaceId ?? '', agent.id),
     enabled: Boolean(workspaceId),
   });
   const pins = query.data ?? [];
-
   useEffect(() => {
     if (wasStreaming.current && !streaming && workspaceId) {
       void queryClient.invalidateQueries({
@@ -43,14 +38,12 @@ export function PinsPanel({ agent }: { agent: Agent }) {
     }
     wasStreaming.current = streaming;
   }, [streaming, workspaceId, agent.id, queryClient]);
-
   async function invalidate() {
     if (!workspaceId) {
       return;
     }
     await queryClient.invalidateQueries({ queryKey: agentPinsQueryKey(workspaceId, agent.id) });
   }
-
   const upsert = useMutation({
     mutationFn: (draft: PinDraft) => {
       if (!workspaceId) {
@@ -63,7 +56,6 @@ export function PinsPanel({ agent }: { agent: Agent }) {
       toast.add({ title: 'Pin saved', description: pin.key });
     },
   });
-
   const remove = useMutation({
     mutationFn: (key: string) => {
       if (!workspaceId) {
@@ -76,9 +68,7 @@ export function PinsPanel({ agent }: { agent: Agent }) {
       toast.add({ title: 'Pin deleted', description: key });
     },
   });
-
   const busy = upsert.isPending || remove.isPending;
-
   return (
     <Section
       label="Pins"
@@ -132,7 +122,6 @@ export function PinsPanel({ agent }: { agent: Agent }) {
     </Section>
   );
 }
-
 function PinRow({
   pin,
   busy,

@@ -5,7 +5,6 @@ import type {
   ThreadRecord,
   ThreadSummary,
 } from '@harnesys/studio-shared';
-
 import { ApiError, apiJson } from './client';
 import { hostTokenQuery } from './host-credential';
 import {
@@ -15,7 +14,6 @@ import {
   resolveApiTarget,
   setHostOnlineStatus,
 } from './host-router';
-
 export type CreateThreadInput = {
   title?: string;
   agentId?: string;
@@ -28,11 +26,9 @@ export type CreateThreadInput = {
 export function listThreads(workspaceId: string) {
   return apiJson<ThreadSummary[]>(`/api/workspaces/${workspaceId}/threads`);
 }
-
 export function getThread(id: string) {
   return apiJson<ThreadRecord>(`/api/threads/${id}`);
 }
-
 export function createThreadRecord(body: CreateThreadInput) {
   return apiJson<ThreadRecord>('/api/threads', {
     method: 'POST',
@@ -45,14 +41,12 @@ export function createThreadRecord(body: CreateThreadInput) {
     return record;
   });
 }
-
 export function attachmentUrl(threadId: string, attachmentId: string): string {
   const path = `/api/threads/${threadId}/attachments/${attachmentId}`;
   const target = resolveApiTarget(path);
   const token = hostTokenQuery(target.credential);
   return token ? `${target.url}?${token}` : target.url;
 }
-
 export function uploadThreadAttachment(threadId: string, file: File): Promise<ThreadAttachment> {
   const body = new FormData();
   body.append('file', file);
@@ -61,7 +55,6 @@ export function uploadThreadAttachment(threadId: string, file: File): Promise<Th
     body,
   });
 }
-
 export type SendThreadRunOptions = {
   id: string;
   text: string;
@@ -71,7 +64,6 @@ export type SendThreadRunOptions = {
   skills?: string[];
   clientEventId?: string;
 };
-
 export function sendThreadRun(options: SendThreadRunOptions): Promise<AcceptedRunResponse> {
   const { id, text, effort, attachmentIds, mode, skills, clientEventId } = options;
   return apiJson<AcceptedRunResponse>(`/api/threads/${id}/runs`, {
@@ -92,17 +84,14 @@ export function sendThreadRun(options: SendThreadRunOptions): Promise<AcceptedRu
     return accepted;
   });
 }
-
 export function getThreadPlan(threadId: string): Promise<ThreadPlanRecord | null> {
-  return apiJson<{ plan: ThreadPlanRecord | null }>(`/api/threads/${threadId}/plan`).then(
-    (res) => res.plan,
-  );
+  return apiJson<{
+    plan: ThreadPlanRecord | null;
+  }>(`/api/threads/${threadId}/plan`).then((res) => res.plan);
 }
-
 export type RespondRunOptions = {
   clientEventId?: string;
 };
-
 export function respondToRun(
   runId: string,
   askId: string,
@@ -114,7 +103,6 @@ export function respondToRun(
     body: JSON.stringify({ askId, payload, clientEventId: opts?.clientEventId }),
   });
 }
-
 export function rejectRun(
   runId: string,
   askId: string,
@@ -126,15 +114,12 @@ export function rejectRun(
     body: JSON.stringify({ askId, note, clientEventId: opts?.clientEventId }),
   });
 }
-
 export type RetryRunResponse = {
   runId: string;
 };
-
 export function retryRun(runId: string): Promise<RetryRunResponse> {
   return apiJson<RetryRunResponse>(`/api/runs/${runId}/retry`, { method: 'POST' });
 }
-
 export async function compactThreadStream(id: string, signal?: AbortSignal): Promise<Response> {
   const path = `/api/threads/${id}/compact`;
   const target = resolveApiTarget(path);
@@ -157,18 +142,17 @@ export async function compactThreadStream(id: string, signal?: AbortSignal): Pro
   if (!response.ok) {
     let message = response.statusText || 'Compact failed';
     try {
-      const body = (await response.json()) as { error?: string };
+      const body = (await response.json()) as {
+        error?: string;
+      };
       if (body.error) {
         message = body.error;
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
     throw new ApiError(response.status, message);
   }
   return response;
 }
-
 export async function getRunEventsStream(
   runId: string,
   fromSeq?: number,
@@ -195,7 +179,9 @@ export async function getRunEventsStream(
   if (!response.ok) {
     let message = response.statusText || 'Stream connection failed';
     try {
-      const body = (await response.json()) as { error?: string };
+      const body = (await response.json()) as {
+        error?: string;
+      };
       if (body.error) {
         message = body.error;
       }
@@ -204,26 +190,21 @@ export async function getRunEventsStream(
   }
   return response;
 }
-
 export function cancelRun(runId: string): Promise<void> {
   return apiJson<void>(`/api/runs/${runId}/cancel`, { method: 'POST' });
 }
-
 export function markThreadRead(id: string) {
   return apiJson<ThreadRecord>(`/api/threads/${id}/read`, { method: 'POST' });
 }
-
 export function setThreadPinned(id: string, pinned: boolean) {
   return apiJson<ThreadRecord>(`/api/threads/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ pinned }),
   });
 }
-
 export function deleteThreadRecord(id: string) {
   return apiJson<void>(`/api/threads/${id}`, { method: 'DELETE' });
 }
-
 export function deleteThreadEntry(threadId: string, entryId: string) {
   return apiJson<ThreadRecord>(`/api/threads/${threadId}/entries/${entryId}`, {
     method: 'DELETE',

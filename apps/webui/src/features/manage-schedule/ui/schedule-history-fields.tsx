@@ -15,7 +15,6 @@ const HISTORY_LABELS: Record<ScheduleHistory, string> = {
   last: 'Last N runs',
   all: 'All scheduled runs',
 };
-
 export function ScheduleHistoryFields({
   history,
   historyLast,

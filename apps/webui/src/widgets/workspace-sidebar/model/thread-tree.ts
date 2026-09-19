@@ -1,7 +1,8 @@
 import type { Thread } from '@/entities/thread';
-
-export type ThreadTreeNode = { thread: Thread; children: ThreadTreeNode[] };
-
+export type ThreadTreeNode = {
+  thread: Thread;
+  children: ThreadTreeNode[];
+};
 export function buildThreadTree(threads: Thread[]): ThreadTreeNode[] {
   const byId = new Map<string, ThreadTreeNode>(
     threads.map((thread) => [thread.id, { thread, children: [] }]),
@@ -31,11 +32,9 @@ export function buildThreadTree(threads: Thread[]): ThreadTreeNode[] {
   });
   return roots;
 }
-
 export function countSubtree(node: ThreadTreeNode): number {
   return node.children.reduce((sum, child) => sum + countSubtree(child), 1);
 }
-
 export function subtreeHas(node: ThreadTreeNode, threadId: string): boolean {
   if (node.thread.id === threadId) {
     return true;

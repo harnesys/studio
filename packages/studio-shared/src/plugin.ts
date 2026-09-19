@@ -15,22 +15,19 @@ export type {
   PluginName,
   PluginSourceFormat,
 } from 'harnesys';
-
 export type GrantClass = 'content' | 'process' | 'network';
-
-/**
- * Владелец элемента конфигурации воркспейса: файл воркспейса или компонент
- * включённого плагина. `status`/`inertReason` — статус компонента в IR-представлении
- * с учётом grant-гейтинга; `needs_server_approval` приходит в `inertReason`.
- */
 export type ComponentOrigin =
-  | { kind: 'workspace' }
-  | { kind: 'plugin'; pluginName: PluginName; status: ComponentStatus; inertReason?: string };
-
+  | {
+      kind: 'workspace';
+    }
+  | {
+      kind: 'plugin';
+      pluginName: PluginName;
+      status: ComponentStatus;
+      inertReason?: string;
+    };
 export type PluginGrantSelection = Partial<Record<GrantClass, boolean>>;
-
 export type PluginOptionValue = string | number | boolean;
-
 export type PluginRecord = {
   workspaceId: string;
   name: PluginName;
@@ -40,21 +37,18 @@ export type PluginRecord = {
   dataPath: string;
   format: PluginSourceFormat | 'unknown';
   grants: PluginGrantSelection;
-  /** Sensitive userConfig values never land here (SecretStore); masked as `••••••••`. */
   options: Record<string, PluginOptionValue>;
   registryId?: string;
   catalogPluginName?: string;
   installedAt: string;
   updatedAt: string;
 };
-
 export type PluginComponentSummary = {
   kind: PluginKind;
   status: ComponentStatus;
   inertReason?: string;
   source: ComponentSource;
 };
-
 export type PluginSummary = PluginRecord & {
   version?: string;
   description?: string;
@@ -66,14 +60,11 @@ export type PluginSummary = PluginRecord & {
   commandCount: number;
   lspServerCount: number;
 };
-
 export type PluginMutationResponse = {
   plugin: PluginSummary;
   diagnostics: PluginDiagnostic[];
 };
-
 export type PluginListItem = PluginMutationResponse;
-
 export type InstallPluginRequest = {
   source?: string;
   path?: string;
@@ -82,22 +73,17 @@ export type InstallPluginRequest = {
   catalogPluginName?: string;
   pluginName?: string;
 };
-
 export type SetPluginGrantsRequest = {
   classes: GrantClass[];
 };
-
 export type ApprovePluginServerRequest = {
   serverId: string;
 };
-
 export type SetPluginOptionRequest = {
   key: string;
   value: PluginOptionValue;
 };
-
 export type PluginRegistryKind = 'claude-marketplace';
-
 export type PluginRegistrySummary = {
   id: string;
   name: string;
@@ -110,20 +96,45 @@ export type PluginRegistrySummary = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type AddPluginRegistryRequest = {
   source: string;
   kind?: PluginRegistryKind;
 };
-
 export type CatalogInstallSource =
-  | { type: 'relative'; path: string }
-  | { type: 'github'; repo: string; ref?: string; sha?: string }
-  | { type: 'url'; url: string; ref?: string; sha?: string }
-  | { type: 'git-subdir'; url: string; path: string; ref?: string; sha?: string }
-  | { type: 'npm'; package: string; version?: string; registry?: string }
-  | { type: 'archive'; url: string; sha256?: string };
-
+  | {
+      type: 'relative';
+      path: string;
+    }
+  | {
+      type: 'github';
+      repo: string;
+      ref?: string;
+      sha?: string;
+    }
+  | {
+      type: 'url';
+      url: string;
+      ref?: string;
+      sha?: string;
+    }
+  | {
+      type: 'git-subdir';
+      url: string;
+      path: string;
+      ref?: string;
+      sha?: string;
+    }
+  | {
+      type: 'npm';
+      package: string;
+      version?: string;
+      registry?: string;
+    }
+  | {
+      type: 'archive';
+      url: string;
+      sha256?: string;
+    };
 export type PluginCatalogEntry = {
   registryId: string;
   pluginName: string;
@@ -139,7 +150,6 @@ export type PluginCatalogEntry = {
   format?: PluginSourceFormat | 'unknown';
   inertComponents?: PluginKind[];
 };
-
 export type RemovePluginRequest = {
   deleteData?: boolean;
 };

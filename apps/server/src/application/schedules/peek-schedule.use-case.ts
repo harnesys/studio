@@ -4,13 +4,11 @@ import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type { GetThreadInput } from '../threads/get-thread.use-case.ts';
 import { peekScheduleFires } from './schedule-peek.ts';
-
 export type PeekScheduleRequest = {
   workspaceId: string;
   id: string;
   last?: number;
 };
-
 export type PeekScheduleResponse = {
   id: string;
   name: string;
@@ -18,20 +16,16 @@ export type PeekScheduleResponse = {
   lastFiredAt: string | null;
   fires: SchedulePeekFire[];
 };
-
 export type PeekScheduleInput = {
   execute(request: PeekScheduleRequest): Promise<PeekScheduleResponse>;
 };
-
 export type PeekScheduleDeps = {
   schedules: ScheduleRepository;
   workspaces: WorkspaceRepository;
   getThread: GetThreadInput;
 };
-
 export class PeekScheduleUseCase implements PeekScheduleInput {
   constructor(private readonly deps: PeekScheduleDeps) {}
-
   async execute(request: PeekScheduleRequest): Promise<PeekScheduleResponse> {
     const workspace = this.deps.workspaces.findById(request.workspaceId);
     if (!workspace) {

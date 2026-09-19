@@ -25,7 +25,6 @@ import {
 } from '../model/thread-tree';
 
 const VISIBLE_ROOT_LIMIT = 6;
-
 export function AgentInlineThreads({
   agent,
   workspaceId,
@@ -42,7 +41,6 @@ export function AgentInlineThreads({
   const actions = useThreadActions(workspaceId);
   const roots = buildThreadTree(threads);
   const total = roots.reduce((sum, node) => sum + countSubtree(node), 0);
-
   const activeRoot = activeThreadId
     ? (roots.find((node) => subtreeHas(node, activeThreadId)) ?? null)
     : null;
@@ -56,7 +54,6 @@ export function AgentInlineThreads({
     used += countSubtree(node);
   }
   const hiddenCount = Math.max(0, total - used);
-
   const renderRow = (thread: Thread) => (
     <InlineThreadRow
       thread={thread}
@@ -69,7 +66,6 @@ export function AgentInlineThreads({
       onDelete={thread.kind === 'chat' ? () => actions.removeThread(thread) : undefined}
     />
   );
-
   return (
     <div
       className={cn(
@@ -108,7 +104,6 @@ export function AgentInlineThreads({
     </div>
   );
 }
-
 function InlineNodes({
   nodes,
   renderRow,
@@ -131,7 +126,6 @@ function InlineNodes({
     </>
   );
 }
-
 function InlineThreadRow({
   thread,
   selected,
@@ -154,7 +148,6 @@ function InlineThreadRow({
   const statusHint = [status, thread.unread ? 'unread' : null].filter(Boolean).join(' · ');
   const [menuOpen, setMenuOpen] = useState(false);
   const right = rowRight(status, thread, iconMode, menuOpen);
-
   return (
     <div
       className={cn(
@@ -233,7 +226,6 @@ function InlineThreadRow({
     </div>
   );
 }
-
 function runStatus(running: boolean, waiting: boolean): 'running' | 'waiting' | null {
   if (running) {
     return 'running';
@@ -243,9 +235,7 @@ function runStatus(running: boolean, waiting: boolean): 'running' | 'waiting' | 
   }
   return null;
 }
-
 type RunStatus = ReturnType<typeof runStatus>;
-
 function rowRight(
   status: RunStatus,
   thread: Thread,
@@ -287,7 +277,6 @@ function rowRight(
     </span>
   );
 }
-
 function threadTime(iso: string): string {
   const date = new Date(iso);
   const now = new Date();

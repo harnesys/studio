@@ -1,16 +1,13 @@
 import type { ModelArchitecture, ModelPricing, ModelTopProvider } from '../../../ports/models.ts';
-
 export function asRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return undefined;
   }
   return value as Record<string, unknown>;
 }
-
 export function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
-
 export function asNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -23,14 +20,12 @@ export function asNumber(value: unknown): number | undefined {
   }
   return undefined;
 }
-
 export function asStringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
   return value.filter((item): item is string => typeof item === 'string');
 }
-
 export function itemsOf(json: unknown, key = 'data'): unknown[] {
   if (Array.isArray(json)) {
     return json;
@@ -39,7 +34,6 @@ export function itemsOf(json: unknown, key = 'data'): unknown[] {
   const value = record?.[key];
   return Array.isArray(value) ? value : [];
 }
-
 export function formatPriceString(value: unknown): string | undefined {
   if (typeof value === 'string' && value.trim() !== '') {
     const num = Number(value);
@@ -50,14 +44,12 @@ export function formatPriceString(value: unknown): string | undefined {
   }
   return undefined;
 }
-
 export function pricePerTokenFromPerMillion(perMillion: number | undefined): string | undefined {
   if (perMillion === undefined || !Number.isFinite(perMillion)) {
     return undefined;
   }
-  return String(perMillion / 1_000_000);
+  return String(perMillion / 1000000);
 }
-
 export function pricingOf(parts: {
   prompt?: string | number;
   completion?: string | number;
@@ -80,7 +72,6 @@ export function pricingOf(parts: {
     request: formatPriceString(parts.request),
   };
 }
-
 export function architectureOf(input?: string[], output?: string[]): ModelArchitecture | undefined {
   if (!input && !output) {
     return undefined;
@@ -90,7 +81,6 @@ export function architectureOf(input?: string[], output?: string[]): ModelArchit
     output_modalities: output ?? [],
   };
 }
-
 export function topProviderOf(
   context_length?: number,
   max_completion_tokens?: number,

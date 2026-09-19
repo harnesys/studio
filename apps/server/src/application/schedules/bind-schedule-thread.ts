@@ -1,7 +1,6 @@
 import type { ScheduleRepository } from '../../domain/schedule.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 import type { Thread, ThreadRepository } from '../../domain/thread.port.ts';
-
 export type BindScheduleThreadInput = {
   threads: ThreadRepository;
   schedules: ScheduleRepository;
@@ -10,8 +9,6 @@ export type BindScheduleThreadInput = {
   threadId: string;
   exceptScheduleId?: string;
 };
-
-/** Existing chat (or other) thread this schedule will fire into. */
 export function requireBindableThread(input: BindScheduleThreadInput): Thread {
   const threadId = input.threadId.trim();
   if (!threadId) {

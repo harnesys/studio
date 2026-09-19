@@ -1,11 +1,9 @@
 import { trace } from '../lib/trace';
 import { getHostCredential } from './host-credential';
-
 export type SseFrame = {
   event: string;
   data: string;
 };
-
 export async function* readSse(response: Response): AsyncGenerator<SseFrame> {
   if (!response.body) {
     trace('sse', 'no response body');
@@ -38,37 +36,26 @@ export async function* readSse(response: Response): AsyncGenerator<SseFrame> {
   } finally {
     try {
       await reader.cancel();
-    } catch {
-      // Stream might already be closed/cancelled
-    }
+    } catch {}
   }
 }
-
 type FetchSseConnection = {
   refs: number;
   listeners: Map<string, Set<(data: string) => void>>;
   abort: AbortController;
   onError?: () => void;
 };
-
 const connections = new Map<string, FetchSseConnection>();
-
 export type WatchEventSourceOptions = {
   credential?: string | null;
   onError?: () => void;
 };
-
 function isAbortError(error: unknown): boolean {
   if (error instanceof DOMException && error.name === 'AbortError') {
     return true;
   }
   return error instanceof Error && error.name === 'AbortError';
 }
-
-/**
- * Shared SSE per URL via fetch + Authorization Bearer (EventSource cannot set headers).
- * Last unsubscribe aborts the request.
- */
 export function watchEventSource(
   url: string,
   event: string,
@@ -82,7 +69,6 @@ export function watchEventSource(
     connections.set(url, conn);
     const owned = conn;
     void openSse(url, abort.signal, options?.credential).catch((error: unknown) => {
-      // Do not tear down a newer conn that reused this URL after an abort race.
       if (connections.get(url) !== owned) {
         return;
       }
@@ -109,8 +95,6 @@ export function watchEventSource(
     if (current.refs > 0) {
       return;
     }
-    // Coalesce Strict Mode / HMR remount in the same turn: remount reuses conn
-    // before this microtask runs, so the fetch is not aborted and reopened.
     void Promise.resolve().then(() => {
       const still = connections.get(url);
       if (!still || still !== current || still.refs > 0) {
@@ -121,7 +105,6 @@ export function watchEventSource(
     });
   };
 }
-
 async function openSse(
   url: string,
   signal: AbortSignal,
@@ -147,7 +130,6 @@ async function openSse(
     }
   }
 }
-
 function parseBlock(block: string): SseFrame | undefined {
   let event = 'message';
   const data: string[] = [];

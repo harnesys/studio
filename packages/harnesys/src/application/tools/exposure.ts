@@ -2,23 +2,18 @@ import { LOAD_TOOLS_NAME, MAX_CATALOG_CHARS, MAX_CATALOG_ENTRIES } from '../../c
 import type { ToolDefinition } from '../../ports/tools.ts';
 
 export { LOAD_TOOLS_NAME };
-
 export function loadedToolsOf(state: Record<string, unknown>): string[] {
   const v = state.loadedTools;
   return Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : [];
 }
-
-/**
- * Progressive tool set for one LLM step.
- * Schema set changes only when `loaded` grows (successful load_tools).
- * Expect one prefix-cache bust on that step; the next step should hit again
- * if instructions + history prefix are unchanged.
- */
 export function resolveProgressiveTools(
   resolved: string[],
   registry: Map<string, ToolDefinition>,
   loaded: string[],
-): { toolNames: string[]; deferredPending: string[] } {
+): {
+  toolNames: string[];
+  deferredPending: string[];
+} {
   const canLoad = registry.has(LOAD_TOOLS_NAME);
   const deferredPending = canLoad
     ? resolved.filter((n) => registry.get(n)?.exposure === 'deferred' && !loaded.includes(n))
@@ -37,7 +32,6 @@ export function resolveProgressiveTools(
   }
   return { toolNames, deferredPending };
 }
-
 export function formatDeferredCatalog(
   deferredPending: string[],
   registry: Map<string, ToolDefinition>,

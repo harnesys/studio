@@ -12,9 +12,7 @@ import {
   ServerIcon,
   SlidersHorizontalIcon,
 } from 'lucide-react';
-
 export type WorkspaceSettingsGroupId = 'workspace' | 'capabilities' | 'data';
-
 export type WorkspaceSettingsCategory =
   | 'general'
   | 'providers'
@@ -27,19 +25,16 @@ export type WorkspaceSettingsCategory =
   | 'memory'
   | 'git'
   | 'exports';
-
 export type WorkspaceSettingsNavItem = {
   id: WorkspaceSettingsCategory;
   label: string;
   icon: LucideIcon;
 };
-
 export type WorkspaceSettingsNavGroup = {
   id: WorkspaceSettingsGroupId;
   label: string;
   items: WorkspaceSettingsNavItem[];
 };
-
 export const WORKSPACE_SETTINGS_GROUPS: WorkspaceSettingsNavGroup[] = [
   {
     id: 'workspace',

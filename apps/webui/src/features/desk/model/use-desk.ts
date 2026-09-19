@@ -11,12 +11,10 @@ import {
   studioFocusWorkspaceId,
   useStudioLocation,
 } from '@/shared/config/location';
-
 import { useDeskStore } from './desk.store';
 import { isWaiting } from './use-agent-live-status';
 
 const EMPTY_EVENTS: SessionEvent[] = [];
-
 export function useDeskSelection() {
   return useDeskStore(
     useShallow((state) => ({
@@ -25,7 +23,6 @@ export function useDeskSelection() {
     })),
   );
 }
-
 export function useWorkspaceAgents(workspaceId: string | null) {
   return useAgentStore(
     useShallow((state) =>
@@ -33,17 +30,14 @@ export function useWorkspaceAgents(workspaceId: string | null) {
     ),
   );
 }
-
 export function useAgentsInWorkspaces(workspaceIds: string[]) {
   return useAgentStore(
     useShallow((state) => state.items.filter((item) => workspaceIds.includes(item.workspaceId))),
   );
 }
-
 export function useAgentThreads(agentId: string | null) {
   return useThreadStore(useShallow((state) => (agentId ? state.forAgent(agentId) : [])));
 }
-
 export function useThreadEvents(threadId: string | null) {
   return useSessionStore((state) => {
     if (!threadId) {
@@ -52,7 +46,6 @@ export function useThreadEvents(threadId: string | null) {
     return state.events[threadId] ?? EMPTY_EVENTS;
   });
 }
-
 export function useWorkspaceSchedules(workspaceId: string | null) {
   return useScheduleStore(
     useShallow((state) =>
@@ -60,13 +53,11 @@ export function useWorkspaceSchedules(workspaceId: string | null) {
     ),
   );
 }
-
 export function useSchedulesInWorkspaces(workspaceIds: string[]) {
   return useScheduleStore(
     useShallow((state) => state.items.filter((item) => workspaceIds.includes(item.workspaceId))),
   );
 }
-
 export function useWorkspaceWebhooks(workspaceId: string | null) {
   return useWebhookStore(
     useShallow((state) =>
@@ -74,14 +65,11 @@ export function useWorkspaceWebhooks(workspaceId: string | null) {
     ),
   );
 }
-
 export function useWebhooksInWorkspaces(workspaceIds: string[]) {
   return useWebhookStore(
     useShallow((state) => state.items.filter((item) => workspaceIds.includes(item.workspaceId))),
   );
 }
-
-/** Threads with a pending ask or wait across the given workspaces (inbox rows). */
 export function useWaitingThreads(workspaceIds: string[]) {
   const items = useThreadStore(useShallow((state) => state.items));
   return useSessionStore(
@@ -93,7 +81,6 @@ export function useWaitingThreads(workspaceIds: string[]) {
     ),
   );
 }
-
 export function useSelectedAgent() {
   const focus = useStudioLocation();
   const workspaceId = studioFocusWorkspaceId(focus);
@@ -125,7 +112,6 @@ export function useSelectedAgent() {
   }
   return null;
 }
-
 export function useSelectedThread() {
   const focus = useStudioLocation();
   const threadId = studioFocusThreadId(focus);
@@ -143,7 +129,6 @@ export function useSelectedThread() {
     useShallow((state) => (preferredId ? (state.byId(preferredId) ?? null) : null)),
   );
 }
-
 export function useDesk() {
   const focus = useStudioLocation();
   const workspaceId = studioFocusWorkspaceId(focus);
@@ -156,7 +141,6 @@ export function useDesk() {
   const events = useThreadEvents(thread?.id ?? null);
   const schedules = useWorkspaceSchedules(workspaceId);
   const webhooks = useWorkspaceWebhooks(workspaceId);
-
   return {
     workspaceId,
     focus,

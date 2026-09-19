@@ -1,5 +1,4 @@
 import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-
 export const workspacesTable = sqliteTable(
   'workspaces',
   {
@@ -13,6 +12,5 @@ export const workspacesTable = sqliteTable(
     pathUnique: uniqueIndex('workspaces_path_unique').on(table.path),
   }),
 );
-
 export type WorkspaceRow = typeof workspacesTable.$inferSelect;
 export type WorkspaceInsert = typeof workspacesTable.$inferInsert;

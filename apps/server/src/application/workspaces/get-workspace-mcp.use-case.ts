@@ -2,25 +2,20 @@ import type { WorkspaceMcpServer, WorkspaceMcpTransport } from '@harnesys/studio
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-
 export type GetWorkspaceMcpRequest = {
   workspaceId: string;
 };
-
 export type GetWorkspaceMcpResponse = {
   servers: WorkspaceMcpServer[];
 };
-
 export type GetWorkspaceMcpInput = {
   execute(request: GetWorkspaceMcpRequest): Promise<GetWorkspaceMcpResponse>;
 };
-
 export class GetWorkspaceMcpUseCase implements GetWorkspaceMcpInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
   ) {}
-
   async execute(request: GetWorkspaceMcpRequest): Promise<GetWorkspaceMcpResponse> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {

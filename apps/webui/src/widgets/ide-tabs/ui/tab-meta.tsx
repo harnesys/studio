@@ -14,8 +14,6 @@ import type { IdeTab } from '@/features/ide';
 import { listTerminals, terminalsQueryKey } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
 import { FileTypeIcon } from '@/shared/ui/file-type-icon';
-
-/** Reactive: re-renders when the thread or agent behind the tab hydrates. */
 export function TabIcon({ tab }: { tab: IdeTab }) {
   if (tab.kind === 'file' && tab.path) {
     return <FileTypeIcon name={tab.path} className="size-3.5 shrink-0 opacity-70" />;
@@ -40,7 +38,6 @@ export function TabIcon({ tab }: { tab: IdeTab }) {
   }
   return <FileIcon className="size-3.5 shrink-0 opacity-70" />;
 }
-
 function ThreadTabIcon({ threadId }: { threadId: string }) {
   const thread = useThreadStore((state) => state.items.find((item) => item.id === threadId));
   const agent = useAgentStore((state) =>
@@ -68,8 +65,6 @@ function ThreadTabIcon({ threadId }: { threadId: string }) {
   }
   return <MessageSquareIcon className="size-3.5 shrink-0 opacity-70" />;
 }
-
-/** Reactive: file tabs resolve locally, thread tabs follow the thread store. */
 export function useTabLabel(tab: IdeTab): string {
   const title = useThreadStore((state) =>
     (tab.kind === 'thread' || tab.kind === 'schedule' || tab.kind === 'webhook') && tab.threadId
@@ -83,7 +78,7 @@ export function useTabLabel(tab: IdeTab): string {
     queryKey: terminalsQueryKey(tab.workspaceId),
     queryFn: () => listTerminals(tab.workspaceId),
     enabled: tab.kind === 'terminal' && Boolean(tab.terminalSessionId),
-    staleTime: 5_000,
+    staleTime: 5000,
   });
   if (tab.kind === 'file' && tab.path) {
     const parts = tab.path.split('/');

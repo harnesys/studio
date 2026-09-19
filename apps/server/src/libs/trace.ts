@@ -1,7 +1,5 @@
 import { TRACE_PREVIEW_LIMIT } from '../config/constants.ts';
 import { logger } from '../config/logger.ts';
-
-/** Run diagnostics: always lands in the NDJSON log file, console level decides visibility. */
 export function trace(scope: string, message: string, extra?: unknown): void {
   if (extra === undefined) {
     logger.trace({ scope }, message);
@@ -15,7 +13,6 @@ export function trace(scope: string, message: string, extra?: unknown): void {
   }
   logger.trace(bindings, message);
 }
-
 export function preview(value: unknown, limit = TRACE_PREVIEW_LIMIT): string {
   if (typeof value === 'string') {
     return value.length <= limit ? value : `${value.slice(0, limit)}…`;

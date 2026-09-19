@@ -7,7 +7,6 @@ type FileSelectionState = {
   visiblePaths: string[];
   filesActive: boolean;
 };
-
 type FileSelectionStore = FileSelectionState & {
   setWorkspace: (workspaceId: string | null) => void;
   setVisiblePaths: (paths: string[]) => void;
@@ -18,14 +17,12 @@ type FileSelectionStore = FileSelectionState & {
   setSelected: (paths: string[]) => void;
   clear: () => void;
 };
-
 export const useFileSelectionStore = create<FileSelectionStore>((set, _get) => ({
   workspaceId: null,
   selectedPaths: [],
   anchorPath: null,
   visiblePaths: [],
   filesActive: false,
-
   setWorkspace: (workspaceId) =>
     set((state) => {
       if (state.workspaceId === workspaceId) {
@@ -39,13 +36,9 @@ export const useFileSelectionStore = create<FileSelectionStore>((set, _get) => (
         filesActive: false,
       };
     }),
-
   setVisiblePaths: (paths) => set({ visiblePaths: paths }),
-
   setFilesActive: (active) => set({ filesActive: active }),
-
   selectSingle: (path) => set({ selectedPaths: [path], anchorPath: path }),
-
   togglePath: (path) =>
     set((state) => {
       const exists = state.selectedPaths.includes(path);
@@ -54,7 +47,6 @@ export const useFileSelectionStore = create<FileSelectionStore>((set, _get) => (
         : [...state.selectedPaths, path];
       return { selectedPaths: next, anchorPath: path };
     }),
-
   selectRange: (targetPath) =>
     set((state) => {
       const anchor = state.anchorPath;
@@ -72,9 +64,7 @@ export const useFileSelectionStore = create<FileSelectionStore>((set, _get) => (
       const slice = visible.slice(start, end + 1);
       return { selectedPaths: slice };
     }),
-
   setSelected: (paths) =>
     set({ selectedPaths: paths, anchorPath: paths[paths.length - 1] ?? null }),
-
   clear: () => set({ selectedPaths: [], anchorPath: null }),
 }));

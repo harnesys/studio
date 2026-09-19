@@ -21,33 +21,25 @@ import {
   relativeToRoot,
 } from './discover.ts';
 import { isPlainObject, type PathOverrideValue } from './manifest-result.ts';
-
 export type DiscoverExtrasOptions = {
   experimental?: Record<string, unknown>;
   lspOverride?: PathOverrideValue;
   lspServersInline?: unknown;
 };
-
 const INERT_DIRS: ReadonlyArray<readonly [string, PluginKind, string]> = [
   ['themes', 'theme', 'theme rendering is out of scope in v2'],
   ['output-styles', 'output-style', 'output styles are not rendered in v2'],
   ['workflows', 'workflow', 'workflow execution is out of scope in v2'],
   ['channels', 'channel', 'channels are out of scope in v2'],
 ];
-
-/** Настройки пакета, которым плагин может задавать дефолт; остальное ignore+warning. */
 const SETTING_DEFAULT_KEYS: ReadonlySet<string> = new Set(['agent', 'subagentStatusLine']);
-
-/**
- * Хвост discovery: `monitors/monitors.json` + `experimental.monitors` (inline или путь),
- * `bin/` → path-entry, `settings.json` → setting-default (только agent/subagentStatusLine),
- * инертные каталоги (themes/output-styles/workflows/channels/evals) и LSP
- * (`.lsp.json` Claude / `lsp.json` AP + inline `lspServers`).
- */
 export function discoverExtraComponents(
   ctx: DiscoverContext,
   options: DiscoverExtrasOptions,
-): { components: PluginComponent[]; diagnostics: PluginDiagnostic[] } {
+): {
+  components: PluginComponent[];
+  diagnostics: PluginDiagnostic[];
+} {
   const components: PluginComponent[] = [];
   const diagnostics: PluginDiagnostic[] = [];
   discoverMonitors(ctx, options.experimental, components, diagnostics);
@@ -57,14 +49,16 @@ export function discoverExtraComponents(
   discoverLsp(ctx, options, components, diagnostics);
   return { components, diagnostics };
 }
-
 function discoverMonitors(
   ctx: DiscoverContext,
   experimental: Record<string, unknown> | undefined,
   components: PluginComponent[],
   diagnostics: PluginDiagnostic[],
 ): void {
-  const sources: Array<{ raw: unknown; pointer: string }> = [];
+  const sources: Array<{
+    raw: unknown;
+    pointer: string;
+  }> = [];
   const filePath = path.join(ctx.root, 'monitors', 'monitors.json');
   if (isFile(filePath)) {
     const content = readFile(filePath, diagnostics);
@@ -120,7 +114,6 @@ function discoverMonitors(
         continue;
       }
       if (command.includes('${user_config.')) {
-        // ${user_config.*} в monitor.command запрещён: команда вычисляется вне exec-биндера.
         components.push({
           kind: 'monitor',
           spec: { raw: entry },
@@ -148,7 +141,6 @@ function discoverMonitors(
     }
   }
 }
-
 function normalizeMonitorEntries(raw: unknown): unknown[] {
   if (Array.isArray(raw)) {
     return raw;
@@ -158,7 +150,6 @@ function normalizeMonitorEntries(raw: unknown): unknown[] {
   }
   return [raw];
 }
-
 function discoverBin(ctx: DiscoverContext, components: PluginComponent[]): void {
   const binDir = path.join(ctx.root, 'bin');
   if (!isDirectory(binDir)) {
@@ -177,7 +168,6 @@ function discoverBin(ctx: DiscoverContext, components: PluginComponent[]): void 
     status: 'native',
   });
 }
-
 function discoverSettingDefaults(
   ctx: DiscoverContext,
   components: PluginComponent[],
@@ -222,7 +212,6 @@ function discoverSettingDefaults(
     });
   }
 }
-
 function discoverInertKinds(
   ctx: DiscoverContext,
   experimental: Record<string, unknown> | undefined,
@@ -253,7 +242,6 @@ function discoverInertKinds(
     });
   }
 }
-
 function discoverLsp(
   ctx: DiscoverContext,
   options: DiscoverExtrasOptions,
@@ -290,7 +278,6 @@ function discoverLsp(
     addLspServers(options.lspServersInline, 'lspServers (inline)', components, diagnostics);
   }
 }
-
 function addLspServers(
   raw: unknown,
   label: string,
@@ -309,8 +296,6 @@ function addLspServers(
     components.push(component);
   }
 }
-
-/** Inline-объект lspServers из path-override манифеста (Claude inline-определение). */
 export function lspInlineServers(override: PathOverrideValue | undefined): unknown {
   return overrideInlineObject(override);
 }

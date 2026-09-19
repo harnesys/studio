@@ -1,7 +1,5 @@
 import { Input } from '@/shared/ui/input';
-
 import type { PluginOptionDraft } from '../model/plugin-options';
-
 export function PluginOptionsFields({
   drafts,
   onChange,

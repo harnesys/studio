@@ -2,7 +2,6 @@ import type { UpsertWorkspaceMcpServerRequest } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
-
 import {
   confirmDeleteMcpServer,
   McpServerRow,
@@ -41,7 +40,6 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
     (liveQuery.data?.servers ?? []).map((server) => [server.serverId, server]),
   );
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
   async function invalidateMcp() {
     if (!workspaceId) {
       return;
@@ -51,7 +49,6 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
       queryClient.invalidateQueries({ queryKey: workspaceMcpQueryKey(workspaceId) }),
     ]);
   }
-
   const reload = useMutation({
     mutationFn: () => {
       if (!workspaceId) {
@@ -68,7 +65,6 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
       toast.add({ title: 'MCP reloaded' });
     },
   });
-
   const upsert = useMutation({
     mutationFn: (input: { serverId: string; body: UpsertWorkspaceMcpServerRequest }) => {
       if (!workspaceId) {
@@ -81,7 +77,6 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
       toast.add({ title: 'MCP server saved', description: result.server.serverId });
     },
   });
-
   const remove = useMutation({
     mutationFn: (serverId: string) => {
       if (!workspaceId) {
@@ -94,7 +89,6 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
       toast.add({ title: 'MCP server deleted', description: serverId });
     },
   });
-
   const approve = useMutation({
     mutationFn: (input: { pluginName: string; serverId: string }) =>
       approvePluginServer(workspaceId, input.pluginName, { serverId: input.serverId }),
@@ -110,7 +104,6 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
       });
     },
   });
-
   const setState = useMutation({
     mutationFn: (input: { serverId: string; enabled: boolean }) => {
       if (!workspaceId) {
@@ -137,7 +130,6 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
       });
     },
   });
-
   const restart = useMutation({
     mutationFn: (serverId: string) => {
       if (!workspaceId) {
@@ -159,10 +151,8 @@ export function McpPane({ workspaceId }: { workspaceId: string }) {
       });
     },
   });
-
   const stateBusy = setState.isPending || restart.isPending || approve.isPending;
   const editBusy = upsert.isPending || remove.isPending;
-
   return (
     <div className="flex flex-col gap-2" data-testid="mcp-pane">
       <RowHeader label="Servers" count={configQuery.isPending ? undefined : servers.length}>

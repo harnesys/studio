@@ -33,7 +33,6 @@ import type {
   LoadedWorkspacePlugin,
   WorkspaceHarnesysRegistry,
 } from './workspace-harnesys.registry.ts';
-
 export type StudioRunTargetsDeps = {
   threads: ThreadRepository;
   agents: AgentRepository;
@@ -46,14 +45,8 @@ export type StudioRunTargetsDeps = {
   runHookBuses: RunHookBuses;
   monitorJobs: MonitorJobRegistrar;
 };
-
 export class StudioRunTargets implements RunTargets {
   constructor(private readonly deps: StudioRunTargetsDeps) {}
-
-  /**
-   * Хук-шина для вне-рановых проходов (ручная компакция): те же грант-фильтрованные
-   * биндинги, что собрал бы ран этого треда. `undefined`, если биндингов нет.
-   */
   async ensureHooksForThread(threadId: string): Promise<HookEmitCtx | undefined> {
     const thread = this.deps.threads.findById(threadId);
     if (!thread) {
@@ -82,7 +75,6 @@ export class StudioRunTargets implements RunTargets {
       binDirs: collectBinDirs(plugins),
     });
   }
-
   async resolve(threadId: string): Promise<RunTarget | null> {
     await this.deps.branchSeeder.seedIfNeeded(threadId);
     const thread = this.deps.threads.findById(threadId);
@@ -105,8 +97,6 @@ export class StudioRunTargets implements RunTargets {
     if (!workspace) {
       return null;
     }
-    // Chain: thread metadata > agent default > ask; body mode was folded into
-    // thread metadata by SendThreadRunUseCase before the run is claimed.
     const runModeId = resolveModeId({
       threadMode: runModeFields(thread).runMode ?? null,
       defaultModeId: agentRow.defaultModeId ?? null,
@@ -117,10 +107,8 @@ export class StudioRunTargets implements RunTargets {
     try {
       hx = await this.deps.workspaceHarnesys.get(workspace);
     } catch {
-      // runtime creation failed (e.g. bad workspace mcp json): target unavailable
       return null;
     }
-    // After get(): the registry IR cache is warm, so `pluginName:agentName` ids resolve.
     const agent = this.deps.workspaceHarnesys.resolveAgentDefinition(agentRow.id);
     if (!agent) {
       return null;
@@ -130,8 +118,6 @@ export class StudioRunTargets implements RunTargets {
       hx,
       workspaceHarnesys: this.deps.workspaceHarnesys,
     });
-    // Pack `create()` runs here, outside a live run: same host-scope contract as
-    // the run-path resolver (the composition-root seam, spec 2026-09-15 §4).
     const fullUniverse: CapabilityUniverse = {
       ...universe,
       roster: this.deps.workspaceHarnesys.listScopedRoster(agent),
@@ -155,11 +141,7 @@ export class StudioRunTargets implements RunTargets {
     const hookBindings = composeHookBindings(plugins, agent, workspace.path);
     const binDirs = collectBinDirs(plugins);
     this.registerMonitorJobs(threadId, plugins);
-    // Single enforcement source: the same map gates tools and rides to the
-    // model as a volatile <permissions> note; hooks read the mode id.
     const permissions = permissionMapForRun(agentRow.permissions, mode);
-    // Host-assembled run bus only when hooks exist; otherwise the engine
-    // behaves as before (no bus, emitHook no-ops).
     const hooksEmit =
       hookBindings.length > 0
         ? this.deps.runHookBuses.ensure({
@@ -177,10 +159,6 @@ export class StudioRunTargets implements RunTargets {
       permissions,
       notes: [permissionPolicyNote(runModeId, permissions)],
       paths: { allow: [workspace.path], cwd: workspace.path },
-      // Single decision: the resolver assembled the run registry once; the
-      // engine's `capabilitySet` branch skips `resolveAgentIdentity`/pack create
-      // and rebuilds the graph's flat view from the set. `universe` lets spawn
-      // children resolve their own sets (sandboxed).
       capabilitySet,
       universe: fullUniverse,
       scope: { workspaceId: thread.workspaceId, agentId: thread.agentId, threadId },
@@ -189,7 +167,6 @@ export class StudioRunTargets implements RunTargets {
       binDirs,
     };
   }
-
   private registerMonitorJobs(threadId: string, plugins: LoadedWorkspacePlugin[]): void {
     for (const entry of plugins) {
       const jobs = bindMonitorComponents(entry.ir, {
@@ -202,8 +179,6 @@ export class StudioRunTargets implements RunTargets {
     }
   }
 }
-
-/** Plugin bindings (name order, spec §2.4) then agent bindings. */
 function composeHookBindings(
   plugins: LoadedWorkspacePlugin[],
   agent: AgentDefinition,
@@ -220,8 +195,6 @@ function composeHookBindings(
   ];
   return bindings.map(lowerSessionStartTimeout);
 }
-
-/** Спека §2.4: хост понижает SessionStart до 30s, чтобы старт рана не зависал на 600s. */
 function lowerSessionStartTimeout(binding: HookBinding): HookBinding {
   if (binding.event !== 'SessionStart' || binding.handler.type === 'inline') {
     return binding;
@@ -234,8 +207,6 @@ function lowerSessionStartTimeout(binding: HookBinding): HookBinding {
     handler: { ...binding.handler, timeoutS: PLUGIN_SESSION_START_HOOK_TIMEOUT_MS / 1000 },
   };
 }
-
-/** `bin/` path-entry dirs → RunTarget.binDirs (gated by the derived IR). */
 function collectBinDirs(plugins: LoadedWorkspacePlugin[]): string[] {
   const dirs: string[] = [];
   for (const entry of plugins) {
@@ -247,21 +218,12 @@ function collectBinDirs(plugins: LoadedWorkspacePlugin[]): string[] {
   }
   return dirs;
 }
-
-/**
- * Политика рана как volatile-нота. Карта берётся из контекста вызова —
- * это та же карта, что проверяет гейт: у спавнов там пересечение
- * (intersectPermissions), у handoff — карта рана. Фолбэк на claim-time
- * карту — для хостов без карты в контексте.
- */
 function permissionPolicyNote(modeId: string, permissions: PermissionMap): LlmNoteProvider {
   return (ctx) => {
     const map = ctx.permissions ?? permissions;
     return [{ tag: 'permissions', text: `mode=${modeId}\n${formatPolicyGates(map)}` }];
   };
 }
-
-/** Только управляемые режимом операции, в порядке MODE_OPS. */
 function formatPolicyGates(permissions: PermissionMap): string {
   const hints: Record<ModeOp, string> = {
     'fs.write': 'write_file, edit_file',

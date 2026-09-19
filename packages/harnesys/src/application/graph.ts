@@ -75,13 +75,17 @@ function isApprovedFalse(payload: unknown): boolean {
   return Boolean(
     payload &&
       typeof payload === 'object' &&
-      (payload as { approved?: unknown }).approved === false,
+      (
+        payload as {
+          approved?: unknown;
+        }
+      ).approved === false,
   );
 }
-
-type DanglingToolCall = { toolCallId: string; name: string };
-
-/** Answered calls: id присутствует в последующем tool-сообщении. */
+type DanglingToolCall = {
+  toolCallId: string;
+  name: string;
+};
 function collectUnansweredToolCalls(messages: unknown[]): DanglingToolCall[] {
   const asked: DanglingToolCall[] = [];
   const answered = new Set<string>();
@@ -117,10 +121,6 @@ function collectUnansweredToolCalls(messages: unknown[]): DanglingToolCall[] {
   }
   return asked.filter((c) => !answered.has(c.toolCallId));
 }
-
-/** Инвариант истории: у каждого tool-call должен быть результат, иначе следующий
- *  запрос провайдер отвергает («Tool result is missing»). Висящие вызовы (ран
- *  оборвался между step'ом модели и исполнением) закрываются синтетикой. */
 function repairDanglingToolCalls(messages: unknown[]): DanglingToolCall[] {
   const dangling = collectUnansweredToolCalls(messages);
   if (dangling.length === 0) {
@@ -136,7 +136,6 @@ function repairDanglingToolCalls(messages: unknown[]): DanglingToolCall[] {
   messages.push(...fixed);
   return dangling;
 }
-
 function normalizeInputAttachments(input: unknown): {
   text?: string;
   attachments?: Attachment[];
@@ -200,7 +199,6 @@ function normalizeInputAttachments(input: unknown): {
     origin: origin || undefined,
   };
 }
-
 function serializeToolResult(value: unknown): string {
   if (typeof value === 'string') {
     return value;
@@ -214,7 +212,6 @@ function serializeToolResult(value: unknown): string {
     return String(value);
   }
 }
-
 export type GraphOpts = {
   agent: AgentDefinition;
   input: unknown;
@@ -234,35 +231,26 @@ export type GraphOpts = {
   outputHint?: unknown;
   notes?: LlmNoteProvider[];
   packOutputs?: PackRunMap;
-  /** One-shot carrier: `runGraph` passes the host-resolved set to the engine's
-   *  prepare so `pack.create()` runs once per run; `startGraph` itself only
-   *  consumes the flat `toolRegistry`. */
   capabilitySet?: CapabilitySet;
-  /** Кадр резолвера от хоста: дети спавна/handoff собирают свои наборы против него
-   *  (`resolveCapabilitySet(childDef, sandboxUniverse(universe))`). */
   universe?: CapabilityUniverse;
-  /** FS skill registry; the catalog section is rendered per agent in llm.ts. */
   skills?: SkillRegistry;
-  /** Готовый env рана для tool-процессов (PATH = RunTarget.binDirs ++ process PATH);
-   *  отсутствие — тулы наследуют process env. */
   env?: Record<string, string>;
-  /** Шина хуков рана; идентичность резолвится в startGraph. */
   hooks?: HookEmitCtx;
   rejected?: boolean;
-  /** Ввод уже записан в лог (SessionHandle.send): core:start не коммитит user.message. */
   inputRecorded?: boolean;
-  stream?: { chunkIntervalMs?: number; chunkSize?: number };
+  stream?: {
+    chunkIntervalMs?: number;
+    chunkSize?: number;
+  };
   agents: AgentsResolve;
-  /** Вызывается из drain-цикла дочернего графа для каждого события ребёнка;
-   *  engine пишет в журнал треда под runId = spawnId. */
   childJournal?: (spawnId: string, ev: Event) => void;
-  /** Дочерний ран: ни один interrupt-источник не паркует ран, гейты отвечают deny. */
   sandbox?: boolean;
-  /** control:map worker context for $item / $index. */
-  mapContext?: { item: unknown; index: number };
+  mapContext?: {
+    item: unknown;
+    index: number;
+  };
   logger?: Logger;
 };
-
 function graphSlots(
   opts: GraphOpts,
   st: Record<string, unknown>,
@@ -281,7 +269,6 @@ function graphSlots(
   }
   return slots;
 }
-
 async function resolveFallbackBindings(
   agent: AgentDefinition,
   models: ProviderConfig[] | ModelsPort,
@@ -309,7 +296,6 @@ async function resolveFallbackBindings(
   }
   return bindings;
 }
-
 export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   let agent = opts.agent;
   let plan = opts.plan;
@@ -343,7 +329,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   if (isResumable && loaded?.cursor) {
     const curAny = loaded.cursor as {
       currentNodeId?: string;
-      nodes?: Record<string, { phase: string }>;
+      nodes?: Record<
+        string,
+        {
+          phase: string;
+        }
+      >;
     };
     if (typeof curAny.currentNodeId === 'string') {
       cur = curAny.currentNodeId;
@@ -367,7 +358,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   }
   const interruptSource = loaded?.cursor?.interrupt?.source;
   let output: unknown = opts.startNodeId === undefined ? null : (opts.outputHint ?? null);
-  // Шина рана с живой идентичностью: дальше по графу используется только она.
   const hooks = resolveHookCtx(opts.hooks, {
     sessionId: opts.state.sessionId,
     runId,
@@ -375,7 +365,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     threadId: opts.state.sessionId,
     cwd: opts.paths?.cwd ?? '',
   });
-  // SessionStart открывает ран: context-эффект доставляется через notes-канал.
   const hookNotes: LlmNote[] = [];
   const sessionStart = await emitHook(hooks, 'SessionStart', {
     source: isResumable ? 'resume' : 'startup',
@@ -384,9 +373,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
   if (sessionStartContext !== undefined) {
     hookNotes.push({ tag: 'hooks', text: sessionStartContext });
   }
-  // Бюджет живёт внутри одного запуска: новый запрос (статус completed/failed)
-  // начинает отсчёт заново, а прерванный (needs_input/running) продолжает —
-  // иначе дедлайн последнего рана срабатывает мгновенно при следующем сообщении.
   let steps = isResumable ? (loaded?.cursor?.budget?.steps ?? 0) : 0;
   let tokens = isResumable ? (loaded?.cursor?.budget?.tokens ?? 0) : 0;
   let t0 = isResumable ? (loaded?.cursor?.budget?.startedAt ?? Date.now()) : Date.now();
@@ -425,8 +411,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     });
     return ev;
   };
-  type BudgetOver = { kind: 'steps' | 'tokens' | 'deadline'; limit: number; used: number };
-
+  type BudgetOver = {
+    kind: 'steps' | 'tokens' | 'deadline';
+    limit: number;
+    used: number;
+  };
   function budgetOver(): BudgetOver | null {
     const b = agent.budget;
     if (!b) {
@@ -443,7 +432,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
     return null;
   }
-
   function budgetReason(over: BudgetOver): string {
     if (over.kind === 'steps') {
       return `Step budget of ${over.limit} reached`;
@@ -453,9 +441,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
     return `Deadline of ${over.limit}ms exceeded`;
   }
-
   async function budgetStop(over: BudgetOver): Promise<Event> {
-    // Прерывания в песочничном ребёнке невозможны: ask для него = error.
     const policy = opts.sandbox === true ? 'error' : (agent.budget?.policy ?? 'error');
     if (policy === 'ask') {
       const interruptId = `budget/${runId}/${cur}/${steps}`;
@@ -486,8 +472,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       used: over.used,
     });
   }
-
-  /** Закрыть висящие tool-calls синтетикой перед выходом из рана + события в журнал. */
   async function repairBeforeExit(): Promise<Event[]> {
     const msgs = st.messages;
     if (!Array.isArray(msgs)) {
@@ -505,13 +489,7 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     }
     return out;
   }
-
-  // Песочничный ребёнок: бюджет — условие сдачи, а не отказа. Оверран не валит
-  // ран, а вооружает единственный закрывающий generate без тулов; штатный путь
-  // — снимок тулов на последнем шаге (wrapDue) и отчёт вместо нового вызова.
   let closingArmed = false;
-  // Две супрессии: арминг (оверран до/между узлов) и чек после закрывающего
-  // generate. Третья — не графовый путь к отчёту, а петля: прежнее поведение.
   let wrapSuppressions = 0;
   function isSandboxWrap(): boolean {
     if (opts.sandbox !== true || wrapSuppressions >= 2) {
@@ -534,7 +512,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
     const b = agent.budget;
     return b.maxSteps !== undefined && b.maxSteps - steps <= 1;
   }
-
   function budgetLeftForPrompt(): BudgetLeft | undefined {
     const b = agent.budget;
     if (!b) {
@@ -574,7 +551,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       throw Object.assign(new Error(`unknown node ${cur}`), { code: 'no_matching_edge' });
     }
     const slots = graphSlots(opts, st, input, output);
-
     if (entryPending && cur === opts.startNodeId) {
       entryPending = false;
       if (
@@ -599,7 +575,11 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
             opts.resumePayload !== undefined &&
             typeof opts.resumePayload === 'object' &&
             opts.resumePayload !== null &&
-            (opts.resumePayload as { timedOut?: unknown }).timedOut === true;
+            (
+              opts.resumePayload as {
+                timedOut?: unknown;
+              }
+            ).timedOut === true;
           clearQueuedWait(st);
           yield await commit('running', 'wait.resumed', 'recorded', {
             nodeId: cur,
@@ -633,7 +613,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         continue;
       }
     }
-
     await emitHook(hooks, 'NodeStart', { node: { id: cur, type: node.type } });
     if (node.type === 'core:start') {
       output = { input };
@@ -652,7 +631,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           const content = normalized.text ?? '';
           const ups = await emitHook(hooks, 'UserPromptSubmit', { message: content });
           if (ups?.blocked) {
-            // Блок UserPromptSubmit: промпт не обрабатывается (паритет Claude).
             const e = await commit('failed', 'run.failed', 'recorded', {
               code: 'user_prompt_blocked',
               message: ups.blocked.reason,
@@ -699,7 +677,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         }
         const ups = await emitHook(hooks, 'UserPromptSubmit', { message: input });
         if (ups?.blocked) {
-          // Блок UserPromptSubmit: промпт не обрабатывается (паритет Claude).
           const e = await commit('failed', 'run.failed', 'recorded', {
             code: 'user_prompt_blocked',
             message: ups.blocked.reason,
@@ -718,8 +695,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const e = await commit('running', 'node.completed');
       yield e;
     } else if (node.type === 'core:end') {
-      // Висящие tool-calls закрываются до финала: история остаётся валидной
-      // для следующего запроса в этом треде.
       const msgsForRepair = st.messages;
       if (Array.isArray(msgsForRepair)) {
         for (const dangling of repairDanglingToolCalls(msgsForRepair)) {
@@ -731,7 +706,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           yield ev;
         }
       }
-      // Финал Graph-рана агентом: точка события Stop.
       await emitHook(hooks, 'Stop', {});
       let fin: unknown = output;
       if (typeof node.output === 'string') {
@@ -751,11 +725,29 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       output = fin;
       let doneText: string | undefined;
       if (typeof fin === 'object' && fin !== null && 'content' in fin) {
-        doneText = String((fin as { content: unknown }).content ?? '');
+        doneText = String(
+          (
+            fin as {
+              content: unknown;
+            }
+          ).content ?? '',
+        );
       } else if (typeof fin === 'string') {
         doneText = fin;
-      } else if (typeof (fin as { text?: unknown })?.text === 'string') {
-        doneText = String((fin as { text: unknown }).text);
+      } else if (
+        typeof (
+          fin as {
+            text?: unknown;
+          }
+        )?.text === 'string'
+      ) {
+        doneText = String(
+          (
+            fin as {
+              text: unknown;
+            }
+          ).text,
+        );
       }
       const e = await commit(
         'completed',
@@ -771,7 +763,12 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         prompt: string;
         messages?: string;
         tools?: string[];
-        model?: string | { provider: string; model: string };
+        model?:
+          | string
+          | {
+              provider: string;
+              model: string;
+            };
         output?: unknown;
       };
       if (ln.messages) {
@@ -781,7 +778,13 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       let fallbackBindings: ModelBinding[] = [];
       if (isPort(opts.models)) {
         const coords = resolveModelForPort(
-          ln.model as string | { provider: string; model: string } | undefined,
+          ln.model as
+            | string
+            | {
+                provider: string;
+                model: string;
+              }
+            | undefined,
           agent,
         );
         if (coords) {
@@ -866,8 +869,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           } else if (wrap) {
             notes.push(budgetNote({}, true));
           }
-          // Deferred-эффекты асинхронных хуков дренируются перед обращением
-          // к модели; hookNotes (SessionStart + deferred context) — sticky.
           if (hooks) {
             for (const eff of hooks.bus.drainDeferred()) {
               if (eff.kind === 'context') {
@@ -909,7 +910,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
               type: 'llm:generate',
               prompt: ln.prompt,
               messages: ln.messages,
-              // песочничная обёртка: последний шаг без тулов — только отчёт
               tools: wrap ? [] : ln.tools,
               model: ln.model as never,
               output: ln.output,
@@ -972,7 +972,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         if (key) {
           let arr = st[key] as unknown[] | undefined;
           if (!Array.isArray(arr)) {
-            const inp = input as { messages?: unknown };
+            const inp = input as {
+              messages?: unknown;
+            };
             arr = Array.isArray(inp?.messages) ? [...(inp.messages as unknown[])] : [];
             st[key] = arr;
           }
@@ -1030,7 +1032,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       }
     } else if (node.type === 'tool:call') {
       const tn = node as ToolCallFixed | ToolCallBatch;
-      // Управляющие интенты живут только при узле-исполнителе в плане этого агента.
       const planNodeTypes = collectPlanNodeTypes(plan.nodes);
       const needsIntent = (() => {
         const names: string[] = 'name' in tn && tn.name ? [tn.name] : [];
@@ -1043,7 +1044,9 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       if (needsIntent) {
         await commit('running', 'tool.intent', 'intent');
       }
-      let res: { results: ToolCallResult[] };
+      let res: {
+        results: ToolCallResult[];
+      };
       const outputBeforeBarrier = new Proxy((output as Record<string, unknown>) ?? {}, {
         get(target, prop, receiver) {
           if (prop === 'results') {
@@ -1124,7 +1127,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           name: r.name,
           output: outputStr,
         };
-        // try to include input if available from toolCalls
         const callInput = (() => {
           if ('name' in tn && typeof tn.name === 'string') {
             const fixed = tn as ToolCallFixed;
@@ -1150,7 +1152,10 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         yield e;
       }
     } else if (node.type === 'control:assign') {
-      const asn = node as { type: 'control:assign'; patch: Record<string, unknown> };
+      const asn = node as {
+        type: 'control:assign';
+        patch: Record<string, unknown>;
+      };
       const patched: string[] = [];
       for (const [k, v] of Object.entries(asn.patch)) {
         let ev: unknown = v;
@@ -1179,7 +1184,10 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       const e = await commit('running', 'node.completed');
       yield e;
     } else if (node.type === 'control:goto') {
-      const g = node as { type: 'control:goto'; target: string };
+      const g = node as {
+        type: 'control:goto';
+        target: string;
+      };
       let tgt: unknown;
       try {
         tgt = evalExpr(g.target, slots);
@@ -1208,7 +1216,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         reason: string;
         resumeSchema: JsonSchema;
       };
-      // Песочница: парковаться некому — ошибка ребёнка вместо needs_input.
       if (opts.sandbox) {
         const message = sandboxDenyText('interrupt', 'user input');
         const e = await commit('failed', 'run.failed', 'recorded', {
@@ -1253,7 +1260,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           slots,
           checkpoint,
         );
-        // Отказанные цели: per-item agent.failed с выдуманным spawnId, ран продолжается.
         for (const d of prepared.denied) {
           const e = await commit('running', 'agent.failed', 'recorded', {
             agentId: d.agentId,
@@ -1271,8 +1277,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           });
           yield e;
         }
-        // Пер-рёберный чекпоинт: генератор не может yield из коллбэка —
-        // события идут через очередь с wake-проомисом.
         const carried = prepared.carried.slice();
         const pending: Event[] = [];
         let wake: () => void = () => {};
@@ -1286,7 +1290,6 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
           { ...opts, agent, plan, input, toolRegistry, hooks },
           startGraph,
           (item) => {
-            // Коммиты сериализованы хвостом: параллельный пул зовёт коллбэк конкурентно.
             commitTail = commitTail.then(async () => {
               carried.push(item);
               st[STATE_SPAWN_RESULTS_KEY] = carried.slice();
@@ -1334,8 +1337,18 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         spawnOutcome = await spawnPromise;
       } catch (err) {
         const code =
-          err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
-            ? (err as { code: string }).code
+          err &&
+          typeof err === 'object' &&
+          typeof (
+            err as {
+              code?: unknown;
+            }
+          ).code === 'string'
+            ? (
+                err as {
+                  code: string;
+                }
+              ).code
             : 'spawn_failed';
         const message = err instanceof Error && err.message ? err.message : 'spawn failed';
         const e = await commit('failed', 'run.failed', 'recorded', { code, message });
@@ -1358,8 +1371,18 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         );
       } catch (err) {
         const code =
-          err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
-            ? (err as { code: string }).code
+          err &&
+          typeof err === 'object' &&
+          typeof (
+            err as {
+              code?: unknown;
+            }
+          ).code === 'string'
+            ? (
+                err as {
+                  code: string;
+                }
+              ).code
             : 'handoff_target';
         const message = err instanceof Error && err.message ? err.message : 'handoff failed';
         clearQueuedHandoff(st);
@@ -1431,8 +1454,18 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
       } catch (err) {
         clearQueuedMap(st);
         const code =
-          err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
-            ? (err as { code: string }).code
+          err &&
+          typeof err === 'object' &&
+          typeof (
+            err as {
+              code?: unknown;
+            }
+          ).code === 'string'
+            ? (
+                err as {
+                  code: string;
+                }
+              ).code
             : 'map_failed';
         const message = err instanceof Error && err.message ? err.message : 'map failed';
         if (code === 'map_timeout') {
@@ -1459,8 +1492,18 @@ export async function* startGraph(opts: GraphOpts): AsyncIterable<Event> {
         preparedWait = prepareWait(node as WaitNodeSpec, slots);
       } catch (err) {
         const code =
-          err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
-            ? (err as { code: string }).code
+          err &&
+          typeof err === 'object' &&
+          typeof (
+            err as {
+              code?: unknown;
+            }
+          ).code === 'string'
+            ? (
+                err as {
+                  code: string;
+                }
+              ).code
             : 'wait_failed';
         const message = err instanceof Error && err.message ? err.message : 'wait failed';
         const e = await commit('failed', 'run.failed', 'recorded', { code, message });

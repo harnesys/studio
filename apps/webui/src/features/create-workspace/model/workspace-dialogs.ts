@@ -1,7 +1,5 @@
 import { dialog } from '@/shared/services/overlay';
-
 import { WorkspaceDetailsDialog } from '../ui/workspace-details-dialog';
-
 export function openCreateWorkspaceDialog() {
   return dialog.open(WorkspaceDetailsDialog, {
     title: 'New workspace',

@@ -1,6 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import type * as React from 'react';
-
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -19,7 +18,6 @@ function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 const inputGroupAddonVariants = cva(
   "flex h-auto cursor-text select-none items-center justify-center gap-2 py-1.5 font-medium text-muted-foreground text-sm group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-4",
   {
@@ -38,7 +36,6 @@ const inputGroupAddonVariants = cva(
     },
   },
 );
-
 function InputGroupAddon({
   className,
   align = 'inline-start',
@@ -60,7 +57,6 @@ function InputGroupAddon({
     />
   );
 }
-
 const inputGroupButtonVariants = cva('flex items-center gap-2 text-sm shadow-none', {
   variants: {
     size: {
@@ -74,7 +70,6 @@ const inputGroupButtonVariants = cva('flex items-center gap-2 text-sm shadow-non
     size: 'xs',
   },
 });
-
 function InputGroupButton({
   className,
   type = 'button',
@@ -95,7 +90,6 @@ function InputGroupButton({
     />
   );
 }
-
 function InputGroupText({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
@@ -107,7 +101,6 @@ function InputGroupText({ className, ...props }: React.ComponentProps<'span'>) {
     />
   );
 }
-
 function InputGroupInput({ className, ...props }: React.ComponentProps<'input'>) {
   return (
     <Input
@@ -120,7 +113,6 @@ function InputGroupInput({ className, ...props }: React.ComponentProps<'input'>)
     />
   );
 }
-
 function InputGroupTextarea({ className, ...props }: React.ComponentProps<'textarea'>) {
   return (
     <Textarea

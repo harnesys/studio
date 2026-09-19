@@ -2,7 +2,6 @@ import type { PluginCatalogEntry } from '@harnesys/studio-shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SearchIcon, XIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-
 import { openInstallCatalogPluginDialog } from '@/features/manage-plugins';
 import {
   pluginCatalogQuery,
@@ -18,7 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/shared/ui/toast';
 
 const FILTER_ALL = 'all';
-
 export function PluginsDiscoverTab({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState('');
@@ -26,12 +24,10 @@ export function PluginsDiscoverTab({ workspaceId }: { workspaceId: string }) {
   const [categoryFilter, setCategoryFilter] = useState<string>(FILTER_ALL);
   const [formatFilter, setFormatFilter] = useState<string>(FILTER_ALL);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQ(q.trim()), 300);
     return () => clearTimeout(timer);
   }, [q]);
-
   const registriesQuery = useQuery(pluginRegistriesQuery());
   const catalogQuery = useQuery(pluginCatalogQuery({ q: debouncedQ || undefined }));
   const registryNames = useMemo(() => {
@@ -41,7 +37,6 @@ export function PluginsDiscoverTab({ workspaceId }: { workspaceId: string }) {
     }
     return map;
   }, [registriesQuery.data]);
-
   const catalogEntries = catalogQuery.data ?? [];
   const categories = useMemo(
     () =>
@@ -59,16 +54,13 @@ export function PluginsDiscoverTab({ workspaceId }: { workspaceId: string }) {
       (categoryFilter === FILTER_ALL || entry.category === categoryFilter) &&
       (formatFilter === FILTER_ALL || (entry.format ?? 'unknown') === formatFilter),
   );
-
   async function onInstalled(name: string) {
     await queryClient.invalidateQueries({ queryKey: pluginsQueryKeyFor(workspaceId) });
     await queryClient.invalidateQueries({ queryKey: pluginCatalogQueryKey });
     toast.add({ title: 'Plugin installed', description: name });
   }
-
   const loading = catalogQuery.isPending || registriesQuery.isPending;
   const showSearch = catalogEntries.length > 0;
-
   return (
     <div className="flex flex-col gap-4" data-testid="plugins-discover-tab">
       <div className="flex flex-wrap items-center gap-2">
@@ -217,7 +209,6 @@ export function PluginsDiscoverTab({ workspaceId }: { workspaceId: string }) {
     </div>
   );
 }
-
 function catalogDescription(entry: PluginCatalogEntry): string {
   if (entry.description) {
     return entry.description;
@@ -230,8 +221,6 @@ function catalogDescription(entry: PluginCatalogEntry): string {
   }
   return 'No description';
 }
-
-/** Where Install would pull from, as label/value lines for the expand area. */
 function installSourceLines(entry: PluginCatalogEntry): [string, string][] {
   const source = entry.installSource;
   if (!source) {
@@ -270,7 +259,6 @@ function installSourceLines(entry: PluginCatalogEntry): [string, string][] {
       ];
   }
 }
-
 function CatalogRow({
   workspaceId,
   entry,

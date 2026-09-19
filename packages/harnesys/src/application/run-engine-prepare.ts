@@ -17,8 +17,6 @@ type HitlAnswer = {
   payload?: unknown;
   rejected?: boolean;
 };
-
-/** Run env for tool processes: full process env with binDirs prepended to PATH. */
 function composeRunEnv(binDirs: string[] | undefined): Record<string, string> | undefined {
   if (binDirs === undefined || binDirs.length === 0) {
     return undefined;
@@ -33,19 +31,15 @@ function composeRunEnv(binDirs: string[] | undefined): Record<string, string> | 
   env.PATH = [...binDirs, processPath].filter((part) => part !== '').join(':');
   return env;
 }
-
-/** Hook envBase keeps its minimal shape; only the composed PATH lands there. */
 function hookEnvBase(runEnv: Record<string, string> | undefined): Record<string, string> {
   return runEnv?.PATH !== undefined ? { PATH: runEnv.PATH } : {};
 }
-
 type UserInput = {
   text: string;
   attachments?: Attachment[];
   origin?: string;
   effort?: string;
 };
-
 async function findLastAnswer(deps: RunEngineDeps, runId: string): Promise<HitlAnswer | null> {
   const history = await deps.events.tail(runId, 0);
   let last: HitlAnswer | null = null;
@@ -56,7 +50,6 @@ async function findLastAnswer(deps: RunEngineDeps, runId: string): Promise<HitlA
   }
   return last;
 }
-
 async function findFirstUser(deps: RunEngineDeps, runId: string): Promise<UserInput | null> {
   const history = await deps.events.tail(runId, 0);
   for (const event of history) {
@@ -71,7 +64,6 @@ async function findFirstUser(deps: RunEngineDeps, runId: string): Promise<UserIn
   }
   return null;
 }
-
 function withMessageEffort(agent: AgentDefinition, effort: string | undefined): AgentDefinition {
   if (!effort || !agent.model) {
     return agent;
@@ -81,19 +73,15 @@ function withMessageEffort(agent: AgentDefinition, effort: string | undefined): 
     model: { ...agent.model, effort },
   };
 }
-
 export type PrepareExecuteGraphOptsArgs = {
   deps: RunEngineDeps;
   opts: RunTargetOpts;
   runId: string;
   signal: AbortSignal;
-  /** Per-run hook buses; segments reuse the bus, terminal run closes it (run-engine). */
   hookCache: Map<string, HookEmitCtx>;
   runLogger: Logger;
   childJournal: (spawnId: string, ev: Event) => void;
 };
-
-/** HITL/user lookup, compile, tool registry, packs, hook bus → GraphOpts for one segment. */
 export async function prepareExecuteGraphOpts(
   args: PrepareExecuteGraphOptsArgs,
 ): Promise<GraphOpts> {
@@ -111,15 +99,12 @@ export async function prepareExecuteGraphOpts(
   let runRegistry: Map<string, ToolDefinition>;
   let packOutputs: PackRunMap;
   if (opts.capabilitySet !== undefined) {
-    // Prepared run: the host resolver already filtered/granted; entries carry exposure.
     runRegistry = new Map();
     for (const [name, entry] of opts.capabilitySet.registry) {
       runRegistry.set(name, { ...entry.def, exposure: entry.exposure });
     }
     packOutputs = opts.capabilitySet.packOutputs;
   } else {
-    // Legacy host without a capabilitySet: the same resolver through the identity
-    // wrapper; segment cache no longer exists — the set is freshly assembled here.
     const identity = resolveAgentIdentity(agent, {
       baseRegistry: deps.toolRegistry,
       registrations: opts.packs ?? deps.packRegistrations ?? [],
@@ -139,8 +124,6 @@ export async function prepareExecuteGraphOpts(
     } else {
       const bindings = [...(deps.hooks ?? []), ...(opts.hooks ?? [])];
       if (bindings.length > 0) {
-        // envBase — шов хоста (E2): HARNESSYS_PLUGIN_OPTION_* составляются хостом.
-        // PATH рана (binDirs ++) добавляется поверх пустой базы.
         hooksEmit = {
           bus: createHookBus({
             bindings,
@@ -160,8 +143,6 @@ export async function prepareExecuteGraphOpts(
   return {
     agent,
     input: answer === null ? (user ?? snap?.initialInput ?? null) : null,
-    // Ввод уже записан в лог жизненным циклом (SessionHandle.send):
-    // граф не должен коммитить user.message второй раз.
     inputRecorded: answer === null && user !== null,
     state: opts.state,
     permissions: opts.permissions,

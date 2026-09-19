@@ -2,32 +2,18 @@ import type { MonitorJobSpec } from 'harnesys';
 import type { MonitorJobRegistrar, MonitorJobRegistration } from '../domain/monitor-jobs.port.ts';
 
 export type { MonitorJobRegistration };
-
 export type MonitorJobRegistrarDeps = {
-  /** stdout line → Notification on the thread's run bus. */
   notify: (threadId: string, text: string, type: string) => void;
   warn?: (message: string) => void;
 };
-
 type RunningJob = {
   key: string;
   name: string;
   pid: number;
 };
-
-/**
- * Spawns plugin monitor jobs for an active run and pipes stdout lines into
- * the run bus as `monitor:<name>` Notifications (spec §3 monitor). Jobs are
- * deduped per thread while the run lives; `deregister` group-kills them on
- * the run-finish desk event. Nothing persists across server restarts.
- * `when: on-skill-invoke:<skill>` jobs register without starting: the
- * skill-invoke activation seam is not wired in v2 (PLUGIN-V2-GAPS.md).
- */
 export class MonitorJobRegistrarAdapter implements MonitorJobRegistrar {
   private readonly running = new Map<string, Map<string, RunningJob>>();
-
   constructor(private readonly deps: MonitorJobRegistrarDeps) {}
-
   register(input: MonitorJobRegistration): void {
     let jobs = this.running.get(input.threadId);
     if (jobs === undefined) {
@@ -47,7 +33,6 @@ export class MonitorJobRegistrarAdapter implements MonitorJobRegistrar {
       jobs.set(key, spawned);
     }
   }
-
   deregister(threadId: string): void {
     const jobs = this.running.get(threadId);
     if (jobs === undefined) {
@@ -61,7 +46,6 @@ export class MonitorJobRegistrarAdapter implements MonitorJobRegistrar {
       killProcessGroup(job.pid);
     }
   }
-
   private spawn(key: string, job: MonitorJobSpec, input: MonitorJobRegistration): RunningJob {
     const warn = this.deps.warn ?? (() => {});
     const argv = tokenize(job.command);
@@ -93,7 +77,6 @@ export class MonitorJobRegistrarAdapter implements MonitorJobRegistrar {
     });
     return running;
   }
-
   private async pipeLines(
     proc: Bun.Subprocess<'ignore', 'pipe', 'pipe'>,
     threadId: string,
@@ -118,20 +101,10 @@ export class MonitorJobRegistrarAdapter implements MonitorJobRegistrar {
           newline = buffer.indexOf('\n');
         }
       }
-    } catch {
-      // process killed or stream closed — deregistration handles the rest
-    }
+    } catch {}
   }
 }
-
-/** Placeholder for registered-but-not-started jobs (`on-skill-invoke`). */
 const PENDING: RunningJob = { key: '', name: '', pid: -1 };
-
-/**
- * Tokenize a monitor command without a shell: double/single quotes are
- * literals, whitespace splits; shell metacharacters anywhere → reject
- * (same no-shell rule as hook command handlers, spec §2.2).
- */
 function tokenize(command: string): string[] | undefined {
   const tokens: string[] = [];
   let current = '';
@@ -171,8 +144,6 @@ function tokenize(command: string): string[] | undefined {
   }
   return tokens.length > 0 ? tokens : undefined;
 }
-
-/** Group kill `kill(-pid, SIGKILL)` with `kill(pid)` fallback (spec §2.2 п.2). */
 function killProcessGroup(pid: number): void {
   if (pid <= 0) {
     return;
@@ -187,21 +158,15 @@ function killProcessGroup(pid: number): void {
     }
   }
 }
-
 async function drain(stream: ReadableStream<Uint8Array> | undefined): Promise<void> {
   if (stream === undefined) {
     return;
   }
   try {
     const reader = stream.getReader();
-    while ((await reader.read()).done === false) {
-      // discarded
-    }
-  } catch {
-    // ignore
-  }
+    while ((await reader.read()).done === false) {}
+  } catch {}
 }
-
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.length > 0 ? error.message : String(error);
 }

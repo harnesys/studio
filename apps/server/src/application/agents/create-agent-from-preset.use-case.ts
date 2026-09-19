@@ -6,24 +6,19 @@ import type { ValidateAgentConfigInput } from '../capabilities/validate-agent-co
 import { type CreateAgentInput, DEFAULT_REACT_BUDGET } from './create-agent.use-case.ts';
 import { uniqueAgentName } from './unique-agent-name.ts';
 
-/** Preset id → child preset ids seeded as spawn delegates under the new parent. */
 const PRESET_DELEGATES: Record<string, readonly string[]> = {
   assistant: ['explorer', 'general'],
   orchestrator: ['explorer', 'general'],
   coder: ['explorer'],
 };
-
 export type CreateAgentFromPresetRequest = {
   workspaceId: string;
   presetId: string;
-  /** When set, create a single delegate under this top-level agent (no nested seeds). */
   parentId?: string | null;
 };
-
 export type CreateAgentFromPresetInput = {
   execute(request: CreateAgentFromPresetRequest): Promise<Agent>;
 };
-
 type PresetChildInput = {
   workspaceId: string;
   parentId: string | null;
@@ -38,14 +33,12 @@ type PresetChildInput = {
   modelId: string | null;
   graph: AgentGraph | undefined;
 };
-
 export class CreateAgentFromPresetUseCase implements CreateAgentFromPresetInput {
   constructor(
     private readonly agents: AgentRepository,
     private readonly createAgent: CreateAgentInput,
     private readonly validateConfig: ValidateAgentConfigInput,
   ) {}
-
   async execute(request: CreateAgentFromPresetRequest): Promise<Agent> {
     const parentId = request.parentId ?? null;
     const preset = readAgentPreset(request.presetId);
@@ -53,20 +46,13 @@ export class CreateAgentFromPresetUseCase implements CreateAgentFromPresetInput 
     const created = await this.createAgent.execute(
       this.buildInput(request.workspaceId, preset, parent ?? null),
     );
-
     if (parentId) {
       return created;
     }
-
     const childPresetIds = PRESET_DELEGATES[request.presetId] ?? [];
     if (childPresetIds.length === 0) {
       return created;
     }
-    // All-or-nothing bundle: pre-validate every child against the fresh parent,
-    // then create. Modes ride along unvalidated here — `create` seeds
-    // installedByDefault modes ⊆ child sources, so the subset verdict cannot
-    // change there; the full check still runs inside each `create`.
-    // Any failure rolls the whole bundle back; nothing half-created stays.
     const childInputs = childPresetIds.map((childPresetId) =>
       this.buildInput(request.workspaceId, readAgentPreset(childPresetId), created),
     );
@@ -94,7 +80,6 @@ export class CreateAgentFromPresetUseCase implements CreateAgentFromPresetInput 
     }
     return created;
   }
-
   private buildInput(
     workspaceId: string,
     preset: AgentPreset,

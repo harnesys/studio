@@ -7,7 +7,6 @@ import { FilesWatcherAdapter } from '../workspace/files-watcher.adapter.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
 import type { KnowledgeIndexer } from './knowledge-indexer.ts';
 import { uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
-
 export type KnowledgeWatchBridgeOptions = {
   workspaces: WorkspaceRepository;
   indexRepo: SqliteKnowledgeIndexRepo;
@@ -15,26 +14,20 @@ export type KnowledgeWatchBridgeOptions = {
   listEnabledRoots: (workspaceId: string) => string[];
   filesWatcher?: FilesWatcherInput;
 };
-
 export class KnowledgeWatchBridge {
   private readonly filesWatcher: FilesWatcherInput;
   private readonly stops = new Map<string, () => void>();
-
   constructor(private readonly options: KnowledgeWatchBridgeOptions) {
     this.filesWatcher = options.filesWatcher ?? new FilesWatcherAdapter();
   }
-
   start(): void {
     for (const workspace of this.options.workspaces.list()) {
       this.options.indexRepo.purgeByFirstSegment(workspace.id, SAFETY_NAMES);
       const settings = this.options.indexRepo.getSettingsOrDefault(workspace.id);
       this.syncWatch(workspace.id, settings.watchEnabled);
     }
-    // Periodic ensure for workspaces created after start (CreateWorkspaceUseCase doesn't call syncWatch)
     setInterval(() => this.ensureAllWatched(), KNOWLEDGE_WATCH_ENSURE_INTERVAL_MS).unref?.();
   }
-
-  /** Ensure every workspace with watchEnabled has a watcher; fixes "new workspace not watched" */
   private ensureAllWatched(): void {
     for (const workspace of this.options.workspaces.list()) {
       const settings = this.options.indexRepo.getSettingsOrDefault(workspace.id);
@@ -46,7 +39,6 @@ export class KnowledgeWatchBridge {
       }
     }
   }
-
   syncWatch(workspaceId: string, watchEnabled: boolean): void {
     if (!watchEnabled) {
       this.stopWatch(workspaceId);
@@ -69,13 +61,11 @@ export class KnowledgeWatchBridge {
     });
     this.stops.set(workspaceId, stop);
   }
-
   stop(): void {
     for (const workspaceId of [...this.stops.keys()]) {
       this.stopWatch(workspaceId);
     }
   }
-
   private stopWatch(workspaceId: string): void {
     const stop = this.stops.get(workspaceId);
     if (!stop) {
@@ -84,7 +74,6 @@ export class KnowledgeWatchBridge {
     stop();
     this.stops.delete(workspaceId);
   }
-
   private onFsEvent(workspaceId: string, event: WorkspaceFileEvent): void {
     const rel = event.dir ? `${event.dir}/${event.name}` : event.name;
     if (!rel) {

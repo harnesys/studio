@@ -1,6 +1,5 @@
 import type { KnowledgeRootRecord } from '@harnesys/studio-shared';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
-
 import {
   confirmDeleteKnowledgeRoot,
   openAddKnowledgeRootDialog,
@@ -18,7 +17,6 @@ type KnowledgeRootsListProps = {
   onUpsert: (body: { path: string; enabled: boolean }) => void;
   onRemove: (path: string) => void;
 };
-
 export function KnowledgeRootsList({
   roots,
   loading,

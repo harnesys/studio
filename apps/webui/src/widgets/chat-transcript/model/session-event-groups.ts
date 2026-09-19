@@ -1,15 +1,19 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-
-export type ToolCallEvent = SessionEvent & { type: 'tool' };
-
-export type AskEvent = SessionEvent & { type: 'ask' };
-
+export type ToolCallEvent = SessionEvent & {
+  type: 'tool';
+};
+export type AskEvent = SessionEvent & {
+  type: 'ask';
+};
 export type ToolEventPair = {
-  call: ToolCallEvent & { phase: 'requested' | 'streaming' };
-  result?: ToolCallEvent & { phase: 'completed' | 'failed' };
+  call: ToolCallEvent & {
+    phase: 'requested' | 'streaming';
+  };
+  result?: ToolCallEvent & {
+    phase: 'completed' | 'failed';
+  };
   ask?: AskEvent;
 };
-
 export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
   const pairs = new Map<string, ToolEventPair>();
   for (const ev of events) {
@@ -19,7 +23,10 @@ export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
     const existing = pairs.get(ev.toolCallId);
     if (ev.phase === 'requested') {
       pairs.set(ev.toolCallId, {
-        call: ev as SessionEvent & { type: 'tool'; phase: 'requested' },
+        call: ev as SessionEvent & {
+          type: 'tool';
+          phase: 'requested';
+        },
         result: existing?.result,
         ask: existing?.ask,
       });
@@ -30,18 +37,26 @@ export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
           ...existing.call,
           name: ev.name || existing.call.name,
           delta: mergedDelta,
-        } as SessionEvent & { type: 'tool'; phase: 'streaming' };
+        } as SessionEvent & {
+          type: 'tool';
+          phase: 'streaming';
+        };
       } else {
         pairs.set(ev.toolCallId, {
-          call: ev as SessionEvent & { type: 'tool'; phase: 'streaming' },
+          call: ev as SessionEvent & {
+            type: 'tool';
+            phase: 'streaming';
+          },
           result: undefined,
         });
       }
     } else if (ev.phase === 'completed' || ev.phase === 'failed') {
       if (existing) {
-        existing.result = ev as SessionEvent & { type: 'tool'; phase: 'completed' | 'failed' };
+        existing.result = ev as SessionEvent & {
+          type: 'tool';
+          phase: 'completed' | 'failed';
+        };
       } else {
-        // tool completed without prior streaming/requested (e.g. buffered) — create pair
         pairs.set(ev.toolCallId, {
           call: {
             type: 'tool',
@@ -49,15 +64,20 @@ export function groupToolPairs(events: SessionEvent[]): ToolEventPair[] {
             toolCallId: ev.toolCallId,
             name: ev.name,
             input: ev.input,
-          } as SessionEvent & { type: 'tool'; phase: 'requested' },
-          result: ev as SessionEvent & { type: 'tool'; phase: 'completed' | 'failed' },
+          } as SessionEvent & {
+            type: 'tool';
+            phase: 'requested';
+          },
+          result: ev as SessionEvent & {
+            type: 'tool';
+            phase: 'completed' | 'failed';
+          },
         });
       }
     }
   }
   return [...pairs.values()];
 }
-
 export function askToolCallId(event: SessionEvent): string | null {
   if (event.type !== 'ask') {
     return null;
@@ -72,7 +92,6 @@ export function askToolCallId(event: SessionEvent): string | null {
   }
   return null;
 }
-
 export function attachAsksToPairs(pairs: ToolEventPair[], events: SessionEvent[]): ToolEventPair[] {
   const askByCall = new Map<string, AskEvent>();
   for (const ev of events) {
@@ -97,13 +116,16 @@ export function toolInput(pair: ToolEventPair): string {
   if (input != null) {
     return typeof input === 'string' ? input : JSON.stringify(input);
   }
-  const delta = (pair.call as { delta?: string }).delta;
+  const delta = (
+    pair.call as {
+      delta?: string;
+    }
+  ).delta;
   if (typeof delta === 'string' && delta) {
     return delta;
   }
   return '';
 }
-
 export function toolOutput(pair: ToolEventPair): string {
   if (!pair.result) {
     return '';
@@ -114,11 +136,9 @@ export function toolOutput(pair: ToolEventPair): string {
   }
   return typeof output === 'string' ? output : JSON.stringify(output);
 }
-
 export function isToolFailed(pair: ToolEventPair): boolean {
   return pair.result?.phase === 'failed';
 }
-
 export function isToolDone(pair: ToolEventPair): boolean {
   return pair.result != null;
 }

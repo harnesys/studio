@@ -1,10 +1,7 @@
 import type { DiscoveredModel, ModelRecord, ProviderModelPublic } from '@harnesys/studio-shared';
-
 import { alert, dialog } from '@/shared/services/overlay';
-
 import { AddModelDialog, EditModelDialog } from '../ui/model-dialogs';
 import { modelFieldsFrom } from './model-fields';
-
 export function openEditModelDialog(row: {
   name?: string;
   saved: boolean;
@@ -24,7 +21,6 @@ export function openEditModelDialog(row: {
     },
   });
 }
-
 export function openAddModelDialog() {
   return dialog.open(AddModelDialog, {
     title: 'Add model',
@@ -32,7 +28,6 @@ export function openAddModelDialog() {
     className: 'sm:max-w-lg',
   });
 }
-
 export function confirmDetachModel(name: string) {
   return alert.confirm({
     title: `Detach ${name}?`,

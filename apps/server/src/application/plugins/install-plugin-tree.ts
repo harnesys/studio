@@ -20,7 +20,6 @@ import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { invalidatePluginWorkspaces, type LspByWorkspace } from './invalidate-plugin-workspaces.ts';
 import { prepareCatalogCheckout } from './materialize-catalog-plugin.ts';
 import { toPluginSummary } from './plugin-summary.ts';
-
 export type TreeInstallArgs = {
   workspaceId: string;
   from: string;
@@ -31,7 +30,6 @@ export type TreeInstallArgs = {
   preferredName: string;
   marketplaceRoot?: string;
 };
-
 export type MaterializedInstallArgs = {
   workspaceId: string;
   installSource: RemoteCatalogSource;
@@ -40,12 +38,6 @@ export type MaterializedInstallArgs = {
   catalogPluginName: string;
   marketplaceRoot: string;
 };
-
-/**
- * Turns a plugin tree (plain copy or materialized npm/archive source) into an
- * install record: conflict check, catalog manifest materialization, load, rename
- * to the manifest name, record upsert. Failed installs clean up after themselves.
- */
 export class PluginTreeInstaller {
   constructor(
     private readonly plugins: PluginRepository,
@@ -53,7 +45,6 @@ export class PluginTreeInstaller {
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly lspByWorkspace?: LspByWorkspace,
   ) {}
-
   async fromMaterialized(args: MaterializedInstallArgs): Promise<PluginMutationResponse> {
     const root = this.workspacePath(args.workspaceId);
     const staged = `${workspacePluginInstallPath(root, args.catalogPluginName)}__materialize`;
@@ -74,7 +65,6 @@ export class PluginTreeInstaller {
       await removePluginPath(staged).catch(() => undefined);
     }
   }
-
   async fromCopiedTree(args: TreeInstallArgs): Promise<PluginMutationResponse> {
     const root = this.workspacePath(args.workspaceId);
     const dest = workspacePluginInstallPath(root, args.preferredName);
@@ -127,7 +117,6 @@ export class PluginTreeInstaller {
       throw err;
     }
   }
-
   async finalize(args: {
     workspaceId: string;
     checkout: string;
@@ -164,7 +153,6 @@ export class PluginTreeInstaller {
     } else if (this.plugins.findByName(args.workspaceId, name)) {
       throw new ConflictError(`plugin ${name} already exists`);
     }
-
     const now = new Date().toISOString();
     const dataPath = workspacePluginDataPath(root, name);
     const record: PluginInstallRecord = {
@@ -195,7 +183,6 @@ export class PluginTreeInstaller {
       diagnostics: loaded.diagnostics,
     };
   }
-
   private workspacePath(workspaceId: string): string {
     const row = this.workspaces.findById(workspaceId);
     if (!row) {
@@ -204,12 +191,9 @@ export class PluginTreeInstaller {
     return row.path;
   }
 }
-
 function repoNameFromPath(path: string): string {
   return path.split(/[/\\]/).filter(Boolean).at(-1) ?? 'plugin';
 }
-
-/** Diagnostics collected against the pre-rename checkout point at the final install dir. */
 function rewriteStagedDiagPaths(
   diagnostics: PluginDiagnostic[],
   staged: string,

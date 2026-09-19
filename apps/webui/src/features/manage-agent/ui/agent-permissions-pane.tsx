@@ -1,13 +1,14 @@
 import type { ModeOp } from '@harnesys/studio-shared';
 import type { PermissionGate, PermissionMap } from 'harnesys';
-
 import { Pane, RowList } from '@/shared/ui/capability-rows';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import { PERM_OPS } from '../model/agent-permissions';
 
-type PermissionRowSpec = { op: ModeOp; label: string; description: string };
-
+type PermissionRowSpec = {
+  op: ModeOp;
+  label: string;
+  description: string;
+};
 const PERMISSION_ROWS: PermissionRowSpec[] = [
   { op: 'fs.write', label: 'File writes', description: 'Create and edit files in the workspace' },
   { op: 'process', label: 'Shell', description: 'Run commands on the machine' },
@@ -19,13 +20,11 @@ const PERMISSION_ROWS: PermissionRowSpec[] = [
     description: 'Add agents and subagents to the workspace',
   },
 ];
-
 type AgentPermissionsPaneProps = {
   value: PermissionMap | null;
   onChange: (next: PermissionMap) => void;
   isDelegate: boolean;
 };
-
 export function AgentPermissionsPane({ value, onChange, isDelegate }: AgentPermissionsPaneProps) {
   const rows = isDelegate
     ? PERMISSION_ROWS.filter((row) => PERM_OPS.includes(row.op))
@@ -56,7 +55,6 @@ export function AgentPermissionsPane({ value, onChange, isDelegate }: AgentPermi
     </Pane>
   );
 }
-
 function PermissionRow({
   spec,
   gate,
@@ -95,7 +93,6 @@ function PermissionRow({
     </div>
   );
 }
-
 function isGate(value: string | undefined): value is PermissionGate {
   return value === 'allow' || value === 'ask' || value === 'deny';
 }

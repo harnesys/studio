@@ -4,7 +4,6 @@ import { z } from 'zod';
 const driver = z.enum(DRIVERS);
 const optionalText = z.string().trim().nullish();
 const patchText = z.string().nullable();
-
 export const createProviderBody = z.object({
   name: z.string().trim().min(1),
   driver,
@@ -12,7 +11,6 @@ export const createProviderBody = z.object({
   apiKey: optionalText,
   enabled: z.boolean().optional(),
 });
-
 export const updateProviderBody = z.object({
   name: z.string().trim().min(1).optional(),
   driver: driver.optional(),
@@ -20,13 +18,11 @@ export const updateProviderBody = z.object({
   apiUrl: patchText.optional(),
   apiKey: patchText.optional(),
 });
-
 const exportModelBody = z.object({
   name: z.string().trim().min(1),
   kind: z.string().trim().min(1).default('chat'),
   metadata: z.unknown().optional(),
 });
-
 export const importProvidersBody = z.object({
   version: z.literal(1),
   exportedAt: z.string().optional(),

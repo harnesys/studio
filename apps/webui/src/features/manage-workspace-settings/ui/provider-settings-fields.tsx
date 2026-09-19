@@ -1,7 +1,6 @@
 import type { Driver, ProviderPublic, StudioCatalog } from '@harnesys/studio-shared';
 import { isDriver } from '@harnesys/studio-shared';
 import { useState } from 'react';
-
 import { Field, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import {
@@ -12,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-
 import { DRIVER_ITEMS } from './driver-items';
 import { ProviderEndpointFields } from './provider-endpoint';
 
@@ -22,7 +20,6 @@ type ProviderPatch = {
   apiUrl?: string | null;
   apiKey?: string;
 };
-
 export function ProviderSettingsFields({
   selected,
   catalog,
@@ -33,7 +30,6 @@ export function ProviderSettingsFields({
   onUpdate: (patch: ProviderPatch) => void;
 }) {
   const [keySaved, setKeySaved] = useState(false);
-
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Field>

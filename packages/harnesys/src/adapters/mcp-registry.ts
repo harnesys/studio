@@ -18,18 +18,15 @@ type EnabledEntry = {
   connection: McpConnection;
   tools: ToolDefinition[];
 };
-
 export class McpRegistry implements McpRegistryPort {
   readonly #connector: McpConnector;
   readonly #logger: Logger;
   readonly #enabled = new Map<string, EnabledEntry>();
   readonly #configs = new Map<string, McpServerConfig>();
-
   constructor(connector?: McpConnector, logger: Logger = CONSOLE_LOGGER) {
     this.#connector = connector ?? new AiSdkMcpConnector();
     this.#logger = logger;
   }
-
   async loadJson(json: CursorMcpJson): Promise<void> {
     for (const [id, entry] of Object.entries(json.mcpServers)) {
       if (entry.enabled === false) {
@@ -40,7 +37,6 @@ export class McpRegistry implements McpRegistryPort {
       await this.enableOrSkip(id);
     }
   }
-
   async enable(id: string): Promise<void> {
     if (this.#enabled.has(id)) {
       return;
@@ -69,7 +65,6 @@ export class McpRegistry implements McpRegistryPort {
       throw error;
     }
   }
-
   async disable(id: string): Promise<void> {
     const entry = this.#enabled.get(id);
     if (!entry) {
@@ -82,7 +77,6 @@ export class McpRegistry implements McpRegistryPort {
       return;
     }
   }
-
   async reload(id?: string): Promise<void> {
     if (id) {
       await this.disable(id);
@@ -97,7 +91,6 @@ export class McpRegistry implements McpRegistryPort {
       }
     }
   }
-
   private async enableOrSkip(id: string): Promise<void> {
     try {
       await this.enable(id);
@@ -108,7 +101,6 @@ export class McpRegistry implements McpRegistryPort {
       );
     }
   }
-
   async list(): Promise<McpServerInfo[]> {
     const out: McpServerInfo[] = [];
     for (const [id, entry] of this.#enabled) {
@@ -122,9 +114,7 @@ export class McpRegistry implements McpRegistryPort {
           description: r.description,
           mimeType: r.mimeType,
         }));
-      } catch {
-        // server doesn't support resources
-      }
+      } catch {}
       out.push({
         serverId: id,
         transport: entry.config.transport.type,
@@ -135,7 +125,6 @@ export class McpRegistry implements McpRegistryPort {
     }
     return out;
   }
-
   tools(): ToolDefinition[] {
     const out: ToolDefinition[] = [];
     for (const entry of this.#enabled.values()) {
@@ -143,7 +132,6 @@ export class McpRegistry implements McpRegistryPort {
     }
     return out;
   }
-
   async closeAll(): Promise<void> {
     const ids = [...this.#enabled.keys()];
     for (const id of ids) {
@@ -151,7 +139,6 @@ export class McpRegistry implements McpRegistryPort {
     }
   }
 }
-
 function toServerConfig(id: string, entry: StdioEntry | UrlEntry): McpServerConfig {
   if ('command' in entry) {
     return {
@@ -176,7 +163,6 @@ function toServerConfig(id: string, entry: StdioEntry | UrlEntry): McpServerConf
     },
   };
 }
-
 function assertNoCollisions(
   enabled: Map<string, EnabledEntry>,
   serverId: string,
@@ -195,10 +181,13 @@ function assertNoCollisions(
     }
   }
 }
-
 function appendResourceTools(
   tools: ToolDefinition[],
-  params: { serverId: string; prefix: string; conn: McpConnection },
+  params: {
+    serverId: string;
+    prefix: string;
+    conn: McpConnection;
+  },
 ): void {
   const claimed = new Set(tools.map((item) => item.name));
   try {
@@ -209,7 +198,5 @@ function appendResourceTools(
       claimed.add(item.name);
       tools.push(item);
     }
-  } catch {
-    // Server doesn't support resources
-  }
+  } catch {}
 }

@@ -9,9 +9,6 @@ function toSummary(skill: PackSkill): SkillSummary {
     ...(skill.whenToUse !== undefined ? { whenToUse: skill.whenToUse } : {}),
   };
 }
-
-/** Merge the FS skill registry with pack skills. FS names win silently;
- *  pack-vs-pack duplicates keep the first (the run builder already warned). */
 export function combineSkillRegistries(
   fs: SkillRegistry | undefined,
   packSkills: PackSkill[],
@@ -58,8 +55,6 @@ export function combineSkillRegistries(
       throw new Error(`unknown skill: ${name}`);
     },
     loadFile(name: string, relPath: string) {
-      // Pack skills have no directory; only FS-owned skills carry files.
-      // FsSkillRegistry throws `unknown skill` / `unknown skill file` itself.
       if (fs !== undefined) {
         return fs.loadFile(name, relPath);
       }

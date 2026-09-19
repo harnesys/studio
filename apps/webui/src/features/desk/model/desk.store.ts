@@ -1,24 +1,18 @@
 import type { WorkspaceMoveItem } from '@harnesys/studio-shared';
 import { create } from 'zustand';
 import { remapWorkspaceOpenFiles } from './desk-path-remap';
-
 export type InspectorTab = 'inspector' | 'memory';
-
 export type AgentFileTab = {
   path: string;
   dirty: boolean;
 };
-
 export type AgentOpenFiles = {
   tabs: AgentFileTab[];
   activePath: string | null;
 };
-
 export type WorkspaceFileTab = AgentFileTab;
 export type WorkspaceOpenFiles = AgentOpenFiles;
-
 export type DeskHydrateStatus = 'pending' | 'ready';
-
 type DeskState = {
   inspectorTab: InspectorTab;
   inspectorOpen: boolean;
@@ -27,7 +21,6 @@ type DeskState = {
   filesByAgentId: Record<string, AgentOpenFiles>;
   filesByWorkspaceId: Record<string, WorkspaceOpenFiles>;
 };
-
 type DeskStore = DeskState & {
   setHydrateStatus: (workspaceId: string, status: DeskHydrateStatus | null) => void;
   setFocusedThreadId: (threadId: string | null) => void;
@@ -44,9 +37,7 @@ type DeskStore = DeskState & {
   setWorkspaceFileDirty: (workspaceId: string, path: string, dirty: boolean) => void;
   remapWorkspaceFiles: (workspaceId: string, moves: WorkspaceMoveItem[]) => void;
 };
-
 const emptyFiles = (): AgentOpenFiles => ({ tabs: [], activePath: null });
-
 const initialDesk: DeskState = {
   inspectorTab: 'inspector',
   inspectorOpen: false,
@@ -55,10 +46,8 @@ const initialDesk: DeskState = {
   filesByAgentId: {},
   filesByWorkspaceId: {},
 };
-
 export const useDeskStore = create<DeskStore>((set) => ({
   ...initialDesk,
-
   setHydrateStatus: (workspaceId, status) =>
     set((state) => {
       if (status === null) {
@@ -73,15 +62,10 @@ export const useDeskStore = create<DeskStore>((set) => ({
       }
       return { hydrated: { ...state.hydrated, [workspaceId]: status } };
     }),
-
   setFocusedThreadId: (threadId) => set({ focusedThreadId: threadId }),
-
   setInspectorTab: (tab) => set({ inspectorTab: tab }),
-
   toggleInspector: () => set((state) => ({ inspectorOpen: !state.inspectorOpen })),
-
   setInspectorOpen: (open) => set({ inspectorOpen: open }),
-
   openAgentFile: (agentId, path) =>
     set((state) => {
       const current = state.filesByAgentId[agentId] ?? emptyFiles();
@@ -104,7 +88,6 @@ export const useDeskStore = create<DeskStore>((set) => ({
         },
       };
     }),
-
   closeAgentFile: (agentId, path) =>
     set((state) => {
       const current = state.filesByAgentId[agentId];
@@ -126,7 +109,6 @@ export const useDeskStore = create<DeskStore>((set) => ({
         },
       };
     }),
-
   setActiveAgentFile: (agentId, path) =>
     set((state) => {
       const current = state.filesByAgentId[agentId];
@@ -140,7 +122,6 @@ export const useDeskStore = create<DeskStore>((set) => ({
         },
       };
     }),
-
   setAgentFileDirty: (agentId, path, dirty) =>
     set((state) => {
       const current = state.filesByAgentId[agentId];
@@ -157,7 +138,6 @@ export const useDeskStore = create<DeskStore>((set) => ({
         },
       };
     }),
-
   openWorkspaceFile: (workspaceId, path) =>
     set((state) => {
       const current = state.filesByWorkspaceId[workspaceId] ?? emptyFiles();
@@ -180,7 +160,6 @@ export const useDeskStore = create<DeskStore>((set) => ({
         },
       };
     }),
-
   closeWorkspaceFile: (workspaceId, path) =>
     set((state) => {
       const current = state.filesByWorkspaceId[workspaceId];
@@ -202,7 +181,6 @@ export const useDeskStore = create<DeskStore>((set) => ({
         },
       };
     }),
-
   setActiveWorkspaceFile: (workspaceId, path) =>
     set((state) => {
       const current = state.filesByWorkspaceId[workspaceId];
@@ -216,7 +194,6 @@ export const useDeskStore = create<DeskStore>((set) => ({
         },
       };
     }),
-
   setWorkspaceFileDirty: (workspaceId, path, dirty) =>
     set((state) => {
       const current = state.filesByWorkspaceId[workspaceId];
@@ -233,7 +210,6 @@ export const useDeskStore = create<DeskStore>((set) => ({
         },
       };
     }),
-
   remapWorkspaceFiles: (workspaceId, moves) =>
     set((state) => {
       const current = state.filesByWorkspaceId[workspaceId];

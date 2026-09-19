@@ -4,7 +4,6 @@ import { env } from './config/env.ts';
 import { logger } from './config/logger.ts';
 
 const app = createStudio();
-
 export default {
   port: env.port,
   idleTimeout: 0,
@@ -13,5 +12,4 @@ export default {
   },
   websocket,
 };
-
 logger.info({ scope: 'boot' }, `studio api http://127.0.0.1:${env.port} (idleTimeout=0)`);

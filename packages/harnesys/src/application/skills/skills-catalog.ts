@@ -1,11 +1,6 @@
 import { MAX_CHARS, MAX_ENTRIES } from '../../constants.ts';
 import type { SkillSummary } from '../../domain/skill.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
-
-/**
- * Allowlist ids are often `plugin:name`. Models call bare `name` from SKILL.md.
- * Exact match wins; otherwise a unique `*:name` / trailing `:name` match resolves.
- */
 export function resolveAllowedSkillName(
   requested: string,
   allowed: ReadonlySet<string>,
@@ -21,7 +16,6 @@ export function resolveAllowedSkillName(
   }
   return matches.length === 1 ? matches[0] : undefined;
 }
-
 export function filterSkills(
   registry: SkillRegistry,
   allowlist: string[] | undefined,
@@ -55,7 +49,6 @@ export function filterSkills(
     },
   };
 }
-
 export function formatSkillsCatalog(skills: SkillSummary[]): string {
   if (skills.length === 0) {
     return '';

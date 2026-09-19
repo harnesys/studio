@@ -2,15 +2,11 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { harnesysHome, resolveBinDir, resolveStaticDir, SERVER_BIN, WEB_BIN } from './paths.ts';
-
 export type SystemdOptions = {
   hostPort: number;
   webPort: number;
-  /** Menu host-only mode: install the host unit, skip the web unit. */
   includeWeb?: boolean;
 };
-
-/** systemd --user search path: $XDG_CONFIG_HOME/systemd/user, default ~/.config/systemd/user. */
 export function userUnitDir(): string {
   const xdg = process.env.XDG_CONFIG_HOME?.trim();
   if (xdg) {
@@ -18,16 +14,12 @@ export function userUnitDir(): string {
   }
   return join(homedir(), '.config', 'systemd', 'user');
 }
-
 export function unitName(name: 'server' | 'webui'): string {
   return name === 'server' ? 'harnesys-host.service' : 'harnesys-web.service';
 }
-
-/** systemctl exists only on Linux; everywhere else the supervisor falls back to pidfiles. */
 export function systemctlAvailable(): boolean {
   return process.platform === 'linux' && Bun.which('systemctl') !== null;
 }
-
 export function isUnitActive(name: 'server' | 'webui'): boolean {
   if (!systemctlAvailable()) {
     return false;
@@ -39,30 +31,24 @@ export function isUnitActive(name: 'server' | 'webui'): boolean {
   });
   return probe.exitCode === 0 && probe.stdout.toString().trim() === 'active';
 }
-
 function runSystemctl(args: string[]): boolean {
   const run = Bun.spawnSync(['systemctl', '--user', ...args], {
     stdio: ['ignore', 'inherit', 'inherit'],
   });
   return run.exitCode === 0;
 }
-
-/** `systemctl --user restart` for one active unit; used by restart and update. */
 export function restartUnit(name: 'server' | 'webui'): boolean {
   return runSystemctl(['restart', unitName(name)]);
 }
-
 export function stopUnit(name: 'server' | 'webui'): boolean {
   return runSystemctl(['stop', unitName(name)]);
 }
-
 function unitText(
   description: string,
   bin: string,
   env: [string, string][],
   unitLines: string[],
 ): string {
-  // Whole assignment quoted: values with spaces survive systemd's parser.
   const envLines = env.map(([key, value]) => `Environment="${key}=${value}"`).join('\n');
   const extraUnit = unitLines.length > 0 ? `${unitLines.join('\n')}\n` : '';
   return `\
@@ -78,8 +64,10 @@ RestartSec=2
 WantedBy=default.target
 `;
 }
-
-export function renderUnits(options: SystemdOptions): { host: string; web?: string } {
+export function renderUnits(options: SystemdOptions): {
+  host: string;
+  web?: string;
+} {
   const home = harnesysHome();
   const binDir = resolveBinDir();
   const staticDir = resolveStaticDir();
@@ -106,19 +94,10 @@ export function renderUnits(options: SystemdOptions): { host: string; web?: stri
       ['UPSTREAM', `http://127.0.0.1:${options.hostPort}`],
       ['STATIC_DIR', staticDir],
     ],
-    // The web fail-fasts while the host has not written /data/config.json yet;
-    // without StartLimitIntervalSec=0 a fresh-VPS boot race would permanently
-    // disable the unit. It starts after the host instead.
     ['After=harnesys-host.service', 'StartLimitIntervalSec=0'],
   );
   return { host, web };
 }
-
-/**
- * `up --install-systemd`: user-level units, `systemctl --user enable --now`.
- * Off Linux the units are printed with a warning (plus the paths they would take)
- * so they stay inspectable everywhere.
- */
 export function installSystemdUnits(options: SystemdOptions): void {
   const units = renderUnits(options);
   const unitDir = userUnitDir();

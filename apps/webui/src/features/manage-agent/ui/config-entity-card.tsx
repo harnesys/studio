@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 type ConfigEntityCardProps = {
   title: string;
   badge?: string;
-  /** Accent badge next to `badge` (e.g. "Default Mode"). */
   statusBadge?: string;
   description?: string;
   initials: string;
@@ -15,7 +14,6 @@ type ConfigEntityCardProps = {
   onClick?: () => void;
   children?: ReactNode;
 };
-
 export function ConfigEntityCard({
   title,
   badge,
@@ -64,7 +62,6 @@ export function ConfigEntityCard({
       </div>
     </>
   );
-
   return (
     <div
       className={cn(
@@ -93,7 +90,6 @@ export function ConfigEntityCard({
     </div>
   );
 }
-
 export function initialsFromLabel(label: string): string {
   const cleaned = label.replace(/[_-]+/g, ' ').trim();
   const parts = cleaned.split(/\s+/).filter(Boolean);

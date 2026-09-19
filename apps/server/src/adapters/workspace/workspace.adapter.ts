@@ -1,25 +1,20 @@
 import { mkdir, stat } from 'node:fs/promises';
 import type { WorkspaceStatus } from '@harnesys/studio-shared';
 import type { WorkspacePort } from '../../domain/workspace.port.ts';
-
 export class WorkspaceAdapter implements WorkspacePort {
   inspect(path: string): Promise<WorkspaceStatus> {
     return inspectPath(path);
   }
-
   ensureDir(path: string): Promise<void> {
     return mkdir(path, { recursive: true }).then(() => undefined);
   }
-
   pick(): Promise<string | undefined> {
     return pickDirectory();
   }
-
   reveal(path: string): Promise<void> {
     return revealPath(path);
   }
 }
-
 async function inspectPath(path: string): Promise<WorkspaceStatus> {
   try {
     const info = await stat(path);
@@ -29,12 +24,10 @@ async function inspectPath(path: string): Promise<WorkspaceStatus> {
   } catch {
     return { exists: false, kind: 'folder' };
   }
-
   const inside = await git(path, ['rev-parse', '--is-inside-work-tree']);
   if (inside !== 'true') {
     return { exists: true, kind: 'folder' };
   }
-
   const branch = (await git(path, ['branch', '--show-current'])) || 'HEAD';
   const porcelain = await git(path, ['status', '--porcelain']);
   return {
@@ -44,7 +37,6 @@ async function inspectPath(path: string): Promise<WorkspaceStatus> {
     dirty: porcelain.length > 0,
   };
 }
-
 async function pickDirectory(): Promise<string | undefined> {
   let picked: string | undefined;
   if (process.platform === 'darwin') {
@@ -59,7 +51,6 @@ async function pickDirectory(): Promise<string | undefined> {
   }
   return picked.replace(/[/\\]+$/, '');
 }
-
 function pickMac(): Promise<string | undefined> {
   const script = [
     'try',
@@ -70,7 +61,6 @@ function pickMac(): Promise<string | undefined> {
   ].join('\n');
   return run(['osascript', '-e', script]);
 }
-
 function pickWindows(): Promise<string | undefined> {
   return run([
     'powershell',
@@ -80,14 +70,12 @@ function pickWindows(): Promise<string | undefined> {
     "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Choose a workspace'; $d.ShowNewFolderButton = $true; if ($d.ShowDialog() -eq 'OK') { Write-Output $d.SelectedPath }",
   ]);
 }
-
 async function pickLinux(): Promise<string | undefined> {
   return (
     (await run(['zenity', '--file-selection', '--directory', '--title=Choose a workspace'])) ??
     run(['kdialog', '--getexistingdirectory', process.env.HOME ?? '/'])
   );
 }
-
 async function run(cmd: string[]): Promise<string | undefined> {
   try {
     const proc = Bun.spawn(cmd, { stdout: 'pipe', stderr: 'pipe' });
@@ -101,7 +89,6 @@ async function run(cmd: string[]): Promise<string | undefined> {
     return undefined;
   }
 }
-
 async function revealPath(path: string): Promise<void> {
   let opener = 'xdg-open';
   if (process.platform === 'darwin') {
@@ -112,7 +99,6 @@ async function revealPath(path: string): Promise<void> {
   const proc = Bun.spawn([opener, path], { stdout: 'ignore', stderr: 'ignore' });
   await proc.exited;
 }
-
 async function git(cwd: string, args: string[]): Promise<string> {
   const proc = Bun.spawn(['git', '-C', cwd, ...args], { stdout: 'pipe', stderr: 'pipe' });
   const text = await new Response(proc.stdout).text();

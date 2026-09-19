@@ -4,12 +4,10 @@ export type DiffHunkLine = {
   newLineNumber?: number;
   text: string;
 };
-
 export type DiffHunk = {
   header: string;
   lines: DiffHunkLine[];
 };
-
 export type DiffDetail = {
   type: 'diff';
   path: string;
@@ -19,16 +17,13 @@ export type DiffDetail = {
   hunks: DiffHunk[];
   rawDiff: string;
 };
-
 export type CodeLine = {
   number: number;
   text: string;
 };
-
 export function textToLines(text: string): CodeLine[] {
   return text.split('\n').map((line, idx) => ({ number: idx + 1, text: line }));
 }
-
 export function detectLanguage(filepath: string): string | undefined {
   const ext = filepath.split('.').at(-1)?.toLowerCase();
   if (!ext) {
@@ -62,8 +57,6 @@ export function detectLanguage(filepath: string): string | undefined {
   };
   return map[ext];
 }
-
-/** Synthetic hunk from edit_file old_string / new_string (HITL, before tool runs). */
 export function diffFromEdit(path: string, oldText: string, newText: string): DiffDetail {
   const oldLines = oldText.split('\n');
   const newLines = newText.split('\n');

@@ -2,7 +2,6 @@ import type { SkillDocument } from '../../domain/skill.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
 export function createLoadSkillTool(registry: SkillRegistry): ToolDefinition {
   return tool('load_skill', {
     group: 'skills',
@@ -16,10 +15,12 @@ export function createLoadSkillTool(registry: SkillRegistry): ToolDefinition {
       required: ['name'],
     },
     async execute(input) {
-      const { name, file } = input as { name: string; file?: string };
+      const { name, file } = input as {
+        name: string;
+        file?: string;
+      };
       let doc: SkillDocument;
       try {
-        // Composed registries (compose/prefix/combine/filter) load async.
         doc = (await registry.load(name)) as SkillDocument;
       } catch (error) {
         return {

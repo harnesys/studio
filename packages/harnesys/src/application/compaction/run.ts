@@ -18,7 +18,6 @@ import { estimateTokens } from './estimate.ts';
 import { writeCompactionFile } from './file-log.ts';
 import { planCut } from './plan-cut.ts';
 import { priorSummaryBlock, SUMMARY_SYSTEM_PROMPT, streamSummary } from './summarize.ts';
-
 export type CompactionPassContext = {
   agent: AgentDefinition;
   state: Record<string, unknown>;
@@ -29,18 +28,21 @@ export type CompactionPassContext = {
   paths?: PathsConfig;
   signal: AbortSignal;
   logger?: Logger;
-  /** Шина хуков рана: PreCompact (block отменяет compact) и PostCompact. */
   hooks?: HookEmitCtx;
 };
-
 export type CompactionPassEvent =
-  | { type: 'completed'; message: CompactionMessage }
-  | { type: 'failed'; error: string }
+  | {
+      type: 'completed';
+      message: CompactionMessage;
+    }
+  | {
+      type: 'failed';
+      error: string;
+    }
   | {
       type: 'model.delta' | 'model.reasoning' | 'model.reasoning-start' | 'model.reasoning-end';
       data: unknown;
     };
-
 function findAnchorIndex(messages: readonly unknown[]): number {
   for (let i = messages.length - 1; i >= 0; i--) {
     if (isCompactionMessage(messages[i])) {
@@ -49,13 +51,11 @@ function findAnchorIndex(messages: readonly unknown[]): number {
   }
   return -1;
 }
-
 function toolsJsonOf(registry: Map<string, ToolDefinition>): string {
   return JSON.stringify(
     [...registry.values()].map((t) => ({ name: t.name, description: t.description })),
   );
 }
-
 async function resolveSummaryBinding(
   ctx: CompactionPassContext,
   ref: AgentModelRef,
@@ -73,7 +73,6 @@ async function resolveSummaryBinding(
   }
   throw new Error(`summary model not found: ${ref.provider}/${ref.model}`);
 }
-
 async function* passIfDue(
   ctx: CompactionPassContext,
   spec: ParsedCompactionSpec,
@@ -115,7 +114,6 @@ async function* passIfDue(
     trigger: reason === 'manual' ? 'manual' : 'auto',
   });
   if (hookBlockedReason(pre) !== undefined) {
-    // Хук отменил компакцию: сообщений не касается, якорей не пишет.
     return;
   }
   yield* writeCompactionMessage(ctx, {
@@ -128,17 +126,22 @@ async function* passIfDue(
     before,
   });
 }
-
 type WriteArgs = {
   spec: ParsedCompactionSpec;
   reason: 'threshold' | 'manual';
-  plan: { coveredFrom: number; coveredUntil: number };
+  plan: {
+    coveredFrom: number;
+    coveredUntil: number;
+  };
   anchorIndex: number;
   anchor?: CompactionMessage;
   toolsJson: string;
-  before: { messages: number; tools: number; total: number };
+  before: {
+    messages: number;
+    tools: number;
+    total: number;
+  };
 };
-
 async function* writeCompactionMessage(
   ctx: CompactionPassContext,
   args: WriteArgs,
@@ -167,11 +170,22 @@ async function* writeCompactionMessage(
   const system = args.anchor
     ? `${SUMMARY_SYSTEM_PROMPT}${priorSummaryBlock(args.anchor.content)}`
     : SUMMARY_SYSTEM_PROMPT;
-
-  let completed: Extract<StreamChunk, { type: 'completed' }> | undefined;
+  let completed:
+    | Extract<
+        StreamChunk,
+        {
+          type: 'completed';
+        }
+      >
+    | undefined;
   for await (const ev of streamSummary({ binding, system, head, signal: ctx.signal })) {
     if (ev.type === 'summary.completed' && ev.result) {
-      completed = ev.result as Extract<StreamChunk, { type: 'completed' }>;
+      completed = ev.result as Extract<
+        StreamChunk,
+        {
+          type: 'completed';
+        }
+      >;
     } else {
       yield { type: ev.type, data: ev.data } as CompactionPassEvent;
     }
@@ -180,13 +194,10 @@ async function* writeCompactionMessage(
   if (completed?.finishReason !== 'stop' || !text.trim()) {
     yield {
       type: 'failed',
-      error: `summary pass rejected: finishReason=${completed?.finishReason ?? 'none'}${
-        text.trim() ? '' : ', empty text'
-      }`,
+      error: `summary pass rejected: finishReason=${completed?.finishReason ?? 'none'}${text.trim() ? '' : ', empty text'}`,
     };
     return;
   }
-
   const message: CompactionMessage = {
     role: 'assistant',
     kind: 'compaction',
@@ -209,7 +220,6 @@ async function* writeCompactionMessage(
     args.toolsJson,
   ).total;
   messages.push(message);
-
   try {
     await writeCompactionFile({
       paths: ctx.paths,
@@ -227,8 +237,6 @@ async function* writeCompactionMessage(
   });
   yield { type: 'completed', message };
 }
-
-/** Авто-путь графа: порог, protect-recent, одна попытка обеспечивается вызывающим. */
 export async function* runSummaryPassIfDue(
   ctx: CompactionPassContext,
 ): AsyncGenerator<CompactionPassEvent> {
@@ -246,8 +254,6 @@ export async function* runSummaryPassIfDue(
   }
   yield* passIfDue(ctx, spec, 'threshold');
 }
-
-/** Ручной /compact: без порога и protect-recent; компакция обязана быть настроена. */
 export async function* compactForced(
   ctx: CompactionPassContext,
 ): AsyncGenerator<CompactionPassEvent> {

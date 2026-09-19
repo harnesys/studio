@@ -1,9 +1,9 @@
 import { definePack } from '../../domain/pack.ts';
 import type { SchedulerPort } from '../../ports/scheduler.ts';
 import { createScheduleTools } from './create-schedule-tools.ts';
-
-export type SchedulerCapabilityPorts = { scheduler: SchedulerPort };
-
+export type SchedulerCapabilityPorts = {
+  scheduler: SchedulerPort;
+};
 export const schedulerCapability = definePack<SchedulerCapabilityPorts, Record<string, unknown>>({
   name: 'scheduler',
   version: '1.0.0',

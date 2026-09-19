@@ -1,13 +1,11 @@
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 import type { McpConnection } from './mcp-connector.port.ts';
-
 export type CreateMcpResourceToolsParams = {
   serverId: string;
   prefix: string;
   conn: McpConnection;
 };
-
 export function createMcpResourceTools(params: CreateMcpResourceToolsParams): ToolDefinition[] {
   const { serverId, prefix, conn } = params;
   return [
@@ -17,7 +15,9 @@ export function createMcpResourceTools(params: CreateMcpResourceToolsParams): To
       operations: ['mcp'],
       input: { type: 'object', properties: { cursor: { type: 'string' } } },
       async execute(input) {
-        const parsed = input as { cursor?: string };
+        const parsed = input as {
+          cursor?: string;
+        };
         try {
           return await conn.listResources(parsed.cursor);
         } catch (error) {
@@ -38,7 +38,9 @@ export function createMcpResourceTools(params: CreateMcpResourceToolsParams): To
         required: ['uri'],
       },
       async execute(input) {
-        const parsed = input as { uri: string };
+        const parsed = input as {
+          uri: string;
+        };
         try {
           return await conn.readResource(parsed.uri);
         } catch (error) {

@@ -2,19 +2,14 @@ export type ExpandPluginVarsContext = {
   pluginRoot: string;
   pluginData: string;
 };
-
 export const PLUGIN_ROOT_PLACEHOLDER = '${' + 'PLUGIN_ROOT}';
 export const PLUGIN_DATA_PLACEHOLDER = '${' + 'PLUGIN_DATA}';
-
-/** Claude-синонимы: канонический AP-плейсхолдер и Claude-форма — один смысл. */
 const PLACEHOLDER_TARGETS: ReadonlyArray<readonly [string, keyof ExpandPluginVarsContext]> = [
   [PLUGIN_ROOT_PLACEHOLDER, 'pluginRoot'],
   [PLUGIN_DATA_PLACEHOLDER, 'pluginData'],
   ['${' + 'CLAUDE_PLUGIN_ROOT}', 'pluginRoot'],
   ['${' + 'CLAUDE_PLUGIN_DATA}', 'pluginData'],
 ];
-
-/** Single-pass textual replace of PLUGIN_ROOT / PLUGIN_DATA placeholders and Claude synonyms (AP §9.2). */
 export function expandPluginVars(value: string, ctx: ExpandPluginVarsContext): string {
   const pattern = new RegExp(`(${PLACEHOLDER_TARGETS.map(([p]) => escapeRegExp(p)).join('|')})`);
   const parts = value.split(pattern);
@@ -25,7 +20,6 @@ export function expandPluginVars(value: string, ctx: ExpandPluginVarsContext): s
   }
   return out;
 }
-
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

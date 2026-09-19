@@ -4,7 +4,6 @@ import type * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
 const Select = SelectPrimitive.Root;
-
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
     <SelectPrimitive.Group
@@ -14,7 +13,6 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
     />
   );
 }
-
 function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
   return (
     <SelectPrimitive.Value
@@ -24,7 +22,6 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
     />
   );
 }
-
 function SelectTrigger({
   className,
   size = 'default',
@@ -50,7 +47,6 @@ function SelectTrigger({
     </SelectPrimitive.Trigger>
   );
 }
-
 function SelectContent({
   className,
   children,
@@ -92,7 +88,6 @@ function SelectContent({
     </SelectPrimitive.Portal>
   );
 }
-
 function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) {
   return (
     <SelectPrimitive.GroupLabel
@@ -102,7 +97,6 @@ function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) 
     />
   );
 }
-
 function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Props) {
   return (
     <SelectPrimitive.Item
@@ -126,7 +120,6 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
     </SelectPrimitive.Item>
   );
 }
-
 function SelectSeparator({ className, ...props }: SelectPrimitive.Separator.Props) {
   return (
     <SelectPrimitive.Separator
@@ -136,7 +129,6 @@ function SelectSeparator({ className, ...props }: SelectPrimitive.Separator.Prop
     />
   );
 }
-
 function SelectScrollUpButton({
   className,
   ...props
@@ -154,7 +146,6 @@ function SelectScrollUpButton({
     </SelectPrimitive.ScrollUpArrow>
   );
 }
-
 function SelectScrollDownButton({
   className,
   ...props

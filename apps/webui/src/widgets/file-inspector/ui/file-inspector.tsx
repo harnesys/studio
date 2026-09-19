@@ -10,7 +10,6 @@ type FileTab = {
   dirty?: boolean;
   workspaceId: string;
 };
-
 export function FileInspector({ width, file }: { width: number; file: FileTab }) {
   const gitQuery = useQuery({
     queryKey: gitFileStatusQueryKey(file.workspaceId),
@@ -18,9 +17,7 @@ export function FileInspector({ width, file }: { width: number; file: FileTab })
     enabled: Boolean(file.workspaceId),
   });
   const gitStatus = gitQuery.data?.map?.[file.path];
-
   const basename = file.path.split('/').pop() ?? file.path;
-
   return (
     <aside
       className="flex h-svh shrink-0 flex-col self-stretch bg-background"

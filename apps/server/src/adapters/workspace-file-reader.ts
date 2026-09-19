@@ -1,11 +1,13 @@
 import { access } from 'node:fs/promises';
 import path from 'node:path';
-
-/** Read file bytes for fold; relative paths resolve against workspace root. */
 export function createWorkspaceFileReader(workspaceRoot?: string) {
   const root = workspaceRoot ? path.resolve(workspaceRoot) : undefined;
-
-  return async (filePath: string): Promise<{ bytes: Uint8Array; mimeType: string }> => {
+  return async (
+    filePath: string,
+  ): Promise<{
+    bytes: Uint8Array;
+    mimeType: string;
+  }> => {
     const absolute = root ? path.resolve(root, filePath) : path.resolve(filePath);
     if (root) {
       const rel = path.relative(root, absolute);

@@ -23,15 +23,6 @@ async function ask(question: string, fallbackYes: boolean): Promise<boolean> {
     rl.close();
   }
 }
-
-/**
- * Bare `harnesys` on a TTY: pick components, optionally register systemd (Linux
- * only), then install-and-start the selection with default ports.
- *
- * An install-script VPS has no client-dist (the installer ships binaries only),
- * so a WebUI selection without static assets degrades honestly to host-only
- * after a warning — or aborts.
- */
 export async function runMenu(): Promise<void> {
   console.log('harnesys setup');
   const wantServer = await ask('Start Server (harnesys-host)?', true);
@@ -57,7 +48,9 @@ export async function runMenu(): Promise<void> {
     console.log('nothing selected');
     return;
   }
-  const options: UpOptions & { installSystemd: boolean } = {
+  const options: UpOptions & {
+    installSystemd: boolean;
+  } = {
     hostPort: HOST_DEFAULT_PORT,
     webPort: WEB_DEFAULT_PORT,
     withUi: wantWebUi,

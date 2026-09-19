@@ -7,7 +7,6 @@ import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 
 export { DEFAULT_THREAD_TITLE };
-
 export type CreateThreadRequest = {
   title?: string;
   agentId?: string;
@@ -17,18 +16,15 @@ export type CreateThreadRequest = {
   parentThreadId?: string;
   forkAt?: string;
 };
-
 export type CreateThreadInput = {
   execute(request: CreateThreadRequest): Promise<ThreadRecord>;
 };
-
 export class CreateThreadUseCase implements CreateThreadInput {
   constructor(
     private readonly threads: ThreadRepository,
     private readonly agents: AgentRepository,
     private readonly workspaces: WorkspaceRepository,
   ) {}
-
   async execute(request: CreateThreadRequest): Promise<ThreadRecord> {
     const workspaces = this.workspaces.list();
     const workspaceId = request.workspaceId ?? workspaces[0]?.id;
@@ -90,7 +86,11 @@ export class CreateThreadUseCase implements CreateThreadInput {
       unread: false,
       runMode:
         thread.metadata && typeof thread.metadata === 'object'
-          ? (thread.metadata as { runMode?: string }).runMode
+          ? (
+              thread.metadata as {
+                runMode?: string;
+              }
+            ).runMode
           : undefined,
       events: [],
       activeRun: null,

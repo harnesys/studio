@@ -1,7 +1,6 @@
 import type { KnowledgeHit } from '@harnesys/studio-shared';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-
 import { ApiError, searchKnowledge } from '@/shared/api';
 import { Button } from '@/shared/ui/button';
 import { FieldDescription, FieldLabel, FieldSet } from '@/shared/ui/field';
@@ -11,11 +10,9 @@ import { toast } from '@/shared/ui/toast';
 type KnowledgeSearchSmokeProps = {
   workspaceId: string | undefined;
 };
-
 export function KnowledgeSearchSmoke({ workspaceId }: KnowledgeSearchSmokeProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [hits, setHits] = useState<KnowledgeHit[]>([]);
-
   const search = useMutation({
     mutationFn: (query: string) => {
       if (!workspaceId) {
@@ -33,7 +30,6 @@ export function KnowledgeSearchSmoke({ workspaceId }: KnowledgeSearchSmokeProps)
       });
     },
   });
-
   return (
     <FieldSet>
       <FieldLabel htmlFor="knowledge-search">Search smoke</FieldLabel>

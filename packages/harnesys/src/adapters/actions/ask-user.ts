@@ -9,9 +9,17 @@ export { ASK_USER_TOOL };
 
 function formatResumeResult(
   resume: unknown,
-  options?: Array<{ id: string; label: string }>,
+  options?: Array<{
+    id: string;
+    label: string;
+  }>,
 ): string {
-  const payload = resume as { text?: string; optionIds?: string[] } | undefined;
+  const payload = resume as
+    | {
+        text?: string;
+        optionIds?: string[];
+      }
+    | undefined;
   if (!payload) {
     return 'answered';
   }
@@ -24,7 +32,6 @@ function formatResumeResult(
   }
   return parts.join(' · ') || 'answered';
 }
-
 export function askUser(): ToolDefinition {
   return tool(ASK_USER_TOOL, {
     group: 'core',
@@ -52,13 +59,15 @@ export function askUser(): ToolDefinition {
     execute(input, ctx: ToolContext) {
       const parsed = input as {
         prompt: string;
-        options?: Array<{ id: string; label: string }>;
+        options?: Array<{
+          id: string;
+          label: string;
+        }>;
         multi?: boolean;
       };
       if (ctx.resume !== undefined && ctx.resume !== null) {
         return formatResumeResult(ctx.resume, parsed.options);
       }
-      // Песочница дочернего рана: интерактива нет — deny вместо вопроса.
       if (ctx.sandbox) {
         return sandboxDenyText(ASK_USER_TOOL, 'user input');
       }

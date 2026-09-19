@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
-
 import {
   type CompactionDraft,
   compactionDraftFrom,
@@ -25,7 +24,6 @@ import {
 import { type ModelOption, modelGroups, modelOptions } from '../model/model-groups';
 
 const SAME_AS_AGENT = '__same_as_agent__';
-
 export function DraftCompaction({
   agent,
   onChange,
@@ -37,19 +35,16 @@ export function DraftCompaction({
   const groups = modelGroups(providers);
   const items = modelOptions(groups);
   const [draft, setDraft] = useState(() => compactionDraftFrom(agent?.compaction ?? null));
-
   function patch(partial: Partial<CompactionDraft>) {
     const next = { ...draft, ...partial };
     setDraft(next);
     onChange(toCompactionPortRef(next));
   }
-
   const summaryValue = summarySelectValue(draft, items);
   const summaryLabel =
     summaryValue === SAME_AS_AGENT
       ? 'Same as agent'
       : (items.find((item) => item.value === summaryValue)?.name ?? 'Same as agent');
-
   return (
     <Pane
       testId="agent-compaction-pane"
@@ -172,7 +167,6 @@ export function DraftCompaction({
     </Pane>
   );
 }
-
 function summarySelectValue(draft: CompactionDraft, items: ModelOption[]): string {
   if (!draft.summaryProvider || !draft.summaryModel) {
     return SAME_AS_AGENT;
@@ -182,7 +176,6 @@ function summarySelectValue(draft: CompactionDraft, items: ModelOption[]): strin
   );
   return found?.value ?? SAME_AS_AGENT;
 }
-
 function NumberField({
   id,
   label,

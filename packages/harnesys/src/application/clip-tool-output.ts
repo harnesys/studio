@@ -7,7 +7,6 @@ import {
   resolveToolOutputSettings,
 } from '../domain/tool-output.ts';
 import type { PathsConfig } from '../ports/paths.ts';
-
 export function serializeToolOutput(value: unknown): string {
   if (typeof value === 'string') {
     return value;
@@ -21,16 +20,12 @@ export function serializeToolOutput(value: unknown): string {
     return String(value);
   }
 }
-
 function toolOutputRelPath(sessionId: string, fileName: string): string {
   return `.harnesys/threads/${sessionId}/tool-outputs/${fileName}`;
 }
-
 function toolOutputFileName(toolName: string, toolCallId: string): string {
   return `${safeSegment(toolName, 'tool')}-${safeSegment(toolCallId, 'call')}.txt`;
 }
-
-/** Full output to disk when over maxChars; LLM sees head + tail + path. */
 export async function presentToolOutput(input: {
   value: unknown;
   toolName: string;
@@ -58,10 +53,16 @@ export async function presentToolOutput(input: {
   }
   return formatClipped(text, settings, rel);
 }
-
 export async function presentCallOutput(
-  ctx: { sessionId: string; paths?: PathsConfig; toolOutput?: ToolOutputSettings | null },
-  call: { id: string; name: string },
+  ctx: {
+    sessionId: string;
+    paths?: PathsConfig;
+    toolOutput?: ToolOutputSettings | null;
+  },
+  call: {
+    id: string;
+    name: string;
+  },
   value: unknown,
 ): Promise<string> {
   return await presentToolOutput({
@@ -73,7 +74,6 @@ export async function presentCallOutput(
     settings: ctx.toolOutput,
   });
 }
-
 async function writeToolOutputFile(input: {
   paths?: PathsConfig;
   sessionId: string;
@@ -94,7 +94,6 @@ async function writeToolOutputFile(input: {
   await Bun.write(absolute, input.text);
   return rel;
 }
-
 function formatClipped(
   text: string,
   settings: ResolvedToolOutputSettings,
@@ -108,7 +107,6 @@ function formatClipped(
     : `Full output (${text.length} chars) was not saved to a file.`;
   return `${head}\n\n… ${omitted} chars omitted …\n\n${tail}\n\n${fileLine}`;
 }
-
 function safeSegment(value: string, fallback: string): string {
   const cleaned = value.replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '');
   return cleaned || fallback;

@@ -2,10 +2,8 @@ import { eq } from 'drizzle-orm';
 import type { CommitMeta, Event, RuntimeState, Snapshot } from 'harnesys';
 import type { StudioDb } from '../connection.ts';
 import { snapshotsTable } from '../schema/snapshots.ts';
-
 export class SqliteRuntimeState implements RuntimeState {
   readonly sessionId: string;
-
   constructor(
     private readonly db: StudioDb,
     private readonly threadId: string,
@@ -14,7 +12,6 @@ export class SqliteRuntimeState implements RuntimeState {
   ) {
     this.sessionId = sessionId ?? crypto.randomUUID();
   }
-
   load(): Promise<Snapshot | null> | Snapshot | null {
     const row = this.db
       .select()
@@ -26,7 +23,6 @@ export class SqliteRuntimeState implements RuntimeState {
     }
     return JSON.parse(row.snapshot) as Snapshot;
   }
-
   commit(snapshot: Snapshot, events: readonly Event[], meta: CommitMeta): Promise<void> {
     const now = new Date().toISOString();
     this.db
@@ -47,14 +43,11 @@ export class SqliteRuntimeState implements RuntimeState {
         },
       })
       .run();
-
     if (this.onEvents) {
       this.onEvents(this.threadId, events);
     }
-
     return Promise.resolve();
   }
-
   child(spawnId: string): RuntimeState {
     return new SqliteRuntimeState(this.db, this.threadId, spawnId);
   }

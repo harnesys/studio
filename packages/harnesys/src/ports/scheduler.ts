@@ -1,8 +1,6 @@
 import type { CapabilityScope } from '../domain/pack.ts';
 import type { PermissionMode, ScheduleHistory } from '../domain/schedule.ts';
-
 export type ScheduleStatus = 'active' | 'paused' | 'failed';
-
 export type ScheduleRecord = {
   id: string;
   workspaceId: string;
@@ -20,7 +18,6 @@ export type ScheduleRecord = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type ScheduleCreateInput = {
   name: string;
   targetAgentId?: string;
@@ -31,7 +28,6 @@ export type ScheduleCreateInput = {
   historyLast?: number;
   threadId?: string;
 };
-
 export type ScheduleUpdateInput = {
   name?: string;
   status?: ScheduleStatus;
@@ -42,21 +38,20 @@ export type ScheduleUpdateInput = {
   history?: ScheduleHistory;
   historyLast?: number;
 };
-
 export type ScheduleCreatedThread = {
   id: string;
   title: string;
   kind: string;
   agentId: string;
 };
-
 export type ScheduleCreatedRecord = {
   schedule: ScheduleRecord;
   thread: ScheduleCreatedThread;
 };
-
-export type SchedulePeekFire = { at: string; detail: string };
-
+export type SchedulePeekFire = {
+  at: string;
+  detail: string;
+};
 export type SchedulePeekRecord = {
   id: string;
   name: string;
@@ -64,7 +59,6 @@ export type SchedulePeekRecord = {
   lastFiredAt: string | null;
   fires: SchedulePeekFire[];
 };
-
 export type SchedulerPort = {
   list(scope: CapabilityScope): Promise<ScheduleRecord[]>;
   peek(scope: CapabilityScope, id: string, last?: number): Promise<SchedulePeekRecord>;

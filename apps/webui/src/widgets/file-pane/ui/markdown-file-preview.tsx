@@ -1,6 +1,5 @@
 import { Markdown } from '@/shared/ui/markdown';
 import { ScrollArea } from '@/shared/ui/scroll-area';
-
 export function MarkdownFilePreview({ text }: { text: string }) {
   return (
     <ScrollArea className="min-h-0 flex-1" data-testid="markdown-file-preview">

@@ -1,8 +1,6 @@
 import type { ComponentType } from 'react';
-
 import { useOverlayStore } from './store';
 import type { DialogComponentProps, DialogOptions } from './types';
-
 export function openDialog<TResult, TData = unknown>(
   component: ComponentType<DialogComponentProps<TResult, TData>>,
   options: DialogOptions<TData>,
@@ -21,7 +19,6 @@ export function openDialog<TResult, TData = unknown>(
       );
   });
 }
-
 export const dialog = {
   open: openDialog,
 };

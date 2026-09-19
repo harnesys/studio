@@ -7,10 +7,7 @@ import { DEFAULT_API_PORT, DEFAULT_DEV_SERVER_PORT } from './src/shared/config/c
 
 const root = import.meta.dirname;
 const serverEnvDir = path.resolve(root, '..', 'server');
-
 const BENIGN_PROXY_CODES = new Set(['EPIPE', 'ECONNRESET', 'ECONNABORTED']);
-
-/** Vite logs ws proxy EPIPE after client disconnect; suppress those only. */
 function quietWsProxyDisconnects(): Plugin {
   return {
     name: 'quiet-ws-proxy-disconnects',
@@ -23,8 +20,16 @@ function quietWsProxyDisconnects(): Plugin {
           options?.error &&
           typeof options.error === 'object' &&
           'code' in options.error &&
-          typeof (options.error as { code?: unknown }).code === 'string'
-            ? (options.error as { code: string }).code
+          typeof (
+            options.error as {
+              code?: unknown;
+            }
+          ).code === 'string'
+            ? (
+                options.error as {
+                  code: string;
+                }
+              ).code
             : '';
         if (
           BENIGN_PROXY_CODES.has(code) &&
@@ -37,12 +42,10 @@ function quietWsProxyDisconnects(): Plugin {
     },
   };
 }
-
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, serverEnvDir, '');
   const apiPort = readPort(env.PORT, DEFAULT_API_PORT);
   const uiPort = readPort(env.VITE_DEV_SERVER_PORT, DEFAULT_DEV_SERVER_PORT);
-
   return {
     root,
     envDir: serverEnvDir,
@@ -90,12 +93,10 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
-
 function readPort(raw: string | undefined, fallback: number): number {
   const value = Number(raw ?? fallback);
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
-
 function header(value: string | string[] | undefined): string {
   if (Array.isArray(value)) {
     return value[0] ?? '';

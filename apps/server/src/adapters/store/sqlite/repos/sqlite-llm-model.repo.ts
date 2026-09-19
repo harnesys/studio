@@ -9,10 +9,8 @@ import { NotFoundError } from '../../../../domain/studio.error.ts';
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type LlmModelRow, llmModelsTable } from '../schema';
-
 export class SqliteLlmModelRepo implements LlmModelRepository {
   constructor(private readonly db: StudioDb) {}
-
   listByProvider(providerId: string): LlmModel[] {
     return this.db
       .select()
@@ -21,12 +19,10 @@ export class SqliteLlmModelRepo implements LlmModelRepository {
       .all()
       .map(toModel);
   }
-
   findById(id: string): LlmModel | undefined {
     const row = this.db.select().from(llmModelsTable).where(eq(llmModelsTable.id, id)).get();
     return row ? toModel(row) : undefined;
   }
-
   findByProviderAndName(providerId: string, name: string): LlmModel | undefined {
     const row = this.db
       .select()
@@ -35,7 +31,6 @@ export class SqliteLlmModelRepo implements LlmModelRepository {
       .get();
     return row ? toModel(row) : undefined;
   }
-
   insert(rec: LlmModelInsert): LlmModel {
     try {
       const row = this.db
@@ -48,7 +43,6 @@ export class SqliteLlmModelRepo implements LlmModelRepository {
       return mapSqliteError(err, { conflict: 'model exists in provider' });
     }
   }
-
   update(id: string, patch: LlmModelPatch): LlmModel {
     try {
       const { metadata, ...rest } = patch;
@@ -68,12 +62,10 @@ export class SqliteLlmModelRepo implements LlmModelRepository {
       return mapSqliteError(err, { conflict: 'model exists in provider' });
     }
   }
-
   delete(id: string): void {
     this.db.delete(llmModelsTable).where(eq(llmModelsTable.id, id)).run();
   }
 }
-
 function toModel(row: LlmModelRow): LlmModel {
   return {
     id: row.id,

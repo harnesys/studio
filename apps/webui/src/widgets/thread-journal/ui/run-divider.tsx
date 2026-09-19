@@ -1,12 +1,10 @@
 import { cn } from '@/shared/lib/utils';
-
 export type RunDividerProps = {
   index: number;
   task: string;
   failed: boolean;
   running: boolean;
 };
-
 export function RunDivider({ index, task, failed, running }: RunDividerProps) {
   let statusClass = 'text-muted-foreground';
   let statusLabel = 'COMPLETED';

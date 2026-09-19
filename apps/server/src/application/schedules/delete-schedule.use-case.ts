@@ -9,16 +9,13 @@ import type { SemanticSessionCleanup } from '../../domain/semantic-session.port.
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-
 export type DeleteScheduleRequest = {
   workspaceId: string;
   id: string;
 };
-
 export type DeleteScheduleInput = {
   execute(request: DeleteScheduleRequest): Promise<void>;
 };
-
 export type DeleteScheduleDeps = {
   schedules: ScheduleRepository;
   threads: ThreadRepository;
@@ -31,7 +28,6 @@ export type DeleteScheduleDeps = {
   db?: StudioDb;
   semanticSessions?: SemanticSessionCleanup;
 };
-
 export class DeleteScheduleUseCase implements DeleteScheduleInput {
   private readonly schedules: ScheduleRepository;
   private readonly threads: ThreadRepository;
@@ -43,7 +39,6 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
   private readonly deskEvents: DeskEventsPort;
   private readonly db?: StudioDb;
   private readonly semanticSessions?: SemanticSessionCleanup;
-
   constructor(deps: DeleteScheduleDeps) {
     this.schedules = deps.schedules;
     this.threads = deps.threads;
@@ -56,24 +51,20 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
     this.db = deps.db;
     this.semanticSessions = deps.semanticSessions;
   }
-
   async execute(request: DeleteScheduleRequest): Promise<void> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {
       throw new NotFoundError('workspace not found');
     }
-
     const schedule = this.schedules.findById(request.id);
     if (!schedule || schedule.workspaceId !== request.workspaceId) {
       throw new NotFoundError('schedule not found');
     }
-
     const threadId = schedule.threadId;
     const thread = this.threads.findById(threadId);
     const ownedThread = thread?.kind === 'schedule';
     const attachmentRows = ownedThread ? this.attachments.listByThread(threadId) : [];
     const attachmentIds = attachmentRows.map((row) => row.id);
-
     if (ownedThread) {
       const active = await this.lifecycle.activeByThread(threadId);
       if (active) {
@@ -83,13 +74,10 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
             to: 'cancelled',
             events: [{ type: 'run.cancelled', reason: 'schedule deleted' } as PendingSessionEvent],
           });
-        } catch {
-          // already terminal or raced; thread is deleted below regardless
-        }
+        } catch {}
       }
     }
     this.queue.drop(threadId);
-
     const perform = () => {
       if (ownedThread) {
         this.semanticSessions?.deleteSessionByThread({
@@ -102,18 +90,15 @@ export class DeleteScheduleUseCase implements DeleteScheduleInput {
         this.threads.delete(threadId);
       }
     };
-
     if (this.db) {
       this.db.transaction(perform);
     } else {
       perform();
     }
-
     this.deskEvents.emit(request.workspaceId, {
       type: 'schedule-deleted',
       id: schedule.id,
     });
-
     if (ownedThread && attachmentIds.length > 0) {
       await this.attachmentsFs.remove(workspace.path, threadId, attachmentIds);
     }

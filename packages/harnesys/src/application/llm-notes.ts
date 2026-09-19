@@ -1,5 +1,4 @@
 import type { PermissionMap } from '../ports/permissions.ts';
-
 export type BudgetLeft = {
   stepsLeft?: number;
   stepsTotal?: number;
@@ -7,9 +6,10 @@ export type BudgetLeft = {
   tokensTotal?: number;
   msLeft?: number;
 };
-
-export type LlmNote = { tag: string; text: string };
-
+export type LlmNote = {
+  tag: string;
+  text: string;
+};
 export type LlmNoteContext = {
   agentId: string;
   runId: string;
@@ -17,17 +17,9 @@ export type LlmNoteContext = {
   nodeId: string;
   steps: number;
   state: Readonly<Record<string, unknown>>;
-  /**
-   * Enforced permission map of this segment (the same object the tool gate
-   * checks). Hosts render policy notes from it so the model sees exactly
-   * what the gate enforces, including spawn intersections. Absent when the
-   * host runs without a permission map.
-   */
   permissions?: PermissionMap;
 };
-
 export type LlmNoteProvider = (ctx: LlmNoteContext) => LlmNote[] | Promise<LlmNote[]>;
-
 export function assembleNotes(notes: LlmNote[]): string {
   if (notes.length === 0) {
     return '';
@@ -35,7 +27,6 @@ export function assembleNotes(notes: LlmNote[]): string {
   const blocks = notes.map((n) => `<${n.tag}>\n${n.text}\n</${n.tag}>`).join('\n');
   return `Runtime notes (refreshed before this step):\n${blocks}`;
 }
-
 export function budgetNote(left: BudgetLeft, closing = false): LlmNote {
   const parts: string[] = [];
   if (left.stepsLeft !== undefined) {
@@ -47,7 +38,7 @@ export function budgetNote(left: BudgetLeft, closing = false): LlmNote {
     parts.push(`tokens remaining: ~${left.tokensLeft}`);
   }
   if (left.msLeft !== undefined) {
-    parts.push(`time remaining: ~${Math.max(1, Math.ceil(left.msLeft / 60_000))} min`);
+    parts.push(`time remaining: ~${Math.max(1, Math.ceil(left.msLeft / 60000))} min`);
   }
   if (closing) {
     const counter = parts.length > 0 ? `${parts.join(' · ')}. ` : '';

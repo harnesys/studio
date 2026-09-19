@@ -8,12 +8,13 @@ type SettingsProps = {
   config: PackConfig;
   onChange: (next: PackConfig) => void;
 };
-
 export function MemoryPackSettings({
   packName,
   config,
   onChange,
-}: SettingsProps & { packName: string }) {
+}: SettingsProps & {
+  packName: string;
+}) {
   if (packName === 'episodic-memory') {
     return <EpisodicSettings config={config} onChange={onChange} />;
   }
@@ -28,17 +29,14 @@ export function MemoryPackSettings({
   }
   return null;
 }
-
 function EpisodicSettings({ config, onChange }: SettingsProps) {
   const spec = config.spec ?? {};
   const store = spec.store === 'vector' ? 'vector' : 'fts';
   const topK = specNumber(spec.topK, DEFAULT_EPISODIC_TOP_K);
   const indexOnCompact = specBoolean(spec.indexOnCompact, DEFAULT_EPISODIC_INDEX_ON_COMPACT);
-
   function patchSpec(partial: Record<string, unknown>) {
     onChange({ spec: { ...spec, ...partial } });
   }
-
   return (
     <FieldGroup className="gap-2">
       <Field>
@@ -83,7 +81,6 @@ function EpisodicSettings({ config, onChange }: SettingsProps) {
     </FieldGroup>
   );
 }
-
 function SemanticSettings({ config, onChange }: SettingsProps) {
   const spec = config.spec ?? {};
   const autoProjectSession = specBoolean(
@@ -96,11 +93,9 @@ function SemanticSettings({ config, onChange }: SettingsProps) {
     spec.projectBudgetTokens,
     DEFAULT_SEMANTIC_PROJECT_BUDGET_TOKENS,
   );
-
   function patchSpec(partial: Record<string, unknown>) {
     onChange({ spec: { ...spec, ...partial } });
   }
-
   return (
     <FieldGroup className="gap-2">
       <SwitchField
@@ -136,15 +131,12 @@ function SemanticSettings({ config, onChange }: SettingsProps) {
     </FieldGroup>
   );
 }
-
 function KnowledgeSettings({ config, onChange }: SettingsProps) {
   const spec = config.spec ?? {};
   const topK = specNumber(spec.topK, DEFAULT_KNOWLEDGE_TOP_K);
-
   function patchSpec(partial: Record<string, unknown>) {
     onChange({ spec: { ...spec, ...partial } });
   }
-
   return (
     <FieldGroup className="gap-2">
       <NumberField
@@ -158,16 +150,13 @@ function KnowledgeSettings({ config, onChange }: SettingsProps) {
     </FieldGroup>
   );
 }
-
 function PinSettings({ config, onChange }: SettingsProps) {
   const spec = config.spec ?? {};
   const budgetTokens = specNumber(spec.budgetTokens, DEFAULT_PIN_BUDGET_TOKENS);
   const maxItems = specNumber(spec.maxItems, DEFAULT_PIN_MAX_ITEMS);
-
   function patchSpec(partial: Record<string, unknown>) {
     onChange({ spec: { ...spec, ...partial } });
   }
-
   return (
     <FieldGroup className="gap-2">
       <NumberField
@@ -189,7 +178,6 @@ function PinSettings({ config, onChange }: SettingsProps) {
     </FieldGroup>
   );
 }
-
 function NumberField({
   id,
   label,
@@ -230,7 +218,6 @@ function NumberField({
     </Field>
   );
 }
-
 function SwitchField({
   id,
   label,
@@ -254,16 +241,12 @@ function SwitchField({
     </Field>
   );
 }
-
 function specNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
-
 function specBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
-
-// Library defaults from packages/harnesys constants.ts (memory pack defaults).
 const DEFAULT_EPISODIC_TOP_K = 8;
 const DEFAULT_EPISODIC_INDEX_ON_COMPACT = true;
 const DEFAULT_SEMANTIC_AUTO_PROJECT_SESSION = false;

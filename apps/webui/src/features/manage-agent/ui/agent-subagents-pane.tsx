@@ -31,11 +31,9 @@ import { deleteAgent } from '../model/delete-agent';
 type AgentSubagentsPaneProps = {
   workspaceId: string;
   parentId: string;
-  /** Draft plugin map: only enabled plugins contribute visible agent sections. */
   enabledPlugins: Record<string, boolean>;
   onConfigure: (agent: Agent) => void;
 };
-
 export function AgentSubagentsPane({
   workspaceId,
   parentId,
@@ -62,29 +60,22 @@ export function AgentSubagentsPane({
   const presetsQuery = useQuery({
     queryKey: ['agent-presets'],
     queryFn: listAgentPresets,
-    staleTime: 60_000,
+    staleTime: 60000,
   });
-  // This pane always creates delegates: presets with the agents pack would fail
-  // the server ban, so they are not offered (explorer/general stay, coder/orchestrator do not).
   const presets = (presetsQuery.data ?? []).filter((preset) => !preset.capabilities?.agents);
   const [creating, setCreating] = useState(false);
-  // Local confirm: the global overlay store is single-slot, an alert there would
-  // unmount the config dialog that hosts this pane.
   const [pendingDelete, setPendingDelete] = useState<Agent | null>(null);
   const deleteResolver = useRef<((confirmed: boolean) => void) | null>(null);
-
   const confirmDelete = (delegate: Agent): Promise<boolean> =>
     new Promise((resolve) => {
       deleteResolver.current = resolve;
       setPendingDelete(delegate);
     });
-
   const settleDelete = (confirmed: boolean): void => {
     deleteResolver.current?.(confirmed);
     deleteResolver.current = null;
     setPendingDelete(null);
   };
-
   const addFromPreset = async (presetId: string) => {
     setCreating(true);
     try {
@@ -100,7 +91,6 @@ export function AgentSubagentsPane({
       setCreating(false);
     }
   };
-
   return (
     <>
       <Pane
@@ -201,14 +191,10 @@ export function AgentSubagentsPane({
     </>
   );
 }
-
-/** Plugin agent display name: the `.md` file stem (catalog uses id/role = that name). */
 function agentFileName(file: string): string {
   const base = file.slice(file.lastIndexOf('/') + 1);
   return base.replace(/\.md$/, '') || file;
 }
-
-/** Read-only: plugin agents are owned by the plugin, not editable here. */
 function PluginAgentRow({ name }: { name: string }) {
   return (
     <Row
@@ -220,7 +206,6 @@ function PluginAgentRow({ name }: { name: string }) {
     />
   );
 }
-
 function SubagentRow({
   agent,
   onOpen,

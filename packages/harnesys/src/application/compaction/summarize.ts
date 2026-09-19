@@ -3,7 +3,6 @@ import { SUMMARY_SYSTEM_PROMPT, SUMMARY_USER_PROMPT } from '../../constants.ts';
 import type { ModelBinding } from '../../ports/models.ts';
 
 export { SUMMARY_SYSTEM_PROMPT, SUMMARY_USER_PROMPT };
-
 export function priorSummaryBlock(text: string): string {
   return `
 
@@ -13,10 +12,11 @@ ${text}
 
 Merge rules: the conversation that follows is newer and wins conflicts; carry forward goals, constraints, and decisions; move finished work into Completed; anything not carried forward is lost.`;
 }
-
-export type SummaryStreamEvent = { type: string; data?: unknown; result?: StreamChunk };
-
-/** Проход саммари: без инструментов, события стрима наружу, финал — summary.completed. */
+export type SummaryStreamEvent = {
+  type: string;
+  data?: unknown;
+  result?: StreamChunk;
+};
 export async function* streamSummary(opts: {
   binding: ModelBinding;
   system: string;

@@ -17,7 +17,6 @@ import {
   WorkflowIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-
 export type AgentConfigCategory =
   | 'identity'
   | 'model'
@@ -31,13 +30,11 @@ export type AgentConfigCategory =
   | 'mcp'
   | 'limits'
   | 'subagents';
-
 export type AgentConfigNavItem = {
   id: AgentConfigCategory;
   label: string;
   icon: LucideIcon;
 };
-
 export const AGENT_CONFIG_CATEGORIES: AgentConfigNavItem[] = [
   { id: 'identity', label: 'Identity', icon: UserRoundIcon },
   { id: 'model', label: 'Model', icon: CpuIcon },
@@ -52,7 +49,6 @@ export const AGENT_CONFIG_CATEGORIES: AgentConfigNavItem[] = [
   { id: 'hooks', label: 'Hooks', icon: WebhookIcon },
   { id: 'modes', label: 'Modes', icon: SlidersHorizontalIcon },
 ];
-
 export type AgentConfigCategoryNavProps = {
   categories: AgentConfigNavItem[];
   category: AgentConfigCategory;
@@ -61,7 +57,6 @@ export type AgentConfigCategoryNavProps = {
   onBack?: () => void;
   className?: string;
 };
-
 export function AgentConfigCategoryNav({
   categories,
   category,
@@ -105,8 +100,6 @@ export function AgentConfigCategoryNav({
     </nav>
   );
 }
-
-/** Chevron on the graph content box left edge — toggles the dialog category nav. */
 export function GraphContentNavToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
     <button

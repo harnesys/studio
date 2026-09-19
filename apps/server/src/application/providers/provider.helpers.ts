@@ -12,7 +12,6 @@ import type {
   LlmProviderRepository,
 } from '../../domain/llm-provider.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
-
 export function requireProvider(
   providers: LlmProviderRepository,
   workspaceId: string,
@@ -24,9 +23,10 @@ export function requireProvider(
   }
   return provider;
 }
-
 export function requireModel(
-  models: { findById(id: string): LlmModel | undefined },
+  models: {
+    findById(id: string): LlmModel | undefined;
+  },
   providerId: string,
   modelId: string,
 ): LlmModel {
@@ -36,12 +36,6 @@ export function requireModel(
   }
   return model;
 }
-
-/**
- * Rejects an effort the model cannot run instead of silently dropping it in
- * the LLM adapter. Models without gradation (`effort` empty) reject any
- * value; mandatory-reasoning models reject `none`.
- */
 export function assertModelEffortSupported(model: LlmModel, effort: string): void {
   const resolved = resolveModel(toModelRecord(model));
   if (effort === 'none' && resolved.reasoningMandatory === true) {
@@ -55,7 +49,6 @@ export function assertModelEffortSupported(model: LlmModel, effort: string): voi
     throw new ValidationError(`effort ${effort} is not supported by model`);
   }
 }
-
 export function toModelPublic(model: LlmModel, _driver: string): ProviderModelPublic {
   const record = toModelRecord(model);
   const resolved = resolveModel(record);
@@ -79,7 +72,6 @@ export function toModelPublic(model: LlmModel, _driver: string): ProviderModelPu
       : resolved.supported_parameters,
   };
 }
-
 export function toProviderPublic(provider: LlmProvider, models: LlmModel[]): ProviderPublic {
   return {
     id: provider.id,
@@ -92,7 +84,6 @@ export function toProviderPublic(provider: LlmProvider, models: LlmModel[]): Pro
     models: models.map((model) => toModelPublic(model, provider.driver)),
   };
 }
-
 function toModelRecord(model: LlmModel): ModelRecord {
   const metadata =
     typeof model.metadata === 'object' && model.metadata !== null ? model.metadata : {};

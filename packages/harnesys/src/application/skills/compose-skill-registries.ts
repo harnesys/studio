@@ -1,10 +1,6 @@
 import type { SkillSummary } from '../../domain/skill.ts';
 import type { SkillRegistry } from '../../ports/skills.ts';
 import { resolveAllowedSkillName } from './skills-catalog.ts';
-
-/** Compose registries left-to-right; later registries win on duplicate names.
- *  A bare `name` that misses everywhere resolves to a unique `*:name` member —
- *  same rule as allowlists (`resolveAllowedSkillName`). */
 export function composeSkillRegistries(regs: SkillRegistry[]): SkillRegistry {
   return {
     async list() {
@@ -37,11 +33,19 @@ export function composeSkillRegistries(regs: SkillRegistry[]): SkillRegistry {
     },
   };
 }
-
-type SkillOwner = { reg: SkillRegistry; id: string } | { error: string };
-
+type SkillOwner =
+  | {
+      reg: SkillRegistry;
+      id: string;
+    }
+  | {
+      error: string;
+    };
 async function findOwner(regs: SkillRegistry[], id: string): Promise<SkillOwner> {
-  const members: { reg: SkillRegistry; names: Set<string> }[] = [];
+  const members: {
+    reg: SkillRegistry;
+    names: Set<string>;
+  }[] = [];
   for (let i = regs.length - 1; i >= 0; i -= 1) {
     const reg = regs[i];
     if (reg === undefined) {

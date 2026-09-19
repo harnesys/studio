@@ -15,16 +15,12 @@ import type { StudioDb } from '../store/sqlite/connection.ts';
 import { mapSqliteError } from '../store/sqlite/errors.ts';
 import { type SemanticMemoryRow, semanticMemoriesTable } from '../store/sqlite/schema';
 import { fitLinesToBudget } from './fit-budget.ts';
-
 export type DeleteSessionByThreadInput = {
   workspaceId: string;
   threadId: string;
 };
-
 export class SqliteSemanticPort implements SemanticMemoryPort {
   constructor(private readonly db: StudioDb) {}
-
-  /** Wipe session rows for a closed/deleted thread. */
   deleteSessionByThread(input: DeleteSessionByThreadInput): void {
     this.db
       .delete(semanticMemoriesTable)
@@ -37,8 +33,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       )
       .run();
   }
-
-  /** Wipe all rows kept under an agent name (agent deleted, name orphaned). */
   deleteByAgentName(input: { workspaceId: string; agentName: string }): void {
     this.db
       .delete(semanticMemoriesTable)
@@ -50,7 +44,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       )
       .run();
   }
-
   upsert(scopeId: MemoryScopeId, input: SemanticUpsertInput): Promise<MemoryRecord> {
     const now = new Date().toISOString();
     const threadId = resolveStoredThreadId(scopeId, input);
@@ -85,7 +78,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       );
     }
   }
-
   list(scopeId: MemoryScopeId, query: SemanticListQuery): Promise<MemoryRecord[]> {
     const filters: SQL[] = [
       eq(semanticMemoriesTable.workspaceId, scopeId.workspaceId),
@@ -106,7 +98,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
     }
     return Promise.resolve(rows.map(toMemoryRecord));
   }
-
   update(scopeId: MemoryScopeId, input: SemanticUpdateInput): Promise<MemoryRecord> {
     const existing = this.db
       .select()
@@ -133,7 +124,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       .get();
     return Promise.resolve(toMemoryRecord(row));
   }
-
   remove(scopeId: MemoryScopeId, id: string): Promise<void> {
     this.db
       .delete(semanticMemoriesTable)
@@ -147,7 +137,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       .run();
     return Promise.resolve();
   }
-
   async projectForWindow(scopeId: MemoryScopeId, input: SemanticProjectInput): Promise<string> {
     if (input.scopes.length === 0 || input.limit <= 0 || input.budgetTokens <= 0) {
       return '';
@@ -159,7 +148,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
       .map((row) => (row.key ? `${row.key}: ${row.text}` : row.text));
     return fitLinesToBudget(lines, input.budgetTokens);
   }
-
   private upsertKeyed(
     scopeId: MemoryScopeId,
     input: SemanticUpsertInput,
@@ -208,7 +196,6 @@ export class SqliteSemanticPort implements SemanticMemoryPort {
     return toMemoryRecord(row);
   }
 }
-
 function resolveStoredThreadId(scopeId: MemoryScopeId, input: SemanticUpsertInput): string | null {
   if (input.scope === 'long') {
     return null;
@@ -219,7 +206,6 @@ function resolveStoredThreadId(scopeId: MemoryScopeId, input: SemanticUpsertInpu
   }
   return threadId;
 }
-
 function keyedLookup(
   scopeId: MemoryScopeId,
   scope: SemanticScope,
@@ -242,7 +228,6 @@ function keyedLookup(
     eq(semanticMemoriesTable.key, key),
   ) as SQL;
 }
-
 function scopeListFilter(
   scopeId: MemoryScopeId,
   scope: SemanticScope | undefined,
@@ -269,7 +254,6 @@ function scopeListFilter(
   }
   return undefined;
 }
-
 function toMemoryRecord(row: SemanticMemoryRow): MemoryRecord {
   return {
     id: row.id,

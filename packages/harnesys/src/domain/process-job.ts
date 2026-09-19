@@ -1,6 +1,5 @@
 export type ProcessJobMode = 'pipes' | 'pty';
 export type ProcessJobStatus = 'running' | 'exited' | 'killed' | 'timed_out';
-
 export type ProcessJobRecord = {
   id: string;
   cwd: string;
@@ -12,13 +11,11 @@ export type ProcessJobRecord = {
   createdAt: string;
   workspaceId?: string;
 };
-
 export type ProcessJobReadResult = {
   text: string;
   nextSince: number;
   truncated: boolean;
 };
-
 export type ProcessJobRegistry = {
   start(input: {
     cwd: string;
@@ -32,7 +29,12 @@ export type ProcessJobRegistry = {
   }): ProcessJobRecord;
   get(id: string): ProcessJobRecord | null;
   list(filter?: { cwd?: string; workspaceId?: string; mode?: ProcessJobMode }): ProcessJobRecord[];
-  read(id: string, opts?: { since?: number }): ProcessJobReadResult | null;
+  read(
+    id: string,
+    opts?: {
+      since?: number;
+    },
+  ): ProcessJobReadResult | null;
   write(id: string, data: string): boolean;
   resize(id: string, cols: number, rows: number): boolean;
   subscribe(

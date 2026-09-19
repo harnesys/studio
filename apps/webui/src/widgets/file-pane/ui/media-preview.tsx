@@ -1,6 +1,5 @@
 import type { OpenFileKind } from '@/features/open-file';
 import { workspaceFileContentUrl } from '@/shared/api/files';
-
 export function MediaPreview({
   workspaceId,
   path,
@@ -11,7 +10,6 @@ export function MediaPreview({
   kind: Extract<OpenFileKind, 'image' | 'pdf'>;
 }) {
   const url = workspaceFileContentUrl(workspaceId, path);
-
   if (kind === 'pdf') {
     return (
       <iframe
@@ -22,7 +20,6 @@ export function MediaPreview({
       />
     );
   }
-
   return (
     <div className="flex h-full w-full items-center justify-center overflow-auto bg-muted/20 p-4">
       <img

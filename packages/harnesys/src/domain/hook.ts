@@ -1,8 +1,3 @@
-// biome-ignore-all lint/suspicious/noConfusingVoidType: brief specifies HookHandler.inline void union verbatim
-/**
- * Полный набор hook-событий: 33 события контракта Claude Code плюс
- * 4 Harnesys-события (PreModelCall, PostModelCall, NodeStart, NodeEnd).
- */
 export type HookEventName =
   | 'SessionStart'
   | 'SessionEnd'
@@ -41,12 +36,6 @@ export type HookEventName =
   | 'PostModelCall'
   | 'NodeStart'
   | 'NodeEnd';
-
-/**
- * События, которые рантайм диспатчит сам: 20 = 16 нативных Claude плюс 4 Harnesys-события.
- * PreModelCall/PostModelCall/NodeStart/NodeEnd — Harnesys-namespace, вне Claude-контракта,
- * биндятся как нативные.
- */
 export const NATIVE_HOOK_EVENTS: readonly HookEventName[] = [
   'SessionStart',
   'SessionEnd',
@@ -69,8 +58,6 @@ export const NATIVE_HOOK_EVENTS: readonly HookEventName[] = [
   'NodeStart',
   'NodeEnd',
 ];
-
-/** Остальные 17 событий Claude, включая Setup: контракт их знает, рантайм не диспатчит. */
 export const UNSUPPORTED_HOOK_EVENTS: readonly HookEventName[] = [
   'Setup',
   'UserPromptExpansion',
@@ -90,8 +77,6 @@ export const UNSUPPORTED_HOOK_EVENTS: readonly HookEventName[] = [
   'Elicitation',
   'ElicitationResult',
 ];
-
-/** Полезная нагрузка события: общие поля контекста плюс опциональные поля по типу события. */
 export type HookPayload = {
   event: HookEventName;
   session_id: string;
@@ -100,43 +85,67 @@ export type HookPayload = {
   thread_id: string;
   cwd: string;
   permission_mode: string;
-  source?: 'startup' | 'resume' | 'clear' | 'compact' | 'fork'; // SessionStart
-  trigger?: 'manual' | 'auto'; // *Compact
-  tool_name?: string; // tool events
-  tool_input?: unknown; // tool events
-  tool_use_id?: string; // tool events
-  tool_output?: unknown; // PostToolUse
-  failure_reason?: string; // PostToolUseFailure
-  tool_results?: unknown[]; // PostToolBatch
-  agent_type?: string; // Subagent*
-  notification?: { type: string; text: string }; // Notification
-  file_path?: string; // FileChanged
-  model?: { provider: string; model: string }; // Pre/PostModelCall
-  usage?: { steps: number; tokens: number; cost?: number }; // PostModelCall
-  node?: { id: string; type: string }; // NodeStart/NodeEnd
-  reason?: string; // SessionEnd, PermissionDenied
-  message?: string; // UserPromptSubmit; в stdin сериализуется полем `prompt` (спека §2.1)
+  source?: 'startup' | 'resume' | 'clear' | 'compact' | 'fork';
+  trigger?: 'manual' | 'auto';
+  tool_name?: string;
+  tool_input?: unknown;
+  tool_use_id?: string;
+  tool_output?: unknown;
+  failure_reason?: string;
+  tool_results?: unknown[];
+  agent_type?: string;
+  notification?: {
+    type: string;
+    text: string;
+  };
+  file_path?: string;
+  model?: {
+    provider: string;
+    model: string;
+  };
+  usage?: {
+    steps: number;
+    tokens: number;
+    cost?: number;
+  };
+  node?: {
+    id: string;
+    type: string;
+  };
+  reason?: string;
+  message?: string;
 };
-
-/** Эффект, который возвращает обработчик: что рантайм делает после срабатывания. */
 export type HookEffect =
-  | { kind: 'block'; reason: string }
-  | { kind: 'context'; text: string }
-  | { kind: 'update_input'; input: unknown }
-  | { kind: 'update_output'; output: unknown }
-  | { kind: 'ask'; reason: string }
-  | { kind: 'stop'; reason?: string };
-
-/** Интерпретатор shell-form command-хука (Claude `shell`; игнорируется при `args`). */
+  | {
+      kind: 'block';
+      reason: string;
+    }
+  | {
+      kind: 'context';
+      text: string;
+    }
+  | {
+      kind: 'update_input';
+      input: unknown;
+    }
+  | {
+      kind: 'update_output';
+      output: unknown;
+    }
+  | {
+      kind: 'ask';
+      reason: string;
+    }
+  | {
+      kind: 'stop';
+      reason?: string;
+    };
 export type HookCommandShell = 'bash' | 'powershell';
-
-/** Шесть видов обработчиков: command, http, mcp_tool, prompt, agent, inline. */
 export type HookHandler =
   | {
       type: 'command';
       command: string;
       args?: string[];
-      /** Shell-form без `args`: `bash` → `$SHELL` (bash/zsh/sh) иначе `bash`; `powershell` → `pwsh`. */
       shell?: HookCommandShell;
       timeoutS?: number;
       async?: boolean;
@@ -155,25 +164,35 @@ export type HookHandler =
       input?: Record<string, string>;
       timeoutS?: number;
     }
-  | { type: 'prompt'; prompt: string; model?: string; timeoutS?: number }
-  | { type: 'agent'; prompt: string; model?: string; timeoutS?: number } // inert до hook-verifier рантайма
+  | {
+      type: 'prompt';
+      prompt: string;
+      model?: string;
+      timeoutS?: number;
+    }
+  | {
+      type: 'agent';
+      prompt: string;
+      model?: string;
+      timeoutS?: number;
+    }
   | {
       type: 'inline';
-      fn: (payload: HookPayload) => HookEffect[] | void | Promise<HookEffect[] | void>;
-    }; // host-код; парсеры не производят, origin 'host' без grant-фильтра
-
-/** Событие плюс опциональный matcher. */
-export type HookMatcher = { event: HookEventName; matcher?: string };
-
-/** Привязка в hook-подсистеме: id стабилен между обновлениями источника привязки. */
+      fn: (payload: HookPayload) => HookEffect[] | undefined | Promise<HookEffect[] | undefined>;
+    };
+export type HookMatcher = {
+  event: HookEventName;
+  matcher?: string;
+};
 export type HookBinding = HookMatcher & {
-  id: string; // плагинные: `${plugin}:${event}:${sha1(canonicalHandlerJson).slice(0,8)}`; агентные: `${agentId}:${event}:${n}`; host: `${source}:${event}:${n}` — стабилен между обновлениями плагина
+  id: string;
   origin: 'plugin' | 'agent' | 'host';
   handler: HookHandler;
-  vars: { pluginRoot: string; pluginData: string }; // агентные биндинги: обе paths = workspace cwd; host-биндинги vars не читают
+  vars: {
+    pluginRoot: string;
+    pluginData: string;
+  };
 };
-
-/** Декларативная форма биндинга в AgentDefinition. */
 export type HooksBinding = HookMatcher & {
   handler: HookHandler;
   when?: 'agent' | 'mode';

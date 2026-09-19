@@ -43,7 +43,6 @@ import {
   CategoryLandingTitle,
 } from '@/shared/ui/category-landing';
 import { ThreadSection } from './thread-section';
-
 export function AgentDashboard() {
   const agent = useSelectedAgent();
   const navigate = useNavigate();
@@ -61,7 +60,6 @@ export function AgentDashboard() {
   });
   const chats = sorted.filter((thread) => thread.kind === 'chat');
   const automations = sorted.filter((thread) => thread.kind !== 'chat');
-
   const openThread = (threadId: string) => {
     if (!agent) {
       return;
@@ -71,7 +69,6 @@ export function AgentDashboard() {
     setActiveThreadId(agent.id, threadId);
     void navigate(studioPath.thread(agent.workspaceId, threadId));
   };
-
   const openScheduleTab = (scheduleId: string, threadId: string, targetAgentId: string) => {
     if (!agent) {
       return;
@@ -81,7 +78,6 @@ export function AgentDashboard() {
     setActiveThreadId(targetAgentId, threadId);
     void navigate(studioPath.schedule(agent.workspaceId, scheduleId));
   };
-
   const openWebhookTab = (webhookId: string, threadId: string, targetAgentId: string) => {
     if (!agent) {
       return;
@@ -91,7 +87,6 @@ export function AgentDashboard() {
     setActiveThreadId(targetAgentId, threadId);
     void navigate(studioPath.webhook(agent.workspaceId, webhookId));
   };
-
   const handleNewThread = () => {
     if (!agent) {
       return;
@@ -102,7 +97,6 @@ export function AgentDashboard() {
       }
     });
   };
-
   const handleNewScheduler = () => {
     if (!agent) {
       return;
@@ -117,7 +111,6 @@ export function AgentDashboard() {
       }
     });
   };
-
   const handleNewWebhook = () => {
     if (!agent) {
       return;
@@ -132,7 +125,6 @@ export function AgentDashboard() {
       }
     });
   };
-
   const syncActiveThread = (agentId: string) => {
     const next = useThreadStore.getState().latestForAgent(agentId)?.id ?? null;
     if (next) {
@@ -144,7 +136,6 @@ export function AgentDashboard() {
       }
     }
   };
-
   const handleTogglePin = (thread: Thread) => {
     const next = thread.pinned !== true;
     void setThreadPinned(thread.id, next)
@@ -153,7 +144,6 @@ export function AgentDashboard() {
         useThreadStore.getState().setPinned(thread.id, record ? record.pinned : next);
       });
   };
-
   const handleDeleteThread = (thread: Thread) => {
     if (!agent) {
       return;
@@ -207,7 +197,6 @@ export function AgentDashboard() {
         });
     });
   };
-
   if (!agent) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -215,7 +204,6 @@ export function AgentDashboard() {
       </div>
     );
   }
-
   return (
     <CategoryLanding
       data-testid="agent-landing"
@@ -298,7 +286,6 @@ export function AgentDashboard() {
     </CategoryLanding>
   );
 }
-
 function statusInk(status: AgentStatus): string {
   switch (status) {
     case 'running':

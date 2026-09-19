@@ -9,9 +9,11 @@ import { createSearchFilter, type PathFilter } from '../../adapters/actions/path
 import { resolveWorkdirPath } from '../../adapters/actions/path-resolve.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
-export type ListDirEntry = { name: string; type: 'file' | 'dir'; size: number };
-
+export type ListDirEntry = {
+  name: string;
+  type: 'file' | 'dir';
+  size: number;
+};
 export function listDirTool(options: FilesOptions = {}): ToolDefinition {
   const blocklist = options.blocklist ?? DEFAULT_PATH_BLOCKLIST;
   return tool('list_dir', {
@@ -27,7 +29,10 @@ export function listDirTool(options: FilesOptions = {}): ToolDefinition {
       },
     },
     async execute(input, ctx) {
-      const parsed = input as { path?: string; depth?: number };
+      const parsed = input as {
+        path?: string;
+        depth?: number;
+      };
       const relative = parsed.path ?? '.';
       const depth = parsed.depth ?? 1;
       const absolute = resolveWorkdirPath(ctx.cwd, relative, options.root);
@@ -54,7 +59,6 @@ export function listDirTool(options: FilesOptions = {}): ToolDefinition {
     },
   });
 }
-
 type CollectArgs = {
   absolute: string;
   relative: string;
@@ -63,7 +67,6 @@ type CollectArgs = {
   out: ListDirEntry[];
   hidden: PathFilter;
 };
-
 async function collect(args: CollectArgs): Promise<void> {
   const { absolute, relative, depth, maxDepth, out, hidden } = args;
   if (out.length >= DEFAULT_LIST_DIR_LIMIT) {

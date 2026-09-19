@@ -3,14 +3,12 @@ import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import type { McpConnection, McpConnector } from '../../application/mcp/mcp-connector.port.ts';
 import type { McpServerConfig } from '../../domain/mcp.ts';
 import { AiSdkMcpConnection } from './ai-sdk-mcp-connection.ts';
-
 export class AiSdkMcpConnector implements McpConnector {
   async connect(config: McpServerConfig): Promise<McpConnection> {
     const client = await createMCPClient({ transport: buildTransport(config) });
     return new AiSdkMcpConnection(config.serverId, client);
   }
 }
-
 function buildTransport(config: McpServerConfig) {
   const transport = config.transport;
   if (transport.type === 'stdio') {
@@ -33,7 +31,11 @@ function buildTransport(config: McpServerConfig) {
     return new Experimental_StdioMCPTransport(options);
   }
   if (transport.type === 'http') {
-    const http: { type: 'http'; url: string; headers?: Record<string, string> } = {
+    const http: {
+      type: 'http';
+      url: string;
+      headers?: Record<string, string>;
+    } = {
       type: 'http',
       url: transport.url,
     };
@@ -42,7 +44,11 @@ function buildTransport(config: McpServerConfig) {
     }
     return http;
   }
-  const sse: { type: 'sse'; url: string; headers?: Record<string, string> } = {
+  const sse: {
+    type: 'sse';
+    url: string;
+    headers?: Record<string, string>;
+  } = {
     type: 'sse',
     url: transport.url,
   };

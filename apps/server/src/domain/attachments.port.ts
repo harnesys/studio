@@ -5,7 +5,6 @@ export type AttachmentsPutInput = {
   bytes: Uint8Array;
   fileName: string;
 };
-
 export type AttachmentsPort = {
   put(input: AttachmentsPutInput): Promise<void>;
   get(

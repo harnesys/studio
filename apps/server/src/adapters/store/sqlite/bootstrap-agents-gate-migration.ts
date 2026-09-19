@@ -4,10 +4,6 @@ import type { StudioDb } from './connection.ts';
 import { agentsTable } from './schema/agents.ts';
 import { modePresetsTable } from './schema/mode-presets.ts';
 
-/**
- * Spec gates for the `agents` operation on builtin modes. Ids outside this
- * map are custom modes and legitimately inherit the agent base: untouched.
- */
 const BUILTIN_AGENTS_GATES: Record<string, ModeOpGate> = {
   ask: 'ask',
   auto: 'ask',
@@ -15,7 +11,6 @@ const BUILTIN_AGENTS_GATES: Record<string, ModeOpGate> = {
   dont_ask: 'deny',
   bypass: 'allow',
 };
-
 function parseObject(json: string | null): Record<string, unknown> | null {
   try {
     const parsed: unknown = JSON.parse(json ?? '{}');
@@ -27,12 +22,6 @@ function parseObject(json: string | null): Record<string, unknown> | null {
     return null;
   }
 }
-
-/**
- * The `agents` operation arrived after existing rows were stored: builtin
- * preset rows and agent `modes_json` copies of the five builtin ids may lack
- * the gate. Idempotent backfill; writes only when something actually changes.
- */
 export function backfillAgentsModeGates(db: StudioDb): void {
   for (const row of db.select().from(modePresetsTable).all()) {
     if (!row.builtin) {
@@ -50,7 +39,6 @@ export function backfillAgentsModeGates(db: StudioDb): void {
       .where(eq(modePresetsTable.id, row.id))
       .run();
   }
-
   for (const row of db.select().from(agentsTable).all()) {
     let parsed: unknown;
     try {

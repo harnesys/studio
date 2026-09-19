@@ -5,7 +5,6 @@ import { asNumber, asRecord, asString, itemsOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { OPENROUTER_DEFAULT_URL };
-
 export function listOpenRouterModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   const url = new URL(modelsUrl(input, OPENROUTER_DEFAULT_URL));
   url.searchParams.set('output_modalities', 'all');
@@ -16,7 +15,6 @@ export function listOpenRouterModels(input: DiscoverInput): Promise<DiscoveredMo
     parse: parseOpenRouterList,
   });
 }
-
 export function parseOpenRouterList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -27,19 +25,16 @@ export function parseOpenRouterList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapOpenRouterModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const name = asString(record?.id);
   if (!record || !name) {
     return undefined;
   }
-
   const pricing = asRecord(record.pricing);
   const topProvider = asRecord(record.top_provider);
   const contextLength = asNumber(record.context_length) ?? asNumber(topProvider?.context_length);
   const maxOutput = asNumber(topProvider?.max_completion_tokens);
-
   return {
     name,
     kind: 'chat',

@@ -9,7 +9,6 @@ import { startGitWatcher } from './files-watcher-git.ts';
 import { type DirSnapshot, diff, snapshot } from './files-watcher-snapshot.ts';
 
 type Listener = (event: WorkspaceFileEvent) => void;
-
 type WatchState = {
   workspacePath: string;
   listeners: Set<Listener>;
@@ -20,17 +19,14 @@ type WatchState = {
   gitDebounceTimer: ReturnType<typeof setTimeout> | null;
   closed: boolean;
 };
-
 export class FilesWatcherAdapter implements FilesWatcherInput {
   private readonly watchers = new Map<string, WatchState>();
-
   watch(
     workspaceId: string,
     workspacePath: string,
     onEvent: (event: WorkspaceFileEvent) => void,
   ): () => void {
     const state = this.watchers.get(workspaceId);
-
     if (state && state.workspacePath === workspacePath && !state.closed) {
       state.listeners.add(onEvent);
       trace('files-watcher', 'listener added', {
@@ -40,11 +36,9 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
       });
       return () => this.removeListener(workspaceId, onEvent);
     }
-
     if (state) {
       this.closeState(workspaceId);
     }
-
     const newState: WatchState = {
       workspacePath,
       listeners: new Set([onEvent]),
@@ -56,7 +50,6 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
       closed: false,
     };
     this.watchers.set(workspaceId, newState);
-
     void snapshot(workspacePath, SAFETY_NAMES)
       .then((snap) => {
         if (!newState.closed) {
@@ -73,7 +66,6 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
           error: String(err),
         });
       });
-
     const handleChange = () => {
       if (newState.closed) {
         return;
@@ -110,7 +102,6 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
         }
       }, FILES_WATCHER_DEBOUNCE_MS);
     };
-
     try {
       const watcher = watch(workspacePath, { recursive: true }, (_eventType, filename) => {
         if (!filename) {
@@ -133,12 +124,9 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
     } catch (err) {
       trace('files-watcher', 'watch failed to start', { workspaceId, error: String(err) });
     }
-
     void startGitWatcher(newState, workspaceId, workspacePath);
-
     return () => this.removeListener(workspaceId, onEvent);
   }
-
   private removeListener(workspaceId: string, onEvent: Listener): void {
     const state = this.watchers.get(workspaceId);
     if (!state) {
@@ -153,7 +141,6 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
       this.closeState(workspaceId);
     }
   }
-
   private closeState(workspaceId: string): void {
     const state = this.watchers.get(workspaceId);
     if (!state) {
@@ -171,27 +158,21 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
     if (state.watcher) {
       try {
         state.watcher.close();
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
     if (state.gitWatcher) {
       try {
         state.gitWatcher.close();
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
     this.watchers.delete(workspaceId);
     trace('files-watcher', 'watch closed', { workspaceId });
   }
-
   async listTree(workspacePath: string): Promise<WorkspaceFileEntry[]> {
     const results: WorkspaceFileEntry[] = [];
     await this.collectEntries(workspacePath, '', results);
     return results;
   }
-
   private async collectEntries(
     absBase: string,
     relDir: string,
@@ -207,7 +188,6 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
     } catch {
       return;
     }
-
     for (const d of dirents) {
       const name = String(d.name);
       if (SAFETY_NAMES.has(name)) {
@@ -215,13 +195,11 @@ export class FilesWatcherAdapter implements FilesWatcherInput {
       }
       const relPath = relDir ? `${relDir}/${name}` : name;
       const isDir = d.isDirectory();
-
       results.push({
         name,
         kind: isDir ? 'dir' : 'file',
         path: relPath,
       });
-
       if (isDir) {
         await this.collectEntries(absBase, relPath, results);
       }

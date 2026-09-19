@@ -12,29 +12,19 @@ import type { SecretStore } from '../../domain/secret-store.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { invalidatePluginWorkspaces, type LspByWorkspace } from './invalidate-plugin-workspaces.ts';
 import { isConfigOptionComponent } from './plugin-user-config.ts';
-
 export type SetPluginOptionRequest = {
   name: PluginName;
   workspaceId: string;
   key: string;
   value: PluginOptionValue;
 };
-
 export type SetPluginOptionResponse = {
   plugin: PluginInstallRecord;
   diagnostics: PluginDiagnostic[];
 };
-
 export type SetPluginOptionInput = {
   execute(request: SetPluginOptionRequest): Promise<SetPluginOptionResponse>;
 };
-
-/**
- * Saves one userConfig option. Non-sensitive values go to the plugin record in
- * SQLite; sensitive values go to the SecretStore only. Without a SecretStore
- * the sensitive save is refused with a diagnostic — the value is never written
- * to SQLite.
- */
 export class SetPluginOptionUseCase implements SetPluginOptionInput {
   constructor(
     private readonly plugins: PluginRepository,
@@ -42,7 +32,6 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
     private readonly secrets?: SecretStore,
     private readonly lspByWorkspace?: LspByWorkspace,
   ) {}
-
   async execute(request: SetPluginOptionRequest): Promise<SetPluginOptionResponse> {
     const record = this.plugins.findByName(request.workspaceId, request.name);
     if (!record) {
@@ -75,7 +64,6 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
     );
     return { plugin: saved, diagnostics: [] };
   }
-
   private async saveSensitive(
     record: PluginInstallRecord,
     request: SetPluginOptionRequest,
@@ -117,14 +105,11 @@ export class SetPluginOptionUseCase implements SetPluginOptionInput {
     return { plugin: record, diagnostics: [] };
   }
 }
-
 function findOptionSpec(ir: PluginIr, key: string): ConfigOptionSpec | undefined {
   return ir.components
     .filter(isConfigOptionComponent)
     .find((component) => component.spec.key === key)?.spec;
 }
-
-/** Значение приводится к типу опции: number/boolean приходят строками из UI. */
 function coerceOptionValue(spec: ConfigOptionSpec, value: PluginOptionValue): PluginOptionValue {
   if (spec.type === 'number') {
     const num = typeof value === 'number' ? value : Number(value);

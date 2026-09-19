@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
-
 import { useAgentStore } from '@/entities/agent';
 import { useThreadStore } from '@/entities/thread';
 import { useWorkspaces } from '@/entities/workspace';
@@ -14,14 +13,12 @@ import {
 import { gitFileStatusQueryKey, gitStatusQueryKey } from '@/shared/api/git';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { studioPath } from '@/shared/config/routes';
-
 import { useAgentsDisplayStore } from '../model/agents-display.store';
 import { applyDeskEvent } from '../model/apply-desk-event';
 import { useDeskStore } from '../model/desk.store';
 import { hydrateDeskChrome } from '../model/desk-chrome';
 import { hydrateDesk } from '../model/hydrate-desk';
 import { useSelectedWorkspaceIds, useWorkspaceTabsStore } from '../model/workspace-tabs.store';
-
 export function DeskSync() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -36,7 +33,6 @@ export function DeskSync() {
   const visibleReady = useDeskStore((state) =>
     workspaceId ? state.hydrated[workspaceId] === 'ready' : false,
   );
-
   useLayoutEffect(() => {
     if (!workspaceId) {
       return;
@@ -50,8 +46,6 @@ export function DeskSync() {
       });
     void hydrateDesk(workspaceId).catch(() => {});
   }, [workspaceId]);
-
-  // Only selected (on-desk) workspaces: agents/threads/tree. Off-desk stays cold.
   useEffect(() => {
     if (workspacesQuery.status !== 'success') {
       return;
@@ -63,7 +57,7 @@ export function DeskSync() {
       void queryClient.prefetchQuery({
         queryKey: workspaceFilesTreeQueryKey(id),
         queryFn: () => listWorkspaceFilesTree(id),
-        staleTime: 60_000,
+        staleTime: 60000,
       });
     }
     for (const id of Object.keys(useDeskStore.getState().hydrated)) {
@@ -72,12 +66,9 @@ export function DeskSync() {
       }
     }
   }, [selectedWorkspaceIds, workspaceIds, workspacesQuery.status, queryClient]);
-
   useEffect(() => {
     return watchDesk(applyDeskEvent);
   }, []);
-
-  // Layout-owned fs watch per selected workspace; toggle only adds/removes that id's stream.
   const filesWatchesRef = useRef(new Map<string, () => void>());
   useEffect(() => {
     const watches = filesWatchesRef.current;
@@ -114,7 +105,6 @@ export function DeskSync() {
       watches.clear();
     };
   }, []);
-
   useEffect(() => {
     if (!workspaceId || workspacesQuery.status === 'pending' || !visibleReady) {
       return;
@@ -126,7 +116,6 @@ export function DeskSync() {
     const threads = useThreadStore
       .getState()
       .items.filter((item) => item.workspaceId === workspaceId);
-
     if (focus.kind === 'thread') {
       const thread = threads.find((item) => item.id === focus.threadId);
       if (!thread) {
@@ -138,14 +127,11 @@ export function DeskSync() {
       }
     }
   }, [workspaceId, focus, visibleReady, workspacesQuery.status, workspacesQuery.data, navigate]);
-
   return null;
 }
-
 function revealAgent(agentId: string): void {
   useAgentsDisplayStore.getState().expand(agentId);
 }
-
 function fallbackAgentId(workspaceId: string): string | null {
   const agents = useAgentStore.getState().items.filter((item) => item.workspaceId === workspaceId);
   const known = new Set(agents.map((item) => item.id));

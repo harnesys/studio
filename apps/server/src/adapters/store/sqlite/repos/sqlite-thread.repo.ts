@@ -10,10 +10,8 @@ import type {
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type ThreadRow, threadsTable } from '../schema';
-
 export class SqliteThreadRepo implements ThreadRepository {
   constructor(private readonly db: StudioDb) {}
-
   listByWorkspace(workspaceId: string): Thread[] {
     return this.db
       .select()
@@ -23,12 +21,10 @@ export class SqliteThreadRepo implements ThreadRepository {
       .all()
       .map(toThread);
   }
-
   findById(id: string): Thread | undefined {
     const row = this.db.select().from(threadsTable).where(eq(threadsTable.id, id)).get();
     return row ? toThread(row) : undefined;
   }
-
   insert(rec: ThreadInsert): Thread {
     try {
       const row = this.db
@@ -41,7 +37,6 @@ export class SqliteThreadRepo implements ThreadRepository {
       return mapSqliteError(err, { notFound: 'workspace or agent not found' });
     }
   }
-
   patch(id: string, patch: ThreadPatch): Thread {
     const updates: {
       agentId?: string;
@@ -80,7 +75,6 @@ export class SqliteThreadRepo implements ThreadRepository {
       return mapSqliteError(err, { notFound: 'workspace or agent not found' });
     }
   }
-
   updateTitle(id: string, title: string): Thread {
     const row = this.db
       .update(threadsTable)
@@ -93,7 +87,6 @@ export class SqliteThreadRepo implements ThreadRepository {
     }
     return toThread(row);
   }
-
   setPinned(id: string, pinned: boolean): Thread {
     const current = this.findById(id);
     if (!current) {
@@ -110,7 +103,6 @@ export class SqliteThreadRepo implements ThreadRepository {
       .get();
     return toThread(row);
   }
-
   setRunMode(id: string, mode: string): Thread {
     const current = this.findById(id);
     if (!current) {
@@ -119,8 +111,6 @@ export class SqliteThreadRepo implements ThreadRepository {
     const meta = (
       typeof current.metadata === 'object' && current.metadata !== null ? current.metadata : {}
     ) as Record<string, unknown>;
-    // injectedRunMode = mode of the last run that already carried the instructions
-    // block; the send use case compares against it to avoid duplicate blocks.
     const row = this.db
       .update(threadsTable)
       .set({ metadata: JSON.stringify({ ...meta, runMode: mode, injectedRunMode: mode }) })
@@ -129,7 +119,6 @@ export class SqliteThreadRepo implements ThreadRepository {
       .get();
     return toThread(row);
   }
-
   markRead(id: string): Thread {
     const current = this.findById(id);
     if (!current) {
@@ -146,7 +135,6 @@ export class SqliteThreadRepo implements ThreadRepository {
     }
     return toThread(row);
   }
-
   touch(id: string): void {
     this.db
       .update(threadsTable)
@@ -154,23 +142,19 @@ export class SqliteThreadRepo implements ThreadRepository {
       .where(eq(threadsTable.id, id))
       .run();
   }
-
   delete(id: string): void {
     this.db.delete(threadsTable).where(eq(threadsTable.id, id)).run();
   }
-
   deleteByAgent(agentId: string): void {
     this.db
       .delete(threadsTable)
       .where(or(eq(threadsTable.agentId, agentId), eq(threadsTable.originAgentId, agentId)))
       .run();
   }
-
   deleteByWorkspace(workspaceId: string): void {
     this.db.delete(threadsTable).where(eq(threadsTable.workspaceId, workspaceId)).run();
   }
 }
-
 function toThread(row: ThreadRow): Thread {
   return {
     id: row.id,

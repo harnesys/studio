@@ -14,7 +14,6 @@ import {
   upsertPinBody,
   upsertSemanticBody,
 } from './memory.body.ts';
-
 export type MemoryControllerDeps = {
   listPins: ListPinsInput;
   upsertPin: UpsertPinInput;
@@ -25,18 +24,14 @@ export type MemoryControllerDeps = {
   deleteSemantic: DeleteSemanticInput;
   searchEpisodic: SearchEpisodicInput;
 };
-
 export class MemoryController {
   constructor(private readonly deps: MemoryControllerDeps) {}
-
   register(app: Hono): void {
     this.registerAgentMemory(app);
     this.registerWorkspaceMemory(app);
   }
-
   private registerAgentMemory(app: Hono): void {
     const base = '/api/workspaces/:workspaceId/agents/:agentId';
-
     app.get(`${base}/pins`, async (c) => {
       const pins = await this.deps.listPins.execute({
         workspaceId: c.req.param('workspaceId'),
@@ -44,7 +39,6 @@ export class MemoryController {
       });
       return c.json(pins);
     });
-
     app.put(`${base}/pins/:key`, async (c) => {
       const body = upsertPinBody.parse(await c.req.json());
       const pin = await this.deps.upsertPin.execute({
@@ -55,7 +49,6 @@ export class MemoryController {
       });
       return c.json(pin);
     });
-
     app.delete(`${base}/pins/:key`, async (c) => {
       await this.deps.deletePin.execute({
         workspaceId: c.req.param('workspaceId'),
@@ -64,7 +57,6 @@ export class MemoryController {
       });
       return c.body(null, 204);
     });
-
     app.get(`${base}/semantic`, async (c) => {
       const query = listSemanticQuery.parse(c.req.query());
       const rows = await this.deps.listSemantic.execute({
@@ -75,7 +67,6 @@ export class MemoryController {
       });
       return c.json(rows);
     });
-
     app.post(`${base}/semantic`, async (c) => {
       const body = upsertSemanticBody.parse(await c.req.json());
       const row = await this.deps.upsertSemantic.execute({
@@ -88,7 +79,6 @@ export class MemoryController {
       });
       return c.json(row, 201);
     });
-
     app.patch(`${base}/semantic/:id`, async (c) => {
       const body = updateSemanticBody.parse(await c.req.json());
       const row = await this.deps.updateSemantic.execute({
@@ -99,7 +89,6 @@ export class MemoryController {
       });
       return c.json(row);
     });
-
     app.delete(`${base}/semantic/:id`, async (c) => {
       await this.deps.deleteSemantic.execute({
         workspaceId: c.req.param('workspaceId'),
@@ -109,10 +98,8 @@ export class MemoryController {
       return c.body(null, 204);
     });
   }
-
   private registerWorkspaceMemory(app: Hono): void {
     const base = '/api/workspaces/:workspaceId';
-
     app.get(`${base}/episodic/search`, async (c) => {
       const query = searchMemoryQuery.parse(c.req.query());
       const hits = await this.deps.searchEpisodic.execute({

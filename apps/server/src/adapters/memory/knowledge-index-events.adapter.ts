@@ -2,10 +2,8 @@ import type { KnowledgeIndexState } from '@harnesys/studio-shared';
 import type { KnowledgeIndexEventsPort } from '../../domain/knowledge-index-events.port.ts';
 
 type Listener = (state: KnowledgeIndexState) => void;
-
 export class KnowledgeIndexEventsAdapter implements KnowledgeIndexEventsPort {
   private readonly listeners = new Map<string, Set<Listener>>();
-
   subscribe(workspaceId: string, listener: Listener): () => void {
     let set = this.listeners.get(workspaceId);
     if (!set) {
@@ -20,14 +18,11 @@ export class KnowledgeIndexEventsAdapter implements KnowledgeIndexEventsPort {
       }
     };
   }
-
   emit(workspaceId: string, state: KnowledgeIndexState): void {
     for (const listener of this.listeners.get(workspaceId) ?? []) {
       try {
         listener(state);
-      } catch {
-        // subscriber errors stay local
-      }
+      } catch {}
     }
   }
 }

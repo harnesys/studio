@@ -1,5 +1,4 @@
 import type { SlashCommand } from './slash-commands';
-
 export function runSlashCommand(
   command: SlashCommand,
   threadId: string,

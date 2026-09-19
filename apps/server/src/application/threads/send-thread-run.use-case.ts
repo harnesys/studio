@@ -18,7 +18,6 @@ import { DEFAULT_THREAD_TITLE } from './create-thread.use-case.ts';
 import type { GetThreadInput } from './get-thread.use-case.ts';
 import { publishDeskThread } from './publish-desk-thread.ts';
 import { injectedRunModeField, runModeFields } from './thread.helpers.ts';
-
 export type SendThreadRunRequest = {
   threadId: string;
   text?: string;
@@ -30,11 +29,9 @@ export type SendThreadRunRequest = {
   clientEventId?: string;
   skills?: string[];
 };
-
 export type SendThreadRunInput = {
   execute(request: SendThreadRunRequest): Promise<AcceptedRunResponse>;
 };
-
 export type SendThreadRunDeps = {
   threads: ThreadRepository;
   agents: AgentRepository;
@@ -48,7 +45,6 @@ export type SendThreadRunDeps = {
   getThread: GetThreadInput;
   listSkills: ListWorkspaceSkillsInput;
 };
-
 export class SendThreadRunUseCase implements SendThreadRunInput {
   private readonly threads: ThreadRepository;
   private readonly agents: AgentRepository;
@@ -61,7 +57,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
   private readonly listSkills: ListWorkspaceSkillsInput;
-
   constructor(deps: SendThreadRunDeps) {
     this.threads = deps.threads;
     this.agents = deps.agents;
@@ -75,13 +70,11 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     this.getThread = deps.getThread;
     this.listSkills = deps.listSkills;
   }
-
   async execute(request: SendThreadRunRequest): Promise<AcceptedRunResponse> {
     const thread = this.threads.findById(request.threadId);
     if (!thread) {
       throw new NotFoundError('thread not found');
     }
-
     const agentRow = this.agents.findById(thread.agentId);
     if (!agentRow) {
       throw new NotFoundError('agent not found');
@@ -89,7 +82,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     if (!agentRow.modelId) {
       throw new ValidationError('agent has no model');
     }
-
     const model = this.models.findById(agentRow.modelId);
     if (!model) {
       throw new NotFoundError('model not found');
@@ -101,24 +93,17 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
     if (request.effort !== undefined) {
       assertModelEffortSupported(model, request.effort);
     }
-
     const workspace = this.workspaces.findById(thread.workspaceId);
     if (!workspace) {
       throw new NotFoundError('workspace not found');
     }
-
     const input = buildSendInput(request, this.attachments, request.threadId);
-    // Chain: body mode > thread metadata > agent default > ask; membership in
-    // the agent's modes is checked by the resolver.
     const runModeId = resolveModeId({
       bodyMode: request.mode ?? null,
       threadMode: runModeFields(thread).runMode ?? null,
       defaultModeId: agentRow.defaultModeId ?? null,
       modes: agentRow.modes,
     });
-    // Requested skills are deduped first-occurrence-first and must exist in the
-    // workspace catalog and the agent allowlist (closed world: empty = none).
-    // Checked before setRunMode so a rejected request persists nothing.
     const skills = [...new Set(request.skills ?? [])];
     if (skills.length > 0) {
       const listed = await this.listSkills.execute({ workspaceId: thread.workspaceId });
@@ -130,18 +115,14 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
       }
     }
     this.threads.setRunMode(thread.id, runModeId);
-    // The instructions block rides only when the resolved mode differs from the
-    // previous run's mode; otherwise the user message would repeat it verbatim.
     const modeBlock = modeInstructionsBlock(effectiveMode(agentRow.modes, runModeId));
     const modeChanged = injectedRunModeField(thread) !== runModeId;
-    // Skills ride on every message; mode goes on top when it changed.
     let text =
       skills.length > 0 ? prependBlock(requestedSkillsBlock(skills), request.text) : request.text;
     if (modeBlock && modeChanged) {
       text = prependBlock(modeBlock, text);
     }
     input.text = text;
-
     const hx = await this.workspaceHarnesys.get(workspace);
     const handle = await this.registry.threadOf(thread.id, hx, agentRow.id, workspace.path);
     const clientEventId = request.clientEventId ?? crypto.randomUUID();
@@ -151,7 +132,11 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
       this.publishThread(thread.id);
       return { runId, status: 'queued' as const };
     } catch (error) {
-      const code = (error as { code?: string }).code;
+      const code = (
+        error as {
+          code?: string;
+        }
+      ).code;
       if (code === 'pending_ask') {
         const active = await handle.activeRun(thread.id);
         throw new RunConflictError({ pendingAskId: active?.interruptId, runId: active?.runId });
@@ -163,7 +148,6 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
       throw error;
     }
   }
-
   private deriveTitle(thread: Thread, text: string | undefined): void {
     if (thread.kind !== 'chat' || thread.title !== DEFAULT_THREAD_TITLE) {
       return;
@@ -173,13 +157,10 @@ export class SendThreadRunUseCase implements SendThreadRunInput {
       this.threads.updateTitle(thread.id, title);
     }
   }
-
   private publishThread(threadId: string): void {
     publishDeskThread(this.getThread, this.deskEvents, threadId);
   }
 }
-
-/** Mode instructions + skills ride as an XML block ahead of the user text. */
 function modeInstructionsBlock(mode: AgentMode): string | undefined {
   const skills = (mode.skills ?? []).map((s) => s.trim()).filter(Boolean);
   if (!mode.instructions?.trim() && skills.length === 0) {
@@ -195,23 +176,16 @@ function modeInstructionsBlock(mode: AgentMode): string | undefined {
   ].filter(Boolean);
   return `<mode id="${mode.id}" name="${escapeXml(mode.name)}">\n${parts.join('\n')}\n</mode>`;
 }
-
-/** Per-message directive listing the skills requested for this run. */
 function requestedSkillsBlock(skills: string[]): string {
   const names = skills.map(escapeXml).join(', ');
   return `<requested-skills names="${names}">For this request, call load_skill for each listed skill before working.</requested-skills>`;
 }
-
-// Closed world for requested skills: only workspace skills and native plugin
-// cards can actually be loaded by `load_skill`; inert/blocked_by_grant/dropped
-// plugin components have no loadable body. Mirrors the composer picker filter.
 function isLoadableSkill(skill: WorkspaceSkill): boolean {
   return (
     skill.origin.kind === 'workspace' ||
     (skill.origin.kind === 'plugin' && skill.origin.status === 'native')
   );
 }
-
 function escapeXml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
@@ -219,11 +193,9 @@ function escapeXml(value: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 }
-
 function prependBlock(block: string, text: string | undefined): string {
   return text ? `${block}\n\n${text}` : block;
 }
-
 function deriveThreadTitle(text: string): string {
   const compact = text.trim().replace(/\s+/g, ' ');
   if (!compact) {
@@ -234,9 +206,7 @@ function deriveThreadTitle(text: string): string {
   }
   return `${compact.slice(0, AUTO_THREAD_TITLE_MAX_CHARS).trimEnd()}…`;
 }
-
 type SendInputObject = Exclude<SendInput, string>;
-
 function buildSendInput(
   request: SendThreadRunRequest,
   attachments: AttachmentRepository,
@@ -247,7 +217,6 @@ function buildSendInput(
   const audio: SendFile[] = [];
   const video: SendFile[] = [];
   const atts: Attachment[] = [];
-
   for (const id of request.attachmentIds ?? []) {
     const att = attachments.findById(id);
     if (!att || att.threadId !== threadId || att.entryId) {
@@ -270,11 +239,9 @@ function buildSendInput(
       files.push(file);
     }
   }
-
   if (!request.text && images.length + audio.length + video.length + files.length === 0) {
     throw new ValidationError('empty message');
   }
-
   return {
     text: request.text,
     effort: request.effort,

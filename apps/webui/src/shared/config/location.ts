@@ -1,12 +1,10 @@
 import { useMatch } from 'react-router';
-
 import {
   parseWindowSettingsCategory,
   type StudioFocus,
   studioFocusThreadId,
   studioFocusWorkspaceId,
 } from './routes';
-
 export function useStudioLocation(): StudioFocus {
   const settingsCategoryMatch = useMatch('/settings/:category');
   const settingsRoot = useMatch('/settings');
@@ -17,14 +15,12 @@ export function useStudioLocation(): StudioFocus {
   const webhook = useMatch('/:workspaceId/webhook/:webhookId');
   const spawn = useMatch('/:workspaceId/spawn/:threadId/:spawnId');
   const terminal = useMatch('/:workspaceId/terminal/:sessionId');
-
   if (settingsCategoryMatch || settingsRoot) {
     return {
       kind: 'settings',
       category: parseWindowSettingsCategory(settingsCategoryMatch?.params.category),
     };
   }
-
   if (thread?.params.workspaceId && thread.params.threadId) {
     return {
       kind: 'thread',
@@ -32,7 +28,6 @@ export function useStudioLocation(): StudioFocus {
       threadId: thread.params.threadId,
     };
   }
-
   if (file?.params.workspaceId && file.params['*']) {
     return {
       kind: 'file',
@@ -40,7 +35,6 @@ export function useStudioLocation(): StudioFocus {
       path: `/${file.params['*']}`,
     };
   }
-
   if (diff?.params.workspaceId && diff.params['*']) {
     return {
       kind: 'diff',
@@ -48,7 +42,6 @@ export function useStudioLocation(): StudioFocus {
       path: `/${diff.params['*']}`,
     };
   }
-
   if (schedule?.params.workspaceId && schedule.params.scheduleId) {
     return {
       kind: 'schedule',
@@ -56,7 +49,6 @@ export function useStudioLocation(): StudioFocus {
       scheduleId: schedule.params.scheduleId,
     };
   }
-
   if (webhook?.params.workspaceId && webhook.params.webhookId) {
     return {
       kind: 'webhook',
@@ -64,7 +56,6 @@ export function useStudioLocation(): StudioFocus {
       webhookId: webhook.params.webhookId,
     };
   }
-
   if (spawn?.params.workspaceId && spawn.params.threadId && spawn.params.spawnId) {
     return {
       kind: 'spawn',
@@ -73,7 +64,6 @@ export function useStudioLocation(): StudioFocus {
       spawnId: spawn.params.spawnId,
     };
   }
-
   if (terminal?.params.workspaceId && terminal.params.sessionId) {
     return {
       kind: 'terminal',
@@ -81,8 +71,6 @@ export function useStudioLocation(): StudioFocus {
       sessionId: terminal.params.sessionId,
     };
   }
-
   return { kind: 'none' };
 }
-
 export { studioFocusThreadId, studioFocusWorkspaceId };

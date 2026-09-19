@@ -2,17 +2,13 @@ import type { CompactThreadResponse, SessionEvent } from '@harnesys/studio-share
 import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { compactThreadStream, getThread, readSse } from '@/shared/api';
-
 import { useCompactingStore } from './compacting.store';
-
 export type CompactThreadOptions = {
   threadId: string;
 };
-
 export type CompactThreadResult = {
   compacted: boolean;
 };
-
 export async function compactThread(options: CompactThreadOptions): Promise<CompactThreadResult> {
   const { threadId } = options;
   const controller = new AbortController();
@@ -26,7 +22,9 @@ export async function compactThread(options: CompactThreadOptions): Promise<Comp
         continue;
       }
       if (frame.event === 'error') {
-        const body = JSON.parse(frame.data) as { message?: string };
+        const body = JSON.parse(frame.data) as {
+          message?: string;
+        };
         throw new Error(body.message || 'Compact failed');
       }
       const event = JSON.parse(frame.data) as SessionEvent;
@@ -37,9 +35,7 @@ export async function compactThread(options: CompactThreadOptions): Promise<Comp
       const record = await getThread(threadId);
       useThreadStore.getState().upsert(toClientThread(record));
       useSessionStore.getState().reconcileEvents(threadId, record.events);
-    } catch {
-      // live events already in the store
-    }
+    } catch {}
     return { compacted: result.compacted };
   } finally {
     useCompactingStore.getState().end(threadId);

@@ -18,15 +18,26 @@ import { clipGrepLine, resolveRipgrep, runRipgrep } from '../../adapters/actions
 import { WORKSPACE_META_DIR } from '../../constants.ts';
 import type { ToolContext, ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
-export type GrepHit = { file: string; line: number; text: string };
-
-type GrepInput = { pattern: string; path?: string; glob?: string; maxResults?: number };
-
-type GrepOutput = { pattern: string; matches: GrepHit[]; truncated: boolean };
-
-type GrepScope = { workdir: string; root: string };
-
+export type GrepHit = {
+  file: string;
+  line: number;
+  text: string;
+};
+type GrepInput = {
+  pattern: string;
+  path?: string;
+  glob?: string;
+  maxResults?: number;
+};
+type GrepOutput = {
+  pattern: string;
+  matches: GrepHit[];
+  truncated: boolean;
+};
+type GrepScope = {
+  workdir: string;
+  root: string;
+};
 export function grepTool(options: FilesOptions = {}): ToolDefinition {
   const blocklist = options.blocklist ?? DEFAULT_PATH_BLOCKLIST;
   return tool('grep', {
@@ -48,7 +59,6 @@ export function grepTool(options: FilesOptions = {}): ToolDefinition {
     execute: (input, ctx) => grep(input as GrepInput, ctx, options, blocklist),
   });
 }
-
 async function grep(
   parsed: GrepInput,
   ctx: ToolContext,
@@ -73,7 +83,6 @@ async function grep(
   }
   return scanFallback(parsed, ctx, { workdir, root }, blocklist);
 }
-
 function isSpawnMissingError(error: unknown): boolean {
   return (
     error instanceof Error &&
@@ -81,7 +90,6 @@ function isSpawnMissingError(error: unknown): boolean {
     error.message.includes('posix_spawn')
   );
 }
-
 async function runRipgrepEngine(
   parsed: GrepInput,
   ctx: ToolContext,
@@ -121,8 +129,14 @@ async function runRipgrepEngine(
     truncated: run.truncated,
   };
 }
-
-function toHit(row: { file: string; line: number; text: string }, workdir: string): GrepHit {
+function toHit(
+  row: {
+    file: string;
+    line: number;
+    text: string;
+  },
+  workdir: string,
+): GrepHit {
   const absolute = path.resolve(workdir, row.file);
   return {
     file: path.relative(workdir, absolute).split(path.sep).join('/'),
@@ -130,7 +144,6 @@ function toHit(row: { file: string; line: number; text: string }, workdir: strin
     text: row.text,
   };
 }
-
 function compilePattern(source: string): RegExp {
   try {
     return new RegExp(source);
@@ -138,7 +151,6 @@ function compilePattern(source: string): RegExp {
     throw new Error(error instanceof Error ? error.message : 'invalid regex');
   }
 }
-
 async function scanFallback(
   parsed: GrepInput,
   ctx: ToolContext,
@@ -173,18 +185,18 @@ async function scanFallback(
   }
   return { pattern: parsed.pattern, matches: hits, truncated };
 }
-
 type ScanFileArgs = {
   absolute: string;
   workdir: string;
   regex: RegExp;
   hits: GrepHit[];
   limit: number;
-  budget: { chars: number };
+  budget: {
+    chars: number;
+  };
   signal: AbortSignal | undefined;
   hidden: PathFilter;
 };
-
 async function scanFile(args: ScanFileArgs): Promise<boolean> {
   const { absolute, workdir, signal, hidden } = args;
   if (signal?.aborted) {
@@ -211,14 +223,15 @@ async function scanFile(args: ScanFileArgs): Promise<boolean> {
     budget: args.budget,
   });
 }
-
 function collectHits(args: {
   text: string;
   file: string;
   regex: RegExp;
   hits: GrepHit[];
   limit: number;
-  budget: { chars: number };
+  budget: {
+    chars: number;
+  };
 }): boolean {
   const { text, file, regex, hits, limit, budget } = args;
   const lines = text.split('\n');
@@ -239,7 +252,6 @@ function collectHits(args: {
   }
   return false;
 }
-
 async function isBinaryFile(absolute: string): Promise<boolean> {
   const probe = new Uint8Array(
     await Bun.file(absolute).slice(0, BINARY_PROBE_BYTES).arrayBuffer().catch(makeEmptyBuffer),
@@ -251,7 +263,6 @@ async function isBinaryFile(absolute: string): Promise<boolean> {
   }
   return false;
 }
-
 function makeEmptyBuffer(): ArrayBuffer {
   return new ArrayBuffer(0);
 }

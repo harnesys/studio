@@ -2,9 +2,7 @@ import type { Driver } from '@harnesys/studio-shared';
 import { isDriver } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-
 import { catalogQuery } from '@/shared/api';
-
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
@@ -18,19 +16,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-
 import { DRIVER_ITEMS } from './driver-items';
 import { ProviderEndpointFields, persistedApiUrl } from './provider-endpoint';
-
 export function ProviderForm({
   onResolve,
-}: DialogComponentProps<{ name: string; driver: Driver; apiUrl?: string }>) {
+}: DialogComponentProps<{
+  name: string;
+  driver: Driver;
+  apiUrl?: string;
+}>) {
   const catalog = useQuery(catalogQuery).data;
   const [name, setName] = useState('');
   const [driver, setDriver] = useState<Driver>('openai');
   const [apiUrl, setApiUrl] = useState('');
   const selected = catalog?.drivers.find((item) => item.id === driver);
-
   return (
     <>
       <FieldGroup>

@@ -2,14 +2,12 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AttachmentsPort, AttachmentsPutInput } from '../../domain/attachments.port.ts';
 import { attachmentsDir } from '../store/studio-layout.ts';
-
 export class FsAttachmentsAdapter implements AttachmentsPort {
   async put(input: AttachmentsPutInput): Promise<void> {
     const dir = join(attachmentsDir(input.workspacePath, input.threadId), input.id);
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, input.fileName), input.bytes);
   }
-
   async get(
     workspacePath: string,
     threadId: string,
@@ -20,7 +18,6 @@ export class FsAttachmentsAdapter implements AttachmentsPort {
     const bytes = await readFile(path).catch(() => undefined);
     return bytes ? new Uint8Array(bytes) : undefined;
   }
-
   async remove(workspacePath: string, threadId: string, ids: string[]): Promise<void> {
     const dir = attachmentsDir(workspacePath, threadId);
     if (ids.length === 0) {

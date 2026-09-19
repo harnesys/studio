@@ -12,28 +12,23 @@ import {
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-
 export type UpsertWorkspaceMcpServerUseCaseRequest = UpsertWorkspaceMcpServerRequest & {
   workspaceId: string;
   serverId: string;
 };
-
 export type UpsertWorkspaceMcpServerResponse = {
   server: WorkspaceMcpConfigServer;
 };
-
 export type UpsertWorkspaceMcpServerInput = {
   execute(
     request: UpsertWorkspaceMcpServerUseCaseRequest,
   ): Promise<UpsertWorkspaceMcpServerResponse>;
 };
-
 export class UpsertWorkspaceMcpServerUseCase implements UpsertWorkspaceMcpServerInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
   ) {}
-
   async execute(
     request: UpsertWorkspaceMcpServerUseCaseRequest,
   ): Promise<UpsertWorkspaceMcpServerResponse> {
@@ -44,7 +39,6 @@ export class UpsertWorkspaceMcpServerUseCase implements UpsertWorkspaceMcpServer
     if (isPluginServerKey(request.serverId)) {
       throw new ValidationError(`mcp server ${request.serverId} belongs to a plugin`);
     }
-
     const map = readWorkspaceMcpJson(workspace.path);
     const entry = fieldsToMcpEntry({
       transport: request.transport,
@@ -57,12 +51,10 @@ export class UpsertWorkspaceMcpServerUseCase implements UpsertWorkspaceMcpServer
     });
     map[request.serverId] = entry;
     writeWorkspaceMcpJson(workspace.path, map);
-
     await this.workspaceHarnesys.invalidate(workspace.id);
     const hx = await this.workspaceHarnesys.get(workspace);
     const fields = mcpEntryToFields(entry);
     const snap = (await hx.mcp.list()).find((s) => s.serverId === request.serverId);
-
     return {
       server: {
         serverId: request.serverId,

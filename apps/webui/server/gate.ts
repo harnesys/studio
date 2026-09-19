@@ -1,19 +1,14 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-
 export const WEB_COOKIE = 'harnesys_web_token';
-
 function digest(value: string): Buffer {
   return createHash('sha256').update(value).digest();
 }
-
-/** Timing-safe token comparison: digests have constant length regardless of input. */
 export function tokenMatches(expected: string, candidate: string | undefined): boolean {
   if (!candidate) {
     return false;
   }
   return timingSafeEqual(digest(expected), digest(candidate));
 }
-
 export function readWebCookie(request: Request): string | undefined {
   const header = request.headers.get('cookie');
   if (!header) {
@@ -34,7 +29,6 @@ export function readWebCookie(request: Request): string | undefined {
   }
   return undefined;
 }
-
 export function bearerToken(request: Request): string | undefined {
   const header = request.headers.get('authorization');
   if (!header?.startsWith('Bearer ')) {
@@ -42,12 +36,9 @@ export function bearerToken(request: Request): string | undefined {
   }
   return header.slice('Bearer '.length).trim() || undefined;
 }
-
-/** Cookie OR `Authorization: Bearer` — the two access routes pinned by the brief. */
 export function isAuthorized(request: Request, token: string): boolean {
   return tokenMatches(token, readWebCookie(request)) || tokenMatches(token, bearerToken(request));
 }
-
 function loginHtml(withError: boolean): string {
   return `<!doctype html>
 <html lang="en">
@@ -63,19 +54,15 @@ ${withError ? '<p style="color: #b00">Invalid token.</p>\n' : ''}<form method="p
 </body>
 </html>`;
 }
-
 export function loginPage(withError = false): Response {
   return new Response(loginHtml(withError), {
     status: 401,
     headers: { 'content-type': 'text/html; charset=utf-8' },
   });
 }
-
 export function unauthorizedJson(): Response {
   return Response.json({ error: 'unauthorized' }, { status: 401 });
 }
-
-/** POST /login handler: validates the posted token, sets the gate cookie, redirects to /. */
 export async function handleLogin(request: Request, token: string): Promise<Response> {
   let candidate: unknown = null;
   try {

@@ -1,6 +1,5 @@
 import type { PairingRedeemResponse, WindowHostRecord } from '@harnesys/studio-shared';
 import { create } from 'zustand';
-
 import { apiJson } from '@/shared/api/client';
 import { getWindowHosts, setWindowHosts } from '@/shared/api/host-credential';
 import {
@@ -9,12 +8,9 @@ import {
   setHostOnlineStatus,
   trimBaseUrl,
 } from '@/shared/api/host-router';
-
 export const LOCAL_HOST_ID = 'local';
 export const NEW_HOST_ID = '__new__';
-
 export type StudioHostStatus = StudioHostOnlineStatus;
-
 export type StudioHost = {
   id: string;
   name: string;
@@ -23,7 +19,6 @@ export type StudioHost = {
   baseUrl: string;
   status: StudioHostStatus;
 };
-
 export const LOCAL_HOST: StudioHost = {
   id: LOCAL_HOST_ID,
   name: 'This machine',
@@ -31,14 +26,12 @@ export const LOCAL_HOST: StudioHost = {
   baseUrl: '',
   status: 'online',
 };
-
 type HostsState = {
   remotes: StudioHost[];
   syncFromWindowHosts: () => void;
   pairHost: (input: { address: string; code: string }) => Promise<StudioHost>;
   revokeHost: (hostId: string) => Promise<void>;
 };
-
 function toStudioHost(record: WindowHostRecord): StudioHost {
   const kind = record.id === LOCAL_HOST_ID ? 'local' : 'remote';
   return {
@@ -50,13 +43,11 @@ function toStudioHost(record: WindowHostRecord): StudioHost {
     status: getHostOnlineStatus(record.id),
   };
 }
-
 function remotesFromWindow(): StudioHost[] {
   return getWindowHosts()
     .filter((host) => host.id !== LOCAL_HOST_ID)
     .map(toStudioHost);
 }
-
 function normalizePairAddress(address: string): string {
   const trimmed = address.trim();
   if (/^https?:\/\//i.test(trimmed)) {
@@ -64,9 +55,10 @@ function normalizePairAddress(address: string): string {
   }
   return trimBaseUrl(`http://${trimmed}`);
 }
-
 async function persistHosts(hosts: WindowHostRecord[]): Promise<WindowHostRecord[]> {
-  const response = await apiJson<{ hosts: WindowHostRecord[] }>('/api/window/hosts', {
+  const response = await apiJson<{
+    hosts: WindowHostRecord[];
+  }>('/api/window/hosts', {
     method: 'PUT',
     body: JSON.stringify({ hosts }),
     hostId: LOCAL_HOST_ID,
@@ -74,7 +66,6 @@ async function persistHosts(hosts: WindowHostRecord[]): Promise<WindowHostRecord
   setWindowHosts(response.hosts);
   return response.hosts;
 }
-
 export const useStudioHostsStore = create<HostsState>((set, get) => ({
   remotes: remotesFromWindow(),
   syncFromWindowHosts: () => {
@@ -90,13 +81,13 @@ export const useStudioHostsStore = create<HostsState>((set, get) => ({
     if (!redeem.ok) {
       let message = redeem.statusText || 'Pairing failed';
       try {
-        const body = (await redeem.json()) as { error?: string };
+        const body = (await redeem.json()) as {
+          error?: string;
+        };
         if (body.error) {
           message = body.error;
         }
-      } catch {
-        // keep status text
-      }
+      } catch {}
       throw new Error(message);
     }
     const payload = (await redeem.json()) as PairingRedeemResponse;
@@ -106,7 +97,6 @@ export const useStudioHostsStore = create<HostsState>((set, get) => ({
       baseUrl: normalizePairAddress(payload.listen ? `http://${payload.listen}` : baseUrl),
       credential: payload.credential,
     };
-    // Prefer the address the user typed when listen is loopback-only on remote.
     if (!/^https?:\/\/(127\.0\.0\.1|localhost)\b/i.test(baseUrl)) {
       record.baseUrl = baseUrl;
     }
@@ -125,7 +115,6 @@ export const useStudioHostsStore = create<HostsState>((set, get) => ({
     get().syncFromWindowHosts();
   },
 }));
-
 export function listStudioHosts(): StudioHost[] {
   const hosts = getWindowHosts();
   if (hosts.length === 0) {
@@ -133,14 +122,12 @@ export function listStudioHosts(): StudioHost[] {
   }
   return hosts.map(toStudioHost);
 }
-
 export function hostStatusLabel(host: StudioHost): string {
   if (host.kind === 'local') {
     return host.status === 'offline' ? 'offline' : 'local';
   }
   return host.status;
 }
-
 export function folderNameFromPath(path: string): string {
   const trimmed = path.trim().replace(/[\\/]+$/, '');
   if (trimmed.length === 0) {
@@ -149,7 +136,6 @@ export function folderNameFromPath(path: string): string {
   const parts = trimmed.split(/[\\/]/);
   return parts[parts.length - 1] ?? '';
 }
-
 function hostLabelFromAddress(address: string): string {
   const trimmed = address.trim();
   const host =

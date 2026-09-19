@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/useAwait: async required by RunEventStore port contract
 import { and, eq, gt } from 'drizzle-orm';
 import {
   codedRunError,
@@ -11,25 +10,28 @@ import { type RunEventRow, runEventsTable } from '../schema/run-events.ts';
 import { runsTable } from '../schema/runs.ts';
 
 function clientEventIdOf(event: PendingSessionEvent): string | undefined {
-  return (event as { clientEventId?: string }).clientEventId;
+  return (
+    event as {
+      clientEventId?: string;
+    }
+  ).clientEventId;
 }
-
 function seqOf(event: PendingSessionEvent | SessionEvent): number {
-  return (event as { seq?: number }).seq ?? 0;
+  return (
+    (
+      event as {
+        seq?: number;
+      }
+    ).seq ?? 0
+  );
 }
-
 function rowToEvent(row: RunEventRow): SessionEvent {
   const meta = row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : {};
   return { ...(meta as object), type: row.type, seq: row.seq, runId: row.runId } as SessionEvent;
 }
-
 export class SqliteRunEventStore implements RunEventStore {
-  /** Верхняя граница выданного seq по рану; инициализируется лениво из runs.lastSeq.
-   *  In-process single-writer на ран гарантируется lease/epoch. */
   private readonly seqByRun = new Map<string, number>();
-
   constructor(private readonly db: StudioDb) {}
-
   private lastSeqOf(runId: string, tx: StudioDb): number {
     const known = this.seqByRun.get(runId);
     if (known !== undefined) {
@@ -38,24 +40,17 @@ export class SqliteRunEventStore implements RunEventStore {
     const row = tx.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
     return row?.lastSeq ?? 0;
   }
-
   private bump(runId: string, seq: number): void {
     const known = this.seqByRun.get(runId) ?? 0;
     if (seq > known) {
       this.seqByRun.set(runId, seq);
     }
   }
-
   next(runId: string): number {
     const seq = this.lastSeqOf(runId, this.db) + 1;
     this.bump(runId, seq);
     return seq;
   }
-
-  /** Internal write inside the caller's transaction.
-   *  События с seq от аллокатора сохраняются как есть (они дозаполняют журнал,
-   *  но не сдвигают счётчик); без seq — получают от аллокатора.
-   *  Signature matches RunEventAppendWithinTx in sqlite-run-lifecycle.adapter.ts. */
   appendWithinTx(
     tx: StudioDb,
     runId: string,
@@ -117,7 +112,6 @@ export class SqliteRunEventStore implements RunEventStore {
     }
     return assigned;
   }
-
   async append(
     runId: string,
     expectedEpoch: number,
@@ -131,14 +125,11 @@ export class SqliteRunEventStore implements RunEventStore {
       return this.appendWithinTx(tx as StudioDb, runId, row.threadId, events);
     });
   }
-
-  /** Журнал вне lease (ручной /compact): дописывает в тред без статуса running. */
   appendForThread(threadId: string, runId: string, events: PendingSessionEvent[]): SessionEvent[] {
     return this.db.transaction((tx): SessionEvent[] =>
       this.appendWithinTx(tx as StudioDb, runId, threadId, events),
     );
   }
-
   async tail(runId: string, fromSeq: number): Promise<SessionEvent[]> {
     const rows = this.db
       .select()
@@ -147,12 +138,10 @@ export class SqliteRunEventStore implements RunEventStore {
       .all();
     return rows.map(rowToEvent);
   }
-
   async latestSeq(runId: string): Promise<number> {
     const row = this.db.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
     return row?.lastSeq ?? 0;
   }
-
   async listByThread(threadId: string): Promise<SessionEvent[]> {
     const rows = this.db
       .select()
@@ -161,7 +150,6 @@ export class SqliteRunEventStore implements RunEventStore {
       .all();
     return rows.sort((a, b) => a.timestamp - b.timestamp || a.seq - b.seq).map(rowToEvent);
   }
-
   async hasRun(runId: string): Promise<boolean> {
     const row = this.db
       .select({ seq: runEventsTable.seq })

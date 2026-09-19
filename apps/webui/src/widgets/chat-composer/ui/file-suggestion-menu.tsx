@@ -11,27 +11,21 @@ import {
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
 import type { FileOption, FileOptionSource } from '../model/file-source';
 import { $insertInlineEntity } from '../model/inline-entity-node';
-
 export const fileSuggestionKey = new PluginKey('composer-file');
-
 export function exitFileSuggestion(view: EditorView): void {
   exitSuggestion(view, fileSuggestionKey);
 }
-
 export type FileSuggestionOptions = {
   isDisabled(): boolean;
   getItems(query: string): FileOption[];
 };
-
 export type FileSuggestionMenuHandle = {
   onKeyDown(event: KeyboardEvent): boolean;
 };
-
 export type FileSuggestionMenuProps = {
   items: FileOption[];
   onSelect(option: FileOption): void;
 };
-
 export function createFileSuggestion(options: FileSuggestionOptions) {
   return Extension.create({
     name: 'composer-file-suggestion',
@@ -58,7 +52,6 @@ export function createFileSuggestion(options: FileSuggestionOptions) {
     },
   });
 }
-
 export function insertFileChip(editor: Editor, at: number, ref: string): void {
   $insertInlineEntity(editor, at, { kind: 'file', ref });
   editor
@@ -67,18 +60,15 @@ export function insertFileChip(editor: Editor, at: number, ref: string): void {
     .focus()
     .run();
 }
-
 function createFileMenuRenderer() {
   let component: ReactRenderer<FileSuggestionMenuHandle, FileSuggestionMenuProps> | null = null;
   let unmount: (() => void) | null = null;
-
   const destroy = () => {
     unmount?.();
     component?.destroy();
     component = null;
     unmount = null;
   };
-
   return {
     onStart: (props: SuggestionProps<FileOption, FileOption>) => {
       destroy();
@@ -96,16 +86,13 @@ function createFileMenuRenderer() {
     onExit: destroy,
   };
 }
-
 export const FileSuggestionMenu = forwardRef<FileSuggestionMenuHandle, FileSuggestionMenuProps>(
   function FileSuggestionMenu({ items, onSelect }, ref) {
     const [active, setActive] = useState(0);
     const safeActive = active < items.length ? active : 0;
-
     const scrollActiveIntoView = useCallback((node: HTMLLIElement | null) => {
       node?.scrollIntoView({ block: 'nearest' });
     }, []);
-
     useImperativeHandle(
       ref,
       () => ({
@@ -114,7 +101,6 @@ export const FileSuggestionMenu = forwardRef<FileSuggestionMenuHandle, FileSugge
       }),
       [items, safeActive, onSelect],
     );
-
     return (
       <div
         className="w-max max-w-[min(48rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-md"
@@ -132,9 +118,7 @@ export const FileSuggestionMenu = forwardRef<FileSuggestionMenuHandle, FileSugge
                 <button
                   type="button"
                   title={option.ref}
-                  className={`flex w-full items-start gap-3 rounded-md px-3 py-2 text-left text-sm ${
-                    isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'
-                  }`}
+                  className={`flex w-full items-start gap-3 rounded-md px-3 py-2 text-left text-sm ${isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'}`}
                   onMouseEnter={() => setActive(index)}
                   onClick={() => onSelect(option)}
                 >
@@ -156,15 +140,16 @@ export const FileSuggestionMenu = forwardRef<FileSuggestionMenuHandle, FileSugge
     );
   },
 );
-
-function splitRef(ref: string): { name: string; dir: string } {
+function splitRef(ref: string): {
+  name: string;
+  dir: string;
+} {
   const slash = ref.lastIndexOf('/');
   if (slash < 0) {
     return { name: ref, dir: '' };
   }
   return { name: ref.slice(slash + 1), dir: ref.slice(0, slash) };
 }
-
 function sourceLabel(source: FileOptionSource): string {
   switch (source) {
     case 'upload':
@@ -175,14 +160,12 @@ function sourceLabel(source: FileOptionSource): string {
       return 'workspace';
   }
 }
-
 type MenuKeydownState = {
   items: FileOption[];
   active: number;
   onSelect(option: FileOption): void;
   setActive(update: (index: number) => number): void;
 };
-
 function handleMenuKeyDown(event: KeyboardEvent, state: MenuKeydownState): boolean {
   const { items, active, onSelect, setActive } = state;
   if (event.isComposing) {

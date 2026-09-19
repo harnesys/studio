@@ -18,7 +18,6 @@ import type { MachineConfigPort } from '../domain/machine-config.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
 import type { WebhookRepository } from '../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
-
 export type WireWebhooksDeps = {
   app: Hono;
   db: StudioDb;
@@ -35,7 +34,6 @@ export type WireWebhooksDeps = {
   queue: ScheduleFireQueue;
   machineConfig: MachineConfigPort;
 };
-
 export function wireWebhooks(deps: WireWebhooksDeps): void {
   const queue = deps.queue;
   const publicOrigin = deps.machineConfig.read().host.publicOrigin;
@@ -50,7 +48,6 @@ export function wireWebhooks(deps: WireWebhooksDeps): void {
     publicOrigin,
   });
   queue.setHandler((webhookId) => fireWebhook.execute({ webhookId }).then(() => undefined));
-
   new WebhookController({
     listWebhooks: new ListWebhooksUseCase(deps.webhooks, deps.workspaces, publicOrigin),
     createWebhook: new CreateWebhookUseCase({

@@ -10,7 +10,6 @@ import {
   InstallPluginDialog,
 } from '../ui/plugin-dialogs';
 import { EnablePluginDialog } from '../ui/plugin-enable-dialog';
-
 export function openInstallPluginDialog(workspaceId: string, prefill?: InstallPluginRequest) {
   return dialog.open(InstallPluginDialog, {
     title: 'Install plugin',
@@ -21,7 +20,6 @@ export function openInstallPluginDialog(workspaceId: string, prefill?: InstallPl
     data: { workspaceId, prefill },
   });
 }
-
 export function openInstallCatalogPluginDialog(input: {
   workspaceId: string;
   registryId: string;
@@ -35,7 +33,6 @@ export function openInstallCatalogPluginDialog(input: {
     data: input,
   }) as Promise<PluginMutationResponse | null>;
 }
-
 export function openAddRegistryDialog() {
   return dialog.open(AddRegistryDialog, {
     title: 'Add marketplace',
@@ -44,7 +41,6 @@ export function openAddRegistryDialog() {
     testId: 'add-registry-dialog',
   });
 }
-
 export function openEnablePluginDialog(plugin: PluginSummary, workspaceId: string) {
   return dialog.open(EnablePluginDialog, {
     title: `Configure ${plugin.name}`,
@@ -54,7 +50,6 @@ export function openEnablePluginDialog(plugin: PluginSummary, workspaceId: strin
     data: { plugin, workspaceId },
   }) as Promise<PluginSummary | null>;
 }
-
 export function confirmRemovePlugin(name: string) {
   return alert.confirm({
     title: `Remove ${name}?`,
@@ -65,7 +60,6 @@ export function confirmRemovePlugin(name: string) {
     testId: 'remove-plugin-dialog',
   });
 }
-
 export function confirmRemoveRegistry(name: string) {
   return alert.confirm({
     title: `Remove marketplace ${name}?`,

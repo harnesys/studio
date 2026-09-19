@@ -7,7 +7,6 @@ import { toClientThread, useThreadStore } from '@/entities/thread';
 import { toClientWebhook, useWebhookStore } from '@/entities/webhook';
 import { useAgentsDisplayStore } from './agents-display.store';
 import { useDeskStore } from './desk.store';
-
 export function applyDeskEvent(event: DeskEvent): void {
   switch (event.type) {
     case 'agent': {
@@ -62,13 +61,9 @@ export function applyDeskEvent(event: DeskEvent): void {
       return;
     }
     case 'run-finish': {
-      // Server-side lifecycle signal (monitor jobs, run hook buses); desk
-      // state updates arrive through thread events.
       return;
     }
     case 'terminal': {
-      // Agent pty job: tab + terminals query update live in useIdeSync
-      // (features/ide owns the terminal tab); no desk store state here.
       return;
     }
     default: {
@@ -78,7 +73,6 @@ export function applyDeskEvent(event: DeskEvent): void {
     }
   }
 }
-
 function dropSchedule(id: string): void {
   const current = useScheduleStore.getState().byId(id);
   useScheduleStore.getState().remove(id);
@@ -86,7 +80,6 @@ function dropSchedule(id: string): void {
     dropOwnedTriggerThread(current.threadId);
   }
 }
-
 function dropAgent(agentId: string): void {
   const threadIds = useThreadStore
     .getState()
@@ -104,7 +97,6 @@ function dropAgent(agentId: string): void {
   }
   useAgentsDisplayStore.getState().forget(agentId);
 }
-
 function dropOwnedTriggerThread(threadId: string): void {
   const thread = useThreadStore.getState().byId(threadId);
   if (thread?.kind !== 'schedule' && thread?.kind !== 'webhook') {

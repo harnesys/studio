@@ -4,7 +4,6 @@ import type {
   LoadPluginIrResult,
   PluginLoader,
 } from '../ports/plugins.ts';
-
 export class FsPluginLoader implements PluginLoader {
   loadPluginIrFromDirectory(
     options: LoadPluginIrFromDirectoryOptions,
@@ -12,7 +11,6 @@ export class FsPluginLoader implements PluginLoader {
     return loadPluginIrFromDirectoryImpl(options);
   }
 }
-
 export function loadPluginIrFromDirectory(
   options: LoadPluginIrFromDirectoryOptions,
 ): Promise<LoadPluginIrResult> {

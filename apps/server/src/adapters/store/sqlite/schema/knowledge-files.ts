@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { workspacesTable } from './workspaces.ts';
-
 export const knowledgeFilesTable = sqliteTable(
   'knowledge_files',
   {
@@ -33,6 +32,5 @@ export const knowledgeFilesTable = sqliteTable(
     ),
   }),
 );
-
 export type KnowledgeFileRow = typeof knowledgeFilesTable.$inferSelect;
 export type KnowledgeFileInsert = typeof knowledgeFilesTable.$inferInsert;

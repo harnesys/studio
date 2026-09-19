@@ -17,20 +17,26 @@ import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { toast } from '@/shared/ui/toast';
 
-type PickerData = { workspaceId: string };
-
-type PickerChoice = { kind: 'blank' } | { kind: 'preset'; preset: AgentPresetRecord };
-
+type PickerData = {
+  workspaceId: string;
+};
+type PickerChoice =
+  | {
+      kind: 'blank';
+    }
+  | {
+      kind: 'preset';
+      preset: AgentPresetRecord;
+    };
 function AgentCreatePickerDialog({
   onResolve,
 }: DialogComponentProps<PickerChoice | null, PickerData>) {
   const presetsQuery = useQuery({
     queryKey: ['agent-presets'],
     queryFn: listAgentPresets,
-    staleTime: 60_000,
+    staleTime: 60000,
   });
   const presets = presetsQuery.data ?? [];
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -71,7 +77,6 @@ function AgentCreatePickerDialog({
     </div>
   );
 }
-
 function openAgentCreatePicker(workspaceId: string) {
   return dialog.open(AgentCreatePickerDialog, {
     title: 'New agent',
@@ -81,7 +86,6 @@ function openAgentCreatePicker(workspaceId: string) {
     data: { workspaceId },
   });
 }
-
 export function AgentsSectionCreateButton({
   workspaceId,
   onCreated,

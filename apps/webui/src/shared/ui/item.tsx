@@ -2,7 +2,6 @@ import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type * as React from 'react';
-
 import { cn } from '@/shared/lib/utils';
 import { Separator } from '@/shared/ui/separator';
 
@@ -19,7 +18,6 @@ function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function ItemSeparator({ className, ...props }: React.ComponentProps<typeof Separator>) {
   return (
     <Separator
@@ -30,7 +28,6 @@ function ItemSeparator({ className, ...props }: React.ComponentProps<typeof Sepa
     />
   );
 }
-
 const itemVariants = cva(
   'group/item flex w-full flex-wrap items-center rounded-lg border text-sm outline-none transition-colors duration-100 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-muted',
   {
@@ -52,7 +49,6 @@ const itemVariants = cva(
     },
   },
 );
-
 function Item({
   className,
   variant = 'default',
@@ -76,7 +72,6 @@ function Item({
     },
   });
 }
-
 const itemMediaVariants = cva(
   'flex shrink-0 items-center justify-center gap-2 group-has-data-[slot=item-description]/item:translate-y-0.5 group-has-data-[slot=item-description]/item:self-start [&_svg]:pointer-events-none',
   {
@@ -93,7 +88,6 @@ const itemMediaVariants = cva(
     },
   },
 );
-
 function ItemMedia({
   className,
   variant = 'default',
@@ -108,7 +102,6 @@ function ItemMedia({
     />
   );
 }
-
 function ItemContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -121,7 +114,6 @@ function ItemContent({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function ItemTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -134,7 +126,6 @@ function ItemTitle({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function ItemDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
@@ -147,13 +138,11 @@ function ItemDescription({ className, ...props }: React.ComponentProps<'p'>) {
     />
   );
 }
-
 function ItemActions({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div data-slot="item-actions" className={cn('flex items-center gap-2', className)} {...props} />
   );
 }
-
 function ItemHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -163,7 +152,6 @@ function ItemHeader({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function ItemFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div

@@ -3,19 +3,12 @@ import type { PluginIr, PluginKind } from 'harnesys';
 import { loadPluginIrFromDirectory } from 'harnesys/adapters/node';
 import type { CatalogEntry } from 'harnesys/plugins-catalog';
 import type { PluginRepository } from '../../domain/plugin.port.ts';
-
-/**
- * Decorates catalog entries with the layout format and inert component kinds
- * of the installed plugin of the same name, from its last load. Entries with
- * no installed plugin stay as parsed from the marketplace manifest.
- */
 export async function decorateCatalogEntries(
   entries: CatalogEntry[],
   plugins: PluginRepository,
 ): Promise<CatalogEntry[]> {
   return await Promise.all(entries.map((entry) => decorateEntry(entry, plugins)));
 }
-
 async function decorateEntry(
   entry: CatalogEntry,
   plugins: PluginRepository,
@@ -39,7 +32,6 @@ async function decorateEntry(
     return { ...entry, format: record.format };
   }
 }
-
 function inertKinds(ir: PluginIr): PluginKind[] {
   const kinds = new Set<PluginKind>();
   for (const component of ir.components) {

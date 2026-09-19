@@ -1,5 +1,4 @@
 'use client';
-
 import {
   MessageScroller as MessageScrollerPrimitive,
   useMessageScroller,
@@ -16,7 +15,6 @@ function MessageScrollerProvider(
 ) {
   return <MessageScrollerPrimitive.Provider {...props} />;
 }
-
 function MessageScroller({
   className,
   ...props
@@ -32,7 +30,6 @@ function MessageScroller({
     />
   );
 }
-
 function MessageScrollerViewport({
   className,
   ...props
@@ -48,7 +45,6 @@ function MessageScrollerViewport({
     />
   );
 }
-
 function MessageScrollerContent({
   className,
   ...props
@@ -61,7 +57,6 @@ function MessageScrollerContent({
     />
   );
 }
-
 function MessageScrollerItem({
   className,
   scrollAnchor = false,
@@ -76,7 +71,6 @@ function MessageScrollerItem({
     />
   );
 }
-
 function MessageScrollerButton({
   direction = 'end',
   className,

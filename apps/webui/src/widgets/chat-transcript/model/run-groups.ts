@@ -1,12 +1,10 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
-
 export type RunGroup = {
   id: string | null;
   runId: string | undefined;
   events: SessionEvent[];
   error: string | null;
 };
-
 export const RUN_TERMINAL_EVENT_TYPES = new Set([
   'done',
   'error',
@@ -14,8 +12,6 @@ export const RUN_TERMINAL_EVENT_TYPES = new Set([
   'run.failed',
   'run.cancelled',
 ]);
-
-/** Журнальный run ручного /compact (`runId` compact:… или событие compaction). */
 export function isCompactRun(run: RunGroup): boolean {
   return run.events.some(
     (event) =>
@@ -23,13 +19,11 @@ export function isCompactRun(run: RunGroup): boolean {
       (typeof event.runId === 'string' && event.runId.startsWith('compact:')),
   );
 }
-
 export function splitRuns(events: SessionEvent[]): RunGroup[] {
   const runs: RunGroup[] = [];
   let current: SessionEvent[] = [];
   let currentId: string | null = null;
   let currentRunId: string | undefined;
-
   const closeRun = (error: string | null) => {
     if (current.length > 0) {
       runs.push({ id: currentId, runId: currentRunId, events: current, error });
@@ -38,7 +32,6 @@ export function splitRuns(events: SessionEvent[]): RunGroup[] {
     currentId = null;
     currentRunId = undefined;
   };
-
   for (const ev of events) {
     if (RUN_TERMINAL_EVENT_TYPES.has(ev.type)) {
       const failed =
@@ -54,7 +47,6 @@ export function splitRuns(events: SessionEvent[]): RunGroup[] {
     }
     current.push(ev);
   }
-
   closeRun(null);
   return runs;
 }

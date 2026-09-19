@@ -6,7 +6,6 @@ import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
-// Vite workers — offloads Monaco to web workers, no CDN fetch at runtime.
 self.MonacoEnvironment = {
   getWorker(_: unknown, label: string) {
     if (label === 'json') {
@@ -24,7 +23,6 @@ self.MonacoEnvironment = {
     return new editorWorker();
   },
 };
-
 loader.config({ monaco });
 
 export { monaco };

@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-
 import { Button } from '@/shared/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
-
 import {
   hostStatusLabel,
   LOCAL_HOST,
@@ -18,7 +16,6 @@ import { HostPairFields } from './host-pair-fields';
 
 type WorkspaceFieldsProps = {
   mode: 'create' | 'edit';
-  /** Create mode: selected host id. Edit mode pins the local host. */
   hostId?: string;
   name: string;
   path: string;
@@ -31,7 +28,6 @@ type WorkspaceFieldsProps = {
   onPathChange: (value: string) => void;
   onPick: () => void;
 };
-
 export function WorkspaceFields({
   mode,
   hostId,
@@ -49,11 +45,9 @@ export function WorkspaceFields({
   const syncFromWindowHosts = useStudioHostsStore((state) => state.syncFromWindowHosts);
   const remotes = useStudioHostsStore((state) => state.remotes);
   const [connecting, setConnecting] = useState(false);
-
   useEffect(() => {
     syncFromWindowHosts();
   }, [syncFromWindowHosts]);
-
   const nameInvalid = nameRequired && name.trim().length === 0;
   const pathInvalid = pathRequired && path.trim().length === 0;
   const hostValue = mode === 'edit' ? LOCAL_HOST_ID : (hostId ?? LOCAL_HOST_ID);
@@ -69,7 +63,6 @@ export function WorkspaceFields({
   const remoteSelected =
     mode === 'create' && hostValue !== LOCAL_HOST_ID && hostValue !== NEW_HOST_ID;
   const selectedRemote = remotes.find((host) => host.id === hostValue);
-
   return (
     <FieldGroup>
       <Field>
@@ -163,7 +156,6 @@ export function WorkspaceFields({
     </FieldGroup>
   );
 }
-
 function folderDescription(mode: 'create' | 'edit', pathRequired: boolean): string {
   if (mode === 'edit') {
     return 'Must already exist on disk.';

@@ -14,15 +14,12 @@ import { migratePluginGrantsSchema } from './plugins-migration.ts';
 import { SqliteModePresetRepo } from './repos/sqlite-mode-preset.repo.ts';
 import { agentsTable } from './schema/agents.ts';
 import { seedLegacyModePresetsIfUnscoped } from './seed-legacy-mode-presets.ts';
-
 export function bootstrap(db: StudioDb): void {
-  // Drop journal tables (0.5.0 cutover)
   for (const table of ['journal_steps', 'journal_entries', 'events']) {
     try {
       db.run(sql.raw(`DROP TABLE IF EXISTS ${table};`));
     } catch {}
   }
-
   const statements = [
     `CREATE TABLE IF NOT EXISTS workspaces (
       id TEXT PRIMARY KEY,
@@ -179,7 +176,6 @@ export function bootstrap(db: StudioDb): void {
       WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input', 'waiting');`,
     `CREATE INDEX IF NOT EXISTS runs_claim_idx ON runs(status, created_at);`,
     `CREATE INDEX IF NOT EXISTS runs_ask_ttl_idx ON runs(status, updated_at);`,
-    // runs_wait_fire_idx is created after ALTER wait_fire_at below.
     `CREATE TABLE IF NOT EXISTS run_events (
       run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
       seq INTEGER NOT NULL,
@@ -247,16 +243,13 @@ export function bootstrap(db: StudioDb): void {
       UNIQUE(registry_id, plugin_name)
     );`,
   ];
-
   for (const statement of statements) {
     db.run(sql.raw(statement));
   }
-
-  // Widen threads.kind CHECK for webhook threads (SQLite requires table rebuild).
   try {
-    const master = db.all<{ sql: string }>(
-      sql`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'threads'`,
-    );
+    const master = db.all<{
+      sql: string;
+    }>(sql`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'threads'`);
     const createSql = master[0]?.sql ?? '';
     if (createSql !== '' && !createSql.includes("'webhook'")) {
       db.run(sql.raw('PRAGMA foreign_keys = OFF;'));
@@ -280,111 +273,83 @@ export function bootstrap(db: StudioDb): void {
       db.run(sql.raw('PRAGMA foreign_keys = ON;'));
     }
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE webhooks ADD COLUMN thread_id text REFERENCES threads(id);'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE plugins ADD COLUMN registry_id text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE plugins ADD COLUMN catalog_plugin_name text;'));
   } catch {}
-
   migratePluginGrantsSchema(db);
   migrateNodeCatalogProviders(db);
   migrateNodeCatalogPlugins(db);
   migratePluginServerStateFk(db);
-
   try {
     db.run(sql.raw('DELETE FROM webhooks WHERE thread_id IS NULL;'));
   } catch {}
-
   try {
     db.run(
       sql.raw('CREATE UNIQUE INDEX IF NOT EXISTS webhooks_thread_idx ON webhooks(thread_id);'),
     );
   } catch {}
-
-  // Drop legacy chat tables (big-bang stand wipe; no data migration)
   for (const table of ['steps', 'messages', 'timeline_entries', 'automations']) {
     try {
       db.run(sql.raw(`DROP TABLE IF EXISTS ${table};`));
     } catch {}
   }
-
   try {
     db.run(sql.raw('ALTER TABLE agents RENAME COLUMN soul TO instructions;'));
   } catch {}
-
   try {
     db.run(sql.raw(`ALTER TABLE agents ADD COLUMN skills text NOT NULL DEFAULT '[]';`));
   } catch {}
-
   try {
     db.run(sql.raw(`ALTER TABLE agents ADD COLUMN mcp_servers text NOT NULL DEFAULT '[]';`));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN effort text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN generation text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN tool_output text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN compaction_json text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN memory_json text;'));
   } catch {}
-
   try {
     db.run(sql.raw(`ALTER TABLE agents ADD COLUMN graph_json text;`));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN budget_json text;'));
   } catch {}
-
   try {
     db.run(sql.raw(`ALTER TABLE agents ADD COLUMN capabilities_json text NOT NULL DEFAULT '{}';`));
   } catch {}
-
   try {
     db.run(sql.raw(`ALTER TABLE agents ADD COLUMN hooks_json text NOT NULL DEFAULT '[]';`));
   } catch {}
-
   try {
     db.run(
       sql.raw(`ALTER TABLE agents ADD COLUMN enabled_plugins_json text NOT NULL DEFAULT '{}';`),
     );
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN parent_id text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN permissions_json text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN color text;'));
   } catch {}
-
-  // capability_core_v1: core есть у всех агентов до флипа composition-root
-  // на резолвер (иначе таргет с fatal/без ask_user). Идемпотентно по маркеру.
   migrateCapabilityCore(db);
-
   try {
     db.run(
       sql.raw(`CREATE TABLE IF NOT EXISTS mode_presets (
@@ -398,37 +363,20 @@ export function bootstrap(db: StudioDb): void {
       PRIMARY KEY (workspace_id, id));`),
     );
   } catch {}
-
-  // Legacy id-PK tables need the column before drizzle selects (gate/capability migrations).
   try {
     db.run(sql.raw('ALTER TABLE mode_presets ADD COLUMN workspace_id text;'));
   } catch {}
-
-  // Legacy DBs still on id-PK get an unscoped seed; 4a migration copies per node.
   seedLegacyModePresetsIfUnscoped(db);
-
   cleanupReservedModeIds(db);
-
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN default_mode_id text;'));
   } catch {}
-
   try {
     db.run(sql.raw("ALTER TABLE agents ADD COLUMN modes_json text NOT NULL DEFAULT '[]';"));
   } catch {}
-
-  // Rows predating the `agents` operation: preset rows and agent mode copies
-  // get the spec gate; custom modes keep inheriting the agent base.
   backfillAgentsModeGates(db);
-
-  // capability_set_v1: `agents.tools` drop, modes/preset packs array→map, core
-  // merge. Runs after the mode backfill above so freshly seeded agent modes
-  // convert in the same boot; idempotent via `schema_meta`.
   migrateCapabilitySet(db);
-
   migrateNodeCatalogPresets(db);
-
-  // After per-node presets exist: install installedByDefault + ask into empty agents.
   const presetRepo = new SqliteModePresetRepo(db);
   for (const row of db.select().from(agentsTable).all()) {
     if (row.modesJson !== '[]') {
@@ -449,23 +397,18 @@ export function bootstrap(db: StudioDb): void {
       .where(eq(agentsTable.id, row.id))
       .run();
   }
-
   try {
     db.run(sql.raw(`ALTER TABLE threads ADD COLUMN kind text NOT NULL DEFAULT 'chat';`));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE threads ADD COLUMN last_read_at text;'));
   } catch {}
-
   try {
     db.run(sql.raw('UPDATE threads SET last_read_at = updated_at WHERE last_read_at IS NULL;'));
   } catch {}
-
   try {
     db.run(sql.raw("ALTER TABLE threads ADD COLUMN origin_agent_id text NOT NULL DEFAULT '';"));
   } catch {}
-
   try {
     db.run(
       sql.raw(
@@ -473,50 +416,38 @@ export function bootstrap(db: StudioDb): void {
       ),
     );
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE threads ADD COLUMN parent_thread_id text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE threads ADD COLUMN fork_at text;'));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE schedules ADD COLUMN thread_id text REFERENCES threads(id);'));
   } catch {}
-
   try {
     db.run(sql.raw('DELETE FROM schedules WHERE thread_id IS NULL;'));
   } catch {}
-
   try {
     db.run(
       sql.raw('CREATE UNIQUE INDEX IF NOT EXISTS schedules_thread_idx ON schedules(thread_id);'),
     );
   } catch {}
-
   try {
     db.run(sql.raw(`ALTER TABLE schedules ADD COLUMN mode text NOT NULL DEFAULT 'auto';`));
   } catch {}
-
   try {
     db.run(sql.raw(`UPDATE schedules SET mode = 'auto' WHERE mode IS NULL OR mode = '';`));
   } catch {}
-
   try {
     db.run(sql.raw(`ALTER TABLE schedules ADD COLUMN history text NOT NULL DEFAULT 'none';`));
   } catch {}
-
   try {
     db.run(sql.raw(`ALTER TABLE schedules ADD COLUMN history_last integer NOT NULL DEFAULT 1;`));
   } catch {}
-
   try {
     db.run(sql.raw('ALTER TABLE schedules ADD COLUMN metadata text;'));
   } catch {}
-
-  // Legacy chat used attachments.message_id; journal uses entry_id.
   try {
     db.run(sql.raw('ALTER TABLE attachments RENAME COLUMN message_id TO entry_id;'));
   } catch {}
@@ -533,24 +464,18 @@ export function bootstrap(db: StudioDb): void {
   try {
     db.run(sql.raw('ALTER TABLE runs ADD COLUMN wait_fire_at INTEGER;'));
   } catch {}
-  // Always recreate after column exists (fresh create or ALTER).
   try {
     db.run(sql.raw('DROP INDEX IF EXISTS runs_active_root_idx;'));
   } catch {}
   db.run(
-    sql.raw(
-      `CREATE UNIQUE INDEX IF NOT EXISTS runs_active_root_idx ON runs(thread_id)
-      WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input', 'waiting');`,
-    ),
+    sql.raw(`CREATE UNIQUE INDEX IF NOT EXISTS runs_active_root_idx ON runs(thread_id)
+      WHERE parent_run_id IS NULL AND status IN ('queued', 'running', 'needs_input', 'waiting');`),
   );
   db.run(sql.raw('CREATE INDEX IF NOT EXISTS runs_wait_fire_idx ON runs(status, wait_fire_at);'));
-
   try {
     db.run(sql.raw("ALTER TABLE schedules ADD COLUMN mode_id text NOT NULL DEFAULT 'ask';"));
   } catch {}
   db.run(sql.raw('UPDATE schedules SET mode_id = mode;'));
-
   bootstrapMemory(db);
 }
-
 export const bootstrapDatabase = bootstrap;

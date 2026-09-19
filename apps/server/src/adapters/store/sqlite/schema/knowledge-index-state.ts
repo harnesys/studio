@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { workspacesTable } from './workspaces.ts';
-
 export const knowledgeIndexStateTable = sqliteTable(
   'knowledge_index_state',
   {
@@ -25,6 +24,5 @@ export const knowledgeIndexStateTable = sqliteTable(
     ),
   }),
 );
-
 export type KnowledgeIndexStateRow = typeof knowledgeIndexStateTable.$inferSelect;
 export type KnowledgeIndexStateInsert = typeof knowledgeIndexStateTable.$inferInsert;

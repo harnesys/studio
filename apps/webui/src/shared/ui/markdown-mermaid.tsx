@@ -1,22 +1,23 @@
 import { useEffect, useId, useRef, useState } from 'react';
-
 import { studioMermaidConfig } from '@/shared/ui/mermaid-theme';
 import { useTheme } from '@/shared/ui/theme-provider';
 
 type MarkdownMermaidProps = {
   chart: string;
 };
-
 type MermaidApi = {
   initialize: (config: ReturnType<typeof studioMermaidConfig>) => void;
-  render: (id: string, text: string) => Promise<{ svg: string }>;
+  render: (
+    id: string,
+    text: string,
+  ) => Promise<{
+    svg: string;
+  }>;
 };
-
 let mermaidModule: MermaidApi | null = null;
 let mermaidLoading: Promise<MermaidApi> | null = null;
 let initKey: string | null = null;
 let renderChain: Promise<void> = Promise.resolve();
-
 function getMermaid(): Promise<MermaidApi> {
   if (mermaidModule) {
     return Promise.resolve(mermaidModule);
@@ -29,7 +30,6 @@ function getMermaid(): Promise<MermaidApi> {
   }
   return mermaidLoading;
 }
-
 function ensureInit(dark: boolean): Promise<MermaidApi> {
   const key = `${dark ? 'dark' : 'light'}:v7`;
   return getMermaid().then((mermaid) => {
@@ -40,7 +40,6 @@ function ensureInit(dark: boolean): Promise<MermaidApi> {
     return mermaid;
   });
 }
-
 function queueRender<T>(task: () => Promise<T>): Promise<T> {
   const run = renderChain.then(task, task);
   renderChain = run.then(
@@ -49,8 +48,6 @@ function queueRender<T>(task: () => Promise<T>): Promise<T> {
   );
   return run;
 }
-
-/** Drop author palette / init overrides so Studio tokens win. */
 function sanitizeMermaidSource(source: string): string {
   return source
     .replace(/^---[\s\S]*?\n---\s*\n?/m, '')
@@ -61,11 +58,9 @@ function sanitizeMermaidSource(source: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
-
 function cssVar(name: string, fallback: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
-
 function mindmapBranchTints(): string[] {
   return [
     cssVar('--chart-1', '#d4783a'),
@@ -76,7 +71,6 @@ function mindmapBranchTints(): string[] {
     cssVar('--muted-foreground', '#8a9098'),
   ];
 }
-
 function mindmapSectionIndex(node: Element): number | null {
   if (node.classList.contains('section-root') || node.classList.contains('section--1')) {
     return null;
@@ -89,12 +83,9 @@ function mindmapSectionIndex(node: Element): number | null {
   }
   return 0;
 }
-
 function mix(tint: string, base: string, amount: number): string {
   return `color-mix(in oklab, ${tint} ${amount}%, ${base})`;
 }
-
-/** Mindmap paints via #svgId .section-* inside the SVG — restyle after insert. */
 function paintMindmap(host: HTMLElement) {
   if (!host.querySelector('.mindmap-node, .node-bkg')) {
     return;
@@ -106,7 +97,6 @@ function paintMindmap(host: HTMLElement) {
   const mutedFg = cssVar('--muted-foreground', '#667078');
   const live = cssVar('--live', '#d4783a');
   const tints = mindmapBranchTints();
-
   const paint = (el: Element, fill: string, stroke: string) => {
     if (!(el instanceof SVGElement)) {
       return;
@@ -114,13 +104,11 @@ function paintMindmap(host: HTMLElement) {
     el.style.setProperty('fill', fill, 'important');
     el.style.setProperty('stroke', stroke, 'important');
   };
-
   for (const node of Array.from(host.querySelectorAll('.mindmap-node'))) {
     const section = mindmapSectionIndex(node);
     const tint = section === null ? live : (tints[section % tints.length] ?? live);
     const fill = section === null ? mix(live, muted, 48) : mix(tint, card, 30);
     const stroke = section === null ? live : mix(tint, border, 50);
-
     for (const shape of Array.from(
       node.querySelectorAll(':is(rect, circle, path, polygon, ellipse, .node-bkg)'),
     )) {
@@ -140,7 +128,6 @@ function paintMindmap(host: HTMLElement) {
       }
     }
   }
-
   for (const edge of Array.from(host.querySelectorAll('[class*="section-edge-"]'))) {
     if (!(edge instanceof SVGElement)) {
       continue;
@@ -157,25 +144,21 @@ function paintMindmap(host: HTMLElement) {
     edge.style.setProperty('fill', 'none', 'important');
   }
 }
-
 export function MarkdownMermaid({ chart }: MarkdownMermaidProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const reactId = useId().replaceAll(':', '');
   const { theme } = useTheme();
   const [failed, setFailed] = useState(false);
   const source = sanitizeMermaidSource(chart);
-
   useEffect(() => {
     let cancelled = false;
     setFailed(false);
-
     void queueRender(async () => {
       const host = hostRef.current;
       if (!host || cancelled) {
         return;
       }
       host.replaceChildren();
-
       const id = `mmd-${reactId}-${Math.random().toString(36).slice(2, 8)}`;
       try {
         if (!source) {
@@ -204,12 +187,10 @@ export function MarkdownMermaid({ chart }: MarkdownMermaidProps) {
         }
       }
     });
-
     return () => {
       cancelled = true;
     };
   }, [source, reactId, theme]);
-
   if (failed) {
     return (
       <pre className="overflow-x-auto rounded-md border border-border bg-muted/50 px-2.5 py-2">
@@ -217,6 +198,5 @@ export function MarkdownMermaid({ chart }: MarkdownMermaidProps) {
       </pre>
     );
   }
-
   return <div ref={hostRef} className="markdown-mermaid" />;
 }

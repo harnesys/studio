@@ -26,7 +26,6 @@ function inputToUserEvent(input: unknown): PendingSessionEvent {
     effort: typeof rec.effort === 'string' ? rec.effort : undefined,
   } as PendingSessionEvent;
 }
-
 export async function runGraph(opts: GraphOpts): Promise<RunResult> {
   if (
     opts.resumePayload !== undefined ||
@@ -42,7 +41,7 @@ export async function runGraph(opts: GraphOpts): Promise<RunResult> {
   const loaded = await opts.state.load();
   const runId = loaded?.runId ?? crypto.randomUUID();
   await lifecycle.create({ runId, threadId }, [inputToUserEvent(opts.input)]);
-  const claimed = await lifecycle.claim(runId, 'oneshot', 15_000);
+  const claimed = await lifecycle.claim(runId, 'oneshot', 15000);
   if (claimed === null) {
     throw Object.assign(new Error(`run ${runId} was not claimed`), { code: 'claim_failed' });
   }
@@ -80,7 +79,6 @@ export async function runGraph(opts: GraphOpts): Promise<RunResult> {
   }
   return resultFromState(opts.state, runId);
 }
-
 export async function resultFromState(state: RuntimeState, runId: string): Promise<RunResult> {
   const snap = await state.load();
   const rec = (snap?.state as Record<string, unknown>) ?? {};

@@ -13,14 +13,12 @@ import {
 import { SidebarMenuButton, useSidebar } from '@/shared/ui/sidebar';
 import { useAccordionStore } from '../model/accordion.store';
 import { SECTION_META, type SidebarSectionId } from './sections-meta';
-
 export function SidebarSectionsConfig() {
   const order = useAccordionStore((state) => state.order);
   const hidden = useAccordionStore((state) => state.hidden);
   const setVisibility = useAccordionStore((state) => state.setVisibility);
   const { openSettings } = useStudioNavigation();
   const { setOpenMobile } = useSidebar();
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -54,9 +52,9 @@ export function SidebarSectionsConfig() {
               >
                 <Icon className="size-3" />
                 {meta.label}
-            </DropdownMenuCheckboxItem>
-          );
-        })}
+              </DropdownMenuCheckboxItem>
+            );
+          })}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

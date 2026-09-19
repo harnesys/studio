@@ -2,24 +2,20 @@ import type { WorkspaceRecord } from '@harnesys/studio-shared';
 import type { WorkspaceHarnesysRegistry } from '../../adapters/workspace-harnesys.registry.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import type { NodeRegistry } from '../nodes/node-registry.ts';
-
 export type UpdateWorkspaceRequest = {
   id: string;
   name?: string;
   path?: string;
 };
-
 export type UpdateWorkspaceInput = {
   execute(request: UpdateWorkspaceRequest): Promise<WorkspaceRecord>;
 };
-
 export class UpdateWorkspaceUseCase implements UpdateWorkspaceInput {
   constructor(
     private readonly nodes: NodeRegistry,
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys?: WorkspaceHarnesysRegistry,
   ) {}
-
   async execute(request: UpdateWorkspaceRequest): Promise<WorkspaceRecord> {
     const existing = this.nodes.get(request.id);
     const previousPath = existing?.path;

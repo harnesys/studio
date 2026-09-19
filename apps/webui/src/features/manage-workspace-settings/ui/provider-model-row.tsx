@@ -1,29 +1,23 @@
 import { CircleCheckIcon, PencilIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react';
-
 import { confirmDetachModel, mergeFields, openEditModelDialog } from '@/features/manage-model';
 import { Button } from '@/shared/ui/button';
-
 import { getMissingFields, incompleteFieldLabel, type ModelRow } from './model-rows';
 import { StatusIcon } from './model-status-icon';
-
 export type ModelAttachInput = {
   providerId: string;
   name: string;
   kind?: string;
   metadata?: unknown;
 };
-
 export type ModelPatchInput = {
   providerId: string;
   modelId: string;
   metadata: unknown;
 };
-
 export type ModelDetachInput = {
   providerId: string;
   modelId: string;
 };
-
 export function ProviderModelRow({
   row,
   providerId,
@@ -40,7 +34,6 @@ export function ProviderModelRow({
   const missing = getMissingFields(row);
   const incomplete = missing.length > 0;
   const verified = row.found ? row.found.verified : true;
-
   return (
     <div
       className="flex min-h-9 items-center gap-2 rounded-md px-2 hover:bg-muted/50"

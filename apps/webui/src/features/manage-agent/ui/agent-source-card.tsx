@@ -4,32 +4,23 @@ import { useState } from 'react';
 import { Row, RowChip, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
 import { Switch } from '@/shared/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import type { SourceCardSection, SourceCardTool } from '../model/draft-overrides';
-
 export type AgentSourceCardProps = {
   kind: 'pack' | 'plugin';
   name: string;
   description?: string;
   granted: boolean;
-  /** Locked grant: switch on + disabled (`core` — host rule, server auto-provisions). */
   locked?: boolean;
   lockLabel?: string;
   onToggleGrant: (next: boolean) => void;
-  /** Pack tools from the explain response with draft overrides merged in. */
   tools?: SourceCardTool[];
-  /** Shown when the pack has no explain tool rows (ungranted / unsaved agent). */
   toolsHint?: string | null;
   onToggleTool?: (tool: string, disable: boolean) => void;
   onExposure?: (tool: string, exposure: ToolExposure) => void;
-  /** Plugin explain sections (skills/mcp/hooks); plugins grant no tools. */
   sections?: SourceCardSection[];
-  /** Shown when a granted plugin has no explain sections (unsaved agent has none yet). */
   sectionsEmptyHint?: string;
-  /** Pack spec form (files/shell); rendered as a Settings section when open. */
   settings?: ReactNode;
 };
-
 export function AgentSourceCard({
   kind,
   name,
@@ -114,7 +105,6 @@ export function AgentSourceCard({
     </Row>
   );
 }
-
 function SourceToolRow({
   tool,
   editable,
@@ -170,7 +160,6 @@ function SourceToolRow({
     </div>
   );
 }
-
 function isExposure(value: string): value is ToolExposure {
   return value === 'direct' || value === 'deferred';
 }

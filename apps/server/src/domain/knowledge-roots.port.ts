@@ -19,13 +19,11 @@ export type {
   KnowledgeStats,
   UpsertKnowledgeSettingsRequest,
 };
-
 export type UpsertKnowledgeRootInput = {
   workspaceId: string;
   path: string;
   enabled?: boolean;
 };
-
 export type KnowledgeRootsPort = {
   listRoots(workspaceId: string): KnowledgeRootRecord[];
   upsertRoot(input: UpsertKnowledgeRootInput): KnowledgeRootRecord;

@@ -3,7 +3,6 @@ import { NodeViewWrapper } from '@tiptap/react';
 import { FileIcon, ZapIcon } from 'lucide-react';
 import type { EntityKind } from '../model/entity-kinds';
 import { isValidEntityRef } from '../model/entity-kinds';
-
 export function EntityChipView(props: NodeViewProps) {
   const kind = props.node.attrs.kind as EntityKind;
   const { ref } = props.node.attrs;

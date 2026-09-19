@@ -1,11 +1,8 @@
 import { estimateMessageTokens } from './estimate.ts';
-
-export type CutPlan = { coveredFrom: number; coveredUntil: number };
-
-/**
- * Граница i закрыта, если ход i не assistant с незакрытыми toolCalls:
- * каждый вызов должен иметь последующий role:'tool' ход до следующего assistant.
- */
+export type CutPlan = {
+  coveredFrom: number;
+  coveredUntil: number;
+};
 export function isClosedBoundary(messages: readonly unknown[], index: number): boolean {
   const m = messages[index] as Record<string, unknown> | null | undefined;
   if (!m || typeof m !== 'object') {
@@ -19,7 +16,17 @@ export function isClosedBoundary(messages: readonly unknown[], index: number): b
     return true;
   }
   const ids = new Set(
-    calls.map((c) => String((c as { id?: unknown }).id ?? '')).filter((id) => id !== ''),
+    calls
+      .map((c) =>
+        String(
+          (
+            c as {
+              id?: unknown;
+            }
+          ).id ?? '',
+        ),
+      )
+      .filter((id) => id !== ''),
   );
   if (ids.size === 0) {
     return true;
@@ -38,16 +45,12 @@ export function isClosedBoundary(messages: readonly unknown[], index: number): b
   }
   return ids.size === 0;
 }
-
-/**
- * Ищет наибольший закрытый cutIndex в (afterIndex, limit]:
- * limit — последний индекс перед защищённым хвостом
- * (суффикс с суммой оценок >= protectTokens не покрывается).
- * coveredFrom = afterIndex + 1; кандидатов нет — null.
- */
 export function planCut(
   messages: readonly unknown[],
-  opts: { protectTokens: number; afterIndex: number },
+  opts: {
+    protectTokens: number;
+    afterIndex: number;
+  },
 ): CutPlan | null {
   let limit = messages.length - 1;
   if (opts.protectTokens > 0) {

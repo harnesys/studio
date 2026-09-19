@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 import { openAddModelDialog } from '@/features/manage-model';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-
 import { type ModelRow, modelRows } from './model-rows';
 import {
   type ModelAttachInput,
@@ -12,7 +11,6 @@ import {
   type ModelPatchInput,
   ProviderModelRow,
 } from './provider-model-row';
-
 export function ProviderModelsSection({
   selected,
   found,
@@ -40,7 +38,6 @@ export function ProviderModelsSection({
     : rows;
   const attached = filteredRows.filter((row) => row.saved);
   const available = filteredRows.filter((row) => !row.saved);
-
   return (
     <div className="mt-8">
       <div className="flex h-8 items-center gap-1">
@@ -152,7 +149,6 @@ export function ProviderModelsSection({
     </div>
   );
 }
-
 function ModelGroup({
   label,
   rows,

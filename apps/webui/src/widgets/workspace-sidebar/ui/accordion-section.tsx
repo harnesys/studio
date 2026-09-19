@@ -17,7 +17,6 @@ type AccordionSectionProps = {
   dragging?: boolean;
   dropHint?: 'before' | 'after' | null;
 };
-
 export function AccordionSection({
   id,
   icon,
@@ -36,7 +35,6 @@ export function AccordionSection({
   const iconMode = state === 'collapsed' && !isMobile;
   const shown = iconMode || !collapsed;
   const hasTrailing = count !== undefined || Boolean(actions);
-
   return (
     <>
       <div

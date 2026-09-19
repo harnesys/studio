@@ -7,14 +7,10 @@ import type { RunLifecycleStore, RunRecord } from '../ports/run-lifecycle-store.
 import type { RunTarget, RunTargets } from '../ports/run-targets.ts';
 import { runFailedEvent } from './run-engine-events.ts';
 import type { RunEngine } from './run-engine-types.ts';
-
 export type RunClaimer = {
-  /** Wakes the sweep immediately (after send/respond/reject). */
   kick(): void;
-  /** Stops the claimer (in-flight runs are interrupted via the engine stop). */
   stop(): void;
 };
-
 export function createRunClaimer(deps: {
   lifecycle: RunLifecycleStore;
   targets: RunTargets;
@@ -22,9 +18,7 @@ export function createRunClaimer(deps: {
   instanceId: string;
   leaseTtlMs?: number;
   sweepMs?: number;
-  /** Wraps the engine.execute call with the host context from RunTarget.scope. */
   withScope?: (target: RunTarget, execute: () => Promise<void>) => Promise<void>;
-  /** Called once per finished execute with the post-execution lifecycle record. */
   onComplete?: (record: RunRecord) => void;
 }): RunClaimer {
   const leaseTtl = deps.leaseTtlMs ?? DEFAULT_LEASE_TTL_MS;
@@ -33,14 +27,11 @@ export function createRunClaimer(deps: {
   let sweeping = false;
   let timer: ReturnType<typeof setInterval> | null = null;
   const executing = new Set<string>();
-
   function finishWith(record: RunRecord): void {
     if (deps.onComplete !== undefined) {
       deps.onComplete(record);
     }
   }
-
-  /** Null target would strand the queued run forever; fail it instead. */
   async function failUnavailable(rec: RunRecord): Promise<RunRecord | null> {
     try {
       return await deps.lifecycle.transition(rec.runId, rec.leaseEpoch, {
@@ -49,14 +40,17 @@ export function createRunClaimer(deps: {
         events: [runFailedEvent('run target unavailable')],
       });
     } catch (err) {
-      const code = (err as { code?: string }).code;
+      const code = (
+        err as {
+          code?: string;
+        }
+      ).code;
       if (code === 'already_resumed' || code === 'lease_stale') {
         return null;
       }
       throw err;
     }
   }
-
   async function tryClaim(runId: string): Promise<void> {
     if (executing.has(runId)) {
       return;
@@ -95,7 +89,6 @@ export function createRunClaimer(deps: {
         void sweep();
       });
   }
-
   async function sweep(): Promise<void> {
     if (stopped || sweeping) {
       return;
@@ -113,11 +106,9 @@ export function createRunClaimer(deps: {
       sweeping = false;
     }
   }
-
   timer = setInterval(() => {
     void sweep();
   }, sweepMs);
-
   return {
     kick() {
       void sweep();

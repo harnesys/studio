@@ -1,18 +1,14 @@
 import { isScheduledHumanText } from '@harnesys/studio-shared';
 import type { SessionEvent } from 'harnesys';
-
 import { SCHEDULE_PEEK_OUTPUT_LIMIT } from '../../config/constants.ts';
-
 export type SchedulePeekTool = {
   name: string;
   output: string;
 };
-
 export type SchedulePeekFire = {
   at: string;
   detail: string;
 };
-
 type CompactFire = {
   human: string;
   status: string;
@@ -20,7 +16,6 @@ type CompactFire = {
   tools: SchedulePeekTool[];
   errors: string[];
 };
-
 export function peekScheduleFires(
   events: SessionEvent[],
   last: number,
@@ -34,7 +29,6 @@ export function peekScheduleFires(
     return { at, detail: formatPeekDetail(compact) };
   });
 }
-
 export function compactScheduleRun(events: SessionEvent[]): CompactFire {
   const fire: CompactFire = {
     human: '',
@@ -44,7 +38,6 @@ export function compactScheduleRun(events: SessionEvent[]): CompactFire {
     errors: [],
   };
   const deltas: string[] = [];
-
   for (const event of events) {
     if (event.type === 'user') {
       if (!fire.human && isFireUser(event.origin, event.text)) {
@@ -95,21 +88,17 @@ export function compactScheduleRun(events: SessionEvent[]): CompactFire {
       }
     }
   }
-
   if (fire.texts.length === 0 && deltas.length > 0) {
     fire.texts.push(clip(deltas.join('')));
   }
   return fire;
 }
-
 function isFireRun(events: SessionEvent[]): boolean {
   return events.some((event) => event.type === 'user' && isFireUser(event.origin, event.text));
 }
-
 function isFireUser(origin: string | undefined, text: string): boolean {
   return origin === 'schedule' || isScheduledHumanText(text);
 }
-
 function groupByRun(events: SessionEvent[]): SessionEvent[][] {
   const order: string[] = [];
   const byRun = new Map<string, SessionEvent[]>();
@@ -128,7 +117,6 @@ function groupByRun(events: SessionEvent[]): SessionEvent[][] {
   }
   return order.map((id) => byRun.get(id) ?? []);
 }
-
 function formatPeekDetail(fire: CompactFire): string {
   const lines: string[] = [];
   if (fire.status) {
@@ -148,7 +136,6 @@ function formatPeekDetail(fire: CompactFire): string {
   }
   return lines.join('\n');
 }
-
 function clip(text: string): string {
   if (text.length <= SCHEDULE_PEEK_OUTPUT_LIMIT) {
     return text;

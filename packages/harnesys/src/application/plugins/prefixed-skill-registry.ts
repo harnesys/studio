@@ -8,8 +8,6 @@ function withPrefixedName(summary: SkillSummary, pluginName: PluginName): SkillS
     name: `${pluginName}:${summary.name}`,
   };
 }
-
-/** Rewrite skill names to `pluginName:original`. `load` requires the prefix. */
 export function prefixSkillRegistry(
   registry: SkillRegistry,
   pluginName: PluginName,

@@ -1,6 +1,5 @@
 import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { z } from 'zod';
-
 export const skillFieldsSchema = z.object({
   name: z
     .string()
@@ -10,10 +9,8 @@ export const skillFieldsSchema = z.object({
   whenToUse: z.string(),
   instructions: z.string().trim().min(1, 'Instructions required'),
 });
-
 export type SkillFieldsInput = z.input<typeof skillFieldsSchema>;
 export type SkillFieldsOutput = z.output<typeof skillFieldsSchema>;
-
 export function emptySkillFields(): SkillFieldsInput {
   return {
     name: '',
@@ -22,7 +19,6 @@ export function emptySkillFields(): SkillFieldsInput {
     instructions: '',
   };
 }
-
 export function toCreateSkillRequest(values: SkillFieldsOutput): CreateWorkspaceSkillRequest {
   const whenToUse = values.whenToUse.trim();
   return {

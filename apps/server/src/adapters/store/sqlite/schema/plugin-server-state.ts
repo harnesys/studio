@@ -1,7 +1,5 @@
 import { foreignKey, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { pluginsTable } from './plugins.ts';
-
-/** User-stopped plugin MCP servers per workspace. Presence = disabled by the user. */
 export const pluginServerStateTable = sqliteTable(
   'plugin_server_state',
   {
@@ -19,5 +17,4 @@ export const pluginServerStateTable = sqliteTable(
     }).onDelete('cascade'),
   }),
 );
-
 export type PluginServerStateRow = typeof pluginServerStateTable.$inferSelect;

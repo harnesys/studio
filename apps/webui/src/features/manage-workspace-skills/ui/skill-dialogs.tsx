@@ -1,12 +1,10 @@
 import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { FieldGroup } from '@/shared/ui/field';
-
 import {
   emptySkillFields,
   type SkillFieldsInput,
@@ -15,7 +13,6 @@ import {
   toCreateSkillRequest,
 } from '../model/skill-fields';
 import { SkillFields } from './skill-fields';
-
 export function CreateSkillDialog({
   onResolve,
 }: DialogComponentProps<CreateWorkspaceSkillRequest>) {
@@ -23,7 +20,6 @@ export function CreateSkillDialog({
     resolver: zodResolver(skillFieldsSchema),
     defaultValues: emptySkillFields(),
   });
-
   return (
     <form
       className="flex min-h-0 flex-col gap-4"

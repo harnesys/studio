@@ -5,18 +5,15 @@ import { findRelativeImportSpecs, resolveImportToWorkspacePath } from './resolve
 
 type Monaco = Parameters<OnMount>[1];
 type MonacoEditor = Parameters<OnMount>[0];
-
 export type ImportLinkContext = {
   workspaceId: string;
   agentId?: string;
   filePath: string;
 };
-
 type TextModel = {
   getLineCount(): number;
   getLineContent(lineNumber: number): string;
 };
-
 type LinkResource = {
   scheme: string;
   authority: string;
@@ -24,18 +21,15 @@ type LinkResource = {
   query: string;
   fragment: string;
 };
-
 const LINK_SCHEME = 'harnesys-file';
 const LINK_LANGUAGES = ['typescript', 'javascript'] as const;
-
-const contextRef: { current: ImportLinkContext | null } = { current: null };
-
+const contextRef: {
+  current: ImportLinkContext | null;
+} = { current: null };
 let providersRegistered = false;
-
 export function setMonacoImportLinkContext(ctx: ImportLinkContext) {
   contextRef.current = ctx;
 }
-
 async function openImportSpec(spec: string): Promise<boolean> {
   const ctx = contextRef.current;
   if (!ctx) {
@@ -49,8 +43,6 @@ async function openImportSpec(spec: string): Promise<boolean> {
   useIdeStore.getState().openFile(ctx.workspaceId, target);
   return true;
 }
-
-/** Monaco built-in links turn `href="styles.css"` into `file:///styles.css`. */
 function relativeSpecFromFileUri(resource: LinkResource): string | null {
   if (resource.authority && resource.authority !== '') {
     return null;
@@ -59,7 +51,6 @@ function relativeSpecFromFileUri(resource: LinkResource): string | null {
   if (!raw) {
     return null;
   }
-  // Absolute OS paths — not workspace-relative.
   if (
     raw.startsWith('Users/') ||
     raw.startsWith('home/') ||
@@ -77,19 +68,15 @@ function relativeSpecFromFileUri(resource: LinkResource): string | null {
   }
   return `./${raw}`;
 }
-
-/** Register language link providers once. Safe in beforeMount. */
 export function ensureMonacoImportLinkProviders(monaco: Monaco) {
   if (providersRegistered) {
     return;
   }
   providersRegistered = true;
-
   const provideLinks = (model: TextModel) => {
     if (!contextRef.current) {
       return { links: [] };
     }
-
     const links = [];
     const lineCount = model.getLineCount();
     for (let line = 1; line <= lineCount; line += 1) {
@@ -112,19 +99,12 @@ export function ensureMonacoImportLinkProviders(monaco: Monaco) {
         });
       }
     }
-
     return { links };
   };
-
   for (const language of LINK_LANGUAGES) {
     monaco.languages.registerLinkProvider(language, { provideLinks });
   }
 }
-
-/**
- * Bind Cmd/Ctrl+click open. Call from onMount.
- * Returns dispose.
- */
 export function bindMonacoImportLinkOpener(editor: MonacoEditor, monaco: Monaco): () => void {
   const openerDisposable = monaco.editor.registerLinkOpener({
     open(resource: LinkResource) {
@@ -135,7 +115,6 @@ export function bindMonacoImportLinkOpener(editor: MonacoEditor, monaco: Monaco)
         }
         return openImportSpec(spec);
       }
-
       if (resource.scheme === 'file') {
         const spec = relativeSpecFromFileUri(resource);
         if (!spec) {
@@ -146,7 +125,6 @@ export function bindMonacoImportLinkOpener(editor: MonacoEditor, monaco: Monaco)
       return false;
     },
   });
-
   const mouseDisposable = editor.onMouseDown((event) => {
     if (!(event.event.metaKey || event.event.ctrlKey) || event.event.rightButton) {
       return;
@@ -169,7 +147,6 @@ export function bindMonacoImportLinkOpener(editor: MonacoEditor, monaco: Monaco)
     event.event.stopPropagation();
     void openImportSpec(match.spec);
   });
-
   return () => {
     openerDisposable.dispose();
     mouseDisposable.dispose();

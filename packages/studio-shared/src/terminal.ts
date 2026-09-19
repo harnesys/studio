@@ -4,7 +4,6 @@ export type TerminalSessionRecord = {
   title: string;
   cwd: string;
   createdAt: string;
-  /** Present after the shell process exits; session stays listable until deleted. */
   exitCode: number | null;
   exited: boolean;
 };

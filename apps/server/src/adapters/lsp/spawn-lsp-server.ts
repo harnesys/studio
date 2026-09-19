@@ -1,10 +1,5 @@
 import { isAbsolute, resolve } from 'node:path';
 import type { LspServerSpec } from 'harnesys';
-
-/**
- * Server root: `workspaceFolder` (resolved against the workspace when relative)
- * replaces the workspace as spawn cwd and initialize rootUri.
- */
 export function lspServerRoot(config: LspServerSpec, workspaceRoot: string): string {
   if (config.workspaceFolder === undefined || config.workspaceFolder.length === 0) {
     return workspaceRoot;
@@ -13,7 +8,6 @@ export function lspServerRoot(config: LspServerSpec, workspaceRoot: string): str
     ? config.workspaceFolder
     : resolve(workspaceRoot, config.workspaceFolder);
 }
-
 export function spawnServer(config: LspServerSpec, root: string): ReturnType<typeof Bun.spawn> {
   const args = config.args ?? [];
   const argv = commandExists(config.command)
@@ -27,8 +21,6 @@ export function spawnServer(config: LspServerSpec, root: string): ReturnType<typ
     env: spawnEnv(config),
   });
 }
-
-/** Declared env entries overlay the server process env. */
 function spawnEnv(config: LspServerSpec): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
@@ -39,7 +31,6 @@ function spawnEnv(config: LspServerSpec): Record<string, string> {
   Object.assign(env, config.env);
   return env;
 }
-
 function commandExists(command: string): boolean {
   if (command.includes('/') || command.includes('\\')) {
     return true;

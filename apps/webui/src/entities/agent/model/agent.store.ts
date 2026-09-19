@@ -1,6 +1,5 @@
 import { defaultAgentCompaction } from '@harnesys/studio-shared';
 import { create } from 'zustand';
-
 import { type Agent, type AgentDraft, type AgentPatch, initialsFromName } from './agent';
 
 type AgentStore = {
@@ -13,14 +12,10 @@ type AgentStore = {
   update: (agentId: string, patch: AgentPatch) => void;
   remove: (agentId: string) => void;
 };
-
 export const useAgentStore = create<AgentStore>((set, get) => ({
   items: [],
-
   byId: (id) => get().items.find((item) => item.id === id),
-
   inWorkspace: (workspaceId) => get().items.filter((item) => item.workspaceId === workspaceId),
-
   create: (workspaceId, draft) => {
     const name = draft.name.trim();
     if (!workspaceId || !name) {
@@ -60,7 +55,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     set((state) => ({ items: [...state.items, agent] }));
     return agent;
   },
-
   upsert: (agent) => {
     set((state) => ({
       items: state.items.some((item) => item.id === agent.id)
@@ -68,13 +62,11 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         : [...state.items, agent],
     }));
   },
-
   replaceWorkspace: (workspaceId, agents) => {
     set((state) => ({
       items: [...state.items.filter((item) => item.workspaceId !== workspaceId), ...agents],
     }));
   },
-
   update: (agentId, patch) => {
     const current = get().items.find((agent) => agent.id === agentId);
     if (!current) {
@@ -112,7 +104,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       ),
     }));
   },
-
   remove: (agentId) => {
     set((state) => ({
       items: state.items.filter((agent) => agent.id !== agentId),

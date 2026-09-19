@@ -13,7 +13,6 @@ import { KnowledgeFilesPanel } from './knowledge-files-panel';
 import { KnowledgeIndexStatus } from './knowledge-index-status';
 import { KnowledgeSearchSmoke } from './knowledge-search-smoke';
 import { KnowledgeSettingsFields } from './knowledge-settings-fields';
-
 export function KnowledgeIndexPane({ workspaceId }: { workspaceId: string }) {
   const [fileStatus, setFileStatus] = useState<KnowledgeFileStatus>('indexed');
   const {
@@ -29,13 +28,11 @@ export function KnowledgeIndexPane({ workspaceId }: { workspaceId: string }) {
     cancel,
     invalidateAll,
   } = useKnowledgeIndex(workspaceId ?? undefined, fileStatus);
-
   const settings = settingsQuery.data;
   const busy = saveSettings.isPending || upsertRoot.isPending || removeRoot.isPending;
   const indexStatus = indexStateQuery.data?.status;
   const prevStatus = useRef(indexStatus);
   const qc = useQueryClient();
-
   useEffect(() => {
     if (prevStatus.current === 'running' && indexStatus && indexStatus !== 'running') {
       void (async () => {
@@ -58,7 +55,6 @@ export function KnowledgeIndexPane({ workspaceId }: { workspaceId: string }) {
     }
     prevStatus.current = indexStatus;
   }, [indexStatus, invalidateAll, qc, workspaceId]);
-
   useEffect(() => {
     if (!workspaceId) {
       return;
@@ -68,7 +64,6 @@ export function KnowledgeIndexPane({ workspaceId }: { workspaceId: string }) {
       void qc.invalidateQueries({ queryKey: knowledgeFilesQueryKey(workspaceId, fileStatus) });
     });
   }, [workspaceId, qc, fileStatus]);
-
   return (
     <FieldGroup className="gap-6" data-testid="memory-pane">
       <FieldSet>

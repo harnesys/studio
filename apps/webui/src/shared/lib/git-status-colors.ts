@@ -1,10 +1,7 @@
 import type { GitFileStatus } from '@harnesys/studio-shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
 export type GitStatusColors = Record<GitFileStatus, string>;
-
-/** Дефолты взяты из палитры IDE-статусов; значения нормализованы в нижний регистр. */
 export const DEFAULT_GIT_STATUS_COLORS: GitStatusColors = {
   conflicted: '#d5756c',
   modified: '#6997bb',
@@ -15,15 +12,11 @@ export const DEFAULT_GIT_STATUS_COLORS: GitStatusColors = {
   untracked: '#d1665a',
   ignored: '#838505',
 };
-
 export type GitStatusSettingsRow = {
   label: string;
   hex: string;
-  /** Пусто, если статус пока не поддерживается моделью (Coming soon). */
   status?: GitFileStatus;
 };
-
-/** Таблица для настроек: все IDE-статусы, поддерживаемые — редактируемы. */
 export const GIT_STATUS_SETTINGS_ROWS: GitStatusSettingsRow[] = [
   { label: 'Added', hex: '#629755', status: 'added' },
   { label: 'Added in not active changelist', hex: '#629755' },
@@ -49,19 +42,14 @@ export const GIT_STATUS_SETTINGS_ROWS: GitStatusSettingsRow[] = [
   { label: 'Switched', hex: '#d1d3d9' },
   { label: 'Unknown', hex: '#d1665a', status: 'untracked' },
 ];
-
 export const GIT_STATUS_STATUSES: GitFileStatus[] = GIT_STATUS_SETTINGS_ROWS.flatMap((row) =>
   row.status ? [row.status] : [],
 );
-
 export const GIT_STATUS_COLORS_STORAGE_KEY = 'studio-git-status-colors';
-
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
-
 function isHex(value: unknown): value is string {
   return typeof value === 'string' && HEX_RE.test(value);
 }
-
 function sanitizeColors(input: unknown): GitStatusColors {
   const next = { ...DEFAULT_GIT_STATUS_COLORS };
   if (input && typeof input === 'object') {
@@ -75,13 +63,11 @@ function sanitizeColors(input: unknown): GitStatusColors {
   }
   return next;
 }
-
 export type GitStatusColorsState = {
   colors: GitStatusColors;
   setColor: (status: GitFileStatus, value: string) => void;
   resetColors: () => void;
 };
-
 export const useGitStatusColors = create<GitStatusColorsState>()(
   persist(
     (set) => ({
@@ -99,13 +85,14 @@ export const useGitStatusColors = create<GitStatusColorsState>()(
       version: 1,
       partialize: (state) => ({ colors: state.colors }),
       migrate: (persisted) => {
-        const state = persisted as { colors?: unknown };
+        const state = persisted as {
+          colors?: unknown;
+        };
         return { colors: sanitizeColors(state.colors) };
       },
     },
   ),
 );
-
 export function gitStatusColorClass(status: GitFileStatus): string {
   switch (status) {
     case 'deleted':

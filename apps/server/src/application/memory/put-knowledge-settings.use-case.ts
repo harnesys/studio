@@ -5,26 +5,21 @@ import type {
 } from '../../domain/knowledge-roots.port.ts';
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-
 export type PutKnowledgeSettingsRequest = UpsertKnowledgeSettingsRequest & {
   workspaceId: string;
 };
-
 export type PutKnowledgeSettingsInput = {
   execute(request: PutKnowledgeSettingsRequest): Promise<KnowledgeSettings>;
 };
-
 export type PutKnowledgeSettingsHooks = {
   onWatchChanged?: (workspaceId: string, watchEnabled: boolean) => void;
 };
-
 export class PutKnowledgeSettingsUseCase implements PutKnowledgeSettingsInput {
   constructor(
     private readonly knowledge: KnowledgeRootsPort,
     private readonly workspaces: WorkspaceRepository,
     private readonly hooks: PutKnowledgeSettingsHooks = {},
   ) {}
-
   execute(request: PutKnowledgeSettingsRequest): Promise<KnowledgeSettings> {
     if (!this.workspaces.findById(request.workspaceId)) {
       return Promise.reject(new NotFoundError('workspace not found'));
@@ -38,7 +33,6 @@ export class PutKnowledgeSettingsUseCase implements PutKnowledgeSettingsInput {
     return Promise.resolve(next);
   }
 }
-
 function validateSettingsPatch(
   request: PutKnowledgeSettingsRequest,
   current: KnowledgeSettings,

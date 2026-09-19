@@ -8,7 +8,6 @@ import {
   SquareTerminalIcon,
 } from 'lucide-react';
 import { useState } from 'react';
-
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -32,7 +31,6 @@ const ICONS = {
   pencil: PencilIcon,
   question: MessageCircleQuestionIcon,
 } as const;
-
 function mapBadgesFor(map: MapInfo | undefined): ActivityBadge[] {
   if (!map) {
     return [];
@@ -49,7 +47,6 @@ function mapBadgesFor(map: MapInfo | undefined): ActivityBadge[] {
   }
   return badges;
 }
-
 export function ToolLine({
   pair,
   live,
@@ -72,8 +69,6 @@ export function ToolLine({
   const awaitingConfirm = pair.call.phase === 'requested' && !pair.result;
   const askPrompt = pair.ask?.prompt?.trim() ? pair.ask.prompt.trim() : null;
   const hasConfirm = Boolean(pair.ask) || awaitingConfirm;
-  // Спиннер живёт только пока ран не терминален: запись запроса в истории
-  // (confirm отработавшего рана) показывается спокойно.
   const map = maps ? mapForToolCall(maps, pair.call.toolCallId) : undefined;
   const mapRunning = map?.status === 'running';
   const mapHint = map ? mapLineHint(map) : null;
@@ -85,7 +80,6 @@ export function ToolLine({
   const exitFailed =
     detail.type === 'terminal' && detail.exitCode !== undefined && detail.exitCode !== 0;
   const httpFailed = detail.type === 'http' && (!detail.ok || detail.status >= 400);
-
   const badges: ActivityBadge[] = [
     ...meta.map((chip) => ({
       text: chip,
@@ -99,7 +93,6 @@ export function ToolLine({
       : []),
     ...mapBadges,
   ];
-
   return (
     <>
       <ActivityLine

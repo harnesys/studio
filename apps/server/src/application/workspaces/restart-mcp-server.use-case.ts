@@ -10,30 +10,20 @@ import type {
   GetWorkspaceMcpConfigInput,
   GetWorkspaceMcpConfigResponse,
 } from './get-workspace-mcp-config.use-case.ts';
-
 export type RestartMcpServerRequest = {
   workspaceId: string;
   serverId: string;
 };
-
 export type RestartMcpServerResponse = GetWorkspaceMcpConfigResponse;
-
 export type RestartMcpServerInput = {
   execute(request: RestartMcpServerRequest): Promise<RestartMcpServerResponse>;
 };
-
-/**
- * Restart of one server; persisted on/off state is untouched. Host-only:
- * the runtime handle exposes no per-server reload, so the workspace runtime
- * is invalidated and rebuilt on next load.
- */
 export class RestartMcpServerUseCase implements RestartMcpServerInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly getConfig: GetWorkspaceMcpConfigInput,
   ) {}
-
   async execute(request: RestartMcpServerRequest): Promise<RestartMcpServerResponse> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {
@@ -43,7 +33,6 @@ export class RestartMcpServerUseCase implements RestartMcpServerInput {
     await this.workspaceHarnesys.invalidate(workspace.id);
     return this.getConfig.execute({ workspaceId: request.workspaceId });
   }
-
   private async assertServerExists(
     workspaceId: string,
     workspacePath: string,

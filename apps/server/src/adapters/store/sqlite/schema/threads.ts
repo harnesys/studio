@@ -2,7 +2,6 @@ import { sql } from 'drizzle-orm';
 import { type AnySQLiteColumn, check, index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { agentsTable } from './agents.ts';
 import { workspacesTable } from './workspaces.ts';
-
 export const threadsTable = sqliteTable(
   'threads',
   {

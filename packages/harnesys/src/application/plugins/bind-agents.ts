@@ -7,47 +7,21 @@ import type { AgentSpec, PluginIr } from '../../domain/plugin-ir.ts';
 import { CC_TOOL_ALIASES, PLANNED_CC_TOOLS } from '../tool-aliases.ts';
 import type { UserConfigContentOptions } from './user-config.ts';
 import { substituteUserConfigContent } from './user-config.ts';
-
-/** Каталогная запись плагинного агента; id `pluginName:agentName` глобально уникален. */
 export type CatalogAgentEntry = {
   id: string;
-  /** frontmatter `description` — описание каталога агентов. */
   description?: string;
   definition: AgentDefinition;
-  /** Вычитание имён из реестра рана (`subtractDeniedTools` / резолвер). */
   disallowedTools?: string[];
-  /** Frontmatter `color` — цвет карточки агента (CC-палитра); носителя в AgentDefinition нет. */
   color?: string;
 };
-
-/** Резолв model-строки против моделей хоста; null → компонент живёт без model. */
 export type ResolveAgentModel = (ref: string) => AgentModelRef | null;
-
-/** Колбэки и опции одного прогона биндинга агентов. */
 export type AgentBindContext = {
   resolveModel: ResolveAgentModel;
   onDiagnostic: BindDiagnosticSink | undefined;
   userConfig: UserConfigContentOptions | undefined;
-  /** Нативное имя инструмента → имя пака; нужен для деривации `definition.packs`. */
   packIndex: Map<string, string> | undefined;
 };
-
-/** Приёмник диагностик биндинга; хост решает, где их показывать. */
 export type BindDiagnosticSink = (diagnostic: PluginDiagnostic) => void;
-
-/**
- * IR → записи каталога агентов (спека §3): тело md → `prompts.main.instructions`,
- * стандартный граф `start → llm:generate → end` с materialized `tools` think-ноды,
- * `tools` маппятся на нативные имена через `CC_TOOL_ALIASES` (planned-инструменты
- * отбрасываются с diagnostic `claude_tool_unmapped`), из нативных имён
- * деривруются `packs` по `packIndex`; `skills` переезжают
- * как есть, `maxTurns` → `budget.maxSteps`, `model`/`effort` → `AgentModelRef`
- * через `resolveModel`. `memory`/`background` носителя не имеют: поле
- * отбрасывается с diagnostic `unsupported_frontmatter_field`; `isolation`
- * помечается на парсе. `userConfig` включает подстановку `${user_config.*}`
- * в контент (sensitive-ключи выбрасываются).
- */
-// biome-ignore lint/complexity/useMaxParams: packIndex is the brief-specified optional 5th param; existing callers unaffected
 export function bindAgentComponents(
   ir: PluginIr,
   resolveModel: ResolveAgentModel,
@@ -69,7 +43,6 @@ export function bindAgentComponents(
   }
   return entries;
 }
-
 function buildEntry(
   spec: AgentSpec,
   sourceFile: string,
@@ -118,8 +91,6 @@ function buildEntry(
     ...(spec.color !== undefined ? { color: spec.color } : {}),
   };
 }
-
-/** CC-имена → нативные: alias → нативное имя как есть; planned-инструмент → drop с `claude_tool_unmapped`. */
 function mapSpecTools(spec: AgentSpec, sourceFile: string, bind: AgentBindContext): string[] {
   const mappedTools: string[] = [];
   for (const name of spec.tools ?? []) {
@@ -137,13 +108,10 @@ function mapSpecTools(spec: AgentSpec, sourceFile: string, bind: AgentBindContex
       });
       continue;
     }
-    mappedTools.push(name); // нативное имя из cc-дока без префиксов
+    mappedTools.push(name);
   }
   return mappedTools;
 }
-
-/** `disallowedTools`: тот же alias-маппинг, что и для `tools`; planned-имена молча
- *  отбрасываются — вычесть несуществующий инструмент невозможно. */
 function mapSpecDisallowedTools(spec: AgentSpec): string[] {
   const out: string[] = [];
   for (const name of spec.disallowedTools ?? []) {
@@ -154,8 +122,6 @@ function mapSpecDisallowedTools(spec: AgentSpec): string[] {
   }
   return out;
 }
-
-/** Уникальные паки по инструментам; undefined — паков нет или индекс не передан. */
 function packsForTools(
   tools: string[],
   index: Map<string, string> | undefined,
@@ -171,7 +137,6 @@ function packsForTools(
   }
   return Object.fromEntries(names.map((p) => [p, {}]));
 }
-
 function warnUnsupportedField(
   spec: AgentSpec,
   sourceFile: string,
@@ -195,8 +160,6 @@ function warnUnsupportedField(
     });
   }
 }
-
-/** `undefined` — model не задан или не резолвится: компонент без `model`, наследует модель родителя при спавне. */
 function resolveSpecModel(
   spec: AgentSpec,
   sourceFile: string,
@@ -217,7 +180,6 @@ function resolveSpecModel(
   }
   return spec.effort !== undefined ? { ...resolved, effort: spec.effort } : resolved;
 }
-
 function readAgentBody(spec: AgentSpec, sourceFile: string, bind: AgentBindContext): string | null {
   try {
     const body = matter(readFileSync(spec.file, 'utf8')).content.trim();
@@ -232,8 +194,6 @@ function readAgentBody(spec: AgentSpec, sourceFile: string, bind: AgentBindConte
     return null;
   }
 }
-
-/** Think-нода всегда получает материализованный список (пустой = «агент без инструментов»). */
 function standardAgentGraph(tools: string[]): AgentGraph {
   return {
     nodes: {

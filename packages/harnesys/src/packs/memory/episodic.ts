@@ -3,16 +3,15 @@ import { definePack } from '../../domain/pack.ts';
 import type { EpisodicPort } from '../../ports/memory.ts';
 import { createEpisodicTools } from './create-episodic-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
-
-export type EpisodicMemoryPorts = { episodic: EpisodicPort };
-
+export type EpisodicMemoryPorts = {
+  episodic: EpisodicPort;
+};
 function topKOf(spec: Record<string, unknown> | undefined): number | undefined {
   const value = spec?.topK;
   return typeof value === 'number' && Number.isFinite(value) && value > 0
     ? Math.floor(value)
     : undefined;
 }
-
 export const episodicMemoryCapability = definePack<EpisodicMemoryPorts, Record<string, unknown>>({
   name: 'episodic-memory',
   version: '1.0.0',

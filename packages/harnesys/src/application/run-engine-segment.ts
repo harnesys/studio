@@ -14,41 +14,28 @@ import {
   runFailedEvent,
 } from './run-engine-events.ts';
 import type { RunEventFeed } from './run-event-feed.ts';
-
 export type SegmentEnv = {
   lifecycle: RunLifecycleStore;
   events: RunEventStore;
   feed: RunEventFeed;
   isLeaseLost: () => boolean;
 };
-
-/** Событий в батче журнала: запись группируется, публикация в feed — нет. */
-
 export type SegmentCtx = {
   runId: string;
   epoch: number;
   pending: SessionEvent[];
 };
-
 type SegmentTail = {
   doneText?: string;
   failMessage?: string;
   cancelReason?: string;
 };
-
 function isToolTerminal(event: SessionEvent): boolean {
   return (
     event.type === 'tool' &&
     (event.phase === 'completed' || event.phase === 'failed' || event.phase === 'skipped')
   );
 }
-
-/**
- * Кадры-карточки ленты публикуются перед долгим await (спавн детей, handoff)
- * и не являются tool-терминалами. Без немедленного flush они висят в pending
- * до сброса батча, и переподключившийся клиент попадает в окно «шина мимо,
- * journal ещё не дописан» — карточка теряется live до конца рана.
- */
 function isJournalBoundaryCard(event: SessionEvent): boolean {
   return (
     event.type === 'agent.spawned' ||
@@ -61,21 +48,22 @@ function isJournalBoundaryCard(event: SessionEvent): boolean {
     event.type === 'wait.started'
   );
 }
-
-/** Message for run.failed: Error, or plain `{ message }` from provider gateways. */
 export function failMessageOf(err: unknown): string {
   if (err instanceof Error && err.message) {
     return err.message;
   }
   if (err && typeof err === 'object') {
-    const message = (err as { message?: unknown }).message;
+    const message = (
+      err as {
+        message?: unknown;
+      }
+    ).message;
     if (typeof message === 'string' && message) {
       return message;
     }
   }
   return 'run failed';
 }
-
 function lastText(snap: Snapshot | null): string | undefined {
   const state = snap?.state as Record<string, unknown> | undefined;
   const msgs = state?.messages;
@@ -86,20 +74,12 @@ function lastText(snap: Snapshot | null): string | undefined {
   const content = last?.content;
   return typeof content === 'string' && content ? content : undefined;
 }
-
-/**
- * Group-commit журнал: seq выдаёт стор и событие сразу уходит подписчикам,
- * запись в стор группируется в батчи. Между publish и append событие живёт
- * только в ctx.pending; сброс буфера при lease_stale оставляет пробел в seq.
- */
 export function admit(env: SegmentEnv, runId: string, event: PendingSessionEvent): SessionEvent {
   const seq = env.events.next(runId);
   const full = { ...event, seq, runId } as SessionEvent;
   env.feed.publish(runId, [full]);
   return full;
 }
-
-/** Пишет батч в журнал; false = lease потерян, буфер сброшен. */
 export async function flushJournal(env: SegmentEnv, ctx: SegmentCtx): Promise<boolean> {
   if (ctx.pending.length === 0) {
     return true;
@@ -109,18 +89,19 @@ export async function flushJournal(env: SegmentEnv, ctx: SegmentCtx): Promise<bo
     ctx.pending.length = 0;
     return true;
   } catch (err) {
-    if ((err as { code?: string }).code === 'lease_stale') {
+    if (
+      (
+        err as {
+          code?: string;
+        }
+      ).code === 'lease_stale'
+    ) {
       ctx.pending.length = 0;
       return false;
     }
     throw err;
   }
 }
-
-/**
- * Transition-embedded events are journaled by the store and published here
- * so live subscribers receive ask/terminal frames at-least-once.
- */
 export async function guardedTransition(
   env: SegmentEnv,
   runId: string,
@@ -131,7 +112,13 @@ export async function guardedTransition(
   try {
     await env.lifecycle.transition(runId, expectedEpoch, patch);
   } catch (err) {
-    if ((err as { code?: string }).code === 'lease_stale') {
+    if (
+      (
+        err as {
+          code?: string;
+        }
+      ).code === 'lease_stale'
+    ) {
       return;
     }
     throw err;
@@ -144,7 +131,6 @@ export async function guardedTransition(
     env.feed.publish(runId, stored);
   }
 }
-
 async function pauseOnAsk(
   env: SegmentEnv,
   ctx: SegmentCtx,
@@ -164,7 +150,6 @@ async function pauseOnAsk(
     events: [ask],
   });
 }
-
 async function pauseFromSnapshot(
   env: SegmentEnv,
   ctx: SegmentCtx,
@@ -188,7 +173,6 @@ async function pauseFromSnapshot(
   } as PendingSessionEvent;
   await pauseOnAsk(env, ctx, ask, interrupt.interruptId);
 }
-
 async function pauseOnWaiting(
   env: SegmentEnv,
   ctx: SegmentCtx,
@@ -217,7 +201,6 @@ async function pauseOnWaiting(
     waitFireAt: typeof fireAt === 'number' ? fireAt : null,
   });
 }
-
 async function pauseOnInterrupt(
   env: SegmentEnv,
   ctx: SegmentCtx,
@@ -236,7 +219,6 @@ async function pauseOnInterrupt(
   } as PendingSessionEvent;
   await pauseOnAsk(env, ctx, ask, interruptId);
 }
-
 async function settleTerminal(
   env: SegmentEnv,
   ctx: SegmentCtx,
@@ -288,14 +270,20 @@ async function settleTerminal(
     events: [runFailedEvent(tail.failMessage ?? `run failed: ${status}`)],
   });
 }
-
 async function failSegment(
   env: SegmentEnv,
   ctx: SegmentCtx,
   graphOpts: GraphOpts,
   err: unknown,
 ): Promise<void> {
-  if (env.isLeaseLost() || (err as { code?: string }).code === 'lease_stale') {
+  if (
+    env.isLeaseLost() ||
+    (
+      err as {
+        code?: string;
+      }
+    ).code === 'lease_stale'
+  ) {
     return;
   }
   if (err instanceof AskUserInterrupt) {
@@ -323,7 +311,6 @@ async function failSegment(
     events: [runFailedEvent(failMessageOf(err))],
   });
 }
-
 export async function runSegment(
   env: SegmentEnv,
   runId: string,
@@ -332,7 +319,10 @@ export async function runSegment(
 ): Promise<void> {
   const ctx: SegmentCtx = { runId, epoch, pending: [] };
   const tail: SegmentTail = {};
-  let ask: { event: PendingSessionEvent; askId: string } | null = null;
+  let ask: {
+    event: PendingSessionEvent;
+    askId: string;
+  } | null = null;
   try {
     for await (const event of startGraph(graphOpts)) {
       const mapped = eventToSessionEvent(event);

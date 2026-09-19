@@ -14,11 +14,8 @@ import type { WorkspaceFileEntry } from '@harnesys/studio-shared';
 import { SAFETY_NAMES } from '../../config/constants.ts';
 import type { WorkspaceFilesPort } from '../../domain/workspace-files.port.ts';
 
-const MAX_TREE_ENTRIES = 20_000;
-
-/** Safety dirs listed without children in hidden tree mode; expand via single-level listing. */
+const MAX_TREE_ENTRIES = 20000;
 const NO_RECURSE_NAMES = new Set(['node_modules', '.git']);
-
 export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
   async listDir(absPath: string): Promise<WorkspaceFileEntry[]> {
     let entries: Dirent[] = [];
@@ -30,9 +27,7 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
     } catch {
       return [];
     }
-
     const results: WorkspaceFileEntry[] = [];
-
     for (const entry of entries) {
       const isDirectory = typeof entry.isDirectory === 'function' ? entry.isDirectory() : false;
       const kind: 'file' | 'dir' = isDirectory ? 'dir' : 'file';
@@ -40,17 +35,13 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
       const entryPath = join(absPath, name);
       let size: number | undefined;
       let modifiedAt: string | undefined;
-
       try {
         const info = await stat(entryPath);
         modifiedAt = info.mtime.toISOString();
         if (!isDirectory) {
           size = info.size;
         }
-      } catch {
-        // skip stat failures
-      }
-
+      } catch {}
       results.push({
         name,
         kind,
@@ -59,47 +50,40 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
         ...(modifiedAt !== undefined ? { modifiedAt } : {}),
       });
     }
-
-    // directories first, then files; alphabetical within each group
     results.sort((a, b) => {
       if (a.kind !== b.kind) {
         return a.kind === 'dir' ? -1 : 1;
       }
       return a.name.localeCompare(b.name);
     });
-
     return results;
   }
-
   async listTree(
     absRoot: string,
-    options?: { includeSafety?: boolean },
+    options?: {
+      includeSafety?: boolean;
+    },
   ): Promise<WorkspaceFileEntry[]> {
     const results: WorkspaceFileEntry[] = [];
     await collectTree(absRoot, '', results, options?.includeSafety ?? false);
     return results;
   }
-
   async createFile(absPath: string): Promise<void> {
     await mkdir(dirname(absPath), { recursive: true });
     await writeFileFs(absPath, '', { flag: 'wx' });
   }
-
   async createDir(absPath: string): Promise<void> {
     await mkdir(absPath, { recursive: true });
   }
-
   async delete(absPath: string): Promise<void> {
     await rm(absPath, { recursive: true, force: true });
   }
-
   async move(fromAbsPath: string, toAbsPath: string): Promise<void> {
     await mkdir(dirname(toAbsPath), { recursive: true });
     try {
       await renameFs(fromAbsPath, toAbsPath);
       return;
     } catch (err) {
-      // rename across filesystems (bind mounts, different volumes) falls back to a copy.
       if ((err as NodeJS.ErrnoException).code !== 'EXDEV') {
         throw err;
       }
@@ -107,8 +91,13 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
     await cp(fromAbsPath, toAbsPath, { recursive: true, errorOnExist: true, force: false });
     await rm(fromAbsPath, { recursive: true, force: true });
   }
-
-  async stat(absPath: string): Promise<{ size: number; modifiedAt: string } | undefined> {
+  async stat(absPath: string): Promise<
+    | {
+        size: number;
+        modifiedAt: string;
+      }
+    | undefined
+  > {
     try {
       const info = await stat(absPath);
       return { size: info.size, modifiedAt: info.mtime.toISOString() };
@@ -116,18 +105,18 @@ export class WorkspaceFilesAdapter implements WorkspaceFilesPort {
       return undefined;
     }
   }
-
-  async readFile(absPath: string): Promise<{ bytes: Uint8Array; mimeType: string }> {
+  async readFile(absPath: string): Promise<{
+    bytes: Uint8Array;
+    mimeType: string;
+  }> {
     const bytes = new Uint8Array(await readFileFs(absPath));
     return { bytes, mimeType: mimeFromPath(absPath) };
   }
-
   async writeFile(absPath: string, content: string): Promise<void> {
     await mkdir(dirname(absPath), { recursive: true });
     await writeFileFs(absPath, content, 'utf8');
   }
 }
-
 async function collectTree(
   absRoot: string,
   relDir: string,
@@ -147,7 +136,6 @@ async function collectTree(
   } catch {
     return;
   }
-
   const batch: WorkspaceFileEntry[] = [];
   for (const entry of dirents) {
     const name = String(entry.name);
@@ -166,9 +154,7 @@ async function collectTree(
       if (!isDirectory) {
         size = info.size;
       }
-    } catch {
-      // skip stat failures
-    }
+    } catch {}
     const pruned = isSafety && isDirectory && NO_RECURSE_NAMES.has(name);
     batch.push({
       name,
@@ -179,14 +165,12 @@ async function collectTree(
       ...(pruned ? { pruned: true } : {}),
     });
   }
-
   batch.sort((a, b) => {
     if (a.kind !== b.kind) {
       return a.kind === 'dir' ? -1 : 1;
     }
     return a.name.localeCompare(b.name);
   });
-
   for (const item of batch) {
     if (results.length >= MAX_TREE_ENTRIES) {
       return;
@@ -197,7 +181,6 @@ async function collectTree(
     }
   }
 }
-
 function mimeFromPath(absPath: string): string {
   const ext = extname(absPath).toLowerCase();
   const map: Record<string, string> = {

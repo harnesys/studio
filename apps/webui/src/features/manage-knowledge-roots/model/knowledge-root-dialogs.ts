@@ -1,7 +1,5 @@
 import { alert, dialog } from '@/shared/services/overlay';
-
 import { AddKnowledgeRootDialog } from '../ui/knowledge-root-dialogs';
-
 export function openAddKnowledgeRootDialog() {
   return dialog.open(AddKnowledgeRootDialog, {
     title: 'Add knowledge root',
@@ -10,7 +8,6 @@ export function openAddKnowledgeRootDialog() {
     testId: 'add-knowledge-root-dialog',
   });
 }
-
 export function confirmDeleteKnowledgeRoot(path: string) {
   return alert.confirm({
     title: `Remove ${path}?`,

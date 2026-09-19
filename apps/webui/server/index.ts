@@ -4,7 +4,6 @@ import { handleWsUpgrade, isWebSocketUpgrade, type WsLink, wsHandlers } from './
 
 const config = loadConfig();
 const app = createApp(config);
-
 export default {
   port: config.port,
   idleTimeout: 0,
@@ -16,7 +15,6 @@ export default {
   },
   websocket: wsHandlers,
 };
-
 console.log(
   `harnesys-web http://127.0.0.1:${config.port} → ${config.upstream.origin} (static: ${config.staticDir})`,
 );

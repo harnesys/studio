@@ -2,7 +2,6 @@ import type { MemoryRecord, SemanticScope } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 const SCOPES = ['session', 'long'] as const satisfies readonly SemanticScope[];
-
 export const semanticFieldsSchema = z
   .object({
     scope: z.enum(SCOPES),
@@ -19,23 +18,18 @@ export const semanticFieldsSchema = z
       });
     }
   });
-
 export type SemanticFieldsInput = z.input<typeof semanticFieldsSchema>;
 export type SemanticFieldsOutput = z.output<typeof semanticFieldsSchema>;
-
 export type SemanticDraft = {
   scope: SemanticScope;
   text: string;
   key?: string;
-  /** Existing id when editing (delete + recreate). */
   id?: string;
   threadId?: string;
 };
-
 export function emptySemanticFields(scope: SemanticScope = 'long'): SemanticFieldsInput {
   return { scope, key: '', text: '' };
 }
-
 export function semanticFieldsFrom(row: MemoryRecord): SemanticFieldsInput {
   return {
     scope: row.scope,
@@ -43,10 +37,12 @@ export function semanticFieldsFrom(row: MemoryRecord): SemanticFieldsInput {
     text: row.text,
   };
 }
-
 export function toSemanticDraft(
   values: SemanticFieldsOutput,
-  options: { id?: string; threadId?: string } = {},
+  options: {
+    id?: string;
+    threadId?: string;
+  } = {},
 ): SemanticDraft {
   const key = values.key.trim();
   return {
@@ -57,8 +53,10 @@ export function toSemanticDraft(
     ...(options.threadId ? { threadId: options.threadId } : {}),
   };
 }
-
-export const SCOPE_ITEMS: { value: SemanticScope; label: string }[] = [
+export const SCOPE_ITEMS: {
+  value: SemanticScope;
+  label: string;
+}[] = [
   { value: 'long', label: 'long' },
   { value: 'session', label: 'session' },
 ];

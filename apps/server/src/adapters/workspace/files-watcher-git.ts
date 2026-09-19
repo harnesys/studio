@@ -11,7 +11,6 @@ type GitWatcherState = {
   closed: boolean;
   listeners: Set<(event: WorkspaceFileEvent) => void>;
 };
-
 export async function startGitWatcher(
   state: GitWatcherState,
   workspaceId: string,
@@ -32,7 +31,6 @@ export async function startGitWatcher(
   } catch {
     return;
   }
-
   const handleGitChange = () => {
     if (state.closed) {
       return;
@@ -55,7 +53,6 @@ export async function startGitWatcher(
       }
     }, FILES_WATCHER_DEBOUNCE_MS);
   };
-
   try {
     const gitWatcher = watch(target, { recursive: true }, (_et, filename) => {
       if (!filename) {

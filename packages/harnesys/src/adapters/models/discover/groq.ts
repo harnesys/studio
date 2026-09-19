@@ -5,7 +5,6 @@ import { asNumber, asRecord, asString, itemsOf } from './parse.ts';
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { GROQ_DEFAULT_URL };
-
 export function listGroqModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, GROQ_DEFAULT_URL),
@@ -14,7 +13,6 @@ export function listGroqModels(input: DiscoverInput): Promise<DiscoveredModel[]>
     parse: parseGroqList,
   });
 }
-
 export function parseGroqList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -38,7 +36,6 @@ export function parseGroqList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function groqKind(name: string): 'chat' | 'embed' | 'audio' | undefined {
   if (/whisper|tts|audio/i.test(name)) {
     return 'audio';

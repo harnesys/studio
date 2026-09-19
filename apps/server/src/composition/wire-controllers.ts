@@ -106,17 +106,14 @@ type ControllerDeps = {
   claimer: RunClaimer;
   feed: RunEventFeed;
   memory: StudioMemoryPorts;
-  /** Optional: schedule/webhook mutations run without a cross-node transaction. */
   db?: StudioDb;
   modelsPort: ModelsPort;
-  /** When set, create/delete workspace also starts/stops the node runtime. */
   supervisor?: NodeSupervisor;
   getThread: GetThreadInput;
   getThreadPlan: GetThreadPlanInput;
   sendThreadRun: SendThreadRunInput;
   threadRunHooks: ThreadRunHooks;
 };
-
 export function wireControllers(d: ControllerDeps): void {
   wireWorkspaceControllers({
     app: d.app,
@@ -132,13 +129,10 @@ export function wireControllers(d: ControllerDeps): void {
     workspaceHarnesys: d.workspaceHarnesys,
     supervisor: d.supervisor,
   });
-
   new WindowDeskController({ machineConfig: d.machineConfig }).register(d.app);
-
   new CatalogController({
     getCatalog: new GetCatalogUseCase(),
   }).register(d.app);
-
   wirePluginControllers({
     app: d.app,
     home: d.home,
@@ -150,9 +144,7 @@ export function wireControllers(d: ControllerDeps): void {
     secretStore: d.secretStore,
     supervisor: d.supervisor,
   });
-
   new LspController({ workspaceRepo: d.workspaceRepo, supervisor: d.supervisor }).register(d.app);
-
   new ProviderController({
     listProviders: new ListProvidersUseCase(d.llmProviderRepo, d.llmModelRepo),
     getProvider: new GetProviderUseCase(d.llmProviderRepo, d.llmModelRepo),
@@ -166,7 +158,6 @@ export function wireControllers(d: ControllerDeps): void {
     updateProviderModel: new UpdateProviderModelUseCase(d.llmProviderRepo, d.llmModelRepo),
     deleteProviderModel: new DeleteProviderModelUseCase(d.llmProviderRepo, d.llmModelRepo),
   }).register(d.app);
-
   wireAgentControllers({
     app: d.app,
     agentRepo: d.agentRepo,
@@ -179,21 +170,18 @@ export function wireControllers(d: ControllerDeps): void {
     workspaceHarnesys: d.workspaceHarnesys,
     deskEvents: d.deskEvents,
   });
-
   new ModePresetController({
     listModePresets: new ListModePresetsUseCase(d.modePresetRepo),
     createModePreset: new CreateModePresetUseCase(d.modePresetRepo),
     updateModePreset: new UpdateModePresetUseCase(d.modePresetRepo),
     deleteModePreset: new DeleteModePresetUseCase(d.modePresetRepo),
   }).register(d.app);
-
   const sessions = new ThreadSessionsAdapter({
     threads: d.threadRepo,
     workspaces: d.workspaceRepo,
     workspaceHarnesys: d.workspaceHarnesys,
     registry: d.threadRegistry,
   });
-
   new ThreadController({
     listThreads: new ListThreadsUseCase(d.threadRepo, d.workspaceRepo, d.agentRepo, d.lifecycle),
     getThread: d.getThread,

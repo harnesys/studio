@@ -1,13 +1,7 @@
 import type { CodeLine, DiffDetail } from '@/shared/lib/tool-code';
 
-export type {
-  CodeLine,
-  DiffDetail,
-  DiffHunk,
-  DiffHunkLine,
-} from '@/shared/lib/tool-code';
+export type { CodeLine, DiffDetail, DiffHunk, DiffHunkLine } from '@/shared/lib/tool-code';
 export { detectLanguage } from '@/shared/lib/tool-code';
-
 export type FileDetail = {
   type: 'file';
   path: string;
@@ -17,13 +11,11 @@ export type FileDetail = {
   lines: CodeLine[];
   rawContent: string;
 };
-
 export type ListEntryItem = {
   name: string;
   type: 'file' | 'dir';
   size?: number;
 };
-
 export type EntriesDetail = {
   type: 'entries';
   path?: string;
@@ -31,20 +23,17 @@ export type EntriesDetail = {
   truncated?: boolean;
   items: ListEntryItem[];
 };
-
 export type GrepMatchItem = {
   file: string;
   line: number;
   text: string;
 };
-
 export type GrepDetail = {
   type: 'grep';
   pattern: string;
   matches: GrepMatchItem[];
   truncated?: boolean;
 };
-
 export type TerminalDetail = {
   type: 'terminal';
   command: string;
@@ -52,7 +41,6 @@ export type TerminalDetail = {
   exitCode?: number;
   durationMs?: number;
 };
-
 export type HttpDetail = {
   type: 'http';
   url: string;
@@ -64,7 +52,6 @@ export type HttpDetail = {
   body: string;
   durationMs?: number;
 };
-
 export type GenericDetail = {
   type: 'generic';
   title: string;
@@ -72,7 +59,6 @@ export type GenericDetail = {
   text: string;
   lines: CodeLine[];
 };
-
 export type ToolDetail =
   | DiffDetail
   | FileDetail
@@ -81,7 +67,6 @@ export type ToolDetail =
   | TerminalDetail
   | HttpDetail
   | GenericDetail;
-
 export function toolMeta(detail: ToolDetail): string[] {
   switch (detail.type) {
     case 'terminal':

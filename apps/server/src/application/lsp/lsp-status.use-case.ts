@@ -10,32 +10,19 @@ import type { PluginRepository } from '../../domain/plugin.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { pluginUserConfig, substituteLspSpec } from '../plugins/plugin-user-config.ts';
-
 export type LspStatusRequest = {
   workspaceId: string;
 };
-
 export type LspStatusResponse = WorkspaceLspListResponse;
-
 export type LspStatusInput = {
   execute(request: LspStatusRequest): Promise<LspStatusResponse>;
 };
-
-/**
- * Merged workspace LSP list (spec §2): file servers first, then plugin
- * `lsp-server` components via the shared `resolveWorkspaceLsp` helper.
- * File entries with `disabled: true` are excluded from the resolve, so they
- * are re-attached here from the raw file with `disabled: true`. Blocked
- * (non-native) plugin components never reach the resolve either; they are
- * appended with `granted: false` so the settings tab can explain the state.
- */
 export class LspStatusUseCase implements LspStatusInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly pluginRepo?: PluginRepository,
   ) {}
-
   async execute(request: LspStatusRequest): Promise<LspStatusResponse> {
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {
@@ -43,9 +30,11 @@ export class LspStatusUseCase implements LspStatusInput {
     }
     const file = readWorkspaceLspFile(workspace.path);
     const loaded = await this.workspaceHarnesys.loadEnabledPlugins(workspace.id);
-
     const nativePluginServers: WorkspacePluginLspServer[] = [];
-    const blocked: { spec: LspServerSpec; pluginName: string }[] = [];
+    const blocked: {
+      spec: LspServerSpec;
+      pluginName: string;
+    }[] = [];
     for (const entry of loaded) {
       const userConfig = pluginUserConfig(entry.ir, entry.record.options);
       for (const component of entry.ir.components) {
@@ -63,7 +52,6 @@ export class LspStatusUseCase implements LspStatusInput {
         nativePluginServers.push({ spec: substituted, pluginName: entry.ir.identity.name });
       }
     }
-
     const merged = resolveWorkspaceLsp(workspace.path, nativePluginServers);
     const servers: WorkspaceLspEntry[] = merged.map((server) =>
       this.toEntry(server, {
@@ -96,10 +84,14 @@ export class LspStatusUseCase implements LspStatusInput {
     }
     return { servers, diagnostics: file.diagnostics };
   }
-
   private toEntry(
-    server: LspServerSpec & { origin: string },
-    flags: { disabled?: boolean; granted: boolean },
+    server: LspServerSpec & {
+      origin: string;
+    },
+    flags: {
+      disabled?: boolean;
+      granted: boolean;
+    },
   ): WorkspaceLspEntry {
     const disabled = flags.disabled ?? false;
     const binaryOk = checkBinary(server.command);
@@ -122,11 +114,6 @@ export class LspStatusUseCase implements LspStatusInput {
     };
   }
 }
-
-/**
- * `binaryOk`: command on PATH, or a bare name that Studio can launch via
- * `bunx --bun <command>` (spawn-lsp-server fallback).
- */
 function checkBinary(command: string): boolean {
   try {
     if (Bun.spawnSync(['which', command]).exitCode === 0) {
@@ -140,16 +127,17 @@ function checkBinary(command: string): boolean {
     return false;
   }
 }
-
-function isLspSpec(
-  component: PluginComponent,
-): component is PluginComponent & { spec: LspServerSpec } {
+function isLspSpec(component: PluginComponent): component is PluginComponent & {
+  spec: LspServerSpec;
+} {
   return 'command' in component.spec && 'extensionToLanguage' in component.spec;
 }
-
 function isDisabledServer(
   pluginRepo: PluginRepository | undefined,
-  server: { serverId: string; origin: string },
+  server: {
+    serverId: string;
+    origin: string;
+  },
   workspaceId: string,
   raw: unknown,
 ): boolean {
@@ -162,7 +150,6 @@ function isDisabledServer(
   const pluginName = server.origin.slice('plugin:'.length);
   return pluginRepo?.isServerDisabled(pluginName, server.serverId, workspaceId) ?? false;
 }
-
 function isFileDisabled(raw: unknown, serverId: string): boolean {
   const record = containerOf(raw);
   if (!record) {
@@ -171,13 +158,6 @@ function isFileDisabled(raw: unknown, serverId: string): boolean {
   const entry = record[serverId];
   return isRecord(entry) && entry.disabled === true;
 }
-
-/**
- * File entries hidden from the resolve by `disabled: true`, rebuilt from the
- * raw file with the same field rules as the file validator (command required,
- * string args, dotted extensions). Non-record or command-less entries cannot
- * describe a server, so they stay diagnostics-only.
- */
 function disabledFileEntries(raw: unknown): LspServerSpec[] {
   const record = containerOf(raw);
   if (!record) {
@@ -209,8 +189,6 @@ function disabledFileEntries(raw: unknown): LspServerSpec[] {
   }
   return servers;
 }
-
-/** The writable container mirrors the file adapter: `raw.servers ?? raw`. */
 function containerOf(raw: unknown): Record<string, unknown> | undefined {
   if (!isRecord(raw)) {
     return undefined;
@@ -221,7 +199,6 @@ function containerOf(raw: unknown): Record<string, unknown> | undefined {
   }
   return raw;
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

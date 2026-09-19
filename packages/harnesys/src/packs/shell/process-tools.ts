@@ -2,18 +2,15 @@ import type { ProcessJobRegistry, ProcessJobStatus } from '../../domain/process-
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
 
-const POLL_WAIT_MAX_MS = 30_000;
-
+const POLL_WAIT_MAX_MS = 30000;
 export type ProcessPollInput = {
   job_id: string;
   since?: number;
   wait_ms?: number;
 };
-
 export type ProcessKillInput = {
   job_id: string;
 };
-
 export type ProcessPollResult = {
   jobId: string;
   status: ProcessJobStatus | 'missing';
@@ -24,13 +21,11 @@ export type ProcessPollResult = {
   truncated: boolean;
   error?: string;
 };
-
 export type ProcessKillResult = {
   jobId: string;
   status: ProcessJobStatus | 'missing';
   ok: boolean;
 };
-
 function waitForJobData(jobs: ProcessJobRegistry, id: string, waitMs: number): Promise<void> {
   return new Promise((resolve) => {
     let settled = false;
@@ -59,7 +54,6 @@ function waitForJobData(jobs: ProcessJobRegistry, id: string, waitMs: number): P
     }
   });
 }
-
 export function processTools(jobs: ProcessJobRegistry): ToolDefinition[] {
   return [
     tool('process_poll', {

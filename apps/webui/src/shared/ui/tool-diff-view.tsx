@@ -1,12 +1,10 @@
 import hljs from 'highlight.js/lib/common';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { useState } from 'react';
-
 import { type DiffDetail, type DiffHunk, detectLanguage } from '@/shared/lib/tool-code';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { ExpandableScroll } from '@/shared/ui/expandable-scroll';
-
 export function ToolDiffView({
   detail,
   className,
@@ -20,13 +18,11 @@ export function ToolDiffView({
 }) {
   const [copied, setCopied] = useState(false);
   const lang = detectLanguage(detail.path);
-
   const onCopy = async () => {
     await navigator.clipboard.writeText(detail.rawDiff);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-
   return (
     <div
       className={cn(
@@ -58,7 +54,6 @@ export function ToolDiffView({
     </div>
   );
 }
-
 function DiffHunkBlock({ hunk, language }: { hunk: DiffHunk; language?: string }) {
   const codeLines = hunk.lines.map((line) => {
     let html = '';
@@ -69,7 +64,6 @@ function DiffHunkBlock({ hunk, language }: { hunk: DiffHunk; language?: string }
     }
     return { ...line, html };
   });
-
   return (
     <div>
       <div className="select-none border-border/30 border-b bg-muted/20 px-3 py-0.5 font-mono text-[11px] text-muted-foreground/80">
@@ -92,7 +86,6 @@ function DiffHunkBlock({ hunk, language }: { hunk: DiffHunk; language?: string }
             } else if (isDel) {
               sign = '-';
             }
-
             return (
               <tr
                 key={`${line.type}:${lineNum ?? ''}:${line.text}`}
@@ -117,7 +110,6 @@ function DiffHunkBlock({ hunk, language }: { hunk: DiffHunk; language?: string }
                 <td className="overflow-x-auto whitespace-pre py-0.5 pr-3 pl-3 align-top font-mono text-[12px] leading-5">
                   <span
                     className="hljs inline-block min-w-full"
-                    // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js escaped tokens
                     dangerouslySetInnerHTML={{ __html: line.html || ' ' }}
                   />
                 </td>
@@ -129,7 +121,6 @@ function DiffHunkBlock({ hunk, language }: { hunk: DiffHunk; language?: string }
     </div>
   );
 }
-
 function escapeHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')

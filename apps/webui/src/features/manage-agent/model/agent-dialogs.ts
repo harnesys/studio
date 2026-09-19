@@ -2,7 +2,6 @@ import type { Agent } from '@/entities/agent';
 import { alert } from '@/shared/services/overlay';
 
 export { openAgentConfigDialog } from '../ui/agent-config-dialog';
-
 export function confirmDeleteAgent(agent: Agent) {
   return alert.confirm({
     title: `Delete ${agent.name}?`,
@@ -13,7 +12,6 @@ export function confirmDeleteAgent(agent: Agent) {
     testId: 'delete-agent-dialog',
   });
 }
-
 export function confirmSwitchModel(options: { currentModelName?: string; nextModelName?: string }) {
   const { currentModelName, nextModelName } = options;
   const title = nextModelName ? `Switch model to ${nextModelName}?` : 'Change agent model?';
@@ -21,7 +19,6 @@ export function confirmSwitchModel(options: { currentModelName?: string; nextMod
     currentModelName && nextModelName
       ? `This thread contains message history with ${currentModelName}. Switching to ${nextModelName} will apply to subsequent messages in this thread.`
       : 'This thread contains message history. Switching the model will apply to subsequent messages in this thread.';
-
   return alert.confirm({
     title,
     description,

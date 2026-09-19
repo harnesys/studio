@@ -4,16 +4,9 @@ import type {
   CatalogRenames,
   ParsedMarketplace,
 } from '../../domain/plugin-catalog.ts';
-
 export type ParseClaudeMarketplaceOptions = {
-  /** Absolute or logical marketplace root used only for diagnostics; not written into entries. */
   rootHint?: string;
 };
-
-/**
- * Parse Claude/ZCode `marketplace.json` into normalized catalog entries.
- * Relative sources stay relative; Studio resolves them against the marketplace checkout.
- */
 export function parseClaudeMarketplace(
   raw: unknown,
   options: ParseClaudeMarketplaceOptions = {},
@@ -43,12 +36,6 @@ export function parseClaudeMarketplace(
     entries,
   };
 }
-
-/**
- * `renames` maps a former plugin name to its current name, or to `null` when the
- * plugin was removed. Entries with empty names or non-string/non-null targets
- * are skipped; an empty or absent map yields `undefined`.
- */
 function parseRenames(value: unknown): CatalogRenames | undefined {
   if (!isRecord(value)) {
     return undefined;
@@ -70,7 +57,6 @@ function parseRenames(value: unknown): CatalogRenames | undefined {
   }
   return Object.keys(renames).length > 0 ? renames : undefined;
 }
-
 function resolvePluginRoot(raw: Record<string, unknown>): string | undefined {
   const top = asNonEmptyString(raw.pluginRoot);
   if (top) {
@@ -85,7 +71,6 @@ function resolvePluginRoot(raw: Record<string, unknown>): string | undefined {
   }
   return undefined;
 }
-
 function mapPluginEntry(
   item: unknown,
   pluginRoot: string | undefined,
@@ -104,7 +89,6 @@ function mapPluginEntry(
   const version = asNonEmptyString(item.version);
   const homepage = asNonEmptyString(item.homepage);
   const tags = asStringArray(item.tags) ?? asStringArray(item.keywords);
-
   const mapped = mapSource(item.source, pluginRoot);
   const base: Omit<CatalogEntry, 'registryId'> = {
     pluginName,
@@ -121,9 +105,15 @@ function mapPluginEntry(
   }
   return { ...base, installSource: mapped.source };
 }
-
-type MapSourceResult = { ok: true; source: CatalogInstallSource } | { ok: false; reason: string };
-
+type MapSourceResult =
+  | {
+      ok: true;
+      source: CatalogInstallSource;
+    }
+  | {
+      ok: false;
+      reason: string;
+    };
 function mapSource(source: unknown, pluginRoot: string | undefined): MapSourceResult {
   if (typeof source === 'string') {
     const path = resolveRelativeSource(source, pluginRoot);
@@ -139,7 +129,6 @@ function mapSource(source: unknown, pluginRoot: string | undefined): MapSourceRe
   if (!kind) {
     return { ok: false, reason: 'source object missing source kind' };
   }
-
   if (kind === 'github') {
     const repo = asNonEmptyString(source.repo);
     if (!repo) {
@@ -170,7 +159,6 @@ function mapSource(source: unknown, pluginRoot: string | undefined): MapSourceRe
       },
     };
   }
-
   if (kind === 'url' || kind === 'git') {
     const url = asNonEmptyString(source.url);
     if (!url) {
@@ -201,7 +189,6 @@ function mapSource(source: unknown, pluginRoot: string | undefined): MapSourceRe
       },
     };
   }
-
   if (kind === 'git-subdir') {
     const url = asNonEmptyString(source.url);
     const path = asNonEmptyString(source.path);
@@ -221,7 +208,6 @@ function mapSource(source: unknown, pluginRoot: string | undefined): MapSourceRe
       },
     };
   }
-
   if (kind === 'npm') {
     const pkg = asNonEmptyString(source.package);
     if (!pkg) {
@@ -239,7 +225,6 @@ function mapSource(source: unknown, pluginRoot: string | undefined): MapSourceRe
       },
     };
   }
-
   if (kind === 'archive') {
     const url = asNonEmptyString(source.url);
     if (!url) {
@@ -251,14 +236,11 @@ function mapSource(source: unknown, pluginRoot: string | undefined): MapSourceRe
       source: { type: 'archive', url, ...(sha256 ? { sha256 } : {}) },
     };
   }
-
   if (kind === 'command') {
     return { ok: false, reason: 'source_unsupported' };
   }
-
   return { ok: false, reason: `unsupported source type: ${kind}` };
 }
-
 function resolveRelativeSource(source: string, pluginRoot: string | undefined): string | undefined {
   const trimmed = source.trim();
   if (trimmed.length === 0) {
@@ -275,17 +257,14 @@ function resolveRelativeSource(source: string, pluginRoot: string | undefined): 
   }
   return normalizeRelativePath(trimmed.startsWith('.') ? trimmed : `./${trimmed}`);
 }
-
 function normalizeRelativePath(path: string): string {
   const trimmed = path.trim().replace(/\\/g, '/');
   const withoutDot = trimmed.startsWith('./') ? trimmed.slice(2) : trimmed;
   return withoutDot.replace(/\/+$/, '');
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
 function asNonEmptyString(value: unknown): string | undefined {
   if (typeof value !== 'string') {
     return undefined;
@@ -293,7 +272,6 @@ function asNonEmptyString(value: unknown): string | undefined {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
-
 function asStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;

@@ -9,7 +9,6 @@ const ideTabKindSchema = z.enum([
   'webhook',
   'terminal',
 ]);
-
 const persistedIdeTabSchema = z.object({
   id: z.string().min(1),
   kind: ideTabKindSchema,
@@ -23,13 +22,11 @@ const persistedIdeTabSchema = z.object({
   path: z.string().optional(),
   dirty: z.boolean().optional(),
 });
-
 const persistedIdeGroupSchema = z.object({
   id: z.string().min(1),
   tabIds: z.array(z.string()),
   activeId: z.string().nullable(),
 });
-
 const persistedIdeWorkspaceSchema = z.object({
   tabs: z.array(persistedIdeTabSchema),
   activeId: z.string().nullable(),
@@ -37,12 +34,10 @@ const persistedIdeWorkspaceSchema = z.object({
   groups: z.array(persistedIdeGroupSchema).optional(),
   layout: z.unknown().optional(),
 });
-
 export const windowDeskBody = z.object({
   selectedNodeIds: z.array(z.string()),
   park: z.record(z.string(), persistedIdeWorkspaceSchema),
 });
-
 export const windowHostsBody = z.object({
   hosts: z.array(
     z.object({

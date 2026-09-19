@@ -21,34 +21,20 @@ import {
 import { isPlainObject, type PathOverrideValue } from './manifest-result.ts';
 
 const RESERVED_ENV_KEYS = new Set(['PLUGIN_ROOT', 'PLUGIN_DATA']);
-
 const AP_MCP_SCHEMA_ID = 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json';
-
 const CWD_FORM = new RegExp(
   `^(?:\\./|${escapeRegExp(PLUGIN_ROOT_PLACEHOLDER)}(?:/|$)|${escapeRegExp(PLUGIN_DATA_PLACEHOLDER)}(?:/|$))`,
 );
-
 const CWD_FORM_MESSAGE = `cwd must be "./…", "${PLUGIN_ROOT_PLACEHOLDER}" / "${PLUGIN_ROOT_PLACEHOLDER}/…", or "${PLUGIN_DATA_PLACEHOLDER}" / "${PLUGIN_DATA_PLACEHOLDER}/…"`;
-
 export type DiscoverMcpOptions = {
   pluginData: string;
   declaredSchema?: string;
   override?: PathOverrideValue;
 };
-
 export type DiscoverMcpResult = {
   components: PluginComponent[];
   diagnostics: PluginDiagnostic[];
 };
-
-/**
- * Обе MCP-конвенции: `mcp.json` AP со строгой `validateApMcp` + variants §7.2.1
- * (single-token command, cwd-формы, env PLUGIN_ROOT/PLUGIN_DATA запрещены) и
- * `.mcp.json` Claude с `CLAUDE_*`-плейсхолдерами, в обеих формах карты серверов
- * (обёртка `mcpServers` / голая `name → config`); `transport: 'socket'` в Claude
- * принимается и исполняется поверх stdio, AP-union остаётся закрытым без socket.
- * `$schema` mismatch с манифестом → MCP-компонент невалиден, остальное живёт (§7.2.2).
- */
 export function discoverMcpComponents(
   ctx: DiscoverContext,
   options: DiscoverMcpOptions,
@@ -91,11 +77,9 @@ export function discoverMcpComponents(
   };
   return isAp ? parseApMcp(ctx, options, raw, label) : parseClaudeMcp(parseCtx, raw, label);
 }
-
 function emptyResult(): DiscoverMcpResult {
   return { components: [], diagnostics: [] };
 }
-
 function parseApMcp(
   ctx: DiscoverContext,
   options: DiscoverMcpOptions,
@@ -114,7 +98,6 @@ function parseApMcp(
   }
   const fileSchema = typeof raw.$schema === 'string' ? raw.$schema : undefined;
   if (fileSchema !== undefined && fileSchema !== AP_MCP_SCHEMA_ID) {
-    // §7.2.2: mismatch версии $schema с манифестом валидирует только MCP-компонент, остальное живёт.
     const expected = options.declaredSchema ?? AP_MCP_SCHEMA_ID;
     return {
       components: [droppedServerComponent(label, '$', raw)],
@@ -151,7 +134,6 @@ function parseApMcp(
   }
   return { components, diagnostics };
 }
-
 function parseClaudeMcp(
   parseCtx: ExpandPluginVarsContext,
   raw: unknown,
@@ -178,8 +160,6 @@ function parseClaudeMcp(
       components.push(droppedServerComponent(label, key, value));
       continue;
     }
-    // Паритет Claude: transport 'socket' принимается и исполняется поверх stdio —
-    // для парсера это обычный stdio-сервер с лишним полем transport.
     try {
       const spec = parseClaudeServer(key, value, parseCtx);
       components.push(nativeServerComponent(label, key, spec));
@@ -199,12 +179,6 @@ function parseClaudeMcp(
   }
   return { components, diagnostics };
 }
-
-/**
- * Две формы карты серверов: обёртка `{"mcpServers": {…}}` (доки Claude) и голая
- * `{"name": {…}}` (`.mcp.json` официального маркетплейса, напр. playwright).
- * Обёртка приоритетна; inline-оверрайд манифеста — всегда голая карта.
- */
 function claudeServersMap(raw: unknown): Record<string, unknown> | undefined {
   if (!isPlainObject(raw)) {
     return undefined;
@@ -214,11 +188,9 @@ function claudeServersMap(raw: unknown): Record<string, unknown> | undefined {
   }
   return raw;
 }
-
 function wrappedServersMap(raw: unknown): boolean {
   return isPlainObject(raw) && isPlainObject(raw.mcpServers);
 }
-
 function serverWarning(label: string, key: string, message: string): PluginDiagnostic {
   return {
     level: 'warning',
@@ -227,8 +199,6 @@ function serverWarning(label: string, key: string, message: string): PluginDiagn
     path: label,
   };
 }
-
-/** AP §7.2.1: строгие формы — bare/single-token command или `./…`, cwd-формы, зарезервированный env. */
 function parseApServer(
   key: string,
   value: unknown,
@@ -264,8 +234,6 @@ function parseApServer(
     typeof type === 'string' ? `unsupported transport "${type}"` : 'missing or invalid type',
   );
 }
-
-/** Claude: снисходительные формы; ${CLAUDE_PLUGIN_ROOT}/${CLAUDE_PLUGIN_DATA} расширяются. */
 function parseClaudeServer(
   key: string,
   value: Record<string, unknown>,
@@ -303,7 +271,6 @@ function parseClaudeServer(
   }
   return { serverId: key, config };
 }
-
 function parseUrlConfig(
   value: Record<string, unknown>,
   type: 'streamable-http' | 'sse',
@@ -317,7 +284,6 @@ function parseUrlConfig(
     for (const [key, header] of Object.entries(value.headers)) {
       if (typeof header === 'string') {
         if (header.includes('${user_config.')) {
-          // Спека §3: http headers вычисляются вне exec-биндера — reject при парсе.
           throw new Error(`headers.${key}: ${'$'}{user_config.*} is not allowed`);
         }
         headers[key] = header;
@@ -327,7 +293,6 @@ function parseUrlConfig(
   }
   return config;
 }
-
 function checkUnknownKeys(raw: Record<string, unknown>, allowed: string[]): void {
   for (const key of Object.keys(raw)) {
     if (!allowed.includes(key)) {
@@ -335,7 +300,6 @@ function checkUnknownKeys(raw: Record<string, unknown>, allowed: string[]): void
     }
   }
 }
-
 function resolveApCommand(pluginRoot: string, command: string): string {
   if (command.startsWith('./')) {
     return resolveInsideRoot(pluginRoot, command);
@@ -345,7 +309,6 @@ function resolveApCommand(pluginRoot: string, command: string): string {
   }
   return command;
 }
-
 function resolveInsideRoot(pluginRoot: string, relativePath: string): string {
   const resolved = path.resolve(pluginRoot, relativePath);
   if (!assertInsideRoot(pluginRoot, resolved)) {
@@ -353,7 +316,6 @@ function resolveInsideRoot(pluginRoot: string, relativePath: string): string {
   }
   return resolved;
 }
-
 function resolveApCwd(rawCwd: unknown, parseCtx: ExpandPluginVarsContext): string {
   if (rawCwd === undefined) {
     return path.resolve(parseCtx.pluginRoot);
@@ -376,7 +338,6 @@ function resolveApCwd(rawCwd: unknown, parseCtx: ExpandPluginVarsContext): strin
   }
   return resolved;
 }
-
 function parseStringArgs(value: unknown, parseCtx: ExpandPluginVarsContext): string[] {
   if (!Array.isArray(value)) {
     throw new Error('args must be an array of strings');
@@ -388,7 +349,6 @@ function parseStringArgs(value: unknown, parseCtx: ExpandPluginVarsContext): str
     return expandPluginVars(item, parseCtx);
   });
 }
-
 function parseStrictEnv(value: unknown, parseCtx: ExpandPluginVarsContext): Record<string, string> {
   if (!isPlainObject(value)) {
     throw new Error('env must be an object of strings');
@@ -405,7 +365,6 @@ function parseStrictEnv(value: unknown, parseCtx: ExpandPluginVarsContext): Reco
   }
   return env;
 }
-
 function nativeServerComponent(label: string, key: string, spec: McpServerSpec): PluginComponent {
   const component: PluginComponent = {
     kind: 'mcp-server',
@@ -415,7 +374,6 @@ function nativeServerComponent(label: string, key: string, spec: McpServerSpec):
   };
   return component;
 }
-
 function droppedServerComponent(label: string, pointer: string, raw: unknown): PluginComponent {
   const component: PluginComponent = {
     kind: 'mcp-server',
@@ -425,7 +383,6 @@ function droppedServerComponent(label: string, pointer: string, raw: unknown): P
   };
   return component;
 }
-
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

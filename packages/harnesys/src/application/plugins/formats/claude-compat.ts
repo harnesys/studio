@@ -20,8 +20,6 @@ import {
 } from './manifest-result.ts';
 
 const MANIFEST_LABEL = '.claude-plugin/plugin.json';
-
-/** Поля открытого Claude-манифеста: свойства вендоренной схемы плюс поля, схеме неизвестные. */
 const CLAUDE_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   '$schema',
   'name',
@@ -49,8 +47,6 @@ const CLAUDE_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'defaultEnabled',
   'experimental',
 ]);
-
-/** Ключи path-override (спека §1.3): skills дополняет дефолт, остальные заменяют или inline. */
 const PATH_OVERRIDE_KEYS: readonly PathOverrideKey[] = [
   'skills',
   'commands',
@@ -61,8 +57,6 @@ const PATH_OVERRIDE_KEYS: readonly PathOverrideKey[] = [
   'outputStyles',
   'workflows',
 ];
-
-/** Полный разбор Claude-манифеста; надстройка над ним — `parseManifest`. */
 export type ClaudeManifestFull = {
   identity: PluginIdentity;
   pathOverrides: PathOverrides;
@@ -72,18 +66,9 @@ export type ClaudeManifestFull = {
   defaultEnabled?: boolean;
   diagnostics: PluginDiagnostic[];
 };
-
-/** Распознаёт Claude-плагин по корневой директории `.claude-plugin`; иначе null. */
 export function detect(listing: PluginRootListing): 'claude-compat' | null {
   return listing.includes('.claude-plugin') ? 'claude-compat' : null;
 }
-
-/**
- * Разбирает открытый Claude-манифест. Неизвестные поля — warning `unknown_manifest_field`
- * (как `claude plugin validate`); неверный тип известного поля — фатальный `invalid_manifest`;
- * ошибки `additionalProperties` от вендоренной схемы понижаются до warning независимо
- * от содержимого схемы. Фатальный отказ = error-diagnostic, функция не бросает.
- */
 export function parseClaudeManifestFull(raw: unknown): ClaudeManifestFull {
   if (!isPlainObject(raw)) {
     return {
@@ -95,15 +80,12 @@ export function parseClaudeManifestFull(raw: unknown): ClaudeManifestFull {
       diagnostics: [manifestFatal(MANIFEST_LABEL, 'must be a JSON object')],
     };
   }
-
   const diagnostics: PluginDiagnostic[] = [];
-
   for (const key of Object.keys(raw)) {
     if (!CLAUDE_MANIFEST_KEYS.has(key)) {
       diagnostics.push(manifestUnknownFieldWarning(MANIFEST_LABEL, key));
     }
   }
-
   for (const error of validateClaudeManifest(raw)) {
     diagnostics.push(
       isAdditionalPropertiesError(error)
@@ -111,7 +93,6 @@ export function parseClaudeManifestFull(raw: unknown): ClaudeManifestFull {
         : manifestSchemaFatal(error, MANIFEST_LABEL),
     );
   }
-
   const defaultEnabled = pickDefaultEnabled(raw, diagnostics);
   const full: ClaudeManifestFull = {
     identity: pickManifestIdentity(raw),
@@ -126,8 +107,6 @@ export function parseClaudeManifestFull(raw: unknown): ClaudeManifestFull {
   }
   return full;
 }
-
-/** Единый `ManifestResult` для потребителей B4; Claude-манифест не несёт extensions. */
 export function parseManifest(raw: unknown): ManifestResult {
   const full = parseClaudeManifestFull(raw);
   const identity: PluginIdentity =
@@ -144,8 +123,6 @@ export function parseManifest(raw: unknown): ManifestResult {
     diagnostics: full.diagnostics,
   };
 }
-
-/** Известные адаптеру поля со строгой формой значения: путь, список путей или inline-объект. */
 function pickPathOverrides(
   raw: Record<string, unknown>,
   diagnostics: PluginDiagnostic[],
@@ -162,7 +139,6 @@ function pickPathOverrides(
       continue;
     }
     if (key === 'workflows') {
-      // Поле схеме неизвестно: форму значения проверяет адаптер.
       diagnostics.push(
         manifestTypeError(MANIFEST_LABEL, key, 'a path, a list of paths, or an object'),
       );
@@ -170,7 +146,6 @@ function pickPathOverrides(
   }
   return overrides;
 }
-
 function asOverrideValue(value: unknown): PathOverrideValue | undefined {
   if (typeof value === 'string') {
     return value;
@@ -183,7 +158,6 @@ function asOverrideValue(value: unknown): PathOverrideValue | undefined {
   }
   return undefined;
 }
-
 function pickUserConfig(value: unknown): ConfigOptionSpec[] {
   if (!isPlainObject(value)) {
     return [];
@@ -197,8 +171,6 @@ function pickUserConfig(value: unknown): ConfigOptionSpec[] {
   }
   return options;
 }
-
-/** Запись userConfig: type из закрытого списка, title/description строки (проверяет схема). */
 function asConfigOption(key: string, value: unknown): ConfigOptionSpec | undefined {
   if (!isPlainObject(value)) {
     return undefined;
@@ -247,8 +219,6 @@ function asConfigOption(key: string, value: unknown): ConfigOptionSpec | undefin
   }
   return option;
 }
-
-/** Claude dependencies: голые имена или записи {name, version?, marketplace?}. */
 function pickDependencies(value: unknown): PluginDependency[] {
   if (!Array.isArray(value)) {
     return [];
@@ -273,7 +243,6 @@ function pickDependencies(value: unknown): PluginDependency[] {
   }
   return dependencies;
 }
-
 function pickExperimental(
   raw: Record<string, unknown>,
   diagnostics: PluginDiagnostic[],
@@ -283,13 +252,11 @@ function pickExperimental(
     return {};
   }
   if (!isPlainObject(value)) {
-    // Поле схеме неизвестно: форму значения проверяет адаптер.
     diagnostics.push(manifestTypeError(MANIFEST_LABEL, 'experimental', 'an object'));
     return {};
   }
   return value;
 }
-
 function pickDefaultEnabled(
   raw: Record<string, unknown>,
   diagnostics: PluginDiagnostic[],
@@ -301,7 +268,6 @@ function pickDefaultEnabled(
   if (typeof value === 'boolean') {
     return value;
   }
-  // Поле схеме неизвестно: форму значения проверяет адаптер.
   diagnostics.push(manifestTypeError(MANIFEST_LABEL, 'defaultEnabled', 'a boolean'));
   return undefined;
 }

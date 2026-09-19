@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
 import {
   createWorkspace,
   deleteWorkspace,
@@ -9,17 +8,14 @@ import {
   workspacesQuery,
   workspacesQueryKey,
 } from '@/shared/api';
-
 export function useWorkspaces() {
   return useQuery(workspacesQuery);
 }
-
 export function usePickWorkspaceFolder() {
   return useMutation({
     mutationFn: pickWorkspaceFolder,
   });
 }
-
 export function useCreateWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -30,7 +26,6 @@ export function useCreateWorkspace() {
     },
   });
 }
-
 export function useUpdateWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -41,7 +36,6 @@ export function useUpdateWorkspace() {
     },
   });
 }
-
 export function useDeleteWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -51,7 +45,6 @@ export function useDeleteWorkspace() {
     },
   });
 }
-
 export function useWipeWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({

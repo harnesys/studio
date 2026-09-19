@@ -1,7 +1,6 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 
 let pendingByThread = new Map<string, SessionEvent[]>();
-
 export function enqueuePending(threadId: string, event: SessionEvent): void {
   const buf = pendingByThread.get(threadId);
   if (buf) {
@@ -10,7 +9,6 @@ export function enqueuePending(threadId: string, event: SessionEvent): void {
   }
   pendingByThread.set(threadId, [event]);
 }
-
 export function takePending(): Map<string, SessionEvent[]> {
   if (pendingByThread.size === 0) {
     return pendingByThread;
@@ -19,20 +17,15 @@ export function takePending(): Map<string, SessionEvent[]> {
   pendingByThread = new Map();
   return out;
 }
-
 export function hasPending(): boolean {
   return pendingByThread.size > 0;
 }
-
 export function dropPendingThreads(threadIds: string[]): void {
   for (const id of threadIds) {
     pendingByThread.delete(id);
   }
 }
-
 let epochTimer: ReturnType<typeof setTimeout> | undefined;
-
-/** Редкий сброс дельт в Zustand; живой текст идёт через live-tail, не через этот таймер. */
 export function scheduleEpochFlush(flush: () => void, ms: number): void {
   if (epochTimer !== undefined) {
     return;
@@ -42,7 +35,6 @@ export function scheduleEpochFlush(flush: () => void, ms: number): void {
     flush();
   }, ms);
 }
-
 export function cancelEpochFlush(): void {
   if (epochTimer === undefined) {
     return;

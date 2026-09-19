@@ -4,7 +4,6 @@ import {
   DEFAULT_TOOL_OUTPUT_TAIL_CHARS,
 } from '@harnesys/studio-shared';
 import { type Control, Controller } from 'react-hook-form';
-
 import {
   Field,
   FieldError,
@@ -14,13 +13,10 @@ import {
   FieldSet,
 } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
-
 import type { AgentFieldsInput, AgentFieldsOutput } from '../model/agent-fields';
 
 type AgentFieldsControl = Control<AgentFieldsInput, unknown, AgentFieldsOutput>;
-
 type ToolOutputField = 'toolOutputMaxChars' | 'toolOutputHeadChars' | 'toolOutputTailChars';
-
 const FIELDS: {
   name: ToolOutputField;
   label: string;
@@ -42,7 +38,6 @@ const FIELDS: {
     placeholder: String(DEFAULT_TOOL_OUTPUT_TAIL_CHARS),
   },
 ];
-
 export function AgentToolOutputFields({
   control,
   idPrefix,

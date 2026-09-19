@@ -1,5 +1,4 @@
 import { integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-
 export const modePresetsTable = sqliteTable(
   'mode_presets',
   {

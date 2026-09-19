@@ -1,7 +1,6 @@
 import type { ModeOpPermissions, ModePreset, PackAssignment } from '@harnesys/studio-shared';
 import type { ModePresetInsert, ModePresetRepository } from '../../domain/mode-preset.port.ts';
 import { ConflictError } from '../../domain/studio.error.ts';
-
 export type CreateModePresetRequest = {
   workspaceId: string;
   id: string;
@@ -13,14 +12,11 @@ export type CreateModePresetRequest = {
   permissions?: ModeOpPermissions;
   installedByDefault?: boolean;
 };
-
 export type CreateModePresetInput = {
   execute(request: CreateModePresetRequest): Promise<ModePreset>;
 };
-
 export class CreateModePresetUseCase implements CreateModePresetInput {
   constructor(private readonly presets: ModePresetRepository) {}
-
   execute(request: CreateModePresetRequest): Promise<ModePreset> {
     if (this.presets.findById(request.workspaceId, request.id)) {
       return Promise.reject(new ConflictError('mode preset id taken'));

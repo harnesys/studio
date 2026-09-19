@@ -1,10 +1,13 @@
 import { GIT_TIMEOUT_MS } from '../../config/constants.ts';
 import { GitNotFoundError, GitTimeoutError } from '../../domain/git.error.ts';
-
 export async function execGit(
   cwd: string,
   args: string[],
-): Promise<{ code: number; stdout: string; stderr: string }> {
+): Promise<{
+  code: number;
+  stdout: string;
+  stderr: string;
+}> {
   let proc: ReturnType<typeof Bun.spawn> | undefined;
   try {
     proc = Bun.spawn(['git', ...args], { cwd, stdout: 'pipe', stderr: 'pipe' });
@@ -15,15 +18,11 @@ export async function execGit(
     }
     throw err;
   }
-
   const timeout = setTimeout(() => {
     try {
       proc?.kill();
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, GIT_TIMEOUT_MS);
-
   try {
     const stdoutStream =
       proc.stdout != null && typeof proc.stdout !== 'number'
@@ -49,7 +48,6 @@ export async function execGit(
     clearTimeout(timeout);
   }
 }
-
 export async function execGitTrim(cwd: string, args: string[]): Promise<string> {
   const res = await execGit(cwd, args);
   if (res.code !== 0) {

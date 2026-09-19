@@ -1,56 +1,35 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { stableEventKey } from '@/entities/session';
-
 export type SpawnStatus = 'running' | 'done' | 'failed';
-
-/** Фаза tool-события, значимая для чипов карточки спавна. */
 export type SpawnToolPhase = 'requested' | 'completed' | 'failed';
-
-/** Счётчики одного инструмента в бакете спавна. */
 export type SpawnToolStat = {
   requested: number;
   completed: number;
   failed: number;
 };
-
-/** Живой чип: имя инструмента и его последняя фаза. */
 export type SpawnToolChip = {
   name: string;
   phase: SpawnToolPhase;
 };
-
-/** Arrival-метки треда: ключ события → первый замеченный timestamp. */
 export type SpawnSeenAt = Record<string, number>;
-
 export type SpawnInfo = {
   spawnId: string;
   agentId: string;
   status: SpawnStatus;
-  /** Хвост последнего текст-блока ребёнка или имя последнего tool. */
   lastActivity: string;
-  /** Текст задачи из `agent.spawned.taskInput`; отсутствует при пустом вводе. */
   taskText?: string;
-  /** Счётчики инструментов бакета по имени. */
   toolStats: Record<string, SpawnToolStat>;
-  /** Последние tool-события бакета: имя + фаза. */
   recentTools: SpawnToolChip[];
-  /** Шаги: tool requested + assistant text-блоки. */
   steps: number;
-  /** Сумма promptTokens + generatedTokens из model.usage бакета. */
   tokens: number;
-  /** Хвост последнего text- или reasoning-блока; отсутствует без текста. */
   preview?: string;
-  /** Arrival-метка `agent.spawned`; отсутствует без истории меток. */
   spawnedAt?: number;
-  /** Arrival-метка последнего события спавна; отсутствует без истории меток. */
   lastSeenAt?: number;
 };
-
 export type SpawnGroups = {
   feedEvents: SessionEvent[];
   spawns: SpawnInfo[];
 };
-
 type SpawnDraft = {
   info: SpawnInfo;
   deltaId: string | undefined;
@@ -58,21 +37,14 @@ type SpawnDraft = {
   reasoningId: string | undefined;
   reasoningText: string;
 };
-
 const LAST_ACTIVITY_MAX = 60;
-
-/** Живые чипы: сколько последних tool-событий несёт карточка. */
 const RECENT_TOOLS_MAX = 4;
-
 function isToolPhase(phase: string): phase is SpawnToolPhase {
   return phase === 'requested' || phase === 'completed' || phase === 'failed';
 }
-
 function emptyToolStat(): SpawnToolStat {
   return { requested: 0, completed: 0, failed: 0 };
 }
-
-/** Arrival-метка события или прежнее значение, когда метки нет. */
 function seenOr(
   prev: number | undefined,
   seenAt: SpawnSeenAt | undefined,
@@ -87,13 +59,6 @@ function seenOr(
   }
   return seenAt[key] ?? prev;
 }
-
-/**
- * Выводит текст задачи спавна из `agent.spawned.taskInput`: строка — как
- * есть; объект с `messages` — content первого сообщения; иначе компактный
- * JSON. Пустой результат — `undefined`, поле в `SpawnInfo` отсутствует.
- * Без усечений: режет только отображение в UI, данные целы в журнале.
- */
 export function spawnTaskText(input: unknown): string | undefined {
   if (input === undefined || input === null) {
     return undefined;
@@ -106,7 +71,11 @@ export function spawnTaskText(input: unknown): string | undefined {
     if (Array.isArray(msgs) && msgs.length > 0) {
       const first = msgs[0];
       if (first && typeof first === 'object') {
-        const content = (first as { content?: unknown }).content;
+        const content = (
+          first as {
+            content?: unknown;
+          }
+        ).content;
         if (typeof content === 'string') {
           return content ? content : undefined;
         }
@@ -120,20 +89,12 @@ export function spawnTaskText(input: unknown): string | undefined {
     return undefined;
   }
 }
-
 function truncateActivity(text: string): string {
   if (text.length <= LAST_ACTIVITY_MAX) {
     return text;
   }
   return Array.from(text).slice(0, LAST_ACTIVITY_MAX).join('');
 }
-
-/**
- * Поддерево спавна: сам `spawnId` плюс все его потомки по журналу треда.
- * Родство выводится из `agent.spawned`: событие журналируется под runId
- * порождающего рана (корневой ран для верхнеуровневых спавнов, спавн для
- * вложенных), поэтому `ev.runId → ev.spawnId` даёт дерево.
- */
 export function spawnSubtreeIds(events: SessionEvent[], spawnId: string): Set<string> {
   const childrenOf = new Map<string, string[]>();
   for (const ev of events) {
@@ -160,20 +121,6 @@ export function spawnSubtreeIds(events: SessionEvent[], spawnId: string): Set<st
   walk(spawnId);
   return subtree;
 }
-
-/**
- * Разделяет журнал треда на ленту родителя и карточки спавнов.
- * `agent.spawned` остаётся в ленте — событие попадает в activity-чанк,
- * `SpawnLine` рисуется внутри `ToolGroup`. События с `runId ∈ spawnIds` (внуков включительно —
- * их `agent.spawned` проходит через журнал родителя) в ленту не
- * попадают независимо от наличия карточки: карточка есть только у
- * прямых детей, активность внуков отрисовывает спавн-вью ребёнка.
- * У прямых детей последний текст-блок или tool идёт в `lastActivity`.
- * Статус — running, пока не пришёл `agent.completed`/`agent.failed`.
- * Tool-статистика, шаги и токены считаются по событиям бакета; строки
- * целые, режет только отображение в UI. Arrival-метки (`seenAt` из
- * session store) дают `spawnedAt`/`lastSeenAt`; без них поля отсутствуют.
- */
 export function extractSpawns(events: SessionEvent[], seenAt?: SpawnSeenAt): SpawnGroups {
   const spawnIds = new Set<string>();
   for (const ev of events) {
@@ -184,10 +131,8 @@ export function extractSpawns(events: SessionEvent[], seenAt?: SpawnSeenAt): Spa
   if (spawnIds.size === 0) {
     return { feedEvents: events, spawns: [] };
   }
-
   const drafts = new Map<string, SpawnDraft>();
   const feedEvents: SessionEvent[] = [];
-
   for (const ev of events) {
     if (ev.runId !== undefined && spawnIds.has(ev.runId)) {
       const owner = drafts.get(ev.runId);
@@ -272,6 +217,5 @@ export function extractSpawns(events: SessionEvent[], seenAt?: SpawnSeenAt): Spa
     }
     feedEvents.push(ev);
   }
-
   return { feedEvents, spawns: [...drafts.values()].map((draft) => draft.info) };
 }

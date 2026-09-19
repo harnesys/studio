@@ -13,7 +13,6 @@ import { combineSkillRegistries } from '../skills/combined-skills.ts';
 import { filterSkills } from '../skills/skills-catalog.ts';
 import type { PackDiagnostic } from './registry.ts';
 import { resolvePacks } from './registry.ts';
-
 export type PackRunOutput = {
   reg: PackRegistration;
   config: PackConfig;
@@ -21,28 +20,20 @@ export type PackRunOutput = {
   skills: PackSkill[];
   notes: LlmNoteProvider[];
 };
-
 export type PackRunMap = Map<string, PackRunOutput>;
-
-/** Names excluded during the build owning a run map (create threw without
- *  ports). Sidecar: the map itself stays a plain name → output index. */
 const excludedByMap = new WeakMap<PackRunMap, Set<string>>();
-
 export function excludedPackNames(outputs: PackRunMap): ReadonlySet<string> {
   return excludedByMap.get(outputs) ?? new Set();
 }
-
 export function fallbackScope(): CapabilityScope {
   return { workspaceId: '_', agentId: '_', threadId: '_' };
 }
-
 function normalizeNotes(notes: LlmNoteProvider | LlmNoteProvider[] | undefined): LlmNoteProvider[] {
   if (notes === undefined) {
     return [];
   }
   return Array.isArray(notes) ? notes : [notes];
 }
-
 export function printPackDiagnostics(
   diagnostics: PackDiagnostic[],
   logger: Logger = CONSOLE_LOGGER,
@@ -51,9 +42,6 @@ export function printPackDiagnostics(
     logger.warn(`[packs] ${d.code}: ${d.message}`);
   }
 }
-
-/** Call each enabled pack `create` exactly once; narrow catch keeps the
- *  port-missing case a warning while real create failures propagate. */
 export function buildPackRun(
   def: AgentDefinition,
   registrations: PackRegistration[],
@@ -123,13 +111,13 @@ export function buildPackRun(
   excludedByMap.set(outputs, excluded);
   return { outputs, enabled, diagnostics, excluded };
 }
-
-/** Subset a memoized run map for an agent def (run start, handoff, child).
- *  Packs the def enables but the map lacks are reported, not created. */
 export function selectPackOutputs(
   def: AgentDefinition,
   outputs: PackRunMap,
-): { enabled: PackRunOutput[]; diagnostics: PackDiagnostic[] } {
+): {
+  enabled: PackRunOutput[];
+  diagnostics: PackDiagnostic[];
+} {
   const diagnostics: PackDiagnostic[] = [];
   const enabled: PackRunOutput[] = [];
   const excluded = excludedByMap.get(outputs);
@@ -158,10 +146,6 @@ export function selectPackOutputs(
   }
   return { enabled, diagnostics };
 }
-
-/** FS + pack skills merged, narrowed to the agent allowlist (`def.skills`;
- *  omitted/null/[] = none, closed world). `filterSkills` itself keeps its
- *  undefined = passthrough branch for other callers. */
 export function effectiveSkillRegistry(
   def: AgentDefinition,
   fsSkills: SkillRegistry | undefined,

@@ -11,38 +11,24 @@ import { join, resolve } from 'node:path';
 import type { CatalogInstallSource } from 'harnesys/plugins-catalog';
 import { ValidationError } from '../domain/studio.error.ts';
 
-/** Host constants per PLUGIN-V2-GAPS ("лимиты — константы хоста") and the Claude
- * plugin-marketplaces reference (archive ≤ 256 MiB, https-only including redirects). */
 const ARCHIVE_MAX_BYTES = 256 * 1024 * 1024;
-const ARCHIVE_FETCH_TIMEOUT_MS = 60_000;
+const ARCHIVE_FETCH_TIMEOUT_MS = 60000;
 const ARCHIVE_MAX_REDIRECTS = 5;
-const NPM_TIMEOUT_MS = 120_000;
-const DEPS_INSTALL_TIMEOUT_MS = 60_000;
-
-/** Sources materialized outside a git checkout: installed into a fresh directory. */
-export type RemoteCatalogSource = Extract<CatalogInstallSource, { type: 'npm' | 'archive' }>;
-
+const NPM_TIMEOUT_MS = 120000;
+const DEPS_INSTALL_TIMEOUT_MS = 60000;
+export type RemoteCatalogSource = Extract<
+  CatalogInstallSource,
+  {
+    type: 'npm' | 'archive';
+  }
+>;
 export type MaterializeSourceRequest = {
   source: RemoteCatalogSource;
   dest: string;
 };
-
-/** `revision` keys the versioned cache dir: npm package version / archive digest(12). */
 export type MaterializeSourceResult = {
   revision?: string;
 };
-
-/**
- * Materialize an npm or archive catalog source into `dest` (must not exist).
- *
- * npm: `bun add --no-save --ignore-scripts` in a throwaway package root — lifecycle
- * scripts must not execute (same motivation as the `command`-source refusal; plugin
- * postinstall binaries are not needed) — then copy the package directory.
- *
- * archive: https-only download (every redirect hop checked), byte cap, optional
- * sha256 pin, unzip; `.claude-plugin` must sit at the archive root or inside a
- * single top-level folder.
- */
 export async function materializeSource(
   request: MaterializeSourceRequest,
 ): Promise<MaterializeSourceResult> {
@@ -53,12 +39,6 @@ export async function materializeSource(
     ? await materializeNpm(request.source, request.dest)
     : await materializeArchive(request.source, request.dest);
 }
-
-/**
- * Install node dependencies for a materialized plugin checkout when a lockfile is
- * present. Scripts never run. Returns `false` when skipped or failed — callers
- * treat failure as non-blocking and surface a diagnostic.
- */
 export async function installPluginDependencies(checkout: string): Promise<boolean> {
   if (!existsSync(join(checkout, 'package.json'))) {
     return true;
@@ -76,9 +56,13 @@ export async function installPluginDependencies(checkout: string): Promise<boole
   });
   return res.code === 0;
 }
-
 async function materializeNpm(
-  source: Extract<CatalogInstallSource, { type: 'npm' }>,
+  source: Extract<
+    CatalogInstallSource,
+    {
+      type: 'npm';
+    }
+  >,
   dest: string,
 ): Promise<MaterializeSourceResult> {
   const work = `${dest}__npm`;
@@ -107,11 +91,16 @@ async function materializeNpm(
     rmRecursive(work);
   }
 }
-
-function specFromNpmSource(source: Extract<CatalogInstallSource, { type: 'npm' }>): string {
+function specFromNpmSource(
+  source: Extract<
+    CatalogInstallSource,
+    {
+      type: 'npm';
+    }
+  >,
+): string {
   return source.version ? `${source.package}@${source.version}` : source.package;
 }
-
 function containedNpmPackageDir(work: string, pkg: string): string {
   const nodeModules = resolve(work, 'node_modules');
   const pkgDir = resolve(nodeModules, pkg);
@@ -120,7 +109,6 @@ function containedNpmPackageDir(work: string, pkg: string): string {
   }
   return pkgDir;
 }
-
 function readNpmPackageVersion(pkgDir: string): string | undefined {
   try {
     const raw: unknown = JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf8'));
@@ -133,9 +121,13 @@ function readNpmPackageVersion(pkgDir: string): string | undefined {
     return undefined;
   }
 }
-
 async function materializeArchive(
-  source: Extract<CatalogInstallSource, { type: 'archive' }>,
+  source: Extract<
+    CatalogInstallSource,
+    {
+      type: 'archive';
+    }
+  >,
   dest: string,
 ): Promise<MaterializeSourceResult> {
   const zipPath = `${dest}__archive.zip`;
@@ -161,7 +153,6 @@ async function materializeArchive(
     rmRecursive(extractDir);
   }
 }
-
 async function downloadArchive(url: string): Promise<Uint8Array> {
   let current = url;
   for (let hop = 0; hop <= ARCHIVE_MAX_REDIRECTS; hop += 1) {
@@ -185,7 +176,6 @@ async function downloadArchive(url: string): Promise<Uint8Array> {
   }
   throw new ValidationError(`too many redirects downloading ${url}`);
 }
-
 function assertHttpsUrl(url: string): void {
   try {
     const parsed = new URL(url);
@@ -199,11 +189,9 @@ function assertHttpsUrl(url: string): void {
     throw new ValidationError(`invalid archive url: ${url}`);
   }
 }
-
 function isRedirect(status: number): boolean {
   return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
 }
-
 async function readCappedBody(response: Response): Promise<Uint8Array> {
   const declared = Number(response.headers.get('content-length') ?? '0');
   if (Number.isFinite(declared) && declared > ARCHIVE_MAX_BYTES) {
@@ -238,7 +226,6 @@ async function readCappedBody(response: Response): Promise<Uint8Array> {
   }
   return merged;
 }
-
 async function extractZip(zipPath: string, extractDir: string): Promise<void> {
   const args =
     process.platform === 'darwin'
@@ -249,7 +236,6 @@ async function extractZip(zipPath: string, extractDir: string): Promise<void> {
     throw new ValidationError(`archive extraction failed: ${(res.stderr || res.stdout).trim()}`);
   }
 }
-
 function locateArchivePluginRoot(extractDir: string): string {
   if (existsSync(join(extractDir, '.claude-plugin'))) {
     return extractDir;
@@ -271,22 +257,18 @@ function locateArchivePluginRoot(extractDir: string): string {
   }
   return root;
 }
-
 function rmRecursive(path: string): void {
   rmSync(path, { recursive: true, force: true });
 }
-
 type SpawnCommandRequest = {
   cwd?: string;
   timeoutMs: number;
 };
-
 type SpawnCommandResult = {
   code: number;
   stdout: string;
   stderr: string;
 };
-
 async function spawnCommand(
   args: string[],
   request: SpawnCommandRequest,
@@ -304,9 +286,7 @@ async function spawnCommand(
   const timeout = setTimeout(() => {
     try {
       proc?.kill();
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, request.timeoutMs);
   try {
     const stdout =

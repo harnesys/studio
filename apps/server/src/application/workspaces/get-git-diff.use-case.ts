@@ -2,24 +2,19 @@ import type { GitDiffResponse } from '@harnesys/studio-shared';
 import type { GitPort } from '../../domain/git.port.ts';
 import { NotFoundError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-
 export type GetGitDiffRequest = {
   workspaceId: string;
   path: string;
 };
-
 export type GetGitDiffResponse = GitDiffResponse;
-
 export type GetGitDiffInput = {
   execute(req: GetGitDiffRequest): Promise<GetGitDiffResponse>;
 };
-
 export class GetGitDiffUseCase implements GetGitDiffInput {
   constructor(
     private readonly workspaces: WorkspaceRepository,
     private readonly git: GitPort,
   ) {}
-
   async execute(req: GetGitDiffRequest): Promise<GetGitDiffResponse> {
     const workspace = this.workspaces.findById(req.workspaceId);
     if (!workspace) {

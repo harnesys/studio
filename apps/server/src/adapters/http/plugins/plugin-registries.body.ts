@@ -1,10 +1,8 @@
 import { z } from 'zod';
-
 export const addPluginRegistryBody = z.object({
   source: z.string().trim().min(1),
   kind: z.literal('claude-marketplace').optional(),
 });
-
 export const installPluginBody = z
   .object({
     source: z.string().trim().min(1).optional(),

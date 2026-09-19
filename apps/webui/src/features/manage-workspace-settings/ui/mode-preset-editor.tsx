@@ -5,7 +5,6 @@ import {
   type ModePreset,
 } from '@harnesys/studio-shared';
 import { useState } from 'react';
-
 import { ModeChecklist } from '@/features/manage-agent';
 import { Button } from '@/shared/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
@@ -13,11 +12,9 @@ import { Input } from '@/shared/ui/input';
 import { Switch } from '@/shared/ui/switch';
 import { Textarea } from '@/shared/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import type { ModePresetDraft } from './mode-preset-draft';
 
 type PresetGateName = 'permWrite' | 'permProcess' | 'permNetwork' | 'permMcp' | 'permAgents';
-
 type PresetFormState = {
   id: string;
   name: string;
@@ -32,19 +29,19 @@ type PresetFormState = {
   permAgents: ModeOpGate;
   installedByDefault: boolean;
 };
-
-const GATES: { name: PresetGateName; label: string }[] = [
+const GATES: {
+  name: PresetGateName;
+  label: string;
+}[] = [
   { name: 'permWrite', label: 'File writes' },
   { name: 'permProcess', label: 'Shell' },
   { name: 'permNetwork', label: 'Network' },
   { name: 'permMcp', label: 'MCP tools' },
   { name: 'permAgents', label: 'Create agents' },
 ];
-
 const FALLBACK_GATE: ModeOpGate = 'ask';
 const DESCRIPTION_MAX = 200;
 const INSTRUCTIONS_MAX = 6000;
-
 function presetToForm(preset: ModePreset): PresetFormState {
   return {
     id: preset.id,
@@ -61,7 +58,6 @@ function presetToForm(preset: ModePreset): PresetFormState {
     installedByDefault: preset.installedByDefault,
   };
 }
-
 const BLANK_FORM: PresetFormState = {
   id: '',
   name: '',
@@ -76,7 +72,6 @@ const BLANK_FORM: PresetFormState = {
   permAgents: FALLBACK_GATE,
   installedByDefault: false,
 };
-
 function formToDraft(state: PresetFormState): ModePresetDraft {
   const description = state.description.trim();
   const instructions = state.instructions.trim();
@@ -99,15 +94,12 @@ function formToDraft(state: PresetFormState): ModePresetDraft {
     installedByDefault: state.installedByDefault,
   };
 }
-
 function isGate(value: string): value is ModeOpGate {
   return value === 'allow' || value === 'ask' || value === 'deny';
 }
-
 function mergeNames(available: string[], selected: string[]): string[] {
   return [...selected, ...available.filter((name) => !selected.includes(name))];
 }
-
 type ModePresetEditorProps = {
   preset: ModePreset | null;
   skillNames: string[];
@@ -116,7 +108,6 @@ type ModePresetEditorProps = {
   onSave: (draft: ModePresetDraft) => void;
   onCancel: () => void;
 };
-
 export function ModePresetEditor({
   preset,
   skillNames,
@@ -136,11 +127,9 @@ export function ModePresetEditor({
   const instructionsOver = state.instructions.length > INSTRUCTIONS_MAX;
   const canSave =
     state.name.trim().length > 0 && (idLocked || idValid) && !descriptionOver && !instructionsOver;
-
   function patch(next: Partial<PresetFormState>) {
     setState((current) => ({ ...current, ...next }));
   }
-
   function toggleIn(list: 'skills' | 'packs', name: string) {
     setState((current) => {
       const selected = current[list];
@@ -152,7 +141,6 @@ export function ModePresetEditor({
       };
     });
   }
-
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid="mode-preset-editor">
       <div className="flex items-center justify-between gap-3 py-2">

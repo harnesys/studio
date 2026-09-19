@@ -19,7 +19,6 @@ import { type MaterializedInstallArgs, PluginTreeInstaller } from './install-plu
 import { invalidatePluginWorkspaces, type LspByWorkspace } from './invalidate-plugin-workspaces.ts';
 import { findCatalogEntryWithRenames } from './materialize-catalog-plugin.ts';
 import { resolvePluginDependencies } from './resolve-dependencies.ts';
-
 export type InstallPluginRequest = {
   workspaceId: string;
   source?: string;
@@ -29,17 +28,12 @@ export type InstallPluginRequest = {
   catalogPluginName?: string;
   pluginName?: string;
 };
-
 export type InstallPluginResponse = PluginMutationResponse;
-
 export type InstallPluginInput = {
   execute(request: InstallPluginRequest): Promise<InstallPluginResponse>;
 };
-
 export class InstallPluginUseCase implements InstallPluginInput {
   private readonly tree: PluginTreeInstaller;
-
-  // biome-ignore lint/complexity/useMaxParams: lspByWorkspace is the optional 5th param for LSP invalidation; existing callers unaffected
   constructor(
     private readonly plugins: PluginRepository,
     private readonly workspaces: WorkspaceRepository,
@@ -49,12 +43,10 @@ export class InstallPluginUseCase implements InstallPluginInput {
   ) {
     this.tree = new PluginTreeInstaller(plugins, workspaces, workspaceHarnesys, lspByWorkspace);
   }
-
   async execute(request: InstallPluginRequest): Promise<InstallPluginResponse> {
     const result = await this.install(request);
     return this.settleDependencies(request.workspaceId, result);
   }
-
   private install(request: InstallPluginRequest): Promise<InstallPluginResponse> {
     if (request.registryId && request.pluginName) {
       return this.installFromCatalog(request.workspaceId, request.registryId, request.pluginName);
@@ -72,12 +64,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       catalogPluginName: request.catalogPluginName,
     });
   }
-
-  /**
-   * Post-install dependency pass: resolve declared dependencies against the
-   * catalogs, ensure dep install rows exist on this node (reuse host checkout),
-   * and surface cycles/unsatisfied ranges as diagnostics.
-   */
   private async settleDependencies(
     workspaceId: string,
     result: InstallPluginResponse,
@@ -113,7 +99,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       diagnostics: [...result.diagnostics, ...resolution.diagnostics],
     };
   }
-
   private installFromCatalog(
     workspaceId: string,
     registryId: string,
@@ -142,7 +127,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       catalogPluginName: entry.pluginName,
     });
   }
-
   private installFromCatalogSource(args: {
     workspaceId: string;
     installSource: CatalogInstallSource;
@@ -173,7 +157,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
         marketplaceRoot: args.marketplaceRoot,
       });
     }
-
     if (installSource.type === 'github') {
       return this.installFromGit({
         workspaceId: args.workspaceId,
@@ -183,7 +166,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
         catalogPluginName: args.catalogPluginName,
       });
     }
-
     if (installSource.type === 'url') {
       return this.installFromGit({
         workspaceId: args.workspaceId,
@@ -193,7 +175,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
         catalogPluginName: args.catalogPluginName,
       });
     }
-
     if (installSource.type === 'npm' || installSource.type === 'archive') {
       return this.tree.fromMaterialized({
         workspaceId: args.workspaceId,
@@ -204,7 +185,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
         marketplaceRoot: args.marketplaceRoot,
       } satisfies MaterializedInstallArgs);
     }
-
     return this.installFromGit({
       workspaceId: args.workspaceId,
       source: installSource.url,
@@ -214,7 +194,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
       catalogPluginName: args.catalogPluginName,
     });
   }
-
   private async installFromGit(args: {
     workspaceId: string;
     source: string;
@@ -233,7 +212,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
     if (this.plugins.findByName(args.workspaceId, repoName)) {
       throw new ConflictError(`plugin ${repoName} already exists`);
     }
-
     let checkout = dest;
     let installedName: PluginName | undefined;
     let clonedRevision = 'unknown';
@@ -282,7 +260,6 @@ export class InstallPluginUseCase implements InstallPluginInput {
     }
   }
 }
-
 function repoNameFromSource(resolved: string): string {
   const trimmed = resolved.replace(/\/+$/, '').replace(/\.git$/i, '');
   const segment = trimmed.split(/[/:]/).filter(Boolean).at(-1);

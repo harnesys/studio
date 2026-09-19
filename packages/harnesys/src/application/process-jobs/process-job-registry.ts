@@ -6,12 +6,10 @@ import type {
   ProcessJobStatus,
 } from '../../domain/process-job.ts';
 
-const SCROLLBACK_CHARS = 256_000;
+const SCROLLBACK_CHARS = 256000;
 const MAX_RUNNING_PER_CWD = 16;
-
 type DataListener = (chunk: string) => void;
 type ExitListener = (code: number | null) => void;
-
 type LiveJob = {
   record: ProcessJobRecord;
   proc: Bun.Subprocess;
@@ -22,7 +20,6 @@ type LiveJob = {
   dataListeners: Set<DataListener>;
   exitListeners: Set<ExitListener>;
 };
-
 function appendScrollback(current: string, chunk: string): string {
   const next = current + chunk;
   if (next.length <= SCROLLBACK_CHARS) {
@@ -30,7 +27,6 @@ function appendScrollback(current: string, chunk: string): string {
   }
   return next.slice(next.length - SCROLLBACK_CHARS);
 }
-
 function defaultShell(): string {
   const fromEnv = process.env.SHELL?.trim();
   if (fromEnv) {
@@ -38,7 +34,6 @@ function defaultShell(): string {
   }
   return process.platform === 'win32' ? 'powershell.exe' : '/bin/zsh';
 }
-
 function killProcessGroup(pid: number): void {
   try {
     process.kill(-pid, 'SIGKILL');
@@ -50,7 +45,6 @@ function killProcessGroup(pid: number): void {
     }
   }
 }
-
 function pushChunk(job: LiveJob, chunk: string): void {
   if (chunk.length === 0) {
     return;
@@ -61,7 +55,6 @@ function pushChunk(job: LiveJob, chunk: string): void {
     listener(chunk);
   }
 }
-
 function settle(job: LiveJob, status: ProcessJobStatus, code: number | null): void {
   if (job.settled) {
     return;
@@ -72,7 +65,6 @@ function settle(job: LiveJob, status: ProcessJobStatus, code: number | null): vo
     listener(code);
   }
 }
-
 function pumpStream(
   stream: ReadableStream<Uint8Array> | null | undefined,
   onChunk: (text: string) => void,
@@ -104,21 +96,14 @@ function pumpStream(
     }
   })();
 }
-
 function decodeTerminalData(data: string | Uint8Array): string {
   if (typeof data === 'string') {
     return data;
   }
   return new TextDecoder().decode(data);
 }
-
-/**
- * In-memory process jobs (pipes + pty) backed by Bun.spawn.
- * One registry per host process; jobs die with the server.
- */
 export function createProcessJobRegistry(): ProcessJobRegistry {
   const byId = new Map<string, LiveJob>();
-
   function runningInCwd(cwd: string): number {
     let count = 0;
     for (const job of byId.values()) {
@@ -128,11 +113,9 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
     }
     return count;
   }
-
   function snapshot(record: ProcessJobRecord): ProcessJobRecord {
     return { ...record };
   }
-
   return {
     start(input): ProcessJobRecord {
       const cwd = path.resolve(input.cwd);
@@ -151,7 +134,6 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         createdAt: new Date().toISOString(),
         ...(input.workspaceId === undefined ? {} : { workspaceId: input.workspaceId }),
       };
-
       let job: LiveJob | undefined;
       if (input.mode === 'pty') {
         const shell = defaultShell();
@@ -159,9 +141,6 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         if (process.platform === 'win32') {
           argv = [shell];
         } else if (!input.command || input.command === shell) {
-          // Empty or shell-path command is a login-shell sentinel (human
-          // terminal): spawn interactive `[shell, -l]`, keep the path in
-          // the record for display. Anything else runs via `-c`.
           argv = [shell, '-l'];
         } else {
           argv = [shell, '-l', '-c', input.command];
@@ -195,9 +174,7 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         if (!proc.terminal) {
           try {
             proc.kill();
-          } catch {
-            // already dead
-          }
+          } catch {}
           throw new Error('Bun.spawn did not attach a terminal');
         }
         job = {
@@ -242,12 +219,10 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
       byId.set(id, job);
       return snapshot(job.record);
     },
-
     get(id): ProcessJobRecord | null {
       const job = byId.get(id);
       return job ? snapshot(job.record) : null;
     },
-
     list(filter): ProcessJobRecord[] {
       return [...byId.values()]
         .filter((job) => {
@@ -265,7 +240,6 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         .map((job) => snapshot(job.record))
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     },
-
     read(id, opts): ProcessJobReadResult | null {
       const job = byId.get(id);
       if (!job) {
@@ -282,7 +256,6 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         truncated: false,
       };
     },
-
     write(id, data): boolean {
       const job = byId.get(id);
       if (job?.record.status !== 'running') {
@@ -306,7 +279,6 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         return false;
       }
     },
-
     resize(id, cols, rows): boolean {
       const job = byId.get(id);
       if (job?.record.status !== 'running' || !job.terminal) {
@@ -324,7 +296,6 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
       job.terminal.resize(Math.floor(cols), Math.floor(rows));
       return true;
     },
-
     subscribe(id, onData, onExit): (() => void) | null {
       const job = byId.get(id);
       if (!job) {
@@ -341,7 +312,6 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         }
       };
     },
-
     kill(id): boolean {
       const job = byId.get(id);
       if (job?.record.status !== 'running') {
@@ -364,7 +334,6 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
       settle(job, 'killed', null);
       return true;
     },
-
     delete(id): boolean {
       const job = byId.get(id);
       if (!job) {
@@ -382,9 +351,7 @@ export function createProcessJobRegistry(): ProcessJobRegistry {
         } else if (job.record.status === 'running') {
           killProcessGroup(job.proc.pid);
         }
-      } catch {
-        // already dead
-      }
+      } catch {}
       job.dataListeners.clear();
       job.exitListeners.clear();
       return true;

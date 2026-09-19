@@ -5,7 +5,6 @@ import { asNumber, asRecord, asString, itemsOf, topProviderOf } from './parse.ts
 import { bearerHeaders, modelsUrl } from './request.ts';
 
 export { MINIMAX_DEFAULT_URL };
-
 export function listMinimaxModels(input: DiscoverInput): Promise<DiscoveredModel[]> {
   return fetchListedModels({
     url: modelsUrl(input, MINIMAX_DEFAULT_URL),
@@ -14,7 +13,6 @@ export function listMinimaxModels(input: DiscoverInput): Promise<DiscoveredModel
     parse: parseMinimaxList,
   });
 }
-
 export function parseMinimaxList(json: unknown): DiscoveredModel[] {
   const found: DiscoveredModel[] = [];
   for (const item of itemsOf(json)) {
@@ -25,7 +23,6 @@ export function parseMinimaxList(json: unknown): DiscoveredModel[] {
   }
   return found;
 }
-
 function mapMinimaxModel(item: unknown): DiscoveredModel | undefined {
   const record = asRecord(item);
   const name = asString(record?.id);
@@ -36,7 +33,6 @@ function mapMinimaxModel(item: unknown): DiscoveredModel | undefined {
   const hasReasoning = kind === 'chat' && /m2|m3/i.test(name);
   const contextLength = asNumber(record.context_length) ?? asNumber(record.context_window);
   const maxOutput = asNumber(record.max_tokens) ?? asNumber(record.max_completion_tokens);
-
   return {
     name,
     kind,
@@ -46,7 +42,6 @@ function mapMinimaxModel(item: unknown): DiscoveredModel | undefined {
     raw: item,
   };
 }
-
 function minimaxKind(name: string): 'chat' | 'embed' | 'audio' | 'image' {
   if (/embed|embo/i.test(name)) {
     return 'embed';

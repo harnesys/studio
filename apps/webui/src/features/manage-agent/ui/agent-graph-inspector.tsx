@@ -1,17 +1,21 @@
 import './agent-graph-flow.css';
-
 import type { Diagnostic, Edge, Node } from 'harnesys';
-
 import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { specByType } from '../model/agent-graph-catalog';
 import { GraphInput } from './agent-graph-input';
 import { AgentGraphNodeFields, JsonNodeEditor } from './agent-graph-node-fields';
-
 export type AgentGraphSelection =
-  | { kind: 'node'; id: string; node: Node }
-  | { kind: 'edge'; index: number; edge: Edge }
+  | {
+      kind: 'node';
+      id: string;
+      node: Node;
+    }
+  | {
+      kind: 'edge';
+      index: number;
+      edge: Edge;
+    }
   | null;
-
 export type AgentGraphInspectorProps = {
   selection: AgentGraphSelection;
   diagnostics?: Diagnostic[];
@@ -19,7 +23,6 @@ export type AgentGraphInspectorProps = {
   onRenameNode: (fromId: string, toId: string) => void;
   onChangeEdge: (index: number, edge: Edge) => void;
 };
-
 export function AgentGraphInspector({
   selection,
   diagnostics = [],
@@ -63,7 +66,6 @@ export function AgentGraphInspector({
     </aside>
   );
 }
-
 function InspectorBody({
   selection,
   onChangeNode,
@@ -95,7 +97,6 @@ function InspectorBody({
     />
   );
 }
-
 function NodeInspectorBody({
   id,
   node,
@@ -109,7 +110,6 @@ function NodeInspectorBody({
 }) {
   const known = specByType(node.type) !== undefined;
   const isCustom = node.type.startsWith('custom:');
-
   if (!known || isCustom) {
     return (
       <FieldGroup className="gap-2">
@@ -128,7 +128,6 @@ function NodeInspectorBody({
       </FieldGroup>
     );
   }
-
   return (
     <AgentGraphNodeFields
       id={id}
@@ -138,7 +137,6 @@ function NodeInspectorBody({
     />
   );
 }
-
 function EdgeWhenFields({ edge, onChange }: { edge: Edge; onChange: (edge: Edge) => void }) {
   return (
     <FieldGroup className="gap-2">

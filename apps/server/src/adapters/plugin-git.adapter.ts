@@ -4,38 +4,30 @@ import { dirname } from 'node:path';
 import { GitNotFoundError, GitTimeoutError } from '../domain/git.error.ts';
 import { ConflictError, ValidationError } from '../domain/studio.error.ts';
 
-const PLUGIN_GIT_TIMEOUT_MS = 120_000;
+const PLUGIN_GIT_TIMEOUT_MS = 120000;
 const GITHUB_SHORTHAND_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
-
 export type ClonePluginRequest = {
   source: string;
   dest: string;
-  /** Branch, tag, or commit to checkout after clone. */
   ref?: string;
 };
-
 export type PluginRevision = {
   revision: string;
 };
-
 export type UpdatePluginCheckoutRequest = {
   path: string;
   ref?: string;
 };
-
 type SpawnGitResult = {
   code: number;
   stdout: string;
   stderr: string;
 };
-
 type SpawnGitRequest = {
   cwd: string;
   args: string[];
   timeoutMs?: number;
 };
-
-/** `owner/repo` (optional `.git`) → `https://github.com/owner/repo.git`. URLs pass through. */
 export function resolveGitSource(source: string): string {
   const trimmed = source.trim();
   if (trimmed.length === 0) {
@@ -47,7 +39,6 @@ export function resolveGitSource(source: string): string {
   }
   return trimmed;
 }
-
 export async function clonePlugin(request: ClonePluginRequest): Promise<PluginRevision> {
   const dest = request.dest;
   if (existsSync(dest)) {
@@ -69,12 +60,10 @@ export async function clonePlugin(request: ClonePluginRequest): Promise<PluginRe
   const revision = await runGit(dest, ['rev-parse', 'HEAD']);
   return { revision };
 }
-
 export function isMarketplaceJsonUrl(source: string): boolean {
   const trimmed = source.trim();
   return /^https?:\/\//i.test(trimmed) && /marketplace\.json(\?|$)/i.test(trimmed);
 }
-
 export function slugFromSource(source: string): string {
   const trimmed = source
     .trim()
@@ -97,7 +86,6 @@ export function slugFromSource(source: string): string {
     return segment.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
   }
 }
-
 export async function updatePluginCheckout(
   request: UpdatePluginCheckoutRequest,
 ): Promise<PluginRevision> {
@@ -116,17 +104,14 @@ export async function updatePluginCheckout(
   const revision = await runGit(cwd, ['rev-parse', 'HEAD']);
   return { revision };
 }
-
 export async function removePluginPath(path: string): Promise<void> {
   await rm(path, { recursive: true, force: true });
 }
-
 function assertGitRef(ref: string): void {
   if (ref.length === 0 || ref.startsWith('-') || ref.includes('\0') || ref.includes('\n')) {
     throw new ValidationError('invalid ref');
   }
 }
-
 async function runGit(cwd: string, args: string[]): Promise<string> {
   const res = await spawnGit({ cwd, args });
   if (res.code !== 0) {
@@ -138,7 +123,6 @@ async function runGit(cwd: string, args: string[]): Promise<string> {
   }
   return res.stdout.trim();
 }
-
 async function spawnGit(request: SpawnGitRequest): Promise<SpawnGitResult> {
   const timeoutMs = request.timeoutMs ?? PLUGIN_GIT_TIMEOUT_MS;
   let proc: ReturnType<typeof Bun.spawn> | undefined;
@@ -155,17 +139,13 @@ async function spawnGit(request: SpawnGitRequest): Promise<SpawnGitResult> {
     }
     throw err;
   }
-
   let timedOut = false;
   const timeout = setTimeout(() => {
     timedOut = true;
     try {
       proc?.kill();
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, timeoutMs);
-
   try {
     const stdoutStream =
       proc.stdout != null && typeof proc.stdout !== 'number'

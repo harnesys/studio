@@ -1,5 +1,4 @@
 import { formatDuration, formatTokenCount, type MessageUsage } from '@/entities/session';
-
 export function StepStats({ usage }: { usage: MessageUsage }) {
   return (
     <p
@@ -10,7 +9,6 @@ export function StepStats({ usage }: { usage: MessageUsage }) {
     </p>
   );
 }
-
 export function TurnStats({ usage, generations }: { usage: MessageUsage; generations: number }) {
   const parts = [formatDuration(usage.durationMs || 0)];
   if (generations > 0) {
@@ -25,7 +23,6 @@ export function TurnStats({ usage, generations }: { usage: MessageUsage; generat
     </p>
   );
 }
-
 function formatUsageParts(usage: MessageUsage): string {
   const parts = [...tokenParts(usage)];
   if (usage.durationMs > 0) {
@@ -36,7 +33,6 @@ function formatUsageParts(usage: MessageUsage): string {
   }
   return parts.join(' · ');
 }
-
 function tokenParts(usage: MessageUsage): string[] {
   const cacheRead = usage.cacheReadTokens ?? 0;
   const cacheWrite = usage.cacheWriteTokens ?? 0;

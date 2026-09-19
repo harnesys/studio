@@ -15,11 +15,9 @@ import {
   updateProvider,
   updateProviderModel,
 } from '@/shared/api';
-
 export function useProviders(workspaceId: string) {
   return useQuery(providersQuery(workspaceId));
 }
-
 export function useCreateProvider(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -27,16 +25,18 @@ export function useCreateProvider(workspaceId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
-
 export function useUpdateProvider(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...input }: UpdateProviderInput & { id: string }) =>
-      updateProvider(workspaceId, id, input),
+    mutationFn: ({
+      id,
+      ...input
+    }: UpdateProviderInput & {
+      id: string;
+    }) => updateProvider(workspaceId, id, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
-
 export function useDeleteProvider(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -44,22 +44,23 @@ export function useDeleteProvider(workspaceId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
-
 export function useDiscoverProviderModels(workspaceId: string) {
   return useMutation({
     mutationFn: (id: string) => discoverProviderModels(workspaceId, id),
   });
 }
-
 export function useAttachProviderModel(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ providerId, ...input }: { providerId: string } & AttachProviderModelInput) =>
-      attachProviderModel(workspaceId, providerId, input),
+    mutationFn: ({
+      providerId,
+      ...input
+    }: {
+      providerId: string;
+    } & AttachProviderModelInput) => attachProviderModel(workspaceId, providerId, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
-
 export function useUpdateProviderModel(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -67,12 +68,13 @@ export function useUpdateProviderModel(workspaceId: string) {
       providerId,
       modelId,
       ...input
-    }: { providerId: string; modelId: string } & UpdateProviderModelInput) =>
-      updateProviderModel(workspaceId, providerId, modelId, input),
+    }: {
+      providerId: string;
+      modelId: string;
+    } & UpdateProviderModelInput) => updateProviderModel(workspaceId, providerId, modelId, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
-
 export function useDetachProviderModel(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -81,13 +83,11 @@ export function useDetachProviderModel(workspaceId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: providersQueryKeyFor(workspaceId) }),
   });
 }
-
 export function useExportProviders(workspaceId: string) {
   return useMutation({
     mutationFn: () => exportProviders(workspaceId),
   });
 }
-
 export function useImportProviders(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({

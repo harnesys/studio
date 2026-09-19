@@ -13,7 +13,6 @@ import type {
   KnowledgeSettingsRecord,
   UpsertKnowledgeSettingsRequest,
 } from './knowledge-index-types.ts';
-
 export function getSettingsOrDefault(db: StudioDb, workspaceId: string): KnowledgeSettingsRecord {
   const row = db
     .select()
@@ -39,7 +38,6 @@ export function getSettingsOrDefault(db: StudioDb, workspaceId: string): Knowled
     .get();
   return toSettings(inserted);
 }
-
 export function putSettings(
   db: StudioDb,
   workspaceId: string,
@@ -71,7 +69,6 @@ export function putSettings(
     .run();
   return next;
 }
-
 export function getIndexState(db: StudioDb, workspaceId: string): KnowledgeIndexStateRecord {
   const row = db
     .select()
@@ -92,7 +89,6 @@ export function getIndexState(db: StudioDb, workspaceId: string): KnowledgeIndex
     finishedAt: null,
   };
 }
-
 export function upsertIndexState(
   db: StudioDb,
   workspaceId: string,
@@ -126,14 +122,12 @@ export function upsertIndexState(
     .run();
   return next;
 }
-
 export function bumpProcessed(db: StudioDb, workspaceId: string): void {
   db.update(knowledgeIndexStateTable)
     .set({ processed: sql`${knowledgeIndexStateTable.processed} + 1` })
     .where(eq(knowledgeIndexStateTable.workspaceId, workspaceId))
     .run();
 }
-
 function toSettings(row: KnowledgeSettingsRow): KnowledgeSettingsRecord {
   return {
     workspaceId: row.workspaceId,
@@ -145,7 +139,6 @@ function toSettings(row: KnowledgeSettingsRow): KnowledgeSettingsRecord {
     updatedAt: row.updatedAt,
   };
 }
-
 function toState(row: KnowledgeIndexStateRow): KnowledgeIndexStateRecord {
   return {
     workspaceId: row.workspaceId,

@@ -66,7 +66,6 @@ import type { ThreadRepository } from '../domain/thread.port.ts';
 import type { WebhookRepository } from '../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../domain/workspace.port.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
-
 export type PackRegistrationsDeps = {
   db: StudioDb;
   schedules: ScheduleRepository;
@@ -85,26 +84,17 @@ export type PackRegistrationsDeps = {
   getThread: GetThreadInput;
   semanticSessions?: SemanticSessionCleanup;
   memory: Pick<StudioMemoryPorts, 'pin' | 'semantic' | 'episodic' | 'knowledge'>;
-  /** Shared LSP adapter (tools pack + editor WS bridge). Created in create-host. */
   lsp: StudioLspAdapter;
-  /** Per-node process job registry (shell pack + Terminal facade). Created in create-host. */
   jobs: ProcessJobRegistry;
-  /** Late-wired `pluginName:agentName` catalog resolver (registry lands after packs). */
   pluginAgentsRef: PluginAgentsRef;
-  /** Late-wired registry for write-path §7 validation (same shape, set in create-host). */
   workspaceHarnesysRef: WorkspaceHarnesysSource;
 };
-
 export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegistration[] {
   const uow = new SqliteUnitOfWork(deps.db);
-  // Memory packs scope pins/semantic records by agent NAME; the run scope carries
-  // only ids, so the display name is resolved at scope-read time (ruling R15).
   const resolveScope = () => {
     const scope: HostToolScope = requireHostToolScope();
     return { ...scope, agentName: deps.agents.findById(scope.agentId)?.name };
   };
-  // Base packs need no ports and never read the scope; the stub mirrors the
-  // library auto-registration (create-runtime dedupes by pack name, first wins).
   const stubScope = () => ({ workspaceId: '_', agentId: '_', threadId: '_' });
   const listThreads = new ListThreadsUseCase(
     deps.threads,
@@ -114,9 +104,6 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
   );
   const listSchedules = new ListSchedulesUseCase(deps.schedules, deps.workspaces);
   const listWebhooks = new ListWebhooksUseCase(deps.webhooks, deps.workspaces);
-  // Emitter-free: SqliteAgentsCatalogPort publishes desk events for tool-path writes,
-  // so the delegated create must stay silent to avoid double-publishing.
-  // Tool-path §7 validation runs on the same gate as HTTP (throws → `{error}` via runGuard).
   const createAgent = new CreateAgentUseCase(deps.agents, {
     models: deps.models,
     modePresets: deps.modePresets,
@@ -126,10 +113,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
       workspaceHarnesys: deps.workspaceHarnesysRef,
     }),
   });
-
   return [
-    // Core pack (ask_user/map/wait): the capability resolver grants it to every
-    // agent that carries `core` in capabilities (migration `capability_core_v1`).
     registerPack(coreCapability, { resolveScope: stubScope }),
     registerPack(filesCapability, { resolveScope: stubScope }),
     registerPack(shellCapability, {
@@ -272,9 +256,5 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
       ports: { knowledge: deps.memory.knowledge },
       resolveScope,
     }),
-    // Each pack carries its own Ports type, so the heterogeneous host list
-    // cannot satisfy the uniform `PackRegistration` element type directly;
-    // asserted once at this boundary. Runtime use only reads `ports` back
-    // into the same pack `create`, so the pairing stays intact.
   ] as PackRegistration[];
 }

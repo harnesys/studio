@@ -5,7 +5,6 @@ import { firstBlockingPattern } from '../../adapters/actions/path-blocklist.ts';
 import { resolveWorkdirPath } from '../../adapters/actions/path-resolve.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { tool } from '../../ports/tools.ts';
-
 export function editFileTool(options: FilesOptions = {}): ToolDefinition {
   const blocklist = options.blocklist ?? DEFAULT_PATH_BLOCKLIST;
   return tool('edit_file', {
@@ -59,7 +58,6 @@ export function editFileTool(options: FilesOptions = {}): ToolDefinition {
     },
   });
 }
-
 function countOccurrences(haystack: string, needle: string): number {
   if (needle.length === 0) {
     return 0;

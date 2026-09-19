@@ -5,20 +5,15 @@ import {
   INSPECTOR_MIN_WIDTH,
   INSPECTOR_WIDTH_STORAGE_KEY,
 } from '@/shared/config/constants';
-
 export function useInspectorWidth() {
   const [width, setWidth] = useState(readStoredWidth);
   const [dragging, setDragging] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     try {
       localStorage.setItem(INSPECTOR_WIDTH_STORAGE_KEY, String(width));
-    } catch {
-      // ignore quota / private mode
-    }
+    } catch {}
   }, [width]);
-
   const onResizeStart = (event: ReactMouseEvent) => {
     event.preventDefault();
     const shell = shellRef.current;
@@ -27,7 +22,6 @@ export function useInspectorWidth() {
     }
     setDragging(true);
     const shellBox = shell.getBoundingClientRect();
-
     const onMove = (move: MouseEvent) => {
       const raw = shellBox.right - move.clientX;
       const max = Math.min(
@@ -41,14 +35,11 @@ export function useInspectorWidth() {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
-
   return { width, dragging, shellRef, onResizeStart };
 }
-
 function readStoredWidth(): number {
   try {
     const raw = localStorage.getItem(INSPECTOR_WIDTH_STORAGE_KEY);

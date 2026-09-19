@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-
 import type { Agent } from '@/entities/agent';
 import { useAgentStore } from '@/entities/agent';
 import { agentCapabilitiesQueryKey, providersQuery } from '@/shared/api';
@@ -10,7 +9,6 @@ import { type DialogComponentProps, dialog, patchOverlayOptions } from '@/shared
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { toast } from '@/shared/ui/toast';
-
 import type { AgentCapabilitiesDraft, AgentConfigResult } from '../model/agent-config';
 import {
   type AgentFieldsInput,
@@ -39,7 +37,6 @@ const GRAPH_DIALOG_CLASS =
   'flex min-h-0 h-[min(90vh,768px)] w-[min(90vw,1024px)] max-w-[min(90vw,1024px)] sm:max-w-[min(90vw,1024px)] overflow-hidden';
 const DEFAULT_DIALOG_CLASS =
   'flex min-h-0 h-[min(78vh,48rem)] w-full max-w-3xl sm:max-w-3xl overflow-hidden';
-
 function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
   const draft: AgentCapabilitiesDraft = {
     skills: agent?.skills ?? [],
@@ -49,9 +46,6 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
     hooks: agent?.hooks ?? [],
     enabledPlugins: agent?.enabledPlugins ?? {},
   };
-  // Legacy records may still name plugin items of plugins the agent has off
-  // (the flip only backfilled from workspace-wide effective sets); normalize on
-  // open so hidden == unusable, matching the closed-world plugin contract.
   const owners = new Set<string>();
   for (const name of draft.skills ?? []) {
     const plugin = skillPluginOf(name);
@@ -68,13 +62,6 @@ function initialCapabilities(agent: Agent | null): AgentCapabilitiesDraft {
   const off = [...owners].filter((plugin) => draft.enabledPlugins?.[plugin] !== true);
   return off.length > 0 ? stripPlugins(off, draft) : draft;
 }
-
-/**
- * Turning a plugin off must drop everything it provided: the runtime gates
- * plugin skills/servers through the allowlists (`pluginName:skill`,
- * `plugin:<name>:<server>`), while `enabledPlugins` alone only gates
- * hooks/bin/monitors.
- */
 function stripPlugins(plugins: string[], draft: AgentCapabilitiesDraft): AgentCapabilitiesDraft {
   const offSkill = (name: string) => plugins.some((p) => name.startsWith(`${p}:`));
   const offMcp = (name: string) => plugins.some((p) => name.startsWith(`plugin:${p}:`));
@@ -84,7 +71,6 @@ function stripPlugins(plugins: string[], draft: AgentCapabilitiesDraft): AgentCa
     mcpServers: (draft.mcpServers ?? []).filter((name) => !offMcp(name)),
   };
 }
-
 export function openAgentConfigDialog(agent: Agent | null, workspaceId: string) {
   return dialog.open(AgentConfigDialog, {
     title: agent ? `Configure ${agent.name}` : 'New agent',
@@ -93,11 +79,16 @@ export function openAgentConfigDialog(agent: Agent | null, workspaceId: string) 
     data: { agent, workspaceId },
   });
 }
-
 export function AgentConfigDialog({
   onResolve,
   data,
-}: DialogComponentProps<AgentConfigResult, { agent: Agent | null; workspaceId: string }>) {
+}: DialogComponentProps<
+  AgentConfigResult,
+  {
+    agent: Agent | null;
+    workspaceId: string;
+  }
+>) {
   const rootAgent = data?.agent ?? null;
   const workspaceId = data?.workspaceId ?? '';
   const queryClient = useQueryClient();
@@ -128,7 +119,6 @@ export function AgentConfigDialog({
   const storeReturnParent = useAgentStore((state) =>
     returnParentId ? (state.byId(returnParentId) ?? null) : null,
   );
-  // Synthetic preset drafts carry id: '' — resolve them so prefill panes read the draft.
   const isPresetDraft = rootAgent !== null && rootAgent.id === '';
   const focusMatches = Boolean(focusAgentId && focusAgentId === rootAgent?.id);
   const activeAgent = storeFocus ?? (focusMatches || isPresetDraft ? rootAgent : null);
@@ -141,7 +131,6 @@ export function AgentConfigDialog({
       !(isDelegate && (item.id === 'modes' || item.id === 'hooks' || item.id === 'subagents')) &&
       !(item.id === 'subagents' && !showSubagents),
   );
-
   useEffect(() => {
     patchOverlayOptions({
       className: category === 'graph' ? GRAPH_DIALOG_CLASS : DEFAULT_DIALOG_CLASS,
@@ -150,19 +139,16 @@ export function AgentConfigDialog({
       patchOverlayOptions({ className: DEFAULT_DIALOG_CLASS });
     };
   }, [category]);
-
   useEffect(() => {
     if (category === 'subagents' && !showSubagents) {
       setCategory('identity');
     }
   }, [category, showSubagents]);
-
   useEffect(() => {
     patchOverlayOptions({
       title: activeAgent ? `Configure ${activeAgent.name}` : 'New agent',
     });
   }, [activeAgent]);
-
   function selectCategory(next: AgentConfigCategory) {
     if (next === 'graph') {
       graphTouchedRef.current = true;
@@ -171,7 +157,6 @@ export function AgentConfigDialog({
     }
     setCategory(next);
   }
-
   function loadAgentEditors(target: Agent) {
     form.reset(agentFieldsFrom(target));
     setCapabilities(initialCapabilities(target));
@@ -180,7 +165,6 @@ export function AgentConfigDialog({
     graphDocRef.current = nextGraph;
     setGraphDoc(nextGraph);
   }
-
   function patchCapabilities(patch: Partial<AgentCapabilitiesDraft>) {
     setCapabilities((prev) => {
       const merged = { ...prev, ...patch };
@@ -193,11 +177,9 @@ export function AgentConfigDialog({
       return off.length > 0 ? stripPlugins(off, merged) : merged;
     });
   }
-
   function buildResult(values: AgentFieldsOutput): AgentConfigResult {
     const draft = toAgentDraft(values);
     const sanitized = sanitizeForModel(draft.modelId, draft.effort, draft.generation, providers);
-    // Preset drafts carry the preset graph from open; send it even if the tab was never visited.
     const includeGraph = graphTouchedRef.current || rootAgent?.id === '';
     const graph = includeGraph ? graphDocRef.current : undefined;
     return {
@@ -206,7 +188,6 @@ export function AgentConfigDialog({
       ...(graph !== undefined ? { graph } : {}),
     };
   }
-
   function persistCurrent(): Promise<boolean> {
     if (!activeAgent || !workspaceId) {
       return Promise.resolve(false);
@@ -234,7 +215,6 @@ export function AgentConfigDialog({
       )();
     });
   }
-
   async function openSubagent(delegate: Agent) {
     const parentId = activeAgent?.id ?? rootAgent?.id ?? null;
     if (!parentId) {
@@ -249,7 +229,6 @@ export function AgentConfigDialog({
     loadAgentEditors(delegate);
     setCategory('identity');
   }
-
   async function backFromSubagent() {
     const parentId = returnParentId;
     if (!parentId) {
@@ -269,7 +248,6 @@ export function AgentConfigDialog({
     loadAgentEditors(parent);
     setCategory('subagents');
   }
-
   const categoryNavProps = {
     categories: navCategories,
     category,
@@ -283,7 +261,6 @@ export function AgentConfigDialog({
         }
       : undefined,
   };
-
   return (
     <form
       className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"

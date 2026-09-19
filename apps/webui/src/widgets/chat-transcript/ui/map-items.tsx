@@ -1,5 +1,4 @@
 import { BotIcon } from 'lucide-react';
-
 import type { MapInfo, MapItemInfo } from '../model/map-groups';
 import { useSpawnStream } from '../model/use-spawn-stream';
 import { type ActivityBadge, ActivityLine } from './activity-line';
@@ -27,8 +26,6 @@ function MapItemRow({ threadId, item }: { threadId: string; item: MapItemInfo })
     </ActivityLine>
   );
 }
-
-/** Список воркеров control:map вложенными строками под родительской строкой map. */
 export function MapItems({ threadId, map }: { threadId: string; map: MapInfo }) {
   if (map.items.length === 0) {
     return (

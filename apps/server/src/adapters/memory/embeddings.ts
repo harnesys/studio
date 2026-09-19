@@ -6,48 +6,48 @@ import type {
   LlmProviderRepository,
 } from '../../domain/llm-provider.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
-
 export type EmbeddingModelRef = {
   provider: string;
   model: string;
 };
-
 export type EmbeddingsPort = {
   available(): boolean;
-  embed(texts: string[], options?: { signal?: AbortSignal }): Promise<number[][]>;
+  embed(
+    texts: string[],
+    options?: {
+      signal?: AbortSignal;
+    },
+  ): Promise<number[][]>;
 };
-
 export type StudioEmbeddingsDeps = {
   providers: LlmProviderRepository;
   models: LlmModelRepository;
-  /** Prefer this embed model; else first enabled embed model in catalog. */
   modelRef?: EmbeddingModelRef;
   workspaceId?: string;
 };
-
 type ResolvedEmbedTarget = {
   apiUrl: string;
   apiKey: string | undefined;
   headers: Record<string, string>;
   modelName: string;
 };
-
 export class StudioEmbeddings implements EmbeddingsPort {
   private modelRef: EmbeddingModelRef | undefined;
-
   constructor(private readonly deps: StudioEmbeddingsDeps) {
     this.modelRef = deps.modelRef;
   }
-
   setModelRef(modelRef: EmbeddingModelRef | undefined): void {
     this.modelRef = modelRef;
   }
-
   available(): boolean {
     return resolveEmbedTarget({ ...this.deps, modelRef: this.modelRef }) !== undefined;
   }
-
-  async embed(texts: string[], options?: { signal?: AbortSignal }): Promise<number[][]> {
+  async embed(
+    texts: string[],
+    options?: {
+      signal?: AbortSignal;
+    },
+  ): Promise<number[][]> {
     if (texts.length === 0) {
       return [];
     }
@@ -82,7 +82,10 @@ export class StudioEmbeddings implements EmbeddingsPort {
       );
     }
     const body = (await response.json()) as {
-      data?: Array<{ embedding?: number[]; index?: number }>;
+      data?: Array<{
+        embedding?: number[];
+        index?: number;
+      }>;
     };
     const rows = body.data ?? [];
     if (rows.length !== texts.length) {
@@ -97,7 +100,6 @@ export class StudioEmbeddings implements EmbeddingsPort {
     });
   }
 }
-
 function resolveEmbedTarget(deps: StudioEmbeddingsDeps): ResolvedEmbedTarget | undefined {
   if (deps.modelRef) {
     return targetFromRef(deps, deps.modelRef);
@@ -124,7 +126,6 @@ function resolveEmbedTarget(deps: StudioEmbeddingsDeps): ResolvedEmbedTarget | u
   }
   return undefined;
 }
-
 function targetFromRef(
   deps: StudioEmbeddingsDeps,
   ref: EmbeddingModelRef,
@@ -149,7 +150,6 @@ function targetFromRef(
     model,
   });
 }
-
 type ToTargetInput = {
   driver: string;
   apiUrl: string | null;
@@ -157,7 +157,6 @@ type ToTargetInput = {
   headers: Record<string, string>;
   model: LlmModel;
 };
-
 function toTarget(input: ToTargetInput): ResolvedEmbedTarget {
   const base = input.apiUrl ?? 'https://api.openai.com/v1';
   return {
@@ -167,7 +166,6 @@ function toTarget(input: ToTargetInput): ResolvedEmbedTarget {
     modelName: input.model.name,
   };
 }
-
 function normalizeEmbedBase(driver: string, apiUrl: string): string {
   const trimmed = trimTrailingSlash(apiUrl);
   if (driver === 'ollama' && !trimmed.endsWith('/v1')) {
@@ -175,7 +173,6 @@ function normalizeEmbedBase(driver: string, apiUrl: string): string {
   }
   return trimmed;
 }
-
 function trimTrailingSlash(value: string): string {
   return value.endsWith('/') ? value.slice(0, -1) : value;
 }

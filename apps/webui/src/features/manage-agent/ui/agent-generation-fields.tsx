@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { type Control, Controller, useWatch } from 'react-hook-form';
-
 import { providersQuery } from '@/shared/api';
 import {
   Field,
@@ -13,7 +12,6 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Slider } from '@/shared/ui/slider';
-
 import {
   type AgentFieldsInput,
   type AgentFieldsOutput,
@@ -26,7 +24,6 @@ import {
 import { effortLabel } from './effort-label';
 
 type AgentFieldsControl = Control<AgentFieldsInput, unknown, AgentFieldsOutput>;
-
 type SliderSpec = {
   name: AgentGenerationField;
   label: string;
@@ -36,13 +33,11 @@ type SliderSpec = {
   fallback: number;
   format: (value: number) => string;
 };
-
 type NumberSpec = {
   name: AgentGenerationField;
   label: string;
   placeholder: string;
 };
-
 const SAMPLING_SLIDERS: SliderSpec[] = [
   {
     name: 'temperature',
@@ -90,12 +85,10 @@ const SAMPLING_SLIDERS: SliderSpec[] = [
     format: (value) => value.toFixed(2),
   },
 ];
-
 const LIMIT_FIELDS: NumberSpec[] = [
   { name: 'maxTokens', label: 'Max tokens', placeholder: '4096' },
   { name: 'seed', label: 'Seed', placeholder: '42' },
 ];
-
 export function AgentEffortField({
   control,
   idPrefix = 'agent',
@@ -111,11 +104,9 @@ export function AgentEffortField({
   const modelId = useWatch({ control, name: 'modelId' });
   const levels = modelEfforts(modelId, providers);
   const fieldId = `${idPrefix}-effort`;
-
   if (levels.length === 0) {
     return null;
   }
-
   return (
     <Controller
       control={control}
@@ -153,7 +144,6 @@ export function AgentEffortField({
     />
   );
 }
-
 export function AgentGenerationFields({
   control,
   idPrefix = 'agent',
@@ -171,11 +161,9 @@ export function AgentGenerationFields({
   const sliders = SAMPLING_SLIDERS.filter((item) => generationFieldVisible(supported, item.name));
   const limits = LIMIT_FIELDS.filter((item) => generationFieldVisible(supported, item.name));
   const showGeneration = hasGenerationFields(supported);
-
   if (!showGeneration) {
     return null;
   }
-
   return (
     <div className="flex flex-col gap-3" data-testid={`${idPrefix}-generation-fields`}>
       {limits.length > 0 ? (
@@ -281,7 +269,6 @@ export function AgentGenerationFields({
     </div>
   );
 }
-
 function parseOptional(value: string | undefined): number | undefined {
   if (value == null || value.trim() === '') {
     return undefined;
@@ -289,7 +276,6 @@ function parseOptional(value: string | undefined): number | undefined {
   const next = Number(value);
   return Number.isFinite(next) ? next : undefined;
 }
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }

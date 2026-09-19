@@ -15,21 +15,13 @@ const MIME: Record<string, string> = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
 };
-
 function notFound(): Response {
   return new Response('not found', { status: 404 });
 }
-
 function mimeTypeOf(path: string): string {
   return MIME[extname(path).toLowerCase()] ?? 'application/octet-stream';
 }
-
 export type StaticHandler = (pathname: string) => Promise<Response>;
-
-/**
- * Serves files from the configured dist directory. Exact files win; extensionless
- * paths fall back to index.html (SPA routes); unknown extensioned paths 404.
- */
 export function createStaticHandler(staticDir: string): StaticHandler {
   const root = resolve(staticDir);
   return async (pathname: string) => {

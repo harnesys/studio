@@ -6,7 +6,6 @@ import type {
 } from '../../domain/llm-provider.port.ts';
 import { ValidationError } from '../../domain/studio.error.ts';
 import { requireProvider, toProviderPublic } from './provider.helpers.ts';
-
 export type UpdateProviderRequest = {
   workspaceId: string;
   id: string;
@@ -17,22 +16,17 @@ export type UpdateProviderRequest = {
   headers?: Record<string, string>;
   enabled?: boolean;
 };
-
 export type UpdateProviderInput = {
   execute(request: UpdateProviderRequest): Promise<ProviderPublic>;
 };
-
 export class UpdateProviderUseCase implements UpdateProviderInput {
   constructor(
     private readonly providers: LlmProviderRepository,
     private readonly models: LlmModelRepository,
   ) {}
-
   async execute(request: UpdateProviderRequest): Promise<ProviderPublic> {
     requireProvider(this.providers, request.workspaceId, request.id);
-
     const patch: LlmProviderPatch = {};
-
     if (request.name !== undefined) {
       const name = request.name.trim();
       if (!name) {
@@ -40,7 +34,6 @@ export class UpdateProviderUseCase implements UpdateProviderInput {
       }
       patch.name = name;
     }
-
     if (request.driver !== undefined) {
       const driver = request.driver.trim();
       if (!driver) {
@@ -48,23 +41,18 @@ export class UpdateProviderUseCase implements UpdateProviderInput {
       }
       patch.driver = driver;
     }
-
     if (request.apiUrl !== undefined) {
       patch.apiUrl = request.apiUrl?.trim() || null;
     }
-
     if (request.apiKey !== undefined) {
       patch.apiKey = request.apiKey;
     }
-
     if (request.headers !== undefined) {
       patch.headers = request.headers;
     }
-
     if (request.enabled !== undefined) {
       patch.enabled = request.enabled;
     }
-
     const updated = this.providers.update(request.workspaceId, request.id, patch);
     const models = this.models.listByProvider(updated.id);
     return await Promise.resolve(toProviderPublic(updated, models));

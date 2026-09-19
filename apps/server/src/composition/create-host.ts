@@ -26,30 +26,23 @@ import type { StudioStore } from './create-store.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
 import { createPackRegistrations } from './wire-packs.ts';
 import type { StudioRuntime } from './wire-runtime.ts';
-
 export type StudioHostOptions = {
   workspaceHarnesys?: WorkspaceHarnesysRegistry;
-  /** Shared host Keychain adapter; omit to leave secrets unavailable on this node. */
   secretStore?: SecretStore;
 };
-
 export type StudioHost = {
   runtimeStateRepo: SqliteRuntimeStateRepo;
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   threadRegistry: ThreadRuntimeRegistry;
-  /** Хук-шина рана для вне-рановых проходов (ручная компакция). */
   threadRunHooks: ThreadRunHooks;
   getThreadPlan: GetThreadPlanUseCase;
   sendThreadRun: SendThreadRunUseCase;
   lsp: StudioLspAdapter;
-  /** Per-node process jobs (shell pack ports + Terminal facade share the instance). */
   jobs: ProcessJobRegistry;
   modelsPort: ModelsPort;
-  /** Undefined when the platform has no Keychain access; sensitive options then refuse to save. */
   secretStore?: SecretStore;
   stop: () => void;
 };
-
 export function createStudioHost(args: {
   store: StudioStore;
   platform: StudioPlatform;
@@ -59,7 +52,6 @@ export function createStudioHost(args: {
 }): StudioHost {
   const { store, platform, runtime, memory, options } = args;
   const modelsPort = createHarnesysModelsPort(store.llmProviderRepo, store.llmModelRepo);
-
   const runtimeStateRepo = new SqliteRuntimeStateRepo(store.db, (threadId, events) => {
     const compaction = events.find((e) => e.type === 'compaction.completed');
     if (!compaction) {
@@ -92,17 +84,10 @@ export function createStudioHost(args: {
       );
     });
   });
-
   const lspServersRef: {
     current: (cwd: string) => LspServerSpec[] | Promise<LspServerSpec[]>;
   } = { current: () => [] };
-
-  // FS/git watcher → LSP: when a session for a workspace starts, subscribe the
-  // watcher once so external edits (agent tools, git) are pushed into open
-  // documents. The pull-based resync on every lsp_* call stays as the
-  // correctness guarantee; this only makes editor diagnostics arrive live.
   const watcherStops = new Map<string, () => void>();
-
   const lspAdapter = new StudioLspAdapter({
     resolveServers: (cwd) => lspServersRef.current(cwd),
     onDiagnostic: (diagnostic) => {
@@ -132,21 +117,13 @@ export function createStudioHost(args: {
       watcherStops.set(cwd, stop);
     },
   });
-
-  // Late wiring: the agents catalog port (pack registrations) resolves
-  // `pluginName:agentName` ids through the registry once it exists.
   const pluginAgentsRef: {
     current: ((workspaceId: string) => Promise<PluginAgentCatalog>) | null;
   } = { current: null };
-
-  // Late wiring: tool-path §7 validation dereferences the registry at call time
-  // (tool calls happen post-boot, after the registry below exists).
-  const workspaceHarnesysRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
-
-  // Per-node process jobs: shell pack ports and the Terminal facade share it,
-  // so agent `open_in_terminal` jobs and human terminals live in one list.
+  const workspaceHarnesysRef: {
+    current: WorkspaceHarnesysRegistry | null;
+  } = { current: null };
   const jobs = createProcessJobRegistry();
-
   const packRegistrations = createPackRegistrations({
     db: store.db,
     schedules: store.scheduleRepo,
@@ -170,7 +147,6 @@ export function createStudioHost(args: {
     pluginAgentsRef,
     workspaceHarnesysRef,
   });
-
   const workspaceHarnesys =
     options.workspaceHarnesys ??
     new WorkspaceHarnesysRegistry(
@@ -194,10 +170,6 @@ export function createStudioHost(args: {
   runtime.agentsRef.current = workspaceHarnesys;
   workspaceHarnesysRef.current = workspaceHarnesys;
   pluginAgentsRef.current = (workspaceId) => workspaceHarnesys.pluginAgents(workspaceId);
-
-  // Host-driven hook emissions (FileChanged from the workspace watcher,
-  // Notification from monitor stdout) share the run's hook bus: the bus is
-  // created here and carried via RunTarget.hooksEmit. Closed on run-finish.
   const runHookBuses = new RunHookBuses({
     filesWatcher: platform.filesWatcher,
     lifecycle: runtime.runLifecycle,
@@ -207,12 +179,9 @@ export function createStudioHost(args: {
       if (trimmed.length === 0) {
         return;
       }
-      // Async hook может дожить до rename уже удалённого треда — не роняем emit.
       try {
         store.threadRepo.updateTitle(threadId, trimmed);
-      } catch {
-        // thread gone
-      }
+      } catch {}
     },
   });
   const monitorJobs = new MonitorJobRegistrarAdapter({
@@ -226,7 +195,6 @@ export function createStudioHost(args: {
     monitorJobs.deregister(event.threadId);
     void runHookBuses.close(event.threadId);
   });
-
   lspServersRef.current = async (cwd) => {
     const workspace = store.workspaceRepo
       .list()
@@ -242,7 +210,6 @@ export function createStudioHost(args: {
     );
     const pluginServers: WorkspacePluginLspServer[] = [];
     for (const entry of loaded) {
-      // First-wins dedupe by extension (lsp_shadowed) happens in the adapter.
       const userConfig = pluginUserConfig(entry.ir, entry.record.options);
       for (const component of entry.ir.components.filter(isLspServerComponent)) {
         if (disabled.has(`${entry.ir.identity.name}:${component.spec.serverId}`)) {
@@ -259,11 +226,8 @@ export function createStudioHost(args: {
         pluginServers.push({ spec: substituted, pluginName: entry.ir.identity.name });
       }
     }
-    // File servers first: they win the adapter dedupe; origin rides on the
-    // spec for the controller, which reuses resolveWorkspaceLsp.
     return resolveWorkspaceLsp(workspace.path, pluginServers);
   };
-
   const branchSeeder = new SeedBranchStateUseCase({
     threads: store.threadRepo,
     runEvents: runtime.runEvents,
@@ -282,13 +246,10 @@ export function createStudioHost(args: {
     monitorJobs,
   });
   runtime.targetRef.current = runTargets;
-
-  /** Хук-шина для вне-рановых проходов тредa (ручная компакция). */
   const threadRunHooks = {
     ensure: (threadId: string) => runTargets.ensureHooksForThread(threadId),
     release: (threadId: string) => runHookBuses.close(threadId),
   };
-
   const threadRegistry = new ThreadRuntimeRegistry(runtimeStateRepo);
   const getThreadPlan = new GetThreadPlanUseCase(new SqliteUnitOfWork(store.db));
   const sendThreadRun = new SendThreadRunUseCase({
@@ -304,9 +265,7 @@ export function createStudioHost(args: {
     getThread: runtime.getThread,
     listSkills: new ListWorkspaceSkillsUseCase(store.workspaceRepo, workspaceHarnesys),
   });
-
   const secretStore = options.secretStore;
-
   return {
     runtimeStateRepo,
     workspaceHarnesys,
@@ -329,9 +288,9 @@ export function createStudioHost(args: {
     },
   };
 }
-
-type LspServerComponent = PluginComponent & { spec: LspServerSpec };
-
+type LspServerComponent = PluginComponent & {
+  spec: LspServerSpec;
+};
 function isLspServerComponent(component: PluginComponent): component is LspServerComponent {
   return (
     component.kind === 'lsp-server' &&

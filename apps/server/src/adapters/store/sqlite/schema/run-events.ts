@@ -1,7 +1,6 @@
 import { type AnySQLiteColumn, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { runsTable } from './runs.ts';
 import { threadsTable } from './threads.ts';
-
 export const runEventsTable = sqliteTable(
   'run_events',
   {
@@ -22,5 +21,4 @@ export const runEventsTable = sqliteTable(
     clientIdx: index('run_events_client_idx').on(table.threadId, table.clientEventId),
   }),
 );
-
 export type RunEventRow = typeof runEventsTable.$inferSelect;

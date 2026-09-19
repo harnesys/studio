@@ -12,36 +12,25 @@ import { NotFoundError, UnavailableError, ValidationError } from '../../../domai
 import type { WorkspaceRepository } from '../../../domain/workspace.port.ts';
 import type { StudioLspAdapter } from '../../lsp/studio-lsp.adapter.ts';
 import { readWorkspaceLspFile, writeWorkspaceLspFile } from '../../lsp/workspace-lsp-file.ts';
-
 export type LspControllerDeps = {
   workspaceRepo: WorkspaceRepository;
   supervisor?: NodeSupervisor;
 };
-
 type ResolvedLspNode = {
   cwd: string;
   lsp: StudioLspAdapter;
   plugins: PluginRepository;
   status: LspStatusUseCase;
 };
-
-/**
- * Workspace LSP lifecycle (spec §2): merged list, file write, per-server
- * restart/stop, TypeScript preset. Node-local state resolves per request via
- * `requireNode`; `cwd = workspace.path`.
- */
 export class LspController {
   constructor(private readonly deps: LspControllerDeps) {}
-
   register(app: Hono): void {
     const base = '/api/workspaces/:id/lsp';
-
     app.get(base, async (c) => {
       const id = c.req.param('id');
       const node = this.resolve(id);
       return c.json(await node.status.execute({ workspaceId: id }));
     });
-
     app.put(base, async (c) => {
       const id = c.req.param('id');
       const node = this.resolve(id);
@@ -56,7 +45,6 @@ export class LspController {
       await node.lsp.invalidateCwd(node.cwd);
       return c.json(await node.status.execute({ workspaceId: id }));
     });
-
     app.post(`${base}/:serverId/restart`, async (c) => {
       const id = c.req.param('id');
       const serverId = c.req.param('serverId');
@@ -65,7 +53,6 @@ export class LspController {
       await node.lsp.invalidateCwd(node.cwd);
       return c.json(await node.status.execute({ workspaceId: id }));
     });
-
     app.post(`${base}/:serverId/stop`, async (c) => {
       const id = c.req.param('id');
       const serverId = c.req.param('serverId');
@@ -89,7 +76,6 @@ export class LspController {
       await node.lsp.invalidateCwd(node.cwd);
       return c.json(await node.status.execute({ workspaceId: id }));
     });
-
     app.post(`${base}/preset/:lang`, async (c) => {
       const id = c.req.param('id');
       const lang = c.req.param('lang');
@@ -104,7 +90,6 @@ export class LspController {
       return c.json(await node.status.execute({ workspaceId: id }));
     });
   }
-
   private resolve(id: string): ResolvedLspNode {
     const supervisor = this.deps.supervisor;
     if (!supervisor) {
@@ -129,7 +114,6 @@ export class LspController {
       ),
     };
   }
-
   private async requireServer(node: ResolvedLspNode, id: string, serverId: string) {
     const current = await node.status.execute({ workspaceId: id });
     const entry = current.servers.find((server) => server.serverId === serverId);
@@ -139,16 +123,14 @@ export class LspController {
     return entry;
   }
 }
-
-/**
- * File-server stop: same container shape the file adapter reads
- * (`raw.servers ?? raw`), entry flagged `disabled: true`. Existing entries
- * keep their fields; a missing entry is rebuilt from the listed spec.
- */
 function withFileDisabled(
   raw: unknown,
   serverId: string,
-  fallback: { command: string; args?: string[]; extensionToLanguage: Record<string, string> },
+  fallback: {
+    command: string;
+    args?: string[];
+    extensionToLanguage: Record<string, string>;
+  },
 ): unknown {
   const next = { ...fallback, disabled: true };
   if (isRecord(raw) && isRecord(raw.servers)) {
@@ -168,8 +150,6 @@ function withFileDisabled(
   }
   return { [serverId]: next };
 }
-
-/** Preset merge is additive: existing entries are never overwritten. */
 function withPreset(raw: unknown, preset: Record<string, LspPresetSpec>): unknown {
   if (isRecord(raw) && isRecord(raw.servers)) {
     const servers: Record<string, unknown> = { ...(raw.servers as Record<string, unknown>) };
@@ -191,7 +171,6 @@ function withPreset(raw: unknown, preset: Record<string, LspPresetSpec>): unknow
   }
   return { ...preset };
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

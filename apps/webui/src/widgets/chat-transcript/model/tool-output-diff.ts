@@ -1,14 +1,11 @@
 import type { DiffDetail, DiffHunk } from '@/shared/lib/tool-code';
-
 import { type JsonObject, str } from './tool-json';
-
 export function isDiffOutput(obj: JsonObject | undefined, raw: string): boolean {
   if (obj && typeof obj.diff === 'string') {
     return true;
   }
   return raw.startsWith('Index:') || raw.startsWith('--- ') || raw.includes('@@ -');
 }
-
 export function parseDiffDetail(
   obj: JsonObject | undefined,
   raw: string,
@@ -32,7 +29,6 @@ export function parseDiffDetail(
     rawDiff: diffText,
   };
 }
-
 function parseUnifiedDiff(diffText: string): {
   hunks: DiffHunk[];
   addedCount: number;
@@ -45,7 +41,6 @@ function parseUnifiedDiff(diffText: string): {
   let newLine = 0;
   let addedCount = 0;
   let deletedCount = 0;
-
   for (const rawLine of lines) {
     if (rawLine.startsWith('@@ ')) {
       const match = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$/.exec(rawLine);
@@ -57,11 +52,9 @@ function parseUnifiedDiff(diffText: string): {
       hunks.push(currentHunk);
       continue;
     }
-
     if (!currentHunk) {
       continue;
     }
-
     if (rawLine.startsWith('+') && !rawLine.startsWith('+++')) {
       addedCount += 1;
       currentHunk.lines.push({
@@ -89,6 +82,5 @@ function parseUnifiedDiff(diffText: string): {
       newLine += 1;
     }
   }
-
   return { hunks, addedCount, deletedCount };
 }

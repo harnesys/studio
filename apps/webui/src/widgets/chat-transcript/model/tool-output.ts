@@ -39,25 +39,35 @@ export type {
 } from './tool-detail-types';
 export { detectLanguage, toolMeta } from './tool-detail-types';
 
-function toolInput(call: SessionEvent & { type: 'tool' }): string {
+function toolInput(
+  call: SessionEvent & {
+    type: 'tool';
+  },
+): string {
   const input = call.input;
   if (input == null) {
     return '';
   }
   return typeof input === 'string' ? input : JSON.stringify(input);
 }
-
-function toolOutput(result: SessionEvent & { type: 'tool' }): string {
+function toolOutput(
+  result: SessionEvent & {
+    type: 'tool';
+  },
+): string {
   const output = result.output;
   if (output == null) {
     return '';
   }
   return typeof output === 'string' ? output : JSON.stringify(output);
 }
-
 export function toolDetail(
-  call: SessionEvent & { type: 'tool' },
-  result?: SessionEvent & { type: 'tool' },
+  call: SessionEvent & {
+    type: 'tool';
+  },
+  result?: SessionEvent & {
+    type: 'tool';
+  },
 ): ToolDetail {
   const caption = toolCaption(call, result);
   const inputStr = toolInput(call);
@@ -69,48 +79,38 @@ export function toolDetail(
   const output = done ? parseJson(rawOutput) : undefined;
   const outputObj = asObject(output);
   const toolName = call.name;
-
   if ((done && toolName === 'edit_file') || isDiffOutput(outputObj, rawOutput)) {
     const parsedDiff = parseDiffDetail(outputObj, rawOutput, input);
     if (parsedDiff) {
       return parsedDiff;
     }
   }
-
   if ((done && toolName === 'read_file') || isFileOutput(outputObj)) {
     const file = parseFileDetail(outputObj, rawOutput, input, caption.hint);
     if (file) {
       return file;
     }
   }
-
   if ((done && toolName === 'list_dir') || isListDirOutput(outputObj)) {
     return parseListDirDetail(outputObj, input);
   }
-
   if ((done && toolName === 'glob') || isGlobOutput(outputObj)) {
     return parseGlobDetail(outputObj, input);
   }
-
   if ((done && toolName === 'grep') || isGrepOutput(outputObj)) {
     return parseGrepDetail(outputObj, input);
   }
-
   if ((done && toolName === 'shell') || isShellOutput(outputObj)) {
     return parseTerminalDetail(outputObj, rawOutput, input);
   }
-
   if ((done && (toolName === 'http' || toolName === 'fetch')) || isHttpOutput(outputObj)) {
     return parseHttpDetail(outputObj, input);
   }
-
   if (done && toolName === 'write_file' && outputObj && has(outputObj, 'bytes')) {
     return parseWriteFileDetail(outputObj, input, caption.title);
   }
-
   return parseGenericDetail(output, rawOutput, caption.title);
 }
-
 export function formatToolInput(raw: string | undefined): {
   json: boolean;
   formatted: string;

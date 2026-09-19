@@ -6,7 +6,6 @@ import {
   visibleScheduledText,
 } from '@harnesys/studio-shared';
 import { CalendarClockIcon } from 'lucide-react';
-
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { deleteTurn } from '@/features/send-message';
 import { branchThread } from '@/features/switch-thread';
@@ -14,15 +13,12 @@ import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/locat
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { formatClock } from '@/shared/lib/format-clock';
 import { toast } from '@/shared/ui/toast';
-
 import { FeedNotice, FeedNoticeMetaSep } from './feed-notice';
 import { MessageActions } from './message-actions';
 import { MessageAttachments } from './message-attachments';
-
 export function isScheduleWake(entry: HumanEntry): boolean {
   return entry.origin === SCHEDULE_HUMAN_ORIGIN || isScheduledHumanText(entry.text);
 }
-
 export function ScheduleWakeMessage({ entry, threadId }: { entry: HumanEntry; threadId: string }) {
   const agent = useSelectedAgent();
   const thread = useSelectedThread();
@@ -31,7 +27,6 @@ export function ScheduleWakeMessage({ entry, threadId }: { entry: HumanEntry; th
   const text = entry.text ?? '';
   const title = scheduledTaskName(text) ?? 'Schedule';
   const body = visibleWakeText(text);
-
   return (
     <div className="flex flex-col gap-1.5" data-testid={`schedule-wake-${entry.id}`}>
       <FeedNotice
@@ -79,7 +74,6 @@ export function ScheduleWakeMessage({ entry, threadId }: { entry: HumanEntry; th
     </div>
   );
 }
-
 function visibleWakeText(text: string): string {
   const body = visibleScheduledText(text);
   const cut = body.search(/\n\nAttached:\n/);

@@ -1,6 +1,5 @@
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { useState } from 'react';
-
 import { Button } from '@/shared/ui/button';
 import {
   Dialog,
@@ -9,9 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-
 import { ToolCodeView } from '@/shared/ui/tool-code-view';
-
 import { formatToolInput } from '../model/tool-output';
 
 type ToolInputDialogProps = {
@@ -20,18 +17,15 @@ type ToolInputDialogProps = {
   toolName: string;
   rawInput: string | undefined;
 };
-
 export function ToolInputDialog({ open, onOpenChange, toolName, rawInput }: ToolInputDialogProps) {
   const [copied, setCopied] = useState(false);
   const { json, formatted } = formatToolInput(rawInput);
   const lines = formatted.split('\n').map((text, idx) => ({ number: idx + 1, text }));
-
   const onCopy = async () => {
     await navigator.clipboard.writeText(formatted);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] flex-col p-4 sm:max-w-xl">

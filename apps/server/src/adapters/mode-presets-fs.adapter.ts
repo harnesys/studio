@@ -5,9 +5,6 @@ import { z } from 'zod';
 import { ValidationError } from '../domain/studio.error.ts';
 import { bundledAssetsPath, bundledPresetsPath, systemPresetsPath } from './store/studio-layout.ts';
 
-/** PackAssignment-литералы как в HTTP-body (`agent.body.ts:8-11`): `true`/объект =
- *  вкл, `false`/`null`/отсутствие = выкл; `true` нормализуется в `{}`, `false` —
- *  в `null`. Массивы строк больше не принимаются (миграция `capability_set_v1`). */
 const packsBody = z
   .record(
     z.string(),
@@ -21,7 +18,6 @@ const packsBody = z
       .transform(toStoredAssignment),
   )
   .optional();
-
 function toStoredAssignment(value: true | false | PackAssignment | null): PackAssignment | null {
   if (value === true) {
     return {};
@@ -31,7 +27,6 @@ function toStoredAssignment(value: true | false | PackAssignment | null): PackAs
   }
   return value;
 }
-
 const modePresetBodySchema = z.object({
   id: z.string().regex(MODE_ID_RE),
   name: z.string().trim().min(1),
@@ -43,17 +38,16 @@ const modePresetBodySchema = z.object({
   permissions: z.record(z.string(), z.enum(['allow', 'ask', 'deny'])).optional(),
   installedByDefault: z.boolean().default(false),
 });
-
-type ModePresetRoot = { dir: string; builtin: boolean };
-
-/** Preset roots, ascending precedence (home shadows bundle). Bundled rows are builtin. */
+type ModePresetRoot = {
+  dir: string;
+  builtin: boolean;
+};
 function presetRoots(): ModePresetRoot[] {
   return [
     { dir: bundledPresetsPath('modes'), builtin: true },
     { dir: systemPresetsPath('modes'), builtin: false },
   ];
 }
-
 function presetIdsIn(dir: string): string[] {
   if (!existsSync(dir)) {
     return [];
@@ -63,15 +57,6 @@ function presetIdsIn(dir: string): string[] {
     .map((name) => name.slice(0, -'.json'.length))
     .filter((id) => MODE_ID_RE.test(id));
 }
-
-/**
- * Read mode presets from bundled app assets (`apps/server/assets/presets/modes`) and
- * `~/.harnesys/presets/modes` (id = filename stem). A same-id preset in home shadows the
- * bundled one and loads as non-builtin — only while it parses: a broken home file is
- * skipped with a warning (the bundled copy survives), a broken bundled file still throws.
- * `instructionsFile` is a path relative to the Studio assets root;
- * `builtinModePresetSeed()` wraps this for bootstrap.
- */
 export function readModePresets(
   onSkip: (message: string) => void = (message) => console.warn(message),
 ): Omit<ModePreset, 'workspaceId' | 'createdAt' | 'updatedAt'>[] {
@@ -93,7 +78,6 @@ export function readModePresets(
   }
   return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
-
 function parsePreset(
   id: string,
   path: string,
@@ -133,8 +117,6 @@ function parsePreset(
     builtin,
   };
 }
-
-/** Instructions text from a file under the Studio assets root (`plan` preset ships `plan-mode.md`). */
 function readInstructionsFile(id: string, rel: string): string {
   const root = bundledAssetsPath();
   const path = resolve(root, rel);

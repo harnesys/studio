@@ -6,7 +6,6 @@ type CompactingStore = {
   end(threadId: string): void;
   isCompacting(threadId: string): boolean;
 };
-
 export const useCompactingStore = create<CompactingStore>((set, get) => ({
   byThread: {},
   begin(threadId) {

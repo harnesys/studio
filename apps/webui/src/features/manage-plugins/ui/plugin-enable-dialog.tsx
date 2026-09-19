@@ -1,11 +1,9 @@
 import type { PluginGrantSelection, PluginSummary } from '@harnesys/studio-shared';
 import { useState } from 'react';
-
 import { setPluginGrants, setPluginOption } from '@/shared/api';
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
-
 import { grantedClasses, requiredGrantClasses } from '../model/plugin-grants';
 import {
   changedOptionValues,
@@ -17,8 +15,10 @@ import { PluginComponentMatrix } from './plugin-component-matrix';
 import { PluginGrantCheckboxes } from './plugin-grant-fields';
 import { PluginOptionsFields } from './plugin-options-fields';
 
-type EnablePluginDialogData = { plugin: PluginSummary; workspaceId: string };
-
+type EnablePluginDialogData = {
+  plugin: PluginSummary;
+  workspaceId: string;
+};
 export function EnablePluginDialog({
   onResolve,
   data,
@@ -33,7 +33,6 @@ export function EnablePluginDialog({
   const [busy, setBusy] = useState(false);
   const required = plugin ? requiredGrantClasses(plugin.components) : [];
   const optionChanges = changedOptionValues(drafts);
-
   async function confirm() {
     if (!plugin || !workspaceId) {
       setError('No workspace');
@@ -54,11 +53,9 @@ export function EnablePluginDialog({
       setError(err instanceof Error ? err.message : 'Enable failed');
     }
   }
-
   if (!plugin) {
     return null;
   }
-
   return (
     <div className="flex min-h-0 flex-col gap-4" data-testid="enable-plugin-dialog-body">
       <div className="max-h-48 overflow-y-auto rounded-md border p-2">

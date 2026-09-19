@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/useAwait: async required by RunLifecycleStore/RunEventStore port contracts
 import { DEFAULT_ASK_TTL_MS, DEFAULT_LIST_LIMIT, RUN_NON_TERMINAL } from '../constants.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { PendingSessionEvent, RunEventStore } from '../ports/run-event-store.ts';
@@ -11,18 +10,35 @@ import type {
 import type { SessionEvent } from '../ports/session.ts';
 
 function clientEventIdOf(event: PendingSessionEvent): string | undefined {
-  return (event as { clientEventId?: string }).clientEventId;
+  return (
+    event as {
+      clientEventId?: string;
+    }
+  ).clientEventId;
 }
 function interruptIdOf(event: PendingSessionEvent | SessionEvent): string | undefined {
-  return (event as { interruptId?: string }).interruptId;
+  return (
+    event as {
+      interruptId?: string;
+    }
+  ).interruptId;
 }
 function seqOf(event: SessionEvent): number {
-  return (event as { seq?: number }).seq ?? 0;
+  return (
+    (
+      event as {
+        seq?: number;
+      }
+    ).seq ?? 0
+  );
 }
 export class InMemoryRunEventStore implements RunEventStore {
   events: Map<string, SessionEvent[]> = new Map();
   nextSeq: Map<string, number> = new Map();
-  private insertion: Array<{ threadId: string; event: SessionEvent }> = [];
+  private insertion: Array<{
+    threadId: string;
+    event: SessionEvent;
+  }> = [];
   private runs: Map<string, RunRecord> | null = null;
   attachLifecycleRuns(runs: Map<string, RunRecord>): void {
     this.runs = runs;
@@ -51,8 +67,6 @@ export class InMemoryRunEventStore implements RunEventStore {
     this.nextSeq.set(runId, seq);
     return seq;
   }
-  /** События с seq от аллокатора сохраняются как есть; без seq — получают от аллокатора.
-   *  pre-assigned seq всегда ≤ high-water: он дозаполняет журнал и не сдвигает счётчик назад. */
   appendLocked(runId: string, events: PendingSessionEvent[]): SessionEvent[] {
     const stored = this.events.get(runId) ?? [];
     const record = this.runs?.get(runId);
@@ -224,7 +238,6 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     if (patch.advanceAttempt) {
       record.attempt += 1;
     }
-    // Spec ruling: epoch grows on every transition; handoff clears the lease.
     record.leaseEpoch += 1;
     delete record.leaseInstanceId;
     delete record.leaseExpiresAt;
@@ -302,7 +315,10 @@ export type RunEventBus = {
   publish(runId: string, events: SessionEvent[]): void;
   subscribe(runId: string): AsyncIterable<SessionEvent>;
 };
-type BusSubscriber = { queue: SessionEvent[]; wake: (() => void) | null };
+type BusSubscriber = {
+  queue: SessionEvent[];
+  wake: (() => void) | null;
+};
 export function createRunEventBus(): RunEventBus {
   const subscribers = new Map<string, Set<BusSubscriber>>();
   return {

@@ -3,7 +3,6 @@ import { useSessionStore } from '@/entities/session';
 import { toClientThread, useThreadStore } from '@/entities/thread';
 import { createScheduleRecord } from '@/shared/api';
 import type { ScheduleFormDraft } from './schedule-draft';
-
 export async function createSchedule(
   workspaceId: string,
   draft: ScheduleFormDraft,

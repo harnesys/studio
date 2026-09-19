@@ -16,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { ThreadJournal } from '@/widgets/thread-journal';
-
 export function ScheduleSurface({
   workspaceId,
   scheduleId,
@@ -37,7 +36,6 @@ export function ScheduleSurface({
   }
   return <ScheduleSurfaceView schedule={schedule} agents={agents} />;
 }
-
 export function WebhookSurface({
   workspaceId,
   webhookId,
@@ -58,12 +56,10 @@ export function WebhookSurface({
   }
   return <WebhookSurfaceView webhook={webhook} agents={agents} />;
 }
-
 function ScheduleSurfaceView({ schedule, agents }: { schedule: Schedule; agents: Agent[] }) {
   const agent = useAgentStore((state) => state.byId(schedule.targetAgentId) ?? undefined);
   const thread = useThreadStore((state) => state.byId(schedule.threadId) ?? undefined);
   const paused = schedule.status === 'paused';
-
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-schedule">
       <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2">
@@ -123,12 +119,10 @@ function ScheduleSurfaceView({ schedule, agents }: { schedule: Schedule; agents:
     </div>
   );
 }
-
 function WebhookSurfaceView({ webhook, agents }: { webhook: Webhook; agents: Agent[] }) {
   const agent = useAgentStore((state) => state.byId(webhook.targetAgentId) ?? undefined);
   const thread = useThreadStore((state) => state.byId(webhook.threadId) ?? undefined);
   const paused = webhook.status === 'paused';
-
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-webhook">
       <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2">

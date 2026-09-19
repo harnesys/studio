@@ -13,12 +13,17 @@ type StatusCache = {
   ts: number;
   slowCount: number;
 };
-
 export async function getStatus(
   safeCwd: string,
-  getAheadBehind: (cwd: string) => Promise<{ ahead: number; behind: number }>,
+  getAheadBehind: (cwd: string) => Promise<{
+    ahead: number;
+    behind: number;
+  }>,
   getVersion: () => Promise<string | null>,
-  listBranches: (cwd: string) => Promise<{ local: GitBranch[]; recent: GitBranch[] }>,
+  listBranches: (cwd: string) => Promise<{
+    local: GitBranch[];
+    recent: GitBranch[];
+  }>,
 ): Promise<GitStatusResponse> {
   const inside = await execGitTrim(safeCwd, ['rev-parse', '--is-inside-work-tree']).catch(() => '');
   if (inside !== 'true') {
@@ -45,7 +50,6 @@ export async function getStatus(
       execGitTrim(safeCwd, ['config', '--get', 'user.email']).catch(() => ''),
       execGitTrim(safeCwd, ['config', '--get', 'remote.origin.url']).catch(() => ''),
     ]);
-
   let branch: string | null = branchRaw || null;
   let detached = false;
   let headShort: string | null = head || null;
@@ -97,7 +101,12 @@ export async function getStatus(
   if (elapsed > GIT_SLOW_THRESHOLD_MS) {
     trace('git', 'slow getStatus', { cwd: safeCwd, elapsed });
   }
-  let branches: { local: GitBranch[]; recent: GitBranch[] } | undefined;
+  let branches:
+    | {
+        local: GitBranch[];
+        recent: GitBranch[];
+      }
+    | undefined;
   try {
     branches = await listBranches(safeCwd);
   } catch {
@@ -120,13 +129,15 @@ export async function getStatus(
     branches,
   };
 }
-
 export async function getFileStatus(
   safeCwd: string,
   statusCache: Map<string, StatusCache>,
   getMtimeKey: (cwd: string) => Promise<string>,
   subPath?: string,
-): Promise<{ map: GitFileStatusMap; truncated: boolean }> {
+): Promise<{
+  map: GitFileStatusMap;
+  truncated: boolean;
+}> {
   const inside = await execGitTrim(safeCwd, ['rev-parse', '--is-inside-work-tree']).catch(() => '');
   if (inside !== 'true') {
     return { map: {}, truncated: false };
@@ -167,7 +178,6 @@ export async function getFileStatus(
   statusCache.set(cacheKey, { map, truncated: false, mtimeKey, ts: now, slowCount: 0 });
   return { map, truncated: false };
 }
-
 export async function getMtimeKey(cwd: string): Promise<string> {
   const gitDir = await execGitTrim(cwd, ['rev-parse', '--git-dir']).catch(() => '.git');
   const absGitDir = gitDir.startsWith('/') ? gitDir : join(cwd, gitDir);

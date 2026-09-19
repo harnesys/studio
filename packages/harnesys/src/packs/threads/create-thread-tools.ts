@@ -1,20 +1,22 @@
 import type { CapabilityScope } from '../../domain/pack.ts';
 import type { ThreadsPort } from '../../ports/threads.ts';
 import { type ToolDefinition, tool } from '../../ports/tools.ts';
-
 export type CreateThreadToolsParams = {
   threads: ThreadsPort;
   resolveScope: () => CapabilityScope;
 };
-
-async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+async function runGuard<T>(fn: () => Promise<T>): Promise<
+  | T
+  | {
+      error: string;
+    }
+> {
   try {
     return await fn();
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
-
 export function createThreadTools(deps: CreateThreadToolsParams): ToolDefinition[] {
   return [
     tool('thread_list', {

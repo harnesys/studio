@@ -1,12 +1,9 @@
 import { detectLanguage, textToLines } from '@/shared/lib/tool-code';
-
 import type { FileDetail, GenericDetail, HttpDetail, TerminalDetail } from './tool-detail-types';
 import { has, type JsonObject, str } from './tool-json';
-
 export function isShellOutput(obj: JsonObject | undefined): boolean {
   return obj !== undefined && (has(obj, 'stdout') || has(obj, 'exitCode'));
 }
-
 export function parseTerminalDetail(
   obj: JsonObject | undefined,
   raw: string,
@@ -20,11 +17,9 @@ export function parseTerminalDetail(
   const durationMs = obj && typeof obj.durationMs === 'number' ? obj.durationMs : undefined;
   return { type: 'terminal', command, output, exitCode, durationMs };
 }
-
 export function isHttpOutput(obj: JsonObject | undefined): boolean {
   return obj !== undefined && typeof obj.status === 'number' && has(obj, 'ok');
 }
-
 export function parseHttpDetail(
   obj: JsonObject | undefined,
   input: JsonObject | undefined,
@@ -42,11 +37,9 @@ export function parseHttpDetail(
       : undefined;
   return { type: 'http', url, method, status, ok, statusText, headers, body, durationMs };
 }
-
 export function parseGenericDetail(output: unknown, raw: string, title: string): GenericDetail {
   let text = '';
   let language: string | undefined;
-
   if (output !== undefined) {
     if (typeof output === 'object') {
       text = JSON.stringify(output, null, 2);
@@ -57,7 +50,6 @@ export function parseGenericDetail(output: unknown, raw: string, title: string):
   } else {
     text = raw || '(no output)';
   }
-
   return {
     type: 'generic',
     title,
@@ -66,7 +58,6 @@ export function parseGenericDetail(output: unknown, raw: string, title: string):
     lines: textToLines(text),
   };
 }
-
 export function parseWriteFileDetail(
   outputObj: JsonObject,
   input: JsonObject | undefined,

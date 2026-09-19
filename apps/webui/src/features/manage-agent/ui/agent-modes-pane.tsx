@@ -29,7 +29,6 @@ type AgentModesPaneProps = {
   activeAgent: Agent | null;
   active: boolean;
 };
-
 export function AgentModesPane({ form, workspaceId, activeAgent, active }: AgentModesPaneProps) {
   const modes = useFieldArray({ control: form.control, name: 'modes' });
   const rows = useWatch({ control: form.control, name: 'modes' }) ?? [];
@@ -58,7 +57,6 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
     .filter((pack) => !pack.name.endsWith('-memory'))
     .map((pack) => pack.name)
     .filter((name) => agentPackNames.includes(name));
-
   function isDefaultOf(index: number): boolean {
     const row = rows[index];
     if (!row) {
@@ -69,30 +67,24 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
     }
     return defaultModeId === row.id;
   }
-
   function setDefaultOf(index: number, next: boolean) {
     const row = rows[index];
     if (!row) {
       return;
     }
-    // Off always falls back to the builtin 'ask' chain (defaultModeId = null).
     form.setValue('defaultModeId', next ? row.id : null, { shouldDirty: true });
   }
-
   function toggleExpanded(index: number) {
     setExpandedIndex((current) => (current === index ? null : index));
   }
-
   function addBlank() {
     modes.append(blankModeFields());
     setExpandedIndex(rows.length);
   }
-
   function addFromPreset(preset: ModePreset) {
     modes.append(modeToFields(modeFromPreset(preset)));
     setExpandedIndex(rows.length);
   }
-
   function removeMode(index: number) {
     const removed = rows[index];
     if (removed && defaultModeId === removed.id) {
@@ -101,7 +93,6 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
     modes.remove(index);
     setExpandedIndex(null);
   }
-
   return (
     <Pane
       testId="agent-modes-pane"
@@ -195,7 +186,6 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
     </Pane>
   );
 }
-
 function enabledPackNames(caps: PackAssignmentMap): string[] {
   return Object.keys(caps).filter((name) => isSourceGranted(caps[name]));
 }

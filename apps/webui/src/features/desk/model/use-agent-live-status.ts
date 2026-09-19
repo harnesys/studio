@@ -3,7 +3,6 @@ import { useShallow } from 'zustand/react/shallow';
 import type { AgentStatus } from '@/entities/agent';
 import { useSessionStore } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
-
 export function useAgentLiveStatus(agentId: string): AgentStatus {
   const threads = useThreadStore(
     useShallow((state) => state.items.filter((item) => item.agentId === agentId)),
@@ -25,11 +24,9 @@ export function useAgentLiveStatus(agentId: string): AgentStatus {
     return running ? 'running' : 'idle';
   });
 }
-
 export function useAgentHasUnread(agentId: string): boolean {
   return useThreadStore((state) => state.hasUnreadForAgent(agentId));
 }
-
 export function useThreadWaiting(threadId: string | null): boolean {
   return useSessionStore((state) => {
     if (!threadId) {
@@ -38,7 +35,6 @@ export function useThreadWaiting(threadId: string | null): boolean {
     return isWaiting(state.events[threadId] ?? []);
   });
 }
-
 const TERMINAL_EVENT_TYPES = new Set([
   'done',
   'error',
@@ -46,7 +42,6 @@ const TERMINAL_EVENT_TYPES = new Set([
   'run.failed',
   'run.cancelled',
 ]);
-
 function isWaiting(events: SessionEvent[]): boolean {
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i];

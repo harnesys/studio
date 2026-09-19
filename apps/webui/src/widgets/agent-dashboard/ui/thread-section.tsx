@@ -16,7 +16,6 @@ import {
 } from '@/shared/ui/dropdown-menu';
 
 const THREAD_PREVIEW_LIMIT = 4;
-
 export function ThreadSection({
   label,
   emptyLabel,
@@ -66,7 +65,6 @@ export function ThreadSection({
     </div>
   );
 }
-
 function ExpandToggle({
   hidden,
   expanded,
@@ -90,7 +88,6 @@ function ExpandToggle({
   }
   return null;
 }
-
 function ToggleRow({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
     <button
@@ -102,7 +99,6 @@ function ToggleRow({ children, onClick }: { children: ReactNode; onClick: () => 
     </button>
   );
 }
-
 function ThreadRow({
   thread,
   onOpen,

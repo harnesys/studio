@@ -1,10 +1,4 @@
 import type { PermissionMap } from 'harnesys';
-
-/**
- * Shape-guard for the stored `permissions_json` column: malformed or
- * non-object content returns `null` (= DEFAULT_PERMISSIONS); entries with
- * non-gate values drop.
- */
 export function parsePermissionMap(raw: string | null): PermissionMap | null {
   if (!raw) {
     return null;

@@ -13,9 +13,7 @@ import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 
 type PickerData = Record<string, never>;
-
 type PickerChoice = 'scheduler' | 'webhook';
-
 function AutomationCreatePickerDialog({
   onResolve,
 }: DialogComponentProps<PickerChoice | null, PickerData>) {
@@ -51,7 +49,6 @@ function AutomationCreatePickerDialog({
     </div>
   );
 }
-
 function openAutomationCreatePicker() {
   return dialog.open(AutomationCreatePickerDialog, {
     title: 'New automation',
@@ -60,7 +57,6 @@ function openAutomationCreatePicker() {
     testId: 'automation-create-picker',
   });
 }
-
 export function AutomationsSectionCreateButton({
   workspaceId,
   agents,
@@ -72,7 +68,6 @@ export function AutomationsSectionCreateButton({
 }) {
   const navigate = useNavigate();
   const workspaceAgents = agents.filter((item) => item.workspaceId === workspaceId);
-
   const openWebhookTab = (item: Webhook) => {
     const agentId = useThreadStore.getState().byId(item.threadId)?.agentId;
     useIdeStore
@@ -80,7 +75,6 @@ export function AutomationsSectionCreateButton({
       .openWebhook(workspaceId, item.id, item.threadId, agentId ?? item.targetAgentId);
     void navigate(studioPath.webhook(workspaceId, item.id));
   };
-
   return (
     <Button
       type="button"

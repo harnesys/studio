@@ -1,8 +1,15 @@
 import type { Attachment, SessionEvent } from 'harnesys';
-
 export type TranscriptItem =
-  | { type: 'user'; text: string; attachments?: Attachment[]; origin?: string }
-  | { type: 'assistant'; text: string }
+  | {
+      type: 'user';
+      text: string;
+      attachments?: Attachment[];
+      origin?: string;
+    }
+  | {
+      type: 'assistant';
+      text: string;
+    }
   | {
       type: 'tool';
       name: string;
@@ -11,10 +18,21 @@ export type TranscriptItem =
       output?: unknown;
       phase: string;
     }
-  | { type: 'ask'; askId: string; source: string; prompt?: string }
-  | { type: 'done'; text?: string }
-  | { type: 'error'; code: string; message: string };
-
+  | {
+      type: 'ask';
+      askId: string;
+      source: string;
+      prompt?: string;
+    }
+  | {
+      type: 'done';
+      text?: string;
+    }
+  | {
+      type: 'error';
+      code: string;
+      message: string;
+    };
 export function toTranscript(events: SessionEvent[]): TranscriptItem[] {
   const out: TranscriptItem[] = [];
   for (const ev of events) {

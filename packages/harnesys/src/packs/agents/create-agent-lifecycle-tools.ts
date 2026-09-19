@@ -1,8 +1,3 @@
-/** Lifecycle tools for the `agents` pack: `agents_update` / `agents_delete`.
- *  Ownership rule: a delegate can be updated or removed only by the agent that
- *  created it (`parentId === scope.agentId`); top-level agents are managed in
- *  the workspace UI. Each tool registers only when the catalog port implements
- *  the matching `patch` / `remove` method. */
 import { formatAgentTargets, resolveAgentTarget } from '../../application/agent-target-resolve.ts';
 import { parseSpawnBudget } from '../../application/graph-spawn.ts';
 import type { AgentBudget, BudgetPolicy } from '../../domain/agent-definition.ts';
@@ -11,22 +6,35 @@ import { type ToolDefinition, tool } from '../../ports/tools.ts';
 import type { CreateAgentsToolsParams } from './create-agents-tools.ts';
 import { scopeFor } from './scope-for.ts';
 
-async function runGuard<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+async function runGuard<T>(fn: () => Promise<T>): Promise<
+  | T
+  | {
+      error: string;
+    }
+> {
   try {
     return await fn();
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
-
-function notYourDelegate(name: string, verb: 'updated' | 'removed'): { error: string } {
+function notYourDelegate(
+  name: string,
+  verb: 'updated' | 'removed',
+): {
+  error: string;
+} {
   return {
     error: `"${name}" is not your delegate; only delegates created by you can be ${verb} here (top-level agents are managed in the workspace UI).`,
   };
 }
-
-type OwnedDelegate = { row: AgentCatalogSummary } | { error: string };
-
+type OwnedDelegate =
+  | {
+      row: AgentCatalogSummary;
+    }
+  | {
+      error: string;
+    };
 function resolveOwnedDelegate(
   query: string,
   rows: AgentCatalogSummary[],
@@ -58,7 +66,6 @@ function resolveOwnedDelegate(
   }
   return { row };
 }
-
 type AgentsUpdateInput = {
   agentId?: unknown;
   name?: unknown;
@@ -66,19 +73,18 @@ type AgentsUpdateInput = {
   instructions?: unknown;
   budget?: unknown;
 };
-
 const PATCH_STRING_FIELDS = ['name', 'role', 'instructions'] as const;
-
 const BUDGET_LIMIT_FIELDS = ['maxSteps', 'maxTokens', 'deadlineMs'] as const;
-
 function isBudgetPolicy(value: unknown): value is BudgetPolicy {
   return value === 'ask' || value === 'error';
 }
-
-/** Numeric trio goes through parseSpawnBudget (limits only); policy is layered
- *  on top so `agents_update` accepts the same budget shape as `agents_create`.
- *  A budget with only `policy` is valid; an empty object still needs one limit. */
-function collectBudget(raw: unknown): { budget: AgentBudget } | { error: string } {
+function collectBudget(raw: unknown):
+  | {
+      budget: AgentBudget;
+    }
+  | {
+      error: string;
+    } {
   const rec =
     typeof raw === 'object' && raw !== null && !Array.isArray(raw)
       ? (raw as Record<string, unknown>)
@@ -97,8 +103,13 @@ function collectBudget(raw: unknown): { budget: AgentBudget } | { error: string 
   }
   return { budget: { ...parsed.budget, ...(policy !== undefined ? { policy } : {}) } };
 }
-
-function collectPatch(input: AgentsUpdateInput): { patch: AgentCatalogPatch } | { error: string } {
+function collectPatch(input: AgentsUpdateInput):
+  | {
+      patch: AgentCatalogPatch;
+    }
+  | {
+      error: string;
+    } {
   const patch: AgentCatalogPatch = {};
   for (const key of PATCH_STRING_FIELDS) {
     const value = input[key];
@@ -119,12 +130,20 @@ function collectPatch(input: AgentsUpdateInput): { patch: AgentCatalogPatch } | 
   }
   return { patch };
 }
-
 async function applyUpdate(
   deps: CreateAgentsToolsParams,
   raw: unknown,
-  ctx: { agentId?: string },
-): Promise<{ agentId: string } | { error: string }> {
+  ctx: {
+    agentId?: string;
+  },
+): Promise<
+  | {
+      agentId: string;
+    }
+  | {
+      error: string;
+    }
+> {
   const patchFn = deps.agents.patch;
   if (!patchFn) {
     return { error: 'agents_update is not available in this host' };
@@ -149,17 +168,28 @@ async function applyUpdate(
   await patchFn.call(deps.agents, scope, target.row.id, collected.patch);
   return { agentId: target.row.id };
 }
-
 async function applyDelete(
   deps: CreateAgentsToolsParams,
   raw: unknown,
-  ctx: { agentId?: string },
-): Promise<{ removed: string; name: string } | { error: string }> {
+  ctx: {
+    agentId?: string;
+  },
+): Promise<
+  | {
+      removed: string;
+      name: string;
+    }
+  | {
+      error: string;
+    }
+> {
   const removeFn = deps.agents.remove;
   if (!removeFn) {
     return { error: 'agents_delete is not available in this host' };
   }
-  const input = (raw ?? {}) as { agentId?: unknown };
+  const input = (raw ?? {}) as {
+    agentId?: unknown;
+  };
   if (typeof input.agentId !== 'string' || !input.agentId) {
     return { error: 'agentId must be a non-empty string' };
   }
@@ -175,11 +205,9 @@ async function applyDelete(
   }
   return { removed: target.row.id, name: target.row.name };
 }
-
 const AGENT_ID_INPUT = {
   agentId: { type: 'string', description: 'Delegate id or name from agents_list' },
 };
-
 export function createAgentLifecycleTools(deps: CreateAgentsToolsParams): ToolDefinition[] {
   const lifecycle: ToolDefinition[] = [];
   if (deps.agents.patch) {

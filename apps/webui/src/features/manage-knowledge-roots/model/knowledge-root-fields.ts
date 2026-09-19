@@ -1,6 +1,5 @@
 import type { UpsertKnowledgeRootRequest } from '@harnesys/studio-shared';
 import { z } from 'zod';
-
 export const knowledgeRootFieldsSchema = z.object({
   path: z
     .string()
@@ -11,19 +10,15 @@ export const knowledgeRootFieldsSchema = z.object({
     }),
   enabled: z.boolean(),
 });
-
 export type KnowledgeRootFieldsInput = z.input<typeof knowledgeRootFieldsSchema>;
 export type KnowledgeRootFieldsOutput = z.output<typeof knowledgeRootFieldsSchema>;
-
 export type KnowledgeRootDraft = UpsertKnowledgeRootRequest;
-
 export function emptyKnowledgeRootFields(): KnowledgeRootFieldsInput {
   return {
     path: '',
     enabled: true,
   };
 }
-
 export function toKnowledgeRootDraft(values: KnowledgeRootFieldsOutput): KnowledgeRootDraft {
   return {
     path: values.path,

@@ -9,11 +9,11 @@ import type { GetThreadInput } from '../threads/get-thread.use-case.ts';
 import { publishDeskThread } from '../threads/publish-desk-thread.ts';
 import type { SendThreadRunInput } from '../threads/send-thread-run.use-case.ts';
 import { toWebhookRecord } from './webhook-record.ts';
-
 export type FireWebhookInput = {
-  execute(request: { webhookId: string; text?: string }): Promise<{ runId: string } | null>;
+  execute(request: { webhookId: string; text?: string }): Promise<{
+    runId: string;
+  } | null>;
 };
-
 export type FireWebhookDeps = {
   webhooks: WebhookRepository;
   threads: ThreadRepository;
@@ -24,7 +24,6 @@ export type FireWebhookDeps = {
   getThread: GetThreadInput;
   publicOrigin?: string;
 };
-
 export class FireWebhookUseCase implements FireWebhookInput {
   private readonly webhooks: WebhookRepository;
   private readonly threads: ThreadRepository;
@@ -34,7 +33,6 @@ export class FireWebhookUseCase implements FireWebhookInput {
   private readonly deskEvents: DeskEventsPort;
   private readonly getThread: GetThreadInput;
   private readonly publicOrigin?: string;
-
   constructor(deps: FireWebhookDeps) {
     this.webhooks = deps.webhooks;
     this.threads = deps.threads;
@@ -45,7 +43,6 @@ export class FireWebhookUseCase implements FireWebhookInput {
     this.getThread = deps.getThread;
     this.publicOrigin = deps.publicOrigin;
   }
-
   async execute(request: { webhookId: string; text?: string }) {
     const webhook = this.webhooks.findById(request.webhookId);
     if (!webhook) {

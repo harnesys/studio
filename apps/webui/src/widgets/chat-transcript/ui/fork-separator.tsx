@@ -1,8 +1,6 @@
 import { GitBranchIcon } from 'lucide-react';
-
 import { useOpenThreadTab } from '@/features/ide';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
-
 export function ForkSeparator({
   parentThreadId,
   parentAgentId,
@@ -12,7 +10,6 @@ export function ForkSeparator({
 }) {
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const openThreadTab = useOpenThreadTab();
-
   return (
     <div
       data-testid="fork-separator"

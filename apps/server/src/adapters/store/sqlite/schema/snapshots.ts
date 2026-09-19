@@ -1,6 +1,5 @@
 import { type AnySQLiteColumn, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { threadsTable } from './threads.ts';
-
 export const snapshotsTable = sqliteTable('snapshots', {
   sessionId: text('session_id').primaryKey(),
   threadId: text('thread_id')
@@ -10,6 +9,5 @@ export const snapshotsTable = sqliteTable('snapshots', {
   sequence: integer('sequence').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
-
 export type SnapshotRow = typeof snapshotsTable.$inferSelect;
 export type SnapshotInsert = typeof snapshotsTable.$inferInsert;

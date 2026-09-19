@@ -9,10 +9,8 @@ import { NotFoundError } from '../../../../domain/studio.error.ts';
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type ModePresetRow, modePresetsTable } from '../schema';
-
 export class SqliteModePresetRepo implements ModePresetRepository {
   constructor(private readonly db: StudioDb) {}
-
   list(workspaceId: string): ModePreset[] {
     return this.db
       .select()
@@ -21,7 +19,6 @@ export class SqliteModePresetRepo implements ModePresetRepository {
       .all()
       .map(toPreset);
   }
-
   findById(workspaceId: string, id: string): ModePreset | undefined {
     const row = this.db
       .select()
@@ -30,7 +27,6 @@ export class SqliteModePresetRepo implements ModePresetRepository {
       .get();
     return row ? toPreset(row) : undefined;
   }
-
   insert(rec: ModePresetInsert): ModePreset {
     try {
       const { skills, packs, permissions, ...rest } = rec;
@@ -49,7 +45,6 @@ export class SqliteModePresetRepo implements ModePresetRepository {
       return mapSqliteError(err, { conflict: 'mode preset id taken' });
     }
   }
-
   update(workspaceId: string, id: string, patch: ModePresetPatch): ModePreset {
     try {
       const { skills, packs, permissions, ...rest } = patch;
@@ -72,7 +67,6 @@ export class SqliteModePresetRepo implements ModePresetRepository {
       return mapSqliteError(err);
     }
   }
-
   delete(workspaceId: string, id: string): void {
     this.db
       .delete(modePresetsTable)
@@ -80,7 +74,6 @@ export class SqliteModePresetRepo implements ModePresetRepository {
       .run();
   }
 }
-
 function toPreset(row: ModePresetRow): ModePreset {
   return {
     workspaceId: row.workspaceId,
@@ -97,8 +90,6 @@ function toPreset(row: ModePresetRow): ModePreset {
     updatedAt: row.updatedAt,
   };
 }
-
-/** Map-форма (`capability_set_v1`); legacy-массив или мусор → пустая карта. */
 function parsePackMap(raw: string): Record<string, PackAssignment | null> {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -110,7 +101,6 @@ function parsePackMap(raw: string): Record<string, PackAssignment | null> {
     return {};
   }
 }
-
 function parseStringList(raw: string): string[] {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -122,7 +112,6 @@ function parseStringList(raw: string): string[] {
     return [];
   }
 }
-
 function parsePermissions(raw: string): ModeOpPermissions {
   try {
     const parsed: unknown = JSON.parse(raw);

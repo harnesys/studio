@@ -4,7 +4,6 @@ import { codedRunError } from '../domain/errors.ts';
 import type { Expr } from '../domain/expr.ts';
 import type { JsonSchema } from '../domain/json-schema.ts';
 import { evalExpr, type Slots } from './expr-eval.ts';
-
 export type WaitNodeSpec = {
   type: 'control:wait';
   delayMs?: number;
@@ -14,7 +13,6 @@ export type WaitNodeSpec = {
   reason?: InterruptReason;
   resumeSchema?: JsonSchema;
 };
-
 export type PreparedWait = {
   mode: 'sleep' | 'gate';
   fireAt?: number;
@@ -24,12 +22,10 @@ export type PreparedWait = {
   interruptId: string;
   source: 'timer' | 'wait';
 };
-
 const DEFAULT_RESUME: JsonSchema = {
   type: 'object',
   properties: { timedOut: { type: 'boolean' } },
 };
-
 export function prepareWait(node: WaitNodeSpec, slots: Slots): PreparedWait {
   const hasDelay = node.delayMs !== undefined;
   const hasUntil = node.untilMs !== undefined;
@@ -64,7 +60,6 @@ export function prepareWait(node: WaitNodeSpec, slots: Slots): PreparedWait {
       source: 'timer',
     };
   }
-  // gate
   let fireAt: number | undefined;
   if (node.timeoutMs !== undefined) {
     if (!Number.isFinite(node.timeoutMs) || node.timeoutMs < 1) {

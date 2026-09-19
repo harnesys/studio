@@ -1,5 +1,4 @@
 'use client';
-
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import type * as React from 'react';
@@ -15,7 +14,6 @@ function SidebarGroup({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function SidebarGroupLabel({
   className,
   render,
@@ -39,7 +37,6 @@ function SidebarGroupLabel({
     },
   });
 }
-
 function SidebarGroupAction({
   className,
   render,
@@ -63,7 +60,6 @@ function SidebarGroupAction({
     },
   });
 }
-
 function SidebarGroupContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div

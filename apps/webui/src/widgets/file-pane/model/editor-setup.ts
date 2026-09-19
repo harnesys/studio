@@ -1,6 +1,4 @@
 import type { editor } from 'monaco-editor';
-
-/** Monaco editor construction options for workspace files. */
 export function createEditorOptions(): editor.IStandaloneEditorConstructionOptions {
   return {
     minimap: { enabled: false },
@@ -21,13 +19,11 @@ export function createEditorOptions(): editor.IStandaloneEditorConstructionOptio
     },
   };
 }
-
 export function editorThemeName(
   theme: 'dark' | 'light' | 'system',
 ): 'harnesys-dark' | 'harnesys-light' {
   return resolveAppTheme(theme) === 'dark' ? 'harnesys-dark' : 'harnesys-light';
 }
-
 function resolveAppTheme(theme: 'dark' | 'light' | 'system'): 'dark' | 'light' {
   if (theme === 'dark' || theme === 'light') {
     return theme;
@@ -40,8 +36,6 @@ function resolveAppTheme(theme: 'dark' | 'light' | 'system'): 'dark' | 'light' {
   }
   return 'light';
 }
-
-/** Monaco model URI matching the wire format of /api/lsp: file:///<relative>. */
 export function toModelPath(path: string): string {
   return `file:///${path.replace(/^\/+/, '')}`;
 }

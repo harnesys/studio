@@ -1,7 +1,6 @@
 import { Icon } from '@iconify/react';
 import { getFileIcon } from '@/shared/lib/file-icon';
 import { cn } from '@/shared/lib/utils';
-
 export function FileTypeIcon({
   name,
   mediaType,

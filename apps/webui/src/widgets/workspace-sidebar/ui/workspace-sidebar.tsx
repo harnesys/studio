@@ -40,7 +40,6 @@ import { SECTION_META, type SidebarSectionId } from './sections-meta';
 import { SidebarSectionsConfig } from './sidebar-sections-config';
 import { TerminalSection, TerminalSectionActions } from './terminal-section';
 import { WorkspaceHeader } from './workspace-header';
-
 export function WorkspaceSidebar() {
   const focus = useStudioLocation();
   const workspaceId = studioFocusWorkspaceId(focus);
@@ -68,14 +67,15 @@ export function WorkspaceSidebar() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragPair, setDragPair] = useState<string | null>(null);
   const { draggingId, dropHintFor, headerProps } = useSectionDnd();
-
   const visibleSections = order.filter((id): id is SidebarSectionId => !hidden[id]);
   const expanded = visibleSections.filter((id) => !(collapsed[id] ?? false));
   const inboxCollapsed = collapsed.inbox ?? false;
   const expandedWithInbox = inboxCollapsed ? expanded : ['inbox', ...expanded];
   const shares = normalizeShares(expandedWithInbox, sizes);
-
-  const resizePairs: { upper: string; lower: string }[] = [];
+  const resizePairs: {
+    upper: string;
+    lower: string;
+  }[] = [];
   let lastExpanded: string | null = null;
   for (const id of expandedWithInbox) {
     if (lastExpanded) {
@@ -84,7 +84,6 @@ export function WorkspaceSidebar() {
     lastExpanded = id;
   }
   const pairBefore = (id: string) => resizePairs.find((pair) => pair.lower === id) ?? null;
-
   const resizeNode = (id: SidebarSectionId) => {
     const pair = pairBefore(id);
     if (!pair) {
@@ -102,7 +101,6 @@ export function WorkspaceSidebar() {
       />
     );
   };
-
   const beginResize = (upperId: string, lowerId: string) => (event: ReactMouseEvent) => {
     event.preventDefault();
     const root = containerRef.current;
@@ -135,7 +133,6 @@ export function WorkspaceSidebar() {
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
-
   const renderSection = (id: SidebarSectionId) => {
     const Icon = SECTION_META[id].icon;
     const drag = {
@@ -290,7 +287,6 @@ export function WorkspaceSidebar() {
         );
     }
   };
-
   return (
     <Sidebar collapsible="icon" data-testid="workspace-sidebar">
       <SidebarHeader className="p-2">
@@ -331,8 +327,8 @@ export function WorkspaceSidebar() {
               title="Harnesys"
             >
               <AppLogo className="size-6" />
-              <span className="wordmark-press font-medium tracking-tight group-data-[collapsible=icon]:hidden">
-                Harnesys{' '}
+              <span className="flex items-center gap-1 font-medium text-sm tracking-tight">
+                Harnesys
                 <Badge variant="secondary" className="text-muted-foreground">
                   v1.0.0
                 </Badge>

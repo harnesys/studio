@@ -11,14 +11,12 @@ import type { CreateWebhookInput } from '../../application/webhooks/create-webho
 import type { DeleteWebhookInput } from '../../application/webhooks/delete-webhook.use-case.ts';
 import type { ListWebhooksInput } from '../../application/webhooks/list-webhooks.use-case.ts';
 import type { UpdateWebhookInput } from '../../application/webhooks/update-webhook.use-case.ts';
-
 export type SqliteWebhookPortDeps = {
   listWebhooks: ListWebhooksInput;
   createWebhook: CreateWebhookInput;
   updateWebhook: UpdateWebhookInput;
   deleteWebhook: DeleteWebhookInput;
 };
-
 function toWebhookRecord(row: StudioWebhookRecord): WebhookRecord {
   return {
     id: row.id,
@@ -34,15 +32,12 @@ function toWebhookRecord(row: StudioWebhookRecord): WebhookRecord {
     updatedAt: row.updatedAt,
   };
 }
-
 export class SqliteWebhookPort implements WebhookPort {
   constructor(private readonly deps: SqliteWebhookPortDeps) {}
-
   async list(scope: CapabilityScope): Promise<WebhookRecord[]> {
     const rows = await this.deps.listWebhooks.execute({ workspaceId: scope.workspaceId });
     return rows.map(toWebhookRecord);
   }
-
   async create(scope: CapabilityScope, input: WebhookCreateInput): Promise<WebhookCreatedRecord> {
     const created = await this.deps.createWebhook.execute({
       workspaceId: scope.workspaceId,
@@ -56,7 +51,6 @@ export class SqliteWebhookPort implements WebhookPort {
       thread: created.thread,
     };
   }
-
   async update(
     scope: CapabilityScope,
     id: string,
@@ -69,7 +63,6 @@ export class SqliteWebhookPort implements WebhookPort {
     });
     return toWebhookRecord(record);
   }
-
   async remove(scope: CapabilityScope, id: string): Promise<void> {
     await this.deps.deleteWebhook.execute({ workspaceId: scope.workspaceId, id });
   }

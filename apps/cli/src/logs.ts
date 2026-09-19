@@ -3,12 +3,10 @@ import { harnesysHome, logFilePath } from './paths.ts';
 import { followFile, tailLines } from './processes.ts';
 
 const LOG_TAIL_LINES = 40;
-
 function fail(message: string): never {
   console.error(`harnesys: ${message}`);
   process.exit(1);
 }
-
 export async function commandLogs(follow: boolean, target: string | undefined): Promise<void> {
   const home = harnesysHome();
   const names = parseTargetOrUndefined(target);
@@ -38,7 +36,5 @@ export async function commandLogs(follow: boolean, target: string | undefined): 
       }
     });
   }
-  await new Promise<never>(() => {
-    // follow until interrupted; pending timers keep the process alive
-  });
+  await new Promise<never>(() => {});
 }

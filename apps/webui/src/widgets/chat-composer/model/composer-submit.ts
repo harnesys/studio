@@ -5,7 +5,6 @@ import type { ComposerMode } from './composer-mode';
 import { uploadAndSend } from './composer-send';
 import { runSlashCommand } from './run-slash-command';
 import type { SlashCommand } from './slash-commands';
-
 export type ComposerSubmitOptions = {
   payload: ComposerPayload;
   pending: File[];
@@ -17,7 +16,6 @@ export type ComposerSubmitOptions = {
   clear(): void;
   setPending(update: File[] | ((list: File[]) => File[])): void;
 };
-
 export function submitComposer(options: ComposerSubmitOptions): void {
   const content = options.payload.text;
   if ((!content && options.pending.length === 0) || options.disabled) {
@@ -44,7 +42,6 @@ export function submitComposer(options: ComposerSubmitOptions): void {
       options.setSending(false);
     });
 }
-
 export async function executeComposerSlash(
   command: SlashCommand,
   options: Pick<ComposerSubmitOptions, 'threadId' | 'disabled' | 'setSending'>,

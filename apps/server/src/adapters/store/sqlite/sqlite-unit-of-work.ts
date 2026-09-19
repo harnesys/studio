@@ -4,10 +4,8 @@ import { SqliteAgentRepo } from './repos/sqlite-agent.repo.ts';
 import { SqliteAttachmentRepo } from './repos/sqlite-attachment.repo.ts';
 import { SqlitePlanRepo } from './repos/sqlite-plan.repo.ts';
 import { SqliteThreadRepo } from './repos/sqlite-thread.repo.ts';
-
 export class SqliteUnitOfWork implements UnitOfWork {
   constructor(private readonly db: StudioDb) {}
-
   run<T>(work: (repos: StudioRepos) => T): T {
     return this.db.transaction((tx) => {
       const db = tx as StudioDb;

@@ -24,25 +24,24 @@ type SegmentOption = {
   value: string;
   label: string;
 };
-
 type ThemeChoice = 'dark' | 'light' | 'system';
-
-const THEME_CHOICES: { value: ThemeChoice; label: string; icon: LucideIcon }[] = [
+const THEME_CHOICES: {
+  value: ThemeChoice;
+  label: string;
+  icon: LucideIcon;
+}[] = [
   { value: 'dark', label: 'Dark', icon: MoonIcon },
   { value: 'light', label: 'Light', icon: SunIcon },
   { value: 'system', label: 'System', icon: LaptopIcon },
 ];
-
 const SCALE_OPTIONS: SegmentOption[] = UI_SCALES.map((item) => ({
   value: item,
   label: UI_SCALE_LABELS[item],
 }));
-
 export function AppearancePane() {
   const { theme, setTheme, scale, setScale, accent, setAccent } = useTheme();
   const colors = useGitStatusColors((state) => state.colors);
   const resetColors = useGitStatusColors((state) => state.resetColors);
-
   return (
     <FieldGroup className="gap-6">
       <Field>
@@ -153,11 +152,9 @@ export function AppearancePane() {
     </FieldGroup>
   );
 }
-
 function GitStatusColorRow({ row }: { row: GitStatusSettingsRow }) {
   const colors = useGitStatusColors((state) => state.colors);
   const setColor = useGitStatusColors((state) => state.setColor);
-
   if (!row.status) {
     return (
       <div className="flex items-center gap-2.5 rounded-md px-1 py-1">
@@ -178,7 +175,6 @@ function GitStatusColorRow({ row }: { row: GitStatusSettingsRow }) {
       </div>
     );
   }
-
   const status = row.status;
   const value = colors[status];
   return (
@@ -204,7 +200,6 @@ function GitStatusColorRow({ row }: { row: GitStatusSettingsRow }) {
     </label>
   );
 }
-
 function ThemePreview({ choice }: { choice: ThemeChoice }) {
   if (choice === 'system') {
     return (
@@ -220,7 +215,6 @@ function ThemePreview({ choice }: { choice: ThemeChoice }) {
   }
   return <MiniWindow variant={choice} />;
 }
-
 function MiniWindow({ variant }: { variant: 'dark' | 'light' }) {
   const palette =
     variant === 'dark'
@@ -237,7 +231,6 @@ function MiniWindow({ variant }: { variant: 'dark' | 'light' }) {
     </span>
   );
 }
-
 function Segment({
   labelId,
   options,

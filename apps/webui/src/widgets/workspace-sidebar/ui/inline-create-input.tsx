@@ -1,7 +1,6 @@
 import { FileIcon, FolderIcon } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
-
 export function InlineCreateInput({
   kind,
   onFinish,
@@ -15,12 +14,10 @@ export function InlineCreateInput({
 }) {
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
   }, []);
-
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       onFinish(value);
@@ -28,7 +25,6 @@ export function InlineCreateInput({
       onFinish('');
     }
   };
-
   return (
     <div
       className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm"

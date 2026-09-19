@@ -1,11 +1,8 @@
 import { DEFAULT_CHUNK_CHARS, DEFAULT_OVERLAP } from '../../config/constants.ts';
-
 export type ChunkTextOptions = {
   chunkChars?: number;
   overlap?: number;
 };
-
-/** Split plain text into overlapping character chunks. */
 export function chunkText(text: string, options: ChunkTextOptions = {}): string[] {
   const normalized = text.replace(/\s+/g, ' ').trim();
   if (!normalized) {

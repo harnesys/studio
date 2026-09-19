@@ -1,24 +1,20 @@
 import type { InterruptReason, Node } from 'harnesys';
-
 export type GraphNodeGroup = 'core' | 'llm' | 'tool' | 'control';
-
-export type GraphNodePorts = { in: boolean; out: boolean };
-
+export type GraphNodePorts = {
+  in: boolean;
+  out: boolean;
+};
 export type GraphNodeSpec = {
   type: string;
   group: GraphNodeGroup;
   label: string;
-  /** One line under the palette card. */
   summary: string;
-  /** Full copy in the palette info popover. */
   description: string;
   inPalette: boolean;
   ports: GraphNodePorts;
   defaults: () => Node;
 };
-
 const DEFAULT_INTERRUPT_REASON: InterruptReason = 'human_review';
-
 export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
   {
     type: 'core:start',
@@ -183,18 +179,13 @@ export const GRAPH_NODE_SPECS: GraphNodeSpec[] = [
     }),
   },
 ];
-
 const SPECS_BY_TYPE = new Map(GRAPH_NODE_SPECS.map((spec) => [spec.type, spec]));
-
 export function specByType(type: string): GraphNodeSpec | undefined {
   return SPECS_BY_TYPE.get(type);
 }
-
 export function paletteSpecs(): GraphNodeSpec[] {
   return GRAPH_NODE_SPECS.filter((spec) => spec.inPalette);
 }
-
-/** Id from type suffix (`control:handoff` → `handoff`, then `handoff-2`). */
 export function nextNodeId(type: string, existingIds: Iterable<string>): string {
   const colon = type.lastIndexOf(':');
   const base = colon >= 0 ? type.slice(colon + 1) : type;
@@ -208,12 +199,10 @@ export function nextNodeId(type: string, existingIds: Iterable<string>): string 
   }
   return `${base}-${n}`;
 }
-
 export const GRAPH_GROUP_LABELS: Record<GraphNodeGroup, string> = {
   core: 'Core',
   llm: 'LLM',
   tool: 'Tool',
   control: 'Control',
 };
-
 export const GRAPH_GROUP_ORDER: GraphNodeGroup[] = ['core', 'llm', 'tool', 'control'];

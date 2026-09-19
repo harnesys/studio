@@ -1,11 +1,9 @@
 import { BotIcon, WrenchIcon } from 'lucide-react';
-
 import { useAgentStore } from '@/entities/agent';
 import { formatDuration, formatTokenCount } from '@/entities/session';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { Button } from '@/shared/ui/button';
 import { ExpandableScroll } from '@/shared/ui/expandable-scroll';
-
 import { agentFallbackName } from '../model/agent-label';
 import type { SpawnInfo, SpawnToolStat } from '../model/spawn-groups';
 import { useNow } from '../model/use-now';
@@ -13,8 +11,7 @@ import { useSpawnStream } from '../model/use-spawn-stream';
 import { type ActivityBadge, ActivityLine } from './activity-line';
 
 const LIVE_TICK_MS = 5000;
-const STALLED_AFTER_MS = 90_000;
-
+const STALLED_AFTER_MS = 90000;
 export function SpawnLine({
   threadId,
   spawnId,
@@ -62,7 +59,6 @@ export function SpawnLine({
   const toolEntries = Object.entries(spawn.toolStats).filter(
     ([, stat]) => stat.requested + stat.completed + stat.failed > 0,
   );
-
   return (
     <ActivityLine
       icon={BotIcon}
@@ -112,7 +108,6 @@ export function SpawnLine({
     </ActivityLine>
   );
 }
-
 function formatToolStat(stat: SpawnToolStat): string {
   const parts: string[] = [];
   if (stat.completed > 0) {

@@ -1,13 +1,14 @@
 import type { JsonSchema } from '../domain/json-schema.ts';
 
 export { ASK_SCHEMA_KEYS } from '../constants.ts';
-
 export type AskUserSchemaInput = {
-  options?: Array<{ id: string; label: string }>;
+  options?: Array<{
+    id: string;
+    label: string;
+  }>;
   multi?: boolean;
   allowText?: boolean;
 };
-
 export function askUserSchema(input: AskUserSchemaInput): JsonSchema {
   const properties: Record<string, unknown> = {};
   const required: string[] = [];
@@ -27,7 +28,7 @@ export function askUserSchema(input: AskUserSchemaInput): JsonSchema {
     schema.required = required;
   }
   if (input.options?.length) {
-    schema.options = input.options; // служебные ключи: Ajv strict:false игнорирует; клиент читает для рендера
+    schema.options = input.options;
     schema.multi = input.multi === true;
   }
   return schema as JsonSchema;

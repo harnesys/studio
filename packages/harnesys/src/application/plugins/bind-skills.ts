@@ -8,18 +8,7 @@ import { composeSkillRegistries } from '../skills/compose-skill-registries.ts';
 import { prefixSkillRegistry } from './prefixed-skill-registry.ts';
 import type { UserConfigContentOptions } from './user-config.ts';
 import { substituteUserConfigContent } from './user-config.ts';
-
-/** Reads one file from disk; injected so binding stays host-agnostic. */
 export type SkillFileReader = (file: string) => string;
-
-/**
- * IR → one prefixed `SkillRegistry` for a single plugin. `skills/<name>/SKILL.md`
- * roots scan through `FsSkillRegistry`; flat `commands/<name>.md` become skills
- * with frontmatter passthrough (name from frontmatter/stem, description and
- * body as-is, no strict SKILL.md validation). All names end up `plugin:skill`.
- * `userConfig` turns on `${user_config.*}` substitution in skill content;
- * sensitive keys are dropped, never substituted.
- */
 export function bindSkillComponents(
   ir: PluginIr,
   readSkillFile: SkillFileReader,
@@ -49,8 +38,6 @@ export function bindSkillComponents(
     ir.identity.name,
   );
 }
-
-/** Lazy SKILL.md bodies flow through `load`; substitute on the way out. */
 function withUserConfigContent(
   registry: SkillRegistry,
   userConfig: UserConfigContentOptions | undefined,
@@ -65,7 +52,6 @@ function withUserConfigContent(
     reload: () => registry.reload(),
   };
 }
-
 function substituteSkillDocument(value: unknown, uc: UserConfigContentOptions): unknown {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return value;
@@ -84,12 +70,9 @@ function substituteSkillDocument(value: unknown, uc: UserConfigContentOptions): 
   }
   return doc;
 }
-
 function skillNames(registry: FsSkillRegistry): Set<string> {
   return new Set(registry.list().map((summary) => summary.name));
 }
-
-/** Command skills lose on a name clash with a real skill; first command wins. */
 function buildCommandRegistry(
   commands: CommandSpec[],
   taken: ReadonlySet<string>,
@@ -121,8 +104,6 @@ function buildCommandRegistry(
     reload() {},
   };
 }
-
-/** Flat command md: frontmatter parsed tolerantly, body becomes instructions. */
 function parseCommandDocument(
   spec: CommandSpec,
   readSkillFile: SkillFileReader,
@@ -156,7 +137,6 @@ function parseCommandDocument(
     ...(whenToUse !== undefined ? { whenToUse } : {}),
   };
 }
-
 function commandSummaryOf(doc: SkillDocument): SkillSummary {
   return {
     name: doc.name,

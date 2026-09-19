@@ -3,8 +3,11 @@ import { collapseLayout, type IdeSplitNode, type IdeSplitSide, replaceGroup } fr
 
 export type { IdeSplitNode, IdeSplitSide } from './ide-tree';
 export { collapseLayout, replaceGroup, setSplitRatioState } from './ide-tree';
-
-export type IdeGroup = { id: string; tabIds: string[]; activeId: string | null };
+export type IdeGroup = {
+  id: string;
+  tabIds: string[];
+  activeId: string | null;
+};
 export type IdeWorkspaceState = {
   tabs: IdeTab[];
   activeId: string | null;
@@ -12,11 +15,9 @@ export type IdeWorkspaceState = {
   groups: IdeGroup[];
   layout: IdeSplitNode | null;
 };
-
 export function createEmptyWorkspace(): IdeWorkspaceState {
   return { tabs: [], activeId: null, activeGroupId: null, groups: [], layout: null };
 }
-
 export function createWorkspaceWithTab(tab: IdeTab): IdeWorkspaceState {
   const groupId = crypto.randomUUID();
   return {
@@ -27,15 +28,12 @@ export function createWorkspaceWithTab(tab: IdeTab): IdeWorkspaceState {
     layout: { kind: 'group', groupId },
   };
 }
-
 export function findGroup(ws: IdeWorkspaceState, groupId: string): IdeGroup | null {
   return ws.groups.find((g) => g.id === groupId) ?? null;
 }
-
 export function groupOfTab(ws: IdeWorkspaceState, tabId: string): IdeGroup | null {
   return ws.groups.find((g) => g.tabIds.includes(tabId)) ?? null;
 }
-
 export function upsertTabState(ws: IdeWorkspaceState, tab: IdeTab): IdeWorkspaceState | null {
   const existing = ws.tabs.find((t) => t.id === tab.id);
   if (existing) {
@@ -67,7 +65,6 @@ export function upsertTabState(ws: IdeWorkspaceState, tab: IdeTab): IdeWorkspace
     ),
   };
 }
-
 export function withActiveTabState(ws: IdeWorkspaceState, tabId: string): IdeWorkspaceState | null {
   const group = groupOfTab(ws, tabId);
   if (!group) {
@@ -83,7 +80,6 @@ export function withActiveTabState(ws: IdeWorkspaceState, tabId: string): IdeWor
     groups: ws.groups.map((g) => (g.id === group.id ? { ...g, activeId: tabId } : g)),
   };
 }
-
 export function closeTabState(ws: IdeWorkspaceState, tabId: string): IdeWorkspaceState | null {
   const group = groupOfTab(ws, tabId);
   if (!group) {
@@ -114,7 +110,6 @@ export function closeTabState(ws: IdeWorkspaceState, tabId: string): IdeWorkspac
       : ws.activeId;
   return { tabs, activeId, activeGroupId, groups, layout };
 }
-
 export function moveTabState(
   ws: IdeWorkspaceState,
   tabId: string,
@@ -164,7 +159,6 @@ export function moveTabState(
     layout,
   };
 }
-
 function reorderInGroup(
   ws: IdeWorkspaceState,
   group: IdeGroup,
@@ -187,7 +181,6 @@ function reorderInGroup(
     groups: ws.groups.map((g) => (g.id === group.id ? { ...g, tabIds } : g)),
   };
 }
-
 export function splitGroupState(
   ws: IdeWorkspaceState,
   groupId: string,
@@ -228,7 +221,6 @@ export function splitGroupState(
     layout,
   };
 }
-
 export function closeGroupState(ws: IdeWorkspaceState, groupId: string): IdeWorkspaceState | null {
   const group = findGroup(ws, groupId);
   if (!group) {

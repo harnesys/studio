@@ -1,9 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-
 import { PluginsDiscoverTab } from './plugins-discover-tab';
 import { PluginsInstalledTab } from './plugins-installed-tab';
 import { PluginsMarketplacesTab } from './plugins-marketplaces-tab';
-
 export function PluginsPane({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="flex flex-col gap-4" data-testid="plugins-pane">

@@ -2,31 +2,18 @@ import type { PluginName } from '../../domain/plugin.ts';
 import type { MonitorSpec, PluginIr } from '../../domain/plugin-ir.ts';
 import type { BindDiagnosticSink } from './bind-agents.ts';
 import { expandPluginVars } from './expand-plugin-vars.ts';
-
-/** Условие запуска монитор job'а (спека §3 monitor). */
 export type MonitorWhen = 'always' | `on-skill-invoke:${string}`;
-
-/** Корни плагина для раскрытия плейсхолдеров в команде; хост берёт их из записи установки. */
-export type MonitorExecContext = { pluginRoot: string; pluginData: string };
-
-/**
- * Описатель job'а для планировщика хоста: библиотека только типизирует и
- * валидирует, исполнение (Studio scheduler) — на стороне хоста.
- */
+export type MonitorExecContext = {
+  pluginRoot: string;
+  pluginData: string;
+};
 export type MonitorJobSpec = {
   name: string;
   command: string;
   when: MonitorWhen;
   pluginId: PluginName;
 };
-
 const ON_SKILL_INVOKE = /^on-skill-invoke:(.+)$/;
-
-/**
- * MonitorSpec → MonitorJobSpec: `when` валидируется (невалидная форма —
- * компонент отбрасывается с diagnostic), команда нормализуется раскрытием
- * `${PLUGIN_ROOT}`/`${PLUGIN_DATA}` и Claude-синонимов в абсолютные пути.
- */
 export function bindMonitorComponents(
   ir: PluginIr,
   exec: MonitorExecContext,
@@ -57,7 +44,6 @@ export function bindMonitorComponents(
   }
   return jobs;
 }
-
 function parseMonitorWhen(raw: string | undefined): MonitorWhen | undefined {
   if (raw === undefined || raw === 'always') {
     return 'always';

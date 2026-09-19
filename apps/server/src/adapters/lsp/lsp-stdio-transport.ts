@@ -1,16 +1,9 @@
 import { Buffer } from 'node:buffer';
 
 type Message = Record<string, unknown>;
-
-/**
- * Content-Length framing over a spawned LSP process stdio: outgoing JSON-RPC
- * messages are written with a header, incoming frames are reassembled from the
- * chunked stdout stream and handed to `onMessage`. stderr is drained as text.
- */
 export class LspStdioTransport {
   private buffer = Buffer.alloc(0);
   private stderr = '';
-
   constructor(
     private readonly proc: ReturnType<typeof Bun.spawn>,
     private readonly onMessage: (message: Message) => void,
@@ -18,12 +11,9 @@ export class LspStdioTransport {
     void this.readStdout();
     void this.readStderr();
   }
-
-  /** Captured stderr of the server process (for failure diagnostics). */
   get stderrText(): string {
     return this.stderr;
   }
-
   write(message: object): void {
     const body = Buffer.from(JSON.stringify(message), 'utf8');
     const header = Buffer.from(`Content-Length: ${body.byteLength}\r\n\r\n`, 'utf8');
@@ -33,7 +23,6 @@ export class LspStdioTransport {
       stdin.write(body);
     }
   }
-
   private async readStdout(): Promise<void> {
     const stdout = this.proc.stdout;
     if (stdout == null || typeof stdout === 'number') {
@@ -51,11 +40,8 @@ export class LspStdioTransport {
           this.consumeBuffer();
         }
       }
-    } catch {
-      // stream closed
-    }
+    } catch {}
   }
-
   private async readStderr(): Promise<void> {
     const stderr = this.proc.stderr;
     if (stderr == null || typeof stderr === 'number') {
@@ -63,11 +49,8 @@ export class LspStdioTransport {
     }
     try {
       this.stderr = await new Response(stderr as ReadableStream).text();
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
-
   private consumeBuffer(): void {
     while (true) {
       const headerEnd = indexOfHeaderEnd(this.buffer);
@@ -91,7 +74,6 @@ export class LspStdioTransport {
     }
   }
 }
-
 function indexOfHeaderEnd(buffer: Buffer): number {
   return buffer.toString('latin1').indexOf('\r\n\r\n');
 }

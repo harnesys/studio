@@ -6,7 +6,6 @@ import type { ModelUsage, SessionEvent } from '../ports/session.ts';
 function num(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
-
 function normalizeModelUsage(raw: unknown, meta?: Record<string, unknown>): ModelUsage | null {
   if (!raw || typeof raw !== 'object') {
     return null;
@@ -59,7 +58,6 @@ function normalizeModelUsage(raw: unknown, meta?: Record<string, unknown>): Mode
   }
   return usage;
 }
-
 export function eventToSessionEvent(ev: Event): SessionEvent | null {
   const t = ev.type;
   if (t === 'user.message') {
@@ -115,7 +113,6 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
       delta: '',
     };
   }
-  // Arg chunks stay off the session journal: start + model.tool-call + tool.completed.
   if (t === 'model.tool-input-delta' || t === 'model.tool-input-end') {
     return null;
   }
@@ -225,7 +222,13 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
         (m?.source as 'permission' | 'approve' | 'interrupt' | 'ask_user' | 'budget') ??
         'interrupt',
       prompt: typeof m?.reason === 'string' ? m.reason : undefined,
-      tool: m?.tool as { name: string; input: unknown; toolCallId: string } | undefined,
+      tool: m?.tool as
+        | {
+            name: string;
+            input: unknown;
+            toolCallId: string;
+          }
+        | undefined,
     };
   }
   if (t === 'wait.started') {
@@ -359,23 +362,18 @@ export function eventToSessionEvent(ev: Event): SessionEvent | null {
   }
   return null;
 }
-
 export function runStartedEvent(attempt: number): PendingSessionEvent {
   return { type: 'run.started', attempt } as PendingSessionEvent;
 }
-
 export function runCompletedEvent(text?: string): PendingSessionEvent {
   return { type: 'run.completed', text } as PendingSessionEvent;
 }
-
 export function runCancelledEvent(reason: string): PendingSessionEvent {
   return { type: 'run.cancelled', reason } as PendingSessionEvent;
 }
-
 export function runFailedEvent(message: string): PendingSessionEvent {
   return { type: 'run.failed', message } as PendingSessionEvent;
 }
-
 export function agentHandoffEvent(agentId: string): PendingSessionEvent {
   return { type: 'agent.handoff', agentId } as PendingSessionEvent;
 }

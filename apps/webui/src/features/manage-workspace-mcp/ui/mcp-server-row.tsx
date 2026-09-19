@@ -8,12 +8,10 @@ import {
   RotateCwIcon,
   Trash2Icon,
 } from 'lucide-react';
-
 import { pluginStatusBadge } from '@/features/manage-agent';
 import { Button } from '@/shared/ui/button';
 import { Row, RowChip, RowField, RowItem, RowSection } from '@/shared/ui/capability-rows';
 import type { StatusDotTone } from '@/shared/ui/status-dot';
-
 import {
   pluginServerPointer,
   pluginServerTitle,
@@ -21,7 +19,6 @@ import {
   serverSummary,
   shortToolName,
 } from '../model/mcp-server-status';
-
 export type McpServerRowProps = {
   server: WorkspaceMcpConfigServer;
   live?: WorkspaceMcpServer;
@@ -35,7 +32,6 @@ export type McpServerRowProps = {
   onEdit: (server: WorkspaceMcpConfigServer) => void;
   onDelete: (serverId: string) => void;
 };
-
 export function McpServerRow({
   server,
   live,
@@ -58,7 +54,6 @@ export function McpServerRow({
   const statusChip = plugin && origin.status !== 'native' ? pluginStatusBadge(origin) : undefined;
   const toggleable = (plugin && (origin.status === 'native' || server.disabledByUser)) || !plugin;
   const restartable = server.enabled && (!plugin || (plugin && origin.status === 'native'));
-
   return (
     <Row
       testId={`mcp-server-${server.serverId}`}
@@ -215,7 +210,6 @@ export function McpServerRow({
     </Row>
   );
 }
-
 function PluginStatusSection({
   server,
   busy,
@@ -261,11 +255,17 @@ function PluginStatusSection({
   }
   return null;
 }
-
 function serverStatus(
   enabled: boolean,
-  live: { connected: boolean } | undefined,
-): { tone: StatusDotTone; label: string } {
+  live:
+    | {
+        connected: boolean;
+      }
+    | undefined,
+): {
+  tone: StatusDotTone;
+  label: string;
+} {
   if (!enabled) {
     return { tone: 'off', label: 'Disabled' };
   }

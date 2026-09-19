@@ -1,6 +1,5 @@
 import type { DriverEndpoint } from '@harnesys/studio-shared';
 import { useEffect, useState } from 'react';
-
 import { Field, FieldDescription, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import {
@@ -14,7 +13,6 @@ import {
 } from '@/shared/ui/select';
 
 const CUSTOM_ID = 'custom';
-
 type ProviderEndpointFieldsProps = {
   apiUrl: string;
   idPrefix: string;
@@ -22,7 +20,6 @@ type ProviderEndpointFieldsProps = {
   defaultUrl: string;
   onApiUrlChange: (apiUrl: string) => void;
 };
-
 export function ProviderEndpointFields({
   apiUrl,
   idPrefix,
@@ -33,11 +30,9 @@ export function ProviderEndpointFields({
   const presets = endpoints;
   const matched = matchEndpoint(presets, apiUrl);
   const [custom, setCustom] = useState(false);
-
   useEffect(() => {
     setCustom(false);
   }, []);
-
   const hasPresets = presets.length > 1;
   const selectedId = custom || (apiUrl.trim() && !matched) ? CUSTOM_ID : (matched?.id ?? CUSTOM_ID);
   const items = [
@@ -48,7 +43,6 @@ export function ProviderEndpointFields({
     { value: CUSTOM_ID, label: 'Custom' },
   ];
   const groups = [...new Set(presets.map((item) => item.group).filter((item) => item != null))];
-
   return (
     <>
       {hasPresets ? (
@@ -120,7 +114,6 @@ export function ProviderEndpointFields({
     </>
   );
 }
-
 export function persistedApiUrl(
   endpoints: DriverEndpoint[],
   defaultUrl: string,
@@ -135,7 +128,6 @@ export function persistedApiUrl(
   }
   return undefined;
 }
-
 function matchEndpoint(endpoints: DriverEndpoint[], apiUrl: string): DriverEndpoint | undefined {
   const needle = stripSlash(apiUrl.trim());
   if (!needle) {
@@ -143,7 +135,6 @@ function matchEndpoint(endpoints: DriverEndpoint[], apiUrl: string): DriverEndpo
   }
   return endpoints.find((item) => stripSlash(item.apiUrl) === needle);
 }
-
 function stripSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }

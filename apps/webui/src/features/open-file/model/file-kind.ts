@@ -1,5 +1,4 @@
 export type OpenFileKind = 'text' | 'image' | 'pdf' | 'unsupported';
-
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
 const PDF_EXTS = new Set(['pdf']);
 const MARKDOWN_EXTS = new Set(['md', 'mdx', 'markdown']);
@@ -57,11 +56,9 @@ const TEXT_EXTS = new Set([
   'csv',
   'tsv',
 ]);
-
 export function fileBasename(path: string): string {
   return path.replaceAll('\\', '/').split('/').pop() ?? path;
 }
-
 export function fileExtension(path: string): string {
   const base = fileBasename(path);
   if (base.startsWith('.') && !base.slice(1).includes('.')) {
@@ -73,7 +70,6 @@ export function fileExtension(path: string): string {
   }
   return base.slice(dot + 1).toLowerCase();
 }
-
 export function openFileKind(path: string): OpenFileKind {
   const ext = fileExtension(path);
   if (IMAGE_EXTS.has(ext)) {
@@ -87,8 +83,6 @@ export function openFileKind(path: string): OpenFileKind {
   }
   return 'unsupported';
 }
-
-/** True for `.md` / `.mdx` / `.markdown` paths (IDE preview toggle). */
 export function isMarkdownPath(path: string): boolean {
   return MARKDOWN_EXTS.has(fileExtension(path));
 }

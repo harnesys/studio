@@ -1,7 +1,5 @@
 import { type Effort, isEffort, type ProviderPublic } from '@harnesys/studio-shared';
-
 import { findModel } from './model-input';
-
 export function agentEfforts(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
@@ -12,7 +10,6 @@ export function agentEfforts(
   }
   return levels;
 }
-
 export function agentDefaultEffort(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
@@ -20,21 +17,18 @@ export function agentDefaultEffort(
   const value = findModel(modelId, providers)?.defaultEffort;
   return typeof value === 'string' && isEffort(value) ? value : undefined;
 }
-
 function modelReasoningMandatory(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
 ): boolean {
   return findModel(modelId, providers)?.reasoningMandatory === true;
 }
-
 export function agentModelVerified(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
 ): boolean {
   return findModel(modelId, providers)?.verified ?? true;
 }
-
 export function selectedEffort(
   levels: Effort[],
   current?: string,
@@ -56,7 +50,6 @@ export function selectedEffort(
   const active = levels.filter((item) => item !== 'none');
   return active.at(-1) ?? levels[0];
 }
-
 export function effortLabel(value: string): string {
   if (value === 'xhigh') {
     return 'Extra high';

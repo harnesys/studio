@@ -29,19 +29,15 @@ import {
   ThreadEmpty,
   useSyncedThread,
 } from '@/widgets/chat-transcript';
-
 import { RunDivider } from './run-divider';
 
 const EMPTY_FAILURES: RunFailure[] = [];
-
 export type TriggerThreadKind = 'schedule' | 'webhook';
-
 export type ThreadJournalProps = {
   threadId: string;
   agent: Agent;
   kind: TriggerThreadKind;
 };
-
 export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
   const events = useThreadEvents(threadId);
   const seenAt = useSessionStore((state) => state.seenAt[threadId]);
@@ -59,7 +55,6 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
       return next.length === 0 ? EMPTY_FAILURES : next;
     }),
   );
-
   let body: ReactNode;
   if (!synced && events.length === 0 && !streaming && !compacting) {
     body = <ChatSkeleton />;
@@ -128,19 +123,16 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
       </MessageScrollerProvider>
     );
   }
-
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="thread-journal">
       <div className="min-h-0 flex-1">{body}</div>
     </div>
   );
 }
-
 function runTask(events: SessionEvent[]): string {
   const first = events.find((event) => event.type === 'user');
   return first && first.type === 'user' ? first.text : '';
 }
-
 function EmptyThreadReadSync({ threadId }: { threadId: string }) {
   useEffect(() => {
     useThreadStore.getState().setViewingAtEnd(threadId, true);
@@ -151,26 +143,20 @@ function EmptyThreadReadSync({ threadId }: { threadId: string }) {
   }, [threadId]);
   return null;
 }
-
-/** Track bottom-edge visibility and persist read when stuck to end. */
 function ThreadReadSync({ threadId }: { threadId: string }) {
   const { end } = useMessageScrollerScrollable();
   const contentEpoch = useSessionStore((state) => state.contentEpoch[threadId] ?? 0);
   const viewingAtEnd = !end;
-
   useEffect(() => {
     useThreadStore.getState().setViewingAtEnd(threadId, viewingAtEnd);
-    // contentEpoch: re-mark when new events arrive while pinned to bottom.
     if (viewingAtEnd && contentEpoch >= 0) {
       scheduleMarkThreadRead(threadId);
     }
   }, [threadId, viewingAtEnd, contentEpoch]);
-
   useEffect(() => {
     return () => {
       useThreadStore.getState().setViewingAtEnd(threadId, false);
     };
   }, [threadId]);
-
   return null;
 }

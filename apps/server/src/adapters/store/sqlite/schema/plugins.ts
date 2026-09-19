@@ -1,6 +1,5 @@
 import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { pluginRegistriesTable } from './plugin-registries.ts';
-
 export const pluginsTable = sqliteTable(
   'plugins',
   {
@@ -29,6 +28,5 @@ export const pluginsTable = sqliteTable(
     ),
   }),
 );
-
 export type PluginRow = typeof pluginsTable.$inferSelect;
 export type PluginInsert = typeof pluginsTable.$inferInsert;

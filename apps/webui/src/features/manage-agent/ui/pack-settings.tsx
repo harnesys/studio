@@ -3,17 +3,12 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/fie
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
-
 import { MemoryPackSettings } from './memory-pack-settings';
-
-/** Studio-known pack specs until catalog exposes `specSchema` for a generic form. */
 export const PACKS_WITH_SETTINGS = new Set(['files', 'shell']);
-
-const DEFAULT_SHELL_TIMEOUT_MS = 30_000;
+const DEFAULT_SHELL_TIMEOUT_MS = 30000;
 const DEFAULT_WEB_SEARCH_MAX_RESULTS = 5;
 const MAX_WEB_SEARCH_RESULTS = 20;
 const DEFAULT_SEARXNG_URL = 'http://localhost:8888';
-
 type WebSearchProvider = 'duckduckgo' | 'searxng';
 const WEB_SEARCH_PROVIDERS: readonly WebSearchProvider[] = ['duckduckgo', 'searxng'];
 const DEFAULT_FILES_BLOCKLIST = [
@@ -31,11 +26,9 @@ const DEFAULT_FILES_BLOCKLIST = [
   'node_modules',
   'dist',
 ];
-
 export function packHasSettings(name: string, catalogHasSettings: boolean): boolean {
   return catalogHasSettings || PACKS_WITH_SETTINGS.has(name);
 }
-
 export function PackSettingsFields({
   packName,
   config,
@@ -63,7 +56,6 @@ export function PackSettingsFields({
     </p>
   );
 }
-
 function FilesSettings({
   config,
   onChange,
@@ -78,7 +70,6 @@ function FilesSettings({
     : undefined;
   const blocklistText =
     blocklist === undefined ? DEFAULT_FILES_BLOCKLIST.join('\n') : blocklist.join('\n');
-
   function patchSpec(partial: Record<string, unknown>) {
     const nextSpec = { ...spec, ...partial };
     if (typeof nextSpec.root === 'string' && nextSpec.root.trim() === '') {
@@ -86,7 +77,6 @@ function FilesSettings({
     }
     onChange({ spec: nextSpec });
   }
-
   return (
     <FieldGroup className="gap-2">
       <Field>
@@ -118,7 +108,6 @@ function FilesSettings({
     </FieldGroup>
   );
 }
-
 function ShellSettings({
   config,
   onChange,
@@ -133,7 +122,6 @@ function ShellSettings({
       : DEFAULT_SHELL_TIMEOUT_MS;
   const allowlist = stringList(spec.allowlist);
   const blocklist = stringList(spec.blocklist);
-
   function patchSpec(partial: Record<string, unknown>) {
     const nextSpec = { ...spec, ...partial };
     for (const key of ['allowlist', 'blocklist'] as const) {
@@ -144,7 +132,6 @@ function ShellSettings({
     }
     onChange({ spec: nextSpec });
   }
-
   return (
     <FieldGroup className="gap-2">
       <Field>
@@ -153,7 +140,7 @@ function ShellSettings({
           id="pack-shell-timeout"
           type="number"
           min={1}
-          max={600_000}
+          max={600000}
           value={String(timeout)}
           onChange={(event) => {
             const raw = event.target.value.trim();
@@ -165,7 +152,7 @@ function ShellSettings({
             if (!Number.isFinite(next)) {
               return;
             }
-            patchSpec({ timeout: Math.min(600_000, Math.max(1, Math.trunc(next))) });
+            patchSpec({ timeout: Math.min(600000, Math.max(1, Math.trunc(next))) });
           }}
         />
         <FieldDescription className="text-[11px] leading-snug">
@@ -207,7 +194,6 @@ function ShellSettings({
     </FieldGroup>
   );
 }
-
 function WebSearchSettings({
   config,
   onChange,
@@ -222,7 +208,6 @@ function WebSearchSettings({
     typeof spec.maxResults === 'number' && Number.isFinite(spec.maxResults)
       ? spec.maxResults
       : DEFAULT_WEB_SEARCH_MAX_RESULTS;
-
   function patchSpec(partial: Record<string, unknown>) {
     const nextSpec = { ...spec, ...partial };
     if (typeof nextSpec.searxngUrl === 'string' && nextSpec.searxngUrl.trim() === '') {
@@ -230,7 +215,6 @@ function WebSearchSettings({
     }
     onChange({ spec: nextSpec });
   }
-
   return (
     <FieldGroup className="gap-2">
       <Field>
@@ -299,14 +283,12 @@ function WebSearchSettings({
     </FieldGroup>
   );
 }
-
 function linesFromTextarea(value: string): string[] {
   return value
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
 }
-
 function stringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];

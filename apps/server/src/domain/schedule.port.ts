@@ -1,7 +1,5 @@
 import type { ScheduleHistory } from '@harnesys/studio-shared';
-
 export type ScheduleStatus = 'active' | 'paused' | 'failed';
-
 export type Schedule = {
   id: string;
   workspaceId: string;
@@ -19,9 +17,7 @@ export type Schedule = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type ScheduleInsert = Schedule;
-
 export type SchedulePatch = Partial<{
   name: string;
   status: ScheduleStatus;

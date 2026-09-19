@@ -9,25 +9,24 @@ import type { GraphOpts } from './graph.ts';
 import { subtractDeniedTools } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
-
 export type HandoffNodeSpec = {
   type: 'control:handoff';
   agentId: string | Expr;
   input: Expr | Record<string, Expr | unknown>;
 };
-
 export type HandoffSlots = {
   input: unknown;
   state: Record<string, unknown>;
   output: unknown;
   resume: unknown;
 };
-
 export type HandoffEmission = {
   type: 'agent.handoff';
-  metadata: { agentId: string; handoff: true };
+  metadata: {
+    agentId: string;
+    handoff: true;
+  };
 };
-
 export type HandoffPrepareResult = {
   agent: AgentDefinition;
   plan: Plan;
@@ -36,14 +35,12 @@ export type HandoffPrepareResult = {
   startNodeId: string;
   emission: HandoffEmission;
 };
-
 function evalHandoffValue(v: unknown, slots: HandoffSlots): unknown {
   if (typeof v === 'string' && v.trim().startsWith('$')) {
     return evalExpr(v, slots);
   }
   return v;
 }
-
 function evalHandoffInput(
   raw: Expr | Record<string, Expr | unknown>,
   slots: HandoffSlots,
@@ -60,7 +57,6 @@ function evalHandoffInput(
   }
   return out;
 }
-
 function resolveAgentId(raw: string | Expr, slots: HandoffSlots): string {
   const val = evalHandoffValue(raw, slots);
   if (typeof val !== 'string' || !val) {
@@ -68,25 +64,18 @@ function resolveAgentId(raw: string | Expr, slots: HandoffSlots): string {
   }
   return val;
 }
-
-/** Resolve target + plan/tools/input for in-loop rebind. Same RuntimeState; no child. */
 export function prepareHandoff(
   node: HandoffNodeSpec,
   parent: GraphOpts,
   slots: HandoffSlots,
 ): HandoffPrepareResult {
-  // Sandbox children must not rebind the thread: handoff is a top-level control.
   if (parent.sandbox) {
     throw codedRunError('handoff_in_sandbox', 'handoff is not allowed in a sandboxed run');
   }
   const agentId = resolveAgentId(node.agentId, slots);
-  // Last line of defense: the tool gate can be bypassed by a parked handoffAgentId.
   if (agentId === parent.agent.id) {
     throw codedRunError('handoff_self', 'handoff onto the current speaker is not allowed');
   }
-  // Handoff is top-level-only: a delegate lacks the parent-run rights model.
-  // No roster entry (or no roster) → allow: a host without roster gives no
-  // ownership info (same caveat as spawn target resolution).
   const entry = parent.agents.list?.(parent.agent)?.find((e) => e.id === agentId);
   if (entry?.parentId != null) {
     throw codedRunError('handoff_target', `handoff onto a delegate is not allowed: ${agentId}`);
@@ -95,8 +84,6 @@ export function prepareHandoff(
   if (!def) {
     throw codedRunError('handoff_target', `handoff target "${agentId}" not found`);
   }
-  // Target without a model would strand the thread on the next llm:generate
-  // (model_unresolved) with the rebind already committed.
   if (!def.model && !def.models) {
     throw codedRunError(
       'handoff_model_unresolved',
@@ -108,9 +95,6 @@ export function prepareHandoff(
   if (!startNodeId) {
     throw codedRunError('start_count', `handoff target "${agentId}" missing start`);
   }
-  // Новый спикер берёт собственное наделение против вселенной рана (без
-  // песочницы: handoff — top-level контроль, тред продолжает жить как обычно);
-  // хост без резолвера получает живой реестр родителя минус deny-списки цели.
   let toolRegistry: Map<string, ToolDefinition>;
   if (parent.universe !== undefined) {
     const targetSet = resolveCapabilitySet(def, parent.universe);

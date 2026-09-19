@@ -1,13 +1,10 @@
 import type { TerminalSessionRecord } from '@harnesys/studio-shared';
 import type { ProcessJobRecord, ProcessJobRegistry } from 'harnesys';
-
 export type TerminalDataListener = (chunk: string) => void;
 export type TerminalExitListener = (code: number | null) => void;
-
 export type TerminalSessionsDeps = {
   jobs: ProcessJobRegistry;
 };
-
 function toSessionRecord(job: ProcessJobRecord): TerminalSessionRecord {
   return {
     id: job.id,
@@ -19,28 +16,19 @@ function toSessionRecord(job: ProcessJobRecord): TerminalSessionRecord {
     exited: job.status !== 'running',
   };
 }
-
-/**
- * IDE terminals over the shared per-node `ProcessJobRegistry` (`mode: 'pty'`).
- * Human `create` stays a login shell; agent pty jobs share the same list.
- */
 export class TerminalSessionRegistry {
   private readonly jobs: ProcessJobRegistry;
   private readonly titleIndexByWorkspace = new Map<string, number>();
-
   constructor(deps: TerminalSessionsDeps) {
     this.jobs = deps.jobs;
   }
-
   list(workspaceId: string): TerminalSessionRecord[] {
     return this.jobs.list({ workspaceId, mode: 'pty' }).map(toSessionRecord);
   }
-
   get(sessionId: string): TerminalSessionRecord | null {
     const job = this.jobs.get(sessionId);
     return job && job.mode === 'pty' ? toSessionRecord(job) : null;
   }
-
   create(workspaceId: string, cwd: string): TerminalSessionRecord {
     const titleIndex = (this.titleIndexByWorkspace.get(workspaceId) ?? 0) + 1;
     this.titleIndexByWorkspace.set(workspaceId, titleIndex);
@@ -55,15 +43,12 @@ export class TerminalSessionRegistry {
       }),
     );
   }
-
   write(sessionId: string, data: string): boolean {
     return this.jobs.write(sessionId, data);
   }
-
   resize(sessionId: string, cols: number, rows: number): boolean {
     return this.jobs.resize(sessionId, cols, rows);
   }
-
   subscribe(
     sessionId: string,
     onData: TerminalDataListener,
@@ -71,19 +56,14 @@ export class TerminalSessionRegistry {
   ): (() => void) | null {
     return this.jobs.subscribe(sessionId, onData, onExit);
   }
-
   scrollback(sessionId: string): string | null {
     return this.jobs.read(sessionId)?.text ?? null;
   }
-
   delete(sessionId: string): boolean {
     return this.jobs.delete(sessionId);
   }
 }
-
 const byJobs = new WeakMap<ProcessJobRegistry, TerminalSessionRegistry>();
-
-/** One stable facade per node registry (keeps the per-workspace title counter). */
 export function terminalSessionsFor(jobs: ProcessJobRegistry): TerminalSessionRegistry {
   const cached = byJobs.get(jobs);
   if (cached) {

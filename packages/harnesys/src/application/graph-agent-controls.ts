@@ -25,35 +25,29 @@ export {
   STATE_WAIT_UNTIL_MS_KEY,
   WAIT_TOOL,
 };
-
 export type AgentControlToolResult = {
   name: string;
   result: unknown;
   isError?: boolean;
 };
-
 export type QueuedSpawnCall = {
   agentId: string;
   input: unknown;
   budget?: unknown;
-  /** Frozen at queue time so retries reuse the same child run lineage. */
   spawnId: string;
 };
-
 function asRecord(v: unknown): Record<string, unknown> | null {
   if (!v || typeof v !== 'object' || Array.isArray(v)) {
     return null;
   }
   return v as Record<string, unknown>;
 }
-
 function spawnInputOf(input: unknown): unknown {
   if (typeof input === 'string') {
     return { messages: [{ role: 'user', content: input }] };
   }
   return input;
 }
-
 function spawnCallsOf(result: unknown): QueuedSpawnCall[] {
   const rec = asRecord(result);
   if (!rec || !Array.isArray(rec.calls)) {
@@ -74,7 +68,6 @@ function spawnCallsOf(result: unknown): QueuedSpawnCall[] {
   }
   return out;
 }
-
 function handoffAgentIdOf(result: unknown): string | undefined {
   const rec = asRecord(result);
   if (!rec || typeof rec.agentId !== 'string' || !rec.agentId) {
@@ -82,9 +75,13 @@ function handoffAgentIdOf(result: unknown): string | undefined {
   }
   return rec.agentId;
 }
-
-/** Control-intent tool name → the control node that must exist in this agent's plan. */
-const CONTROL_INTENTS: Record<string, { nodeType: string; hint: string }> = {
+const CONTROL_INTENTS: Record<
+  string,
+  {
+    nodeType: string;
+    hint: string;
+  }
+> = {
   [AGENTS_SPAWN_TOOL]: {
     nodeType: 'control:spawn',
     hint: 'Run the work inline or add a control:spawn node via the agent form.',
@@ -102,7 +99,6 @@ const CONTROL_INTENTS: Record<string, { nodeType: string; hint: string }> = {
     hint: 'Continue without pausing or add a control:wait node via the agent form.',
   },
 };
-
 export function collectPlanNodeTypes(nodes: AgentNodes): Set<string> {
   const out = new Set<string>();
   for (const n of Object.values(nodes)) {
@@ -110,12 +106,6 @@ export function collectPlanNodeTypes(nodes: AgentNodes): Set<string> {
   }
   return out;
 }
-
-/**
- * Denial text when a control-intent tool ran fine but this agent's plan has no
- * node to honor it; the intent must not be parked into state. Null planNodeTypes
- * (no graph context) disables the check.
- */
 export function unsupportedControlIntentText(
   name: string,
   planNodeTypes: ReadonlySet<string> | undefined,
@@ -129,8 +119,6 @@ export function unsupportedControlIntentText(
   }
   return `no ${intent.nodeType} node in this agent's graph; the intent is not queued. ${intent.hint}`;
 }
-
-/** After tool:call: queue spawn/handoff/map/wait intents onto run state for control nodes. */
 export function applyAgentControlToolResults(
   results: AgentControlToolResult[],
   state: Record<string, unknown>,
@@ -196,25 +184,20 @@ export function applyAgentControlToolResults(
     state[STATE_WAIT_UNTIL_MS_KEY] = waitUntilMs;
   }
 }
-
 export function clearQueuedSpawns(state: Record<string, unknown>): void {
   delete state[STATE_SPAWNS_KEY];
 }
-
 export function clearQueuedHandoff(state: Record<string, unknown>): void {
   delete state[STATE_HANDOFF_AGENT_ID_KEY];
 }
-
 export function clearQueuedMap(state: Record<string, unknown>): void {
   delete state[STATE_MAP_ITEMS_KEY];
   delete state[STATE_MAP_INSTRUCTION_KEY];
   delete state[STATE_MAP_MAX_TOKENS_KEY];
 }
-
 export function clearQueuedWait(state: Record<string, unknown>): void {
   delete state[STATE_WAIT_UNTIL_MS_KEY];
 }
-
 export function appendAssistantNote(
   state: Record<string, unknown>,
   messagesExpr: string | undefined,
@@ -231,10 +214,7 @@ export function appendAssistantNote(
   }
   (arr as unknown[]).push({ role: 'assistant', content: text });
 }
-
-/** Worker output keys withheld from the model context; stored results keep them. */
 const RESULT_NOISE_KEYS = ['reasoning', 'usage'];
-
 function stripResultNoise(item: unknown): unknown {
   const rec = asRecord(item);
   const out = rec ? asRecord(rec.output) : null;
@@ -250,7 +230,6 @@ function stripResultNoise(item: unknown): unknown {
   }
   return cleaned ? { ...rec, output: cleaned } : item;
 }
-
 export function appendMapResultsMessage(
   state: Record<string, unknown>,
   messagesExpr: string | undefined,
@@ -259,7 +238,6 @@ export function appendMapResultsMessage(
   const shown = Array.isArray(results) ? results.map(stripResultNoise) : results;
   appendAssistantNote(state, messagesExpr, `Map results:\n${JSON.stringify(shown)}`);
 }
-
 export function appendSpawnResultsMessage(
   state: Record<string, unknown>,
   messagesExpr: string | undefined,

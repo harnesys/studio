@@ -1,14 +1,11 @@
 import type { JsonSchema } from './json-schema.ts';
-
 export type DiagnosticSeverity = 'error' | 'warning';
-
 export type Diagnostic = {
   code: string;
   severity: DiagnosticSeverity;
   path?: string;
   message: string;
 };
-
 export class ValidationError extends Error {
   diagnostics: Diagnostic[];
   constructor(diagnostics: Diagnostic[]) {
@@ -17,7 +14,6 @@ export class ValidationError extends Error {
     this.diagnostics = diagnostics;
   }
 }
-
 export class NotImplementedError extends Error {
   readonly method: string;
   constructor(method: string) {
@@ -26,7 +22,6 @@ export class NotImplementedError extends Error {
     this.method = method;
   }
 }
-
 export class ThreadBusyError extends Error {
   readonly sessionId: string;
   constructor(sessionId: string) {
@@ -35,7 +30,6 @@ export class ThreadBusyError extends Error {
     this.sessionId = sessionId;
   }
 }
-
 export class PendingHitlError extends Error {
   readonly sessionId: string;
   constructor(sessionId: string) {
@@ -44,7 +38,6 @@ export class PendingHitlError extends Error {
     this.sessionId = sessionId;
   }
 }
-
 export class ResumeHashError extends Error {
   readonly expected: string;
   readonly actual: string;
@@ -55,18 +48,24 @@ export class ResumeHashError extends Error {
     this.actual = actual;
   }
 }
-
 export class AskUserInterrupt extends Error {
   readonly prompt: string;
   readonly source?: 'ask_user' | 'approve' | 'permission';
-  readonly tool?: { name: string; input: unknown; toolCallId: string };
+  readonly tool?: {
+    name: string;
+    input: unknown;
+    toolCallId: string;
+  };
   interruptId?: string;
   readonly resumeSchema?: JsonSchema;
-
   constructor(input: {
     prompt: string;
     source?: 'ask_user' | 'approve' | 'permission';
-    tool?: { name: string; input: unknown; toolCallId: string };
+    tool?: {
+      name: string;
+      input: unknown;
+      toolCallId: string;
+    };
     interruptId?: string;
     resumeSchema?: JsonSchema;
   }) {
@@ -79,9 +78,9 @@ export class AskUserInterrupt extends Error {
     this.resumeSchema = input.resumeSchema;
   }
 }
-
-export type CodedError = Error & { code: string };
-
+export type CodedError = Error & {
+  code: string;
+};
 export function codedRunError(code: string, message: string): CodedError {
   return Object.assign(new Error(message), { code }) as CodedError;
 }

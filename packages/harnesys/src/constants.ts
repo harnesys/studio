@@ -1,24 +1,19 @@
 import type { PermissionMap } from './ports/permissions.ts';
 import type { RunLifecycleStatus } from './ports/run-lifecycle-store.ts';
-
-// Paths
 export const WORKSPACE_META_DIR = '.harnesys';
-
-// Files / shell / http
-export const DEFAULT_MAX_READ_CHARS = 64_000;
-export const DEFAULT_SHELL_TIMEOUT_MS = 30_000;
-export const MAX_SHELL_TIMEOUT_MS = 600_000;
+export const DEFAULT_MAX_READ_CHARS = 64000;
+export const DEFAULT_SHELL_TIMEOUT_MS = 30000;
+export const MAX_SHELL_TIMEOUT_MS = 600000;
 export const DEFAULT_LIST_DIR_LIMIT = 500;
 export const DEFAULT_GREP_MAX_RESULTS = 100;
-export const DEFAULT_GREP_MAX_CHARS = 30_000;
-export const DEFAULT_GREP_TIMEOUT_MS = 30_000;
-export const MAX_GREP_LINE_CHARS = 2_000;
+export const DEFAULT_GREP_MAX_CHARS = 30000;
+export const DEFAULT_GREP_TIMEOUT_MS = 30000;
+export const MAX_GREP_LINE_CHARS = 2000;
 export const BINARY_PROBE_BYTES = 8192;
 export const DEFAULT_READ_LIMIT = 400;
 export const MAX_READ_LINES = 2000;
-export const DEFAULT_HTTP_TIMEOUT_MS = 30_000;
-export const MAX_HTTP_TIMEOUT_MS = 600_000;
-
+export const DEFAULT_HTTP_TIMEOUT_MS = 30000;
+export const MAX_HTTP_TIMEOUT_MS = 600000;
 export const DEFAULT_PATH_BLOCKLIST = [
   '.env',
   '.env.*',
@@ -34,35 +29,26 @@ export const DEFAULT_PATH_BLOCKLIST = [
   'node_modules',
   'dist',
 ];
-
-// Tool output defaults
-export const DEFAULT_TOOL_OUTPUT_MAX_CHARS = 30_000;
-export const DEFAULT_TOOL_OUTPUT_HEAD_CHARS = 8_000;
-export const DEFAULT_TOOL_OUTPUT_TAIL_CHARS = 8_000;
-
-// Run engine
+export const DEFAULT_TOOL_OUTPUT_MAX_CHARS = 30000;
+export const DEFAULT_TOOL_OUTPUT_HEAD_CHARS = 8000;
+export const DEFAULT_TOOL_OUTPUT_TAIL_CHARS = 8000;
 export const JOURNAL_BATCH = 16;
-export const IDLE_BACKSTOP_MS = 5_000;
+export const IDLE_BACKSTOP_MS = 5000;
 export const DEFAULT_LIST_LIMIT = 50;
 export const DEFAULT_ASK_TTL_MS = 7 * 24 * 3600 * 1000;
-export const DEFAULT_LEASE_TTL_MS = 15_000;
-export const DEFAULT_LEASE_RENEW_MS = 5_000;
-export const DEFAULT_CLAIMER_SWEEP_MS = 5_000;
+export const DEFAULT_LEASE_TTL_MS = 15000;
+export const DEFAULT_LEASE_RENEW_MS = 5000;
+export const DEFAULT_CLAIMER_SWEEP_MS = 5000;
 export const DEFAULT_CLAIMABLE_LIMIT = 10;
-
-// Catalog / exposure
 export const MAX_CATALOG_ENTRIES = 60;
 export const MAX_CATALOG_CHARS = 4000;
 export const MAX_ENTRIES = 40;
 export const MAX_CHARS = 4000;
 export const MAX_BATCH = 16;
-/** Max supporting files listed per skill directory. */
 export const MAX_SKILL_FILES = 200;
 export const MIN_PREFIX_LEN = 8;
 export const STREAM_CHUNK_SIZE = 6;
 export const LOAD_TOOLS_NAME = 'load_tools';
-
-// Memory pack defaults
 export const DEFAULT_PIN_BUDGET_TOKENS = 1500;
 export const DEFAULT_PIN_MAX_ITEMS = 32;
 export const DEFAULT_EPISODIC_TOP_K = 8;
@@ -72,8 +58,6 @@ export const DEFAULT_SEMANTIC_AUTO_PROJECT_SESSION = false;
 export const DEFAULT_SEMANTIC_AUTO_PROJECT_LONG = true;
 export const DEFAULT_SEMANTIC_PROJECT_LIMIT = 20;
 export const DEFAULT_SEMANTIC_PROJECT_BUDGET_TOKENS = 800;
-
-// Protocol names
 export const EVENT_TYPES = {
   RUN_STARTED: 'run.started',
   RUN_COMPLETED: 'run.completed',
@@ -127,7 +111,6 @@ export const EVENT_TYPES = {
   WORK_COMPLETED: 'work.completed',
   WORK_FAILED: 'work.failed',
 } as const;
-
 export const THRESHOLD_SUMMARY_NAME = 'threshold-summary';
 export const ASK_SCHEMA_KEYS = ['options', 'multi', 'allowText'] as const;
 export const DRIVERS = [
@@ -175,9 +158,7 @@ export const RUN_NON_TERMINAL: RunLifecycleStatus[] = [
   'needs_input',
   'waiting',
 ];
-/** Max items in one control:map (same order as tool:call batch). */
 export const MAP_ITEM_LIMIT = 32;
-/** Max control:wait delayMs / relative sleep. */
 export const WAIT_DELAY_MS_MAX = 7 * 24 * 3600 * 1000;
 export const ASK_USER_TOOL = 'ask_user';
 export const AGENTS_SPAWN_TOOL = 'agents_spawn';
@@ -185,13 +166,11 @@ export const AGENTS_HANDOFF_TOOL = 'agents_handoff';
 export const MAP_TOOL = 'map';
 export const WAIT_TOOL = 'wait';
 export const STATE_SPAWNS_KEY = 'spawns';
-/** Checkpoint of finished spawn children inside the control:spawn node state; cleared on node.completed. */
 export const STATE_SPAWN_RESULTS_KEY = 'spawnResults';
 export const STATE_HANDOFF_AGENT_ID_KEY = 'handoffAgentId';
 export const STATE_MAP_ITEMS_KEY = 'mapItems';
 export const STATE_MAP_INSTRUCTION_KEY = 'mapInstruction';
 export const STATE_MAP_MAX_TOKENS_KEY = 'mapMaxTokensPerItem';
-/** Max chars for a control:map instruction template (tool or node). */
 export const MAP_INSTRUCTION_MAX_CHARS = 8000;
 export const STATE_WAIT_UNTIL_MS_KEY = 'waitUntilMs';
 export const NODE_CHECKPOINT_KEY = '$nodeCheckpoint_';
@@ -218,8 +197,6 @@ export const CHAT_GENERATION_PARAMETERS = [
   'max_tokens',
   'max_completion_tokens',
 ] as const;
-
-// Media
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
 export const AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
 export const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg'];
@@ -245,8 +222,6 @@ export const MIME_MAP: Record<string, string> = {
   '.ts': 'application/typescript',
 };
 export const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as const;
-
-// Provider default URLs
 export const ANTHROPIC_DEFAULT_URL = 'https://api.anthropic.com/v1';
 export const NVIDIA_DEFAULT_URL = 'https://integrate.api.nvidia.com/v1';
 export const KIMI_DEFAULT_URL = 'https://api.moonshot.ai/v1';
@@ -267,8 +242,6 @@ export const GOOGLE_DEFAULT_URL = 'https://generativelanguage.googleapis.com/v1b
 export const QWEN_DEFAULT_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
 export const ZAI_DEFAULT_URL = 'https://api.z.ai/api/paas/v4';
 export const XAI_DEFAULT_URL = 'https://api.x.ai/v1';
-
-// Permissions
 export const DEFAULT_PERMISSIONS: PermissionMap = {
   'fs.read': 'allow',
   'fs.write': 'ask',
@@ -277,8 +250,6 @@ export const DEFAULT_PERMISSIONS: PermissionMap = {
   mcp: 'ask',
   agents: 'ask',
 };
-
-// Compaction prompts
 export const SUMMARY_SYSTEM_PROMPT = `Output exactly the Markdown structure shown inside <template> and keep the section order unchanged. Do not include the <template> tags in your response.
 <template>
 ## Objective
@@ -312,10 +283,7 @@ Rules:
 - Preserve exact file paths, symbols, commands, error strings, URLs, and identifiers when known.
 - Do not mention the summary process or that context was compacted.
 - Use only facts from the source.`;
-
 export const SUMMARY_USER_PROMPT = 'Write the compaction summary now.';
-
-// Validate
 export const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 export const RESERVED = new Set([
   'input',
@@ -327,8 +295,6 @@ export const RESERVED = new Set([
   'finishReason',
   'text',
 ]);
-
-// Misc maps
 export const LLM_CHUNK_EVENTS: Record<string, string> = {
   delta: 'model.delta',
   'reasoning-delta': 'model.reasoning',
@@ -342,7 +308,6 @@ export const LLM_CHUNK_EVENTS: Record<string, string> = {
   file: 'model.file',
   chunk: 'model.chunk',
 };
-
 export const PASSTHROUGH_MODEL_EVENTS = new Set([
   'model.delta',
   'model.reasoning',
@@ -356,6 +321,4 @@ export const PASSTHROUGH_MODEL_EVENTS = new Set([
   'model.file',
   'model.stats',
 ]);
-
-// Token estimate
 export const CHARS_PER_TOKEN_ESTIMATE = 4;

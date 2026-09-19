@@ -1,9 +1,6 @@
 import type { MemoryRecord, SemanticScope } from '@harnesys/studio-shared';
-
 import { alert, dialog } from '@/shared/services/overlay';
-
 import { AddSemanticDialog, EditSemanticDialog } from '../ui/semantic-dialogs';
-
 export function openAddSemanticDialog(scope: SemanticScope = 'long') {
   return dialog.open(AddSemanticDialog, {
     title: 'Add memory',
@@ -13,7 +10,6 @@ export function openAddSemanticDialog(scope: SemanticScope = 'long') {
     data: { scope },
   });
 }
-
 export function openEditSemanticDialog(row: MemoryRecord) {
   return dialog.open(EditSemanticDialog, {
     title: 'Edit memory',
@@ -23,7 +19,6 @@ export function openEditSemanticDialog(row: MemoryRecord) {
     data: { row },
   });
 }
-
 export function confirmDeleteSemantic(label: string) {
   return alert.confirm({
     title: `Delete ${label}?`,

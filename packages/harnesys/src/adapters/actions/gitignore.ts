@@ -1,16 +1,13 @@
 import path from 'node:path';
-
 export type GitIgnore = {
   ignores(absolutePath: string): boolean;
 };
-
 type Rule = {
   negated: boolean;
   dirOnly: boolean;
   rooted: boolean;
   pattern: string;
 };
-
 export async function loadGitignore(workdir: string): Promise<GitIgnore> {
   const text = await Bun.file(path.join(workdir, '.gitignore'))
     .text()
@@ -26,7 +23,6 @@ export async function loadGitignore(workdir: string): Promise<GitIgnore> {
     },
   };
 }
-
 function parseGitignore(text: string): Rule[] {
   const rules: Rule[] = [];
   for (const raw of text.split('\n')) {
@@ -57,7 +53,6 @@ function parseGitignore(text: string): Rule[] {
   }
   return rules;
 }
-
 function isIgnored(relative: string, rules: Rule[]): boolean {
   let ignored = false;
   for (const rule of rules) {
@@ -71,7 +66,6 @@ function isIgnored(relative: string, rules: Rule[]): boolean {
   const parent = parentOf(relative);
   return parent !== undefined && isIgnored(parent, rules);
 }
-
 function ruleMatches(rule: Rule, relative: string): boolean {
   const targets =
     rule.rooted || rule.pattern.includes('/')
@@ -87,16 +81,13 @@ function ruleMatches(rule: Rule, relative: string): boolean {
   }
   return false;
 }
-
 function globMatch(pattern: string, value: string): boolean {
   return new Bun.Glob(pattern).match(value);
 }
-
 function parentOf(relative: string): string | undefined {
   const index = relative.lastIndexOf('/');
   return index > 0 ? relative.slice(0, index) : undefined;
 }
-
 function toPosix(value: string): string {
   return value.split(path.sep).join('/');
 }

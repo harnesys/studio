@@ -4,15 +4,12 @@ import type {
   PluginGrantSelection,
   PluginKind,
 } from '@harnesys/studio-shared';
-
 export const GRANT_CLASS_LIST: GrantClass[] = ['content', 'process', 'network'];
-
 export const GRANT_CLASS_DESCRIPTIONS: Record<GrantClass, string> = {
   content: 'Read skills, commands, agents, settings and prompt hooks',
   process: 'Run hook commands, stdio servers, LSP servers and monitors',
   network: 'Call external urls from http hooks and remote MCP servers',
 };
-
 const CONTENT_KINDS: PluginKind[] = [
   'skill',
   'command',
@@ -21,10 +18,7 @@ const CONTENT_KINDS: PluginKind[] = [
   'config-option',
 ];
 const PROCESS_KINDS: PluginKind[] = ['lsp-server', 'monitor', 'path-entry'];
-/** Hook class depends on the handler, MCP class on the transport; the summary carries neither. */
 const ALL_CLASSES: GrantClass[] = GRANT_CLASS_LIST;
-
-/** Three-way checkbox state: true = granted, false = explicitly denied, missing = unset. */
 export function grantCheckboxState(
   selection: PluginGrantSelection,
   grantClass: GrantClass,
@@ -38,7 +32,6 @@ export function grantCheckboxState(
   }
   return false;
 }
-
 export function toggleGrantClass(
   selection: PluginGrantSelection,
   grantClass: GrantClass,
@@ -52,12 +45,9 @@ export function toggleGrantClass(
   }
   return next;
 }
-
 export function grantedClasses(selection: PluginGrantSelection): GrantClass[] {
   return GRANT_CLASS_LIST.filter((grantClass) => selection[grantClass] === true);
 }
-
-/** Classes needed to unblock every native component; hook/MCP kinds contribute conservatively. */
 export function requiredGrantClasses(components: PluginComponentSummary[]): GrantClass[] {
   const required = new Set<GrantClass>();
   for (const component of components) {

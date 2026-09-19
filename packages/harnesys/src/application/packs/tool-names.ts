@@ -2,17 +2,18 @@ import type { AgentDefinition } from '../../domain/agent-definition.ts';
 import type { PackRegistration } from '../../domain/pack.ts';
 import type { ToolDefinition } from '../../ports/tools.ts';
 import { resolvePacks } from './registry.ts';
-
 export type PackCatalogEntry = {
   name: string;
   version: string;
   description: string;
   icon?: string;
   hasSettings: boolean;
-  tools: Array<{ name: string; description: string }>;
+  tools: Array<{
+    name: string;
+    description: string;
+  }>;
   skills: string[];
 };
-
 export function packTools(
   def: AgentDefinition,
   registrations: PackRegistration[],
@@ -31,7 +32,6 @@ export function packTools(
     return out.tools ?? [];
   });
 }
-
 export function packCatalog(registrations: PackRegistration[]): PackCatalogEntry[] {
   return [...registrations]
     .sort((a, b) => (a.pack.name < b.pack.name ? -1 : 1))
@@ -45,11 +45,10 @@ export function packCatalog(registrations: PackRegistration[]): PackCatalogEntry
       skills: r.pack.meta.skills,
     }));
 }
-
-/** Каталог показывает фактический выдачу `create()` — тот же набор, что попадает
- *  в реестр рана при гранте. `meta.tools` — только fallback: create может быть
- *  невозможен вне рана (порты не разрешены). */
-function catalogTools(r: PackRegistration): Array<{ name: string; description: string }> {
+function catalogTools(r: PackRegistration): Array<{
+  name: string;
+  description: string;
+}> {
   try {
     const out = r.pack.create({
       ports: (r.ports ?? {}) as Record<string, unknown>,

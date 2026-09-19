@@ -1,7 +1,6 @@
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { cva, type VariantProps } from 'class-variance-authority';
-
 import { cn } from '@/shared/lib/utils';
 
 const badgeVariants = cva(
@@ -23,7 +22,6 @@ const badgeVariants = cva(
     },
   },
 );
-
 function Badge({
   className,
   variant = 'default',

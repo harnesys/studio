@@ -23,12 +23,10 @@ with piped stdio or explicit flags everything runs non-interactive.
 
 state: pidfiles ~/.harnesys/run/<name>.pid, logs ~/.harnesys/logs/<name>.log
 (HARNESYS_HOME respected)`;
-
 type ParsedArgs = {
   positionals: string[];
   flags: Map<string, string | boolean>;
 };
-
 function parseArgs(args: string[]): ParsedArgs {
   const positionals: string[] = [];
   const flags = new Map<string, string | boolean>();
@@ -57,7 +55,6 @@ function parseArgs(args: string[]): ParsedArgs {
   }
   return { positionals, flags };
 }
-
 function flagNumber(flags: Map<string, string | boolean>, name: string): number | undefined {
   const raw = flags.get(name);
   if (raw === undefined || raw === true) {
@@ -70,13 +67,11 @@ function flagNumber(flags: Map<string, string | boolean>, name: string): number 
   }
   return value;
 }
-
 function fail(message: string): never {
   console.error(`harnesys: ${message}`);
   console.error(`try \`harnesys help\``);
   process.exit(1);
 }
-
 async function main(): Promise<void> {
   const [command, ...rest] = Bun.argv.slice(2);
   switch (command ?? '') {
@@ -142,5 +137,4 @@ async function main(): Promise<void> {
       fail(`unknown command "${command}"`);
   }
 }
-
 await main();

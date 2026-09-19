@@ -6,15 +6,12 @@ import { ConflictError, NotFoundError } from '../../domain/studio.error.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import type { WebhookRepository } from '../../domain/webhook.port.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
-
 export type DeleteThreadRequest = {
   id: string;
 };
-
 export type DeleteThreadInput = {
   execute(request: DeleteThreadRequest): Promise<void>;
 };
-
 export type DeleteThreadDeps = {
   threads: ThreadRepository;
   workspaces: WorkspaceRepository;
@@ -24,10 +21,8 @@ export type DeleteThreadDeps = {
   webhooks?: WebhookRepository;
   semanticSessions?: SemanticSessionCleanup;
 };
-
 export class DeleteThreadUseCase implements DeleteThreadInput {
   constructor(private readonly deps: DeleteThreadDeps) {}
-
   async execute(request: DeleteThreadRequest): Promise<void> {
     const thread = this.deps.threads.findById(request.id);
     if (!thread) {

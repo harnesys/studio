@@ -1,26 +1,23 @@
 import { ArrowLeftIcon } from 'lucide-react';
 import { useParams } from 'react-router';
-
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { parseWindowSettingsCategory } from '@/shared/config/routes';
 import { WINDOW_SETTINGS_GROUPS, type WindowSettingsCategory } from '@/shared/config/settings-nav';
+import { AppLogo } from '@/shared/ui/app-logo';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { SettingsNav } from '@/widgets/settings-nav';
-
 import { AppearancePane } from './appearance-pane';
 import { ChatPane } from './chat-pane';
 import { HostsPane } from './hosts-pane';
-
 export function SettingsPage() {
   const { category } = useParams();
   const { openDesk, openSettings } = useStudioNavigation();
   const active = parseWindowSettingsCategory(category);
   const meta = findSettingsItem(active);
-
   return (
     <div
       className="flex h-svh min-h-0 w-full flex-col bg-background md:flex-row"
@@ -44,6 +41,15 @@ export function SettingsPage() {
         <ScrollArea className="min-h-0 flex-1">
           <SettingsNav active={active} onSelect={(next) => openSettings(next)} />
         </ScrollArea>
+        <div className="flex items-center gap-2 border-t px-2 py-2">
+          <AppLogo className="size-6" />
+          <span className="flex items-center gap-1 font-medium text-sm tracking-tight">
+            Harnesys
+            <Badge variant="secondary" className="text-muted-foreground">
+              v1.0.0
+            </Badge>
+          </span>
+        </div>
       </aside>
       <main className="min-w-0 flex-1">
         <ScrollArea className="h-full">
@@ -62,7 +68,6 @@ export function SettingsPage() {
     </div>
   );
 }
-
 function findSettingsItem(id: WindowSettingsCategory) {
   for (const group of WINDOW_SETTINGS_GROUPS) {
     for (const item of group.items) {
@@ -73,7 +78,6 @@ function findSettingsItem(id: WindowSettingsCategory) {
   }
   return undefined;
 }
-
 function SettingsPane({ category }: { category: WindowSettingsCategory }) {
   switch (category) {
     case 'profile':

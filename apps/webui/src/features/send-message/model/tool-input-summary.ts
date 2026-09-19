@@ -1,19 +1,30 @@
-/** Human-readable tool_call input for HITL confirm. */
-
 import { type DiffDetail, detectLanguage, diffFromEdit } from '@/shared/lib/tool-code';
-
 export type ToolInputPreview =
-  | { kind: 'code'; language?: string; text: string }
-  | { kind: 'markdown'; text: string }
-  | { kind: 'diff'; detail: DiffDetail }
-  | { kind: 'text'; text: string };
-
+  | {
+      kind: 'code';
+      language?: string;
+      text: string;
+    }
+  | {
+      kind: 'markdown';
+      text: string;
+    }
+  | {
+      kind: 'diff';
+      detail: DiffDetail;
+    }
+  | {
+      kind: 'text';
+      text: string;
+    };
 export type ToolInputSummary = {
   title: string;
-  lines: Array<{ label: string; value: string }>;
+  lines: Array<{
+    label: string;
+    value: string;
+  }>;
   preview?: ToolInputPreview;
 };
-
 export function summarizeToolInput(name: string, raw: string | undefined): ToolInputSummary {
   const title = toolTitle(name);
   const fields = parseFields(raw);
@@ -24,7 +35,6 @@ export function summarizeToolInput(name: string, raw: string | undefined): ToolI
       preview: raw?.trim() ? { kind: 'text', text: raw.trim() } : undefined,
     };
   }
-
   switch (name) {
     case 'write_file': {
       const path = typeof fields.path === 'string' ? fields.path : '';
@@ -104,7 +114,6 @@ export function summarizeToolInput(name: string, raw: string | undefined): ToolI
       };
   }
 }
-
 function contentPreview(path: string, content: string): ToolInputPreview | undefined {
   if (!content) {
     return undefined;
@@ -118,7 +127,6 @@ function contentPreview(path: string, content: string): ToolInputPreview | undef
     text: content,
   };
 }
-
 function toolTitle(name: string): string {
   switch (name) {
     case 'write_file':
@@ -146,7 +154,6 @@ function toolTitle(name: string): string {
       return name;
   }
 }
-
 function parseFields(raw: string | undefined): Record<string, unknown> | undefined {
   if (!raw?.trim()) {
     return undefined;
@@ -161,12 +168,17 @@ function parseFields(raw: string | undefined): Record<string, unknown> | undefin
     return undefined;
   }
 }
-
 function linePairs(
   fields: Record<string, unknown>,
   keys: string[],
-): Array<{ label: string; value: string }> {
-  const lines: Array<{ label: string; value: string }> = [];
+): Array<{
+  label: string;
+  value: string;
+}> {
+  const lines: Array<{
+    label: string;
+    value: string;
+  }> = [];
   for (const key of keys) {
     const value = fields[key];
     if (value === undefined || value === null || value === '') {
@@ -176,10 +188,14 @@ function linePairs(
   }
   return lines;
 }
-
-/** Background/terminal mode flags for `shell` input (jobId itself arrives in the result). */
-function shellModeLines(fields: Record<string, unknown>): Array<{ label: string; value: string }> {
-  const lines: Array<{ label: string; value: string }> = [];
+function shellModeLines(fields: Record<string, unknown>): Array<{
+  label: string;
+  value: string;
+}> {
+  const lines: Array<{
+    label: string;
+    value: string;
+  }> = [];
   if (fields.run_in_background === true || fields.block_until_ms === 0) {
     lines.push({ label: 'background', value: 'true' });
   }
@@ -188,12 +204,10 @@ function shellModeLines(fields: Record<string, unknown>): Array<{ label: string;
   }
   return lines;
 }
-
 function looksJson(text: string): boolean {
   const trimmed = text.trim();
   return trimmed.startsWith('{') || trimmed.startsWith('[');
 }
-
 function prettyJson(text: string): string | undefined {
   try {
     return JSON.stringify(JSON.parse(text), null, 2);
@@ -201,7 +215,6 @@ function prettyJson(text: string): string | undefined {
     return undefined;
   }
 }
-
 function stringifyValue(value: unknown): string {
   if (typeof value === 'string') {
     return value;
@@ -215,7 +228,6 @@ function stringifyValue(value: unknown): string {
     return String(value);
   }
 }
-
 function truncate(text: string, max: number): string {
   if (text.length <= max) {
     return text;

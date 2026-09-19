@@ -19,7 +19,6 @@ import { GetWorkspaceMcpUseCase } from '../application/workspaces/get-workspace-
 import { ListWorkspaceSkillsUseCase } from '../application/workspaces/list-workspace-skills.use-case.ts';
 import type { DeskEventsPort } from '../domain/desk-events.port.ts';
 import type { StudioMemoryPorts } from './wire-memory.ts';
-
 export type WireAgentControllersDeps = {
   app: Hono;
   agentRepo: SqliteAgentRepo;
@@ -32,10 +31,7 @@ export type WireAgentControllersDeps = {
   workspaceHarnesys: WorkspaceHarnesysRegistry;
   deskEvents: DeskEventsPort;
 };
-
 export function wireAgentControllers(d: WireAgentControllersDeps): void {
-  // create rejects unknown skills/mcpServers against the same workspace sources
-  // the agent form pickers list from (`/workspaces/:id/skills`, `/workspaces/:id/mcp`).
   const validateConfig = new ValidateAgentConfigUseCase({
     agents: d.agentRepo,
     workspaces: d.workspaceRepo,
@@ -50,7 +46,6 @@ export function wireAgentControllers(d: WireAgentControllersDeps): void {
     deskEvents: d.deskEvents,
     validateConfig,
   });
-
   new AgentController({
     listAgents: new ListAgentsUseCase(d.agentRepo),
     listAgentPresets: new ListAgentPresetsUseCase(),

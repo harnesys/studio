@@ -1,12 +1,16 @@
 import type { Edge, Node } from 'harnesys';
 import type { AgentGraph } from '../../domain/agent.port.ts';
 
-const THINK_NODE: Extract<Node, { type: 'llm:generate' }> = {
+const THINK_NODE: Extract<
+  Node,
+  {
+    type: 'llm:generate';
+  }
+> = {
   type: 'llm:generate',
   prompt: 'main',
   messages: '$state.messages',
 };
-
 const REACT_NODES: Record<string, Node> = {
   start: { type: 'core:start' },
   think: THINK_NODE,
@@ -15,8 +19,6 @@ const REACT_NODES: Record<string, Node> = {
     calls: '$output.toolCalls',
     concurrency: 'parallel',
   },
-  // Узлы управления по форме assistant.json: без них движок отклоняет
-  // agents_spawn/agents_handoff («no control:* node»), и тред не отдаётся назад.
   spawn: {
     type: 'control:spawn',
     calls: '$state.spawns',
@@ -30,7 +32,6 @@ const REACT_NODES: Record<string, Node> = {
   },
   end: { type: 'core:end' },
 };
-
 const REACT_EDGES: Edge[] = [
   { from: 'start', to: 'think' },
   { from: 'think', to: 'act', when: '$output.finishReason = "tool-calls"' },
@@ -43,11 +44,7 @@ const REACT_EDGES: Edge[] = [
   { from: 'spawn', to: 'think' },
   { from: 'handoff', to: 'end' },
 ];
-
 export function buildReactGraph(): AgentGraph {
-  // llm-нода без ключа `tools`: think видит весь набор рана
-  // (контракт node.tools: undefined = all, [] = none, список = сужение).
-  // Сервисы `load_tools`/`load_skill`/`Skill` приходят в сам набор через core-грант.
   return {
     nodes: { ...REACT_NODES },
     edges: [...REACT_EDGES],

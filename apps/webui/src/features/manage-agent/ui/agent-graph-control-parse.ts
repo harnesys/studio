@@ -1,5 +1,4 @@
 import type { InterruptReason, JsonSchema } from 'harnesys';
-
 export const INTERRUPT_REASONS: InterruptReason[] = [
   'human_review',
   'policy',
@@ -8,7 +7,6 @@ export const INTERRUPT_REASONS: InterruptReason[] = [
   'work',
   'wait',
 ];
-
 export function safeJson(value: unknown): string {
   try {
     return JSON.stringify(value, null, 2);
@@ -16,7 +14,6 @@ export function safeJson(value: unknown): string {
     return '';
   }
 }
-
 export function tryParseObject(raw: string): Record<string, unknown> | undefined {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -28,7 +25,6 @@ export function tryParseObject(raw: string): Record<string, unknown> | undefined
   }
   return undefined;
 }
-
 export function tryParseStringArray(raw: string): string[] | undefined {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -40,7 +36,6 @@ export function tryParseStringArray(raw: string): string[] | undefined {
   }
   return undefined;
 }
-
 export function tryParseJsonSchema(raw: string): JsonSchema | undefined {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -52,14 +47,12 @@ export function tryParseJsonSchema(raw: string): JsonSchema | undefined {
   }
   return undefined;
 }
-
 export function inputAsText(input: unknown): string {
   if (typeof input === 'string') {
     return input;
   }
   return safeJson(input);
 }
-
 export function parseInputField(raw: string): string | Record<string, unknown> {
   const trimmed = raw.trim();
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
@@ -70,7 +63,6 @@ export function parseInputField(raw: string): string | Record<string, unknown> {
   }
   return raw;
 }
-
 export function isInterruptReason(value: string): value is InterruptReason {
   return (INTERRUPT_REASONS as string[]).includes(value);
 }

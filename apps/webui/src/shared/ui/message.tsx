@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import { cn } from '@/shared/lib/utils';
 
 function MessageGroup({ className, ...props }: React.ComponentProps<'div'>) {
@@ -11,12 +10,13 @@ function MessageGroup({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function Message({
   className,
   align = 'start',
   ...props
-}: React.ComponentProps<'div'> & { align?: 'start' | 'end' }) {
+}: React.ComponentProps<'div'> & {
+  align?: 'start' | 'end';
+}) {
   return (
     <div
       data-slot="message"
@@ -29,7 +29,6 @@ function Message({
     />
   );
 }
-
 function MessageAvatar({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -42,7 +41,6 @@ function MessageAvatar({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function MessageContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -55,7 +53,6 @@ function MessageContent({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function MessageHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -68,7 +65,6 @@ function MessageHeader({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function MessageFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div

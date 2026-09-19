@@ -1,5 +1,4 @@
 import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-
 export const pluginRegistriesTable = sqliteTable(
   'plugin_registries',
   {
@@ -18,7 +17,6 @@ export const pluginRegistriesTable = sqliteTable(
     nameUnique: uniqueIndex('plugin_registries_name_unique').on(table.name),
   }),
 );
-
 export const pluginCatalogEntriesTable = sqliteTable(
   'plugin_catalog_entries',
   {
@@ -37,7 +35,6 @@ export const pluginCatalogEntriesTable = sqliteTable(
     ),
   }),
 );
-
 export type PluginRegistryRow = typeof pluginRegistriesTable.$inferSelect;
 export type PluginRegistryInsert = typeof pluginRegistriesTable.$inferInsert;
 export type PluginCatalogEntryRow = typeof pluginCatalogEntriesTable.$inferSelect;

@@ -1,13 +1,6 @@
 import type { HookBinding, HookEventName, HookPayload } from '../../domain/hook.ts';
 
-/** Символы точного/CSV-pipe режима матчера; всё вне набора — режим RegExp (план C1). */
 const EXACT_MATCHER_CHARS = /^[A-Za-z0-9_,\- |]+$/;
-
-/**
- * Матчинг биндинга против события, три режима: `*`/''/undefined — все;
- * `[A-Za-z0-9_,\- |]` — точное имя или CSV-pipe-список; иначе RegExp
- * над subject события (план C1).
- */
 export function matchesBinding(b: HookBinding, payload: HookPayload): boolean {
   if (b.event !== payload.event) {
     return false;
@@ -30,8 +23,6 @@ export function matchesBinding(b: HookBinding, payload: HookPayload): boolean {
     return false;
   }
 }
-
-/** Subject матчинга по событию: tool_name, source, agent_type, trigger и т.д. (план C1). */
 function matcherSubject(event: HookEventName, p: HookPayload): string | undefined {
   switch (event) {
     case 'PreToolUse':

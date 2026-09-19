@@ -9,10 +9,8 @@ import type {
 import type { StudioDb } from '../connection.ts';
 import { mapSqliteError } from '../errors.ts';
 import { type WebhookRow, webhooksTable } from '../schema';
-
 export class SqliteWebhookRepo implements WebhookRepository {
   constructor(private readonly db: StudioDb) {}
-
   listByWorkspace(workspaceId: string): Webhook[] {
     return this.db
       .select()
@@ -21,7 +19,6 @@ export class SqliteWebhookRepo implements WebhookRepository {
       .all()
       .map(toWebhook);
   }
-
   listByTargetAgent(workspaceId: string, agentId: string): Webhook[] {
     return this.db
       .select()
@@ -32,12 +29,10 @@ export class SqliteWebhookRepo implements WebhookRepository {
       .all()
       .map(toWebhook);
   }
-
   findById(id: string): Webhook | undefined {
     const row = this.db.select().from(webhooksTable).where(eq(webhooksTable.id, id)).get();
     return row ? toWebhook(row) : undefined;
   }
-
   findByThreadId(threadId: string): Webhook | undefined {
     const row = this.db
       .select()
@@ -46,7 +41,6 @@ export class SqliteWebhookRepo implements WebhookRepository {
       .get();
     return row ? toWebhook(row) : undefined;
   }
-
   insert(rec: WebhookInsert): Webhook {
     try {
       const row = this.db.insert(webhooksTable).values(rec).returning().get();
@@ -59,7 +53,6 @@ export class SqliteWebhookRepo implements WebhookRepository {
       });
     }
   }
-
   update(id: string, patch: WebhookPatch): Webhook {
     try {
       const row = this.db
@@ -76,16 +69,13 @@ export class SqliteWebhookRepo implements WebhookRepository {
       return mapSqliteError(err, { notFound: 'target agent not found' });
     }
   }
-
   delete(id: string): void {
     this.db.delete(webhooksTable).where(eq(webhooksTable.id, id)).run();
   }
-
   deleteByWorkspace(workspaceId: string): void {
     this.db.delete(webhooksTable).where(eq(webhooksTable.workspaceId, workspaceId)).run();
   }
 }
-
 function toWebhook(row: WebhookRow): Webhook {
   return {
     id: row.id,

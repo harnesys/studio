@@ -5,9 +5,7 @@ import {
   defaultAgentCompaction,
   isModeId,
 } from '@harnesys/studio-shared';
-
 import { type Agent, initialsFromName } from './agent';
-
 export function toClientAgent(record: AgentRecord): Agent {
   return {
     id: record.id,
@@ -40,8 +38,6 @@ export function toClientAgent(record: AgentRecord): Agent {
     lastActiveAt: new Date().toISOString(),
   };
 }
-
-/** Same shape-guard as the server repo: drop malformed entries and the builtin 'ask'. */
 function parseModes(modes: AgentMode[] | undefined): AgentMode[] {
   if (!Array.isArray(modes)) {
     return [];

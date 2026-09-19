@@ -5,14 +5,12 @@ import { Button } from '@/shared/ui/button';
 type MessageActionsProps = {
   entryId: string;
   align?: 'start' | 'end';
-  /** Inherited (parent-history) zone: hover actions are unavailable. */
   inherited?: boolean;
   onCopy: () => void;
   onEdit?: () => void;
   onBranch: () => void;
   onDelete?: () => void;
 };
-
 export function MessageActions({
   entryId,
   align = 'start',

@@ -1,10 +1,6 @@
 import type { PluginDiagnostic } from '../../../domain/plugin-diagnostics.ts';
 import type { ConfigOptionSpec, PluginAuthor, PluginIdentity } from '../../../domain/plugin-ir.ts';
-
-/** Листинг корня плагина: имена записей верхнего уровня. */
 export type PluginRootListing = string[];
-
-/** Ключ path-override: компонент, чей путь или inline-определение задаёт манифест. */
 export type PathOverrideKey =
   | 'skills'
   | 'commands'
@@ -14,17 +10,15 @@ export type PathOverrideKey =
   | 'lspServers'
   | 'outputStyles'
   | 'workflows';
-
-/** Значение path-override: путь, список путей или inline-определение. */
 export type PathOverrideValue = string | string[] | Record<string, unknown>;
-
-/** Path-override'ы компонентов из манифеста. */
 export type PathOverrides = Partial<Record<PathOverrideKey, PathOverrideValue>>;
-
-/** Зависимость плагина: голое имя или запись с версией и маркетплейсом. */
-export type PluginDependency = string | { name: string; version?: string; marketplace?: string };
-
-/** Результат разбора манифеста адаптером формата; фатальный отказ = error-diagnostic. */
+export type PluginDependency =
+  | string
+  | {
+      name: string;
+      version?: string;
+      marketplace?: string;
+    };
 export type ManifestResult = {
   identity: PluginIdentity;
   declaredSchema?: string;
@@ -34,15 +28,10 @@ export type ManifestResult = {
   extensions: Record<string, Record<string, unknown>>;
   diagnostics: PluginDiagnostic[];
 };
-
-/** Ajv формулирует нарушение additionalProperties этой фразой при любом уровне вложенности. */
 const ADDITIONAL_PROPERTIES_MESSAGE = 'must NOT have additional properties';
-
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
-/** Строковое поле манифеста или undefined, если поле отсутствует или не строка. */
 export function optionalStringField(raw: unknown, key: string): string | undefined {
   if (!isPlainObject(raw)) {
     return undefined;
@@ -50,8 +39,6 @@ export function optionalStringField(raw: unknown, key: string): string | undefin
   const value = raw[key];
   return typeof value === 'string' ? value : undefined;
 }
-
-/** Метаданные плагина: общие для AP и Claude поля манифеста; неизвестное имя остаётся пустым. */
 export function pickManifestIdentity(raw: unknown): PluginIdentity {
   if (!isPlainObject(raw)) {
     return { name: '' };
@@ -87,7 +74,6 @@ export function pickManifestIdentity(raw: unknown): PluginIdentity {
   }
   return identity;
 }
-
 function pickManifestAuthor(raw: Record<string, unknown>): PluginAuthor {
   const author: PluginAuthor = {};
   const name = optionalStringField(raw, 'name');
@@ -104,8 +90,6 @@ function pickManifestAuthor(raw: Record<string, unknown>): PluginAuthor {
   }
   return author;
 }
-
-/** Предупреждение о неизвестном поле манифеста: поле игнорируется (AP §5.2 report-and-ignore). */
 export function manifestUnknownFieldWarning(manifestLabel: string, key: string): PluginDiagnostic {
   return {
     level: 'warning',
@@ -114,8 +98,6 @@ export function manifestUnknownFieldWarning(manifestLabel: string, key: string):
     path: key,
   };
 }
-
-/** Фатальная ошибка типа известного поля манифеста. */
 export function manifestTypeError(
   manifestLabel: string,
   key: string,
@@ -128,8 +110,6 @@ export function manifestTypeError(
     path: key,
   };
 }
-
-/** Фатальный отказ манифеста без привязки к полю. */
 export function manifestFatal(manifestLabel: string, message: string): PluginDiagnostic {
   return {
     level: 'error',
@@ -137,16 +117,9 @@ export function manifestFatal(manifestLabel: string, message: string): PluginDia
     message: `${manifestLabel} ${message}`,
   };
 }
-
-/** Ошибка `additionalProperties` от Ajv: понижается до warning независимо от содержимого схемы. */
 export function isAdditionalPropertiesError(error: string): boolean {
   return error.includes(ADDITIONAL_PROPERTIES_MESSAGE);
 }
-
-/**
- * Ошибка schema-валидатора в формате `instancePath: message`, классифицированная
- * как фатальная `invalid_manifest`; указатель `/author/name` нормализуется в `author.name`.
- */
 export function manifestSchemaFatal(error: string, manifestLabel: string): PluginDiagnostic {
   const separator = error.indexOf(': ');
   const pointer = separator === -1 ? '/' : error.slice(0, separator);
@@ -161,9 +134,6 @@ export function manifestSchemaFatal(error: string, manifestLabel: string): Plugi
   }
   return diagnostic;
 }
-
-/** Ошибка `additionalProperties`, пониженная до warning `unknown_manifest_field`
- * независимо от содержимого схемы; путь — указатель без ведущего слэша. */
 export function manifestSchemaUnknownField(error: string, manifestLabel: string): PluginDiagnostic {
   const separator = error.indexOf(': ');
   const pointer = separator === -1 ? '/' : error.slice(0, separator);

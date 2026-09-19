@@ -1,18 +1,15 @@
 import type { Node, ToolCallBatch } from 'harnesys';
-
 import { Field, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Textarea } from '@/shared/ui/textarea';
 import { ConcurrencyField, concurrencyString } from './agent-graph-concurrency-field';
 import { ControlNodeFields } from './agent-graph-control-fields';
 import { GraphInput } from './agent-graph-input';
-
 export type AgentGraphNodeFieldsProps = {
   id: string;
   node: Node;
   onChangeId: (nextId: string) => void;
   onChange: (node: Node) => void;
 };
-
 export function AgentGraphNodeFields({
   id,
   node,
@@ -36,7 +33,6 @@ export function AgentGraphNodeFields({
     </FieldGroup>
   );
 }
-
 function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node) => void }) {
   switch (node.type) {
     case 'core:start':
@@ -152,7 +148,6 @@ function NodeTypeFields({ node, onChange }: { node: Node; onChange: (node: Node)
       return <JsonNodeEditor node={node} onChange={onChange} />;
   }
 }
-
 export function JsonNodeEditor({ node, onChange }: { node: Node; onChange: (node: Node) => void }) {
   return (
     <Field>
@@ -171,7 +166,6 @@ export function JsonNodeEditor({ node, onChange }: { node: Node; onChange: (node
     </Field>
   );
 }
-
 function safeJson(value: unknown): string {
   try {
     return JSON.stringify(value, null, 2);
@@ -179,14 +173,12 @@ function safeJson(value: unknown): string {
     return '';
   }
 }
-
 function isToolCallBatch(node: Node): node is ToolCallBatch {
   if (node.type !== 'tool:call') {
     return false;
   }
   return 'calls' in node && typeof node.calls === 'string';
 }
-
 function tryParseNode(raw: string): Node | undefined {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -195,7 +187,11 @@ function tryParseNode(raw: string): Node | undefined {
       typeof parsed === 'object' &&
       !Array.isArray(parsed) &&
       'type' in parsed &&
-      typeof (parsed as { type: unknown }).type === 'string'
+      typeof (
+        parsed as {
+          type: unknown;
+        }
+      ).type === 'string'
     ) {
       return parsed as Node;
     }

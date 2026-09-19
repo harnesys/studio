@@ -1,6 +1,5 @@
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { memo } from 'react';
-
 import { cn } from '@/shared/lib/utils';
 import { specByType } from '../model/agent-graph-catalog';
 import type { AgentGraphFlowNode } from '../model/agent-graph-document';
@@ -18,7 +17,6 @@ function AgentGraphNodeInner({ id, data, selected }: NodeProps<AgentGraphFlowNod
   const sourcePosition = rankdir === 'LR' ? Position.Right : Position.Bottom;
   const tint = graphTypeTint(spec.type);
   const Icon = graphTypeIcon(spec.type);
-
   return (
     <div
       className={cn(
@@ -57,5 +55,4 @@ function AgentGraphNodeInner({ id, data, selected }: NodeProps<AgentGraphFlowNod
     </div>
   );
 }
-
 export const AgentGraphNode = memo(AgentGraphNodeInner);

@@ -5,24 +5,19 @@ import {
   type ModeOpGate,
 } from '@harnesys/studio-shared';
 import { z } from 'zod';
-
 import {
   ModeDisabledToolsSchema,
   ModeToolExposureSchema,
   PackAssignmentSchema,
 } from './draft-overrides';
-
 export const MODE_INSTRUCTIONS_MAX = 6000;
-
 export const agentModeSchema = z.object({
   id: z.string().regex(MODE_ID_RE, 'lowercase letters, digits, dash').max(48),
   name: z.string().trim().min(1, 'Name required').max(80),
   description: z.string().max(200),
   instructions: z.string().max(MODE_INSTRUCTIONS_MAX, `Max ${MODE_INSTRUCTIONS_MAX} characters`),
   skills: z.array(z.string()),
-  // Map-форма: значение — PackAssignment (`null` = явный off в режиме).
   packs: z.record(z.string(), PackAssignmentSchema),
-  // Плоские списки сужения (server `agentModeBody`): резолвер читает только их.
   disabledTools: ModeDisabledToolsSchema,
   exposure: ModeToolExposureSchema,
   permWrite: z.enum(['allow', 'ask', 'deny']),
@@ -31,9 +26,7 @@ export const agentModeSchema = z.object({
   permMcp: z.enum(['allow', 'ask', 'deny']),
   permAgents: z.enum(['allow', 'ask', 'deny']),
 });
-
 export type AgentModeFields = z.infer<typeof agentModeSchema>;
-
 export const agentModesSchema = z.array(agentModeSchema).superRefine((modes, ctx) => {
   const seen = new Set<string>();
   modes.forEach((mode, index) => {
@@ -46,9 +39,7 @@ export const agentModesSchema = z.array(agentModeSchema).superRefine((modes, ctx
     seen.add(mode.id);
   });
 });
-
 const FALLBACK_GATE: ModeOpGate = 'ask';
-
 export function modeToFields(mode: AgentMode): AgentModeFields {
   return {
     id: mode.id,
@@ -66,7 +57,6 @@ export function modeToFields(mode: AgentMode): AgentModeFields {
     permAgents: mode.permissions?.agents ?? FALLBACK_GATE,
   };
 }
-
 export function fieldsToMode(fields: AgentModeFields): AgentMode {
   return {
     id: fields.id,
@@ -86,7 +76,6 @@ export function fieldsToMode(fields: AgentModeFields): AgentMode {
     },
   };
 }
-
 export function blankModeFields(): AgentModeFields {
   return modeToFields({ id: '', name: '' });
 }

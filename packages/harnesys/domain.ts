@@ -1,5 +1,3 @@
-// Browser-safe entry: pure domain constants and helpers, no node builtins.
-
 export { isDriver } from './src/adapters/models/binding.ts';
 export type { AgentGenerationSettings } from './src/domain/agent-definition.ts';
 export type {

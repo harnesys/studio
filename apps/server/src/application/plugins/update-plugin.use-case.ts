@@ -27,21 +27,16 @@ import {
 import { toPluginSummary } from './plugin-summary.ts';
 import { findDependantNames } from './resolve-dependencies.ts';
 import type { SyncPluginRegistryInput } from './sync-plugin-registry.use-case.ts';
-
 export type UpdatePluginRequest = {
   workspaceId: string;
   name: PluginName;
   ref?: string;
 };
-
 export type UpdatePluginResponse = PluginMutationResponse;
-
 export type UpdatePluginInput = {
   execute(request: UpdatePluginRequest): Promise<UpdatePluginResponse>;
 };
-
 export class UpdatePluginUseCase implements UpdatePluginInput {
-  // biome-ignore lint/complexity/useMaxParams: lspByWorkspace is the optional 5th param for LSP invalidation; existing callers unaffected
   constructor(
     private readonly plugins: PluginRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
@@ -49,7 +44,6 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
     private readonly syncRegistry?: SyncPluginRegistryInput,
     private readonly lspByWorkspace?: LspByWorkspace,
   ) {}
-
   async execute(request: UpdatePluginRequest): Promise<UpdatePluginResponse> {
     const current = this.plugins.findByName(request.workspaceId, request.name);
     if (!current) {
@@ -62,11 +56,9 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
     if (dependants.length > 0) {
       throw new ConflictError(`plugin ${request.name} is required by: ${dependants.join(', ')}`);
     }
-
     if (!existsSync(join(current.path, '.git'))) {
       return this.updateNonGit(current, request);
     }
-
     const checkout = await updatePluginCheckout({
       path: current.path,
       ...(request.ref !== undefined ? { ref: request.ref } : {}),
@@ -91,16 +83,6 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
       diagnostics: loaded.diagnostics,
     };
   }
-
-  /**
-   * Catalog installs without .git: `relative` (plain copy of the marketplace
-   * checkout), `npm` and `archive` (materialized trees). Update = sync the
-   * registry, re-resolve the entry (following `renames`), re-materialize,
-   * re-materialize the manifest. Trust and workspace enables are preserved;
-   * PLUGIN_DATA (dataPath) is never touched. Materialized sources swap into a
-   * version-keyed cache dir `plugins/<name>/<revision>`; the record revision is
-   * cleaned to the resolved version.
-   */
   private async updateNonGit(
     current: PluginInstallRecord,
     request: UpdatePluginRequest,
@@ -146,7 +128,6 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
         `catalog source "${entry.installSource.type}" expects a git checkout; reinstall the plugin`,
       );
     }
-
     const from = resolve(registry.path, entry.installSource.path);
     if (!from.startsWith(`${resolve(registry.path)}/`) && from !== resolve(registry.path)) {
       throw new ValidationError(
@@ -156,7 +137,6 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
     if (!existsSync(from)) {
       throw new ValidationError(`relative plugin path missing: ${entry.installSource.path}`);
     }
-
     const staged = `${current.path}__update`;
     await removePluginPath(staged).catch(() => undefined);
     try {
@@ -197,8 +177,6 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
       throw err;
     }
   }
-
-  /** npm/archive: re-materialize into a version-keyed cache dir and swap. */
   private async updateMaterialized(
     current: PluginInstallRecord,
     args: {
@@ -258,8 +236,6 @@ export class UpdatePluginUseCase implements UpdatePluginInput {
     }
   }
 }
-
-/** Diagnostics collected against the staged checkout point at the final install dir after rename. */
 function rewriteStagedDiagPaths(
   diagnostics: PluginDiagnostic[],
   staged: string,
@@ -272,14 +248,10 @@ function rewriteStagedDiagPaths(
     d.path?.startsWith(staged) ? { ...d, path: `${final}${d.path.slice(staged.length)}` } : d,
   );
 }
-
-/** Version-keyed cache dir `plugins/<name>/<revision>`; flat installs nest under their name dir. */
 function versionedInstallPath(currentPath: string, name: string, version: string): string {
   const versionedRoot = basename(currentPath) === name ? currentPath : dirname(currentPath);
   return join(versionedRoot, version);
 }
-
-/** Lockfile-bearing checkouts get `bun install --ignore-scripts`; failure is non-blocking. */
 async function installCheckoutDependencies(checkout: string): Promise<PluginDiagnostic[]> {
   const ok = await installPluginDependencies(checkout).catch(() => false);
   if (ok) {

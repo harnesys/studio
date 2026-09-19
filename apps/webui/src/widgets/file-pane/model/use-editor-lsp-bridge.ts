@@ -8,18 +8,11 @@ import {
 } from '@/features/lsp-bridge';
 import { monaco } from '@/shared/lib/monaco';
 import { toModelPath } from './editor-setup';
-
-/**
- * Attaches the LSP bridge for the open file and mirrors its status into the
- * per-workspace session registry (surfaced by the editor status bar).
- */
 export function useEditorLspBridge(workspaceId: string, path: string | null, languageId: string) {
   const [status, setStatus] = useState<LspBridgeStatus>('off');
   const [pulse, setPulse] = useState(0);
   const [attachEpoch, setAttachEpoch] = useState(0);
-
   useEffect(() => {
-    // Read to retrigger dispose + re-attach after a popup restart.
     void attachEpoch;
     if (!path) {
       return;
@@ -63,18 +56,13 @@ export function useEditorLspBridge(workspaceId: string, path: string | null, lan
       setStatus('off');
     };
   }, [workspaceId, path, languageId, attachEpoch]);
-
-  /** Popup reload: restart the file's server, then dispose + re-attach the bridge. */
   const restartFileServer = useCallback(() => {
     if (!path) {
       return;
     }
     void restartLspForPath(workspaceId, path)
       .then(() => setAttachEpoch((n) => n + 1))
-      .catch(() => {
-        // No server for this file or restart failed; the popup hint keeps the state.
-      });
+      .catch(() => {});
   }, [workspaceId, path]);
-
   return { status, pulse, restartFileServer };
 }

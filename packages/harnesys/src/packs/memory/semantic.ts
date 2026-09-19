@@ -8,9 +8,9 @@ import { definePack } from '../../domain/pack.ts';
 import type { SemanticMemoryPort } from '../../ports/memory.ts';
 import { createSemanticTools } from './create-semantic-tools.ts';
 import { memoryScopeOf } from './memory-scope.ts';
-
-export type SemanticMemoryPorts = { semantic: SemanticMemoryPort };
-
+export type SemanticMemoryPorts = {
+  semantic: SemanticMemoryPort;
+};
 export const semanticMemoryCapability = definePack<SemanticMemoryPorts, Record<string, unknown>>({
   name: 'semantic-memory',
   version: '1.0.0',

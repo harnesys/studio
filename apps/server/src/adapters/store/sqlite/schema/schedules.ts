@@ -11,7 +11,6 @@ import {
 import { agentsTable } from './agents.ts';
 import { threadsTable } from './threads.ts';
 import { workspacesTable } from './workspaces.ts';
-
 export const schedulesTable = sqliteTable(
   'schedules',
   {

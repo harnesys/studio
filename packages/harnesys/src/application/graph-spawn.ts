@@ -17,28 +17,22 @@ import { type DeniedToolEntry, deniedToolsList } from './tool-approve-checkpoint
 import { subtractDeniedTools } from './tool-registry.ts';
 import { createLoadToolsTool } from './tools/create-load-tools-tool.ts';
 import { LOAD_TOOLS_NAME } from './tools/exposure.ts';
-
 export type SpawnCall = {
   agentId: string;
-  /** Замораживается при очередировании; retry переиспользует тот же id, чекпоинт матчится по нему. */
   spawnId?: string;
   input: unknown;
-  /** Квота ребёнка: полная замена, только лимиты; policy движком не используется. */
   budget?: AgentBudget;
 };
-
-/** Бюджет исчерпан на границе лимита; отчёт ребёнка — закрывающий, не «задача сделана». */
 export type SpawnBudgetHit = {
   kind: 'steps' | 'tokens' | 'deadline';
   limit: number;
   used: number;
-  /** `used` включает закрывающий отчётный шаг и может превышать `limit` на него. */
   closingStep: true;
 };
-
-/** Ошибка спавн-вызова: код движка + текст для модели. */
-export type SpawnCallError = { code: string; message: string };
-
+export type SpawnCallError = {
+  code: string;
+  message: string;
+};
 export type SpawnResultItem = {
   agentId: string;
   spawnId: string;
@@ -47,47 +41,39 @@ export type SpawnResultItem = {
   blocked?: DeniedToolEntry[];
   budget?: SpawnBudgetHit;
 };
-
-/** Отказанная цель (resolve не прошёл): в results до старта детей, spawnId выдуманный. */
-export type SpawnDeniedItem = SpawnResultItem & { error: SpawnCallError };
-
+export type SpawnDeniedItem = SpawnResultItem & {
+  error: SpawnCallError;
+};
 export type SpawnNodeSpec = {
   type: 'control:spawn';
   calls: Expr;
   concurrency: Expr | 'parallel' | 'sequential';
-  barrier?: { policy: 'all' };
+  barrier?: {
+    policy: 'all';
+  };
 };
-
 export type SpawnSlots = {
   input: unknown;
   state: Record<string, unknown>;
   output: unknown;
   resume: unknown;
 };
-
 export type SpawnNodeOutcome = {
   results: SpawnResultItem[];
-  /** Уже готовые из чекпоинта: не переигрываются, не эмитятся повторно. */
   carried: SpawnResultItem[];
 };
-
 export type SpawnTarget = {
   call: SpawnCall;
   def: AgentDefinition;
   spawnId: string;
 };
-
 export type PreparedSpawn = {
   targets: SpawnTarget[];
-  /** Цели, не прошедшие resolve: мержатся в итоговые results до старта детей. */
   denied: SpawnDeniedItem[];
-  /** Результат детей из чекпоинта: их цели исключены из targets. */
   carried: SpawnResultItem[];
   concurrency: 'parallel' | 'sequential';
 };
-
 type ChildRunner = (opts: GraphOpts) => AsyncIterable<Event>;
-
 function resolveConcurrency(
   c: Expr | 'parallel' | 'sequential',
   slots: SpawnSlots,
@@ -104,9 +90,10 @@ function resolveConcurrency(
   }
   throw codedRunError('concurrency_invalid', `invalid concurrency ${String(c)}`);
 }
-
-/** `budget` в элементе spawn-вызова: только лимиты, числа >=0, хотя бы один. */
-export function parseSpawnBudget(raw: unknown): { budget?: AgentBudget; error?: string } {
+export function parseSpawnBudget(raw: unknown): {
+  budget?: AgentBudget;
+  error?: string;
+} {
   if (raw === undefined || raw === null) {
     return {};
   }
@@ -132,7 +119,6 @@ export function parseSpawnBudget(raw: unknown): { budget?: AgentBudget; error?: 
   }
   return { budget: out };
 }
-
 function parseCalls(raw: unknown): SpawnCall[] {
   if (!Array.isArray(raw)) {
     throw codedRunError('spawn_calls_shape', 'calls must be array');
@@ -157,9 +143,10 @@ function parseCalls(raw: unknown): SpawnCall[] {
     };
   });
 }
-
-type ResolvedTargets = { targets: SpawnTarget[]; denied: SpawnDeniedItem[] };
-
+type ResolvedTargets = {
+  targets: SpawnTarget[];
+  denied: SpawnDeniedItem[];
+};
 function resolveTargets(
   calls: SpawnCall[],
   agents: AgentsResolve,
@@ -178,10 +165,6 @@ function resolveTargets(
     });
   };
   for (const call of calls) {
-    // Exact-id прямой resolve обходит фильтр видимости ростера: чужой делегат
-    // (parentId задан и не равен runAgentId) трактуем как missing.
-    // Нет записи в ростере или ростера нет вовсе → разрешаем: хост без roster
-    // не даёт информации о владении (в т.ч. plugin-таргеты).
     const rosterEntry = roster.find((e) => e.id === call.agentId);
     const foreign =
       rosterEntry !== undefined &&
@@ -209,8 +192,6 @@ function resolveTargets(
   }
   return { targets, denied };
 }
-
-/** Завершение на границе бюджета: отчёт закрывающий. Порядок видов — как в движка budgetOver. */
 function spawnBudgetHit(
   snap: Snapshot | null | undefined,
   b: AgentBudget | undefined,
@@ -233,7 +214,6 @@ function spawnBudgetHit(
   }
   return undefined;
 }
-
 function childOutputFromState(state: Record<string, unknown>): unknown {
   const msgs = state.messages;
   if (Array.isArray(msgs) && msgs.length > 0) {
@@ -241,7 +221,6 @@ function childOutputFromState(state: Record<string, unknown>): unknown {
   }
   return state;
 }
-
 async function runOneChild(
   parent: GraphOpts,
   target: SpawnTarget,
@@ -250,27 +229,20 @@ async function runOneChild(
   const startOutcome = await emitHook(parent.hooks, 'SubagentStart', {
     agent_type: target.call.agentId,
   });
-  // context-эффект стартового события доставляется в messages ребёнка.
   const childInput = withHookContextPrefix(target.call.input, hookContextText(startOutcome));
   const stopEvent = (): Promise<unknown> =>
     emitHook(parent.hooks, 'SubagentStop', { agent_type: target.call.agentId });
   const childState: RuntimeState = parent.state.child(target.spawnId);
-  // У ребёнка нет модели — наследуем модель рана родителя (плагин-агенты с нерезолвной алиас-моделью).
   const modelInherited =
     target.def.model === undefined && parent.agent.model !== undefined
       ? { ...target.def, model: parent.agent.model }
       : target.def;
-  // Бюджет: квота оркестратора > бюджет определения ребёнка > лимиты родителя
-  // (счётчики свои; policy родителя не наследуется — песочница не спрашивает).
   const childBudget = target.call.budget ?? modelInherited.budget ?? parent.agent.budget;
   const childDef =
     childBudget === modelInherited.budget
       ? modelInherited
       : { ...modelInherited, budget: childBudget };
   const plan = compileOrThrow(childDef);
-  // Реестр ребёнка: собственное наделение против вселенной родителя, слой
-  // песочницы вычитает тулы пака `agents` (тот же набор, что до T6 резал движок);
-  // `load_tools` — только через core-грант резолвера.
   let childPackOutputs = parent.packOutputs;
   let runRegistry: Map<string, ToolDefinition>;
   if (parent.universe !== undefined) {
@@ -288,8 +260,6 @@ async function runOneChild(
     );
     childPackOutputs = childSet.packOutputs;
   } else {
-    // Хост без резолвера: вселенная ребёнка — живой реестр родителя;
-    // движок режет группу `agents` и добавляет `load_tools`, как прежде.
     runRegistry = subtractDeniedTools(parent.toolRegistry, childDef);
     for (const [name, def] of runRegistry) {
       if (def.group === 'agents') {
@@ -298,8 +268,6 @@ async function runOneChild(
     }
     runRegistry.set(LOAD_TOOLS_NAME, createLoadToolsTool(runRegistry));
   }
-  // События ребёнка на шину родителя не идут: жизнь сабагента покрывают
-  // SubagentStart/SubagentStop.
   const childOpts: GraphOpts = {
     agent: childDef,
     input: childInput,
@@ -325,8 +293,6 @@ async function runOneChild(
     stream: parent.stream,
     childJournal: parent.childJournal,
     logger: parent.logger,
-    // Песочница включается жёстко: вложенные спавны наследуют deny-режим,
-    // флаг родителя не копируется.
     sandbox: true,
   };
   let blocked: DeniedToolEntry[] = [];
@@ -338,16 +304,27 @@ async function runOneChild(
       blocked = [];
     }
   };
-  const blockedProp = (): { blocked?: DeniedToolEntry[] } =>
-    blocked.length > 0 ? { blocked } : {};
+  const blockedProp = (): {
+    blocked?: DeniedToolEntry[];
+  } => (blocked.length > 0 ? { blocked } : {});
   try {
     for await (const ev of runChild(childOpts)) {
       parent.childJournal?.(target.spawnId, ev);
     }
   } catch (err) {
     const code =
-      err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
-        ? (err as { code: string }).code
+      err &&
+      typeof err === 'object' &&
+      typeof (
+        err as {
+          code?: unknown;
+        }
+      ).code === 'string'
+        ? (
+            err as {
+              code: string;
+            }
+          ).code
         : 'spawn_child_failed';
     const message = err instanceof Error && err.message ? err.message : 'spawn child failed';
     await readBlocked();
@@ -375,7 +352,6 @@ async function runOneChild(
       ...blockedProp(),
     };
   }
-  // needs_input из ребёнка невозможен по построению; защита на случай обхода.
   if (status === 'needs_input') {
     await stopEvent();
     return {
@@ -401,15 +377,12 @@ async function runOneChild(
     ...blockedProp(),
   };
 }
-
 export function prepareSpawn(
   node: SpawnNodeSpec,
   parent: GraphOpts,
   slots: SpawnSlots,
   done?: SpawnResultItem[],
 ): PreparedSpawn {
-  // Песочница: тулы пака agents вырезаны, но узлы control:spawn исполняются
-  // и в кастомном графе ребёнка. Вложенный спавн запрещён на уровне движка.
   if (parent.sandbox) {
     throw codedRunError('spawn_in_sandbox', 'spawn is not allowed in a sandboxed run');
   }
@@ -418,8 +391,6 @@ export function prepareSpawn(
   }
   const rawCalls = evalExpr(node.calls, slots);
   const calls = parseCalls(rawCalls);
-  // Повторный вход (retry после падения): цели из чекпоинта не переигрываются,
-  // их результаты доносятся carried.
   const doneResults = (done ?? []).filter((r) => calls.some((c) => c.spawnId === r.spawnId));
   const pendingCalls =
     doneResults.length > 0
@@ -429,7 +400,6 @@ export function prepareSpawn(
   const { targets, denied } = resolveTargets(pendingCalls, parent.agents, parent.agent);
   return { targets, denied, carried: doneResults, concurrency };
 }
-
 export async function executeSpawn(
   prepared: PreparedSpawn,
   parent: GraphOpts,
@@ -441,7 +411,6 @@ export async function executeSpawn(
   const settleOne = async (i: number, t: SpawnTarget): Promise<void> => {
     const item = await runOneChild(parent, t, runChild);
     results[i] = item;
-    // Чекпоинт ребёнка должен попасть в состояние до продолжения барьера.
     await onChildDone?.(item);
   };
   if (concurrency === 'sequential') {
@@ -455,6 +424,5 @@ export async function executeSpawn(
   } else {
     await Promise.all(targets.map((t, i) => settleOne(i, t)));
   }
-
   return { results, carried };
 }

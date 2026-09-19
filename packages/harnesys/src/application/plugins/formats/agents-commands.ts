@@ -1,5 +1,4 @@
 import path from 'node:path';
-
 import matter from 'gray-matter';
 import type { PluginDiagnostic } from '../../../domain/plugin-diagnostics.ts';
 import type { AgentSpec, CommandSpec, PluginComponent } from '../../../domain/plugin-ir.ts';
@@ -13,7 +12,6 @@ import {
   relativeToRoot,
 } from './discover.ts';
 
-/** Поля frontmatter plugin-агента, у модели есть носитель в AgentSpec. */
 const AGENT_FRONTMATTER_KEYS: ReadonlySet<string> = new Set([
   'name',
   'description',
@@ -27,20 +25,15 @@ const AGENT_FRONTMATTER_KEYS: ReadonlySet<string> = new Set([
   'background',
   'color',
 ]);
-
-/** Frontmatter plugin-агента, у которого в v2 нет носителя: компонент теряет статус native. */
 const FORBIDDEN_AGENT_KEYS: ReadonlySet<string> = new Set([
   'hooks',
   'mcpServers',
   'permissionMode',
 ]);
-
 type InventoryMarkdownFields = {
   name?: string;
   description?: string;
 };
-
-/** Frontmatter markdown по образцу старого parseInventoryMarkdown: `matter(file)`. */
 export function parseInventoryMarkdown(content: string): InventoryMarkdownFields {
   const parsed = matter(content);
   const data = parsed.data;
@@ -59,12 +52,13 @@ export function parseInventoryMarkdown(content: string): InventoryMarkdownFields
   }
   return fields;
 }
-
-/** Агенты `agents/*.md`: frontmatter по AgentSpec; отсутствующий frontmatter — имя по файлу (Claude-паритет: снисходительно). */
 export function discoverAgentComponents(
   ctx: DiscoverContext,
   dirs: string[] = [path.join(ctx.root, 'agents')],
-): { components: PluginComponent[]; diagnostics: PluginDiagnostic[] } {
+): {
+  components: PluginComponent[];
+  diagnostics: PluginDiagnostic[];
+} {
   const components: PluginComponent[] = [];
   const diagnostics: PluginDiagnostic[] = [];
   for (const dir of dirs) {
@@ -87,12 +81,13 @@ export function discoverAgentComponents(
   }
   return { components, diagnostics };
 }
-
-/** Команды `commands/*.md` (плоские): команда-скилл `plugin:slug`. */
 export function discoverCommandComponents(
   ctx: DiscoverContext,
   dirs: string[] = [path.join(ctx.root, 'commands')],
-): { components: PluginComponent[]; diagnostics: PluginDiagnostic[] } {
+): {
+  components: PluginComponent[];
+  diagnostics: PluginDiagnostic[];
+} {
   const components: PluginComponent[] = [];
   const diagnostics: PluginDiagnostic[] = [];
   for (const dir of dirs) {
@@ -124,7 +119,6 @@ export function discoverCommandComponents(
   }
   return { components, diagnostics };
 }
-
 function readAgentFile(
   ctx: DiscoverContext,
   file: string,
@@ -139,10 +133,7 @@ function readAgentFile(
   try {
     const parsed = matter(content);
     raw = isRecord(parsed.data) ? parsed.data : {};
-  } catch {
-    // Claude-паритет: отсутствующий/unparseable frontmatter — именование по файлу.
-  }
-
+  } catch {}
   const source = { file: relativeToRoot(ctx.root, file), pointer: '$' };
   const spec: AgentSpec = {
     id: `${ctx.pluginName}:${optionalNonEmptyString(raw.name) ?? stem}`,
@@ -153,10 +144,8 @@ function readAgentFile(
   if (description !== undefined) {
     spec.description = description;
   }
-
   const diagnosticsLocal: PluginDiagnostic[] = [];
   let dropped = false;
-
   for (const key of Object.keys(raw)) {
     if (AGENT_FRONTMATTER_KEYS.has(key) || FORBIDDEN_AGENT_KEYS.has(key)) {
       continue;
@@ -187,7 +176,6 @@ function readAgentFile(
       path: source.file,
     });
   }
-
   const model = optionalNonEmptyString(raw.model);
   if (model !== undefined) {
     spec.model = model;
@@ -234,7 +222,6 @@ function readAgentFile(
   if (color !== undefined) {
     spec.color = color;
   }
-
   diagnostics.push(...diagnosticsLocal);
   return {
     kind: 'agent',
@@ -243,21 +230,17 @@ function readAgentFile(
     status: dropped ? 'dropped' : 'native',
   };
 }
-
 function optionalNonEmptyString(value: unknown): string | undefined {
   if (typeof value !== 'string' || value.length === 0) {
     return undefined;
   }
   return value;
 }
-
 function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
-
 function optionalStringList(value: unknown): string[] | undefined {
   if (typeof value === 'string') {
-    // Фронтматтер CC-доков пишет список одной запятой-строкой: "Glob, Grep, Read".
     return value
       .split(',')
       .map((item) => item.trim())
@@ -268,7 +251,6 @@ function optionalStringList(value: unknown): string[] | undefined {
   }
   return value.filter((item): item is string => typeof item === 'string');
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

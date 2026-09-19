@@ -8,7 +8,6 @@ import {
   text,
 } from 'drizzle-orm/sqlite-core';
 import { threadsTable } from './threads.ts';
-
 export const threadPlansTable = sqliteTable(
   'thread_plans',
   {
@@ -33,7 +32,6 @@ export const threadPlansTable = sqliteTable(
     ),
   }),
 );
-
 export const threadPlanItemsTable = sqliteTable(
   'thread_plan_items',
   {
@@ -66,7 +64,6 @@ export const threadPlanItemsTable = sqliteTable(
     orderUnique: index('thread_plan_items_plan_order_idx').on(table.planId, table.order),
   }),
 );
-
 export type ThreadPlanRow = typeof threadPlansTable.$inferSelect;
 export type ThreadPlanInsert = typeof threadPlansTable.$inferInsert;
 export type ThreadPlanItemRow = typeof threadPlanItemsTable.$inferSelect;

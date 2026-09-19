@@ -21,11 +21,9 @@ type StatusCache = {
   ts: number;
   slowCount: number;
 };
-
 export class GitCliAdapter implements GitPort {
   private readonly statusCache = new Map<string, StatusCache>();
   private gitVersionCache: string | null | undefined = undefined;
-
   async getStatus(cwd: string): Promise<GitStatusResponse> {
     const safeCwd = await this.resolveCwd(cwd);
     return getStatus(
@@ -35,16 +33,20 @@ export class GitCliAdapter implements GitPort {
       (c) => this.listBranches(c),
     );
   }
-
   async getFileStatus(
     cwd: string,
     subPath?: string,
-  ): Promise<{ map: GitFileStatusMap; truncated: boolean }> {
+  ): Promise<{
+    map: GitFileStatusMap;
+    truncated: boolean;
+  }> {
     const safeCwd = await this.resolveCwd(cwd);
     return getFileStatus(safeCwd, this.statusCache, (c) => getMtimeKey(c), subPath);
   }
-
-  async listBranches(cwd: string): Promise<{ local: GitBranch[]; recent: GitBranch[] }> {
+  async listBranches(cwd: string): Promise<{
+    local: GitBranch[];
+    recent: GitBranch[];
+  }> {
     const safeCwd = await this.resolveCwd(cwd);
     const current = await execGitTrim(safeCwd, ['branch', '--show-current']).catch(() => '');
     const raw = await execGitTrim(safeCwd, [
@@ -60,7 +62,6 @@ export class GitCliAdapter implements GitPort {
       );
       names = fb ? fb.split('\n').filter(Boolean) : [];
     }
-    // unborn branch (no commits yet) has no refs/heads entry but HEAD points to it
     if (names.length === 0 && current) {
       names = [current];
     }
@@ -70,7 +71,6 @@ export class GitCliAdapter implements GitPort {
     }));
     return { local, recent: local.slice(0, 5) };
   }
-
   async checkout(cwd: string, branch: string): Promise<void> {
     const safeCwd = await this.resolveCwd(cwd);
     if (!branch || branch.includes('\0') || branch.includes('\n')) {
@@ -90,7 +90,6 @@ export class GitCliAdapter implements GitPort {
     }
     throw new Error(err.trim() || `git checkout failed (${res.code})`);
   }
-
   async createBranch(cwd: string, name: string, checkout: boolean, from?: string): Promise<void> {
     const safeCwd = await this.resolveCwd(cwd);
     const ok = await this.validateBranchName(safeCwd, name);
@@ -112,7 +111,6 @@ export class GitCliAdapter implements GitPort {
     }
     throw new Error(err || `git branch failed (${res.code})`);
   }
-
   async stage(cwd: string, paths: string[]): Promise<void> {
     const safeCwd = await this.resolveCwd(cwd);
     const clean = paths
@@ -126,7 +124,6 @@ export class GitCliAdapter implements GitPort {
       }
       throw new Error((res.stderr || res.stdout).trim() || `git add failed (${res.code})`);
     }
-    // validate no absolute/path traversal tricks: git itself will reject outside repo
     const res = await execGit(safeCwd, ['add', '--', ...clean]);
     if (res.code === 0) {
       this.statusCache.clear();
@@ -134,7 +131,6 @@ export class GitCliAdapter implements GitPort {
     }
     throw new Error((res.stderr || res.stdout).trim() || `git add failed (${res.code})`);
   }
-
   async commit(cwd: string, message: string): Promise<void> {
     const safeCwd = await this.resolveCwd(cwd);
     const msg = message.trim();
@@ -144,7 +140,6 @@ export class GitCliAdapter implements GitPort {
     if (msg.includes('\0')) {
       throw new Error('invalid commit message');
     }
-    // stage all changes (including untracked)
     const addRes = await execGit(safeCwd, ['add', '-A']);
     if (addRes.code !== 0) {
       throw new Error((addRes.stderr || addRes.stdout).trim() || `git add failed (${addRes.code})`);
@@ -160,7 +155,6 @@ export class GitCliAdapter implements GitPort {
     }
     throw new Error(err || `git commit failed (${res.code})`);
   }
-
   async push(cwd: string): Promise<void> {
     const safeCwd = await this.resolveCwd(cwd);
     const res = await execGit(safeCwd, ['push']);
@@ -169,7 +163,6 @@ export class GitCliAdapter implements GitPort {
       return;
     }
     const err = (res.stderr + res.stdout).trim();
-    // no upstream -> try set upstream to origin HEAD
     if (/has no upstream|set-upstream|unknown.*upstream/i.test(err)) {
       const retry = await execGit(safeCwd, ['push', '-u', 'origin', 'HEAD']);
       if (retry.code === 0) {
@@ -181,7 +174,6 @@ export class GitCliAdapter implements GitPort {
     }
     throw new Error(err || `git push failed (${res.code})`);
   }
-
   async pull(cwd: string): Promise<void> {
     const safeCwd = await this.resolveCwd(cwd);
     const res = await execGit(safeCwd, ['pull', '--rebase']);
@@ -190,11 +182,9 @@ export class GitCliAdapter implements GitPort {
       return;
     }
     const err = (res.stderr + res.stdout).trim();
-    // rebase may fail on conflict, fallback to plain pull for better message
     if (/conflict|needs merge|would be overwritten/i.test(err)) {
       throw new Error(err);
     }
-    // try plain pull if rebase not supported
     const retry = await execGit(safeCwd, ['pull']);
     if (retry.code === 0) {
       this.statusCache.clear();
@@ -203,7 +193,6 @@ export class GitCliAdapter implements GitPort {
     const retryErr = (retry.stderr + retry.stdout).trim();
     throw new Error(retryErr || err || `git pull failed (${retry.code})`);
   }
-
   async init(cwd: string): Promise<void> {
     const safeCwd = await this.resolveCwd(cwd);
     const existing = await getStatus(
@@ -222,19 +211,19 @@ export class GitCliAdapter implements GitPort {
     }
     this.statusCache.clear();
   }
-
   async getDiff(cwd: string, filePath: string): Promise<GitDiffResponse> {
     const safeCwd = await this.resolveCwd(cwd);
     return getDiff(safeCwd, filePath);
   }
-
   async validateBranchName(cwd: string, name: string): Promise<boolean> {
     const safeCwd = await this.resolveCwd(cwd);
     const res = await execGit(safeCwd, ['check-ref-format', '--branch', name]);
     return res.code === 0;
   }
-
-  private async getAheadBehind(cwd: string): Promise<{ ahead: number; behind: number }> {
+  private async getAheadBehind(cwd: string): Promise<{
+    ahead: number;
+    behind: number;
+  }> {
     const out = await execGitTrim(cwd, [
       'rev-list',
       '--left-right',
@@ -251,7 +240,6 @@ export class GitCliAdapter implements GitPort {
       ? { ahead: 0, behind: 0 }
       : { ahead, behind };
   }
-
   private async getVersion(): Promise<string | null> {
     if (this.gitVersionCache !== undefined) {
       return this.gitVersionCache;
@@ -265,8 +253,6 @@ export class GitCliAdapter implements GitPort {
       return null;
     }
   }
-
-  // biome-ignore lint/suspicious/useAwait: kept async for future async realpath
   private async resolveCwd(cwd: string): Promise<string> {
     if (cwd.includes('\0')) {
       throw new Error('invalid cwd');

@@ -2,11 +2,9 @@ import type { DeskEvent } from '@harnesys/studio-shared';
 import type { DeskEventsInput } from '../domain/desk-events.port.ts';
 
 type DeskListener = (event: DeskEvent) => void;
-
 export class DeskEventsAdapter implements DeskEventsInput {
   private readonly listeners = new Map<string, Set<DeskListener>>();
   private readonly all = new Set<DeskListener>();
-
   subscribe(workspaceId: string, listener: DeskListener): () => void {
     let set = this.listeners.get(workspaceId);
     if (!set) {
@@ -21,28 +19,22 @@ export class DeskEventsAdapter implements DeskEventsInput {
       }
     };
   }
-
   subscribeAll(listener: DeskListener): () => void {
     this.all.add(listener);
     return () => {
       this.all.delete(listener);
     };
   }
-
   emit(workspaceId: string, event: DeskEvent): void {
     for (const listener of this.listeners.get(workspaceId) ?? []) {
       try {
         listener(event);
-      } catch {
-        // subscriber errors stay local
-      }
+      } catch {}
     }
     for (const listener of this.all) {
       try {
         listener(event);
-      } catch {
-        // subscriber errors stay local
-      }
+      } catch {}
     }
   }
 }

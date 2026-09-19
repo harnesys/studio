@@ -1,9 +1,7 @@
 import '@xyflow/react/dist/style.css';
-
 import { ReactFlowProvider } from '@xyflow/react';
 import type { Diagnostic, Edge, Node } from 'harnesys';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
 import { nextNodeId, specByType } from '../model/agent-graph-catalog';
 import {
   type AgentGraphFlowEdge,
@@ -18,13 +16,11 @@ import { layoutGraph } from '../model/agent-graph-layout';
 import { AgentGraphCanvas } from './agent-graph-canvas';
 import { AgentGraphInspector, type AgentGraphSelection } from './agent-graph-inspector';
 import { AgentGraphPalette } from './agent-graph-palette';
-
 export type AgentGraphPaneProps = {
   value?: StudioGraphDocument | null;
   onChange?: (doc: StudioGraphDocument) => void;
   diagnostics?: Diagnostic[];
 };
-
 export function AgentGraphPane(props: AgentGraphPaneProps) {
   return (
     <ReactFlowProvider>
@@ -32,7 +28,6 @@ export function AgentGraphPane(props: AgentGraphPaneProps) {
     </ReactFlowProvider>
   );
 }
-
 function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPaneProps) {
   const [initialDoc] = useState(() => ensurePositions(value ?? defaultReactGraph()));
   const [nodes, setNodes] = useState<AgentGraphFlowNode[]>(() => toFlow(initialDoc).nodes);
@@ -40,7 +35,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
   const [rankdir, setRankdir] = useState<GraphRankdir>(initialDoc.layout?.rankdir ?? 'TB');
   const [selection, setSelection] = useState<AgentGraphSelection>(null);
   const seeded = useRef(false);
-
   useEffect(() => {
     if (seeded.current) {
       return;
@@ -49,7 +43,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     const doc = ensurePositions(value ?? defaultReactGraph());
     onChange?.(doc);
   }, [onChange, value]);
-
   const emit = useCallback(
     (
       nextNodes: AgentGraphFlowNode[],
@@ -60,7 +53,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [onChange],
   );
-
   const replaceNodes = useCallback(
     (next: AgentGraphFlowNode[]) => {
       setNodes(next);
@@ -68,7 +60,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [edges, emit, rankdir],
   );
-
   const replaceEdges = useCallback(
     (next: AgentGraphFlowEdge[]) => {
       setEdges(next);
@@ -76,9 +67,14 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [emit, nodes, rankdir],
   );
-
   const addNode = useCallback(
-    (type: string, position?: { x: number; y: number }) => {
+    (
+      type: string,
+      position?: {
+        x: number;
+        y: number;
+      },
+    ) => {
       const catalog = specByType(type);
       if (!catalog) {
         return;
@@ -101,7 +97,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [edges, emit, nodes, rankdir],
   );
-
   const onChangeNode = useCallback(
     (id: string, node: Node) => {
       const nextNodes = nodes.map((item) =>
@@ -113,7 +108,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [edges, emit, nodes, rankdir],
   );
-
   const onRenameNode = useCallback(
     (fromId: string, toId: string) => {
       const trimmed = toId.trim();
@@ -139,7 +133,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [edges, emit, nodes, rankdir],
   );
-
   const onChangeEdge = useCallback(
     (index: number, edge: Edge) => {
       const current = edges[index];
@@ -162,7 +155,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [edges, emit, nodes, rankdir],
   );
-
   const onSelectionChange = useCallback(
     ({ nodeIds, edgeIds }: { nodeIds: string[]; edgeIds: string[] }) => {
       if (nodeIds.length === 1) {
@@ -192,7 +184,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [edges, nodes],
   );
-
   const onRankdirChange = useCallback(
     (next: GraphRankdir) => {
       setRankdir(next);
@@ -200,7 +191,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     },
     [edges, emit, nodes],
   );
-
   return (
     <div className="relative min-h-0 w-full min-w-0 flex-1 overflow-hidden rounded-md border border-border">
       <AgentGraphCanvas
@@ -230,7 +220,6 @@ function AgentGraphPaneInner({ value, onChange, diagnostics = [] }: AgentGraphPa
     </div>
   );
 }
-
 function withDefaultEdges(
   nodes: AgentGraphFlowNode[],
   edges: AgentGraphFlowEdge[],
@@ -277,7 +266,6 @@ function withDefaultEdges(
     },
   ];
 }
-
 function ensurePositions(doc: StudioGraphDocument): StudioGraphDocument {
   const rankdir = doc.layout?.rankdir ?? 'TB';
   const positions = doc.layout?.positions;

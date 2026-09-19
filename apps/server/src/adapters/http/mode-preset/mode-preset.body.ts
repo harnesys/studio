@@ -2,8 +2,6 @@ import { DEFAULT_MODE_ID, MODE_ID_RE, MODE_OPS } from '@harnesys/studio-shared';
 import { z } from 'zod';
 
 const gates = z.enum(['allow', 'ask', 'deny']);
-
-/** Та же литеральная семантика, что `agent.body.ts:8-11`: `true` → `{}`, off → `null`. */
 const packAssignmentBody = z
   .union([
     z.literal(true),
@@ -20,7 +18,6 @@ const packAssignmentBody = z
     }
     return value;
   });
-
 const modePresetShape = z.object({
   id: z.string().regex(MODE_ID_RE).max(48),
   name: z.string().trim().min(1).max(80),
@@ -31,10 +28,8 @@ const modePresetShape = z.object({
   permissions: z.partialRecord(z.enum(MODE_OPS), gates).optional(),
   installedByDefault: z.boolean().optional(),
 });
-
 export const modePresetBody = modePresetShape.refine((body) => body.id !== DEFAULT_MODE_ID, {
   message: 'id "default" is reserved',
   path: ['id'],
 });
-
 export const modePresetPatchBody = modePresetShape.partial().omit({ id: true });

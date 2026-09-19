@@ -29,7 +29,6 @@ import { toRuntimeLogger } from '../config/logger.ts';
 import type { AgentRepository } from '../domain/agent.port.ts';
 import type { DeskEventsPort } from '../domain/desk-events.port.ts';
 import type { ThreadRepository } from '../domain/thread.port.ts';
-
 export type WireRuntimeDeps = {
   db: StudioDb;
   threadRepo: ThreadRepository;
@@ -37,7 +36,6 @@ export type WireRuntimeDeps = {
   deskEvents: DeskEventsPort;
   modelsPort: ModelsPort;
 };
-
 export type StudioRuntime = {
   runEvents: SqliteRunEventStore;
   runLifecycle: SqliteRunLifecycleStore;
@@ -48,11 +46,14 @@ export type StudioRuntime = {
   instanceId: string;
   scheduleQueue: ScheduleFireQueue;
   webhookQueue: ScheduleFireQueue;
-  agentsRef: { current: WorkspaceHarnesysRegistry | null };
-  targetRef: { current: RunTargets | null };
+  agentsRef: {
+    current: WorkspaceHarnesysRegistry | null;
+  };
+  targetRef: {
+    current: RunTargets | null;
+  };
   stop: () => void;
 };
-
 export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
   const { db, threadRepo, agentRepo, deskEvents, modelsPort } = deps;
   const eventBus = createRunEventBus();
@@ -70,11 +71,10 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
     },
   );
   const instanceId = env.STUDIO_INSTANCE_ID ?? 'studio-local';
-  // The target's per-run registry (assembled by the capability resolver at the
-  // composition root) is authoritative; the engine default stays empty so an
-  // ungated fallback can never serve host tools.
   const toolRegistry = createToolRegistry([]);
-  const agentsRef: { current: WorkspaceHarnesysRegistry | null } = { current: null };
+  const agentsRef: {
+    current: WorkspaceHarnesysRegistry | null;
+  } = { current: null };
   const runEngine = createRunEngine({
     lifecycle: runLifecycle,
     events: runEvents,
@@ -91,10 +91,15 @@ export function wireRuntime(deps: WireRuntimeDeps): StudioRuntime {
   });
   const scheduleQueue = new ScheduleFireQueue();
   const webhookQueue = new ScheduleFireQueue();
-  const scheduleQueueRef: { current: ScheduleFireQueue | null } = { current: scheduleQueue };
-  const webhookQueueRef: { current: ScheduleFireQueue | null } = { current: webhookQueue };
-  const targetRef: { current: RunTargets | null } = { current: null };
-  /** Terminal-only run-finish signal for server-side subscribers (monitors, run buses). */
+  const scheduleQueueRef: {
+    current: ScheduleFireQueue | null;
+  } = { current: scheduleQueue };
+  const webhookQueueRef: {
+    current: ScheduleFireQueue | null;
+  } = { current: webhookQueue };
+  const targetRef: {
+    current: RunTargets | null;
+  } = { current: null };
   const emitRunFinish = (record: RunRecord): void => {
     if (!TERMINAL_RUN_STATUSES.has(record.status)) {
       return;

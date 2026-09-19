@@ -6,7 +6,6 @@ export type CronParts = {
   month: string;
   dayOfWeek: string;
 };
-
 export type CronPreset =
   | 'every-minute'
   | 'hourly'
@@ -15,15 +14,16 @@ export type CronPreset =
   | 'weekly'
   | 'monthly'
   | 'custom';
-
 export type CronComposerOptions = {
   minute: number;
   hour: number;
   dayOfMonth: number;
   dayOfWeek: number;
 };
-
-export const CRON_PRESETS: ReadonlyArray<{ value: CronPreset; label: string }> = [
+export const CRON_PRESETS: ReadonlyArray<{
+  value: CronPreset;
+  label: string;
+}> = [
   { value: 'every-minute', label: 'Every minute' },
   { value: 'hourly', label: 'Hourly' },
   { value: 'daily', label: 'Daily' },
@@ -32,8 +32,11 @@ export const CRON_PRESETS: ReadonlyArray<{ value: CronPreset; label: string }> =
   { value: 'monthly', label: 'Monthly' },
   { value: 'custom', label: 'Custom' },
 ];
-
-export const WEEKDAY_OPTIONS: ReadonlyArray<{ value: number; label: string; short: string }> = [
+export const WEEKDAY_OPTIONS: ReadonlyArray<{
+  value: number;
+  label: string;
+  short: string;
+}> = [
   { value: 0, label: 'Sunday', short: 'Sun' },
   { value: 1, label: 'Monday', short: 'Mon' },
   { value: 2, label: 'Tuesday', short: 'Tue' },
@@ -42,13 +45,10 @@ export const WEEKDAY_OPTIONS: ReadonlyArray<{ value: number; label: string; shor
   { value: 5, label: 'Friday', short: 'Fri' },
   { value: 6, label: 'Saturday', short: 'Sat' },
 ];
-
 const FIELD = /^(\*|[0-9]+(?:-[0-9]+)?(?:,[0-9]+(?:-[0-9]+)?)*)(?:\/[0-9]+)?$/;
-
 export function defaultCronOptions(): CronComposerOptions {
   return { minute: 0, hour: 9, dayOfMonth: 1, dayOfWeek: 1 };
 }
-
 export function parseCron(expr: string): CronParts | null {
   const tokens = expr.trim().split(/\s+/).filter(Boolean);
   let fields: string[];
@@ -73,7 +73,6 @@ export function parseCron(expr: string): CronParts | null {
   }
   return { second, minute, hour, dayOfMonth, month, dayOfWeek };
 }
-
 export function formatCron(parts: CronParts): string {
   return [
     parts.second,
@@ -84,12 +83,10 @@ export function formatCron(parts: CronParts): string {
     parts.dayOfWeek,
   ].join(' ');
 }
-
 export function normalizeCron(expr: string): string | null {
   const parts = parseCron(expr);
   return parts ? formatCron(parts) : null;
 }
-
 export function detectPreset(parts: CronParts): CronPreset {
   if (parts.month !== '*') {
     return 'custom';
@@ -150,7 +147,6 @@ export function detectPreset(parts: CronParts): CronPreset {
   }
   return 'custom';
 }
-
 export function optionsFromParts(parts: CronParts): CronComposerOptions {
   return {
     minute: clampInt(parts.minute, 0, 59, 0),
@@ -159,13 +155,11 @@ export function optionsFromParts(parts: CronParts): CronComposerOptions {
     dayOfWeek: clampInt(parts.dayOfWeek, 0, 6, 1),
   };
 }
-
 export function cronFromPreset(preset: CronPreset, options: CronComposerOptions): string {
   const minute = String(clamp(options.minute, 0, 59));
   const hour = String(clamp(options.hour, 0, 23));
   const dayOfMonth = String(clamp(options.dayOfMonth, 1, 31));
   const dayOfWeek = String(clamp(options.dayOfWeek, 0, 6));
-
   switch (preset) {
     case 'every-minute':
       return '0 * * * * *';
@@ -183,7 +177,6 @@ export function cronFromPreset(preset: CronPreset, options: CronComposerOptions)
       return `0 ${minute} ${hour} * * *`;
   }
 }
-
 export function humanizeCron(expr: string): string {
   const parts = parseCron(expr);
   if (!parts) {
@@ -192,7 +185,6 @@ export function humanizeCron(expr: string): string {
   const preset = detectPreset(parts);
   const opts = optionsFromParts(parts);
   const time = formatClock(opts.hour, opts.minute, parts.second === '0' ? null : parts.second);
-
   switch (preset) {
     case 'every-minute':
       return 'Every minute';
@@ -212,26 +204,21 @@ export function humanizeCron(expr: string): string {
       return `Custom · ${formatCron(parts)}`;
   }
 }
-
 function isNumber(value: string): boolean {
   return /^\d+$/.test(value);
 }
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.trunc(value)));
 }
-
 function clampInt(raw: string, min: number, max: number, fallback: number): number {
   if (!isNumber(raw)) {
     return fallback;
   }
   return clamp(Number(raw), min, max);
 }
-
 function pad(value: number): string {
   return String(value).padStart(2, '0');
 }
-
 function formatClock(hour: number, minute: number, second: string | null): string {
   const base = `${pad(hour)}:${pad(minute)}`;
   return second === null ? base : `${base}:${second.padStart(2, '0')}`;

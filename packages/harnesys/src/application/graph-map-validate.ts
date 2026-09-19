@@ -4,7 +4,6 @@ import type { DiagnosticSeverity } from '../domain/errors.ts';
 import { isPathExpr, parseExpr } from './expr-eval.ts';
 
 type AddDiag = (code: string, severity: DiagnosticSeverity, message: string, path?: string) => void;
-
 function tryParse(expr: string, path: string | undefined, add: AddDiag): boolean {
   try {
     parseExpr(expr);
@@ -15,13 +14,20 @@ function tryParse(expr: string, path: string | undefined, add: AddDiag): boolean
     return false;
   }
 }
-
 function collectMapBodies(nodes: Record<string, Node>): {
   bodyIds: Set<string>;
-  maps: Array<{ id: string; body: Set<string>; enter: string }>;
+  maps: Array<{
+    id: string;
+    body: Set<string>;
+    enter: string;
+  }>;
 } {
   const bodyIds = new Set<string>();
-  const maps: Array<{ id: string; body: Set<string>; enter: string }> = [];
+  const maps: Array<{
+    id: string;
+    body: Set<string>;
+    enter: string;
+  }> = [];
   for (const [id, n] of Object.entries(nodes)) {
     if (n.type !== 'control:map') {
       continue;
@@ -34,7 +40,6 @@ function collectMapBodies(nodes: Record<string, Node>): {
   }
   return { bodyIds, maps };
 }
-
 export function validateMapWaitNodes(
   def: AgentDefinition,
   edgesByFrom: Map<string, Edge[]>,
@@ -42,7 +47,6 @@ export function validateMapWaitNodes(
 ): void {
   const nodes = def.graph.nodes;
   const { bodyIds, maps } = collectMapBodies(nodes);
-
   for (const [id, n] of Object.entries(nodes)) {
     if (n.type === 'control:yield') {
       if (!bodyIds.has(id)) {
@@ -67,7 +71,6 @@ export function validateMapWaitNodes(
       }
       continue;
     }
-
     if (n.type === 'control:map') {
       const base = `graph.nodes.${id}`;
       if (typeof n.items !== 'string' || n.items.trim().length === 0) {
@@ -202,7 +205,6 @@ export function validateMapWaitNodes(
           );
         }
       }
-      // edges from body must stay in body; yield has no outgoing
       if (Array.isArray(n.body)) {
         const bodySet = new Set(n.body);
         let hasYield = false;
@@ -229,7 +231,6 @@ export function validateMapWaitNodes(
       }
       continue;
     }
-
     if (n.type === 'control:wait') {
       const base = `graph.nodes.${id}`;
       const hasDelay = n.delayMs !== undefined;
@@ -263,7 +264,6 @@ export function validateMapWaitNodes(
         }
       }
       if (!hasDelay && !hasUntil) {
-        // gate mode
         if (n.timeoutMs !== undefined) {
           if (!Number.isFinite(n.timeoutMs) || n.timeoutMs < 1) {
             add('wait_timeout', 'error', 'timeoutMs must be >= 1', `${base}.timeoutMs`);
@@ -298,8 +298,6 @@ export function validateMapWaitNodes(
       }
     }
   }
-
-  // Body nodes must not appear in multiple maps
   const owner = new Map<string, string>();
   for (const m of maps) {
     for (const bid of m.body) {
@@ -316,11 +314,9 @@ export function validateMapWaitNodes(
     }
   }
 }
-
 export function mapBodyNodeIds(nodes: Record<string, Node>): Set<string> {
   return collectMapBodies(nodes).bodyIds;
 }
-
 export function isYieldValuePath(expr: string): boolean {
   return isPathExpr(expr) || (typeof expr === 'string' && expr.trim().startsWith('$'));
 }

@@ -16,7 +16,6 @@ import { readFields } from '../threads/thread.helpers.ts';
 import { requireBindableThread } from './bind-schedule-thread.ts';
 import { isValidCron, nextCronRunAt } from './cron-next.ts';
 import { toScheduleRecord } from './schedule-record.ts';
-
 export type CreateScheduleRequest = {
   workspaceId: string;
   name: string;
@@ -28,11 +27,9 @@ export type CreateScheduleRequest = {
   historyLast?: number;
   threadId?: string;
 };
-
 export type CreateScheduleInput = {
   execute(request: CreateScheduleRequest): Promise<CreateScheduleResponse>;
 };
-
 export type CreateScheduleDeps = {
   schedules: ScheduleRepository;
   threads: ThreadRepository;
@@ -41,7 +38,6 @@ export type CreateScheduleDeps = {
   deskEvents: DeskEventsPort;
   db?: StudioDb;
 };
-
 export class CreateScheduleUseCase implements CreateScheduleInput {
   private readonly schedules: ScheduleRepository;
   private readonly threads: ThreadRepository;
@@ -49,7 +45,6 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
   private readonly workspaces: WorkspaceRepository;
   private readonly deskEvents: DeskEventsPort;
   private readonly db?: StudioDb;
-
   constructor(deps: CreateScheduleDeps) {
     this.schedules = deps.schedules;
     this.threads = deps.threads;
@@ -58,23 +53,19 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
     this.deskEvents = deps.deskEvents;
     this.db = deps.db;
   }
-
   async execute(request: CreateScheduleRequest): Promise<CreateScheduleResponse> {
     const name = request.name?.trim();
     if (!name) {
       throw new ValidationError('schedule name is required');
     }
-
     const workspace = this.workspaces.findById(request.workspaceId);
     if (!workspace) {
       throw new NotFoundError('workspace not found');
     }
-
     const agent = this.agents.findById(request.targetAgentId);
     if (!agent || agent.workspaceId !== request.workspaceId) {
       throw new ValidationError('agent not found');
     }
-
     const now = new Date().toISOString();
     const existingThread = request.threadId
       ? requireBindableThread({
@@ -101,7 +92,6 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
     if (!isModeId(modeId) || !allowedModeIds.has(modeId)) {
       throw new ValidationError('schedule modeId is not a mode of the target agent');
     }
-
     let history: ScheduleHistory = 'none';
     if (request.history !== undefined) {
       if (!isScheduleHistory(request.history)) {
@@ -109,7 +99,6 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
       }
       history = request.history;
     }
-
     let historyLast = 1;
     if (request.historyLast !== undefined) {
       const value = Math.floor(request.historyLast);
@@ -118,7 +107,6 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
       }
       historyLast = Math.min(value, 99);
     }
-
     const perform = () => {
       const thread =
         existingThread ??
@@ -153,9 +141,7 @@ export class CreateScheduleUseCase implements CreateScheduleInput {
       });
       return { thread, schedule };
     };
-
     const { thread, schedule } = this.db ? this.db.transaction(perform) : perform();
-
     const created = {
       schedule: toScheduleRecord(schedule),
       thread: {

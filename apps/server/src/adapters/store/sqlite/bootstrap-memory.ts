@@ -109,7 +109,6 @@ const MEMORY_STATEMENTS = [
     CHECK(status IN ('idle', 'running', 'error'))
   );`,
 ] as const;
-
 const MEMORY_FTS_STATEMENTS = [
   `CREATE VIRTUAL TABLE IF NOT EXISTS episodic_chunks_fts USING fts5(
     text,
@@ -149,7 +148,6 @@ const MEMORY_FTS_STATEMENTS = [
       VALUES (new.rowid, new.title, new.text);
   END;`,
 ] as const;
-
 export function bootstrapMemory(db: StudioDb): void {
   for (const statement of MEMORY_STATEMENTS) {
     db.run(sql.raw(statement));

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 import {
   useCreateWorkspace,
   usePickWorkspaceFolder,
@@ -9,18 +8,17 @@ import {
 import type { DialogComponentProps } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
-
 import { folderNameFromPath, LOCAL_HOST_ID } from '../model/hosts.store';
 import { WorkspaceFields } from './workspace-fields';
-
-/**
- * One form for workspace details: host → name → folder. Create and edit share it.
- * The host is fixed in edit mode; agents move between hosts in a later version.
- */
 export function WorkspaceDetailsDialog({
   onResolve,
   data,
-}: DialogComponentProps<Workspace, { workspace?: Workspace }>) {
+}: DialogComponentProps<
+  Workspace,
+  {
+    workspace?: Workspace;
+  }
+>) {
   const workspace = data?.workspace ?? null;
   const editing = workspace !== null;
   const [hostId, setHostId] = useState<string>(LOCAL_HOST_ID);
@@ -30,7 +28,6 @@ export function WorkspaceDetailsDialog({
   const create = useCreateWorkspace();
   const update = useUpdateWorkspace();
   const pick = usePickWorkspaceFolder();
-
   const trimmedName = name.trim();
   const trimmedPath = path.trim();
   const remoteHost = !editing && hostId !== LOCAL_HOST_ID;
@@ -41,14 +38,12 @@ export function WorkspaceDetailsDialog({
     invalid = trimmedName.length === 0 && trimmedPath.length === 0;
   }
   const busy = create.isPending || update.isPending || pick.isPending;
-
   const applyPath = (next: string) => {
     setPath(next);
     if (!nameTouched) {
       setName(folderNameFromPath(next));
     }
   };
-
   return (
     <>
       <WorkspaceFields

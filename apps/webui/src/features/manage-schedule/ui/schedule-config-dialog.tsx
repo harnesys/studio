@@ -25,17 +25,14 @@ type AgentModesLike = {
   modes?: AgentMode[];
   defaultModeId?: string | null;
 };
-
 function hasAgentModes(agent: Agent): agent is Agent & AgentModesLike {
   return 'modes' in agent;
 }
-
 export type ScheduleConfigData = {
   agents: Agent[];
   workspaceId: string;
   schedule: Schedule | null;
 };
-
 export function ScheduleConfigDialog({
   onResolve,
   data,
@@ -59,7 +56,6 @@ export function ScheduleConfigDialog({
     ...agentModes.map((mode) => ({ value: mode.id, label: mode.name })),
   ];
   const canSave = draft.name.trim().length > 0 && draft.cron.trim().length > 0 && agents.length > 0;
-
   return (
     <>
       <FieldGroup>

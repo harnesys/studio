@@ -3,17 +3,13 @@ import type { BranchStateSeeder } from '../../domain/branch-state-seeder.port.ts
 import type { RuntimeStateRepository } from '../../domain/runtime-state.port.ts';
 import type { ThreadRepository } from '../../domain/thread.port.ts';
 import { cutParentEvents, seedMessagesFromEvents } from './fork-logs.ts';
-
 export type SeedBranchStateDeps = {
   threads: ThreadRepository;
   runEvents: RunEventStore;
   runtimeStates: RuntimeStateRepository;
 };
-
 export class SeedBranchStateUseCase implements BranchStateSeeder {
   constructor(private readonly deps: SeedBranchStateDeps) {}
-
-  /** Идемпотентно: пишет seed snapshot ветке без snapshot'ов. Вызывается перед claim/exec. */
   async seedIfNeeded(threadId: string): Promise<void> {
     const thread = this.deps.threads.findById(threadId);
     if (!thread?.parentThreadId || !thread.forkAt) {

@@ -1,13 +1,3 @@
-/** Write-path валидация capability-конфига (spec 2026-09-15 §7 + ruling T7).
- *  Вызывается из create/update use-case'ов до записи; ошибки — `ValidationError`
- *  (HTTP → 400, tool-path → `{error}` через `runGuard`). `pack.create()` идёт вне
- *  рана, поэтому чтения выходов паков обёрнуты в `runInHostToolScope`.
- *
- *  Механика core (ruling): отсутствие ключа = хост-флаг, авто-provision
- *  `{"core":{}}` (тот же merge, что выполнит миграция T8); явный `false`/`null` =
- *  отказ от обязательного флага → 400 `core is mandatory`. Остальные правила §7 —
- *  строгий отказ с первого дня. */
-
 import type { AgentMode } from '@harnesys/studio-shared';
 import type { AgentDefinition, AgentPacks, PackAssignment, PackRegistration } from 'harnesys';
 import { normalizePackAssignment, packTools } from 'harnesys';
@@ -17,23 +7,19 @@ import type { AgentCapabilitiesMap, AgentRepository } from '../../domain/agent.p
 import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import type { WorkspaceRepository } from '../../domain/workspace.port.ts';
 import { effectivePluginNames } from './effective-plugins.ts';
-
 export type WorkspaceHarnesysSource =
   | WorkspaceHarnesysRegistry
-  | { current: WorkspaceHarnesysRegistry | null };
-
+  | {
+      current: WorkspaceHarnesysRegistry | null;
+    };
 export type ValidateAgentConfigDeps = {
   agents: AgentRepository;
   workspaces: WorkspaceRepository;
-  /** Tool-path строится раньше реестра: late-ref той же формы, что `pluginAgentsRef`. */
   workspaceHarnesys: WorkspaceHarnesysSource;
 };
-
 export type ValidateAgentConfigRequest = {
   workspaceId: string;
-  /** Себя (update) или кандидат: только для host-scope; валидацию не меняет. */
   agentId?: string;
-  /** Создатель делегата; задан — включаются проверки child ⊆ creator-effective. */
   parentId?: string | null;
   capabilities: AgentCapabilitiesMap;
   enabledPlugins?: Record<string, boolean>;
@@ -41,21 +27,15 @@ export type ValidateAgentConfigRequest = {
   mcpServers?: string[];
   modes?: AgentMode[];
 };
-
 export type ValidateAgentConfigResult = {
-  /** Кандидат с provisioned `core` (остальное как пришло). */
   capabilities: AgentCapabilitiesMap;
-  /** Режимы с provisioned `core` в map-форме; пустой preload не трогаем. */
   modes: AgentMode[] | undefined;
 };
-
 export type ValidateAgentConfigInput = {
   execute(request: ValidateAgentConfigRequest): Promise<ValidateAgentConfigResult>;
 };
-
 export class ValidateAgentConfigUseCase implements ValidateAgentConfigInput {
   constructor(private readonly deps: ValidateAgentConfigDeps) {}
-
   async execute(request: ValidateAgentConfigRequest): Promise<ValidateAgentConfigResult> {
     const registry = derefRegistry(this.deps.workspaceHarnesys);
     const workspace = this.deps.workspaces.findById(request.workspaceId);
@@ -64,17 +44,13 @@ export class ValidateAgentConfigUseCase implements ValidateAgentConfigInput {
     }
     const registrations = [...registry.effectiveRegistrations(workspace)];
     const registered = new Set(registrations.map((reg) => reg.pack.name));
-
     for (const name of Object.keys(toEnabledPacks(request.capabilities))) {
       if (!registered.has(name)) {
         throw new ValidationError(`unknown pack: ${name}`);
       }
     }
-    // Provision раньше чтения выходов: `core` входит в грант и в наборы,
-    // иначе режим с одним `core` ложно признавался шире агента.
     const capabilities = provisionCore(request.capabilities);
     const packs = toEnabledPacks(capabilities);
-
     const scopeAgentId = request.agentId ?? request.parentId ?? 'validate';
     const outputs = readPackOutputs(
       { workspaceId: request.workspaceId, agentId: scopeAgentId },
@@ -82,7 +58,6 @@ export class ValidateAgentConfigUseCase implements ValidateAgentConfigInput {
       registrations,
     );
     assertOverridesValid(packs, outputs.byPack);
-
     const wantedPlugins = enabledNames(request.enabledPlugins);
     const installedNames =
       wantedPlugins.length > 0 || request.parentId
@@ -99,17 +74,12 @@ export class ValidateAgentConfigUseCase implements ValidateAgentConfigInput {
       });
     }
     const modes = assertModesValid(request.modes, packs, outputs.union);
-
     return { capabilities, modes };
   }
 }
-
-/** Зеркало `isOn` из `capability-explain.ts` (библиотека его не экспортирует). */
 function isPackOn(assignment: PackAssignment | null | undefined): boolean {
   return assignment !== undefined && assignment !== null && assignment !== false;
 }
-
-/** Включённые паки кандидата (`false`/`null`/отсутствие = выкл, эталон `registry.ts`). */
 function toEnabledPacks(capabilities: AgentCapabilitiesMap): AgentPacks {
   const packs: AgentPacks = {};
   for (const [name, value] of Object.entries(capabilities)) {
@@ -124,8 +94,6 @@ function toEnabledPacks(capabilities: AgentCapabilitiesMap): AgentPacks {
   }
   return packs;
 }
-
-/** Ruling core: явный off → 400; отсутствие → provision `{}` (merge миграции T8). */
 function provisionCore(capabilities: AgentCapabilitiesMap): AgentCapabilitiesMap {
   const raw: unknown = capabilities.core;
   if (raw === false || raw === null) {
@@ -136,14 +104,15 @@ function provisionCore(capabilities: AgentCapabilitiesMap): AgentCapabilitiesMap
   }
   return capabilities;
 }
-
 type PackOutputs = {
   byPack: Map<string, Set<string>>;
   union: Set<string>;
 };
-
 function readPackOutputs(
-  scope: { workspaceId: string; agentId: string },
+  scope: {
+    workspaceId: string;
+    agentId: string;
+  },
   packs: AgentPacks,
   registrations: PackRegistration[],
 ): PackOutputs {
@@ -171,8 +140,6 @@ function readPackOutputs(
   }
   return { byPack, union };
 }
-
-/** `disabledTools`/`exposure` вычитают только выход своего источника (spec §3). */
 function assertOverridesValid(packs: AgentPacks, byPack: Map<string, Set<string>>): void {
   for (const [name, assignment] of Object.entries(packs)) {
     const outputs = byPack.get(name) ?? new Set<string>();
@@ -193,20 +160,17 @@ function assertOverridesValid(packs: AgentPacks, byPack: Map<string, Set<string>
     }
   }
 }
-
 function enabledNames(flags: Record<string, boolean> | undefined): string[] {
   return Object.entries(flags ?? {})
     .filter(([, on]) => on === true)
     .map(([name]) => name);
 }
-
 async function installedPluginNames(
   registry: WorkspaceHarnesysRegistry,
   workspaceId: string,
 ): Promise<string[]> {
   return (await registry.loadEnabledPlugins(workspaceId)).map((entry) => entry.record.name);
 }
-
 function assertPluginsKnown(wanted: string[], installed: string[]): void {
   const known = new Set(installed);
   for (const name of wanted) {
@@ -215,8 +179,6 @@ function assertPluginsKnown(wanted: string[], installed: string[]): void {
     }
   }
 }
-
-/** Делегат: источники ребёнка ⊆ effective-набора создателя (spec §7.2), без clamping. */
 function assertChildSubset(args: {
   deps: ValidateAgentConfigDeps;
   request: ValidateAgentConfigRequest;
@@ -259,8 +221,6 @@ function assertChildSubset(args: {
     }
   }
 }
-
-/** Режим — сужение агента: packs ⊆ гранта, overrides ⊆ выхода источников (spec §7.5). */
 function assertModesValid(
   modes: AgentMode[] | undefined,
   packs: AgentPacks,
@@ -311,7 +271,6 @@ function assertModesValid(
   });
   return changed ? next : modes;
 }
-
 function derefRegistry(source: WorkspaceHarnesysSource): WorkspaceHarnesysRegistry {
   if ('current' in source) {
     if (source.current) {

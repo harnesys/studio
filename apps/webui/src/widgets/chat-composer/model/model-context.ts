@@ -1,6 +1,5 @@
 import type { ModelPricing, ProviderPublic, SessionEvent } from '@harnesys/studio-shared';
 import type { MessageUsage } from '@/entities/session';
-
 import { findModel } from './model-input';
 
 type TokenUsage = {
@@ -9,8 +8,6 @@ type TokenUsage = {
   cacheRead?: number;
   cacheWrite?: number;
 };
-
-/** One MessageUsage per LLM generation, read from persisted model.usage events. */
 export function generationUsages(events: SessionEvent[]): MessageUsage[] {
   const out: MessageUsage[] = [];
   for (const event of events) {
@@ -32,8 +29,6 @@ export function generationUsages(events: SessionEvent[]): MessageUsage[] {
   }
   return out;
 }
-
-/** Usages after the last human entry (current turn). */
 export function turnGenerationUsages(events: SessionEvent[]): MessageUsage[] {
   let lastUser = -1;
   for (let i = 0; i < events.length; i++) {
@@ -43,7 +38,6 @@ export function turnGenerationUsages(events: SessionEvent[]): MessageUsage[] {
   }
   return generationUsages(lastUser < 0 ? events : events.slice(lastUser + 1));
 }
-
 export function modelContextWindow(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
@@ -61,7 +55,6 @@ export function modelContextWindow(
   }
   return fallback && fallback > 0 ? fallback : 0;
 }
-
 export function fillUsageWindow(usage: MessageUsage | null, window: number): MessageUsage | null {
   if (!usage) {
     return null;
@@ -71,7 +64,6 @@ export function fillUsageWindow(usage: MessageUsage | null, window: number): Mes
   }
   return { ...usage, contextTokens: window };
 }
-
 export function fillUsageCost(
   usage: MessageUsage | null,
   fallbackModelId: string | null | undefined,
@@ -80,7 +72,6 @@ export function fillUsageCost(
   if (!usage || (usage.costUsd != null && usage.costUsd > 0)) {
     return usage;
   }
-  // Prefer the model recorded on the usage event (spawn/subagent may differ).
   const pricing = modelPricing(usage.model || fallbackModelId, providers);
   const usd = usageCostUsd(pricing, {
     input: usage.promptTokens,
@@ -93,7 +84,6 @@ export function fillUsageCost(
   }
   return { ...usage, costUsd: usd };
 }
-
 function modelPricing(
   modelId: string | null | undefined,
   providers: ProviderPublic[],
@@ -101,7 +91,6 @@ function modelPricing(
   const record = findModel(modelId, providers);
   return record?.host?.pricing ?? record?.pricing;
 }
-
 function usageCostUsd(pricing: ModelPricing | undefined, tokens: TokenUsage): number | undefined {
   if (!pricing) {
     return undefined;

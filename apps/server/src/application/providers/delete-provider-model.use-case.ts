@@ -1,22 +1,18 @@
 import type { LlmModelRepository, LlmProviderRepository } from '../../domain/llm-provider.port.ts';
 import { requireModel, requireProvider } from './provider.helpers.ts';
-
 export type DeleteProviderModelRequest = {
   workspaceId: string;
   providerId: string;
   modelId: string;
 };
-
 export type DeleteProviderModelInput = {
   execute(request: DeleteProviderModelRequest): Promise<void>;
 };
-
 export class DeleteProviderModelUseCase implements DeleteProviderModelInput {
   constructor(
     private readonly providers: LlmProviderRepository,
     private readonly models: LlmModelRepository,
   ) {}
-
   async execute(request: DeleteProviderModelRequest): Promise<void> {
     requireProvider(this.providers, request.workspaceId, request.providerId);
     requireModel(this.models, request.providerId, request.modelId);

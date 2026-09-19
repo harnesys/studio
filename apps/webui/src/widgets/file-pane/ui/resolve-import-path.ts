@@ -12,9 +12,7 @@ const CODE_EXTS = [
   '.scss',
   '.md',
 ] as const;
-
 const resolveCache = new Map<string, string | null>();
-
 export function dirnamePath(filePath: string): string {
   const i = filePath.lastIndexOf('/');
   if (i <= 0) {
@@ -22,12 +20,10 @@ export function dirnamePath(filePath: string): string {
   }
   return filePath.slice(0, i);
 }
-
 export function basenamePath(filePath: string): string {
   const i = filePath.lastIndexOf('/');
   return i === -1 ? filePath : filePath.slice(i + 1);
 }
-
 export function resolveRelativePath(fromFile: string, spec: string): string {
   const base = dirnamePath(fromFile);
   const joined = base ? `${base}/${spec}` : spec;
@@ -45,13 +41,11 @@ export function resolveRelativePath(fromFile: string, spec: string): string {
   }
   return out.join('/');
 }
-
 function hasFileExtension(path: string): boolean {
   const name = basenamePath(path);
   const dot = name.lastIndexOf('.');
   return dot > 0;
 }
-
 function preferredExt(fromFile: string): string | null {
   const name = basenamePath(fromFile);
   const dot = name.lastIndexOf('.');
@@ -60,7 +54,6 @@ function preferredExt(fromFile: string): string | null {
   }
   return name.slice(dot);
 }
-
 export function expandImportCandidates(resolved: string, fromFile: string): string[] {
   if (hasFileExtension(resolved)) {
     return [resolved];
@@ -78,7 +71,6 @@ export function expandImportCandidates(resolved: string, fromFile: string): stri
   }
   return candidates;
 }
-
 async function firstExistingFile(
   workspaceId: string,
   candidates: string[],
@@ -93,7 +85,6 @@ async function firstExistingFile(
       dirs.set(dir, [candidate]);
     }
   }
-
   const existingByDir = new Map<string, Set<string>>();
   for (const dir of dirs.keys()) {
     try {
@@ -106,7 +97,6 @@ async function firstExistingFile(
       existingByDir.set(dir, new Set());
     }
   }
-
   for (const candidate of candidates) {
     const names = existingByDir.get(dirnamePath(candidate));
     if (names?.has(basenamePath(candidate))) {
@@ -115,8 +105,6 @@ async function firstExistingFile(
   }
   return null;
 }
-
-/** Resolve a relative import spec (`./x`, `../x`) to an existing workspace file path. */
 export async function resolveImportToWorkspacePath(
   workspaceId: string,
   fromFile: string,
@@ -137,15 +125,11 @@ export async function resolveImportToWorkspacePath(
   }
   return found;
 }
-
 export type ImportLinkMatch = {
   spec: string;
-  /** 1-based columns; start inclusive, end exclusive in Monaco terms (endColumn is exclusive) */
   startColumn: number;
   endColumn: number;
 };
-
-/** Find relative path string literals on a single line (quotes included in columns). */
 export function findRelativeImportSpecs(line: string): ImportLinkMatch[] {
   const matches: ImportLinkMatch[] = [];
   const re = /(['"])(\.\.?\/[^'"]*)\1/g;

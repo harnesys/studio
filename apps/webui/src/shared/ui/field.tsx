@@ -1,7 +1,5 @@
 'use client';
-
 import { cva, type VariantProps } from 'class-variance-authority';
-
 import { cn } from '@/shared/lib/utils';
 import { Label } from '@/shared/ui/label';
 import { Separator } from '@/shared/ui/separator';
@@ -18,12 +16,13 @@ function FieldSet({ className, ...props }: React.ComponentProps<'fieldset'>) {
     />
   );
 }
-
 function FieldLegend({
   className,
   variant = 'legend',
   ...props
-}: React.ComponentProps<'legend'> & { variant?: 'legend' | 'label' }) {
+}: React.ComponentProps<'legend'> & {
+  variant?: 'legend' | 'label';
+}) {
   return (
     <legend
       data-slot="field-legend"
@@ -36,7 +35,6 @@ function FieldLegend({
     />
   );
 }
-
 function FieldGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -49,7 +47,6 @@ function FieldGroup({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 const fieldVariants = cva('group/field flex w-full gap-2 data-[invalid=true]:text-destructive', {
   variants: {
     orientation: {
@@ -64,7 +61,6 @@ const fieldVariants = cva('group/field flex w-full gap-2 data-[invalid=true]:tex
     orientation: 'vertical',
   },
 });
-
 function Field({
   className,
   orientation = 'vertical',
@@ -80,7 +76,6 @@ function Field({
     />
   );
 }
-
 function FieldContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -90,7 +85,6 @@ function FieldContent({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>) {
   return (
     <Label
@@ -104,7 +98,6 @@ function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>)
     />
   );
 }
-
 function FieldTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -117,7 +110,6 @@ function FieldTitle({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
-
 function FieldDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
@@ -132,7 +124,6 @@ function FieldDescription({ className, ...props }: React.ComponentProps<'p'>) {
     />
   );
 }
-
 function FieldSeparator({
   children,
   className,
@@ -162,21 +153,24 @@ function FieldSeparator({
     </div>
   );
 }
-
 function FieldError({
   className,
   children,
   errors,
   ...props
 }: React.ComponentProps<'div'> & {
-  errors?: Array<{ message?: string } | undefined>;
+  errors?: Array<
+    | {
+        message?: string;
+      }
+    | undefined
+  >;
 }) {
   let content: React.ReactNode = null;
   if (children) {
     content = children;
   } else if (errors?.length) {
     const uniqueErrors = [...new Map(errors.map((error) => [error?.message, error])).values()];
-
     if (uniqueErrors?.length == 1) {
       content = uniqueErrors[0]?.message;
     } else {
@@ -189,11 +183,9 @@ function FieldError({
       );
     }
   }
-
   if (!content) {
     return null;
   }
-
   return (
     <div
       role="alert"

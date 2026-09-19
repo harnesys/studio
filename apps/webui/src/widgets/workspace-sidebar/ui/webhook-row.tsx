@@ -11,7 +11,6 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { useSidebar } from '@/shared/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
-
 export function WebhookRow({
   webhook,
   selected,
@@ -27,7 +26,6 @@ export function WebhookRow({
 }) {
   const { state, isMobile } = useSidebar();
   const iconMode = state === 'collapsed' && !isMobile;
-
   return (
     <div
       className={cn(

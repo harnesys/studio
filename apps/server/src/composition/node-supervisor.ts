@@ -14,7 +14,6 @@ import type { StudioPlatform } from './create-platform.ts';
 import { createWorkspaceStore, type StudioStore } from './create-store.ts';
 import { createStudioMemory, type StudioMemoryPorts } from './wire-memory.ts';
 import { type StudioRuntime, wireRuntime } from './wire-runtime.ts';
-
 export type NodeRuntime = {
   node: HostNodeRecord;
   store: StudioStore;
@@ -23,28 +22,23 @@ export type NodeRuntime = {
   host: StudioHost;
   stop: () => void;
 };
-
 export type NodeSupervisor = {
   get(id: string): NodeRuntime | undefined;
   list(): NodeRuntime[];
   start(node: HostNodeRecord): NodeRuntime;
   stop(id: string): void;
-  /** 404 if not on host; 503 if unavailable / not started. */
   require(id: string): NodeRuntime;
   findByThreadId(threadId: string): NodeRuntime | undefined;
   status(id: string): HostNodeStatus;
 };
-
 export type NodeSupervisorDeps = {
   platform: StudioPlatform;
   nodes: NodeRegistry;
   secretStore?: SecretStore;
   home: string;
 };
-
 export function createNodeSupervisor(deps: NodeSupervisorDeps): NodeSupervisor {
   const runtimes = new Map<string, NodeRuntime>();
-
   const supervisor: NodeSupervisor = {
     get(id) {
       return runtimes.get(id);
@@ -68,7 +62,6 @@ export function createNodeSupervisor(deps: NodeSupervisorDeps): NodeSupervisor {
           `workspace.db missing for ${node.id}; run bun run cutover or re-create the node`,
         );
       }
-
       const store = createWorkspaceStore(node.path, deps.home);
       const modelsPort = createHarnesysModelsPort(store.llmProviderRepo, store.llmModelRepo);
       const runtime = wireRuntime({
@@ -91,7 +84,6 @@ export function createNodeSupervisor(deps: NodeSupervisorDeps): NodeSupervisor {
         memory,
         options: { secretStore: deps.secretStore },
       });
-
       const fireDue = new FireDueSchedulesUseCase({
         schedules: store.scheduleRepo,
         threads: store.threadRepo,
@@ -103,7 +95,6 @@ export function createNodeSupervisor(deps: NodeSupervisorDeps): NodeSupervisor {
       });
       runtime.scheduleQueue.setHandler((scheduleId) => fireDue.fireSchedule(scheduleId));
       const stopScheduleTicker = startScheduleTicker(fireDue);
-
       const fireWebhook = new FireWebhookUseCase({
         webhooks: store.webhookRepo,
         threads: store.threadRepo,
@@ -116,7 +107,6 @@ export function createNodeSupervisor(deps: NodeSupervisorDeps): NodeSupervisor {
       runtime.webhookQueue.setHandler((webhookId) =>
         fireWebhook.execute({ webhookId }).then(() => undefined),
       );
-
       const stop = () => {
         stopScheduleTicker();
         memory.knowledgeWatch.stop();
@@ -125,7 +115,6 @@ export function createNodeSupervisor(deps: NodeSupervisorDeps): NodeSupervisor {
         runtimes.delete(node.id);
         logger.info({ scope: 'supervisor' }, `stopped node ${node.id}`);
       };
-
       const entry: NodeRuntime = { node, store, runtime, memory, host, stop };
       runtimes.set(node.id, entry);
       logger.info({ scope: 'supervisor' }, `started node ${node.id} db=${store.dbPath}`);
@@ -161,6 +150,5 @@ export function createNodeSupervisor(deps: NodeSupervisorDeps): NodeSupervisor {
       return undefined;
     },
   };
-
   return supervisor;
 }

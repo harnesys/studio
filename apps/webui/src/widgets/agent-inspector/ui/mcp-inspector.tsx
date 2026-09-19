@@ -1,12 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-
 import type { Agent } from '@/entities/agent';
 import { workspaceMcpQuery } from '@/shared/api';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { StatusDot, type StatusDotTone } from '@/shared/ui/status-dot';
-
 import { Section } from './section';
-
 export function McpInspector({ agent }: { agent: Agent }) {
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
   const query = useQuery({
@@ -14,7 +11,6 @@ export function McpInspector({ agent }: { agent: Agent }) {
     enabled: Boolean(workspaceId),
   });
   const catalog = query.data?.servers ?? [];
-
   return (
     <Section label="MCP">
       {!query.isPending &&
@@ -42,11 +38,13 @@ export function McpInspector({ agent }: { agent: Agent }) {
     </Section>
   );
 }
-
 function mcpStatus(
   enabled: boolean,
   connected: boolean,
-): { tone: StatusDotTone; text: 'connected' | 'offline' | 'off' } {
+): {
+  tone: StatusDotTone;
+  text: 'connected' | 'offline' | 'off';
+} {
   if (!enabled) {
     return { tone: 'off', text: 'off' };
   }

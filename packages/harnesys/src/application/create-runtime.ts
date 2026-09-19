@@ -1,5 +1,3 @@
-// biome-ignore-all lint/suspicious/useAwait: async required by RuntimeHandle port contract
-
 import { createRunEventBus } from '../adapters/in-memory-run-store.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
@@ -40,17 +38,11 @@ function isMcpRegistry(value: unknown): boolean {
     'closeAll' in value
   );
 }
-
 function flatRegistry(registry: RunRegistry): Map<string, ToolDefinition> {
   return new Map(
     [...registry].map(([name, entry]) => [name, { ...entry.def, exposure: entry.exposure }]),
   );
 }
-
-/**
- * Шина хуков на ран из runtime-опций (host-inline биндинги приходят здесь).
- * Идентичность рана (session/run/agent) резолвит startGraph через resolveHookCtx.
- */
 function assembleRunHooks(
   options: CreateRuntimeOptions,
   paths: PathsConfig | undefined,
@@ -60,7 +52,6 @@ function assembleRunHooks(
     return undefined;
   }
   const cwd = paths?.cwd ?? '';
-  // envBase — шов хоста (E2): HARNESSYS_PLUGIN_OPTION_* составляются хостом.
   return {
     bus: createHookBus({
       bindings: [...bindings],
@@ -74,15 +65,9 @@ function assembleRunHooks(
     permissionMode: '',
   };
 }
-
 export async function createRuntime(options: CreateRuntimeOptions): Promise<RuntimeHandle> {
   const baseTools = [...(options.tools ?? [])];
   const logger = options.logger ?? CONSOLE_LOGGER;
-
-  // Base packs are always registered (R20: availability unconditional); a
-  // host-supplied registration with the same pack name wins. Portless base
-  // packs register with no ports key; per-run create calls get `{}` ports.
-  // The shell pack carries the runtime-wide process job registry.
   const stubScope = fallbackScope;
   const supplied = options.packs ?? [];
   const suppliedNames = new Set(supplied.map((reg) => reg.pack.name));
@@ -104,12 +89,8 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
             resolveScope: stubScope,
           }),
         ]),
-    // Each pack carries its own Ports type, so the heterogeneous host list
-    // cannot satisfy the uniform `PackRegistration` element type directly;
-    // asserted once at this boundary (same as Studio wire-packs).
   ] as PackRegistration[];
   const packRegistrations = [...supplied, ...baseRegistrations];
-
   let mcpRegistry: McpRegistry | undefined;
   if (options.mcp) {
     if (isMcpRegistry(options.mcp)) {
@@ -122,12 +103,7 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     const mcpTools = await mcpRegistry.tools();
     baseTools.push(...mcpTools);
   }
-
   const toolRegistry = createToolRegistry(baseTools);
-
-  // Capability universe for oneshot `run`/`start` and their spawn children:
-  // the host registry is everything the host registered; services (`load_tools`,
-  // `load_skill`/`Skill`) are granted only through the `core` pack by the resolver.
   const buildUniverse = (def: AgentDefinition): CapabilityUniverse => {
     const universe: CapabilityUniverse = {
       registrations: packRegistrations,
@@ -158,7 +134,6 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       packOutputs: capabilitySet.packOutputs,
     };
   };
-
   const resolveAgent = (agent: AgentDefinition | string): AgentDefinition => {
     if (typeof agent !== 'string') {
       return agent;
@@ -169,12 +144,9 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     }
     return resolved;
   };
-
   const lifecycle = options.lifecycle;
   const events = options.events;
   const feed = options.feed ?? createRunEventFeed({ events, lifecycle, bus: createRunEventBus() });
-
-  /** Живые шины хуков oneshot-ранов; close() рантайма гасит их перед mcpRegistry. */
   const liveHooks = new Set<HookEmitCtx>();
   const finalizeRunHooks = async (hooks: HookEmitCtx | undefined): Promise<void> => {
     if (!hooks) {
@@ -194,7 +166,6 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       await finalizeRunHooks(hooks);
     }
   }
-
   const runtimeCtx: RuntimeContext = {
     models: options.models,
     toolRegistry,
@@ -215,7 +186,6 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
     claimer: options.claimer,
     targets: options.targets,
   };
-
   return {
     run: async (agent, opts) => {
       const def = resolveAgent(agent);
@@ -285,8 +255,6 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         hooks,
       );
     },
-    // Resume path removed with the journal-first engine: use SessionHandle.respond.
-    // The method stays on the handle so existing callers fail loudly, not silently.
     resume: async (): Promise<RunResult> => {
       throw codedRunError(
         'resume_removed',
@@ -323,8 +291,6 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
       await mcpRegistry?.reload();
     },
     close: async () => {
-      // Порядок C2: убийство хук-процессов и drain deferred, emit SessionEnd,
-      // только затем mcpRegistry.closeAll().
       for (const hooks of [...liveHooks]) {
         await finalizeRunHooks(hooks);
       }

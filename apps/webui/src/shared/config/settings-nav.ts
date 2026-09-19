@@ -1,7 +1,5 @@
 export const WINDOW_SETTINGS_CATEGORIES = ['profile', 'appearance', 'chat', 'hosts'] as const;
-
 export type WindowSettingsCategory = (typeof WINDOW_SETTINGS_CATEGORIES)[number];
-
 export const WINDOW_SETTINGS_GROUPS = [
   {
     id: 'window',

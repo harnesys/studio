@@ -1,9 +1,6 @@
 import type { WorkspaceMcpConfigServer } from '@harnesys/studio-shared';
-
 import { alert, dialog } from '@/shared/services/overlay';
-
 import { AddMcpServerDialog, EditMcpServerDialog } from '../ui/mcp-dialogs';
-
 export function openAddMcpServerDialog() {
   return dialog.open(AddMcpServerDialog, {
     title: 'Add MCP server',
@@ -12,7 +9,6 @@ export function openAddMcpServerDialog() {
     testId: 'add-mcp-server-dialog',
   });
 }
-
 export function openEditMcpServerDialog(server: WorkspaceMcpConfigServer) {
   return dialog.open(EditMcpServerDialog, {
     title: 'Edit MCP server',
@@ -22,7 +18,6 @@ export function openEditMcpServerDialog(server: WorkspaceMcpConfigServer) {
     data: { server },
   });
 }
-
 export function confirmDeleteMcpServer(serverId: string) {
   return alert.confirm({
     title: `Delete ${serverId}?`,

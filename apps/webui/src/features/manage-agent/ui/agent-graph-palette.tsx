@@ -7,16 +7,12 @@ import {
   paletteSpecs,
 } from '../model/agent-graph-catalog';
 import { graphTypeIcon, graphTypeTint } from './agent-graph-appearance';
-
 export const AGENT_GRAPH_DND_TYPE = 'application/harnesys-graph-node-type';
-
 export type AgentGraphPaletteProps = {
   onAdd: (type: string) => void;
 };
-
 export function AgentGraphPalette({ onAdd }: AgentGraphPaletteProps) {
   const byGroup = groupPalette(paletteSpecs());
-
   return (
     <aside className="flex w-full flex-col items-center gap-1">
       {GRAPH_GROUP_ORDER.map((group, groupIndex) => {
@@ -36,7 +32,6 @@ export function AgentGraphPalette({ onAdd }: AgentGraphPaletteProps) {
     </aside>
   );
 }
-
 function PaletteIcon({ spec, onAdd }: { spec: GraphNodeSpec; onAdd: (type: string) => void }) {
   const Icon = graphTypeIcon(spec.type);
   const tint = graphTypeTint(spec.type);
@@ -71,7 +66,6 @@ function PaletteIcon({ spec, onAdd }: { spec: GraphNodeSpec; onAdd: (type: strin
     </HoverCard>
   );
 }
-
 function groupPalette(specs: GraphNodeSpec[]): Map<GraphNodeGroup, GraphNodeSpec[]> {
   const map = new Map<GraphNodeGroup, GraphNodeSpec[]>();
   for (const group of GRAPH_GROUP_ORDER) {

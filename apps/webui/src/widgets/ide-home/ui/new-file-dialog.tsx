@@ -4,13 +4,11 @@ import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
 import { Field, FieldError, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
-
 export function NewFileDialog({ onResolve }: DialogComponentProps<string>) {
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const trimmed = value.trim();
   const isValid = trimmed.length > 0 && !trimmed.includes('..');
-
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!trimmed) {
@@ -23,7 +21,6 @@ export function NewFileDialog({ onResolve }: DialogComponentProps<string>) {
     }
     onResolve?.(trimmed);
   }
-
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       <Field data-invalid={error ? true : undefined}>

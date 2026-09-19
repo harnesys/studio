@@ -4,7 +4,6 @@ export type ToolMessage = {
   name: string;
   content: string;
 };
-
 export function buildToolMessageRaw(
   toolCallId: string,
   name: string,
@@ -12,7 +11,6 @@ export function buildToolMessageRaw(
 ): ToolMessage {
   return { role: 'tool', toolCallId, name, content };
 }
-
 export function buildToolMessage(call: {
   toolCallId: string;
   name: string;

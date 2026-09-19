@@ -12,10 +12,8 @@ import {
   pluginCatalogEntriesTable,
   pluginRegistriesTable,
 } from '../schema';
-
 export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
   constructor(private readonly db: StudioDb) {}
-
   list(): PluginRegistryRecord[] {
     return this.db
       .select()
@@ -24,7 +22,6 @@ export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
       .all()
       .map(toRegistryRecord);
   }
-
   findById(id: string): PluginRegistryRecord | undefined {
     const row = this.db
       .select()
@@ -33,7 +30,6 @@ export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
       .get();
     return row ? toRegistryRecord(row) : undefined;
   }
-
   findByName(name: string): PluginRegistryRecord | undefined {
     const row = this.db
       .select()
@@ -42,7 +38,6 @@ export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
       .get();
     return row ? toRegistryRecord(row) : undefined;
   }
-
   upsert(rec: PluginRegistryRecord): PluginRegistryRecord {
     try {
       const row = this.db
@@ -79,7 +74,6 @@ export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
       return mapSqliteError(err, { conflict: 'plugin registry exists' });
     }
   }
-
   delete(id: string): void {
     this.db
       .delete(pluginCatalogEntriesTable)
@@ -87,7 +81,6 @@ export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
       .run();
     this.db.delete(pluginRegistriesTable).where(eq(pluginRegistriesTable.id, id)).run();
   }
-
   replaceCatalog(registryId: string, entries: CatalogEntry[]): void {
     const now = new Date().toISOString();
     this.db
@@ -107,7 +100,6 @@ export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
         .run();
     }
   }
-
   listCatalog(filter: { registryId?: string; q?: string } = {}): CatalogEntry[] {
     const conditions = [];
     if (filter.registryId) {
@@ -143,7 +135,6 @@ export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
       .filter((entry): entry is CatalogEntry => entry !== undefined)
       .sort((a, b) => a.pluginName.localeCompare(b.pluginName));
   }
-
   findCatalogEntry(registryId: string, pluginName: string): CatalogEntry | undefined {
     const row = this.db
       .select()
@@ -158,7 +149,6 @@ export class SqlitePluginRegistriesAdapter implements PluginRegistryRepository {
     return row ? toCatalogEntry(row) : undefined;
   }
 }
-
 function toRegistryRecord(row: PluginRegistryRow): PluginRegistryRecord {
   const record: PluginRegistryRecord = {
     id: row.id,
@@ -180,7 +170,6 @@ function toRegistryRecord(row: PluginRegistryRow): PluginRegistryRecord {
   }
   return record;
 }
-
 function toCatalogEntry(row: PluginCatalogEntryRow): CatalogEntry | undefined {
   try {
     const parsed: unknown = JSON.parse(row.payload);

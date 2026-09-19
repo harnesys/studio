@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-
 import { FileChip } from '@/shared/ui/file-chip';
-
 export function AttachDraft({
   files,
   onRemove,
@@ -24,7 +22,6 @@ export function AttachDraft({
     </div>
   );
 }
-
 function DraftChip({ file, onRemove }: { file: File; onRemove: () => void }) {
   const preview = useObjectUrl(file.type.startsWith('image/') ? file : null);
   return (
@@ -37,7 +34,6 @@ function DraftChip({ file, onRemove }: { file: File; onRemove: () => void }) {
     />
   );
 }
-
 function useObjectUrl(file: File | null): string | null {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {

@@ -1,3 +1,41 @@
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.scene-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 38%,
+    color-mix(in srgb, var(--accent) 10%, transparent),
+    transparent 58%
+  );
+  animation: glow-breathe 9s ease-in-out infinite alternate;
+}
+
+.scene-dots {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: radial-gradient(circle at 1px 1px, var(--ink) 1px, transparent 0);
+  background-size: 16px 16px;
+}
+
+@keyframes glow-breathe {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
 .top {
   position: sticky;
   top: 0;
@@ -425,6 +463,10 @@
 
   .card {
     transition: none;
+  }
+
+  .scene-glow {
+    animation: none;
   }
 }
 

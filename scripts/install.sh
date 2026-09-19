@@ -5,7 +5,7 @@
 #   curl -fsSL https://harnesys.dev/install | sh
 #
 # Env:
-#   HARNESYS_REPO    GitHub repository (default: harnesys/harnesys)
+#   HARNESYS_REPO    GitHub repository (default: harnesys/studio)
 #   HARNESYS_PREFIX  install directory   (default: $HOME/.local/bin)
 #
 # Asset naming matches `harnesys update` (apps/cli/src/update.ts):
@@ -16,7 +16,7 @@
 
 set -u
 
-REPO="${HARNESYS_REPO:-harnesys/harnesys}"
+REPO="${HARNESYS_REPO:-harnesys/studio}"
 PREFIX="${HARNESYS_PREFIX:-$HOME/.local/bin}"
 BASE_URL="https://github.com/${REPO}/releases/latest/download"
 BINARIES="harnesys harnesys-host harnesys-web"

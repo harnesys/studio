@@ -1,10 +1,28 @@
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { prepareHostBinary } from './desktop-host';
+import { bunTargetFor, prepareHostBinary } from './desktop-host';
+
 const root = join(import.meta.dir, '..');
-prepareHostBinary();
-const res = spawnSync('bunx', ['tauri', 'build', '--bundles', 'dmg'], {
-    cwd: join(root, 'apps', 'desktop'),
-    stdio: 'inherit',
-});
-process.exit(res.status ?? 1);
+
+function main(): void {
+    const args = process.argv.slice(2);
+    const i = args.indexOf('--target');
+    const target = i >= 0 ? args[i + 1] : undefined;
+    if (target && !bunTargetFor(target)) {
+        console.error(
+            `build-desktop: unsupported target "${target}" — supported: aarch64-apple-darwin, x86_64-apple-darwin`,
+        );
+        process.exit(1);
+    }
+    prepareHostBinary({ rustTarget: target });
+    const res = spawnSync(
+        'bunx',
+        target
+            ? ['tauri', 'build', '--bundles', 'dmg', '--target', target]
+            : ['tauri', 'build', '--bundles', 'dmg'],
+        { cwd: join(root, 'apps', 'desktop'), stdio: 'inherit' },
+    );
+    process.exit(res.status ?? 1);
+}
+
+main();

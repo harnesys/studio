@@ -20,11 +20,25 @@ function stageSidecar(source: string, dest: string): void {
     copyFileSync(source, dest);
     execSync(`chmod 755 '${dest}'`);
 }
-export function prepareHostBinary({ fresh = true }: {
+
+const RUST_TO_BUN: Record<string, string> = {
+    'aarch64-apple-darwin': 'bun-darwin-arm64',
+    'x86_64-apple-darwin': 'bun-darwin-x64',
+};
+
+export function bunTargetFor(rustTarget: string): string | undefined {
+    return RUST_TO_BUN[rustTarget];
+}
+
+export function prepareHostBinary({
+    fresh = true,
+    rustTarget,
+}: {
     fresh?: boolean;
+    rustTarget?: string;
 } = {}): void {
     const dir = join(root, 'apps', 'desktop', 'src-tauri', 'binaries');
-    const dest = join(dir, `harnesys-host-${targetTriple()}`);
+    const dest = join(dir, `harnesys-host-${rustTarget ?? targetTriple()}`);
     if (!fresh) {
         if (existsSync(dest)) {
             return;
@@ -35,6 +49,17 @@ export function prepareHostBinary({ fresh = true }: {
             return;
         }
     }
-    execSync('bun run build:host', { cwd: root, stdio: 'inherit' });
+    if (rustTarget) {
+        const bunTarget = bunTargetFor(rustTarget);
+        if (!bunTarget) {
+            throw new Error(`unsupported rust target "${rustTarget}"`);
+        }
+        execSync(
+            `bun build --compile --target=${bunTarget} apps/server/src/index.ts --outfile build/harnesys-host && rm -rf build/assets && cp -R apps/server/assets build/assets`,
+            { cwd: root, stdio: 'inherit' },
+        );
+    } else {
+        execSync('bun run build:host', { cwd: root, stdio: 'inherit' });
+    }
     stageSidecar(join(root, 'build', 'harnesys-host'), dest);
 }

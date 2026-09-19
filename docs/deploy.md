@@ -43,12 +43,13 @@ releases (assets named `<bin>-<darwin|linux>-<x64|arm64>`, the same contract
 `harnesys update` uses) into `~/.local/bin` and makes them executable. No prompts;
 component selection happens in the CLI menu on first run.
 
-Env overrides: `HARNESYS_REPO` (default `harnesys/harnesys`) and
+Env overrides: `HARNESYS_REPO` (default `harnesys/studio`) and
 `HARNESYS_PREFIX` (default `~/.local/bin`).
 
-Until releases are published the script fails with an honest 404 message — use
-the checkout build above and copy the three binaries from `build/` to
-`~/.local/bin` (or any `PATH` directory) manually.
+If no release is published yet the script fails with a 404 — cut one with
+`bun run release <version>` from the repo root (clean working tree required):
+it bumps the version across the desktop manifests, commits, tags `v<version>`
+and pushes; CI builds and publishes the release with the assets below.
 
 ### First start
 
@@ -77,10 +78,10 @@ Components registered as systemd units are restarted via `systemctl --user`;
 
 A note for install-script VPS installs: the installer ships the three binaries
 only — no built SPA. `up --with-ui` (and the menu's WebUI choice) therefore
-errors/warns there: the WebUI needs a repo checkout (`bun run build:client`) or
-the Docker compose stack (`deploy/`). The menu offers to continue host-only.
-Until release CI ships a `client-dist` asset, WebUI-on-VPS means compose or a
-checkout build.
+errors/warns there: the WebUI needs a repo checkout (`bun run build:client`), the
+Docker compose stack (`deploy/`), or the `client-dist.zip` release asset —
+download it, unpack and point `STATIC_DIR` at the unpacked `dist` directory.
+Without one of these the menu offers to continue host-only.
 
 ### systemd (Linux)
 
@@ -177,10 +178,17 @@ docker compose -f deploy/docker-compose.yml up -d
 - CLI-managed VPS: `harnesys update` — downloads the newest release assets for
   your OS/arch, replaces the binaries in place, restarts what was running. The
   asset names are the same `<bin>-<os>-<arch>` contract the installer uses.
+- Desktop: download the new DMG from the releases page and install over the old
+  app; there is no in-app auto-update.
 - Checkout install: `git pull && bun install && bun run build:client && bun run
   build:host && bun run build:web && bun run build:cli`, then `harnesys restart all`.
 - Compose: `git pull`, then `docker compose -f deploy/docker-compose.yml up -d --build`.
 
 ## Desktop
 
-A desktop application (Tauri with a bundled `harnesys-host` sidecar) is planned.
+DMG builds (Apple silicon and Intel) live on the GitHub releases page, cut by a
+`v*` tag. The `harnesys-host` binary ships inside the app as a sidecar — no
+separate host install; Quit in the tray menu stops it on exit.
+
+The build is ad-hoc signed (no Developer ID yet), so the first launch needs a
+bypass: right-click the app → Open, or `xattr -cr /Applications/Harnesys.app`.

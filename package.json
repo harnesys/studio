@@ -17,6 +17,7 @@
     "build:cli": "bun build --compile apps/cli/src/index.ts --outfile build/harnesys",
     "build:client": "bun run --cwd apps/webui build",
     "build:desktop": "bun run scripts/build-desktop.ts",
+    "release": "bun run scripts/release.ts",
     "icon:desktop": "bun run icon:desktop:app && bun run icon:desktop:tray && bun run icon:desktop:macos",
     "icon:desktop:app": "swift apps/desktop/src-tauri/icons/render-app-icon.swift app apps/desktop/src-tauri/icons/app-icon.png",
     "icon:desktop:tray": "swift apps/desktop/src-tauri/icons/render-app-icon.swift tray apps/desktop/src-tauri/icons/tray.png",

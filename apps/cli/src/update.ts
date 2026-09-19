@@ -4,7 +4,7 @@ import { restartRunningComponents } from './lifecycle.ts';
 import { resolveBinDir, SERVER_BIN, WEB_BIN } from './paths.ts';
 import { isUnitActive, restartUnit, unitName } from './systemd.ts';
 
-const DEFAULT_REPO = 'harnesys/harnesys';
+const DEFAULT_REPO = 'harnesys/studio';
 const GH_API = 'https://api.github.com';
 const ASSET_PLATFORM = (() => {
   if (process.platform === 'darwin') {

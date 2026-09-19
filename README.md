@@ -40,11 +40,18 @@ docker compose -f deploy/docker-compose.yml up -d
 
 Runs the host and the web proxy as two services with the SPA baked into the web image. Images are built locally from the checkout and tagged `ghcr.io/harnesys/{host,web}` for a future registry. The host generates `host.token` into the shared volume on first boot; the web gate picks it up automatically. Read it with `docker compose exec host cat /data/config.json`.
 
-### Desktop (macOS)
+### Desktop (macOS, Windows, Linux)
 
-Download `Harnesys_<version>_aarch64.dmg` (or the `x64` build) from the [releases page](https://github.com/harnesys/studio/releases), drag the app to Applications, launch from the tray. The host runs as a sidecar inside the app; Quit in the tray menu stops it.
+Grab an installer from the [releases page](https://github.com/harnesys/studio/releases):
+`Harnesys_<version>_aarch64.dmg` / `Harnesys_<version>_x64.dmg` for macOS,
+`Harnesys_<version>_x64-setup.exe` (and `arm64-setup`) for Windows,
+`Harnesys_<version>_amd64.AppImage` or `.deb` for Linux. The host runs as a
+sidecar inside the app; Quit in the tray menu stops it.
 
-The build is ad-hoc signed, so the first launch needs a bypass: right-click the app, choose Open, or run `xattr -cr /Applications/Harnesys.app`.
+The macOS build is ad-hoc signed, so the first launch needs a bypass:
+right-click the app, choose Open, or run `xattr -cr /Applications/Harnesys.app`.
+The Windows build is unsigned, so SmartScreen shows a warning — choose
+"More info" → "Run anyway".
 
 ## Development
 
@@ -63,10 +70,10 @@ bun run build:client   # SPA -> apps/webui/dist
 bun run build:host     # -> build/harnesys-host
 bun run build:web      # -> build/harnesys-web
 bun run build:cli      # -> build/harnesys
-bun run build:desktop  # DMG via scripts/build-desktop.ts
+bun run build:desktop  # app bundles via scripts/build-desktop.ts (dmg, nsis, AppImage/deb)
 ```
 
-Checks: `bun run lint` (biome), `bun run typecheck` (all workspaces). Releases: `bun run release <version>` bumps the desktop manifests, commits, pushes the `v<version>` tag; CI builds binaries, the client bundle and the DMGs, then publishes the release.
+Checks: `bun run lint` (biome), `bun run typecheck` (all workspaces). Releases: `bun run release <version>` bumps the app manifests, commits, pushes the `v<version>` tag; CI builds binaries, the client bundle and the desktop installers (macOS DMG, Windows NSIS, Linux AppImage/deb), then publishes the release.
 
 ## Repository layout
 

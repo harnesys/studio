@@ -1,7 +1,8 @@
 import { execSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 const root = join(import.meta.dir, '..');
+const IS_WINDOWS = process.platform === 'win32';
 function targetTriple(): string {
     try {
         return execSync('rustc --print host-tuple', { encoding: 'utf8' }).trim();
@@ -18,12 +19,34 @@ function targetTriple(): string {
 function stageSidecar(source: string, dest: string): void {
     mkdirSync(dirname(dest), { recursive: true });
     copyFileSync(source, dest);
-    execSync(`chmod 755 '${dest}'`);
+    if (!IS_WINDOWS) {
+        execSync(`chmod 755 '${dest}'`);
+    }
+}
+function buildHostWithAssets(command: string): void {
+    execSync(command, { cwd: root, stdio: 'inherit' });
+    rmSync(join(root, 'build', 'assets'), { recursive: true, force: true });
+    cpSync(join(root, 'apps', 'server', 'assets'), join(root, 'build', 'assets'), {
+        recursive: true,
+    });
+}
+function resolveBuiltBinary(base: string): string {
+    const exe = `${base}.exe`;
+    if (existsSync(exe)) {
+        return exe;
+    }
+    if (!existsSync(base)) {
+        throw new Error(`built host binary not found at ${base}`);
+    }
+    return base;
 }
 
 const RUST_TO_BUN: Record<string, string> = {
     'aarch64-apple-darwin': 'bun-darwin-arm64',
     'x86_64-apple-darwin': 'bun-darwin-x64',
+    'x86_64-pc-windows-msvc': 'bun-windows-x64',
+    'aarch64-pc-windows-msvc': 'bun-windows-arm64',
+    'x86_64-unknown-linux-gnu': 'bun-linux-x64',
 };
 
 export function bunTargetFor(rustTarget: string): string | undefined {
@@ -38,12 +61,14 @@ export function prepareHostBinary({
     rustTarget?: string;
 } = {}): void {
     const dir = join(root, 'apps', 'desktop', 'src-tauri', 'binaries');
-    const dest = join(dir, `harnesys-host-${rustTarget ?? targetTriple()}`);
+    const triple = rustTarget ?? targetTriple();
+    const isWindowsTarget = rustTarget ? rustTarget.includes('windows') : IS_WINDOWS;
+    const dest = join(dir, `harnesys-host-${triple}${isWindowsTarget ? '.exe' : ''}`);
     if (!fresh) {
         if (existsSync(dest)) {
             return;
         }
-        const built = join(root, 'build', 'harnesys-host');
+        const built = resolveBuiltBinary(join(root, 'build', 'harnesys-host'));
         if (existsSync(built)) {
             stageSidecar(built, dest);
             return;
@@ -54,12 +79,13 @@ export function prepareHostBinary({
         if (!bunTarget) {
             throw new Error(`unsupported rust target "${rustTarget}"`);
         }
-        execSync(
-            `bun build --compile --target=${bunTarget} apps/server/src/index.ts --outfile build/harnesys-host && rm -rf build/assets && cp -R apps/server/assets build/assets`,
-            { cwd: root, stdio: 'inherit' },
+        buildHostWithAssets(
+            `bun build --compile --target=${bunTarget} apps/server/src/index.ts --outfile build/harnesys-host`,
         );
     } else {
-        execSync('bun run build:host', { cwd: root, stdio: 'inherit' });
+        buildHostWithAssets(
+            'bun build --compile apps/server/src/index.ts --outfile build/harnesys-host',
+        );
     }
-    stageSidecar(join(root, 'build', 'harnesys-host'), dest);
+    stageSidecar(resolveBuiltBinary(join(root, 'build', 'harnesys-host')), dest);
 }

@@ -47,13 +47,28 @@ jobs:
           path: client-dist.zip
 
   desktop:
-    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        target: [aarch64-apple-darwin, x86_64-apple-darwin]
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
       - uses: oven-sh/setup-bun@v2
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -62,7 +77,7 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri
       - run: bun install
-      - name: Build DMG
+      - name: Build bundles
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -73,7 +88,12 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.target }}
-          path: apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          path: |
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
+          if-no-files-found: error
 
   release:
     needs: [server, client-dist, desktop]
@@ -86,12 +106,13 @@ jobs:
       - name: Flatten desktop bundle names
         working-directory: dist
         run: |
-          for f in *_aarch64.dmg; do mv "$f" Harnesys_aarch64.dmg; done
-          for f in *_x64.dmg; do mv "$f" Harnesys_x64.dmg; done
-          for f in *_x64-setup.exe; do mv "$f" Harnesys_x64-setup.exe; done
-          for f in *_arm64-setup.exe; do mv "$f" Harnesys_arm64-setup.exe; done
-          for f in *_amd64.AppImage; do mv "$f" Harnesys_amd64.AppImage; done
-          for f in *_amd64.deb; do mv "$f" Harnesys_amd64.deb; done
+          shopt -s nullglob
+          for f in *_aarch64.dmg; do mv -f "$f" Harnesys_aarch64.dmg; done
+          for f in *_x64.dmg; do mv -f "$f" Harnesys_x64.dmg; done
+          for f in *_x64-setup.exe; do mv -f "$f" Harnesys_x64-setup.exe; done
+          for f in *_arm64-setup.exe; do mv -f "$f" Harnesys_arm64-setup.exe; done
+          for f in *_amd64.AppImage; do mv -f "$f" Harnesys_amd64.AppImage; done
+          for f in *_amd64.deb; do mv -f "$f" Harnesys_amd64.deb; done
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}

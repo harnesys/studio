@@ -9,7 +9,7 @@ Stand is rewritten natively to types and API from docs (`RuntimeState`, Snapshot
 | `server/` | `@harnesys/server` | host API: HTTP+WS, sqlite, cron, webhooks | `build/harnesys-host` |
 | `webui/` | `@harnesys/webui` | SPA (`src/`, vite) + web gateway (`server/`: static, proxy `/api`, token-gate) | `dist`, `build/harnesys-web` |
 | `cli/` | `@harnesys/cli` | supervisor `harnesys`: up/down/status/restart/logs/update, `host pair`, systemd | `build/harnesys` |
-| `desktop/` | `@harnesys/desktop` | Tauri wrapper, frontend taken from webui (`tauri.conf.json` → `../webui`) | DMG (GitHub Releases, `v*` tag) |
+| `desktop/` | `@harnesys/desktop` | Tauri wrapper, frontend taken from webui (`tauri.conf.json` → `../webui`) | DMG / NSIS exe / AppImage / deb (GitHub Releases, `v*` tag) |
 
 API contract: `packages/studio-shared` (`@harnesys/studio-shared`, barrel `types.ts`) — common for server and webui.
 

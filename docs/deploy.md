@@ -178,17 +178,20 @@ docker compose -f deploy/docker-compose.yml up -d
 - CLI-managed VPS: `harnesys update` — downloads the newest release assets for
   your OS/arch, replaces the binaries in place, restarts what was running. The
   asset names are the same `<bin>-<os>-<arch>` contract the installer uses.
-- Desktop: download the new DMG from the releases page and install over the old
-  app; there is no in-app auto-update.
+- Desktop: download the new installer (DMG / NSIS exe / AppImage / deb) from
+  the releases page and install over the old app; there is no in-app
+  auto-update.
 - Checkout install: `git pull && bun install && bun run build:client && bun run
   build:host && bun run build:web && bun run build:cli`, then `harnesys restart all`.
 - Compose: `git pull`, then `docker compose -f deploy/docker-compose.yml up -d --build`.
 
 ## Desktop
 
-DMG builds (Apple silicon and Intel) live on the GitHub releases page, cut by a
-`v*` tag. The `harnesys-host` binary ships inside the app as a sidecar — no
-separate host install; Quit in the tray menu stops it on exit.
+Desktop installers live on the GitHub releases page, cut by a `v*` tag: DMG
+for macOS (Apple silicon and Intel), NSIS `-setup.exe` for Windows (x64 and
+ARM64), AppImage and deb for Linux (x64). The `harnesys-host` binary ships
+inside each app as a sidecar — no separate host install; Quit in the tray
+menu stops it on exit.
 
 The build is ad-hoc signed (no Developer ID yet), so the first launch needs a
 bypass: right-click the app → Open, or `xattr -cr /Applications/Harnesys.app`.

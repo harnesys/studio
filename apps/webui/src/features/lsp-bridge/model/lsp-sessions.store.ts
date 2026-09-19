@@ -4,6 +4,7 @@ export type LspSessionEntry = {
   path: string;
   languageId: string;
   status: LspBridgeStatus;
+  message?: string;
 };
 const EMPTY_SESSIONS: LspSessionEntry[] = [];
 type LspSessionsState = {
@@ -21,7 +22,12 @@ export const useLspSessionsStore = create<LspSessionsState>((set) => ({
         return { byWorkspace: { ...state.byWorkspace, [workspaceId]: [...list, entry] } };
       }
       const current = list[idx];
-      if (current && current.languageId === entry.languageId && current.status === entry.status) {
+      if (
+        current &&
+        current.languageId === entry.languageId &&
+        current.status === entry.status &&
+        current.message === entry.message
+      ) {
         return state;
       }
       return {

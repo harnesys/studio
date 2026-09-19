@@ -11,14 +11,20 @@ export async function restartLspForPath(workspaceId: string, path: string): Prom
   }
   await restartWorkspaceLsp(workspaceId, serverId);
 }
-function findServerIdForPath(servers: WorkspaceLspEntry[], path: string): string | undefined {
+export function findServersForPath(
+  servers: WorkspaceLspEntry[],
+  path: string,
+): WorkspaceLspEntry[] {
   const ext = extensionOf(path);
   if (!ext) {
-    return undefined;
+    return [];
   }
-  return servers.find((server) =>
+  return servers.filter((server) =>
     Object.keys(server.extensionToLanguage).some((key) => normalizeExtension(key) === ext),
-  )?.serverId;
+  );
+}
+function findServerIdForPath(servers: WorkspaceLspEntry[], path: string): string | undefined {
+  return findServersForPath(servers, path)[0]?.serverId;
 }
 function extensionOf(path: string): string | undefined {
   const base = path.split('/').pop() ?? path;

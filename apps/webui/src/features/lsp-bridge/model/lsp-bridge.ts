@@ -1,4 +1,6 @@
+import type { WorkspaceLspListResponse } from '@harnesys/studio-shared';
 import type * as monacoNs from 'monaco-editor';
+import { apiJson } from '@/shared/api/client';
 import { hostTokenQuery } from '@/shared/api/host-credential';
 import { hostWsBase } from '@/shared/config/env';
 import {
@@ -10,6 +12,7 @@ import {
   toMonacoHover,
   toMonacoLocations,
 } from './lsp-converters';
+import { findServersForPath } from './lsp-restart';
 export type LspBridgeStatus = 'starting' | 'live' | 'off' | 'error';
 export type LspBridge = {
   dispose(): void;
@@ -18,11 +21,30 @@ export type LspBridgeArgs = {
   workspaceId: string;
   path: string;
   monaco: typeof monacoNs;
-  onStatus: (status: LspBridgeStatus) => void;
+  onStatus: (status: LspBridgeStatus, message?: string) => void;
   onActivity?: () => void;
 };
 const CHANGE_DEBOUNCE_MS = 250;
 const REQUEST_TIMEOUT_MS = 10000;
+async function describeServerGap(workspaceId: string, path: string): Promise<string> {
+  const list = await apiJson<WorkspaceLspListResponse>(`/api/workspaces/${workspaceId}/lsp`);
+  const matches = findServersForPath(list.servers, path);
+  if (matches.length === 0) {
+    const ext = path.includes('.') ? `.${path.split('.').pop()}` : '(no extension)';
+    return `no LSP server for ${ext} — add one to .harnesys/lsp.json or enable a plugin that declares lspServers`;
+  }
+  const active = matches.find((server) => !server.disabled) ?? matches[0];
+  if (active.disabled) {
+    return `LSP server "${active.serverId}" is disabled — re-enable it in Settings → LSP`;
+  }
+  if (!active.granted) {
+    return `LSP server "${active.serverId}" from plugin is not granted yet — approve the plugin component`;
+  }
+  if (!active.binaryOk) {
+    return `binary "${active.command}" not found on PATH — install it, then press Restart`;
+  }
+  return `LSP server "${active.serverId}" refused the connection`;
+}
 export function attachLspBridge(args: LspBridgeArgs): LspBridge {
   const { monaco, onStatus, onActivity, workspaceId, path } = args;
   const modelUri = `file:///${path.replace(/^\/+/, '')}`;
@@ -123,14 +145,24 @@ export function attachLspBridge(args: LspBridgeArgs): LspBridge {
     if (disposed) {
       return;
     }
-    if (event.code === 1011) {
-      setStatus('error');
-    } else if (status !== 'error') {
-      setStatus('off');
-    }
     if (savedDiagnostics) {
       applyBuiltinDiagnostics(monaco, savedDiagnostics);
     }
+    if (event.code === 1011) {
+      setStatus('error');
+      onStatus('error', event.reason.length > 0 ? event.reason : 'language server failed to start');
+      return;
+    }
+    if (event.code === 1006) {
+      setStatus('off');
+      onStatus('off', 'connection rejected by host before upgrade');
+      void describeServerGap(workspaceId, path)
+        .then((detail) => onStatus('off', detail))
+        .catch(() => {});
+      return;
+    }
+    setStatus('off');
+    onStatus('off');
   };
   const changeSubscription = model.onDidChangeContent(() => {
     if (ws.readyState !== WebSocket.OPEN) {

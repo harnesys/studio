@@ -1,3 +1,4 @@
+import type { WorkspaceLspEntry } from '@harnesys/studio-shared';
 import type { Hono } from 'hono';
 import { LspStatusUseCase } from '../../../application/lsp/lsp-status.use-case.ts';
 import {
@@ -49,8 +50,17 @@ export class LspController {
       const id = c.req.param('id');
       const serverId = c.req.param('serverId');
       const node = this.resolve(id);
-      await this.requireServer(node, id, serverId);
+      const entry = await this.requireServer(node, id, serverId);
       await node.lsp.invalidateCwd(node.cwd);
+      if (entry.granted && !entry.disabled) {
+        try {
+          await node.lsp.openSession(node.cwd, probePath(entry));
+        } catch (error) {
+          throw new UnavailableError(
+            error instanceof Error ? error.message : 'failed to start LSP server',
+          );
+        }
+      }
       return c.json(await node.status.execute({ workspaceId: id }));
     });
     app.post(`${base}/:serverId/stop`, async (c) => {
@@ -122,6 +132,10 @@ export class LspController {
     }
     return entry;
   }
+}
+function probePath(entry: WorkspaceLspEntry): string {
+  const ext = Object.keys(entry.extensionToLanguage)[0] ?? '';
+  return `__lsp_probe${ext}`;
 }
 function withFileDisabled(
   raw: unknown,

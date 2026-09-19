@@ -20,12 +20,13 @@ export function useEditorLspBridge(workspaceId: string, path: string | null, lan
     let bridge: LspBridge | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let attempts = 0;
-    const report = (next: LspBridgeStatus) => {
+    const report = (next: LspBridgeStatus, message?: string) => {
       setStatus(next);
       useLspSessionsStore.getState().upsert(workspaceId, {
         path,
         languageId,
         status: next,
+        message,
       });
     };
     const tryAttach = () => {

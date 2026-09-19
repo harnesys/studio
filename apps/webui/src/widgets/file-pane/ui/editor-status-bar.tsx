@@ -99,6 +99,10 @@ export function EditorStatusBar({
   const eol = useMemo(() => (content.includes('\r\n') ? 'CRLF' : 'LF'), [content]);
   const indent = useMemo(() => detectIndent(content), [content]);
   const orderedSessions = useMemo(() => orderSessions(sessions, path), [sessions, path]);
+  const currentMessage = useMemo(
+    () => sessions.find((session) => session.path === path)?.message,
+    [sessions, path],
+  );
   const copyPath = async () => {
     try {
       await navigator.clipboard.writeText(path);
@@ -206,6 +210,17 @@ export function EditorStatusBar({
                   <RotateCwIcon className="size-3" />
                 </button>
               </div>
+              {currentMessage ? (
+                <p
+                  title={currentMessage}
+                  className={cn(
+                    'px-1.5 pb-1 text-xs',
+                    lspStatus === 'error' ? 'text-destructive' : 'text-muted-foreground',
+                  )}
+                >
+                  {currentMessage}
+                </p>
+              ) : null}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
@@ -217,7 +232,11 @@ export function EditorStatusBar({
                   <div
                     key={session.path}
                     className="flex items-center gap-1.5 px-1.5 py-1 text-xs"
-                    title={`${session.path} — ${session.languageId}, ${session.status}`}
+                    title={
+                      session.message
+                        ? `${session.path} — ${session.message}`
+                        : `${session.path} — ${session.languageId}, ${session.status}`
+                    }
                   >
                     <span
                       className={cn('size-1.5 shrink-0 rounded-full', LSP_DOT[session.status])}

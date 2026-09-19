@@ -1,97 +1,97 @@
 # Harnesys agent rules
 
-## Разрешённые пути
+## Allowed paths
 
-Файловые операции — только внутри:
+File operations — only inside:
 
 - `~/Projects/Harnesys/**/*`
 - `~/.harnesys/**/*`
 
-Больше никуда: чтение, запись, `ls`, скрипты, диагностические файлы. Временные файлы — внутри этих деревьев, не в системных tmp.
+Nowhere else: read, write, `ls`, scripts, diagnostic files. Temporary files — inside these trees, not in system tmp.
 
-## Скилы
+## Skills
 
-Superpower-скилы — не ритуал на каждый чих. Там, где задача решается быстро и напрямую, работай без них. SDD-скилы (brainstorming, writing-plans, subagent-driven-development) — только на конкретно новые фичи или заведомо сложный баг.
+Superpower skills — not a ritual for every little thing. Where the task is solved quickly and directly, work without them. SDD skills (brainstorming, writing-plans, subagent-driven-development) — only for specifically new features or a clearly complex bug.
 
-**agent-browser** — можно и нужно для ручной проверки Studio в браузере (клики, формы, сценарии, скрины по ходу проверки). Перед работой читать скилл (`agent-browser skills get core`). Порты дев-сервера — см. «Процессы и порты»; чужой стенд не поднимать и не убивать.
+**agent-browser** — can and should be used for manual Studio checks in browser (clicks, forms, scenarios, screenshots during verification). Read the skill before work (`agent-browser skills get core`). Dev server ports — see “Processes and ports”; do not spin up or kill someone else’s stand.
 
-## Размер файлов
+## File size
 
-Ориентир: около 300 строк желательно. Связный файл, который с трудом влезает в 300, можно оставить. Разрезают его те, кто может открыть соседний файл той же ответственности.
+Target: about 300 lines desirable. A cohesive file that barely fits 300 can stay. Split it by someone who can open a neighboring file of the same responsibility.
 
-Резать по ответственности, не по техническому слою. Плохо: `types.ts` + `utils.ts` + `helpers.ts` в одной куче. Хорошо: `model-schema.ts` (поля и draft), `model-form.tsx` (поля формы), `model-dialogs.tsx` (диалоги).
+Split by responsibility, not by technical layer. Bad: `types.ts` + `utils.ts` + `helpers.ts` in one pile. Good: `model-schema.ts` (fields and draft), `model-form.tsx` (form fields), `model-dialogs.tsx` (dialogs).
 
-Новый слой, хук, провайдер, порт или «generic Form» — только если уже есть второе такое же место, а не «пригодится».
+New layer, hook, provider, port or “generic Form” — only if there is already a second such place, not “might be useful”.
 
-## Типы
+## Types
 
-Не вытаскивай поле через индекс: `ModelRecord['cost']`, `Agent['quota']`, `Parameters<typeof fn>[0]`.
-Заведи именованный тип (`ModelCost`, `AgentQuota`) рядом с записью и импортируй его. Алиасы — обёртки, а не копия знания: источник правды остаётся запись.
+Do not extract a field via index: `ModelRecord['cost']`, `Agent['quota']`, `Parameters<typeof fn>[0]`.
+Create a named type (`ModelCost`, `AgentQuota`) next to the record and import it. Aliases are wrappers, not a copy of knowledge: source of truth remains the record.
 
-Biome плагин `lint/plugins` (корень монорепо) ловит `T['field']` и `T["field"]`.
-`Parameters<typeof fn>[0]` и `(typeof CONST)[number]` линтер не видит, но тоже не пиши: заведи тип аргумента или назови союз.
+Biome plugin `lint/plugins` (monorepo root) catches `T['field']` and `T["field"]`.
+`Parameters<typeof fn>[0]` and `(typeof CONST)[number]` linter does not see, but also do not write: create an argument type or name a union.
 
-`T[K]` в дженерике по ключу допустимо.
+`T[K]` in generic by key is allowed.
 
-Слайс FSD снаружи только через `index.ts` — ловит `noRestrictedImports` в `apps/webui/biome.json`.
+FSD slice outside only via `index.ts` — caught by `noRestrictedImports` in `apps/webui/biome.json`.
 
-## Тесты
+## Tests
 
-**Тесты пока временно запрещены.** Не создавать `*.test.ts` / `*.spec.ts`, не ставить vitest / RTL / playwright. Если нужны логи или скрины, попроси у человека.
+**Tests are temporarily forbidden.** Do not create `*.test.ts` / `*.spec.ts`, do not install vitest / RTL / playwright. If logs or screenshots are needed, ask the person.
 
-## Как работать
+## How to work
 
-- Спросить, если граница или тип неочевидны. Не угадывать слой.
-- Смотреть соседний слайс той же роли и повторять его форму, не изобретать другую раскладку.
-- Линт: общий `biome.json` в корне; пакеты наследуют через `"extends": "//"` и держат только свои overrides. `bun run lint` в корне или в пакете.
+- Ask if boundary or type is unclear. Do not guess layer.
+- Look at neighboring slice of same role and repeat its form, do not invent a different layout.
+- Lint: general `biome.json` in root; packages inherit via `"extends": "//"` and keep only overrides. `bun run lint` in root or in package.
 
-### Стратегия: библиотека vs хост
+### Strategy: library vs host
 
-Библиотека (`packages/harnesys`) — источник правды. Хост (`apps/server`) — адаптируется к библиотеке, а не наоборот.
+Library (`packages/harnesys`) — source of truth. Host (`apps/server`) — adapts to library, not vice versa.
 
-**Перед любым изменением типов или функций:**
+**Before any change to types or functions:**
 
-1. **Проверить библиотеку.** Возможно, тип уже есть под другим именем, или другой подход решает задачу. Не дублировать.
-2. **Сначала обобщение.** Ищи формулировку, которая покрывает потребность без привязки к хосту. Правило 80%: если большинство хостов решили бы задачу одинаково, это идёт в библиотеку.
-3. **Частное — в хост.** Если задача не абстрагируется честно, оставь решение в Studio до появления второго потребителя. Студийный тип не повод менять API библиотеки.
-4. **Согласование.** Ничего не добавлять без явного подтверждения. Порядок: предложение → обсуждение → обновление документации → реализация.
+1. **Check library.** Possibly type already exists under different name, or another approach solves the task. Do not duplicate.
+2. **Generalize first.** Look for formulation that covers need without host binding. 80% rule: if most hosts would solve task the same way, it goes to library.
+3. **Private — in host.** If task does not generalize honestly, leave solution in Studio until a second consumer appears. Studio type is not a reason to change library API.
+4. **Agreement.** Do not add anything without explicit confirmation. Order: proposal → discussion → documentation update → implementation.
 
-**Запрещено:**
-- Менять или добавлять публичные типы и функции библиотеки без обсуждения
-- Менять API библиотеки под нужду одного хоста, если есть обобщённая формулировка
-- Реализовывать то, чего нет в документации, без выноса на обсуждение
+**Forbidden:**
+- Change or add public types and functions of library without discussion
+- Change library API for one host need if a generalized formulation exists
+- Implement something not in documentation without bringing up for discussion
 
-### Разговор и документы — жёстко
+### Conversation and documents — strict
 
-Нарушение любого пункта = стоп, не «чуть поправить».
+Violation of any item = stop, not “fix a bit”.
 
-1. **Не понял — один вопрос, стоп.** Не додумывать смысл. В документ и код не писать, пока смысл не подтвердили.
-2. **Только то, что попросили в этом ходе.** Не расширять задачу. Соседнее «заодно», «под шумок», «пока фиксируем — приведу в порядок весь файл» — запрещено.
-3. **Сначала цель: что делаем и зачем.** Пока цель не сказана человеком — не плодить разделы, типы и планы.
-4. **Ответ = то, что спросили.** Запрещено: исповедь, «документ не трогаю», непрошеный план, лишний вопрос после ответа. Если заметил расхождение между задачей и реальностью — скажи об этом одной строкой и жди решения.
-5. **Поле, тип, раздел — только из просьбы, кода или уже согласованной доки.** Выдумку не канонизировать.
-6. **«Не трогай документ» = ноль правок.** «Зафиксируй X» = правка только X, остальной текст не переписывать.
-7. **Вопрос в чат ≠ разрешение редактировать.** Сначала ответ. Документ — когда сказали править и что именно.
+1. **Didn't understand — one question, stop.** Do not guess meaning. Do not write to document and code until meaning is confirmed.
+2. **Only what was asked in this turn.** Do not expand task. Neighboring “by the way”, “while fixing — tidy whole file” — forbidden.
+3. **Goal first: what we do and why.** While person has not stated goal — do not create sections, types and plans.
+4. **Answer = what was asked.** Forbidden: confession, “I’m not touching document”, unsolicited plan, extra question after answer. If you notice discrepancy between task and reality — say it in one line and wait for decision.
+5. **Field, type, section — only from request, code or already agreed docs.** Do not canonize invention.
+6. **“Don’t touch document” = zero edits.** “Fix X” = edit only X, do not rewrite rest of text.
+7. **Question in chat ≠ permission to edit.** First answer. Document — when told to fix and what exactly.
 
-| отговорка | нет |
+| excuse | no |
 |---|---|
-| «это же очевидно» | спросить |
-| «заодно приведу в порядок» | только запрошенное |
-| «риск, чтобы сами не сделали» | не писать разговор с собой в документе |
-| «два уточнения, проще сразу поправить спеку» | сначала ответ в чат |
-| «сначала назвал, потом не-Y» | хвост «не Y» запрещён |
+| “it's obvious” | ask |
+| “I'll tidy up while at it” | only requested |
+| “risk they won't do it themselves” | do not write self-talk in document |
+| “two clarifications, easier to just fix spec” | first answer in chat |
+| “first named, then not-Y” | tail “not Y” forbidden |
 
-## Процессы и порты
+## Processes and ports
 
-**Дев-сервер Studio как правило уже запущен хозяином репозитория.** Перед любой проверкой в браузере или curl — посмотреть, слушают ли порты (`47474` API, `5173` Vite), и пользоваться ими.
+**Dev server Studio is usually already running by repo owner.** Before any browser or curl check — see if ports are listening (`47474` API, `5173` Vite), and use them.
 
-- Не поднимать второй `studio` / Vite / bun --watch, если стенд уже жив.
-- Не убивать, не рестартить и не перехватывать чужие процессы.
-- Если порты свободны — сказать об этом и спросить; не стартовать самому без явной просьбы в этом ходе.
+- Do not spin up second `studio` / Vite / bun --watch if stand is alive.
+- Do not kill, restart or hijack other processes.
+- If ports are free — say so and ask; do not start yourself without explicit request in this turn.
 
-## Не делать
+## Do not
 
-- Не подменять ручную проверку через agent-browser автотестами (`*.test.ts` / playwright и т.п.) — юнит/e2e тесты по-прежнему запрещены отдельным пунктом выше.
+- Do not replace manual verification via agent-browser with autotests (`*.test.ts` / playwright etc.) — unit/e2e tests are still forbidden by separate item above.
 
 RULE D1: DELETION IS ALWAYS CASCADING.
 When instructed to remove a feature, an enum member, a type, a function, or a module, you MUST trace and remove every artifact that depends on it. This includes:
@@ -133,23 +133,23 @@ If the removed functionality was mentioned in README.md, docs/, OpenAPI specs, J
 RULE D8: IF UNCERTAIN, ASK BEFORE ADDING.
 If tracing the full dependency chain reveals an ambiguity (e.g., a symbol is used in a context you cannot fully analyze), STOP and ask the user for clarification. Do NOT guess by adding a defensive if or a try/catch. The default action when uncertain is to ask, not to invent.
 
-## Проза (чат, документы, PR, комментарии)
+## Prose (chat, documents, PR, comments)
 
-Неотредактированный модельный ритм в репозитории неприемлем. Модель как черновик — можно; публиковать черновик — нельзя.
+Unedited model rhythm in repository is unacceptable. Model as draft — ok; publishing draft — no.
 
-**Постоянный контракт** (русский и английский):
+**Permanent contract** (Russian and English):
 
-- Начинать с факта, решения или действия. Детали — вторым слоем. Непроверенное — в конце.
-- Пунктуация по умолчанию: `. , : ()`. Тире `—` как связка «подлежащее = сказуемое» в русском — норма и в счёт не идёт. `—` как замена запятой или двоеточия — редко: не больше одного разрыва мысли на несколько абзацев.
-- `не X, а Y` — не больше одного контраста на документ, никогда первой фразой раздела.
-- Заголовки называют артефакт или операцию (`PolicyHook`, `compile()`, `needs_commit`). Без метафоры с драмой.
-- Вычёркивать заполнители, которые не меняют утверждение: `по сути`, `важно отметить`, `таким образом`, `it's important to note`, `let's dive in`, `leverage`, `robust`, `seamless`, `game-changer`, `мощный инструмент`, `комплексный подход`.
-- Глагол действия вместо `является [оценкой]` / `is a [adjective] solution`.
-- Заканчивать блок фактом, ограничением, идентификатором или примером, не слоганом.
-- Перечислять столько пунктов, сколько есть. Не добирать до трёх.
-- Держать имена, числа и поля схемы до последней трети текста включительно.
-- Ссылаться на источник: цитировать файл, измерение, или говорить, что не проверял. `исследования показывают` / `experts say` без имени — вычёркивать.
+- Start with fact, decision or action. Details — second layer. Unverified — at the end.
+- Default punctuation: `. , : ()`. Em dash `—` as subject = predicate connector in Russian — normal and not counted. `—` as comma or colon replacement — rarely: no more than one thought break per several paragraphs.
+- `not X, but Y` — no more than one contrast per document, never first sentence of section.
+- Headings name artifact or operation (`PolicyHook`, `compile()`, `needs_commit`). No dramatic metaphor.
+- Remove fillers that do not change statement: `in essence`, `important to note`, `thus`, `it's important to note`, `let's dive in`, `leverage`, `robust`, `seamless`, `game-changer`, `powerful tool`, `comprehensive approach`.
+- Action verb instead of `is a [evaluation]` / `is a [adjective] solution`.
+- End block with fact, limitation, identifier or example, not slogan.
+- List as many items as there are. Do not pad to three.
+- Keep names, numbers and schema fields to the last third of text inclusive.
+- Reference source: cite file, measurement, or say you did not check. `research shows` / `experts say` without name — remove.
 
-**Делать это в каждом пользовательском абзаце**, включая этот чат.
+**Do this in every user paragraph**, including this chat.
 
-При письме и правке markdown читать и применять `.agents/skills/writing-without-slop/SKILL.md` (три прохода: ритм, конкретность, связки и финалы). Slash command: `/writing-without-slop`.
+When writing and editing markdown read and apply `.agents/skills/writing-without-slop/SKILL.md` (three passes: rhythm, concreteness, connectors and endings). Slash command: `/writing-without-slop`.

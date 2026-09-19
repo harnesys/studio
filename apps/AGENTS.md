@@ -1,81 +1,81 @@
 # Apps
 
-Хост-слой поверх `harnesys`. SoT контракта: `docs/` в корне монорепо.
+Host layer over `harnesys`. SoT contract: `docs/` in monorepo root.
 
-Стенд переписывается нативно на типы и API из docs (`RuntimeState`, Snapshot, `SessionEvent`, `AgentRun`, `Command`).
+Stand is rewritten natively to types and API from docs (`RuntimeState`, Snapshot, `SessionEvent`, `AgentRun`, `Command`).
 
-| каталог | npm name | роль | артефакт |
+| directory | npm name | role | artifact |
 |---|---|---|---|
-| `server/` | `@harnesys/server` | host API: HTTP+WS, sqlite, крон, вебхуки | `build/harnesys-host` |
-| `webui/` | `@harnesys/webui` | SPA (`src/`, vite) + веб-шлюз (`server/`: статика, прокси `/api`, token-гейт) | `dist`, `build/harnesys-web` |
-| `cli/` | `@harnesys/cli` | супервизор `harnesys`: up/down/status/restart/logs/update, `host pair`, systemd | `build/harnesys` |
-| `desktop/` | `@harnesys/desktop` | Tauri-оболочка, фронтенд берёт из webui (`tauri.conf.json` → `../webui`) | — |
+| `server/` | `@harnesys/server` | host API: HTTP+WS, sqlite, cron, webhooks | `build/harnesys-host` |
+| `webui/` | `@harnesys/webui` | SPA (`src/`, vite) + web gateway (`server/`: static, proxy `/api`, token-gate) | `dist`, `build/harnesys-web` |
+| `cli/` | `@harnesys/cli` | supervisor `harnesys`: up/down/status/restart/logs/update, `host pair`, systemd | `build/harnesys` |
+| `desktop/` | `@harnesys/desktop` | Tauri wrapper, frontend taken from webui (`tauri.conf.json` → `../webui`) | — |
 
-Контракт API: `packages/studio-shared` (`@harnesys/studio-shared`, баррель `types.ts`) — общий для server и webui.
+API contract: `packages/studio-shared` (`@harnesys/studio-shared`, barrel `types.ts`) — common for server and webui.
 
-Дев из корня: `bun run dev` (vite :5173 + `bun --watch` :47474), `dev:server`, `dev:webui`, `dev:desktop`.
+Dev from root: `bun run dev` (vite :5173 + `bun --watch` :47474), `dev:server`, `dev:webui`, `dev:desktop`.
 
-## Сервер
+## Server
 
 Clean Architecture:
 
 ```
 server/src/
-  domain/         # порты, ошибки
-  application/    # use case-классы
+  domain/         # ports, errors
+  application/    # use case classes
   adapters/       # HTTP, SQLite, FS
-  composition/    # сборка
+  composition/    # assembly
   index.ts        # Main: listen (API+WS only; no SPA)
 ```
 
-Dev ports: UI Vite `:5173`, host API `:47474`. Host does not serve the SPA. Бандл-ассеты: `apps/server/assets` (skills, presets) — резолвятся как `import.meta.dir/../../../assets` от `src/adapters/store`.
+Dev ports: UI Vite `:5173`, host API `:47474`. Host does not serve SPA. Bundle assets: `apps/server/assets` (skills, presets) — resolved as `import.meta.dir/../../../assets` from `src/adapters/store`.
 
-Доменные порты и ошибки — в `src/domain`.
+Domain ports and errors — in `src/domain`.
 
-| суффикс | роль |
+| suffix | role |
 |---|---|
-| `.port.ts` | порт |
-| `.use-case.ts` | одна операция, один класс + Request/Response + InputPort в том же файле |
-| `.controller.ts` | HTTP, один файл на ресурс |
-| `.adapter.ts` | реализация порта |
-| `.error.ts` | доменные ошибки |
+| `.port.ts` | port |
+| `.use-case.ts` | one operation, one class + Request/Response + InputPort in same file |
+| `.controller.ts` | HTTP, one file per resource |
+| `.adapter.ts` | port implementation |
+| `.error.ts` | domain errors |
 
-Application не знает Hono и путь к SQLite. Persist — репозитории + `UnitOfWork` над SQLite (`~/.harnesys/studio.db`); вложения — файлы под workspace. Импорт runtime: пакет `harnesys`.
+Application does not know Hono and SQLite path. Persist — repositories + `UnitOfWork` over SQLite (`~/.harnesys/studio.db`); attachments — files under workspace. Runtime import: package `harnesys`.
 
-## Клиент (webui/src)
+## Client (webui/src)
 
-FSD. Импорт только вниз: `app → pages → widgets → features → entities → shared`.
-Слайс снаружи только через свой `index.ts`.
+FSD. Import only downwards: `app → pages → widgets → features → entities → shared`.
+Slice outside only via its `index.ts`.
 
-| слой | что класть | что не класть |
+| layer | what to put | what not to put |
 |---|---|---|
-| `pages/` | маршрут: композиция, URL, вызов фич | диалоги, схемы полей, CRUD-хуки действия |
-| `features/` | одно пользовательское действие | каталог сущности, селекцию desk, shared-UI |
-| `entities/` | коллекция одного домена и стор | диалоги, выбор агента/треда, HTTP Studio |
-| `shared/` | ui-кит, api-клиент, overlay, конфиг | доменную логику, схемы конкретной формы |
+| `pages/` | route: composition, URL, feature calls | dialogs, field schemas, CRUD hooks of action |
+| `features/` | one user action | entity catalog, desk selection, shared UI |
+| `entities/` | collection of one domain and store | dialogs, agent/thread selection, HTTP Studio |
+| `shared/` | ui-kit, api-client, overlay, config | domain logic, specific form schemas |
 
-Образец фичи:
+Feature sample:
 
 ```
-features/<действие>/
-  index.ts                 # только публичный API
-  README.md                # 5–12 строк: зачем, API, server
-  model/<имя>-dialogs.ts   # open / confirm
-  model/<имя>.ts           # схема, draft, merge
-  ui/<имя>-fields.tsx      # поля
-  ui/<имя>-dialogs.tsx     # диалоги
+features/<action>/
+  index.ts                 # public API only
+  README.md                # 5–12 lines: why, API, server
+  model/<name>-dialogs.ts  # open / confirm
+  model/<name>.ts          # schema, draft, merge
+  ui/<name>-fields.tsx     # fields
+  ui/<name>-dialogs.tsx    # dialogs
 ```
 
-Страница зовёт только `openEditModelDialog(row)` / `confirmDetachModel(name)` из `index.ts`, потом мутацию.
+Page calls only `openEditModelDialog(row)` / `confirmDetachModel(name)` from `index.ts`, then mutation.
 
-Формы — `react-hook-form` + `Controller` + `@hookform/resolvers/zod` + zod в `model/`. Контролы — `shared/ui` (`Field`, `Input`, `ToggleGroup`).
+Forms — `react-hook-form` + `Controller` + `@hookform/resolvers/zod` + zod in `model/`. Controls — `shared/ui` (`Field`, `Input`, `ToggleGroup`).
 
-Стор — один домен на файл (`entities/*/model/*.store.ts`). Выбор агента / треда / инспектора — `features/desk`. Действие на несколько сущностей — фича. Workspace / surface / settings — в URL.
+Store — one domain per file (`entities/*/model/*.store.ts`). Agent / thread / inspector selection — `features/desk`. Action on multiple entities — feature. Workspace / surface / settings — in URL.
 
-Идентификаторы — только UUID.
+Identifiers — UUID only.
 
-## Skills / доки для зоны
+## Skills / docs for zone
 
-- UI-фича: FSD + образец соседней фичи. Корневые `docs/01`–`23` не открывать без runtime-задачи.
-- Server use case: этот файл + соседний `*.use-case.ts`.
-- Runtime / session / HITL: `docs/` в корне.
+- UI feature: FSD + sample of neighboring feature. Root `docs/01`–`23` do not open without runtime task.
+- Server use case: this file + neighboring `*.use-case.ts`.
+- Runtime / session / HITL: `docs/` in root.

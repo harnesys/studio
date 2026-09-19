@@ -7,7 +7,7 @@
     "beforeDevCommand": "bun run --cwd ../webui dev",
     "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "bun run --cwd ../webui build",
-    "frontendDist": "../webui/dist"
+    "frontendDist": "../../webui/dist"
   },
   "app": {
     "windows": [

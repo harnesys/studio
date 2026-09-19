@@ -1,0 +1,105 @@
+# harnesys — host API + web UI behind the token gate.
+#
+# Build context is the repo root, so run compose from the repo root or with -f:
+#   docker compose -f deploy/docker-compose.yml up -d
+#
+# Images are tagged ghcr.io/harnesys/{host,web} for a future registry; until one
+# exists, `build:` produces them locally.
+#
+# ---------------------------------------------------------------------------
+# Token / gate story
+#
+#   HOST_TOKEN is deliberately NOT wired into the host package. On first boot the
+#   host generates `host.token` and writes it to /data/config.json (machine home,
+#   HARNESYS_HOME=/data) before the HTTP server starts listening. The web service
+#   shares the same `harnesys-data` volume with HARNESYS_HOME=/data and reads
+#   `host.token` from /data/config.json itself — the web token gate matches the
+#   host token automatically, no shared secret needs to be configured.
+#
+#   Read the token for API clients / the CLI:
+#     docker compose exec host cat /data/config.json
+#   (`host.token` field; also the pairing source for `harnesys host pair`.)
+#
+# ---------------------------------------------------------------------------
+# Workspace data — the volume is NOT full node persistence
+#
+#   Workspace nodes live in folders on the host machine; the folder paths are
+#   recorded in /data/config.json (`host.nodes`). The `harnesys-data` volume
+#   persists the machine home only (config.json, logs, host-side sqlite) —
+#   NOT the node folders themselves. Do not rely on it for workspace content.
+#
+#   To give the host container access to real folders, bind-mount them and
+#   register nodes with paths inside the mount, e.g.:
+#
+#     volumes:
+#       - harnesys-data:/data
+#       - ./workspaces:/workspaces
+#
+#   …and add nodes whose path is /workspaces/<name> (the CLI/web register nodes
+#   with whatever path you give them; bind-mount the same folder layout on the
+#   docker host so the data survives container replacement).
+
+name: harnesys
+
+services:
+  host:
+    build:
+      context: ..
+      dockerfile: deploy/host.Dockerfile
+    image: ghcr.io/harnesys/host
+    environment:
+      NODE_ENV: production
+      # The container always listens on 3000 (web's UPSTREAM and the healthcheck
+      # are pinned to it); ${PORT:-3000} only chooses the host-side published port.
+      PORT: 3000
+      # Public origin for webhook URLs; set PUBLIC_URL in deploy/.env
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      HARNESYS_HOME: /data
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - harnesys-data:/data
+      # Example workspace bind-mount (see the note above) — config paths must
+      # point inside the mount:
+      # - ./workspaces:/workspaces
+    healthcheck:
+      # GET only. bun -e fetch: GET by default, exit code drives health.
+      test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:3000/health'); process.exit(r.ok ? 0 : 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    image: ghcr.io/harnesys/web
+    environment:
+      NODE_ENV: production
+      WEB_PORT: 8080
+      UPSTREAM: ${UPSTREAM:-http://host:3000}
+      STATIC_DIR: /srv/dist
+      # Same volume as host: the web gate reads host.token from /data/config.json
+      # (written by the host on first boot — see the token story above).
+      HARNESYS_HOME: /data
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    volumes:
+      - harnesys-data:/data
+    depends_on:
+      host:
+        condition: service_healthy
+    healthcheck:
+      # GET /healthz only — the web gate answers 401 to anything else
+      # (HEAD /healthz falls through to the gated SPA).
+      test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:8080/healthz'); process.exit(r.ok ? 0 : 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  harnesys-data:

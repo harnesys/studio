@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Harnesys — self-hosted studio for AI agents</title>
-  <meta name="description" content="Harnesys runs AI agents in your real folders: files, shell, git, web search, cron and webhook automations, memory and plugins — supervised from an IDE-style web interface. 100% self-hosted.">
+  <title>Harnesys: self-hosted studio for AI agents</title>
+  <meta name="description" content="Harnesys runs AI agents in your real folders: files, shell, git, web search, cron and webhook automations, memory and plugins, supervised from an IDE-style web interface. 100% self-hosted.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E8954A'/%3E%3Cpath d='M9 12h14M9 17h9M9 22h12' stroke='%231A1208' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,14 +41,14 @@
       <p class="kicker mono reveal">Self-hosted · Runs on your machine · Asks before it acts</p>
       <h1 class="reveal">The studio where AI agents do <em>real</em> work in your folders</h1>
       <p class="hero-sub reveal">
-        Give an agent tools for files, shell, git and web search, schedules,
+        Give an agent tools for files, shell, git and web search, plus schedules,
         memory and plugins. It works inside your workspace on your machine,
         stops at the <em>ask</em> gate before anything risky, and you watch
         every step from an IDE-style desk in the browser.
       </p>
       <p class="hero-trust mono reveal">Your folders. Your keys. Your models. Your machine.</p>
       <div class="hero-cta reveal">
-        <a class="btn btn-amber" href="https://github.com/harnesys/studio/releases"><i data-lucide="download"></i>Download — all platforms</a>
+        <a class="btn btn-amber" href="https://github.com/harnesys/studio/releases"><i data-lucide="download"></i>Download · all platforms</a>
         <a class="btn btn-ghost" href="https://github.com/harnesys/studio"><i data-lucide="github"></i>View on GitHub</a>
       </div>
       <div class="cmd reveal">
@@ -73,7 +73,7 @@ harnesys up --with-ui</code></pre>
     <div class="wrap">
       <div class="sec-head reveal">
         <h2>What you get on day one</h2>
-        <p>Not a chatbot bolted onto a terminal. A working desk where agents and humans share the same files, the same shell and the same git.</p>
+        <p>A working desk where agents and humans share the same files, the same shell and the same git.</p>
       </div>
       <div class="cards">
         <article class="card reveal">
@@ -138,7 +138,7 @@ harnesys up --with-ui</code></pre>
     <div class="wrap">
       <div class="sec-head reveal">
         <h2>Agents are graphs, not vibes</h2>
-        <p>Draw the pipeline on a canvas: LLM calls, tool calls, map fan-outs to 32 workers, waits, and interrupts where a human answers. Then tune the twelve categories behind it — identity, model, compaction, limits, permissions, capabilities, skills, MCP, subagents, hooks, modes.</p>
+        <p>Draw the pipeline on a canvas: LLM calls, tool calls, map fan-outs to 32 workers, waits, and interrupts where a human answers. Then tune the twelve categories behind it: identity, model, compaction, limits, permissions, capabilities, skills, MCP, subagents, hooks, modes.</p>
       </div>
       <div class="duo">
         <figure class="shot reveal">
@@ -157,7 +157,7 @@ harnesys up --with-ui</code></pre>
     <div class="wrap">
       <div class="sec-head reveal">
         <h2>An IDE in the same window</h2>
-        <p>You never had to leave: the explorer shows git status per line, Monaco edits with an LSP in the status bar, diffs review commits, and terminals are real PTY sessions you can type into yourself.</p>
+        <p>You never have to leave: the explorer shows git status per line, you edit in Monaco with an LSP in the status bar, you review commits as diffs, and the terminals are real PTY sessions you can type into.</p>
       </div>
       <div class="duo">
         <figure class="shot reveal">
@@ -175,8 +175,8 @@ harnesys up --with-ui</code></pre>
   <section class="sec" id="automations">
     <div class="wrap">
       <div class="sec-head reveal">
-        <h2>It keeps working when you&rsquo;re away</h2>
-        <p>Schedules bind an agent, a thread and a permission mode to a cron — from Weekdays presets to a raw expression. Webhooks wake a thread over HTTP. Runs land in a dedicated log thread, past fires stay in a journal, and open questions wait in the inbox with an unread counter.</p>
+        <h2>Agents keep working when you&rsquo;re away</h2>
+        <p>Schedules bind an agent, a thread and a permission mode to a cron, from Weekdays presets to a raw expression. Webhooks wake a thread over HTTP. Runs land in a dedicated log thread, past fires stay in a journal, and open questions wait in the inbox with an unread counter.</p>
       </div>
       <figure class="shot shot-wide reveal">
         <img src="assets/automations.png" alt="New scheduler dialog: target agent, wake thread, cron presets, raw expression, permission mode and history" width="1600" height="1000">
@@ -200,7 +200,7 @@ harnesys up --with-ui</code></pre>
               <a href="https://github.com/harnesys/studio/releases">releases</a>
               with the host bundled as a sidecar, or the one-liner for Linux and
               Windows binaries. First launch on macOS: right-click the app and
-              choose Open — the build is ad-hoc signed.
+              choose Open; the build is ad-hoc signed.
             </p>
           </div>
           <pre class="step-code"><code>curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh</code></pre>
@@ -229,7 +229,7 @@ harnesys up --with-ui</code></pre>
         <li class="step reveal">
           <div class="step-body">
             <h3>Reach it from anywhere</h3>
-            <p>Pair another machine with a 6-digit code, keep binaries fresh with one command. On the public internet, terminate TLS with Tailscale, Caddy or nginx — recipes in the <a href="https://github.com/harnesys/studio/blob/main/docs/deploy.md">deploy docs</a>.</p>
+            <p>Pair another machine with a 6-digit code, keep binaries fresh with one command. On the public internet, terminate TLS with Tailscale, Caddy or nginx. Recipes are in the <a href="https://github.com/harnesys/studio/blob/main/docs/deploy.md">deploy docs</a>.</p>
           </div>
           <pre class="step-code"><code>harnesys host pair
 harnesys update</code></pre>
@@ -242,7 +242,7 @@ harnesys update</code></pre>
     <div class="wrap">
       <div class="sec-head reveal">
         <h2>Install paths</h2>
-        <p>All platforms, today: macOS for Apple silicon and Intel, plus Linux and Windows builds.</p>
+        <p>All platforms: macOS for Apple silicon and Intel, plus Linux and Windows builds.</p>
       </div>
       <div class="install-panel reveal">
         <div class="panel-tabs" role="tablist" aria-label="Install methods">
@@ -313,7 +313,7 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
       <p class="install-note reveal">
         Desktop apps run the host as a sidecar behind the UI. CLI binaries for
         Linux and macOS (x64, arm64) and <span class="mono">client-dist.zip</span>
-        ship on the <a href="https://github.com/harnesys/studio/releases">Releases page</a>.
+        are on the <a href="https://github.com/harnesys/studio/releases">Releases page</a>.
       </p>
     </div>
   </section>

@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, RunEvent, WindowEvent};
+use tauri::{AppHandle, Manager, RunEvent, UserAttentionType, WindowEvent};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
 
@@ -118,6 +118,9 @@ pub fn run() {
             app.manage(HostProcess(Mutex::new(None)));
             build_tray(&handle)?;
 
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.request_user_attention(Some(UserAttentionType::Critical));
+            }
             if let Err(e) = spawn_host(&handle) {
                 eprintln!("host sidecar: {e}");
             }

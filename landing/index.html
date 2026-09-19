@@ -244,48 +244,77 @@ harnesys update</code></pre>
         <h2>Install paths</h2>
         <p>All platforms, today: macOS for Apple silicon and Intel, plus Linux and Windows builds.</p>
       </div>
-      <div class="install-grid">
-        <article class="card install-primary reveal">
-          <span class="icon-tile"><i data-lucide="app-window"></i></span>
-          <h3>Download</h3>
-          <p>
-            The macOS app runs the host as a sidecar and lives in the tray.
-            Linux and Windows ship the same three pieces: host, web gateway and
-            the <span class="mono">harnesys</span> supervisor.
-          </p>
-          <a class="btn btn-amber" href="https://github.com/harnesys/studio/releases">Get the latest release</a>
-        </article>
-        <article class="card reveal">
-          <span class="icon-tile"><i data-lucide="terminal"></i></span>
-          <h3>Linux server</h3>
-          <div class="cmd">
-            <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh&#10;harnesys up --with-ui">Copy</button>
-            <pre class="cmd-body"><code>curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh
+      <div class="install-panel reveal">
+        <div class="panel-tabs" role="tablist" aria-label="Install methods">
+          <span class="panel-label mono">Install</span>
+          <button class="ptab is-active" type="button" data-tab="apps" role="tab" aria-selected="true" aria-controls="pane-apps">Apps</button>
+          <button class="ptab" type="button" data-tab="cli" role="tab" aria-selected="false" aria-controls="pane-cli">CLI &amp; server</button>
+          <button class="ptab" type="button" data-tab="docker" role="tab" aria-selected="false" aria-controls="pane-docker">Docker</button>
+        </div>
+        <div class="ptab-pane is-active" id="pane-apps" data-pane="apps" role="tabpanel">
+          <div class="dl-grid">
+            <article class="dl-card is-primary">
+              <h3>macOS</h3>
+              <p class="dl-meta mono">Apple silicon &amp; Intel · <span data-rel-version>latest</span></p>
+              <div class="dl-stack">
+                <a class="btn btn-amber" href="https://github.com/harnesys/studio/releases/latest/download/Harnesys_aarch64.dmg"><i data-lucide="download"></i>Download Apple silicon</a>
+                <a class="btn btn-ghost" href="https://github.com/harnesys/studio/releases/latest/download/Harnesys_x64.dmg"><i data-lucide="download"></i>Download Intel</a>
+              </div>
+            </article>
+            <article class="dl-card">
+              <h3>Windows</h3>
+              <p class="dl-meta mono">x64 or ARM64 · <span data-rel-version>latest</span></p>
+              <div class="dl-stack">
+                <a class="btn btn-amber" href="https://github.com/harnesys/studio/releases/latest/download/Harnesys_x64-setup.exe"><i data-lucide="download"></i>Download x64</a>
+                <a class="btn btn-ghost" href="https://github.com/harnesys/studio/releases/latest/download/Harnesys_arm64-setup.exe"><i data-lucide="download"></i>Download ARM64</a>
+              </div>
+            </article>
+            <article class="dl-card">
+              <h3>Linux</h3>
+              <p class="dl-meta mono">x64 · AppImage or .deb · <span data-rel-version>latest</span></p>
+              <div class="dl-stack">
+                <a class="btn btn-amber" href="https://github.com/harnesys/studio/releases/latest/download/Harnesys_amd64.AppImage"><i data-lucide="download"></i>Download AppImage</a>
+                <a class="btn btn-ghost" href="https://github.com/harnesys/studio/releases/latest/download/Harnesys_amd64.deb"><i data-lucide="download"></i>Download .deb</a>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="ptab-pane" id="pane-cli" data-pane="cli" role="tabpanel" hidden>
+          <div class="pane-doc">
+            <div class="cmd full">
+              <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh&#10;harnesys up --with-ui">Copy</button>
+              <pre class="cmd-body full"><code>curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh
 harnesys up --with-ui</code></pre>
+            </div>
+            <p>
+              <span class="mono">--install-systemd</span> writes user units and
+              starts them via <span class="mono">systemctl --user</span>. The web
+              UI needs the Docker stack or the
+              <span class="mono">client-dist.zip</span> asset with
+              <span class="mono">STATIC_DIR</span>.
+            </p>
           </div>
-          <p>
-            <span class="mono">--install-systemd</span> writes user units and
-            starts them via <span class="mono">systemctl --user</span>. The web
-            UI needs the Docker stack or the
-            <span class="mono">client-dist.zip</span> asset with
-            <span class="mono">STATIC_DIR</span>.
-          </p>
-        </article>
-        <article class="card reveal">
-          <span class="icon-tile"><i data-lucide="container"></i></span>
-          <h3>Docker compose</h3>
-          <div class="cmd">
-            <button class="copy" type="button" data-copy="cp deploy/.env.example deploy/.env&#10;docker compose -f deploy/docker-compose.yml up -d">Copy</button>
-            <pre class="cmd-body"><code>cp deploy/.env.example deploy/.env
+        </div>
+        <div class="ptab-pane" id="pane-docker" data-pane="docker" role="tabpanel" hidden>
+          <div class="pane-doc">
+            <div class="cmd">
+              <button class="copy" type="button" data-copy="cp deploy/.env.example deploy/.env&#10;docker compose -f deploy/docker-compose.yml up -d">Copy</button>
+              <pre class="cmd-body"><code>cp deploy/.env.example deploy/.env
 docker compose -f deploy/docker-compose.yml up -d</code></pre>
+            </div>
+            <p>
+              The host writes its token into the shared volume and the web gate
+              reads it automatically:
+              <span class="mono">docker compose exec host cat /data/config.json</span>.
+            </p>
           </div>
-          <p>
-            The host writes its token into the shared volume and the web gate
-            reads it automatically:
-            <span class="mono">docker compose exec host cat /data/config.json</span>.
-          </p>
-        </article>
+        </div>
       </div>
+      <p class="install-note reveal">
+        Desktop apps run the host as a sidecar behind the UI. CLI binaries for
+        Linux and macOS (x64, arm64) and <span class="mono">client-dist.zip</span>
+        ship on the <a href="https://github.com/harnesys/studio/releases">Releases page</a>.
+      </p>
     </div>
   </section>
 

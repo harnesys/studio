@@ -36,6 +36,40 @@
     });
   });
 
+  var versions = document.querySelectorAll("[data-rel-version]");
+  if (versions.length) {
+    fetch("https://api.github.com/repos/harnesys/studio/releases/latest")
+      .then(function (res) {
+        return res.ok ? res.json() : null;
+      })
+      .then(function (rel) {
+        if (rel && rel.tag_name) {
+          versions.forEach(function (el) {
+            el.textContent = rel.tag_name;
+          });
+        }
+      })
+      .catch(function () {});
+  }
+
+  var tabs = document.querySelectorAll(".ptab");
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      tabs.forEach(function (other) {
+        var pane = document.getElementById(
+          other.getAttribute("aria-controls")
+        );
+        var active = other === tab;
+        other.classList.toggle("is-active", active);
+        other.setAttribute("aria-selected", active ? "true" : "false");
+        if (pane) {
+          pane.classList.toggle("is-active", active);
+          pane.hidden = !active;
+        }
+      });
+    });
+  });
+
   var revealables = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
   if (!revealables.length) return;
 

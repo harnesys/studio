@@ -1,6 +1,9 @@
 import type { WindowBootstrap, WindowHostRecord } from '@harnesys/studio-shared';
 import { env } from '@/shared/config/env';
 
+const BOOTSTRAP_WAIT_MS = 15_000;
+const BOOTSTRAP_RETRY_MS = 400;
+
 let credential: string | null = null;
 let hosts: WindowHostRecord[] = [];
 export function getHostCredential(): string | null {
@@ -30,8 +33,26 @@ export function ensureHostCredential(): Promise<string> {
   }
   return bootstrapInflight;
 }
+async function fetchBootstrap(): Promise<Response> {
+  const deadline = Date.now() + BOOTSTRAP_WAIT_MS;
+  let lastError: unknown = null;
+  for (;;) {
+    try {
+      return await fetch(`${env.localHostOrigin}/api/window/bootstrap`);
+    } catch (error) {
+      lastError = error;
+      if (Date.now() >= deadline) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, BOOTSTRAP_RETRY_MS));
+    }
+  }
+  throw new Error(
+    `host not reachable at ${env.localHostOrigin} after ${BOOTSTRAP_WAIT_MS}ms (${String(lastError)})`,
+  );
+}
 async function loadBootstrap(): Promise<string> {
-  const response = await fetch(`${env.localHostOrigin}/api/window/bootstrap`);
+  const response = await fetchBootstrap();
   if (!response.ok) {
     let message = response.statusText || 'bootstrap failed';
     try {

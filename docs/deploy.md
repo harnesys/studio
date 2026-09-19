@@ -35,7 +35,7 @@ looks for its sibling binaries when run from a checkout.
 ### Install script
 
 ```sh
-curl -fsSL https://harnesys.dev/install | sh
+curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh
 ```
 
 The script downloads `harnesys`, `harnesys-host`, `harnesys-web` from GitHub

@@ -28,7 +28,7 @@ jobs:
           for bin in harnesys harnesys-host harnesys-web; do
             mv "$bin" "out/$bin-$suffix"
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: server-${{ matrix.target }}
           path: out/*
@@ -41,7 +41,7 @@ jobs:
       - run: bun install
       - run: bun run build:client
       - run: (cd apps/webui && zip -qr ../../client-dist.zip dist)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: client-dist
           path: client-dist.zip
@@ -70,7 +70,7 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: bun run build:desktop --target ${{ matrix.target }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.target }}
           path: apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
@@ -79,7 +79,7 @@ jobs:
     needs: [server, client-dist, desktop]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           merge-multiple: true
           path: dist

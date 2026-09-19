@@ -2,7 +2,7 @@
 # harnesys installer: downloads the harnesys CLI plus the host and web binaries
 # from GitHub releases into ${HARNESYS_PREFIX:-$HOME/.local/bin}. No prompts.
 #
-#   curl -fsSL https://harnesys.dev/install | sh
+#   curl -fsSL https://raw.githubusercontent.com/harnesys/studio/main/scripts/install.sh | sh
 #
 # Env:
 #   HARNESYS_REPO    GitHub repository (default: harnesys/studio)

@@ -27,6 +27,7 @@ import {
   shellCapability,
   threadsCapability,
   webhookCapability,
+  webSearchCapability,
 } from '../packages/harnesys/index.ts'
 import { lspCapability } from '../packages/harnesys/lsp.ts'
 
@@ -37,6 +38,7 @@ const PACKS: PackEntry[] = [
   filesCapability,
   shellCapability,
   fetchCapability,
+  webSearchCapability,
   lspCapability,
   planCapability,
   agentsCapability,

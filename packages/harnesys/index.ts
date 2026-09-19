@@ -308,6 +308,7 @@ export type { SchedulerCapabilityPorts } from './src/packs/scheduler/index.ts';
 export { schedulerCapability } from './src/packs/scheduler/index.ts';
 export type { ThreadsCapabilityPorts } from './src/packs/threads/index.ts';
 export { threadsCapability } from './src/packs/threads/index.ts';
+export { webSearchCapability } from './src/packs/web/search.ts';
 export type { WebhookCapabilityPorts } from './src/packs/webhook/index.ts';
 export { webhookCapability } from './src/packs/webhook/index.ts';
 export type {

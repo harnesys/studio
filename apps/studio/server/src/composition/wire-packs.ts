@@ -16,6 +16,7 @@ import {
   shellCapability,
   threadsCapability,
   webhookCapability,
+  webSearchCapability,
 } from 'harnesys';
 import { lspCapability } from 'harnesys/lsp';
 import {
@@ -150,6 +151,7 @@ export function createPackRegistrations(deps: PackRegistrationsDeps): PackRegist
       resolveScope: stubScope,
     }),
     registerPack(fetchCapability, { resolveScope: stubScope }),
+    registerPack(webSearchCapability, { resolveScope: stubScope }),
     registerPack(lspCapability, {
       ports: { lsp: deps.lsp },
       resolveScope: stubScope,

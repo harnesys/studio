@@ -24,5 +24,6 @@ export type { SchedulerCapabilityPorts } from './scheduler/index.ts';
 export { schedulerCapability } from './scheduler/index.ts';
 export type { ThreadsCapabilityPorts } from './threads/index.ts';
 export { threadsCapability } from './threads/index.ts';
+export { webSearchCapability } from './web/search.ts';
 export type { WebhookCapabilityPorts } from './webhook/index.ts';
 export { webhookCapability } from './webhook/index.ts';

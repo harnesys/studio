@@ -266,7 +266,7 @@ function formatPolicyGates(permissions: PermissionMap): string {
   const hints: Record<ModeOp, string> = {
     'fs.write': 'write_file, edit_file',
     process: 'shell',
-    network: 'fetch',
+    network: 'fetch, web_search',
     mcp: 'MCP tools',
     agents: 'agents_*',
   };

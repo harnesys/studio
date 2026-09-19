@@ -18,6 +18,10 @@ COPY apps/harnesys-cli/package.json apps/harnesys-cli/
 RUN bun install --frozen-lockfile
 
 # Runtime sources: the server plus the workspace packages it imports.
+# apps/studio/assets must keep its repo position relative to the server sources:
+# bundled skills/presets resolve as import.meta.dir/../../../../assets from
+# apps/studio/server/src/adapters/store → /app/apps/studio/assets here.
+COPY apps/studio/assets apps/studio/assets
 COPY apps/studio/server apps/studio/server
 COPY apps/studio/shared apps/studio/shared
 COPY packages/harnesys packages/harnesys

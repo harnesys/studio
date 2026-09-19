@@ -9,6 +9,7 @@
     "apps/studio/*"
   ],
   "scripts": {
+    "build:host": "bun build --compile apps/studio/server/src/index.ts --outfile harnesys-host",
     "docs:merge": "bun run scripts/docs-merge.ts",
     "vendor:plugin-schemas": "bun run scripts/vendor-plugin-schemas.ts",
     "lint": "biome check .",

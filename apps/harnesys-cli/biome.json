@@ -1,0 +1,27 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "root": false,
+  "extends": "//",
+  "files": {
+    "includes": [
+      "src/**",
+      "*.json",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/out",
+      "!**/coverage",
+      "!**/temp",
+      "!bun.lock"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off"
+      },
+      "suspicious": {
+        "noConsole": "off"
+      }
+    }
+  }
+}

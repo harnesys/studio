@@ -11,11 +11,13 @@
   "scripts": {
     "build:host": "bun build --compile apps/studio/server/src/index.ts --outfile build/harnesys-host",
     "build:web": "bun build --compile apps/harnesys-web/src/index.ts --outfile build/harnesys-web",
+    "build:cli": "bun build --compile apps/harnesys-cli/src/index.ts --outfile build/harnesys",
+    "build:client": "bun run --cwd apps/studio/client build",
     "docs:merge": "bun run scripts/docs-merge.ts",
     "vendor:plugin-schemas": "bun run scripts/vendor-plugin-schemas.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write --unsafe .",
-    "typecheck": "bun run --cwd packages/harnesys typecheck && bun run --cwd apps/studio typecheck && bun run --cwd apps/harnesys-web typecheck"
+    "typecheck": "bun run --cwd packages/harnesys typecheck && bun run --cwd apps/studio typecheck && bun run --cwd apps/harnesys-web typecheck && bun run --cwd apps/harnesys-cli typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.6",

@@ -112,7 +112,7 @@ if kind == .app {
     )!
     let spec = CGGradient(
         colorsSpace: CGColorSpaceCreateDeviceRGB(),
-        colors: [hex("f4f8fa").cgColor, hex("93a5b4").cgColor] as CFArray,
+        colors: [hex("ccd4dc").cgColor, hex("93a5b4").cgColor] as CFArray,
         locations: [0, 1]
     )!
     let glint = CGGradient(
@@ -122,7 +122,7 @@ if kind == .app {
     )!
     let edge = CGGradient(
         colorsSpace: CGColorSpaceCreateDeviceRGB(),
-        colors: [hex("ffffff", a: 0.3).cgColor, hex("ffffff", a: 0.02).cgColor] as CFArray,
+        colors: [hex("d2d8de", a: 0.3).cgColor, hex("d2d8de", a: 0.02).cgColor] as CFArray,
         locations: [0, 1]
     )!
 
@@ -142,30 +142,30 @@ if kind == .app {
     // Left post: dark slash, top specular, sliver, bottom glint, edge light, streak.
     poly([(402, 152), (402, 712), (152, 772)], hex("0a0d11", a: 0.9))
     polyGrad([(152, 152), (402, 152), (152, 352)], spec, CGPoint(x: 277, y: 152), CGPoint(x: 277, y: 352), 0.9)
-    poly([(402, 152), (362, 152), (402, 252)], hex("dfe7ec", a: 0.35))
+    poly([(402, 152), (362, 152), (402, 252)], hex("b8c1ca", a: 0.35))
     polyGrad([(152, 872), (372, 872), (152, 652)], glint, CGPoint(x: 262, y: 652), CGPoint(x: 262, y: 872), 0.55)
     ctx.saveGState()
     ctx.clip(to: CGRect(x: 152, y: 152, width: 10, height: 720))
     ctx.drawLinearGradient(edge, start: CGPoint(x: 157, y: 152), end: CGPoint(x: 157, y: 872), options: [])
     ctx.restoreGState()
-    poly([(252, 252), (278, 252), (218, 432), (198, 432)], hex("ffffff", a: 0.22))
+    poly([(252, 252), (278, 252), (218, 432), (198, 432)], hex("b7c0c9", a: 0.22))
 
     // Right post: mirrored.
     poly([(622, 152), (622, 712), (872, 772)], hex("0a0d11", a: 0.9))
     polyGrad([(872, 152), (622, 152), (872, 352)], spec, CGPoint(x: 747, y: 152), CGPoint(x: 747, y: 352), 0.9)
-    poly([(622, 152), (662, 152), (622, 252)], hex("dfe7ec", a: 0.35))
+    poly([(622, 152), (662, 152), (622, 252)], hex("b8c1ca", a: 0.35))
     polyGrad([(872, 872), (652, 872), (872, 652)], glint, CGPoint(x: 762, y: 652), CGPoint(x: 762, y: 872), 0.55)
     ctx.saveGState()
     ctx.clip(to: CGRect(x: 862, y: 152, width: 10, height: 720))
     ctx.drawLinearGradient(edge, start: CGPoint(x: 867, y: 152), end: CGPoint(x: 867, y: 872), options: [])
     ctx.restoreGState()
-    poly([(792, 552), (812, 552), (762, 712), (742, 712)], hex("ffffff", a: 0.15))
+    poly([(792, 552), (812, 552), (762, 712), (742, 712)], hex("b7c0c9", a: 0.15))
 
     // Crossbar: bright top wedge, shadow underneath, corner glints.
-    poly([(402, 432), (622, 432), (402, 532)], hex("e8eef2", a: 0.6))
+    poly([(402, 432), (622, 432), (402, 532)], hex("b5bec8", a: 0.6))
     poly([(402, 592), (622, 592), (522, 702)], hex("090c10", a: 0.9))
-    poly([(402, 332), (402, 432), (492, 432)], hex("dbe4ea", a: 0.4))
-    poly([(622, 332), (622, 432), (532, 432)], hex("dbe4ea", a: 0.25))
+    poly([(402, 332), (402, 432), (492, 432)], hex("aeb8c2", a: 0.4))
+    poly([(622, 332), (622, 432), (532, 432)], hex("aeb8c2", a: 0.25))
 
     ctx.restoreGState()
 

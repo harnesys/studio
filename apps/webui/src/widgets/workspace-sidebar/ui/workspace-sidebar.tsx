@@ -15,6 +15,7 @@ import {
   useStudioLocation,
 } from '@/shared/config/location';
 import { AppLogo } from '@/shared/ui/app-logo';
+import { Badge } from '@/shared/ui/badge.tsx';
 import { Resizer } from '@/shared/ui/resizer';
 import {
   Sidebar,
@@ -325,13 +326,16 @@ export function WorkspaceSidebar() {
         <SidebarMenu>
           <SidebarMenuItem className="flex flex-row items-center gap-1 group-data-[collapsible=icon]:flex-col">
             <div
-              className="flex h-8 flex-1 items-center gap-2 px-2 text-muted-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+              className="flex flex-1 items-center gap-2 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               data-testid="app-logo"
               title="Harnesys"
             >
-              <AppLogo className="size-[18px]" />
-              <span className="font-medium text-sm tracking-tight group-data-[collapsible=icon]:hidden">
-                Harnesys
+              <AppLogo className="size-6" />
+              <span className="wordmark-press font-medium tracking-tight group-data-[collapsible=icon]:hidden">
+                Harnesys{' '}
+                <Badge variant="secondary" className="text-muted-foreground">
+                  v1.0.0
+                </Badge>
               </span>
             </div>
             <SidebarSectionsConfig />

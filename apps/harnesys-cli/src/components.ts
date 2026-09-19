@@ -15,6 +15,14 @@ export function isComponentName(value: string): value is ComponentName {
   return value === 'server' || value === 'webui';
 }
 
+/** Shared target parser; `undefined` marks an invalid target for the caller to report. */
+export function parseTargetOrUndefined(target: string | undefined): ComponentName[] | undefined {
+  if (target === undefined || target === 'all') {
+    return ['server', 'webui'];
+  }
+  return isComponentName(target) ? [target] : undefined;
+}
+
 export function componentBin(name: ComponentName): string {
   return name === 'server' ? 'harnesys-host' : WEB_BIN;
 }
@@ -38,9 +46,14 @@ export function componentEnv(
 ): Record<string, string> {
   const env: Record<string, string> = {
     HARNESYS_HOME: context.home,
+    NODE_ENV: 'production',
   };
   if (name === 'server') {
     env.PORT = String(context.hostPort);
+    const publicUrl = process.env.PUBLIC_URL?.trim();
+    if (publicUrl) {
+      env.PUBLIC_URL = publicUrl;
+    }
   } else {
     env.WEB_PORT = String(context.webPort);
     env.UPSTREAM = `http://127.0.0.1:${context.hostPort}`;

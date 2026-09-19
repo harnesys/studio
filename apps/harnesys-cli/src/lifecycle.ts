@@ -5,9 +5,8 @@ import {
   componentBin,
   componentEnv,
   componentHealthUrl,
-  componentLabel,
   componentUrl,
-  isComponentName,
+  parseTargetOrUndefined,
   portOf,
   resolveComponentBin,
 } from './components.ts';
@@ -16,13 +15,11 @@ import {
   ensureStateDirs,
   HOST_DEFAULT_PORT,
   harnesysHome,
-  logFilePath,
   resolveBinDir,
   resolveStaticDir,
   WEB_DEFAULT_PORT,
 } from './paths.ts';
 import {
-  followFile,
   isPidAlive,
   type PidRecord,
   readPidRecord,
@@ -30,6 +27,7 @@ import {
   tailLines,
   terminate,
 } from './processes.ts';
+import { isUnitActive, restartUnit, stopUnit, unitName } from './systemd.ts';
 
 export type UpOptions = {
   hostPort: number;
@@ -37,7 +35,6 @@ export type UpOptions = {
   withUi: boolean;
 };
 
-const LOG_TAIL_LINES = 40;
 const STATUS_HEALTH_TIMEOUT_MS = 3000;
 
 type StartContext = { home: string; hostPort: number; webPort: number };
@@ -45,6 +42,14 @@ type StartContext = { home: string; hostPort: number; webPort: number };
 function fail(message: string): never {
   console.error(`harnesys: ${message}`);
   process.exit(1);
+}
+
+function parseTarget(target: string | undefined): ComponentName[] {
+  const names = parseTargetOrUndefined(target);
+  if (!names) {
+    return fail(`unknown target "${target}" — expected server | webui | all`);
+  }
+  return names;
 }
 
 /**
@@ -59,18 +64,21 @@ export function effectiveStaticDir(previous: PidRecord | undefined): string {
   return previous?.env?.STATIC_DIR ?? resolveStaticDir();
 }
 
-function assertStaticDir(dir: string): void {
-  let isDir = false;
+export function staticDirAvailable(dir: string): boolean {
   try {
-    isDir = statSync(dir).isDirectory();
+    return statSync(dir).isDirectory();
   } catch {
-    isDir = false;
+    return false;
   }
-  if (!isDir) {
-    fail(
-      `WebUI static assets not found at ${dir} — build the UI (see docs/deploy.md, \`bun run build:client\`)`,
-    );
+}
+
+function requireStaticDir(dir: string): void {
+  if (staticDirAvailable(dir)) {
+    return;
   }
+  fail(
+    `WebUI static assets not found at ${dir} — the WebUI needs a repo checkout (\`bun run build:client\`) or the Docker compose stack (\`deploy/\`); this install can run the host only`,
+  );
 }
 
 async function startComponent(
@@ -78,6 +86,10 @@ async function startComponent(
   context: StartContext,
   previous: PidRecord | undefined,
 ): Promise<'started' | 'already-running'> {
+  if (isUnitActive(name)) {
+    console.log(`${name.padEnd(5)} already running (systemd unit)`);
+    return 'already-running';
+  }
   const record = readPidRecord(context.home, name);
   if (record && isPidAlive(record.pid)) {
     console.log(
@@ -132,7 +144,7 @@ export async function commandUp(
   const previousServer = readPidRecord(home, 'server');
   const previousWeb = readPidRecord(home, 'webui');
   if (options.withUi) {
-    assertStaticDir(effectiveStaticDir(previousWeb));
+    requireStaticDir(effectiveStaticDir(previousWeb));
   }
   await startComponent('server', context, previousServer);
   if (options.withUi) {
@@ -143,6 +155,13 @@ export async function commandUp(
 export async function commandDown(): Promise<void> {
   const home = harnesysHome();
   for (const name of ['webui', 'server'] as const) {
+    if (isUnitActive(name)) {
+      if (!stopUnit(name)) {
+        fail(`systemctl --user stop ${unitName(name)} failed`);
+      }
+      console.log(`stopped ${name.padEnd(5)} (systemd unit)`);
+      continue;
+    }
     const record = readPidRecord(home, name);
     const wasAlive = record !== undefined && isPidAlive(record.pid);
     const result = await terminate(home, name);
@@ -161,6 +180,11 @@ export async function commandStatus(): Promise<void> {
   const rows: string[][] = [['component', 'pid', 'port', 'state']];
   for (const name of ['server', 'webui'] as const) {
     const record = readPidRecord(home, name);
+    if (isUnitActive(name)) {
+      const port = record?.port ?? (name === 'server' ? HOST_DEFAULT_PORT : WEB_DEFAULT_PORT);
+      rows.push([name, '-', String(port), 'running (systemd)']);
+      continue;
+    }
     if (!record) {
       rows.push([name, '-', '-', 'stopped']);
       continue;
@@ -184,16 +208,6 @@ export async function commandStatus(): Promise<void> {
   }
 }
 
-function parseTarget(target: string | undefined): ComponentName[] {
-  if (target === undefined || target === 'all') {
-    return ['server', 'webui'];
-  }
-  if (isComponentName(target)) {
-    return [target];
-  }
-  return fail(`unknown target "${target}" — expected server | webui | all`);
-}
-
 /** Port encoded in a recorded UPSTREAM URL, when the host pidfile itself is gone. */
 function portFromUpstream(upstream: string | undefined): number | undefined {
   if (!upstream) {
@@ -210,7 +224,8 @@ function portFromUpstream(upstream: string | undefined): number | undefined {
 /**
  * Restart never falls back to default ports — that would silently land on the live
  * stand (or on 3000). Ports come from --port/--web-port or the recorded pidfiles;
- * with neither, the command refuses.
+ * with neither, the command refuses. systemd-managed components restart via
+ * systemctl and need no recorded state.
  */
 export async function commandRestart(
   target: string | undefined,
@@ -221,13 +236,15 @@ export async function commandRestart(
   const names = parseTarget(target);
   const previousServer = readPidRecord(home, 'server');
   const previousWeb = readPidRecord(home, 'webui');
+  const serverSystemd = names.includes('server') && isUnitActive('server');
+  const webSystemd = names.includes('webui') && isUnitActive('webui');
   const hostPort =
     ports.port ?? previousServer?.port ?? portFromUpstream(previousWeb?.env?.UPSTREAM);
   const webPort = ports.webPort ?? previousWeb?.port;
-  if (names.includes('server') && hostPort === undefined) {
+  if (names.includes('server') && !serverSystemd && hostPort === undefined) {
     fail('no previous server state — run `harnesys up` first (or pass --port N)');
   }
-  if (names.includes('webui') && (webPort === undefined || hostPort === undefined)) {
+  if (names.includes('webui') && !webSystemd && (webPort === undefined || hostPort === undefined)) {
     fail('no previous webui state — run `harnesys up` first (or pass --port/--web-port)');
   }
   const context: StartContext = {
@@ -235,20 +252,30 @@ export async function commandRestart(
     hostPort: hostPort ?? HOST_DEFAULT_PORT,
     webPort: webPort ?? WEB_DEFAULT_PORT,
   };
-  if (names.includes('webui')) {
-    assertStaticDir(effectiveStaticDir(previousWeb));
+  if (names.includes('webui') && !webSystemd) {
+    requireStaticDir(effectiveStaticDir(previousWeb));
   }
   for (const name of names) {
+    if ((name === 'server' && serverSystemd) || (name === 'webui' && webSystemd)) {
+      if (!restartUnit(name)) {
+        fail(`systemctl --user restart ${unitName(name)} failed`);
+      }
+      console.log(`restarted ${name.padEnd(5)} (systemd unit)`);
+      continue;
+    }
     await terminate(home, name);
     await startComponent(name, context, name === 'server' ? previousServer : previousWeb);
   }
 }
 
-/** Used by `update`: bounces only the components that have a live pidfile. */
+/** Used by `update`: bounces only the pidfile-managed components that are alive. */
 export async function restartRunningComponents(): Promise<ComponentName[]> {
   const home = harnesysHome();
   const alive = new Map<ComponentName, PidRecord>();
   for (const name of ['server', 'webui'] as const) {
+    if (isUnitActive(name)) {
+      continue; // systemd-managed: update restarts the unit instead
+    }
     const record = readPidRecord(home, name);
     if (record && isPidAlive(record.pid)) {
       alive.set(name, record);
@@ -271,7 +298,7 @@ export async function restartRunningComponents(): Promise<ComponentName[]> {
     webPort: webPort ?? WEB_DEFAULT_PORT,
   };
   if (alive.has('webui')) {
-    assertStaticDir(effectiveStaticDir(alive.get('webui')));
+    requireStaticDir(effectiveStaticDir(alive.get('webui')));
   }
   const restarted: ComponentName[] = [];
   for (const name of ['server', 'webui'] as const) {
@@ -284,35 +311,4 @@ export async function restartRunningComponents(): Promise<ComponentName[]> {
     restarted.push(name);
   }
   return restarted;
-}
-
-export async function commandLogs(follow: boolean, target: string | undefined): Promise<void> {
-  const home = harnesysHome();
-  const names = parseTarget(target);
-  if (!follow) {
-    for (const name of names) {
-      console.log(`==> ${componentLabel(name)}: ${logFilePath(home, name)} <==`);
-      const lines = tailLines(home, name, LOG_TAIL_LINES);
-      if (lines.length === 0) {
-        console.log('  (empty)');
-      }
-      for (const line of lines) {
-        console.log(line);
-      }
-    }
-    return;
-  }
-  console.log('following logs — Ctrl+C to stop');
-  for (const name of names) {
-    followFile(logFilePath(home, name), (chunk) => {
-      for (const line of chunk.split('\n')) {
-        if (line !== '') {
-          process.stdout.write(`[${name}] ${line}\n`);
-        }
-      }
-    });
-  }
-  await new Promise<never>(() => {
-    // follow until interrupted; pending timers keep the process alive
-  });
 }

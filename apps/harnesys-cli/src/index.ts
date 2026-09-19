@@ -1,4 +1,5 @@
-import { commandDown, commandLogs, commandRestart, commandStatus, commandUp } from './lifecycle.ts';
+import { commandDown, commandRestart, commandStatus, commandUp } from './lifecycle.ts';
+import { commandLogs } from './logs.ts';
 import { runMenu } from './menu.ts';
 import { commandPair } from './pair.ts';
 import { HOST_DEFAULT_PORT, WEB_DEFAULT_PORT } from './paths.ts';

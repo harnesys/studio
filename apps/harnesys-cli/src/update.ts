@@ -2,6 +2,7 @@ import { chmodSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { restartRunningComponents } from './lifecycle.ts';
 import { resolveBinDir, SERVER_BIN, WEB_BIN } from './paths.ts';
+import { isUnitActive, restartUnit, unitName } from './systemd.ts';
 
 const DEFAULT_REPO = 'harnesys/harnesys';
 const GH_API = 'https://api.github.com';
@@ -39,7 +40,13 @@ function assetNameFor(bin: string): string {
  * Asset naming contract: `<bin>-<platform>-<arch>`, platform darwin|linux, arch x64|arm64.
  */
 export async function commandUpdate(repoFlag: string | undefined): Promise<void> {
-  const repo = repoFlag?.trim() || process.env.HARNESYS_UPDATE_REPO?.trim() || DEFAULT_REPO;
+  // HARNESYS_REPO is the primary name (same as the installer); the old
+  // HARNESYS_UPDATE_REPO stays as a compat fallback.
+  const repo =
+    repoFlag?.trim() ||
+    process.env.HARNESYS_REPO?.trim() ||
+    process.env.HARNESYS_UPDATE_REPO?.trim() ||
+    DEFAULT_REPO;
   if (!ASSET_PLATFORM || !ASSET_ARCH) {
     fail(`unsupported platform ${process.platform}/${process.arch}`);
   }
@@ -86,10 +93,23 @@ export async function commandUpdate(repoFlag: string | undefined): Promise<void>
       `updated ${item.bin} ← ${item.assetName} (${Math.round(item.size / 1024 / 1024)} MiB)`,
     );
   }
+  const systemdRestarted: string[] = [];
+  for (const name of ['server', 'webui'] as const) {
+    if (!isUnitActive(name)) {
+      continue;
+    }
+    if (!restartUnit(name)) {
+      fail(`systemctl --user restart ${unitName(name)} failed`);
+    }
+    systemdRestarted.push(unitName(name));
+  }
   const restarted = await restartRunningComponents();
+  if (systemdRestarted.length > 0) {
+    console.log(`restarted (systemd): ${systemdRestarted.join(', ')}`);
+  }
   if (restarted.length > 0) {
     console.log(`restarted: ${restarted.join(', ')}`);
-  } else {
+  } else if (systemdRestarted.length === 0) {
     console.log('nothing was running — updated binaries will be used on next `harnesys up`');
   }
 }

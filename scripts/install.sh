@@ -68,7 +68,10 @@ See docs/deploy.md ("Build from a checkout") for the full paths.
 MESSAGE
 }
 
-tmp_dir=$(mktemp -d) || die "cannot create a temporary directory"
+# Staging lives inside the target directory (not /tmp) so the final mv is
+# same-filesystem and atomic.
+mkdir -p "$PREFIX" || die "cannot create install directory $PREFIX"
+tmp_dir=$(mktemp -d "${PREFIX}/.tmp.XXXXXXXX") || die "cannot create a staging directory in $PREFIX"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 for bin in $BINARIES; do
@@ -80,7 +83,6 @@ for bin in $BINARIES; do
   fi
 done
 
-mkdir -p "$PREFIX" || die "cannot create install directory $PREFIX"
 for bin in $BINARIES; do
   chmod 0755 "${tmp_dir}/${bin}" || die "cannot chmod ${tmp_dir}/${bin}"
   mv -f "${tmp_dir}/${bin}" "${PREFIX}/${bin}" || die "cannot move ${bin} into $PREFIX"

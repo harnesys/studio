@@ -72,6 +72,15 @@ Defaults: host port `3000`, web port `8080`. `up` waits up to 15 s for the host
 `GET /health` and the web `GET /healthz`; on failure it stops the process and
 prints the last log lines. Restart reuses the ports and the web `STATIC_DIR`
 recorded in the pidfiles — it refuses instead of guessing when no state exists.
+Components registered as systemd units are restarted via `systemctl --user`;
+`status` marks them `running (systemd)` and `down` stops the units.
+
+A note for install-script VPS installs: the installer ships the three binaries
+only — no built SPA. `up --with-ui` (and the menu's WebUI choice) therefore
+errors/warns there: the WebUI needs a repo checkout (`bun run build:client`) or
+the Docker compose stack (`deploy/`). The menu offers to continue host-only.
+Until release CI ships a `client-dist` asset, WebUI-on-VPS means compose or a
+checkout build.
 
 ### systemd (Linux)
 
@@ -117,6 +126,9 @@ The host sends `X-Accel-Buffering: no`, but verify that an external reverse
 proxy does not buffer that route (nginx: `proxy_buffering off` for the location
 or honour the header; panels: disable response buffering for the web service).
 A buffering proxy delays live UI updates.
+
+`POST /login` (the gate form endpoint) is unauthenticated by design — guessing a
+UUID token is impractical — and v1 has no rate limiting on it.
 
 ## The web UI gate
 

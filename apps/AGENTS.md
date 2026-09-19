@@ -13,7 +13,7 @@ Stand is rewritten natively to types and API from docs (`RuntimeState`, Snapshot
 
 API contract: `packages/studio-shared` (`@harnesys/studio-shared`, barrel `types.ts`) — common for server and webui.
 
-Dev from root: `bun run dev` (vite :5173 + `bun --watch` :47474), `dev:server`, `dev:webui`, `dev:desktop`. Release: `bun run release <version>` — bumps the version in the three desktop manifests, commits, tags `v<version>`, pushes; the tag triggers the release workflow.
+Dev from root: `bun run dev` (vite :5173 + `bun --watch` :47474), `dev:server`, `dev:webui`, `dev:desktop`. Release: `bun run release <version>` — bumps the version in the app manifests (desktop, server, webui, cli), commits, tags `v<version>`, pushes; the tag triggers the release workflow. The server exposes the running version at `GET /api/meta`; the webui shows it in the sidebar footer and settings.
 
 ## Server
 

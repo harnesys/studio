@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { InboxIcon } from 'lucide-react';
 import { Fragment, type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useThreadStore } from '@/entities/thread';
@@ -9,6 +10,7 @@ import {
   useWebhooksInWorkspaces,
 } from '@/features/desk';
 import { useIdeTabs } from '@/features/ide';
+import { appMetaQuery } from '@/shared/api';
 import {
   studioFocusThreadId,
   studioFocusWorkspaceId,
@@ -41,6 +43,7 @@ import { SidebarSectionsConfig } from './sidebar-sections-config';
 import { TerminalSection, TerminalSectionActions } from './terminal-section';
 import { WorkspaceHeader } from './workspace-header';
 export function WorkspaceSidebar() {
+  const { data: meta } = useQuery(appMetaQuery);
   const focus = useStudioLocation();
   const workspaceId = studioFocusWorkspaceId(focus);
   const threadId = studioFocusThreadId(focus);
@@ -329,9 +332,11 @@ export function WorkspaceSidebar() {
               <AppLogo className="size-6" />
               <span className="flex items-center gap-1 font-medium text-sm tracking-tight">
                 Harnesys
-                <Badge variant="secondary" className="text-muted-foreground">
-                  v1.0.0
-                </Badge>
+                {meta ? (
+                  <Badge variant="secondary" className="text-muted-foreground">
+                    v{meta.version}
+                  </Badge>
+                ) : null}
               </span>
             </div>
             <SidebarSectionsConfig />

@@ -5,6 +5,7 @@ import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
 import { requireHostToken } from '../adapters/http/auth.middleware.ts';
 import { HealthController } from '../adapters/http/health.controller.ts';
 import { handleHttpError } from '../adapters/http/http.error.ts';
+import { MetaController } from '../adapters/http/meta.controller.ts';
 import { PairingController } from '../adapters/http/pairing/pairing.controller.ts';
 import type { StudioLspAdapter } from '../adapters/lsp/studio-lsp.adapter.ts';
 import { ScheduleFireQueue } from '../adapters/schedule-fire-queue.adapter.ts';
@@ -69,6 +70,7 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
   new HealthController().register(app);
   app.use('*', requireHostToken(hostToken));
   new PairingController({ machineConfig }).register(app);
+  new MetaController().register(app);
   const workspaceRepo = createRoutingWorkspaceRepo(supervisor);
   const agentRepo = createRoutingAgentRepo(supervisor);
   const threadRepo = createRoutingThreadRepo(supervisor);

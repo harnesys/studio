@@ -1,5 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useParams } from 'react-router';
+import { appMetaQuery } from '@/shared/api';
 import { useStudioNavigation } from '@/shared/config/navigation';
 import { parseWindowSettingsCategory } from '@/shared/config/routes';
 import { WINDOW_SETTINGS_GROUPS, type WindowSettingsCategory } from '@/shared/config/settings-nav';
@@ -16,6 +18,7 @@ import { HostsPane } from './hosts-pane';
 export function SettingsPage() {
   const { category } = useParams();
   const { openDesk, openSettings } = useStudioNavigation();
+  const { data: appMeta } = useQuery(appMetaQuery);
   const active = parseWindowSettingsCategory(category);
   const meta = findSettingsItem(active);
   return (
@@ -45,9 +48,11 @@ export function SettingsPage() {
           <AppLogo className="size-6" />
           <span className="flex items-center gap-1 font-medium text-sm tracking-tight">
             Harnesys
-            <Badge variant="secondary" className="text-muted-foreground">
-              v1.0.0
-            </Badge>
+            {appMeta ? (
+              <Badge variant="secondary" className="text-muted-foreground">
+                v{appMeta.version}
+              </Badge>
+            ) : null}
           </span>
         </div>
       </aside>

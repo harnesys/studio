@@ -76,6 +76,7 @@ export {
   upsertKnowledgeRoot,
   watchKnowledgeIndexState,
 } from './memory';
+export { type AppMeta, appMetaQuery, getAppMeta } from './meta';
 export {
   createModePreset,
   deleteModePreset,

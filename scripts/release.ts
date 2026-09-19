@@ -7,6 +7,9 @@ const root = join(import.meta.dir, '..');
 const VERSION_FILES = [
     'apps/desktop/package.json',
     'apps/desktop/src-tauri/tauri.conf.json',
+    'apps/server/package.json',
+    'apps/webui/package.json',
+    'apps/cli/package.json',
 ] as const;
 
 const CARGO_TOML = 'apps/desktop/src-tauri/Cargo.toml';

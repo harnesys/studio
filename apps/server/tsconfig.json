@@ -8,6 +8,7 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "types": ["bun", "node"]
   },

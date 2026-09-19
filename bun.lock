@@ -12,6 +12,17 @@
         "typescript": "^5",
       },
     },
+    "apps/harnesys-web": {
+      "name": "@harnesys/web",
+      "version": "0.0.1",
+      "dependencies": {
+        "hono": "^4.13.2",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "2.5.6",
+        "@types/node": "^26.4.0",
+      },
+    },
     "apps/studio": {
       "name": "@harnesys/studio",
     },
@@ -337,6 +348,8 @@
     "@harnesys/studio-server": ["@harnesys/studio-server@workspace:apps/studio/server"],
 
     "@harnesys/studio-shared": ["@harnesys/studio-shared@workspace:apps/studio/shared"],
+
+    "@harnesys/web": ["@harnesys/web@workspace:apps/harnesys-web"],
 
     "@hono/node-server": ["@hono/node-server@2.1.1", "", { "peerDependencies": { "hono": "^4" } }, "sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg=="],
 

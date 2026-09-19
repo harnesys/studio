@@ -1,36 +1,13 @@
-import {
-  CircleCheckIcon,
-  CircleIcon,
-  CircleXIcon,
-  ClipboardListIcon,
-  LoaderCircleIcon,
-  MinusCircleIcon,
-} from 'lucide-react';
 import { useEffect } from 'react';
+
 import type { PlanItemStatus } from '@/entities/plan';
 import { loadThreadPlan, planProgress, usePlanStore } from '@/entities/plan';
 import { useSessionStore } from '@/entities/session';
 import { useSelectedThread } from '@/features/desk';
 import { cn } from '@/shared/lib/utils';
-import { Badge } from '@/shared/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
-import { Progress } from '@/shared/ui/progress';
 
-const STATUS_ICON: Record<PlanItemStatus, typeof CircleIcon> = {
-  pending: CircleIcon,
-  in_progress: LoaderCircleIcon,
-  completed: CircleCheckIcon,
-  failed: CircleXIcon,
-  cancelled: MinusCircleIcon,
-};
-
-const STATUS_CLASS: Record<PlanItemStatus, string> = {
-  pending: 'text-muted-foreground',
-  in_progress: 'text-live animate-spin',
-  completed: 'text-emerald-500',
-  failed: 'text-destructive',
-  cancelled: 'text-muted-foreground/50',
-};
+import { Section } from './section';
 
 const STATUS_LABEL: Record<PlanItemStatus, string> = {
   pending: 'pending',
@@ -38,6 +15,14 @@ const STATUS_LABEL: Record<PlanItemStatus, string> = {
   completed: 'done',
   failed: 'failed',
   cancelled: 'cancelled',
+};
+
+const MARKER_CLASS: Record<PlanItemStatus, string> = {
+  pending: 'border border-muted-foreground/40 bg-background',
+  in_progress: 'animate-pulse bg-live',
+  completed: 'bg-emerald-500',
+  failed: 'bg-destructive',
+  cancelled: 'bg-muted-foreground/40',
 };
 
 export function PlanInspector() {
@@ -82,24 +67,21 @@ export function PlanInspector() {
   const { done, total } = planProgress(plan);
 
   return (
-    <section className="flex flex-col gap-2" data-testid="plan-inspector">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="inline-flex items-center gap-1.5 font-medium text-[11px] text-muted-foreground">
-          <ClipboardListIcon className="size-3.5" />
-          Plan
-        </h2>
-        <span className="font-mono text-[10px] text-muted-foreground/80">
-          {done}/{total}
-        </span>
-      </div>
-      <Progress value={total > 0 ? (done / total) * 100 : 0} className="h-1" />
-      <div className="flex flex-col gap-0.5">
-        {plan.items.map((item) => {
-          const Icon = STATUS_ICON[item.status];
-          return (
-            <Collapsible key={item.id}>
-              <CollapsibleTrigger className="group flex w-full items-start gap-2 rounded-md px-1 py-1 text-left hover:bg-muted/60">
-                <Icon className={cn('mt-0.5 size-3.5 shrink-0', STATUS_CLASS[item.status])} />
+    <Section label="Plan" hint={`${done}/${total}`}>
+      <ol className="flex flex-col" data-testid="plan-inspector">
+        {plan.items.map((item, index) => (
+          <li key={item.id} className="relative">
+            {index < plan.items.length - 1 ? (
+              <span
+                aria-hidden
+                className="absolute top-[18px] -bottom-2 left-[11px] z-0 w-px bg-border/70"
+              />
+            ) : null}
+            <Collapsible>
+              <CollapsibleTrigger className="group flex w-full cursor-pointer items-start gap-2.5 rounded-md py-1 pr-1 pl-1.5 text-left">
+                <span className="relative z-10 mt-[3px] flex size-[11px] shrink-0 items-center justify-center bg-background">
+                  <span className={cn('size-2 rounded-full', MARKER_CLASS[item.status])} />
+                </span>
                 <span
                   className={cn(
                     'min-w-0 flex-1 text-[12px] leading-snug',
@@ -111,13 +93,13 @@ export function PlanInspector() {
                   {item.title}
                 </span>
                 {item.subagentRole ? (
-                  <Badge variant="secondary" className="px-1 py-0 font-normal text-[9px]">
+                  <span className="shrink-0 pt-px font-mono text-[10px] text-muted-foreground">
                     {item.subagentRole}
-                  </Badge>
+                  </span>
                 ) : null}
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="ml-[10px] flex flex-col gap-1 border-l pt-0.5 pb-1 pl-2">
+                <div className="flex flex-col gap-1 py-0.5 pr-1 pb-1 pl-[27px]">
                   <p className="whitespace-pre-wrap text-[11px] text-muted-foreground leading-snug">
                     {item.description}
                   </p>
@@ -129,9 +111,9 @@ export function PlanInspector() {
                 </div>
               </CollapsibleContent>
             </Collapsible>
-          );
-        })}
-      </div>
-    </section>
+          </li>
+        ))}
+      </ol>
+    </Section>
   );
 }

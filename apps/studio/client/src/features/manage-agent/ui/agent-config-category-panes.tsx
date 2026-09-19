@@ -126,11 +126,7 @@ export function AgentConfigCategoryPanes({
           }}
         />
       </div>
-      <Pane
-        className={cn(category !== 'compaction' && 'hidden')}
-        label="Compaction"
-        description="Context compaction policy for this agent."
-      >
+      <div className={cn(category !== 'compaction' && 'hidden')}>
         <DraftCompaction
           key={`compaction-${activeAgent?.id ?? 'new'}`}
           agent={activeAgent}
@@ -138,7 +134,7 @@ export function AgentConfigCategoryPanes({
             onCapabilitiesPatch({ compaction });
           }}
         />
-      </Pane>
+      </div>
       <div className={cn(category !== 'skills' && 'hidden')}>
         <DraftGrantedSkills
           key={`skills-${activeAgent?.id ?? 'new'}`}

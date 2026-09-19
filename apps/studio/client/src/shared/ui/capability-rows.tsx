@@ -221,7 +221,7 @@ export function Row({
       )}
       data-testid={testId}
     >
-      <div className="flex items-center gap-2 py-2">
+      <div className="flex items-center gap-2 px-2 py-2">
         {onToggle ? (
           <button
             type="button"

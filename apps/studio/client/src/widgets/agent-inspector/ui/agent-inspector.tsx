@@ -48,7 +48,7 @@ export function AgentInspector({ width }: { width: number }) {
         </Tabs>
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-5 px-3 py-3 pb-8">
+        <div className="flex flex-col gap-6 px-3 py-3 pb-8">
           {inspectorTab === 'memory' ? (
             <MemoryPane agent={agent} />
           ) : (

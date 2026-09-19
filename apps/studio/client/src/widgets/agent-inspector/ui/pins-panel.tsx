@@ -15,7 +15,6 @@ import {
 import { agentPinsQuery, agentPinsQueryKey, deleteAgentPin, upsertAgentPin } from '@/shared/api';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { formatDayTime } from '@/shared/lib/format-clock';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/ui/toast';
 
@@ -81,12 +80,15 @@ export function PinsPanel({ agent }: { agent: Agent }) {
   const busy = upsert.isPending || remove.isPending;
 
   return (
-    <Section label="Pins" hint={streaming ? 'live' : undefined}>
-      <div className="mb-1 flex items-center gap-1">
+    <Section
+      label="Pins"
+      hint={streaming ? 'live' : undefined}
+      action={
         <Button
           variant="ghost"
-          size="sm"
-          className="ml-auto h-7 text-muted-foreground"
+          size="icon-xs"
+          aria-label="Add pin"
+          className="text-muted-foreground"
           disabled={!workspaceId || busy}
           onClick={() => {
             void openAddPinDialog().then((draft) => {
@@ -97,9 +99,9 @@ export function PinsPanel({ agent }: { agent: Agent }) {
           }}
         >
           <PlusIcon />
-          Add
         </Button>
-      </div>
+      }
+    >
       {!query.isPending && pins.length === 0 ? (
         <p className="text-[12px] text-muted-foreground">No pins yet.</p>
       ) : (
@@ -144,39 +146,39 @@ function PinRow({
 }) {
   return (
     <div
-      className="flex items-start gap-1.5 rounded-md px-1.5 py-1.5 hover:bg-muted/50"
+      className="group/row flex items-start gap-1 rounded-md px-1.5 py-1.5 hover:bg-muted/50"
       data-testid={`pin-${pin.key}`}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate font-mono text-[12px]">{pin.key}</span>
-          <Badge variant="secondary" className="px-1.5 py-0 font-normal text-[10px]">
-            {pin.source}
-          </Badge>
-        </div>
-        <p className="line-clamp-3 whitespace-pre-wrap text-[11px] text-foreground/90 leading-snug">
+        <span className="block truncate font-mono text-[12px]">{pin.key}</span>
+        <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-[11px] text-foreground/90 leading-snug">
           {pin.text}
         </p>
-        <p className="text-[10px] text-muted-foreground">{formatDayTime(pin.updatedAt)}</p>
+        <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground/80">
+          <span>{pin.source}</span>
+          <span>{formatDayTime(pin.updatedAt)}</span>
+        </p>
       </div>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`Edit ${pin.key}`}
-        disabled={busy}
-        onClick={onEdit}
-      >
-        <PencilIcon />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`Delete ${pin.key}`}
-        disabled={busy}
-        onClick={onDelete}
-      >
-        <Trash2Icon />
-      </Button>
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100">
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label={`Edit ${pin.key}`}
+          disabled={busy}
+          onClick={onEdit}
+        >
+          <PencilIcon />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label={`Delete ${pin.key}`}
+          disabled={busy}
+          onClick={onDelete}
+        >
+          <Trash2Icon />
+        </Button>
+      </div>
     </div>
   );
 }

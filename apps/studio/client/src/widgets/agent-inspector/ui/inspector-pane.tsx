@@ -5,7 +5,6 @@ import { useSessionStore } from '@/entities/session';
 import { useDesk, useSelectedThread, useThreadEvents } from '@/features/desk';
 import { providersQuery } from '@/shared/api';
 import { formatDayTime } from '@/shared/lib/format-clock';
-import { Badge } from '@/shared/ui/badge';
 
 import { FactRow } from './fact-row';
 import { McpInspector } from './mcp-inspector';
@@ -66,17 +65,9 @@ export function InspectorPane({ agent }: { agent: Agent }) {
             </div>
 
             {resolvedModel.supported_parameters && resolvedModel.supported_parameters.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {resolvedModel.supported_parameters.map((param) => (
-                  <Badge
-                    key={param}
-                    variant="secondary"
-                    className="px-1.5 py-0 font-normal text-[10px]"
-                  >
-                    {param}
-                  </Badge>
-                ))}
-              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                {resolvedModel.supported_parameters.join(', ')}
+              </p>
             ) : null}
           </div>
         ) : (

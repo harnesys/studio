@@ -41,16 +41,16 @@ export type AgentConfigNavItem = {
 export const AGENT_CONFIG_CATEGORIES: AgentConfigNavItem[] = [
   { id: 'identity', label: 'Identity', icon: UserRoundIcon },
   { id: 'model', label: 'Model', icon: CpuIcon },
-  { id: 'permissions', label: 'Permissions', icon: ShieldCheckIcon },
-  { id: 'modes', label: 'Modes', icon: SlidersHorizontalIcon },
-  { id: 'graph', label: 'Graph', icon: WorkflowIcon },
-  { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
   { id: 'compaction', label: 'Compaction', icon: FoldVerticalIcon },
-  { id: 'skills', label: 'Skills', icon: PuzzleIcon },
-  { id: 'hooks', label: 'Hooks', icon: WebhookIcon },
-  { id: 'mcp', label: 'MCP', icon: ServerIcon },
   { id: 'limits', label: 'Limits', icon: GaugeIcon },
+  { id: 'graph', label: 'Graph', icon: WorkflowIcon },
+  { id: 'permissions', label: 'Permissions', icon: ShieldCheckIcon },
+  { id: 'capabilities', label: 'Capabilities', icon: LayersIcon },
+  { id: 'skills', label: 'Skills', icon: PuzzleIcon },
+  { id: 'mcp', label: 'MCP', icon: ServerIcon },
   { id: 'subagents', label: 'Subagents', icon: BotIcon },
+  { id: 'hooks', label: 'Hooks', icon: WebhookIcon },
+  { id: 'modes', label: 'Modes', icon: SlidersHorizontalIcon },
 ];
 
 export type AgentConfigCategoryNavProps = {

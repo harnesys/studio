@@ -138,7 +138,7 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
       }
     >
       {modes.fields.length === 0 ? (
-        <p className="py-6 text-center text-muted-foreground text-sm">
+        <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
           No modes yet. Add one, or install from a preset.
         </p>
       ) : (

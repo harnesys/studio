@@ -47,9 +47,9 @@ export function DraftCapabilities({
   const pluginsListQuery = useQuery(pluginsQuery(workspaceId));
   const explainQuery = useQuery(agentCapabilitiesQuery(agentId, workspaceId));
   const view = explainQuery.data;
-  const catalog = (packsQuery.data?.capabilities ?? [])
-    .filter((pack) => !pack.name.endsWith('-memory'))
-    .filter((pack) => !(isDelegate && pack.name === 'agents'));
+  const catalog = (packsQuery.data?.capabilities ?? []).filter(
+    (pack) => !(isDelegate && pack.name === 'agents'),
+  );
   const plugins = pluginsListQuery.data ?? [];
 
   function togglePlugin(name: string, enable: boolean) {

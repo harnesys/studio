@@ -128,29 +128,27 @@ function SourceToolRow({
 }) {
   return (
     <div
-      className="flex items-start gap-2 rounded-md px-1 py-1"
+      className="flex items-center gap-2 rounded-md px-1 py-1"
       data-testid={`draft-source-tool-${tool.name}`}
     >
       <Switch
         size="sm"
-        className="mt-0.5"
         checked={!tool.disabled}
         disabled={!editable}
         onCheckedChange={(value) => onToggleTool?.(tool.name, !value)}
         aria-label={`Tool ${tool.name}`}
       />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <p
-            className="truncate font-mono text-[12px] leading-snug"
-            title={`${tool.provenance} · ${tool.status} — ${tool.reason}`}
-          >
-            {tool.name}
-          </p>
-          {tool.overridden ? <RowChip tone="accent">override</RowChip> : null}
-        </div>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <p
+          className="min-w-0 truncate font-mono text-[12px] leading-snug"
+          title={`${tool.provenance} · ${tool.status} — ${tool.reason}`}
+        >
+          {tool.name}
+        </p>
+        {tool.overridden ? <RowChip tone="accent">override</RowChip> : null}
         {onExposure ? (
           <ToggleGroup
+            className="ml-auto shrink-0"
             variant="segment"
             value={[tool.exposure]}
             onValueChange={(value) => {

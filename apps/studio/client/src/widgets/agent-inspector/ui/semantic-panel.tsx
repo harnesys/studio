@@ -15,12 +15,17 @@ import {
 import { agentSemanticQuery, deleteAgentSemantic, upsertAgentSemantic } from '@/shared/api';
 import { studioFocusWorkspaceId, useStudioLocation } from '@/shared/config/location';
 import { formatDayTime } from '@/shared/lib/format-clock';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/ui/toast';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 
 import { Section } from './section';
+
+const SCOPES: ReadonlyArray<{ value: SemanticScope | 'all'; label: string }> = [
+  { value: 'all', label: 'all' },
+  { value: 'long', label: 'long' },
+  { value: 'session', label: 'session' },
+];
 
 export function SemanticPanel({ agent }: { agent: Agent }) {
   const workspaceId = studioFocusWorkspaceId(useStudioLocation());
@@ -98,33 +103,15 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
   const busy = save.isPending || remove.isPending;
 
   return (
-    <Section label="Semantic" hint={streaming ? 'live' : undefined}>
-      <div className="mb-1.5 flex items-center gap-1">
-        <ToggleGroup
-          variant="segment"
-          size="sm"
-          value={[scope]}
-          onValueChange={(value) => {
-            const next = value[0];
-            if (next === 'all' || next === 'session' || next === 'long') {
-              setScope(next);
-            }
-          }}
-        >
-          <ToggleGroupItem value="all" className="min-w-[44px] text-[11px]">
-            all
-          </ToggleGroupItem>
-          <ToggleGroupItem value="long" className="min-w-[44px] text-[11px]">
-            long
-          </ToggleGroupItem>
-          <ToggleGroupItem value="session" className="min-w-[44px] text-[11px]">
-            session
-          </ToggleGroupItem>
-        </ToggleGroup>
+    <Section
+      label="Semantic"
+      hint={streaming ? 'live' : undefined}
+      action={
         <Button
           variant="ghost"
-          size="sm"
-          className="ml-auto h-7 text-muted-foreground"
+          size="icon-xs"
+          aria-label="Add memory"
+          className="text-muted-foreground"
           disabled={!workspaceId || busy}
           onClick={() => {
             const initial = scope === 'all' ? 'long' : scope;
@@ -136,9 +123,29 @@ export function SemanticPanel({ agent }: { agent: Agent }) {
           }}
         >
           <PlusIcon />
-          Add
         </Button>
-      </div>
+      }
+    >
+      <ToggleGroup
+        variant="default"
+        value={[scope]}
+        onValueChange={(value) => {
+          const next = value[0];
+          if (next === 'all' || next === 'session' || next === 'long') {
+            setScope(next);
+          }
+        }}
+      >
+        {SCOPES.map((item) => (
+          <ToggleGroupItem
+            key={item.value}
+            value={item.value}
+            className="h-6 px-1.5 font-normal text-[11px]"
+          >
+            {item.label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
       {!query.isPending && rows.length === 0 ? (
         <p className="text-[12px] text-muted-foreground">No semantic rows.</p>
       ) : (
@@ -184,44 +191,44 @@ function SemanticRow({
 }) {
   return (
     <div
-      className="flex items-start gap-1.5 rounded-md px-1.5 py-1.5 hover:bg-muted/50"
+      className="group/row flex items-start gap-1 rounded-md px-1.5 py-1.5 hover:bg-muted/50"
       data-testid={`semantic-${row.id}`}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <Badge variant="outline" className="px-1.5 py-0 font-mono text-[10px]">
-            {row.scope}
-          </Badge>
-          <Badge variant="secondary" className="px-1.5 py-0 font-normal text-[10px]">
-            {row.source}
-          </Badge>
+        <div className="flex items-center gap-1.5">
+          <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{row.scope}</span>
           {row.key ? (
-            <span className="truncate font-mono text-[11px] text-muted-foreground">{row.key}</span>
+            <span className="min-w-0 truncate font-mono text-[12px]">{row.key}</span>
           ) : null}
         </div>
         <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-[11px] text-foreground/90 leading-snug">
           {row.text}
         </p>
-        <p className="text-[10px] text-muted-foreground">{formatDayTime(row.updatedAt)}</p>
+        <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground/80">
+          <span>{row.source}</span>
+          <span>{formatDayTime(row.updatedAt)}</span>
+        </p>
       </div>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Edit memory"
-        disabled={busy}
-        onClick={onEdit}
-      >
-        <PencilIcon />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Delete memory"
-        disabled={busy}
-        onClick={onDelete}
-      >
-        <Trash2Icon />
-      </Button>
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100">
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Edit memory"
+          disabled={busy}
+          onClick={onEdit}
+        >
+          <PencilIcon />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Delete memory"
+          disabled={busy}
+          onClick={onDelete}
+        >
+          <Trash2Icon />
+        </Button>
+      </div>
     </div>
   );
 }

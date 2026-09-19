@@ -3,6 +3,8 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/fie
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 
+import { MemoryPackSettings } from './memory-pack-settings';
+
 /** Studio-known pack specs until catalog exposes `specSchema` for a generic form. */
 export const PACKS_WITH_SETTINGS = new Set(['files', 'shell']);
 
@@ -41,6 +43,9 @@ export function PackSettingsFields({
   }
   if (packName === 'shell') {
     return <ShellSettings config={config} onChange={onChange} />;
+  }
+  if (packName.endsWith('-memory')) {
+    return <MemoryPackSettings packName={packName} config={config} onChange={onChange} />;
   }
   return (
     <p className="text-[11px] text-muted-foreground leading-snug">

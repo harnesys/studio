@@ -140,7 +140,9 @@ export function AgentSubagentsPane({
         }
       >
         {delegates.length === 0 && pluginSections.length === 0 ? (
-          <p className="py-6 text-center text-muted-foreground text-sm">No subagents yet.</p>
+          <p className="rounded-lg border border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
+            No subagents yet.
+          </p>
         ) : null}
         {delegates.length > 0 ? (
           <RowSection label="Direct" count={delegates.length}>

@@ -69,17 +69,24 @@ export class LspController {
       const node = this.resolve(id);
       const entry = await this.requireServer(node, id, serverId);
       if (entry.origin === 'file') {
-        const raw = readWorkspaceLspFile(node.cwd).raw;
-        await writeWorkspaceLspFile(
-          node.cwd,
-          withFileDisabled(raw, serverId, {
-            command: entry.command,
-            ...(entry.args !== undefined ? { args: entry.args } : {}),
-            extensionToLanguage: entry.extensionToLanguage,
-          }),
-        );
+        await this.setFileServerState(node.cwd, entry, serverId, true);
       } else if (entry.origin.startsWith('plugin:')) {
         node.plugins.setServerDisabled(entry.origin.slice('plugin:'.length), serverId, id, true);
+      } else {
+        throw new NotFoundError('lsp server not found');
+      }
+      await node.lsp.invalidateCwd(node.cwd);
+      return c.json(await node.status.execute({ workspaceId: id }));
+    });
+    app.post(`${base}/:serverId/enable`, async (c) => {
+      const id = c.req.param('id');
+      const serverId = c.req.param('serverId');
+      const node = this.resolve(id);
+      const entry = await this.requireServer(node, id, serverId);
+      if (entry.origin === 'file') {
+        await this.setFileServerState(node.cwd, entry, serverId, false);
+      } else if (entry.origin.startsWith('plugin:')) {
+        node.plugins.setServerDisabled(entry.origin.slice('plugin:'.length), serverId, id, false);
       } else {
         throw new NotFoundError('lsp server not found');
       }
@@ -132,6 +139,27 @@ export class LspController {
     }
     return entry;
   }
+  private async setFileServerState(
+    cwd: string,
+    entry: WorkspaceLspEntry,
+    serverId: string,
+    disabled: boolean,
+  ): Promise<void> {
+    const raw = readWorkspaceLspFile(cwd).raw;
+    await writeWorkspaceLspFile(
+      cwd,
+      withFileDisabled(
+        raw,
+        serverId,
+        {
+          command: entry.command,
+          ...(entry.args !== undefined ? { args: entry.args } : {}),
+          extensionToLanguage: entry.extensionToLanguage,
+        },
+        disabled,
+      ),
+    );
+  }
 }
 function probePath(entry: WorkspaceLspEntry): string {
   const ext = Object.keys(entry.extensionToLanguage)[0] ?? '';
@@ -145,8 +173,9 @@ function withFileDisabled(
     args?: string[];
     extensionToLanguage: Record<string, string>;
   },
+  disabled: boolean,
 ): unknown {
-  const next = { ...fallback, disabled: true };
+  const next = { ...fallback, disabled };
   if (isRecord(raw) && isRecord(raw.servers)) {
     const servers = raw.servers as Record<string, unknown>;
     const existing = servers[serverId];
@@ -154,13 +183,13 @@ function withFileDisabled(
       ...raw,
       servers: {
         ...servers,
-        [serverId]: { ...(isRecord(existing) ? existing : next), disabled: true },
+        [serverId]: { ...(isRecord(existing) ? existing : next), disabled },
       },
     };
   }
   if (isRecord(raw)) {
     const existing = raw[serverId];
-    return { ...raw, [serverId]: { ...(isRecord(existing) ? existing : next), disabled: true } };
+    return { ...raw, [serverId]: { ...(isRecord(existing) ? existing : next), disabled } };
   }
   return { [serverId]: next };
 }

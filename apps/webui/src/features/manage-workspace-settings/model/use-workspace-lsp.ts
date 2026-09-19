@@ -11,6 +11,7 @@ export type UseWorkspaceLsp = {
   error: string | null;
   restart: (serverId: string) => Promise<void>;
   stop: (serverId: string) => Promise<void>;
+  enable: (serverId: string) => Promise<void>;
   saveRaw: (rawText: string) => Promise<void>;
   applyPreset: (lang: string) => Promise<void>;
 };
@@ -60,6 +61,16 @@ export function useWorkspaceLsp(workspaceId: string): UseWorkspaceLsp {
     },
     [workspaceId],
   );
+  const enable = useCallback(
+    async (serverId: string) => {
+      const list = await apiJson<WorkspaceLspListResponse>(
+        `${lspBase(workspaceId)}/${encodeURIComponent(serverId)}/enable`,
+        { method: 'POST' },
+      );
+      setData(list);
+    },
+    [workspaceId],
+  );
   const saveRaw = useCallback(
     async (rawText: string) => {
       let parsed: unknown;
@@ -86,5 +97,5 @@ export function useWorkspaceLsp(workspaceId: string): UseWorkspaceLsp {
     },
     [workspaceId],
   );
-  return { data, isPending, error, restart, stop, saveRaw, applyPreset };
+  return { data, isPending, error, restart, stop, enable, saveRaw, applyPreset };
 }

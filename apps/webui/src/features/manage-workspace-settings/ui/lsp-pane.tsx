@@ -1,5 +1,5 @@
 import type { WorkspaceLspEntry } from '@harnesys/studio-shared';
-import { FileCode2Icon, PauseIcon, RotateCwIcon } from 'lucide-react';
+import { FileCode2Icon, PauseIcon, PlayIcon, RotateCwIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import {
@@ -46,8 +46,9 @@ function extensionList(server: WorkspaceLspEntry): string {
   const exts = Object.keys(server.extensionToLanguage);
   return exts.length > 0 ? exts.join(', ') : 'no extensions';
 }
+type ServerAction = 'restart' | 'stop' | 'enable';
 export function LspPane({ workspaceId }: { workspaceId: string }) {
-  const { data, isPending, error, restart, stop, saveRaw, applyPreset } =
+  const { data, isPending, error, restart, stop, enable, saveRaw, applyPreset } =
     useWorkspaceLsp(workspaceId);
   const servers = data?.servers ?? [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -55,21 +56,24 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [presetBusy, setPresetBusy] = useState(false);
-  async function runServerAction(serverId: string, action: 'restart' | 'stop') {
+  async function runServerAction(serverId: string, action: ServerAction) {
+    const titles: Record<ServerAction, [string, string]> = {
+      restart: ['LSP server restarted', 'Restart failed'],
+      stop: ['LSP server stopped', 'Stop failed'],
+      enable: ['LSP server enabled', 'Enable failed'],
+    };
     setBusyId(serverId);
     try {
       if (action === 'restart') {
         await restart(serverId);
-        toast.add({ title: 'LSP server restarted', description: serverId });
-      } else {
+      } else if (action === 'stop') {
         await stop(serverId);
-        toast.add({ title: 'LSP server stopped', description: serverId });
+      } else {
+        await enable(serverId);
       }
+      toast.add({ title: titles[action][0], description: serverId });
     } catch (actionError) {
-      toast.add({
-        title: action === 'restart' ? 'Restart failed' : 'Stop failed',
-        description: errorMessage(actionError),
-      });
+      toast.add({ title: titles[action][1], description: errorMessage(actionError) });
     } finally {
       setBusyId(null);
     }
@@ -173,12 +177,16 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={`Stop ${server.serverId}`}
-                    title="Stop"
-                    disabled={busyId !== null || server.disabled}
-                    onClick={() => void runServerAction(server.serverId, 'stop')}
+                    aria-label={
+                      server.disabled ? `Enable ${server.serverId}` : `Stop ${server.serverId}`
+                    }
+                    title={server.disabled ? 'Enable' : 'Stop'}
+                    disabled={busyId !== null}
+                    onClick={() =>
+                      void runServerAction(server.serverId, server.disabled ? 'enable' : 'stop')
+                    }
                   >
-                    <PauseIcon />
+                    {server.disabled ? <PlayIcon /> : <PauseIcon />}
                   </Button>
                 </>
               }

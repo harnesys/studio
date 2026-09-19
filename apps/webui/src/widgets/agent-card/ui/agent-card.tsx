@@ -104,7 +104,7 @@ export function AgentCard({
           variant="ghost"
           size="icon-xs"
           title="New thread"
-          className="absolute top-1/2 right-[28px] -translate-y-1/2 opacity-0 group-hover/agent:opacity-100 group-data-[collapsible=icon]:hidden"
+          className="absolute inset-y-0 right-[28px] my-auto opacity-0 group-hover/agent:opacity-100 group-data-[collapsible=icon]:hidden"
           data-testid={`agent-new-thread-${agent.id}`}
           onClick={(event) => {
             event.stopPropagation();

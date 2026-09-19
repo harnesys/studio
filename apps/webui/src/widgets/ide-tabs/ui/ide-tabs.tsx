@@ -64,6 +64,7 @@ export function IdeGroupTabs({
   const hasActiveTab = ws.tabs.some((t) => t.id === ws.activeId);
   return (
     <div
+      role="tablist"
       className={cn(
         'flex h-10 shrink-0 items-center gap-1 pr-2 pl-3 transition-colors duration-150',
         barDragOver && 'bg-muted/60 ring-1 ring-ring ring-inset',

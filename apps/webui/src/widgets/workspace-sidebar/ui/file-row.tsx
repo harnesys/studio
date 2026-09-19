@@ -79,7 +79,7 @@ export function FileRow({
   treeIndex: Map<string, WorkspaceFileEntry[]>;
   showHidden: boolean;
   onToggle: (fullPath: string) => void;
-  onSelect: (fullPath: string, event: React.MouseEvent) => void;
+  onSelect: (fullPath: string, event?: React.MouseEvent) => void;
   onOpen: (fullPath: string) => void;
   onStartCreate: (kind: 'file' | 'dir', parentPath: string) => void;
   onCreateFinish: (name: string) => void;
@@ -144,6 +144,16 @@ export function FileRow({
     if (!isDir) {
       onOpen(fullPath);
     }
+  };
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    if (isDir) {
+      onToggle(fullPath);
+    }
+    onSelect(fullPath);
   };
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     const paths = selected && selectedPaths.length > 0 ? selectedPaths : [fullPath];
@@ -214,6 +224,10 @@ export function FileRow({
         />
       ) : (
         <div
+          role="treeitem"
+          tabIndex={0}
+          aria-expanded={isDir ? isExpanded : undefined}
+          aria-selected={selected}
           className={cn(
             'group/file relative flex items-center rounded-md hover:bg-sidebar-accent/70',
             selected && 'bg-sidebar-accent/70 text-sidebar-accent-foreground',
@@ -235,6 +249,7 @@ export function FileRow({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onKeyDown={handleKeyDown}
         >
           <Tooltip>
             <TooltipTrigger

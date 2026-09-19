@@ -1,6 +1,6 @@
 # send-message
 
-Отправка сообщения, HITL answer/reject/retry, delete turn, follow live через RunStreamClient.
+Sending message, HITL answer/reject/retry, delete turn, follow live via RunStreamClient.
 
 **API:** `sendMessage`, `respondToAsk`, `rejectAsk`, `retryRun`, `connectThreadRun`, `connectRunStream`, `useRunStreamStateFor`, `deleteTurn`, `HitlPrompt`, `pendingHitl`.
 

@@ -1,6 +1,6 @@
 # manage-workspace-mcp
 
-Add/edit/delete MCP server в workspace.
+Add/edit/delete MCP server in workspace.
 
 **API:** `openAddMcpServerDialog`, `openEditMcpServerDialog`, `confirmDeleteMcpServer`, `McpServerDraft`.
 

@@ -46,13 +46,12 @@ export function pluginAgentCatalog(
   >();
   for (const entry of entries) {
     const userConfig = pluginUserConfig(entry.ir, entry.record.options);
-    const bound = bindAgentComponents(
-      entry.ir,
-      (ref) => resolveModelRef(ref, models, providers, workspaceId),
+    const bound = bindAgentComponents(entry.ir, {
+      resolveModel: (ref) => resolveModelRef(ref, models, providers, workspaceId),
       onDiagnostic,
       userConfig,
       packIndex,
-    );
+    });
     for (const agent of bound) {
       all.set(agent.id, {
         definition: {

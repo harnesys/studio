@@ -1,6 +1,6 @@
 # git-branch
 
-Переключение и создание веток workspace-git. Поповер как в JetBrains, но MVP только Checkout + New Branch.
+Switching and creating workspace-git branches. Popover like in JetBrains, but MVP only Checkout + New Branch.
 
 **API:** `openNewBranchDialog(from?)`, `NewBranchDialog`.
 

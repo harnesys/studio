@@ -1,7 +1,7 @@
 # manage-plugins
 
-Install, enable, grants и userConfig плагинов.
+Install, enable, grants and userConfig for plugins.
 
-**API:** dialogs (`openInstallPluginDialog`, `openEnablePluginDialog`, `openPluginDetailDrawer`, confirm-функции), grant-состояние в `model/plugin-grants`, option-драфты в `model/plugin-options`, матрица компонентов в `ui/plugin-component-matrix`.
+**API:** dialogs (`openInstallPluginDialog`, `openEnablePluginDialog`, `openPluginDetailDrawer`, confirm functions), grant state in `model/plugin-grants`, option drafts in `model/plugin-options`, component matrix in `ui/plugin-component-matrix`.
 
 **Server:** `application/plugins`, `adapters/http/plugins`.

@@ -1,6 +1,6 @@
 import { DEFAULT_ASK_TTL_MS, DEFAULT_LIST_LIMIT, RUN_NON_TERMINAL } from '../constants.ts';
 import { codedRunError } from '../domain/errors.ts';
-import type { PendingSessionEvent, RunEventStore } from '../ports/run-event-store.ts';
+import type { PendingSessionEvent } from '../ports/run-event-store.ts';
 import type {
   RunCreateInput,
   RunLifecycleStore,
@@ -8,6 +8,7 @@ import type {
   RunTransitionPatch,
 } from '../ports/run-lifecycle-store.ts';
 import type { SessionEvent } from '../ports/session.ts';
+import type { InMemoryRunEventStore } from './in-memory-run-event-store.ts';
 
 function clientEventIdOf(event: PendingSessionEvent): string | undefined {
   return (
@@ -22,87 +23,6 @@ function interruptIdOf(event: PendingSessionEvent | SessionEvent): string | unde
       interruptId?: string;
     }
   ).interruptId;
-}
-function seqOf(event: SessionEvent): number {
-  return (
-    (
-      event as {
-        seq?: number;
-      }
-    ).seq ?? 0
-  );
-}
-export class InMemoryRunEventStore implements RunEventStore {
-  events: Map<string, SessionEvent[]> = new Map();
-  nextSeq: Map<string, number> = new Map();
-  private insertion: Array<{
-    threadId: string;
-    event: SessionEvent;
-  }> = [];
-  private runs: Map<string, RunRecord> | null = null;
-  attachLifecycleRuns(runs: Map<string, RunRecord>): void {
-    this.runs = runs;
-  }
-  async append(
-    runId: string,
-    expectedEpoch: number,
-    events: SessionEvent[],
-  ): Promise<SessionEvent[]> {
-    const record = this.runs?.get(runId);
-    if (record?.status !== 'running' || record.leaseEpoch !== expectedEpoch) {
-      throw codedRunError('lease_stale', `run ${runId} is not leased for epoch ${expectedEpoch}`);
-    }
-    return this.appendLocked(runId, events);
-  }
-  async appendForThread(
-    threadId: string,
-    runId: string,
-    events: PendingSessionEvent[],
-  ): Promise<SessionEvent[]> {
-    void threadId;
-    return this.appendLocked(runId, events);
-  }
-  next(runId: string): number {
-    const seq = (this.nextSeq.get(runId) ?? 0) + 1;
-    this.nextSeq.set(runId, seq);
-    return seq;
-  }
-  appendLocked(runId: string, events: PendingSessionEvent[]): SessionEvent[] {
-    const stored = this.events.get(runId) ?? [];
-    const record = this.runs?.get(runId);
-    let maxSeq = this.nextSeq.get(runId) ?? 0;
-    const assigned: SessionEvent[] = [];
-    for (const event of events) {
-      const pre = seqOf(event as SessionEvent);
-      const seq = pre > 0 ? pre : maxSeq + 1;
-      if (seq > maxSeq) {
-        maxSeq = seq;
-      }
-      const full = { ...event, seq, runId } as SessionEvent;
-      stored.push(full);
-      this.insertion.push({ threadId: record?.threadId ?? '', event: full });
-      assigned.push(full);
-    }
-    this.events.set(runId, stored);
-    this.nextSeq.set(runId, maxSeq);
-    if (record) {
-      record.lastSeq = maxSeq;
-    }
-    return assigned.map((event) => ({ ...event }));
-  }
-  async tail(runId: string, fromSeq: number): Promise<SessionEvent[]> {
-    return (this.events.get(runId) ?? []).filter((event) => seqOf(event) > fromSeq);
-  }
-  async latestSeq(runId: string): Promise<number> {
-    return this.nextSeq.get(runId) ?? 0;
-  }
-  async listByThread(threadId: string): Promise<SessionEvent[]> {
-    return this.insertion.filter((e) => e.threadId === threadId).map((e) => e.event);
-  }
-  async hasRun(runId: string): Promise<boolean> {
-    const stored = this.events.get(runId);
-    return stored !== undefined && stored.length > 0;
-  }
 }
 function assertTransitionAllowed(
   record: RunRecord,
@@ -136,7 +56,7 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     this.eventStore = eventStore;
     eventStore.attachLifecycleRuns(this.runs);
   }
-  async create(run: RunCreateInput, events: PendingSessionEvent[] = []): Promise<RunRecord> {
+  create(run: RunCreateInput, events: PendingSessionEvent[] = []): Promise<RunRecord> {
     for (const event of events) {
       const clientEventId = clientEventIdOf(event);
       if (clientEventId === undefined) {
@@ -149,7 +69,7 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
       }
       const record = this.runs.get(existing);
       if (record) {
-        return { ...record };
+        return Promise.resolve({ ...record });
       }
       this.eventsByClient.delete(key);
     }
@@ -177,13 +97,13 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
         this.eventsByClient.set(`${run.threadId}:${clientEventId}`, run.runId);
       }
     }
-    return { ...record };
+    return Promise.resolve({ ...record });
   }
-  async get(runId: string): Promise<RunRecord | null> {
+  get(runId: string): Promise<RunRecord | null> {
     const record = this.runs.get(runId);
-    return record ? { ...record } : null;
+    return Promise.resolve(record ? { ...record } : null);
   }
-  async activeByThread(threadId: string): Promise<RunRecord | null> {
+  activeByThread(threadId: string): Promise<RunRecord | null> {
     let latest: RunRecord | null = null;
     for (const record of this.runs.values()) {
       if (record.threadId !== threadId || record.parentRunId !== undefined) {
@@ -196,32 +116,28 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
         latest = record;
       }
     }
-    return latest ? { ...latest } : null;
+    return Promise.resolve(latest ? { ...latest } : null);
   }
-  async childrenByParent(parentRunId: string): Promise<RunRecord[]> {
+  childrenByParent(parentRunId: string): Promise<RunRecord[]> {
     const all = [...this.runs.values()].filter((record) => record.parentRunId === parentRunId);
-    return all.map((record) => ({ ...record }));
+    return Promise.resolve(all.map((record) => ({ ...record })));
   }
-  async claim(runId: string, instanceId: string, ttlMs: number): Promise<RunRecord | null> {
+  claim(runId: string, instanceId: string, ttlMs: number): Promise<RunRecord | null> {
     const record = this.runs.get(runId);
     if (record?.status !== 'queued') {
-      return null;
+      return Promise.resolve(null);
     }
     record.status = 'running';
     record.leaseInstanceId = instanceId;
     record.leaseExpiresAt = Date.now() + ttlMs;
     record.leaseEpoch += 1;
     record.updatedAt = new Date().toISOString();
-    return { ...record };
+    return Promise.resolve({ ...record });
   }
-  async transition(
-    runId: string,
-    expectedEpoch: number,
-    patch: RunTransitionPatch,
-  ): Promise<RunRecord> {
+  transition(runId: string, expectedEpoch: number, patch: RunTransitionPatch): Promise<RunRecord> {
     const record = this.runs.get(runId);
     if (!record) {
-      throw codedRunError('unknown_run', `run ${runId} not found`);
+      return Promise.reject(codedRunError('unknown_run', `run ${runId} not found`));
     }
     assertTransitionAllowed(record, expectedEpoch, patch);
     record.status = patch.to;
@@ -245,16 +161,16 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     if (patch.events && patch.events.length > 0) {
       this.eventStore.appendLocked(runId, patch.events);
     }
-    return { ...record };
+    return Promise.resolve({ ...record });
   }
-  async renewLease(runId: string, instanceId: string, ttlMs: number): Promise<boolean> {
+  renewLease(runId: string, instanceId: string, ttlMs: number): Promise<boolean> {
     const record = this.runs.get(runId);
     if (record?.leaseInstanceId !== instanceId) {
-      return false;
+      return Promise.resolve(false);
     }
     const epochBefore = record.leaseEpoch;
     record.leaseExpiresAt = Date.now() + ttlMs;
-    return record.leaseEpoch === epochBefore;
+    return Promise.resolve(record.leaseEpoch === epochBefore);
   }
   private select(
     match: (record: RunRecord) => boolean,
@@ -275,15 +191,17 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     const cmp = (a: RunRecord, b: RunRecord): number => pick(a).localeCompare(pick(b));
     return out.sort(cmp).slice(0, limit ?? DEFAULT_LIST_LIMIT);
   }
-  async listClaimable(opts?: { limit?: number; before?: string }): Promise<RunRecord[]> {
-    return this.select(
-      (record) => record.status === 'queued' && record.parentRunId === undefined,
-      (record) => record.createdAt,
-      opts?.limit,
-      opts?.before,
+  listClaimable(opts?: { limit?: number; before?: string }): Promise<RunRecord[]> {
+    return Promise.resolve(
+      this.select(
+        (record) => record.status === 'queued' && record.parentRunId === undefined,
+        (record) => record.createdAt,
+        opts?.limit,
+        opts?.before,
+      ),
     );
   }
-  async listExpiredAsks(opts?: {
+  listExpiredAsks(opts?: {
     limit?: number;
     before?: string;
     olderThanMs?: number;
@@ -292,9 +210,11 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
     const now = Date.now();
     const oldAsk = (record: RunRecord): boolean =>
       record.status === 'needs_input' && now - Date.parse(record.updatedAt) > olderThanMs;
-    return this.select(oldAsk, (record) => record.updatedAt, opts?.limit, opts?.before);
+    return Promise.resolve(
+      this.select(oldAsk, (record) => record.updatedAt, opts?.limit, opts?.before),
+    );
   }
-  async listDueTimers(opts?: { limit?: number; now?: number }): Promise<RunRecord[]> {
+  listDueTimers(opts?: { limit?: number; now?: number }): Promise<RunRecord[]> {
     const now = opts?.now ?? Date.now();
     const due = (record: RunRecord): boolean =>
       record.status === 'waiting' &&
@@ -308,53 +228,6 @@ export class InMemoryRunLifecycleStore implements RunLifecycleStore {
       out.push({ ...record });
     }
     out.sort((a, b) => (a.waitFireAt ?? 0) - (b.waitFireAt ?? 0));
-    return out.slice(0, opts?.limit ?? DEFAULT_LIST_LIMIT);
+    return Promise.resolve(out.slice(0, opts?.limit ?? DEFAULT_LIST_LIMIT));
   }
-}
-export type RunEventBus = {
-  publish(runId: string, events: SessionEvent[]): void;
-  subscribe(runId: string): AsyncIterable<SessionEvent>;
-};
-type BusSubscriber = {
-  queue: SessionEvent[];
-  wake: (() => void) | null;
-};
-export function createRunEventBus(): RunEventBus {
-  const subscribers = new Map<string, Set<BusSubscriber>>();
-  return {
-    publish(runId: string, events: SessionEvent[]): void {
-      for (const sub of subscribers.get(runId) ?? []) {
-        sub.queue.push(...events);
-        sub.wake?.();
-        sub.wake = null;
-      }
-    },
-    subscribe(runId: string): AsyncIterable<SessionEvent> {
-      const live = subscribers.get(runId) ?? new Set<BusSubscriber>();
-      subscribers.set(runId, live);
-      const self: BusSubscriber = { queue: [], wake: null };
-      live.add(self);
-      return {
-        async *[Symbol.asyncIterator]() {
-          try {
-            let index = 0;
-            while (true) {
-              for (; index < self.queue.length; index += 1) {
-                yield self.queue[index] as SessionEvent;
-              }
-              await new Promise<void>((resolve) => {
-                if (index < self.queue.length) {
-                  resolve();
-                } else {
-                  self.wake = resolve;
-                }
-              });
-            }
-          } finally {
-            live.delete(self);
-          }
-        },
-      };
-    },
-  };
 }

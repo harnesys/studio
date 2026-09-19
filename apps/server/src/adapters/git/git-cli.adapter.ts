@@ -253,10 +253,10 @@ export class GitCliAdapter implements GitPort {
       return null;
     }
   }
-  private async resolveCwd(cwd: string): Promise<string> {
+  private resolveCwd(cwd: string): Promise<string> {
     if (cwd.includes('\0')) {
-      throw new Error('invalid cwd');
+      return Promise.reject(new Error('invalid cwd'));
     }
-    return cwd;
+    return Promise.resolve(cwd);
   }
 }

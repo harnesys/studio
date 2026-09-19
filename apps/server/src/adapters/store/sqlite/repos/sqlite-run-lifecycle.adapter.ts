@@ -101,8 +101,10 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
     private readonly db: StudioDb,
     private readonly appendWithinTx: RunEventAppendWithinTx,
   ) {}
-  async create(run: RunCreateInput, events: PendingSessionEvent[] = []): Promise<RunRecord> {
-    return this.db.transaction((tx) => {
+  create(run: RunCreateInput, events: PendingSessionEvent[] = []): Promise<RunRecord> {
+    try {
+      return Promise.resolve(
+        this.db.transaction((tx) => {
       for (const event of events) {
         const clientEventId = clientEventIdOf(event);
         if (clientEventId === undefined) {
@@ -155,11 +157,15 @@ export class SqliteRunLifecycleStore implements RunLifecycleStore {
         throw codedRunError('unknown_run', `run ${run.runId} not found`);
       }
       return rowToRecord(row);
-    });
+        }),
+      );
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
-  async get(runId: string): Promise<RunRecord | null> {
+  get(runId: string): Promise<RunRecord | null> {
     const row = this.db.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
-    return row ? rowToRecord(row) : null;
+    return Promise.resolve(row ? rowToRecord(row) : null);
   }
   async activeByThread(threadId: string): Promise<RunRecord | null> {
     const row = this.db

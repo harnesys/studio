@@ -246,6 +246,7 @@ export function ExplorerContent({
   useFilesHotkey(selectionWorkspaceId === workspaceId ? workspaceId : '');
   return (
     <div
+      role="tree"
       className="flex min-h-full flex-col gap-0.5 group-data-[collapsible=icon]:items-center"
       onDragOver={handleRootDragOver}
       onDrop={handleRootDrop}

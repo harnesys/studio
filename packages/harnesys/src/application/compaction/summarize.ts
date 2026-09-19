@@ -24,7 +24,14 @@ export async function* streamSummary(opts: {
   signal: AbortSignal;
 }): AsyncGenerator<SummaryStreamEvent> {
   const messages = [...opts.head, { role: 'user', content: SUMMARY_USER_PROMPT }];
-  const stream = callModel(opts.binding, opts.system, messages, [], new Map(), opts.signal);
+  const stream = callModel({
+    binding: opts.binding,
+    prompt: opts.system,
+    messages,
+    toolNames: [],
+    signalOrRegistry: new Map(),
+    maybeSignal: opts.signal,
+  });
   let completed: StreamChunk | undefined;
   for await (const chunk of stream) {
     if (chunk.type === 'completed') {

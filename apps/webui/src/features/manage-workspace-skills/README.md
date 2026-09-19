@@ -1,6 +1,6 @@
 # manage-workspace-skills
 
-Создание skill-файла в workspace.
+Create skill file in workspace.
 
 **API:** `openCreateSkillDialog`, `CreateSkillDialog`.
 

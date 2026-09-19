@@ -112,51 +112,56 @@ export class SqliteRunEventStore implements RunEventStore {
     }
     return assigned;
   }
-  async append(
-    runId: string,
-    expectedEpoch: number,
-    events: SessionEvent[],
-  ): Promise<SessionEvent[]> {
-    return this.db.transaction((tx): SessionEvent[] => {
-      const row = tx.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
-      if (row?.status !== 'running' || row?.leaseEpoch !== expectedEpoch) {
-        throw codedRunError('lease_stale', `run ${runId} not executable by epoch ${expectedEpoch}`);
-      }
-      return this.appendWithinTx(tx as StudioDb, runId, row.threadId, events);
-    });
+  append(runId: string, expectedEpoch: number, events: SessionEvent[]): Promise<SessionEvent[]> {
+    try {
+      return Promise.resolve(
+        this.db.transaction((tx): SessionEvent[] => {
+          const row = tx.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
+          if (row?.status !== 'running' || row?.leaseEpoch !== expectedEpoch) {
+            throw codedRunError(
+              'lease_stale',
+              `run ${runId} not executable by epoch ${expectedEpoch}`,
+            );
+          }
+          return this.appendWithinTx(tx as StudioDb, runId, row.threadId, events);
+        }),
+      );
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
   appendForThread(threadId: string, runId: string, events: PendingSessionEvent[]): SessionEvent[] {
     return this.db.transaction((tx): SessionEvent[] =>
       this.appendWithinTx(tx as StudioDb, runId, threadId, events),
     );
   }
-  async tail(runId: string, fromSeq: number): Promise<SessionEvent[]> {
+  tail(runId: string, fromSeq: number): Promise<SessionEvent[]> {
     const rows = this.db
       .select()
       .from(runEventsTable)
       .where(and(eq(runEventsTable.runId, runId), gt(runEventsTable.seq, fromSeq)))
       .all();
-    return rows.map(rowToEvent);
+    return Promise.resolve(rows.map(rowToEvent));
   }
-  async latestSeq(runId: string): Promise<number> {
+  latestSeq(runId: string): Promise<number> {
     const row = this.db.select().from(runsTable).where(eq(runsTable.runId, runId)).get();
-    return row?.lastSeq ?? 0;
+    return Promise.resolve(row?.lastSeq ?? 0);
   }
-  async listByThread(threadId: string): Promise<SessionEvent[]> {
+  listByThread(threadId: string): Promise<SessionEvent[]> {
     const rows = this.db
       .select()
       .from(runEventsTable)
       .where(eq(runEventsTable.threadId, threadId))
       .all();
-    return rows.sort((a, b) => a.timestamp - b.timestamp || a.seq - b.seq).map(rowToEvent);
+    return Promise.resolve(rows.sort((a, b) => a.timestamp - b.timestamp || a.seq - b.seq).map(rowToEvent));
   }
-  async hasRun(runId: string): Promise<boolean> {
+  hasRun(runId: string): Promise<boolean> {
     const row = this.db
       .select({ seq: runEventsTable.seq })
       .from(runEventsTable)
       .where(eq(runEventsTable.runId, runId))
       .limit(1)
       .get();
-    return row !== undefined;
+    return Promise.resolve(row !== undefined);
   }
 }

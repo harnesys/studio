@@ -198,8 +198,18 @@ function ExplorerWorkspaceRoot({
       moveMutation.mutate(items);
     }
   };
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    onToggle();
+  };
   return (
     <div
+      role="treeitem"
+      tabIndex={0}
+      aria-expanded={open}
       className={cn(
         'group/ws relative flex items-center rounded-md hover:bg-sidebar-accent/70',
         'group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center',
@@ -210,6 +220,7 @@ function ExplorerWorkspaceRoot({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onKeyDown={handleKeyDown}
     >
       <button
         type="button"

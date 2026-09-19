@@ -1,4 +1,31 @@
 export type {
+  HooksBinding,
+  KnowledgeHit,
+  MemoryRecord,
+  MemoryRecordSource,
+  PackAssignment,
+  PackCatalogEntry,
+  PackConfig,
+  PackOverride,
+  PinRecord,
+  PinSource,
+  SemanticScope,
+  ToolCatalogEntry as WorkspaceTool,
+} from 'harnesys';
+export type { PermissionMode, ScheduleHistory } from 'harnesys/domain';
+export { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys/domain';
+export type {
+  AgentBudget,
+  AgentGraph,
+  AgentGraphLayout,
+  AgentGraphPosition,
+  AgentGraphRankdir,
+  AgentRecord,
+  BudgetPolicy,
+} from './src/agent.ts';
+export { defaultAgentCompaction } from './src/agent-runtime-defaults.ts';
+export type { AgentCapabilitiesView, AgentCapabilityRegistryEntry } from './src/capabilities.ts';
+export type {
   CatalogDriver,
   DiscoveredModel,
   DiscoveredModelView,
@@ -29,39 +56,18 @@ export {
   MODALITIES,
   MODEL_FEATURES,
 } from './src/catalog.ts';
-
-import type { ScheduleHistory } from 'harnesys';
-import { SCHEDULE_HISTORIES } from 'harnesys/domain';
-import type { AgentRecord as AgentRecordType } from './src/agent.ts';
-import type { ThreadPlanRecord } from './src/plan-types.ts';
-import type { PluginDiagnostic } from './src/plugin.ts';
-import type { ThreadRecord as ThreadRecordType } from './src/thread.ts';
-
+export * from './src/desk-events.ts';
 export type {
-  HooksBinding,
-  KnowledgeHit,
-  MemoryRecord,
-  MemoryRecordSource,
-  PackAssignment,
-  PackCatalogEntry,
-  PackConfig,
-  PackOverride,
-  PinRecord,
-  PinSource,
-  SemanticScope,
-  ToolCatalogEntry as WorkspaceTool,
-} from 'harnesys';
-export type {
-  AgentBudget,
-  AgentGraph,
-  AgentGraphLayout,
-  AgentGraphPosition,
-  AgentGraphRankdir,
-  AgentRecord,
-  BudgetPolicy,
-} from './src/agent.ts';
-export { defaultAgentCompaction } from './src/agent-runtime-defaults.ts';
-export type { AgentCapabilitiesView, AgentCapabilityRegistryEntry } from './src/capabilities.ts';
+  GitBranch,
+  GitCheckoutRequest,
+  GitCreateBranchRequest,
+  GitDiffResponse,
+  GitFileStatus,
+  GitFileStatusMap,
+  GitStatusBase,
+  GitStatusCounts,
+  GitStatusResponse,
+} from './src/git.ts';
 export type {
   AgentGenerationSettings,
   AgentProjectPaths,
@@ -109,6 +115,7 @@ export {
   PLAN_PACK_ID,
   resolveModeId,
 } from './src/modes.ts';
+export * from './src/plan-types.ts';
 export type {
   AddPluginRegistryRequest,
   ApprovePluginServerRequest,
@@ -146,6 +153,7 @@ export type {
   ProviderPublic,
   ProviderRecord,
 } from './src/provider.ts';
+export * from './src/schedule.ts';
 export {
   isScheduledHumanText,
   SCHEDULE_HUMAN_ORIGIN,
@@ -153,6 +161,8 @@ export {
   scheduledTaskText,
   visibleScheduledText,
 } from './src/schedule-prompt.ts';
+export type { TerminalSessionRecord } from './src/terminal.ts';
+export { isTextAttachment } from './src/text-attachment.ts';
 export type {
   AcceptedRunResponse,
   CompactThreadResponse,
@@ -171,75 +181,6 @@ export type { TranscriptItem } from './src/transcript.ts';
 export { toTranscript } from './src/transcript.ts';
 export { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from './src/webhook-prompt.ts';
 export type {
-  CreateWorkspaceSkillRequest,
-  UpsertWorkspaceMcpServerRequest,
-  WorkspaceMcpConfigServer,
-  WorkspaceMcpServer,
-  WorkspaceMcpTransport,
-  WorkspaceSkill,
-} from './src/workspace-config.ts';
-export type AttachmentKind = 'image' | 'audio' | 'video' | 'file';
-export type ThreadAttachment = {
-  id: string;
-  kind: AttachmentKind;
-  name: string;
-  mediaType: string;
-  path: string;
-};
-export type HumanEntry = {
-  id: string;
-  text?: string;
-  createdAt: string;
-  attachments?: ThreadAttachment[];
-  origin?: string;
-};
-export const SCHEDULE_STATUSES = ['active', 'paused', 'failed'] as const;
-export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
-export type { PermissionMode, ScheduleHistory } from 'harnesys/domain';
-export { PERMISSION_MODES, SCHEDULE_HISTORIES } from 'harnesys/domain';
-export function isScheduleHistory(value: string): value is ScheduleHistory {
-  return (SCHEDULE_HISTORIES as readonly string[]).includes(value);
-}
-export type ScheduleRecord = {
-  id: string;
-  workspaceId: string;
-  name: string;
-  status: ScheduleStatus;
-  targetAgentId: string;
-  detail: string;
-  cron: string;
-  modeId: string;
-  history: ScheduleHistory;
-  historyLast: number;
-  threadId: string;
-  nextRunAt?: string | null;
-  lastFiredAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-export type CreateScheduleResponse = {
-  schedule: ScheduleRecord;
-  thread: ThreadRecordType;
-};
-export type WebhookStatus = ScheduleStatus;
-export type WebhookRecord = {
-  id: string;
-  workspaceId: string;
-  name: string;
-  status: ScheduleStatus;
-  targetAgentId: string;
-  detail: string;
-  endpoint: string;
-  threadId: string;
-  lastFiredAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-export type CreateWebhookResponse = {
-  webhook: WebhookRecord;
-  thread: ThreadRecordType;
-};
-export type {
   HostNodeStatus,
   IdeTabKind,
   PairingRedeemRequest,
@@ -254,102 +195,13 @@ export type {
   WindowHostRecord,
   WorkspaceRecord,
 } from './src/window-desk.ts';
-export type WorkspaceStatus = {
-  exists: boolean;
-  kind: 'folder' | 'git';
-  branch?: string;
-  dirty?: boolean;
-};
 export type {
-  GitBranch,
-  GitCheckoutRequest,
-  GitCreateBranchRequest,
-  GitDiffResponse,
-  GitFileStatus,
-  GitFileStatusMap,
-  GitStatusBase,
-  GitStatusCounts,
-  GitStatusResponse,
-} from './src/git.ts';
-export type StudioErrorBody = {
-  error: string;
-};
-export type WorkspaceFileEntry = {
-  name: string;
-  kind: 'file' | 'dir';
-  path: string;
-  size?: number;
-  modifiedAt?: string;
-  pruned?: boolean;
-};
-export type WorkspaceFileEventKind = 'change' | 'create' | 'delete';
-export type WorkspaceFileEvent = {
-  kind: WorkspaceFileEventKind;
-  dir: string;
-  name: string;
-};
-export * from './src/plan-types.ts';
-export type { TerminalSessionRecord } from './src/terminal.ts';
-export { isTextAttachment } from './src/text-attachment.ts';
+  CreateWorkspaceSkillRequest,
+  UpsertWorkspaceMcpServerRequest,
+  WorkspaceMcpConfigServer,
+  WorkspaceMcpServer,
+  WorkspaceMcpTransport,
+  WorkspaceSkill,
+} from './src/workspace-config.ts';
 export * from './src/workspace-files.ts';
-export type DeskEvent =
-  | {
-      type: 'thread';
-      thread: ThreadRecordType;
-    }
-  | {
-      type: 'schedule';
-      schedule: ScheduleRecord;
-    }
-  | {
-      type: 'schedule-deleted';
-      id: string;
-    }
-  | {
-      type: 'plan';
-      plan: ThreadPlanRecord;
-    }
-  | {
-      type: 'plan-deleted';
-      threadId: string;
-    }
-  | {
-      type: 'webhook';
-      webhook: WebhookRecord;
-    }
-  | {
-      type: 'webhook-deleted';
-      id: string;
-    }
-  | {
-      type: 'agent';
-      agent: AgentRecordType;
-    }
-  | {
-      type: 'agent-deleted';
-      id: string;
-    }
-  | {
-      type: 'terminal';
-      workspaceId: string;
-      jobId: string;
-    }
-  | {
-      type: 'run-finish';
-      threadId: string;
-    };
-export type WorkspaceLspEntry = {
-  serverId: string;
-  origin: 'file' | string;
-  command: string;
-  args?: string[];
-  extensionToLanguage: Record<string, string>;
-  disabled: boolean;
-  granted: boolean;
-  binaryOk: boolean;
-  status: 'live' | 'off' | 'error';
-};
-export type WorkspaceLspListResponse = {
-  servers: WorkspaceLspEntry[];
-  diagnostics: PluginDiagnostic[];
-};
+export * from './src/workspace-types.ts';

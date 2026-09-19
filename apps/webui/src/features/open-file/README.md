@@ -1,6 +1,6 @@
 # open-file
 
-Открытие файлов workspace во вкладках агента, dirty-флаг.
+Opening workspace files in agent tabs, dirty flag.
 
 **API:** `openWorkspaceFile`, `closeWorkspaceFile`, `selectWorkspaceFile`, `markWorkspaceFileDirty`, `useAgentOpenFiles`, `openFileKind`.
 

@@ -1,8 +1,8 @@
 # manage-model
 
-Диалоги add/edit модели провайдера и merge metadata. Образец фичи с формой.
+Dialogs for add/edit provider model and merge metadata. Feature sample with form.
 
-**API:** `openAddModelDialog`, `openEditModelDialog`, `confirmDetachModel`, `mergeFields`, `ModelFieldsDraft`, диалоги.
+**API:** `openAddModelDialog`, `openEditModelDialog`, `confirmDetachModel`, `mergeFields`, `ModelFieldsDraft`, dialogs.
 
 **Server:** `application/providers`, `adapters/http/provider`.  
-UI списка — `pages/settings` (`models-pane`).
+List UI — `pages/settings` (`models-pane`).

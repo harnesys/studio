@@ -1,4 +1,4 @@
-import { createRunEventBus } from '../adapters/in-memory-run-store.ts';
+import { createRunEventBus } from '../adapters/run-event-bus.ts';
 import type { AgentDefinition } from '../domain/agent-definition.ts';
 import { codedRunError } from '../domain/errors.ts';
 import type { PackRegistration } from '../domain/pack.ts';
@@ -255,12 +255,10 @@ export async function createRuntime(options: CreateRuntimeOptions): Promise<Runt
         hooks,
       );
     },
-    resume: async (): Promise<RunResult> => {
-      throw codedRunError(
-        'resume_removed',
-        'RuntimeHandle.resume removed: use SessionHandle.respond',
-      );
-    },
+    resume: (): Promise<RunResult> =>
+      Promise.reject(
+        codedRunError('resume_removed', 'RuntimeHandle.resume removed: use SessionHandle.respond'),
+      ),
     compile: (def) => compile(def),
     check: (def) => check(def, { tools: toolRegistry, agents: options.agents }),
     session: (agent, sessionOpts) => {

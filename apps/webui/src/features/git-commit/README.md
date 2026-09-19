@@ -1,6 +1,6 @@
 # git-commit
 
-Commit / Push / Update (pull) для workspace-git. Диалог для Commit, прямые вызовы для Push/Pull.
+Commit / Push / Update (pull) for workspace-git. Dialog for Commit, direct calls for Push/Pull.
 
 **API:** `openCommitDialog(message?)`, `GitCommitDialog`.
 

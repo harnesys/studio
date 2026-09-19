@@ -1,6 +1,6 @@
 # desk
 
-Селекция агента / треда из URL и live-статусы workspace. Имя слайса, не термин продукта.
+Selection of agent / thread from URL and live statuses of workspace. Slice name, not product term.
 
 **API:** `useDesk*`, `useSelectedAgent`, `useSelectedThread`, `useAgentLiveStatus`, `DeskSync`, store types.
 

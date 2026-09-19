@@ -1,9 +1,9 @@
 # manage-agent
 
-CRUD агента, generation fields, смена модели, capabilities.
+Agent CRUD, generation fields, model change, capabilities.
 
 **API:** dialogs, `createAgent` / `updateAgent` / `deleteAgent`, `ModelSelect`, `AgentGenerationFields`, `ConfigEntityCard`, `ModeChecklist`, fields schema.
 
 **Server:** `application/agents`, `adapters/http/agent`.
 
-Образец формы — вместе с `manage-model`.
+Form sample — together with `manage-model`.

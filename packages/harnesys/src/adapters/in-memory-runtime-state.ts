@@ -9,19 +9,20 @@ export class InMemoryRuntimeState implements RuntimeState {
   constructor(sessionId: string) {
     this.sessionId = sessionId;
   }
-  async load(): Promise<Snapshot | null> {
-    return this.snapshot;
+  load(): Promise<Snapshot | null> {
+    return Promise.resolve(this.snapshot);
   }
-  async commit(snapshot: Snapshot, events: readonly Event[], meta: CommitMeta): Promise<void> {
+  commit(snapshot: Snapshot, events: readonly Event[], meta: CommitMeta): Promise<void> {
     if (this.sequences.has(meta.sequence)) {
       this.snapshot = snapshot;
-      return;
+      return Promise.resolve();
     }
     this.sequences.add(meta.sequence);
     this.snapshot = snapshot;
     for (const event of events) {
       this.events.push(event);
     }
+    return Promise.resolve();
   }
   child(spawnId: string): RuntimeState {
     const existing = this.children.get(spawnId);

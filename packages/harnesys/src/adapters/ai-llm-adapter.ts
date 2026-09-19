@@ -1,16 +1,31 @@
 import { streamText } from 'ai';
-import { STREAM_CHUNK_SIZE } from '../constants.ts';
 import type { AgentGenerationSettings } from '../domain/agent-definition.ts';
 import type { ModelBinding } from '../ports/models.ts';
 import type { ToolDefinition } from '../ports/tools.ts';
-import { canonicalToolName, type StreamChunk, toAiTools, toStreamError } from './ai-llm-chunks.ts';
+import { type StreamChunk, toAiTools } from './ai-llm-chunks.ts';
 import { toModelMessages } from './ai-llm-messages.ts';
 import { buildProvider, effortStreamOptions } from './ai-llm-provider.ts';
+import {
+  consumeParts,
+  emptyStreamState,
+  type PartContext,
+  type StreamState,
+} from './ai-llm-stream-parts.ts';
 
 export type { CallModelResult, StreamChunk } from './ai-llm-chunks.ts';
 export type CallModelSettings = {
   effort?: string;
   generation?: AgentGenerationSettings;
+};
+export type CallModelOptions = {
+  binding: ModelBinding;
+  prompt: string;
+  messages: unknown[];
+  toolNames: string[] | Map<string, ToolDefinition>;
+  signalOrRegistry: AbortSignal | Map<string, ToolDefinition> | undefined;
+  maybeSignal?: AbortSignal;
+  outputSchema?: Record<string, unknown>;
+  settings?: CallModelSettings;
 };
 function applyGeneration(
   streamConfig: Record<string, unknown>,
@@ -41,37 +56,35 @@ function applyGeneration(
     streamConfig.maxOutputTokens = generation.maxTokens;
   }
 }
-export async function* callModel(
-  binding: ModelBinding,
-  prompt: string,
-  messages: unknown[],
-  toolNames: string[] | Map<string, ToolDefinition>,
-  signalOrRegistry: AbortSignal | Map<string, ToolDefinition> | undefined,
-  maybeSignal?: AbortSignal,
-  outputSchema?: Record<string, unknown>,
-  settings?: CallModelSettings,
-): AsyncGenerator<StreamChunk> {
+type CallContext = {
+  names: string[];
+  registry: Map<string, ToolDefinition> | undefined;
+  signal: AbortSignal | undefined;
+};
+function resolveCallContext(options: CallModelOptions): CallContext {
   let names: string[] = [];
   let registry: Map<string, ToolDefinition> | undefined;
   let signal: AbortSignal | undefined;
-  if (Array.isArray(toolNames)) {
-    names = toolNames;
-  } else if (toolNames instanceof Map) {
-    registry = toolNames as Map<string, ToolDefinition>;
+  if (Array.isArray(options.toolNames)) {
+    names = options.toolNames;
+  } else if (options.toolNames instanceof Map) {
+    registry = options.toolNames;
   }
-  if (signalOrRegistry instanceof Map) {
-    registry = signalOrRegistry as Map<string, ToolDefinition>;
-    signal = maybeSignal;
-  } else if (signalOrRegistry) {
-    signal = signalOrRegistry as AbortSignal;
-    if (maybeSignal instanceof Map) {
-      registry = maybeSignal as Map<string, ToolDefinition>;
+  if (options.signalOrRegistry instanceof Map) {
+    registry = options.signalOrRegistry;
+    signal = options.maybeSignal;
+  } else if (options.signalOrRegistry) {
+    signal = options.signalOrRegistry;
+    if (options.maybeSignal instanceof Map) {
+      registry = options.maybeSignal;
     }
   }
-  const driver = binding.driver as string;
-  if (driver === 'test' || binding.name === 'test') {
-    if (names.length > 0) {
-      yield {
+  return { names, registry, signal };
+}
+function testDriverChunks(names: string[]): StreamChunk[] {
+  if (names.length > 0) {
+    return [
+      {
         type: 'completed',
         finishReason: 'tool-calls',
         text: '',
@@ -80,265 +93,108 @@ export async function* callModel(
           args: { msg: 'hello' },
           id: `tc-${i}`,
         })),
-      };
-      return;
-    }
-    yield { type: 'completed', finishReason: 'stop', text: 'hello' };
-    return;
+      },
+    ];
   }
-  const provider = buildProvider(binding);
-  const model = provider(binding.model.name) as never;
-  const aiTools = toAiTools(names, registry);
-  const ms = toModelMessages(messages).filter((message) => {
+  return [{ type: 'completed', finishReason: 'stop', text: 'hello' }];
+}
+function buildStreamConfig(
+  options: CallModelOptions,
+  context: CallContext,
+): Record<string, unknown> {
+  const provider = buildProvider(options.binding);
+  const model = provider(options.binding.model.name) as never;
+  const aiTools = toAiTools(context.names, context.registry);
+  const ms = toModelMessages(options.messages).filter((message) => {
     const role = (message as Record<string, unknown>).role;
     return role !== 'system';
   }) as never[];
-  const instructions = prompt.trim() ? prompt : undefined;
+  const instructions = options.prompt.trim() ? options.prompt : undefined;
   const streamConfig: Record<string, unknown> = {
     model,
     instructions,
     messages: ms.length > 0 ? ms : undefined,
     prompt: ms.length === 0 && instructions ? instructions : undefined,
     tools: aiTools as never,
-    abortSignal: signal,
+    abortSignal: context.signal,
   };
-  const effortOptions = effortStreamOptions(binding, settings?.effort);
+  const effortOptions = effortStreamOptions(options.binding, options.settings?.effort);
   if (effortOptions.reasoning !== undefined) {
     streamConfig.reasoning = effortOptions.reasoning;
   }
   if (effortOptions.providerOptions !== undefined) {
     streamConfig.providerOptions = effortOptions.providerOptions;
   }
-  applyGeneration(streamConfig, settings?.generation);
-  if (outputSchema) {
+  applyGeneration(streamConfig, options.settings?.generation);
+  if (options.outputSchema) {
     streamConfig.response_format = {
       type: 'json_schema',
-      schema: outputSchema,
+      schema: options.outputSchema,
     };
   }
-  const result = (await streamText(streamConfig as never)) as never;
-  let fullText = '';
-  let reasoningText = '';
-  const toolCalls: {
-    name: string;
-    args: unknown;
-    id: string;
-  }[] = [];
-  const sources: unknown[] = [];
-  const files: unknown[] = [];
-  let finishReason = 'stop';
-  let chunkBuffer = '';
-  let chunkCount = 0;
-  for await (const part of (
-    result as {
-      stream: AsyncIterable<Record<string, unknown>>;
-    }
-  ).stream) {
-    const type = part.type as string;
-    if (type === 'text-delta' && typeof part.text === 'string' && part.text) {
-      const text = part.text as string;
-      const id = String(part.id ?? '');
-      fullText += text;
-      chunkBuffer += text;
-      chunkCount++;
-      yield { type: 'delta', text, id };
-      if (chunkCount >= STREAM_CHUNK_SIZE) {
-        yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
-        chunkBuffer = '';
-        chunkCount = 0;
-      }
-      continue;
-    }
-    if (type === 'reasoning-delta' && typeof part.text === 'string' && part.text) {
-      const text = part.text as string;
-      const id = String(part.id ?? '');
-      reasoningText += text;
-      yield { type: 'reasoning-delta', text, id };
-      continue;
-    }
-    if (type === 'reasoning-start') {
-      yield { type: 'reasoning-start', id: String(part.id ?? '') };
-      continue;
-    }
-    if (type === 'reasoning-end') {
-      yield { type: 'reasoning-end', id: String(part.id ?? '') };
-      continue;
-    }
-    if (type === 'tool-input-start') {
-      yield {
-        type: 'tool-input-start',
-        id: String(part.id ?? part.toolCallId ?? ''),
-        toolName: canonicalToolName(String(part.toolName ?? ''), registry),
-      };
-      continue;
-    }
-    if (type === 'tool-input-delta') {
-      const delta =
-        (typeof part.delta === 'string' ? (part.delta as string) : undefined) ??
-        (typeof part.inputTextDelta === 'string' ? (part.inputTextDelta as string) : undefined) ??
-        '';
-      if (delta) {
-        yield { type: 'tool-input-delta', id: String(part.id ?? part.toolCallId ?? ''), delta };
-      }
-      continue;
-    }
-    if (type === 'tool-input-end') {
-      yield { type: 'tool-input-end', id: String(part.id ?? part.toolCallId ?? '') };
-      continue;
-    }
-    if (type === 'tool-call') {
-      const tc = part as {
-        toolName?: string;
-        input?: unknown;
-        args?: unknown;
-        toolCallId?: string;
-        id?: string;
-      };
-      const name = canonicalToolName(String(tc.toolName ?? ''), registry);
-      toolCalls.push({
-        name,
-        args: (tc.input ?? tc.args) as unknown,
-        id: String(tc.toolCallId ?? tc.id ?? ''),
-      });
-      yield {
-        type: 'tool-call',
-        name,
-        args: (tc.input ?? tc.args) as unknown,
-        id: String(tc.toolCallId ?? tc.id ?? ''),
-      };
-      continue;
-    }
-    if (type === 'source') {
-      const src =
-        (
-          part as {
-            source?: unknown;
-          }
-        ).source ?? part;
-      sources.push(src);
-      yield { type: 'source', source: src };
-      continue;
-    }
-    if (type === 'file' || type === 'reasoning-file') {
-      const f =
-        (
-          part as {
-            file?: unknown;
-          }
-        ).file ?? part;
-      files.push(f);
-      yield { type: 'file', file: f };
-      continue;
-    }
-    if (type === 'finish-step') {
-      const fr = part.finishReason as string | undefined;
-      if (fr) {
-        finishReason = fr;
-      }
-      const usage = (
-        part as {
-          usage?: unknown;
-        }
-      ).usage;
-      if (usage) {
-      }
-      continue;
-    }
-    if (type === 'finish') {
-      const fr = part.finishReason as string | undefined;
-      if (fr) {
-        finishReason = fr;
-      }
-      const usage =
-        (
-          part as {
-            totalUsage?: unknown;
-            usage?: unknown;
-          }
-        ).totalUsage ??
-        (
-          part as {
-            usage?: unknown;
-          }
-        ).usage;
-      if (usage) {
-        (globalThis as Record<string, unknown>).__harnesys_last_usage = usage;
-      }
-      continue;
-    }
-    if (type === 'error') {
-      throw toStreamError(
-        (
-          part as {
-            error?: unknown;
-          }
-        ).error,
-      );
-    }
-    if (type === 'abort') {
-      throw Object.assign(
-        new Error(
-          String(
-            (
-              part as {
-                reason?: string;
-              }
-            ).reason ?? 'aborted',
-          ),
-        ),
-        {
-          name: 'AbortError',
-        },
-      );
-    }
-  }
-  if (chunkBuffer) {
-    yield { type: 'chunk', text: chunkBuffer, chunkId: crypto.randomUUID() };
-  }
-  if (toolCalls.length > 0 && finishReason !== 'tool-calls' && finishReason !== 'length') {
-    finishReason = 'tool-calls';
-  }
-  let structured: unknown;
+  return streamConfig;
+}
+async function resolveStructured(result: unknown): Promise<unknown> {
   try {
-    const obj = await (
-      result as {
-        object?: PromiseLike<unknown>;
-      }
-    ).object;
-    if (obj !== undefined) {
-      structured = obj;
+    const object = await (result as { object?: PromiseLike<unknown> }).object;
+    if (object !== undefined) {
+      return object;
     }
   } catch {}
+  return undefined;
+}
+async function resolveUsage(result: unknown): Promise<unknown> {
   let usage: unknown = (globalThis as Record<string, unknown>).__harnesys_last_usage;
   try {
-    const u = await (
-      result as {
-        totalUsage?: PromiseLike<unknown>;
-      }
-    ).totalUsage;
-    if (u) {
-      usage = u;
+    const total = await (result as { totalUsage?: PromiseLike<unknown> }).totalUsage;
+    if (total) {
+      usage = total;
     }
   } catch {}
   try {
-    const u2 = await (
-      result as {
-        usage?: PromiseLike<unknown>;
-      }
-    ).usage;
-    if (u2 && !usage) {
-      usage = u2;
+    const single = await (result as { usage?: PromiseLike<unknown> }).usage;
+    if (single && !usage) {
+      usage = single;
     }
   } catch {}
-  yield {
+  return usage;
+}
+async function completedChunk(result: unknown, state: StreamState): Promise<StreamChunk> {
+  let finishReason = state.finishReason;
+  if (state.toolCalls.length > 0 && finishReason !== 'tool-calls' && finishReason !== 'length') {
+    finishReason = 'tool-calls';
+  }
+  const structured = await resolveStructured(result);
+  const usage = await resolveUsage(result);
+  return {
     type: 'completed',
     finishReason,
-    text: fullText || undefined,
-    reasoning: reasoningText || undefined,
-    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    text: state.fullText || undefined,
+    reasoning: state.reasoningText || undefined,
+    toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
     structured,
-    sources: sources.length > 0 ? sources : undefined,
-    files: files.length > 0 ? files : undefined,
+    sources: state.sources.length > 0 ? state.sources : undefined,
+    files: state.files.length > 0 ? state.files : undefined,
     usage,
   };
+}
+export async function* callModel(options: CallModelOptions): AsyncGenerator<StreamChunk> {
+  const context = resolveCallContext(options);
+  const driver = options.binding.driver as string;
+  if (driver === 'test' || options.binding.name === 'test') {
+    for (const chunk of testDriverChunks(context.names)) {
+      yield chunk;
+    }
+    return;
+  }
+  const streamConfig = buildStreamConfig(options, context);
+  const result = (await streamText(streamConfig as never)) as never;
+  const state = emptyStreamState();
+  const parts = (result as { stream: AsyncIterable<Record<string, unknown>> }).stream;
+  const partContext: PartContext = { registry: context.registry, state };
+  yield* consumeParts(parts, partContext);
+  if (state.chunkBuffer) {
+    yield { type: 'chunk', text: state.chunkBuffer, chunkId: crypto.randomUUID() };
+  }
+  yield await completedChunk(result, state);
 }

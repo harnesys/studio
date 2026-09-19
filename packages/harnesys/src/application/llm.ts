@@ -160,19 +160,19 @@ export async function* runLlmGenerate(
   if (preBlocked !== undefined) {
     throw codedRunError('model_call_blocked', preBlocked);
   }
-  const stream = callModel(
-    ctx.modelBinding,
-    instructions,
-    requestMessages,
+  const stream = callModel({
+    binding: ctx.modelBinding,
+    prompt: instructions,
+    messages: requestMessages,
     toolNames,
-    ctx.toolRegistry,
-    ctx.signal,
-    node.output as Record<string, unknown> | undefined,
-    {
+    signalOrRegistry: ctx.toolRegistry,
+    maybeSignal: ctx.signal,
+    outputSchema: node.output as Record<string, unknown> | undefined,
+    settings: {
       effort: modelRef?.effort,
       generation: modelRef?.generation,
     },
-  );
+  });
   let lastChunk: StreamChunk | undefined;
   for await (const chunk of stream) {
     const type = LLM_CHUNK_EVENTS[chunk.type];

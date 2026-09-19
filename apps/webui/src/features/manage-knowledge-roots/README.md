@@ -1,6 +1,6 @@
 # manage-knowledge-roots
 
-CRUD путей knowledge roots в workspace.
+CRUD of knowledge roots paths in workspace.
 
 **API:** `openAddKnowledgeRootDialog`, `confirmDeleteKnowledgeRoot`, `KnowledgeRootDraft`.
 

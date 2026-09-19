@@ -1,9 +1,6 @@
 export { askUser, fetch, files, mapTool, shell, wait } from './src/adapters/actions/index.ts';
-export {
-  createRunEventBus,
-  InMemoryRunEventStore,
-  InMemoryRunLifecycleStore,
-} from './src/adapters/in-memory-run-store.ts';
+export { InMemoryRunEventStore } from './src/adapters/in-memory-run-event-store.ts';
+export { InMemoryRunLifecycleStore } from './src/adapters/in-memory-run-lifecycle-store.ts';
 export { InMemoryRuntimeState } from './src/adapters/in-memory-runtime-state.ts';
 export { McpRegistry } from './src/adapters/mcp-registry.ts';
 export { MemoryArtifactStore } from './src/adapters/memory-artifact-store.ts';
@@ -15,6 +12,7 @@ export {
   toBinding,
 } from './src/adapters/models/binding.ts';
 export { discoverModels } from './src/adapters/models/discover.ts';
+export { createRunEventBus, type RunEventBus } from './src/adapters/run-event-bus.ts';
 export {
   type AgentIdentity,
   type ResolveAgentIdentityCtx,

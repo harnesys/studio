@@ -22,15 +22,8 @@ export type AgentBindContext = {
   packIndex: Map<string, string> | undefined;
 };
 export type BindDiagnosticSink = (diagnostic: PluginDiagnostic) => void;
-export function bindAgentComponents(
-  ir: PluginIr,
-  resolveModel: ResolveAgentModel,
-  onDiagnostic?: BindDiagnosticSink,
-  userConfig?: UserConfigContentOptions,
-  packIndex?: Map<string, string>,
-): CatalogAgentEntry[] {
+export function bindAgentComponents(ir: PluginIr, bind: AgentBindContext): CatalogAgentEntry[] {
   const entries: CatalogAgentEntry[] = [];
-  const bind: AgentBindContext = { resolveModel, onDiagnostic, userConfig, packIndex };
   for (const component of ir.components) {
     if (component.kind !== 'agent' || component.status !== 'native') {
       continue;

@@ -1,34 +1,24 @@
-import { KNOWLEDGE_INDEX_SLOW_FILE_MS } from '../../config/constants.ts';
-import type { KnowledgeIndexEventsPort } from '../../domain/knowledge-index-events.port.ts';
-import { NotFoundError, ValidationError } from '../../domain/studio.error.ts';
 import { trace } from '../../libs/trace.ts';
-import type { EmbeddingsPort, StudioEmbeddingsDeps } from './embeddings.ts';
-import { embeddingsForSettings, knowledgeIndexModeKey } from './knowledge-embeddings.ts';
-import { indexKnowledgeFile, upsertWalkEntry } from './knowledge-index-file.ts';
+import type { EmbeddingsPort } from './embeddings.ts';
+import { embeddingsForSettings } from './knowledge-embeddings.ts';
 import type { SqliteKnowledgeIndexRepo } from './knowledge-index-repo.ts';
 import type {
   KnowledgeIndexStatePatch,
   KnowledgeIndexStateRecord,
   KnowledgeSettingsRecord,
 } from './knowledge-index-types.ts';
-import { filterEnqueueUris, indexOneUri } from './knowledge-indexer-uri.ts';
-import { collectKnowledgePaths, type KnowledgePath } from './knowledge-walk.ts';
-import { uriUnderEnabledRoots } from './knowledge-walk-ignore.ts';
-export type KnowledgeIndexerOptions = {
-  resolveWorkspacePath: (workspaceId: string) => string | undefined;
-  listEnabledRoots: (workspaceId: string) => string[];
-  embeddings?: EmbeddingsPort;
-  embeddingsDeps?: StudioEmbeddingsDeps;
-  events?: KnowledgeIndexEventsPort;
-};
-type WorkspaceJob = {
-  cancel: boolean;
-  chain: Promise<void>;
-  pendingUris: string[];
-  busy: boolean;
-  currentUri: string | null;
-  controller?: AbortController;
-};
+import { runFullReindex } from './knowledge-indexer-full.ts';
+import {
+  isAbortError,
+  type KnowledgeIndexerHost,
+  type KnowledgeIndexerOptions,
+  type WorkspaceJob,
+} from './knowledge-indexer-shared.ts';
+import { drainIncremental } from './knowledge-indexer-watch.ts';
+import { filterEnqueueUris } from './knowledge-indexer-uri.ts';
+
+export type { KnowledgeIndexerOptions } from './knowledge-indexer-shared.ts';
+
 export class KnowledgeIndexer {
   private readonly jobs = new Map<string, WorkspaceJob>();
   private embeddings: EmbeddingsPort | undefined;
@@ -96,7 +86,7 @@ export class KnowledgeIndexer {
   }
   startFullReindex(workspaceId: string): Promise<void> {
     trace('knowledge-indexer', 'startFullReindex requested', { workspaceId });
-    void this.enqueue(workspaceId, () => this.runFullReindex(workspaceId)).catch((err) => {
+    void this.enqueue(workspaceId, () => runFullReindex(this.host, workspaceId)).catch((err) => {
       trace('knowledge-indexer', 'reindex enqueue error (swallowed)', {
         workspaceId,
         error: err instanceof Error ? err.message : String(err),
@@ -105,7 +95,7 @@ export class KnowledgeIndexer {
     return Promise.resolve();
   }
   reindexAndWait(workspaceId: string): Promise<void> {
-    return this.enqueue(workspaceId, () => this.runFullReindex(workspaceId));
+    return this.enqueue(workspaceId, () => runFullReindex(this.host, workspaceId));
   }
   enqueuePaths(workspaceId: string, uris: string[]): void {
     if (uris.length === 0) {
@@ -145,7 +135,7 @@ export class KnowledgeIndexer {
       pendingTotal: job.pendingUris.length,
       busy: job.busy,
     });
-    void this.enqueue(workspaceId, () => this.drainIncremental(workspaceId));
+    void this.enqueue(workspaceId, () => drainIncremental(this.host, workspaceId));
   }
   private ensureJob(workspaceId: string): WorkspaceJob {
     let job = this.jobs.get(workspaceId);
@@ -175,7 +165,7 @@ export class KnowledgeIndexer {
             workspaceId,
             pending: job.pendingUris.length,
           });
-          await this.drainIncremental(workspaceId, job.controller.signal);
+          await drainIncremental(this.host, workspaceId, job.controller.signal);
         }
       } finally {
         job.busy = false;
@@ -189,325 +179,15 @@ export class KnowledgeIndexer {
     );
     return run;
   }
-  private async runFullReindex(workspaceId: string): Promise<void> {
-    const workspacePath = this.options.resolveWorkspacePath(workspaceId);
-    if (!workspacePath) {
-      throw new NotFoundError('workspace not found');
-    }
-    const settings = this.repo.getSettingsOrDefault(workspaceId);
-    const wantVector = settings.backend === 'vector';
-    const embeddings = this.resolveEmbeddings(workspaceId, settings);
-    if (wantVector && !embeddings?.available()) {
-      const message =
-        'knowledge vector backend needs an embeddings model; use backend "fts" or configure embed model';
-      this.upsertState(workspaceId, {
-        status: 'error',
-        phase: null,
-        lastError: message,
-        finishedAt: new Date().toISOString(),
-      });
-      throw new ValidationError(message);
-    }
-    const startedAt = new Date().toISOString();
-    this.upsertState(workspaceId, {
-      status: 'running',
-      phase: 'scan',
-      processed: 0,
-      total: 0,
-      lastError: null,
-      startedAt,
-      finishedAt: null,
-    });
-    const job = this.ensureJob(workspaceId);
-    const signal = job.controller?.signal;
-    trace('knowledge-indexer', 'runFullReindex start', {
-      workspaceId,
-      backend: settings.backend,
-      embedProvider: settings.embedProvider,
-      embedModel: settings.embedModel,
-      entireWorkspace: settings.entireWorkspace,
-      wantVector,
-      embeddingsAvailable: embeddings?.available() ?? false,
-    });
-    try {
-      const roots = settings.entireWorkspace ? ['.'] : this.options.listEnabledRoots(workspaceId);
-      if (!settings.entireWorkspace && roots.length === 0) {
-        this.upsertState(workspaceId, {
-          status: 'idle',
-          phase: null,
-          processed: 0,
-          total: 0,
-          lastError: null,
-          finishedAt: new Date().toISOString(),
-        });
-        return;
-      }
-      const seen = new Set<string>();
-      const indexable: Array<
-        Extract<
-          KnowledgePath,
-          {
-            kind: 'index';
-          }
-        >
-      > = [];
-      const indexModeKey = knowledgeIndexModeKey(settings);
-      for (const root of roots) {
-        if (job.cancel) {
-          trace('knowledge-indexer', 'scan cancelled', { workspaceId, root });
-          break;
-        }
-        const t0 = Date.now();
-        const entries = await collectKnowledgePaths(workspacePath, root);
-        const now = new Date().toISOString();
-        let scannedIndex = 0;
-        let scannedSkip = 0;
-        for (const entry of entries) {
-          seen.add(entry.uri);
-          upsertWalkEntry(this.repo, workspaceId, entry, now);
-          if (entry.kind === 'index') {
-            indexable.push(entry);
-            scannedIndex += 1;
-          } else {
-            scannedSkip += 1;
-          }
-        }
-        trace('knowledge-indexer', 'scan root done', {
-          workspaceId,
-          root,
-          entries: entries.length,
-          indexable: scannedIndex,
-          skipped: scannedSkip,
-          elapsedMs: Date.now() - t0,
-        });
-      }
-      trace('knowledge-indexer', 'scan phase done', {
-        workspaceId,
-        totalFiles: indexable.length,
-        skippedParents: seen.size - indexable.length,
-      });
-      this.upsertState(workspaceId, { phase: 'index', total: indexable.length, processed: 0 });
-      trace('knowledge-indexer', 'index phase start', {
-        workspaceId,
-        total: indexable.length,
-      });
-      for (let idx = 0; idx < indexable.length; idx += 1) {
-        const entry = indexable[idx];
-        if (!entry) {
-          continue;
-        }
-        if (job.cancel || signal?.aborted) {
-          trace('knowledge-indexer', 'index loop aborted', {
-            workspaceId,
-            processed: idx,
-          });
-          break;
-        }
-        job.currentUri = entry.uri;
-        this.emitState(workspaceId);
-        const fileStart = Date.now();
-        trace('knowledge-indexer', 'index file start', {
-          workspaceId,
-          uri: entry.uri,
-          sizeBytes: entry.sizeBytes,
-          index: `${idx + 1}/${indexable.length}`,
-        });
-        let result: string;
-        try {
-          result = await indexKnowledgeFile({
-            repo: this.repo,
-            workspaceId,
-            entry,
-            wantVector,
-            embeddings,
-            updatedAt: new Date().toISOString(),
-            indexModeKey,
-            signal,
-          });
-        } catch (err) {
-          if (isAbortError(err)) {
-            trace('knowledge-indexer', 'index file aborted', {
-              workspaceId,
-              uri: entry.uri,
-              elapsedMs: Date.now() - fileStart,
-            });
-            break;
-          }
-          throw err;
-        }
-        const elapsed = Date.now() - fileStart;
-        trace('knowledge-indexer', 'index file done', {
-          workspaceId,
-          uri: entry.uri,
-          result,
-          elapsedMs: elapsed,
-          slow:
-            elapsed > KNOWLEDGE_INDEX_SLOW_FILE_MS
-              ? 'SLOW (>5s) - check Ollama keep_alive / model load'
-              : false,
-        });
-        job.currentUri = null;
-        this.bumpProcessed(workspaceId);
-      }
-      if (!job.cancel && !signal?.aborted) {
-        this.repo.deleteMissingFiles(workspaceId, seen);
-        this.repo.deleteOrphanChunks(workspaceId, seen);
-      }
-      const cur = this.repo.getState(workspaceId);
-      if (cur.status === 'running' || job.cancel || signal?.aborted) {
-        this.upsertState(workspaceId, {
-          status: 'idle',
-          phase: null,
-          lastError: job.cancel || signal?.aborted ? 'cancelled' : null,
-          finishedAt: new Date().toISOString(),
-        });
-      }
-    } catch (err) {
-      if (isAbortError(err)) {
-        trace('knowledge-indexer', 'runFullReindex aborted', { workspaceId });
-        this.upsertState(workspaceId, {
-          status: 'idle',
-          phase: null,
-          lastError: 'cancelled',
-          finishedAt: new Date().toISOString(),
-        });
-        return;
-      }
-      const message = err instanceof Error ? err.message : String(err);
-      trace('knowledge-indexer', 'runFullReindex error', {
-        workspaceId,
-        error: message.slice(0, 500),
-      });
-      this.upsertState(workspaceId, {
-        status: 'error',
-        phase: null,
-        lastError: message.slice(0, 500),
-        finishedAt: new Date().toISOString(),
-      });
-      throw err;
-    } finally {
-      job.currentUri = null;
-    }
+  private get host(): KnowledgeIndexerHost {
+    return {
+      repo: this.repo,
+      options: this.options,
+      resolveEmbeddings: (workspaceId, settings) => this.resolveEmbeddings(workspaceId, settings),
+      ensureJob: (workspaceId) => this.ensureJob(workspaceId),
+      upsertState: (workspaceId, patch) => this.upsertState(workspaceId, patch),
+      emitState: (workspaceId) => this.emitState(workspaceId),
+      bumpProcessed: (workspaceId) => this.bumpProcessed(workspaceId),
+    };
   }
-  private async drainIncremental(workspaceId: string, signal?: AbortSignal): Promise<void> {
-    const job = this.ensureJob(workspaceId);
-    const workspacePath = this.options.resolveWorkspacePath(workspaceId);
-    if (!workspacePath) {
-      job.pendingUris.length = 0;
-      return;
-    }
-    const settings = this.repo.getSettingsOrDefault(workspaceId);
-    const wantVector = settings.backend === 'vector';
-    const embeddings = this.resolveEmbeddings(workspaceId, settings);
-    if (wantVector && !embeddings?.available()) {
-      trace('knowledge-indexer', 'skip incremental: embeddings unavailable', { workspaceId });
-      job.pendingUris.length = 0;
-      return;
-    }
-    const roots = settings.entireWorkspace ? null : this.options.listEnabledRoots(workspaceId);
-    const indexModeKey = knowledgeIndexModeKey(settings);
-    const cur = this.repo.getState(workspaceId);
-    if (cur.status !== 'running') {
-      const byStatus = this.repo.countFilesByStatus(workspaceId);
-      const actualCurrentTotal = byStatus.indexed + byStatus.pending;
-      let newTotal = actualCurrentTotal;
-      const pendingSnapshot = [...job.pendingUris];
-      for (const uri of pendingSnapshot) {
-        const inDb = !!this.repo.getFile(workspaceId, uri);
-        if (!inDb) {
-          newTotal += 1;
-        }
-      }
-      const startProcessed = Math.max(0, newTotal - pendingSnapshot.length);
-      this.upsertState(workspaceId, {
-        status: 'running',
-        phase: 'watch',
-        total: newTotal,
-        processed: startProcessed,
-        lastError: null,
-        startedAt: new Date().toISOString(),
-        finishedAt: null,
-      });
-      trace('knowledge-indexer', 'drainIncremental start (visible)', {
-        workspaceId,
-        pending: pendingSnapshot.length,
-        actualCurrentTotal,
-        newTotal,
-        startProcessed,
-        backend: settings.backend,
-      });
-    } else {
-      this.upsertState(workspaceId, {
-        total: cur.total + job.pendingUris.length,
-      });
-    }
-    let processedInBatch = 0;
-    while (job.pendingUris.length > 0 && !job.cancel && !signal?.aborted) {
-      const uri = job.pendingUris.shift();
-      if (!uri) {
-        continue;
-      }
-      if (roots && !uriUnderEnabledRoots(uri, roots)) {
-        trace('knowledge-indexer', 'skip uri outside roots', { workspaceId, uri });
-        continue;
-      }
-      job.currentUri = uri;
-      this.emitState(workspaceId);
-      trace('knowledge-indexer', 'incremental file start', { workspaceId, uri });
-      const t0 = Date.now();
-      try {
-        await indexOneUri({
-          repo: this.repo,
-          workspaceId,
-          workspacePath,
-          uri,
-          wantVector,
-          embeddings,
-          indexModeKey,
-          signal,
-        });
-      } catch (err) {
-        if (isAbortError(err)) {
-          trace('knowledge-indexer', 'incremental aborted', { workspaceId, uri });
-          break;
-        }
-        throw err;
-      }
-      trace('knowledge-indexer', 'incremental file done', {
-        workspaceId,
-        uri,
-        elapsedMs: Date.now() - t0,
-      });
-      job.currentUri = null;
-      this.bumpProcessed(workspaceId);
-      processedInBatch += 1;
-    }
-    const after = this.repo.getState(workspaceId);
-    if (after.status === 'running' && after.phase === 'watch' && job.pendingUris.length === 0) {
-      if (!job.cancel && !signal?.aborted) {
-        const byStatus = this.repo.countFilesByStatus(workspaceId);
-        const actualTotal = byStatus.indexed + byStatus.pending;
-        this.upsertState(workspaceId, {
-          status: 'idle',
-          phase: null,
-          total: actualTotal,
-          processed: actualTotal,
-          lastError: null,
-          finishedAt: new Date().toISOString(),
-        });
-        trace('knowledge-indexer', 'drainIncremental idle', {
-          workspaceId,
-          processedInBatch,
-          actualTotal,
-        });
-      }
-    }
-    job.currentUri = null;
-  }
-}
-function isAbortError(err: unknown): boolean {
-  return (
-    (err instanceof DOMException && err.name === 'AbortError') ||
-    (err instanceof Error && err.name === 'AbortError')
-  );
 }

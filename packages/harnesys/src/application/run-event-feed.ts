@@ -1,4 +1,4 @@
-import type { RunEventBus } from '../adapters/in-memory-run-store.ts';
+import type { RunEventBus } from '../adapters/run-event-bus.ts';
 import { IDLE_BACKSTOP_MS } from '../constants.ts';
 import type { RunEventStore } from '../ports/run-event-store.ts';
 import type { RunLifecycleStore } from '../ports/run-lifecycle-store.ts';

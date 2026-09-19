@@ -3,6 +3,10 @@
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+  if (window.lucide && typeof window.lucide.createIcons === "function") {
+    window.lucide.createIcons();
+  }
+
   document.querySelectorAll("[data-copy]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var text = btn.getAttribute("data-copy");

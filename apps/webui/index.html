@@ -5,6 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Harnesys</title>
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Harnesys" />
+    <link rel="manifest" href="/site.webmanifest" />
     <style>
       #app-splash {
         position: fixed;
@@ -51,10 +57,10 @@
         animation: app-logo-pulse 4.5s ease-in-out infinite;
       }
       html.dark #app-splash svg {
-        filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.5));
+        filter: drop-shadow(0 26px 56px rgba(0, 0, 0, 0.75));
       }
       html:not(.dark) #app-splash svg {
-        filter: drop-shadow(0 18px 40px rgba(15, 17, 20, 0.16));
+        filter: drop-shadow(0 26px 56px rgba(15, 17, 20, 0.32));
       }
       @keyframes app-logo-aura {
         0%,
@@ -172,7 +178,7 @@
   </head>
   <body>
     <div id="app-splash" aria-hidden="true">
-      <svg viewBox="0 0 1024 1024" fill="none" width="120" height="120">
+      <svg viewBox="0 0 1024 1024" fill="none" width="140" height="140">
         <defs>
           <linearGradient id="splash-body" x1="512" y1="152" x2="512" y2="872" gradientUnits="userSpaceOnUse">
             <stop offset="0" stop-color="#2e3947"/>

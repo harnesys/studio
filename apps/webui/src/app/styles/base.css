@@ -177,7 +177,7 @@
 /* Логотип в футере сайдбара: буква как бы впечатана в поверхность. */
 .wordmark-press {
   color: rgb(72 77 84 / 0.71);
-    font-size: 15px;
+  font-size: 15px;
 }
 html:not(.dark) .wordmark-press {
   color: rgba(0, 0, 0, 0.35);

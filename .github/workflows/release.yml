@@ -106,6 +106,7 @@ jobs:
       - name: Flatten desktop bundle names
         working-directory: dist
         run: |
+          find . -mindepth 2 -type f \( -name '*.dmg' -o -name '*-setup.exe' -o -name '*.AppImage' -o -name '*.deb' \) -exec mv -f {} . \;
           shopt -s nullglob
           for f in *_aarch64.dmg; do mv -f "$f" Harnesys_aarch64.dmg; done
           for f in *_x64.dmg; do mv -f "$f" Harnesys_x64.dmg; done

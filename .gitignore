@@ -41,3 +41,5 @@ ref/
 temp/
 .agents/shots/.smoke
 .smoke/
+.agents
+docs/

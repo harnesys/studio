@@ -1,6 +1,6 @@
 # create-workspace
 
-Workspace details dialog: host → name → folder, одна форма на create и edit. Связка нового хоста — стаб (`harnesys host pair` приходит с remote-host v1).
+Workspace details dialog: host → name → folder, одна форма на create и edit. Связка нового хоста — реальный redeem `POST /api/host/pair/redeem` в `hosts.store.ts` (Phase 6). CLI `harnesys host pair` — Phase 7.
 
 **API:** `openCreateWorkspaceDialog`, `openEditWorkspaceDialog`, `confirmDeleteWorkspace`, `WorkspaceDetailsDialog`, `WorkspaceFields`, `HostPairFields`.
 

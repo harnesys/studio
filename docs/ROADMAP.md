@@ -34,7 +34,7 @@ Studio в репозитории — этот стол. `packages/harnesys` — 
 | хост | runtime, persist, cron, вебхуки, MCP, HITL-gate. Живёт в фоне. Старт с логином ОС. |
 | окно | стол: чат, файлы, инспектор, inbox подтверждений, расход. Можно закрыть. |
 
-Факт: `apps/studio/dev.ts` поднимает Vite (окно, `:5173`) и `bun --watch server/src/index.ts` (host, `:3000`). Host отдаёт API+WS, не `client/dist`. Persist нод — N× `workspace.db` на host; окно без sqlite. Auth: `host.token` / `window.hosts[0].credential`, клиент шлёт Bearer после loopback `GET /api/window/bootstrap`. Фона, tray, автозапуска ОС, туннеля, pairing remote нет.
+Факт: `apps/studio/dev.ts` поднимает Vite (окно, `:5173`) и `bun --watch server/src/index.ts` (host, `:3000`). Host отдаёт API+WS, не `client/dist`. Persist нод — N× `workspace.db` на host; окно без sqlite. Auth: `host.token` / `window.hosts[0].credential`, клиент шлёт Bearer после loopback `GET /api/window/bootstrap`. Pairing remote есть с 2026-09-17: `POST /api/host/pair/start|redeem`, `window.hosts`, роутинг окна на host-владельца, per-host SSE, `host.publicOrigin` в webhook URL. Фона, tray, автозапуска ОС, туннеля нет.
 
 Иконка в tray показывает `running` и `awaiting_confirm` по всем тредам. Закрытое окно хост не останавливает. После сна хост поднимает paused HITL, очередь cron догоняет. Тот же бинарь работает на VPS. С ноутбука и телефона открывается UI по HTTPS. Вебхуки смотрят в интернет. HITL приходит в Telegram или системный пуш.
 

@@ -53,14 +53,14 @@ function targetPlatform(rustTarget: string | undefined): TargetPlatform {
     return 'linux';
 }
 
-function bundlesFor(platform: TargetPlatform): string {
+function bundlesFor(platform: TargetPlatform): string[] {
     if (platform === 'darwin') {
-        return 'dmg';
+        return ['dmg'];
     }
     if (platform === 'windows') {
-        return 'nsis';
+        return ['nsis'];
     }
-    return 'appimage deb';
+    return ['appimage', 'deb'];
 }
 
 function main(): void {
@@ -74,7 +74,7 @@ function main(): void {
         process.exit(1);
     }
     prepareHostBinary({ rustTarget: target });
-    const cliArgs = ['tauri', 'build', '--bundles', bundlesFor(targetPlatform(target))];
+    const cliArgs = ['tauri', 'build', '--bundles', ...bundlesFor(targetPlatform(target))];
     if (target) {
         cliArgs.push('--target', target);
     }

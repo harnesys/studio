@@ -4,135 +4,222 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Harnesys — an agent desk on your machine</title>
-  <meta name="description" content="Self-hosted agents bound to real folders: chat, cron and webhooks wake them; files, shell, memory and a built-in IDE keep them useful. BYOK across 20 providers. State stays in your workspace.">
+  <meta name="description" content="Self-hosted agents bound to real folders: chat, cron and webhooks wake them; files, shell, memory and a built-in IDE keep them useful. BYOK across 20 providers. Install in two pastes.">
   <meta property="og:title" content="Harnesys — an agent desk on your machine">
   <meta property="og:description" content="Self-hosted agents bound to real folders. Chat, cron, webhooks, built-in IDE, BYOK across 20 providers.">
   <meta property="og:image" content="https://harnesys.github.io/studio/assets/hero.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="nav">
-    <div class="shell nav-row">
-      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Harnesys</a>
-      <nav class="nav-links" aria-label="Sections">
-        <a href="#how">How it works</a>
-        <a href="#capabilities">Capabilities</a>
-        <a href="#install">Install</a>
-        <a href="#releases">Releases</a>
-      </nav>
-      <a class="gh" href="https://github.com/harnesys/studio">GitHub</a>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <aside class="rail">
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Harnesys</a>
+    <nav class="rail-nav" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#inside">What's inside</a>
+      <a href="#install">Install</a>
+      <a href="#releases">Releases</a>
+    </nav>
+    <div class="rail-foot">
+      <a class="rail-gh" href="https://github.com/harnesys/studio">GitHub</a>
+      <span class="rail-note">Self-hosted<br>macOS, Linux, Windows</span>
     </div>
+  </aside>
+
+  <header class="topbar">
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Harnesys</a>
+    <a class="topbar-gh" href="https://github.com/harnesys/studio">GitHub</a>
   </header>
 
-  <main id="top">
-    <section class="hero shell">
-      <h1>A desk for agents that work in your folders.</h1>
-      <p class="lede">Chat, cron and webhooks wake them. Files, shell, memory and a built-in IDE keep them useful. Everything runs on your machine and state stays in your workspace.</p>
+  <main id="main">
+    <section class="hero" id="top">
+      <p class="state-line" aria-hidden="true"><span class="state-dot"></span>READY<i class="state-rule"></i><span class="state-end">HARNESYS DESK</span></p>
+      <h1>Give your agents a&nbsp;desk.</h1>
+      <p class="lede">Harnesys runs AI agents in real folders on your machine. Chat wakes them, schedules and webhooks put them to work, and a built-in IDE keeps their tools close. Agents, threads and memory stay on your disk.</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="#install">Install</a>
         <a class="btn btn-ghost" href="https://github.com/harnesys/studio">GitHub</a>
       </div>
       <ul class="facts">
         <li>Self-hosted</li>
-        <li>Bring your own models, 20 drivers</li>
-        <li>SQLite in your workspace folder</li>
+        <li>Bring your own keys — 20 providers</li>
         <li>macOS, Linux, Windows</li>
+        <li>State on your disk</li>
       </ul>
+      <figure class="shot">
+        <img src="assets/hero.png" width="1600" height="900" alt="Harnesys desk: workspace sidebar on the left, a thread with the agent Janny in the center, the Inspector panel with model, instructions and skills on the right." fetchpriority="high">
+        <figcaption>The desk. Workspaces and agents on the left, a thread in the middle, model, instructions and skills on the right.</figcaption>
+      </figure>
     </section>
 
-    <figure class="shell shot reveal">
-      <div class="frame">
-        <img src="assets/hero.png" width="1600" height="900" alt="Harnesys desk: workspace sidebar on the left, a thread with the agent Janny in the center, the Inspector panel with model, instructions and skills on the right." fetchpriority="high">
-      </div>
-      <figcaption>The desk. Workspaces on the left, a thread in the middle, the Inspector — model, instructions, skills — on the right.</figcaption>
-    </figure>
-
-    <section id="how" class="shell section">
-      <h2><span class="live-dot" aria-hidden="true"></span>How it works</h2>
-      <ol class="steps">
+    <section id="how" class="section">
+      <h2>How it works</h2>
+      <ol class="runs">
         <li>
-          <h3>Create a workspace</h3>
-          <p>A workspace is a folder on your machine or VPS with its own SQLite database. Agents, threads, schedules, memory and settings all live inside it — move the folder, move the whole desk.</p>
+          <span class="run-mark" aria-hidden="true">RUN 01</span>
+          <div class="run-body">
+            <h3>Create a workspace</h3>
+            <p>Point Harnesys at a folder — it becomes a workspace with its own agents, threads and automations. Settings and memory stay with it, not with some account.</p>
+          </div>
         </li>
         <li>
-          <h3>Create an agent</h3>
-          <p>Pick a model, give it a job and instructions, choose what it may touch: files, shell, web search, memory, LSP. Start from presets — assistant, coder, researcher, orchestrator — or write your own.</p>
+          <span class="run-mark" aria-hidden="true">RUN 02</span>
+          <div class="run-body">
+            <h3>Pick or draw an agent</h3>
+            <p>Start from ten presets: assistant, coder, researcher, orchestrator and six more. Or compose your own on a visual graph — model calls, tools, forks, waits — with budgets on steps, tokens and wall-clock time.</p>
+          </div>
         </li>
         <li>
-          <h3>Put it to work</h3>
-          <p>Talk in a thread. Or let cron and inbound webhooks fire runs on their own. Long tasks show a live plan; anything irreversible waits for your answer in the Inbox.</p>
+          <span class="run-mark" aria-hidden="true">RUN 03</span>
+          <div class="run-body">
+            <h3>Put it to work</h3>
+            <p>Talk in a thread, or let cron and inbound webhooks fire runs on their own. Long jobs show a live plan; anything irreversible stops and asks — answers land in the Inbox, and a run can wait up to seven days.</p>
+          </div>
         </li>
       </ol>
     </section>
 
-    <section id="capabilities" class="shell section">
-      <h2><span class="live-dot" aria-hidden="true"></span>What is in the desk</h2>
-      <div class="index">
-        <div class="row">
+    <section id="inside" class="section">
+      <h2>What's inside</h2>
+      <div class="ledger">
+        <section class="row">
           <h3>Agents and teams</h3>
-          <p>Agents spawn subagents and hand work to each other. Children are sandboxed: they cannot ask you questions or change shared state, so a fan-out of thirty stays quiet and reviewable.</p>
-        </div>
-        <div class="row">
-          <h3>Real tools</h3>
-          <p>Read and edit files, run shell commands with timeouts and allow-lists, search the web, call HTTP endpoints, query language servers for diagnostics and definitions. Every tool call is visible in the transcript.</p>
-        </div>
-        <div class="row">
-          <h3>Automations</h3>
-          <p>Schedules are cron entries that fire a run into a thread; webhooks are URLs that wake an agent from the outside. Both get their own surface with the run journal underneath.</p>
-        </div>
-        <figure class="shell shot row-shot reveal">
-          <div class="frame">
-            <img src="assets/automations.png" width="1600" height="900" loading="lazy" alt="Automation surface: a daily news schedule with cron 0 9 * * *, its target agent and the run journal below.">
+          <p>Agents spawn sandboxed subagents, hand threads to each other and fan work out to 32 parallel workers. Children inherit the strictest of their parent's permissions, so a wide fan-out stays quiet and reviewable.</p>
+        </section>
+        <section class="row">
+          <h3>Real tools, fenced</h3>
+          <p>File read and edit, shell with allow-lists and timeouts, HTTP, web search, language-server diagnostics, plans, memory. Every call shows in the transcript; <code>.env</code>, <code>.ssh</code> and key files are off-limits by default.</p>
+        </section>
+        <section class="row">
+          <h3>You stay in charge</h3>
+          <p>Permissions are per operation — <code>fs.read</code>, <code>fs.write</code>, <code>process</code>, <code>network</code>, <code>mcp</code>, <code>agents</code> — each set to allow, ask or deny. Five preset modes from ask to bypass. Irreversible steps wait for your answer.</p>
+          <div class="vignette" role="img" aria-label="A permission card asks whether to allow the shell command rm -rf dist and bun run build, with buttons: Allow once, Always for this workspace, Deny.">
+            <p class="vg-kind">Permission ask<span class="vg-tool">shell</span></p>
+            <pre class="vg-code">rm -rf dist &amp;&amp; bun run build</pre>
+            <p class="vg-actions"><span>Allow once</span><span>Always for this workspace</span><span class="vg-deny">Deny</span></p>
           </div>
+        </section>
+        <section class="row">
+          <h3>Automations</h3>
+          <p>Schedules are cron entries that fire a run into a thread; webhooks are URLs that wake an agent from the outside. Both get a run journal, pause and resume — and the agent can set them up itself.</p>
+        </section>
+        <figure class="row-shot">
+          <img src="assets/automations.png" width="1600" height="900" loading="lazy" alt="Automation surface: a daily news schedule with cron 0 9 * * *, its target agent and the run journal below.">
           <figcaption>A daily news schedule, cron <code>0 9 * * *</code>, targeting an agent, with the run journal underneath.</figcaption>
         </figure>
-        <div class="row">
-          <h3>You stay in charge</h3>
-          <p>Agents ask before they act. Questions land in the Inbox across all workspaces, waits can park a run for up to seven days, and budgets cap steps, tokens and wall-clock time per run.</p>
-        </div>
-        <div class="row">
-          <h3>Memory and knowledge</h3>
-          <p>Pinned rules stay always visible, semantic facts carry between threads, past runs stay searchable, and indexed document folders answer questions with citations. The Memory tab is editable by you.</p>
-        </div>
-        <div class="row">
-          <h3>Built-in IDE</h3>
-          <p>A file explorer with drag and drop, a Monaco editor, git branches and commits, PTY terminals and live LSP diagnostics — next to the chat, in the same window.</p>
-        </div>
-        <figure class="shell shot row-shot reveal">
-          <div class="frame">
-            <img src="assets/editor.png" width="1600" height="900" loading="lazy" alt="The built-in editor with a TypeScript file open and an LSP typescript status in the bottom bar.">
-          </div>
+        <section class="row">
+          <h3>Memory that carries</h3>
+          <p>Pin up to 32 standing rules, keep semantic facts between threads, search every past thread, and index document folders for answers with citations — hybrid full-text and vector search.</p>
+        </section>
+        <section class="row">
+          <h3>A real IDE inside</h3>
+          <p>File explorer with git status, Monaco editor, diffs, branches and commits, PTY terminals with scrollback, live LSP diagnostics — all next to the chat, no second app.</p>
+        </section>
+        <figure class="row-shot">
+          <img src="assets/editor.png" width="1600" height="900" loading="lazy" alt="The built-in editor with a TypeScript file open and an LSP typescript status in the bottom bar.">
           <figcaption>The editor: Monaco with LSP status in the bottom bar, git and terminals in the same window.</figcaption>
         </figure>
-        <div class="row">
-          <h3>Any model</h3>
-          <p>Bring keys for OpenAI, Anthropic, Google Gemini, OpenRouter, Groq, Mistral, xAI, Together, Kimi, Z.ai, Ollama, NVIDIA, Cerebras, MiniMax, Qwen, Moonshot and more — twenty drivers with remote model discovery. Reasoning effort, sampling and pricing are per model.</p>
-        </div>
-        <div class="row">
+        <section class="row">
+          <h3>Any model, your keys</h3>
+          <p>Twenty drivers: OpenAI, Anthropic, Google, OpenRouter, Groq, Mistral, xAI, Ollama and more. Model discovery pulls pricing and capabilities; keys sit in the macOS Keychain and never reach the client.</p>
+        </section>
+        <section class="row">
           <h3>Spend you can see</h3>
-          <p>A context bar shows what is used and what is left; every turn reports tokens and cache; the composer rolls up cost per run and per thread. Long threads compact with <code>/compact</code>.</p>
-        </div>
+          <p>A context ring shows the window filling; every turn reports tokens, cache and cost in dollars. Long threads compact with <code>/compact</code>.</p>
+          <p class="stats" role="img" aria-label="Turn statistics: 1,204 tokens in, 8,412 tokens out, 92 percent cache hits, cost 0.0041 dollars, 12.4 seconds.">
+            <span>↑ 1,204 tok</span><span>↓ 8,412 tok</span><span>cache 92%</span><span>$0.0041</span><span>12.4s</span>
+          </p>
+        </section>
+        <section class="row">
+          <h3>Plugins, skills, MCP</h3>
+          <p>Install Claude Code plugins and Agent Plugins 1.0 from marketplaces, git or npm. Skills appear in a catalog; MCP servers plug in through a Cursor-compatible <code>.mcp.json</code>; 37 hook events wire them together.</p>
+        </section>
+        <section class="row">
+          <h3>Many desks, one window</h3>
+          <p>Several workspaces and several hosts side by side. Pair a second machine with a code and keep both desks in one browser window.</p>
+        </section>
       </div>
     </section>
 
-    <section id="install" class="shell section">
-      <h2><span class="live-dot" aria-hidden="true"></span>Install</h2>
-      <p class="section-lede">Three processes make a desk: <code>harnesys-host</code> runs workspaces, <code>harnesys-web</code> is a token-gated proxy for remote access, and <code>harnesys</code> supervises both.</p>
-      <div class="tabs" role="tablist" aria-label="Install methods">
-        <button role="tab" id="tab-cli" aria-selected="true" aria-controls="panel-cli">CLI</button>
-        <button role="tab" id="tab-docker" aria-selected="false" aria-controls="panel-docker">Docker</button>
-        <button role="tab" id="tab-desktop" aria-selected="false" aria-controls="panel-desktop">Desktop</button>
-      </div>
-      <div class="tabpanels">
-        <div role="tabpanel" id="panel-cli" aria-labelledby="tab-cli">
-          <p>Installs the host, the web gate and the CLI into <code>~/.local/bin</code>.</p>
-          <div class="codeblock"><span class="code-name">shell</span><button class="copy-btn" type="button" data-copy="curl -fsSL https://github.com/harnesys/studio/releases/latest/download/install.sh | sh">Copy</button><pre><code>curl -fsSL https://github.com/harnesys/studio/releases/latest/download/install.sh | sh</code></pre></div>
-          <div class="codeblock"><span class="code-name">shell</span><button class="copy-btn" type="button" data-copy="harnesys up --with-ui">Copy</button><pre><code>harnesys up --with-ui</code></pre></div>
-          <p class="note">Then open the desk, add a workspace and create your first agent. <code>harnesys up --install-systemd</code> keeps it running on a server; <code>harnesys update</code> moves you to the next release.</p>
-        </div>
-        <div role="tabpanel" id="panel-docker" aria-labelledby="tab-docker" hidden>
-          <p>Images at <code>ghcr.io/harnesys/host</code> and <code>ghcr.io/harnesys/web</code>; a shared volume carries the host token so the gate pairs itself.</p>
-          <div class="codeblock"><span class="code-name">docker-compose.yml</span><button class="copy-btn" type="button" data-copy="services:
+    <section id="install" class="section">
+      <h2>Install</h2>
+      <p class="section-lede">Three tracks, same destination. Pick the one that matches how you work today — switching later costs nothing. In a hurry: <a href="#track-first">First desk</a>, <a href="#track-power">Power user</a>, <a href="#track-server">Server</a>.</p>
+
+      <article class="track" id="track-first">
+        <header class="track-head">
+          <span class="track-mark" aria-hidden="true">A</span>
+          <div>
+            <h3>First desk</h3>
+            <p>You have used a browser. The terminal only needs two pastes.</p>
+          </div>
+        </header>
+        <ol class="track-steps">
+          <li>
+            <p>Install the binaries.</p>
+            <div class="codeblock"><span class="code-name">shell</span><button class="copy-btn" type="button" data-copy="curl -fsSL https://github.com/harnesys/studio/releases/latest/download/install.sh | sh">Copy</button><pre><code>curl -fsSL https://github.com/harnesys/studio/releases/latest/download/install.sh | sh</code></pre></div>
+            <p class="see">You should see: <code>harnesys</code>, <code>harnesys-host</code> and <code>harnesys-web</code> land in <code>~/.local/bin</code>.</p>
+          </li>
+          <li>
+            <p>Start the desk.</p>
+            <div class="codeblock"><span class="code-name">shell</span><button class="copy-btn" type="button" data-copy="harnesys up --with-ui">Copy</button><pre><code>harnesys up --with-ui</code></pre></div>
+            <p class="see">You should see: a ready line and the address <code>http://localhost:3000</code>.</p>
+          </li>
+          <li>
+            <p>Open that address, add a workspace (any folder will do), and paste an API key from OpenAI, Anthropic or OpenRouter.</p>
+            <p class="see">You should see: the assistant preset answer in a new thread.</p>
+          </li>
+        </ol>
+        <p class="track-note">To stop: <code>harnesys down</code>. To check on it later: <code>harnesys status</code>.</p>
+      </article>
+
+      <article class="track" id="track-power">
+        <header class="track-head">
+          <span class="track-mark" aria-hidden="true">B</span>
+          <div>
+            <h3>Power user</h3>
+            <p>You live in a terminal and want the whole desk: IDE, git, skills, MCP.</p>
+          </div>
+        </header>
+        <ol class="track-steps">
+          <li>
+            <p>Install and start as in track A, then keep an eye on the log.</p>
+            <div class="codeblock"><span class="code-name">shell</span><button class="copy-btn" type="button" data-copy="harnesys logs -f">Copy</button><pre><code>harnesys logs -f</code></pre></div>
+          </li>
+          <li>
+            <p>Open the workspace in the IDE: explorer with git status, Monaco editor, diffs, branches and PTY terminals — no second app needed.</p>
+          </li>
+          <li>
+            <p>Teach your agents: create skills from the UI, install plugins from marketplaces (Claude Code format works as-is), attach MCP servers through a Cursor-compatible <code>.mcp.json</code>.</p>
+          </li>
+          <li>
+            <p>Automate: add cron schedules and webhooks yourself, or let the agent do it — the <code>scheduler</code> and <code>webhook</code> tool packs are first-class.</p>
+          </li>
+          <li>
+            <p>Watch spend per turn, compact long threads with <code>/compact</code>, fork a thread when an experiment goes well.</p>
+          </li>
+        </ol>
+      </article>
+
+      <article class="track" id="track-server">
+        <header class="track-head">
+          <span class="track-mark" aria-hidden="true">C</span>
+          <div>
+            <h3>Server</h3>
+            <p>You run services on a VPS and reach them from anywhere.</p>
+          </div>
+        </header>
+        <ol class="track-steps">
+          <li>
+            <p>One flag keeps it running across reboots — it writes <code>harnesys-host.service</code> and <code>harnesys-web.service</code> as user units.</p>
+            <div class="codeblock"><span class="code-name">shell</span><button class="copy-btn" type="button" data-copy="harnesys up --install-systemd">Copy</button><pre><code>harnesys up --install-systemd</code></pre></div>
+          </li>
+          <li>
+            <p>Or Docker: the host and web images share a data volume and pair themselves.</p>
+            <div class="codeblock"><span class="code-name">docker-compose.yml</span><button class="copy-btn" type="button" data-copy="services:
   host:
     image: ghcr.io/harnesys/host
     ports: ['3000:3000']
@@ -153,40 +240,43 @@ volumes:
     depends_on: [host]
 volumes:
   harnesys-data:</code></pre></div>
-        </div>
-        <div role="tabpanel" id="panel-desktop" aria-labelledby="tab-desktop" hidden>
-          <p>A desktop app that bundles the host as a sidecar is planned.</p>
-          <ul class="os-list">
-            <li><span>macOS</span><span class="soon">Coming soon</span></li>
-            <li><span>Windows</span><span class="soon">Coming soon</span></li>
-            <li><span>Linux</span><span class="soon">Coming soon</span></li>
-          </ul>
-        </div>
-      </div>
+          </li>
+          <li>
+            <p>Open port <code>8080</code> and log in with the host token. Pair another machine with <code>harnesys host pair</code> and keep both desks in one window.</p>
+          </li>
+          <li>
+            <p>TLS: a private network via Tailscale or WireGuard, or Caddy/nginx in front of the web service — disable proxy buffering for the SSE route. Details in <a href="https://github.com/harnesys/studio/blob/main/docs/deploy.md">docs/deploy.md</a>.</p>
+          </li>
+          <li>
+            <p>Update in place: <code>harnesys update</code> pulls the latest release for your OS and architecture.</p>
+          </li>
+        </ol>
+      </article>
     </section>
 
-    <section id="releases" class="shell section">
-      <h2><span class="live-dot" aria-hidden="true"></span>Releases</h2>
+    <section id="releases" class="section">
+      <h2>Releases</h2>
       <div id="release-list" aria-live="polite"><p class="muted">Loading…</p></div>
     </section>
   </main>
 
   <footer class="footer">
-    <div class="shell footer-grid">
+    <div class="footer-grid">
       <div>
         <p class="footer-brand"><span class="brand-mark" aria-hidden="true"></span>Harnesys</p>
-        <p class="muted">Agents, threads, schedules and memory live in <code>&lt;workspace&gt;/.harnesys/workspace.db</code> — in your folder, not in someone's cloud.</p>
+        <p class="muted">Harnesys keeps its state on your disk: <code>~/.harnesys</code> and the workspace folders you point it at.</p>
       </div>
       <div>
         <h4>Project</h4>
         <a href="https://github.com/harnesys/studio">GitHub</a>
         <a href="https://github.com/harnesys/studio/releases">Releases</a>
+        <a href="https://github.com/harnesys/studio/blob/main/docs/deploy.md">Deploy docs</a>
       </div>
       <div>
         <h4>Runtime</h4>
-        <span class="muted">harnesys-host :3000</span>
-        <span class="muted">harnesys-web :8080</span>
-        <span class="muted">harnesys up · down · logs · update</span>
+        <span class="muted">harnesys-host on :3000</span>
+        <span class="muted">harnesys-web on :8080</span>
+        <span class="muted">harnesys: up, down, status, logs, update</span>
       </div>
     </div>
   </footer>

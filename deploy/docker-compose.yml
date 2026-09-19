@@ -101,5 +101,28 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  # Self-hosted SearXNG for the web_search pack (provider: searxng). Opt-in:
+  #   docker compose --profile search up -d searxng
+  # Bound to loopback only — the studio host talks to it from the same machine
+  # via the pack default http://localhost:8888. Settings (JSON format on,
+  # limiter off): deploy/searxng/settings.yml.
+  searxng:
+    profiles: ["search"]
+    image: searxng/searxng:latest
+    environment:
+      SEARXNG_BASE_URL: http://localhost:${SEARXNG_PORT:-8888}/
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-harnesys-local}
+    volumes:
+      - ./searxng:/etc/searxng:ro
+    ports:
+      - "127.0.0.1:${SEARXNG_PORT:-8888}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
 volumes:
   harnesys-data:

@@ -10,23 +10,41 @@ export type SearchProvider = {
 
 const MAX_RESULTS = 5;
 
-type ThrottleState = { lastRequestAt: number };
-
 const DUCKDUCKGO_MIN_DELAY_MS = 2000;
 const SEARXNG_MIN_DELAY_MS = 1000;
 const SEARXNG_TIMEOUT_MS = 10_000;
 
-function throttleState(): ThrottleState {
-  return { lastRequestAt: 0 };
+const FAILURE_HINT = 'Stop retrying and tell the user that web search is temporarily unavailable.';
+
+/**
+ * Последовательный лимитер: задачи встают в очередь, между стартами запросов
+ * проходит не меньше minDelayMs. Параллельные вызовы search() не рвут
+ * check-then-act гонку, как раньше, а выстраиваются друг за другом.
+ */
+function createLimiter(minDelayMs: number): <T>(task: () => Promise<T>) => Promise<T> {
+  let lastRequestAt = 0;
+  let tail: Promise<unknown> = Promise.resolve();
+  return (task) => {
+    const next = tail.then(async () => {
+      const elapsed = Date.now() - lastRequestAt;
+      if (elapsed < minDelayMs) {
+        await new Promise((resolve) => setTimeout(resolve, minDelayMs - elapsed));
+      }
+      lastRequestAt = Date.now();
+      return task();
+    });
+    tail = next.catch(() => undefined);
+    return next;
+  };
 }
 
-async function throttle(state: ThrottleState, minDelayMs: number): Promise<void> {
-  const elapsed = Date.now() - state.lastRequestAt;
-  if (elapsed < minDelayMs) {
-    await new Promise((resolve) => setTimeout(resolve, minDelayMs - elapsed));
-  }
-  state.lastRequestAt = Date.now();
+function describeFailure(provider: string, error: unknown): Error {
+  const detail = error instanceof Error ? error.message : String(error);
+  return new Error(`${provider}: ${detail}. ${FAILURE_HINT}`);
 }
+
+/** Один лимитер на процесс: DDG считает запросы с одного IP, а не с одного агента. */
+const duckduckgoLimiter = createLimiter(DUCKDUCKGO_MIN_DELAY_MS);
 
 const DUCKDUCKGO_HEADERS = {
   'user-agent':
@@ -36,25 +54,28 @@ const DUCKDUCKGO_HEADERS = {
 };
 
 export function duckduckgoSearch(): SearchProvider {
-  const state = throttleState();
   return {
-    async search(query) {
-      await throttle(state, DUCKDUCKGO_MIN_DELAY_MS);
-      const response = await fetch('https://html.duckduckgo.com/html/', {
-        method: 'POST',
-        headers: {
-          ...DUCKDUCKGO_HEADERS,
-          'content-type': 'application/x-www-form-urlencoded',
-          origin: 'https://html.duckduckgo.com',
-          referer: 'https://html.duckduckgo.com/',
-        },
-        body: new URLSearchParams({ q: query, kl: 'wt-wt' }).toString(),
-      });
-      if (!response.ok) {
-        throw new Error(`duckduckgo: HTTP ${response.status}`);
-      }
-      return parseDuckduckgoHtml(await response.text());
-    },
+    search: (query) =>
+      duckduckgoLimiter(async () => {
+        try {
+          const response = await fetch('https://html.duckduckgo.com/html/', {
+            method: 'POST',
+            headers: {
+              ...DUCKDUCKGO_HEADERS,
+              'content-type': 'application/x-www-form-urlencoded',
+              origin: 'https://html.duckduckgo.com',
+              referer: 'https://html.duckduckgo.com/',
+            },
+            body: new URLSearchParams({ q: query, kl: 'wt-wt' }).toString(),
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return parseDuckduckgoHtml(await response.text());
+        } catch (error) {
+          throw describeFailure('duckduckgo', error);
+        }
+      }),
   };
 }
 
@@ -108,31 +129,35 @@ function stripTags(html: string): string {
 export type SearxngOptions = { url: string };
 
 export function searxngSearch(options: SearxngOptions): SearchProvider {
-  const state = throttleState();
+  const limiter = createLimiter(SEARXNG_MIN_DELAY_MS);
   const base = options.url.replace(/\/+$/, '');
   return {
-    async search(query) {
-      await throttle(state, SEARXNG_MIN_DELAY_MS);
-      const params = new URLSearchParams({
-        q: query,
-        format: 'json',
-        categories: 'general',
-        language: 'en',
-      });
-      const response = await fetch(`${base}/search?${params.toString()}`, {
-        headers: { accept: 'application/json' },
-        signal: AbortSignal.timeout(SEARXNG_TIMEOUT_MS),
-      });
-      if (!response.ok) {
-        throw new Error(`searxng: HTTP ${response.status}`);
-      }
-      const data = (await response.json()) as SearxngResponse;
-      return (data.results ?? []).slice(0, MAX_RESULTS).map((item) => ({
-        title: item.title ?? '',
-        url: item.url ?? '',
-        snippet: item.content ?? '',
-      }));
-    },
+    search: (query) =>
+      limiter(async () => {
+        try {
+          const params = new URLSearchParams({
+            q: query,
+            format: 'json',
+            categories: 'general',
+            language: 'en',
+          });
+          const response = await fetch(`${base}/search?${params.toString()}`, {
+            headers: { accept: 'application/json' },
+            signal: AbortSignal.timeout(SEARXNG_TIMEOUT_MS),
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const data = (await response.json()) as SearxngResponse;
+          return (data.results ?? []).slice(0, MAX_RESULTS).map((item) => ({
+            title: item.title ?? '',
+            url: item.url ?? '',
+            snippet: item.content ?? '',
+          }));
+        } catch (error) {
+          throw describeFailure('searxng', error);
+        }
+      }),
   };
 }
 

@@ -1,0 +1,18 @@
+# Local SearXNG for the web_search pack (provider: searxng, default
+# http://localhost:8888). Defaults come from the image; this file only
+# switches what the JSON API needs.
+use_default_settings: true
+
+server:
+  # Value comes from the SEARXNG_SECRET compose env (see docker-compose.yml).
+  secret_key: "${SEARXNG_SECRET}"
+  # The limiter blocks bot-like clients without cookies — that is exactly
+  # what a tool-side JSON client looks like.
+  limiter: false
+  public_instance: false
+
+search:
+  # Without `json` the /search?format=json endpoint answers HTTP 403.
+  formats:
+    - html
+    - json

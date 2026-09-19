@@ -1,5 +1,7 @@
 import type { WindowBootstrap, WindowHostRecord } from '@harnesys/studio-shared';
 
+import { env } from '@/shared/config/env';
+
 let credential: string | null = null;
 let hosts: WindowHostRecord[] = [];
 
@@ -39,7 +41,7 @@ export function ensureHostCredential(): Promise<string> {
 }
 
 async function loadBootstrap(): Promise<string> {
-  const response = await fetch('/api/window/bootstrap');
+  const response = await fetch(`${env.localHostOrigin}/api/window/bootstrap`);
   if (!response.ok) {
     let message = response.statusText || 'bootstrap failed';
     try {

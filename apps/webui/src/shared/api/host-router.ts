@@ -1,5 +1,6 @@
 import type { WindowHostRecord } from '@harnesys/studio-shared';
 
+import { env } from '@/shared/config/env';
 import { getWindowHosts } from './host-credential';
 
 export type NodeRoute = {
@@ -76,10 +77,11 @@ export function trimBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/$/, '');
 }
 
-/** Absolute URL for a path on a host; local keeps relative (Vite proxy). */
+/** Absolute URL for a path on a host; local goes through env.localHostOrigin (desktop: no same-origin proxy). */
 export function urlForHost(host: Pick<WindowHostRecord, 'id' | 'baseUrl'>, path: string): string {
   if (isLocalHostId(host.id)) {
-    return path.startsWith('/') ? path : `/${path}`;
+    const p = path.startsWith('/') ? path : `/${path}`;
+    return `${env.localHostOrigin}${p}`;
   }
   const base = trimBaseUrl(host.baseUrl);
   return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;

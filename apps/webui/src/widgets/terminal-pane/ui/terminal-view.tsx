@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm';
 import { useEffect, useRef, useState } from 'react';
 
 import { hostTokenQuery } from '@/shared/api/host-credential';
+import { hostWsBase } from '@/shared/config/env';
 import { cn } from '@/shared/lib/utils';
 
 import '@xterm/xterm/css/xterm.css';
@@ -60,13 +61,12 @@ export function TerminalView({
     };
 
     const connect = () => {
-      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
       const token = hostTokenQuery();
       const tokenQs = token ? `&${token}` : '';
       const cols = term.cols || 80;
       const rows = term.rows || 24;
       ws = new WebSocket(
-        `${proto}://${location.host}/api/terminals/${encodeURIComponent(sessionId)}?cols=${cols}&rows=${rows}${tokenQs}`,
+        `${hostWsBase()}/api/terminals/${encodeURIComponent(sessionId)}?cols=${cols}&rows=${rows}${tokenQs}`,
       );
 
       ws.onopen = () => {

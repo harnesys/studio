@@ -1,13 +1,16 @@
-import { EllipsisVerticalIcon } from 'lucide-react';
+import { CogIcon, EllipsisVerticalIcon } from 'lucide-react';
+import { useStudioNavigation } from '@/shared/config/navigation';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { SidebarMenuButton } from '@/shared/ui/sidebar';
+import { SidebarMenuButton, useSidebar } from '@/shared/ui/sidebar';
 import { useAccordionStore } from '../model/accordion.store';
 import { SECTION_META, type SidebarSectionId } from './sections-meta';
 
@@ -15,6 +18,8 @@ export function SidebarSectionsConfig() {
   const order = useAccordionStore((state) => state.order);
   const hidden = useAccordionStore((state) => state.hidden);
   const setVisibility = useAccordionStore((state) => state.setVisibility);
+  const { openSettings } = useStudioNavigation();
+  const { setOpenMobile } = useSidebar();
 
   return (
     <DropdownMenu>
@@ -49,9 +54,22 @@ export function SidebarSectionsConfig() {
               >
                 <Icon className="size-3" />
                 {meta.label}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
+            </DropdownMenuCheckboxItem>
+          );
+        })}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem
+            onClick={() => {
+              openSettings();
+              setOpenMobile(false);
+            }}
+            data-testid="nav-settings"
+          >
+            <CogIcon className="size-3" />
+            Settings
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

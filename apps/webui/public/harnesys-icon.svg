@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <title>Harnesys</title>
+  <defs>
+    <linearGradient id="hg-body" x1="512" y1="152" x2="512" y2="872" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2e3947"/>
+      <stop offset="0.45" stop-color="#161b22"/>
+      <stop offset="1" stop-color="#080b0f"/>
+    </linearGradient>
+    <linearGradient id="hg-spec" x1="512" y1="152" x2="512" y2="352" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f4f8fa"/>
+      <stop offset="1" stop-color="#93a5b4"/>
+    </linearGradient>
+    <linearGradient id="hg-glint" x1="512" y1="652" x2="512" y2="872" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c7d3dd"/>
+      <stop offset="1" stop-color="#5d6b78"/>
+    </linearGradient>
+    <linearGradient id="hg-edge" x1="512" y1="152" x2="512" y2="872" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.02"/>
+    </linearGradient>
+    <clipPath id="hg-clip">
+      <path d="M152 152h250v280h220V152h250v720H622V592H402v280H152Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#hg-clip)">
+    <path d="M152 152h250v280h220V152h250v720H622V592H402v280H152Z" fill="url(#hg-body)"/>
+    <polygon points="402,152 402,712 152,772" fill="#0a0d11" opacity="0.9"/>
+    <polygon points="152,152 402,152 152,352" fill="url(#hg-spec)" opacity="0.9"/>
+    <polygon points="402,152 362,152 402,252" fill="#dfe7ec" opacity="0.35"/>
+    <polygon points="152,872 372,872 152,652" fill="url(#hg-glint)" opacity="0.55"/>
+    <rect x="152" y="152" width="10" height="720" fill="url(#hg-edge)"/>
+    <polygon points="252,252 278,252 218,432 198,432" fill="#ffffff" opacity="0.22"/>
+    <polygon points="622,152 622,712 872,772" fill="#0a0d11" opacity="0.9"/>
+    <polygon points="872,152 622,152 872,352" fill="url(#hg-spec)" opacity="0.9"/>
+    <polygon points="622,152 662,152 622,252" fill="#dfe7ec" opacity="0.35"/>
+    <polygon points="872,872 652,872 872,652" fill="url(#hg-glint)" opacity="0.55"/>
+    <rect x="862" y="152" width="10" height="720" fill="url(#hg-edge)"/>
+    <polygon points="792,552 812,552 762,712 742,712" fill="#ffffff" opacity="0.15"/>
+    <polygon points="402,432 622,432 402,532" fill="#e8eef2" opacity="0.6"/>
+    <polygon points="402,592 622,592 522,702" fill="#090c10" opacity="0.9"/>
+    <polygon points="402,332 402,432 492,432" fill="#dbe4ea" opacity="0.4"/>
+    <polygon points="622,332 622,432 532,432" fill="#dbe4ea" opacity="0.25"/>
+  </g>
+</svg>

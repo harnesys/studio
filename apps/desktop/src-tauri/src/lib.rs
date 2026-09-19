@@ -70,14 +70,18 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "Open Harnesys", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Harnesys", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &quit])?;
-    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))
         .unwrap_or_else(|_| tauri::image::Image::new(&[0, 0, 0, 255], 1, 1));
 
-    TrayIconBuilder::new()
+    let builder = TrayIconBuilder::new()
         .icon(icon)
         .tooltip("Harnesys")
         .menu(&menu)
-        .show_menu_on_left_click(false)
+        .show_menu_on_left_click(false);
+    #[cfg(target_os = "macos")]
+    let builder = builder.icon_as_template(true);
+
+    builder
         .on_menu_event(|app, event| match event.id.as_ref() {
             "open" => show_main(app),
             "quit" => app.exit(0),

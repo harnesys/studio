@@ -25,6 +25,19 @@ export function HostAuthBootstrap({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!ready && !error) {
+      return;
+    }
+    const splash = document.getElementById('app-splash');
+    if (!splash) {
+      return;
+    }
+    splash.classList.add('is-done');
+    const timer = window.setTimeout(() => splash.remove(), 260);
+    return () => window.clearTimeout(timer);
+  }, [ready, error]);
+
   if (error) {
     return (
       <div style={{ padding: 24, fontFamily: 'system-ui' }}>

@@ -1,4 +1,4 @@
-import { CogIcon, InboxIcon } from 'lucide-react';
+import { InboxIcon } from 'lucide-react';
 import { Fragment, type MouseEvent as ReactMouseEvent, useRef, useState } from 'react';
 import { useThreadStore } from '@/entities/thread';
 import {
@@ -14,7 +14,7 @@ import {
   studioFocusWorkspaceId,
   useStudioLocation,
 } from '@/shared/config/location';
-import { useStudioNavigation } from '@/shared/config/navigation';
+import { AppLogo } from '@/shared/ui/app-logo';
 import { Resizer } from '@/shared/ui/resizer';
 import {
   Sidebar,
@@ -22,7 +22,6 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
   useSidebar,
@@ -52,7 +51,6 @@ export function WorkspaceSidebar() {
   const agents = useAgentsInWorkspaces(workspaceIds);
   const schedules = useSchedulesInWorkspaces(workspaceIds);
   const webhooks = useWebhooksInWorkspaces(workspaceIds);
-  const { openSettings } = useStudioNavigation();
   const { setOpenMobile } = useSidebar();
   const ideTabs = useIdeTabs(workspaceId);
   const activeThreadId = ideTabs.tabs.find((tab) => tab.id === ideTabs.activeId)?.threadId ?? null;
@@ -326,18 +324,16 @@ export function WorkspaceSidebar() {
       <SidebarFooter className="border-t">
         <SidebarMenu>
           <SidebarMenuItem className="flex flex-row items-center gap-1 group-data-[collapsible=icon]:flex-col">
-            <SidebarMenuButton
-              className="flex-1"
-              onClick={() => {
-                openSettings();
-                setOpenMobile(false);
-              }}
-              tooltip="Settings"
-              data-testid="nav-settings"
+            <div
+              className="flex h-8 flex-1 items-center gap-2 px-2 text-muted-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+              data-testid="app-logo"
+              title="Harnesys"
             >
-              <CogIcon />
-              <span>Settings</span>
-            </SidebarMenuButton>
+              <AppLogo className="size-[18px]" />
+              <span className="font-medium text-sm tracking-tight group-data-[collapsible=icon]:hidden">
+                Harnesys
+              </span>
+            </div>
             <SidebarSectionsConfig />
           </SidebarMenuItem>
         </SidebarMenu>

@@ -28,7 +28,7 @@ NSGraphicsContext.current = ns
 ns.shouldAntialias = true
 ns.imageInterpolation = .high
 
-let pad = S * 0.10
+let pad = S * 0.099
 tile.draw(in: NSRect(x: pad, y: pad, width: S - pad * 2, height: S - pad * 2))
 
 NSColor(calibratedWhite: 1, alpha: 2.0 / 255.0).setFill()
@@ -41,4 +41,4 @@ NSGraphicsContext.restoreGraphicsState()
 
 guard let png = rep.representation(using: .png, properties: [:]) else { fatalError("png") }
 try png.write(to: URL(fileURLWithPath: output))
-print("wrote \(output) \(Int(S))x\(Int(S)), pad \(Int(pad / S * 100))%, pin corners")
+print("wrote \(output) \(Int(S))x\(Int(S)), pad \(String(format: "%.1f", pad / S * 100))%, pin corners")

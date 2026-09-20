@@ -2,6 +2,10 @@
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
+}
+/* Переход привязан к дереву приложения: он не должен попадать в порталы Base UI,
+   иначе закрывающиеся попапы ждут 700ms и вспыхивают после exit-анимации. */
+#root * {
   transition: scrollbar-color 700ms ease;
 }
 [data-scrolling] {

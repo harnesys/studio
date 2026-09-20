@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = join(import.meta.dir, '..');
@@ -14,6 +14,7 @@ const VERSION_FILES = [
 
 const CARGO_TOML = 'apps/desktop/src-tauri/Cargo.toml';
 const CARGO_LOCK = 'apps/desktop/src-tauri/Cargo.lock';
+const BODY_PATH = join(root, '.git', 'HARNESYS_TAG_EDITMSG');
 
 function fail(message: string): never {
     console.error(`release: ${message}`);
@@ -22,6 +23,24 @@ function fail(message: string): never {
 
 function git(command: string): string {
     return execSync(`git ${command}`, { cwd: root, encoding: 'utf8' }).trim();
+}
+
+function restore(originals: Map<string, string>): void {
+    for (const [file, text] of originals) {
+        writeFileSync(join(root, file), text);
+    }
+}
+
+function changelog(): string {
+    const prev = git('tag --sort=-v:refname').split('\n').filter(Boolean)[0];
+    let body = "## What's Changed\n";
+    if (prev) {
+        const commits = git(`log --no-merges --format='- %s' ${prev}..HEAD`)
+            .split('\n')
+            .filter((line) => line !== '' && !line.startsWith('- release v'));
+        body += `${commits.join('\n')}\n`;
+    }
+    return body;
 }
 
 function bumpJson(text: string, version: string): string {
@@ -80,24 +99,38 @@ function main(): void {
         `cargo update -p desktop  (in ${join(root, 'apps/desktop/src-tauri')})`,
         `git add ${files}`,
         `git commit -m "release v${version}"`,
-        `git tag -a v${version} -m "v${version}"`,
+        `git tag -a v${version} -F ${BODY_PATH}`,
         `git push origin HEAD && git push origin v${version}`,
     ];
-    console.log(plan.join('\n'));
+    writeFileSync(BODY_PATH, changelog());
     if (dryRun) {
-        for (const [file, text] of originals) {
-            writeFileSync(join(root, file), text);
-        }
+        console.log(`\n${readFileSync(BODY_PATH, 'utf8')}`);
+        console.log(plan.join('\n'));
+        unlinkSync(BODY_PATH);
+        restore(originals);
         console.log('release: dry-run, files restored');
         return;
     }
+    execSync(`${process.env.EDITOR ?? 'vi'} "${BODY_PATH}"`, {
+        cwd: root,
+        stdio: 'inherit',
+    });
+    const body = readFileSync(BODY_PATH, 'utf8').trim();
+    if (body === '') {
+        unlinkSync(BODY_PATH);
+        restore(originals);
+        fail('release notes are empty — files restored');
+    }
+    console.log(`\n${body}\n`);
+    console.log(plan.join('\n'));
     execSync('cargo update -p desktop', {
         cwd: join(root, 'apps/desktop/src-tauri'),
         stdio: 'inherit',
     });
     git(`add ${files}`);
     git(`commit -m "release v${version}"`);
-    git(`tag -a v${version} -m "v${version}"`);
+    git(`tag -a v${version} -F ${BODY_PATH}`);
+    unlinkSync(BODY_PATH);
     git('push origin HEAD');
     git(`push origin v${version}`);
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { CircleDotIcon, CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import {
   createModePreset,
@@ -165,6 +165,7 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
                 <div key={preset.id} data-testid={`mode-preset-${preset.id}`}>
                   <Row
                     title={preset.name}
+                    icon={<CircleDotIcon />}
                     mono={false}
                     meta={preset.builtin ? 'built-in' : undefined}
                     chips={
@@ -237,6 +238,7 @@ export function ModePresetsPane({ workspaceId }: { workspaceId: string }) {
               <div data-testid="mode-preset-new">
                 <Row
                   title={draft.preset ? `Copy of ${draft.preset.name}` : 'New preset'}
+                  icon={<CircleDotIcon />}
                   mono={false}
                   meta="preset"
                   summary={draft.preset?.description}

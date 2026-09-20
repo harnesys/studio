@@ -1,5 +1,7 @@
 import type { ModeOp } from '@harnesys/studio-shared';
 import type { PermissionGate, PermissionMap } from 'harnesys';
+import { BotIcon, FilePenIcon, GlobeIcon, PlugIcon, TerminalIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Pane, RowList } from '@/shared/ui/capability-rows';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 import { PERM_OPS } from '../model/agent-permissions';
@@ -8,16 +10,38 @@ type PermissionRowSpec = {
   op: ModeOp;
   label: string;
   description: string;
+  icon: ReactNode;
 };
 const PERMISSION_ROWS: PermissionRowSpec[] = [
-  { op: 'fs.write', label: 'File writes', description: 'Create and edit files in the workspace' },
-  { op: 'process', label: 'Shell', description: 'Run commands on the machine' },
-  { op: 'network', label: 'Network', description: 'Fetch pages and call APIs' },
-  { op: 'mcp', label: 'MCP tools', description: 'Tools from connected MCP servers' },
+  {
+    op: 'fs.write',
+    label: 'File writes',
+    description: 'Create and edit files in the workspace',
+    icon: <FilePenIcon />,
+  },
+  {
+    op: 'process',
+    label: 'Shell',
+    description: 'Run commands on the machine',
+    icon: <TerminalIcon />,
+  },
+  {
+    op: 'network',
+    label: 'Network',
+    description: 'Fetch pages and call APIs',
+    icon: <GlobeIcon />,
+  },
+  {
+    op: 'mcp',
+    label: 'MCP tools',
+    description: 'Tools from connected MCP servers',
+    icon: <PlugIcon />,
+  },
   {
     op: 'agents',
     label: 'Create agents',
     description: 'Add agents and subagents to the workspace',
+    icon: <BotIcon />,
   },
 ];
 type AgentPermissionsPaneProps = {
@@ -64,11 +88,16 @@ function PermissionRow({
   gate: PermissionGate;
   onGateChange: (gate: PermissionGate) => void;
 }) {
-  const { op, label, description } = spec;
+  const { op, label, description, icon } = spec;
   return (
     <div className="flex items-center gap-2 py-2" data-testid={`perm-row-${op}`}>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-baseline gap-2">
+          {icon ? (
+            <span className="shrink-0 self-center text-muted-foreground [&_svg]:size-3.5">
+              {icon}
+            </span>
+          ) : null}
           <span className="truncate font-medium text-sm">{label}</span>
           <span className="shrink-0 font-mono text-[10px] text-muted-foreground uppercase tracking-wide">
             {op}

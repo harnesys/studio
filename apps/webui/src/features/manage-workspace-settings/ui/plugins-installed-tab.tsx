@@ -5,7 +5,7 @@ import type {
   PluginOptionValue,
 } from '@harnesys/studio-shared';
 import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
+import { PlusIcon, PuzzleIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import {
   changedOptionValues,
@@ -138,6 +138,7 @@ export function PluginsInstalledTab({ workspaceId }: { workspaceId: string }) {
                 <Row
                   key={plugin.name}
                   testId={`plugin-${plugin.name}`}
+                  icon={<PuzzleIcon />}
                   title={plugin.name}
                   meta={plugin.version}
                   summary={inventory}

@@ -111,6 +111,7 @@ export function RowChip({
 }
 type RowProps = {
   title: string;
+  icon?: ReactNode;
   mono?: boolean;
   muted?: boolean;
   meta?: ReactNode;
@@ -130,6 +131,7 @@ type RowProps = {
 };
 export function Row({
   title,
+  icon,
   mono = true,
   muted = false,
   meta,
@@ -154,9 +156,12 @@ export function Row({
         )}
       />
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-baseline gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {status ? (
             <StatusDot tone={status.tone} label={status.label} className="mb-px shrink-0" />
+          ) : null}
+          {icon ? (
+            <span className="shrink-0 text-muted-foreground [&_svg]:size-3.5">{icon}</span>
           ) : null}
           <span
             className={cn(
@@ -239,16 +244,23 @@ export function RowSection({
 }
 export function RowItem({
   title,
+  icon,
   description,
   testId,
 }: {
   title: string;
+  icon?: ReactNode;
   description?: ReactNode;
   testId?: string;
 }) {
   return (
     <div className="min-w-0 px-1 py-0.5" data-testid={testId}>
-      <p className="truncate font-mono text-[12px] leading-snug">{title}</p>
+      <div className="flex min-w-0 items-baseline gap-1.5">
+        {icon ? (
+          <span className="shrink-0 self-center text-muted-foreground [&_svg]:size-3">{icon}</span>
+        ) : null}
+        <p className="truncate font-mono text-[12px] leading-snug">{title}</p>
+      </div>
       {description ? (
         <p className="line-clamp-2 text-[11px] text-muted-foreground leading-snug">{description}</p>
       ) : null}

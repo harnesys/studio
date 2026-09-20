@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
+import { BotIcon, PlusIcon, PuzzleIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
@@ -199,6 +199,7 @@ function PluginAgentRow({ name }: { name: string }) {
   return (
     <Row
       testId={`draft-plugin-agent-${name}`}
+      icon={<PuzzleIcon />}
       title={name}
       mono={false}
       chips={<RowChip>plugin</RowChip>}
@@ -218,6 +219,7 @@ function SubagentRow({
   return (
     <Row
       testId={`draft-subagent-${agent.id}`}
+      icon={<BotIcon />}
       title={agent.name}
       mono={false}
       meta={agent.role}

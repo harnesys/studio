@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { PackageIcon, WrenchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { groupTools } from '@/entities/tool-catalog';
 import {
@@ -50,6 +51,7 @@ export function ToolsPane({ workspaceId }: { workspaceId: string }) {
                   <Row
                     key={id}
                     testId={`package-${pack.name}`}
+                    icon={<PackageIcon />}
                     title={pack.name}
                     meta="pack"
                     summary={pack.description}
@@ -82,6 +84,7 @@ export function ToolsPane({ workspaceId }: { workspaceId: string }) {
                   <Row
                     key={id}
                     testId={`package-${group.id}`}
+                    icon={<WrenchIcon />}
                     title={group.label}
                     meta={`${group.tools.length} tools`}
                     summary={group.hint ?? group.tools.map((tool) => tool.name).join(', ')}
@@ -103,5 +106,12 @@ export function ToolsPane({ workspaceId }: { workspaceId: string }) {
   );
 }
 function ToolItem({ tool }: { tool: WorkspaceTool }) {
-  return <RowItem testId={`tool-${tool.name}`} title={tool.name} description={tool.description} />;
+  return (
+    <RowItem
+      testId={`tool-${tool.name}`}
+      icon={<WrenchIcon />}
+      title={tool.name}
+      description={tool.description}
+    />
+  );
 }

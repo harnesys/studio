@@ -1,4 +1,5 @@
 import type { ToolExposure } from 'harnesys';
+import { PackageIcon, PuzzleIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Row, RowChip, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
@@ -42,6 +43,7 @@ export function AgentSourceCard({
   return (
     <Row
       testId={`draft-source-${name}`}
+      icon={kind === 'pack' ? <PackageIcon /> : <PuzzleIcon />}
       title={name}
       meta={kind}
       muted={!grantChecked}

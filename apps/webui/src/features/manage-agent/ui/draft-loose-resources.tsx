@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { ServerIcon, WrenchIcon } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { workspaceMcpQuery, workspaceSkillsQuery } from '@/shared/api';
 import { Pane, Row, RowItem, RowList, RowSection } from '@/shared/ui/capability-rows';
@@ -91,6 +92,7 @@ export function DraftGrantedSkills({
                 <Row
                   key={skill.name}
                   testId={`draft-skill-${skill.name}`}
+                  icon={<WrenchIcon />}
                   title={group.plugin ? stripPluginPrefix(skill.name, group.plugin) : skill.name}
                   meta="skill"
                   summary={skill.description || skill.whenToUse}
@@ -172,6 +174,7 @@ export function DraftGrantedMcpServers({
                 <Row
                   key={server.serverId}
                   testId={`draft-mcp-${server.serverId}`}
+                  icon={<ServerIcon />}
                   title={
                     group.plugin
                       ? stripPluginPrefix(server.serverId, group.plugin)

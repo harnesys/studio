@@ -1,6 +1,6 @@
 import { DEFAULT_MODE_ID, type ModePreset, modeFromPreset } from '@harnesys/studio-shared';
 import { useQuery } from '@tanstack/react-query';
-import { PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
+import { CircleDotIcon, PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { type UseFormReturn, useFieldArray, useWatch } from 'react-hook-form';
 import type { Agent } from '@/entities/agent';
@@ -145,6 +145,7 @@ export function AgentModesPane({ form, workspaceId, activeAgent, active }: Agent
               <Row
                 key={field.id}
                 testId={`draft-mode-${field.id}`}
+                icon={<CircleDotIcon />}
                 title={title}
                 mono={false}
                 meta={row.id === DEFAULT_MODE_ID ? 'built-in' : undefined}

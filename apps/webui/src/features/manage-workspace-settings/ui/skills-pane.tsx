@@ -1,6 +1,6 @@
 import type { CreateWorkspaceSkillRequest } from '@harnesys/studio-shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PlusIcon, PuzzleIcon, RefreshCwIcon } from 'lucide-react';
+import { PlusIcon, PuzzleIcon, RefreshCwIcon, WrenchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { pluginStatusBadge, pluginStatusText } from '@/features/manage-agent';
 import { openCreateSkillDialog } from '@/features/manage-workspace-skills';
@@ -108,6 +108,7 @@ export function SkillsPane({ workspaceId }: { workspaceId: string }) {
                 <Row
                   key={skill.name}
                   testId={`skill-${skill.name}`}
+                  icon={plugin ? <PuzzleIcon /> : <WrenchIcon />}
                   title={plugin ? pluginSkillTitle(skill.name, origin.pluginName) : skill.name}
                   summary={
                     plugin && statusChip

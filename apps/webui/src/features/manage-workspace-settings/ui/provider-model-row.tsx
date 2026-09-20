@@ -1,4 +1,4 @@
-import { CircleCheckIcon, PencilIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react';
+import { CircleCheckIcon, CpuIcon, PencilIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react';
 import { confirmDetachModel, mergeFields, openEditModelDialog } from '@/features/manage-model';
 import { Button } from '@/shared/ui/button';
 import { getMissingFields, incompleteFieldLabel, type ModelRow } from './model-rows';
@@ -42,6 +42,7 @@ export function ProviderModelRow({
       data-incomplete={incomplete ? 'true' : 'false'}
       data-unverified={verified ? 'false' : 'true'}
     >
+      <CpuIcon className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate font-mono text-sm">{row.name}</span>
       {row.saved ? (
         <StatusIcon label="Saved">

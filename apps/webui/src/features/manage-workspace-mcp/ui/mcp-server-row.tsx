@@ -6,6 +6,7 @@ import {
   PlayIcon,
   PuzzleIcon,
   RotateCwIcon,
+  ServerIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { pluginStatusBadge } from '@/features/manage-agent';
@@ -57,6 +58,7 @@ export function McpServerRow({
   return (
     <Row
       testId={`mcp-server-${server.serverId}`}
+      icon={plugin ? <PuzzleIcon /> : <ServerIcon />}
       title={plugin ? pluginServerTitle(server.serverId, origin.pluginName) : server.serverId}
       muted={!server.enabled}
       meta={server.transport}

@@ -1,6 +1,6 @@
 import type { PluginCatalogEntry } from '@harnesys/studio-shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { SearchIcon, XIcon } from 'lucide-react';
+import { PuzzleIcon, SearchIcon, XIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { openInstallCatalogPluginDialog } from '@/features/manage-plugins';
 import {
@@ -278,6 +278,7 @@ function CatalogRow({
   return (
     <Row
       testId={`catalog-${entry.pluginName}`}
+      icon={<PuzzleIcon />}
       title={entry.displayName ?? entry.pluginName}
       mono={entry.displayName === undefined}
       meta={entry.version}

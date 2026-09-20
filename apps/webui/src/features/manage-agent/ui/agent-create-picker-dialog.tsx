@@ -1,21 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { BotIcon, PlusIcon, SparklesIcon } from 'lucide-react';
-import { useNavigate } from 'react-router';
-import { useAgentsDisplayStore } from '@/features/desk';
-import { useIdeStore } from '@/features/ide';
-import {
-  agentDraftFromPreset,
-  createAgent,
-  openAgentConfigDialog,
-  updateAgentCapabilities,
-} from '@/features/manage-agent';
+import { BotIcon, SparklesIcon } from 'lucide-react';
 import { type AgentPresetRecord, listAgentPresets } from '@/shared/api';
-import { studioPath } from '@/shared/config/routes';
-import type { DialogComponentProps } from '@/shared/services/overlay';
-import { dialog } from '@/shared/services/overlay';
+import { type DialogComponentProps, dialog } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
 import { DialogFooter } from '@/shared/ui/dialog';
-import { toast } from '@/shared/ui/toast';
 
 type PickerData = {
   workspaceId: string;
@@ -77,7 +65,7 @@ function AgentCreatePickerDialog({
     </div>
   );
 }
-function openAgentCreatePicker(workspaceId: string) {
+export function openAgentCreatePicker(workspaceId: string) {
   return dialog.open(AgentCreatePickerDialog, {
     title: 'New agent',
     description: 'Pick a preset or start blank.',
@@ -85,56 +73,4 @@ function openAgentCreatePicker(workspaceId: string) {
     testId: 'agent-create-picker',
     data: { workspaceId },
   });
-}
-export function AgentsSectionCreateButton({
-  workspaceId,
-  onCreated,
-}: {
-  workspaceId: string;
-  onCreated?: () => void;
-}) {
-  const navigate = useNavigate();
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-xs"
-      title="New agent"
-      aria-label="New agent"
-      data-testid={`agents-create-${workspaceId}`}
-      onClick={() => {
-        void (async () => {
-          const choice = await openAgentCreatePicker(workspaceId);
-          if (!choice) {
-            return;
-          }
-          const draft = choice.kind === 'preset' ? agentDraftFromPreset(choice.preset) : null;
-          const result = await openAgentConfigDialog(draft, workspaceId);
-          if (!result) {
-            return;
-          }
-          try {
-            const created = await createAgent(workspaceId, result.fields);
-            if (!created) {
-              return;
-            }
-            await updateAgentCapabilities(workspaceId, created.agent.id, result.capabilities);
-            if (created.thread) {
-              useIdeStore.getState().openThread(workspaceId, created.agent.id, created.thread.id);
-              useAgentsDisplayStore.getState().expand(created.agent.id);
-              await navigate(studioPath.thread(workspaceId, created.thread.id));
-            }
-            onCreated?.();
-          } catch (error) {
-            toast.add({
-              title: error instanceof Error ? error.message : 'Could not create agent',
-            });
-          }
-        })();
-      }}
-    >
-      <PlusIcon className="size-3.5 text-sidebar-foreground/50 group-hover/button:text-sidebar-foreground" />
-      <span className="sr-only">New agent</span>
-    </Button>
-  );
 }

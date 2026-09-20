@@ -1,1 +1,1 @@
-export { AgentsSectionCreateButton as AgentsSectionActions } from './agent-create-picker-dialog';
+export { AgentsSectionCreateButton as AgentsSectionActions } from './agents-create-button';

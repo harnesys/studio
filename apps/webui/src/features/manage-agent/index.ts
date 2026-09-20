@@ -1,4 +1,5 @@
 export type { AgentCapabilitiesDraft, AgentConfigResult } from './model/agent-config';
+export { runAgentCreateFlow } from './model/agent-create-flow';
 export {
   confirmDeleteAgent,
   confirmSwitchModel,

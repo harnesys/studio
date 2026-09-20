@@ -24,7 +24,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "dmg", "nsis", "appimage", "deb"],
     "createUpdaterArtifacts": true,
     "externalBin": [
       "binaries/harnesys-host"

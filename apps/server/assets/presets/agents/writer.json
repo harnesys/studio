@@ -10,6 +10,7 @@
   "capabilities": {
     "files": {},
     "fetch": {},
+    "web_search": {},
     "core": {}
   },
   "permissions": {
@@ -37,6 +38,7 @@
           "map",
           "read_file",
           "wait",
+          "web_search",
           "write_file",
           "load_tools",
           "load_skill",
@@ -85,6 +87,7 @@
     "map",
     "read_file",
     "wait",
+    "web_search",
     "write_file"
   ]
 }

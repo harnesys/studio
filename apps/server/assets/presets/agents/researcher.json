@@ -10,6 +10,7 @@
   "capabilities": {
     "files": {},
     "fetch": {},
+    "web_search": {},
     "plan": {},
     "agents": {},
     "threads": {},
@@ -65,6 +66,7 @@
           "recall_search",
           "thread_list",
           "wait",
+          "web_search",
           "write_file",
           "load_tools",
           "load_skill",
@@ -202,6 +204,7 @@
     "recall_search",
     "thread_list",
     "wait",
+    "web_search",
     "write_file"
   ]
 }

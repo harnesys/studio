@@ -54,10 +54,17 @@
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   font-size: 1.15rem;
   letter-spacing: -0.02em;
   text-decoration: none;
+}
+
+.brand-mark {
+  display: block;
 }
 
 .brand:hover {
@@ -543,6 +550,12 @@
   font-size: 0.9rem;
   color: var(--ink-3);
   max-width: 46ch;
+}
+
+.foot-copy {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-3);
 }
 
 .foot-nav {

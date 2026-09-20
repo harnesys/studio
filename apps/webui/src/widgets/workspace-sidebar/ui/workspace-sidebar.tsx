@@ -334,7 +334,7 @@ export function WorkspaceSidebar() {
               data-testid="app-logo"
               title="Harnesys"
             >
-              <AppLogo className="size-6" />
+              <AppLogo className="size-5.5" />
               <span className="flex items-center gap-1 font-medium text-sm tracking-tight group-data-[collapsible=icon]:hidden">
                 Harnesys
                 {meta ? (

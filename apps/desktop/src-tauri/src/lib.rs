@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, RunEvent, UserAttentionType, WindowEvent};
+use tauri::{AppHandle, Manager, RunEvent, Theme, UserAttentionType, WindowEvent};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
 
@@ -66,15 +66,27 @@ fn show_main(app: &AppHandle) {
     }
 }
 
+const TRAY_BLACK: &[u8] = include_bytes!("../icons/tray-black.png");
+const TRAY_WHITE: &[u8] = include_bytes!("../icons/tray-white.png");
+
+fn tray_icon(theme: Option<Theme>) -> tauri::image::Image<'static> {
+    let bytes = if matches!(theme, Some(Theme::Dark)) {
+        TRAY_WHITE
+    } else {
+        TRAY_BLACK
+    };
+    tauri::image::Image::from_bytes(bytes).expect("tray icon")
+}
+
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "Open Harnesys", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Harnesys", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &quit])?;
-    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))
-        .unwrap_or_else(|_| tauri::image::Image::new(&[0, 0, 0, 255], 1, 1));
-
-    let builder = TrayIconBuilder::new()
-        .icon(icon)
+    let theme = app
+        .get_webview_window("main")
+        .and_then(|w| w.theme().ok());
+    let builder = TrayIconBuilder::with_id("main")
+        .icon(tray_icon(theme))
         .tooltip("Harnesys")
         .menu(&menu)
         .show_menu_on_left_click(false);
@@ -108,12 +120,17 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .on_window_event(|window, event| {
-            // Close hides to tray; Quit lives in the tray menu.
-            if let WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            WindowEvent::ThemeChanged(theme) => {
+                if let Some(tray) = window.app_handle().tray_by_id("main") {
+                    let _ = tray.set_icon(Some(tray_icon(Some(theme.clone()))));
+                }
+            }
+            _ => {}
         })
         .setup(|app| {
             let handle = app.handle().clone();

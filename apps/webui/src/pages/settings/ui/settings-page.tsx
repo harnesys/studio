@@ -46,7 +46,7 @@ export function SettingsPage() {
           <SettingsNav active={active} onSelect={(next) => openSettings(next)} />
         </ScrollArea>
         <div className="flex items-center gap-2 border-t px-2 py-2">
-          <AppLogo className="size-6" />
+          <AppLogo className="size-5.5" />
           <span className="flex items-center gap-1 font-medium text-sm tracking-tight">
             Harnesys
             {appMeta ? (

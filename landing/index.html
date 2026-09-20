@@ -5,12 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Harnesys: self-hosted studio for AI agents</title>
   <meta name="description" content="Harnesys runs AI agents in your real folders: files, shell, git, web search, cron and webhook automations, memory and plugins, supervised from an IDE-style web interface. 100% self-hosted.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E8954A'/%3E%3Cpath d='M9 12h14M9 17h9M9 22h12' stroke='%231A1208' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <link rel="icon" type="image/png" href="public/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="public/favicon.svg" />
+  <link rel="shortcut icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="Harnesys" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,700;1,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/page.css">
+
   <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -22,7 +29,7 @@
 
 <header class="top">
   <div class="wrap top-in">
-    <a class="brand" href="#">Harnesys</a>
+    <a class="brand" href="#"><img class="brand-mark" src="public/icon.svg" alt="" width="26" height="26">Harnesys</a>
     <nav class="top-nav" aria-label="Main">
       <a href="#get">What you get</a>
       <a href="#agents">Agents</a>
@@ -323,11 +330,12 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
 <footer class="foot">
   <div class="wrap foot-in">
     <div>
-      <span class="brand">Harnesys</span>
+      <span class="brand"><img class="brand-mark" src="public/icon.svg" alt="" width="26" height="26">Harnesys</span>
       <p class="foot-note">
         Early software. The desktop build is not notarized, and the public API
         of the agent library can change between minor versions.
       </p>
+      <p class="foot-copy">&copy; 2026 Harnesys</p>
     </div>
     <nav class="foot-nav" aria-label="Footer">
       <a href="https://github.com/harnesys/studio">GitHub</a>

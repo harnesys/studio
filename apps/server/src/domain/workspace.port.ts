@@ -10,6 +10,7 @@ export type Workspace = {
   name: string;
   path: string;
   createdAt: string;
+  color: string | null;
 };
 export type WorkspaceInsert = {
   id: string;
@@ -20,6 +21,7 @@ export type WorkspaceInsert = {
 export type WorkspacePatch = {
   name?: string;
   path?: string;
+  color?: string | null;
 };
 export type WorkspaceRepository = {
   list(): Workspace[];

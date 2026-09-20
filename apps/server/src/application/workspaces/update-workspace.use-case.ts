@@ -6,6 +6,7 @@ export type UpdateWorkspaceRequest = {
   id: string;
   name?: string;
   path?: string;
+  color?: string | null;
 };
 export type UpdateWorkspaceInput = {
   execute(request: UpdateWorkspaceRequest): Promise<WorkspaceRecord>;
@@ -26,12 +27,16 @@ export class UpdateWorkspaceUseCase implements UpdateWorkspaceInput {
     if (request.path !== undefined && previousPath !== undefined && request.path !== previousPath) {
       await this.workspaceHarnesys?.forget(request.id);
     }
+    if (request.color !== undefined && this.workspaces.findById(request.id)) {
+      this.workspaces.update(request.id, { color: request.color });
+    }
     const row = this.workspaces.findById(updated.id);
     return {
       id: updated.id,
       name: updated.name,
       path: updated.path,
       createdAt: row?.createdAt ?? new Date(0).toISOString(),
+      color: row?.color ?? null,
       status: this.nodes.status(updated.id),
     };
   }

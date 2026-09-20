@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Controller, type UseFormReturn } from 'react-hook-form';
-import { AGENT_COLOR_CLASSES } from '@/entities/agent';
 import { providersQuery } from '@/shared/api';
-import { cn } from '@/shared/lib/utils';
+import { ColorSwatches } from '@/shared/ui/color-swatches';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
@@ -65,28 +64,11 @@ export function AgentIdentityPane({ form }: { form: AgentFieldsForm }) {
         render={({ field }) => (
           <Field className="shrink-0">
             <FieldLabel>Color</FieldLabel>
-            <div className="flex items-center gap-1.5 pt-0.5" data-testid="agent-color-picker">
-              {Object.keys(AGENT_COLOR_CLASSES).map((color) => {
-                const selected = field.value === color;
-                return (
-                  <button
-                    key={color}
-                    type="button"
-                    aria-pressed={selected}
-                    aria-label={`Color ${color}`}
-                    data-testid={`agent-color-${color}`}
-                    onClick={() => field.onChange(selected ? null : color)}
-                    className={cn(
-                      'size-4 rounded-full transition-opacity',
-                      AGENT_COLOR_CLASSES[color],
-                      selected
-                        ? 'opacity-100 ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
-                        : 'opacity-50 hover:opacity-100',
-                    )}
-                  />
-                );
-              })}
-            </div>
+            <ColorSwatches
+              value={field.value ?? null}
+              onChange={field.onChange}
+              testIdPrefix="agent-color"
+            />
           </Field>
         )}
       />

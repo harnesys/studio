@@ -287,12 +287,10 @@ export function AgentConfigDialog({
         onResolve?.(buildResult(values));
       })}
     >
-      <div className="flex min-h-0 min-w-0 flex-1 gap-4">
-        {category !== 'graph' || navOpen ? (
-          <AgentConfigCategoryNav {...categoryNavProps} className="pr-1" />
-        ) : null}
+      <div className="flex min-h-0 min-w-0 flex-1">
+        {category !== 'graph' || navOpen ? <AgentConfigCategoryNav {...categoryNavProps} /> : null}
 
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col px-3">
           {category === 'graph' ? (
             <GraphContentNavToggle open={navOpen} onToggle={() => setNavOpen((open) => !open)} />
           ) : null}

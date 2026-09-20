@@ -23,6 +23,7 @@ export type WorkspaceRecord = {
   name: string;
   path: string;
   createdAt: string;
+  color?: string | null;
   status?: HostNodeStatus;
 };
 export type IdeTabKind = 'thread' | 'file' | 'spawn' | 'diff' | 'schedule' | 'webhook' | 'terminal';

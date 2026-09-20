@@ -57,5 +57,6 @@ function toWorkspace(row: WorkspaceRow): Workspace {
     name: row.name,
     path: row.path,
     createdAt: row.createdAt,
+    color: row.color ?? null,
   };
 }

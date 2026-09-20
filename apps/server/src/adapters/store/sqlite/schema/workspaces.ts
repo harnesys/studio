@@ -6,6 +6,7 @@ export const workspacesTable = sqliteTable(
     name: text('name').notNull(),
     path: text('path').notNull(),
     createdAt: text('created_at').notNull(),
+    color: text('color'),
   },
   (table) => ({
     nameUnique: uniqueIndex('workspaces_name_unique').on(table.name),

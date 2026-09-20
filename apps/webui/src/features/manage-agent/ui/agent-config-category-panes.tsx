@@ -50,15 +50,13 @@ export function AgentConfigCategoryPanes({
   return (
     <div
       className={cn(
-        'flex min-h-0 min-w-0 flex-1 flex-col',
-        category === 'graph' || category === 'identity'
-          ? 'overflow-hidden'
-          : 'overflow-y-auto pr-1',
+        'flex min-h-0 min-w-0 flex-1 flex-col overflow-auto',
+        // category === 'graph' || category === 'identity' ? 'overflow-hidden' : 'pr-1',
       )}
     >
       <Pane
         sticky={false}
-        className={cn(category === 'identity' ? 'min-h-0 flex-1 pr-1' : 'hidden')}
+        className={cn(category === 'identity' ? 'min-h-0 flex-1' : 'hidden')}
         label="Identity"
         description="Name, role and system prompt of this agent."
       >

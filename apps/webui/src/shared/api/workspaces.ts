@@ -109,6 +109,7 @@ export function updateWorkspace(
   input: {
     name?: string;
     path?: string;
+    color?: string | null;
   },
 ) {
   return apiJson<WorkspaceRecord>(`/api/workspaces/${id}`, {

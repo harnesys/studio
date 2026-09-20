@@ -1,21 +1,3 @@
-export const AGENT_COLOR_CLASSES: Record<string, string> = {
-  red: 'bg-red-500',
-  orange: 'bg-orange-500',
-  yellow: 'bg-yellow-500',
-  green: 'bg-green-500',
-  blue: 'bg-blue-500',
-  purple: 'bg-purple-500',
-  magenta: 'bg-fuchsia-500',
-  cyan: 'bg-cyan-500',
-  pink: 'bg-pink-500',
-};
-const NEUTRAL_COLOR_CLASS = 'bg-muted-foreground/40';
-export function agentColorClass(color: string | null): string {
-  if (color === null) {
-    return NEUTRAL_COLOR_CLASS;
-  }
-  return AGENT_COLOR_CLASSES[color] ?? NEUTRAL_COLOR_CLASS;
-}
 export const AGENT_COLOR_TINT_CLASSES: Record<string, string> = {
   red: 'bg-red-500/12 text-red-600 dark:text-red-400',
   orange: 'bg-orange-500/12 text-orange-600 dark:text-orange-400',

@@ -10,6 +10,7 @@ export const createWorkspaceBody = z
 export const updateWorkspaceBody = z.object({
   name: z.string().trim().nullish(),
   path: z.string().trim().nullish(),
+  color: z.string().trim().min(1).max(32).nullish(),
 });
 export const createWorkspaceFileBody = z.object({
   path: z.string().trim().min(1),

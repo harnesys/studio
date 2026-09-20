@@ -105,6 +105,7 @@ export class WorkspaceController {
         id: c.req.param('id'),
         name: body.name ?? undefined,
         path: body.path ?? undefined,
+        ...(body.color !== undefined ? { color: body.color } : {}),
       });
       return c.json(workspace);
     });

@@ -1,3 +1,6 @@
+import { entityColorClass } from '@/shared/lib/entity-colors';
+import type { Workspace } from './workspace';
+
 const WORKSPACE_AVATAR_CLASSES = [
   'bg-lime-800',
   'bg-blue-700',
@@ -13,10 +16,13 @@ export function workspaceInitial(name: string): string {
   }
   return trimmed.slice(0, 1).toUpperCase();
 }
-export function workspaceAvatarClass(id: string): string {
+export function workspaceAvatarClass(workspace: Workspace): string {
+  if (workspace.color) {
+    return entityColorClass(workspace.color);
+  }
   let hash = 0;
-  for (let i = 0; i < id.length; i += 1) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < workspace.id.length; i += 1) {
+    hash = (hash * 31 + workspace.id.charCodeAt(i)) >>> 0;
   }
   const index = hash % WORKSPACE_AVATAR_CLASSES.length;
   return WORKSPACE_AVATAR_CLASSES[index] ?? WORKSPACE_AVATAR_CLASSES[0];

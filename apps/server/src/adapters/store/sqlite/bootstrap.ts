@@ -349,6 +349,9 @@ export function bootstrap(db: StudioDb): void {
   try {
     db.run(sql.raw('ALTER TABLE agents ADD COLUMN color text;'));
   } catch {}
+  try {
+    db.run(sql.raw('ALTER TABLE workspaces ADD COLUMN color text;'));
+  } catch {}
   migrateCapabilityCore(db);
   try {
     db.run(

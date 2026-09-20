@@ -1,4 +1,4 @@
-import { CogIcon, EllipsisVerticalIcon, FolderPlusIcon, PlusIcon } from 'lucide-react';
+import { CogIcon, EllipsisVerticalIcon, FolderPlusIcon, PinIcon, PlusIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useWorkspaces, workspaceAvatarClass, workspaceInitial } from '@/entities/workspace';
@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { Switch } from '@/shared/ui/switch';
 export function WorkspaceHeader() {
   const navigate = useNavigate();
   const workspacesQuery = useWorkspaces();
@@ -135,7 +136,7 @@ export function WorkspaceHeader() {
                 <span
                   className={cn(
                     'flex size-6 shrink-0 items-center justify-center rounded-md font-medium text-[10px] text-white',
-                    workspaceAvatarClass(item.id),
+                    workspaceAvatarClass(item),
                   )}
                 >
                   {workspaceInitial(item.name)}
@@ -152,6 +153,16 @@ export function WorkspaceHeader() {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  onClick={() => {
+                    onToggle(item.id);
+                  }}
+                >
+                  <PinIcon className="size-3.5" />
+                  Pin on desk
+                  <Switch checked className="pointer-events-none ml-auto" size="sm" />
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
                   className="flex items-center"
                   onClick={() => {
                     void openWorkspaceSettingsDialog(item.id);
@@ -159,13 +170,6 @@ export function WorkspaceHeader() {
                 >
                   <CogIcon className="relative -top-px size-3.5" />
                   Settings…
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    onToggle(item.id);
-                  }}
-                >
-                  Remove from desk
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -190,7 +194,7 @@ export function WorkspaceHeader() {
             <span
               className={cn(
                 'flex size-6 shrink-0 items-center justify-center rounded-md font-medium text-[10px] text-white opacity-50',
-                workspaceAvatarClass(item.id),
+                workspaceAvatarClass(item),
               )}
             >
               {workspaceInitial(item.name)}
@@ -249,7 +253,7 @@ export function WorkspaceHeader() {
                       <span
                         className={cn(
                           'flex size-5 items-center justify-center rounded-sm font-medium text-[9px] text-white',
-                          workspaceAvatarClass(item.id),
+                          workspaceAvatarClass(item),
                         )}
                       >
                         {workspaceInitial(item.name)}
@@ -275,7 +279,7 @@ export function WorkspaceHeader() {
                       <span
                         className={cn(
                           'flex size-5 items-center justify-center rounded-sm font-medium text-[9px] text-white',
-                          workspaceAvatarClass(item.id),
+                          workspaceAvatarClass(item),
                         )}
                       >
                         {workspaceInitial(item.name)}

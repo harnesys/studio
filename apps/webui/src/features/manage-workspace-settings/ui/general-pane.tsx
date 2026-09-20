@@ -13,6 +13,7 @@ import { useWorkspaceTabsStore } from '@/features/desk';
 import { navigateAfterPark } from '@/features/ide';
 import { alert } from '@/shared/services/overlay';
 import { Button } from '@/shared/ui/button';
+import { ColorSwatches } from '@/shared/ui/color-swatches';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
 import { Input } from '@/shared/ui/input';
 import { toast } from '@/shared/ui/toast';
@@ -42,10 +43,14 @@ export function GeneralPane({
 function GeneralSection({ workspace }: { workspace: Workspace }) {
   const [name, setName] = useState(workspace.name);
   const [path, setPath] = useState(workspace.path);
+  const [color, setColor] = useState<string | null>(workspace.color ?? null);
   const update = useUpdateWorkspace();
   const pick = usePickWorkspaceFolder();
   const invalid = name.trim().length === 0 || path.trim().length === 0;
-  const dirty = name.trim() !== workspace.name || path.trim() !== workspace.path;
+  const dirty =
+    name.trim() !== workspace.name ||
+    path.trim() !== workspace.path ||
+    color !== (workspace.color ?? null);
   const busy = update.isPending || pick.isPending;
   const save = () => {
     void update
@@ -53,10 +58,12 @@ function GeneralSection({ workspace }: { workspace: Workspace }) {
         id: workspace.id,
         name: name.trim(),
         path: path.trim(),
+        color,
       })
       .then((next) => {
         setName(next.name);
         setPath(next.path);
+        setColor(next.color ?? null);
         toast.add({ title: 'Workspace saved' });
       })
       .catch((error: unknown) => {
@@ -84,6 +91,10 @@ function GeneralSection({ workspace }: { workspace: Workspace }) {
           });
         }}
       />
+      <Field>
+        <FieldLabel>Color</FieldLabel>
+        <ColorSwatches value={color} onChange={setColor} testIdPrefix="workspace-color" />
+      </Field>
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="workspace-id">Id</FieldLabel>

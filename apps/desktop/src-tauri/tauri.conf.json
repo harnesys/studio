@@ -30,7 +30,7 @@
       "binaries/harnesys-host"
     ],
     "resources": {
-      "../../server/assets/**/*": "assets/"
+      "../../server/assets": "assets"
     },
     "icon": [
       "icons/32x32.png",

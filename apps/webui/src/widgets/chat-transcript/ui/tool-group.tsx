@@ -74,7 +74,13 @@ function CollapsedGroup({
 }) {
   const spawns = useFeedSpawns(threadId ?? null);
   const summary = summarizeActivity(chunks, spawns);
-  const hint = summary.parts.slice(0, HINT_PARTS).join(' · ');
+  const lastPart = summary.last
+    ? `last: ${[summary.last.title, summary.last.hint].filter(Boolean).join(' · ')}`
+    : null;
+  const shownParts = lastPart
+    ? [...summary.parts.slice(0, HINT_PARTS), lastPart]
+    : summary.parts.slice(0, HINT_PARTS);
+  const hint = shownParts.length > 0 ? shownParts.join(' · ') : null;
   const extra = summary.parts.length > HINT_PARTS ? ` +${summary.parts.length - HINT_PARTS}` : null;
   const badges: ActivityBadge[] =
     summary.failed > 0 ? [{ text: `${summary.failed} failed`, tone: 'destructive' }] : [];

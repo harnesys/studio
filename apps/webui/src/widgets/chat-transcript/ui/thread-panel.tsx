@@ -1,5 +1,5 @@
 import { ArrowDownIcon } from 'lucide-react';
-import { useCallback, useEffect } from 'react';
+import { Fragment, useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
 import {
@@ -27,14 +27,17 @@ import {
   useMessageScrollerScrollable,
 } from '@/shared/ui/message-scroller';
 import { useSyncedThread } from '../model/thread-sync';
+import { saveViewedCount, useUnseenBoundary } from '../model/unseen-boundary';
 import { useUnseenCount } from '../model/use-unseen-count';
 import { FailedMessageView } from './agent-turn';
 import type { BranchChild } from './branch-point-badge';
 import { ChatSkeleton } from './chat-skeleton';
 import { CompactionPendingCard } from './compaction-card';
 import { ForkSeparator } from './fork-separator';
+import { LiveStatusBar } from './live-status-bar';
 import { RunTurn } from './run-turn';
 import { ThreadEmpty } from './thread-empty';
+import { UnseenSeparator } from './unseen-separator';
 
 const EMPTY_FAILURES: RunFailure[] = [];
 const EMPTY_RUNS: FeedRun[] = [];
@@ -92,6 +95,7 @@ export function ThreadPanel({
   const compacting = useCompactingStore((state) => active && Boolean(state.byThread[threadId]));
   const feedFollow = useChatPreferences((state) => state.feedFollow);
   const synced = useSyncedThread(active ? threadId : null, agent.workspaceId);
+  const unseenBoundary = useUnseenBoundary(threadId, active, Boolean(thread?.unread), eventsCount);
   const failures = useSessionStore(
     useShallow((state) => {
       if (!active) {
@@ -123,6 +127,9 @@ export function ThreadPanel({
   }
   const compactLive = compacting && ownRuns.some(isCompactRun);
   const showFork = Boolean(thread?.parentThreadId) && inheritedRuns.length > 0;
+  const unseenRunIndex =
+    unseenBoundary === null ? -1 : ownRuns.findIndex((run) => run.firstIndex >= unseenBoundary);
+  const anchorAtUnseen = unseenRunIndex >= 0;
   return (
     <MessageScrollerProvider
       autoScroll={true}
@@ -165,25 +172,33 @@ export function ThreadPanel({
                 (streaming && last && !compacting) || (compacting && last && isCompactRun(run));
               const forkAt = run.runId ?? run.id ?? '';
               return (
-                <MessageScrollerItem
-                  key={run.key}
-                  messageId={run.key}
-                  scrollAnchor={feedFollow === 'anchor' && run.events[0]?.type === 'user'}
-                >
-                  <RunTurn
-                    run={run}
-                    runId={forkAt}
-                    threadId={threadId}
-                    onOpenSpawn={onOpenSpawn}
-                    streaming={runStreaming}
-                    branchChildren={branchChildrenByRun[forkAt]}
-                    onRetry={
-                      run.runId && last && !streaming && !compacting
-                        ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
-                        : undefined
+                <Fragment key={run.key}>
+                  {index === unseenRunIndex ? (
+                    <MessageScrollerItem messageId="unseen-separator" scrollAnchor={anchorAtUnseen}>
+                      <UnseenSeparator />
+                    </MessageScrollerItem>
+                  ) : null}
+                  <MessageScrollerItem
+                    messageId={run.key}
+                    scrollAnchor={
+                      !anchorAtUnseen && feedFollow === 'anchor' && run.events[0]?.type === 'user'
                     }
-                  />
-                </MessageScrollerItem>
+                  >
+                    <RunTurn
+                      run={run}
+                      runId={forkAt}
+                      threadId={threadId}
+                      onOpenSpawn={onOpenSpawn}
+                      streaming={runStreaming}
+                      branchChildren={branchChildrenByRun[forkAt]}
+                      onRetry={
+                        run.runId && last && !streaming && !compacting
+                          ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})
+                          : undefined
+                      }
+                    />
+                  </MessageScrollerItem>
+                </Fragment>
               );
             })}
             {failures.map((failure) => (
@@ -200,6 +215,9 @@ export function ThreadPanel({
           </MessageScrollerContent>
         </MessageScrollerViewport>
         {active ? <LiveEdgeControls threadId={threadId} /> : null}
+        {active && streaming && ownRuns.length > 0 ? (
+          <LiveStatusBar threadId={threadId} run={ownRuns[ownRuns.length - 1]} streaming />
+        ) : null}
         {active ? <ThreadReadSync threadId={threadId} /> : null}
       </MessageScroller>
     </MessageScrollerProvider>
@@ -241,6 +259,7 @@ function ThreadReadSync({ threadId }: { threadId: string }) {
     useThreadStore.getState().setViewingAtEnd(threadId, viewingAtEnd);
     if (viewingAtEnd && contentEpoch >= 0) {
       scheduleMarkThreadRead(threadId);
+      saveViewedCount(threadId, useSessionStore.getState().events[threadId]?.length ?? 0);
     }
   }, [threadId, viewingAtEnd, contentEpoch]);
   useEffect(() => {

@@ -1,5 +1,5 @@
 import type { GroupFeedChunk, SpawnInfo, ToolEventPair } from '@/entities/session';
-import { toolCaption } from './tool-caption';
+import { type ToolCaption, toolCaption } from './tool-caption';
 
 export type ToolRunSummary = {
   total: number;
@@ -26,6 +26,7 @@ export type ActivitySummary = {
   label: string;
   parts: string[];
   failed: number;
+  last: ToolCaption | null;
 };
 export function summarizeActivity(chunks: GroupFeedChunk[], spawns: SpawnInfo[]): ActivitySummary {
   const pairs: ToolEventPair[] = [];
@@ -52,9 +53,11 @@ export function summarizeActivity(chunks: GroupFeedChunk[], spawns: SpawnInfo[])
   if (labels.length === 0) {
     labels.push('activity');
   }
+  const lastPair = pairs.at(-1) ?? null;
   return {
     label: labels.join(' · '),
     parts: summary.parts,
     failed: summary.failed + agentsFailed,
+    last: lastPair ? toolCaption(lastPair.call, lastPair.result) : null,
   };
 }

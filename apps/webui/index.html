@@ -84,13 +84,21 @@
       }
       @keyframes app-splash-bracket-left {
         0% {
-          transform: translateX(-200px);
+          transform: translateX(0);
+          animation-timing-function: ease-in-out;
         }
-        62% {
+        45% {
+          transform: translateX(-64px);
+          animation-timing-function: cubic-bezier(0.3, 0.7, 0.4, 1);
+        }
+        60% {
           transform: translateX(12px);
         }
-        80% {
+        74% {
           transform: translateX(-5px);
+        }
+        84% {
+          transform: translateX(0);
         }
         100% {
           transform: translateX(0);
@@ -98,31 +106,41 @@
       }
       @keyframes app-splash-bracket-right {
         0% {
-          transform: translateX(200px);
+          transform: translateX(0);
+          animation-timing-function: ease-in-out;
         }
-        62% {
+        45% {
+          transform: translateX(64px);
+          animation-timing-function: cubic-bezier(0.3, 0.7, 0.4, 1);
+        }
+        60% {
           transform: translateX(-12px);
         }
-        80% {
+        74% {
           transform: translateX(5px);
+        }
+        84% {
+          transform: translateX(0);
         }
         100% {
           transform: translateX(0);
         }
       }
       #app-splash .bracket-left {
-        animation: app-splash-bracket-left 0.85s cubic-bezier(0.3, 0.7, 0.4, 1);
+        animation: app-splash-bracket-left 1.2s 200ms;
       }
       #app-splash .bracket-right {
-        animation: app-splash-bracket-right 0.85s cubic-bezier(0.3, 0.7, 0.4, 1);
+        animation: app-splash-bracket-right 1.2s 200ms;
       }
       @keyframes app-splash-core-pulse {
-        0% {
+        0%,
+        45% {
           transform: scale(1);
         }
-        45% {
+        58% {
           transform: scale(1.4);
         }
+        84%,
         100% {
           transform: scale(1);
         }
@@ -130,7 +148,7 @@
       #app-splash .core {
         transform-box: fill-box;
         transform-origin: center;
-        animation: app-splash-core-pulse 0.55s cubic-bezier(0.3, 0.7, 0.4, 1);
+        animation: app-splash-core-pulse 1.2s 200ms;
       }
       @media (prefers-reduced-motion: reduce) {
         #app-splash::before,

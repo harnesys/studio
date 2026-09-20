@@ -7,13 +7,13 @@ import { QueryProvider } from './query-provider';
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider defaultTheme="dark">
-      <HostAuthBootstrap>
-        <QueryProvider>
+      <QueryProvider>
+        <HostAuthBootstrap>
           <TooltipProvider>
             <Toaster>{children}</Toaster>
           </TooltipProvider>
-        </QueryProvider>
-      </HostAuthBootstrap>
+        </HostAuthBootstrap>
+      </QueryProvider>
     </ThemeProvider>
   );
 }

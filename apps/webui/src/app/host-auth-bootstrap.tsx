@@ -1,12 +1,16 @@
+import { useIsFetching } from '@tanstack/react-query';
 import { type ReactNode, useEffect, useState } from 'react';
 import { ensureHostCredential } from '@/shared/api/host-credential';
 
-const SPLASH_MIN_MS = 2000;
+const SPLASH_MIN_MS = 1000;
+const SPLASH_IDLE_MS = 500;
+const SPLASH_FADE_MS = 400;
 const splashShownAt = performance.now();
 
 export function HostAuthBootstrap({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fetching = useIsFetching();
   useEffect(() => {
     let cancelled = false;
     void ensureHostCredential()
@@ -32,13 +36,17 @@ export function HostAuthBootstrap({ children }: { children: ReactNode }) {
     if (!splash) {
       return;
     }
-    const remaining = Math.max(0, SPLASH_MIN_MS - (performance.now() - splashShownAt));
+    if (!error && fetching > 0) {
+      return;
+    }
+    const minLeft = SPLASH_MIN_MS - (performance.now() - splashShownAt);
+    const delay = Math.max(minLeft, SPLASH_IDLE_MS);
     const timer = window.setTimeout(() => {
       splash.classList.add('is-done');
-      window.setTimeout(() => splash.remove(), 260);
-    }, remaining);
+      window.setTimeout(() => splash.remove(), SPLASH_FADE_MS);
+    }, delay);
     return () => window.clearTimeout(timer);
-  }, [ready, error]);
+  }, [ready, error, fetching]);
   if (error) {
     return (
       <div style={{ padding: 24, fontFamily: 'system-ui' }}>

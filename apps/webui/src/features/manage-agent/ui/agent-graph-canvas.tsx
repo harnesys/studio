@@ -4,12 +4,12 @@ import {
   applyNodeChanges,
   Background,
   type Connection,
-  Controls,
   type EdgeChange,
   type NodeChange,
   ReactFlow,
   useReactFlow,
 } from '@xyflow/react';
+import { Maximize2Icon, MinusIcon, PlusIcon } from 'lucide-react';
 import { useCallback } from 'react';
 import { Button } from '@/shared/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
@@ -50,7 +50,7 @@ export function AgentGraphCanvas({
   onDropType,
   onSelectionChange,
 }: AgentGraphCanvasProps) {
-  const { screenToFlowPosition, fitView } = useReactFlow();
+  const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow();
   const handleNodesChange = useCallback(
     (changes: NodeChange<AgentGraphFlowNode>[]) => {
       onNodesChange(applyNodeChanges(changes, nodes));
@@ -133,6 +133,39 @@ export function AgentGraphCanvas({
   return (
     <div className="agent-graph-flow absolute inset-0 min-h-0 min-w-0">
       <div className="pointer-events-auto absolute right-2 bottom-2 z-20 flex items-center gap-1.5">
+        <Button
+          type="button"
+          size="xs"
+          variant="outline"
+          className="h-6"
+          onClick={() => {
+            void zoomOut({ duration: 200 });
+          }}
+        >
+          <MinusIcon />
+        </Button>
+        <Button
+          type="button"
+          size="xs"
+          variant="outline"
+          className="h-6"
+          onClick={() => {
+            void zoomIn({ duration: 200 });
+          }}
+        >
+          <PlusIcon />
+        </Button>
+        <Button
+          type="button"
+          size="xs"
+          variant="outline"
+          className="h-6"
+          onClick={() => {
+            void fitView({ padding: 0.2, duration: 200 });
+          }}
+        >
+          <Maximize2Icon />
+        </Button>
         <Button type="button" size="xs" variant="outline" className="h-6" onClick={runAutoLayout}>
           Auto
         </Button>
@@ -192,7 +225,6 @@ export function AgentGraphCanvas({
         }}
       >
         <Background gap={16} size={1} />
-        <Controls showInteractive={false} showFitView />
       </ReactFlow>
     </div>
   );

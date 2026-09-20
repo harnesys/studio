@@ -1,31 +1,3 @@
-.agent-graph-flow .react-flow__controls {
-  left: 0.5rem;
-  bottom: 0.5rem;
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: none;
-  background: color-mix(in oklab, var(--popover) 95%, transparent);
-}
-
-.agent-graph-flow .react-flow__controls-button {
-  width: 22px;
-  height: 22px;
-  border-bottom: 1px solid var(--border);
-  background: var(--popover);
-  fill: var(--muted-foreground);
-}
-
-.agent-graph-flow .react-flow__controls-button:hover {
-  background: var(--sidebar-accent);
-}
-
-.agent-graph-flow .react-flow__controls-button svg {
-  max-width: 12px;
-  max-height: 12px;
-}
-
 .agent-graph-flow .react-flow__edge-path {
   stroke: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
 }

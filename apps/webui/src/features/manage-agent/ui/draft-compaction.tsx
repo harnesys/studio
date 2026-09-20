@@ -154,7 +154,7 @@ export function DraftCompaction({
         )}
         <Field
           orientation="horizontal"
-          className="items-center justify-between gap-4 rounded-lg border px-3 py-2"
+          className="mt-2 items-center justify-between gap-4 rounded-lg border px-3 py-2"
         >
           <div className="flex min-w-0 flex-col gap-0.5">
             <FieldLabel htmlFor="draft-compaction-auto" className="font-normal text-sm">

@@ -153,7 +153,7 @@ function InlineThreadRow({
       className={cn(
         'group/ithread relative flex items-center rounded-md transition-colors hover:bg-sidebar-accent/70',
         selected && 'bg-sidebar-accent/70 text-sidebar-accent-foreground',
-        'group-data-[collapsible=icon]:justify-center',
+        'group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center',
       )}
       data-testid={`agent-thread-${thread.id}`}
       data-selected={selected ? 'true' : 'false'}
@@ -163,13 +163,13 @@ function InlineThreadRow({
           render={
             <button
               type="button"
-              className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded-md pr-2 pl-2 text-left opacity-75 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pr-0"
+              className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded-md pr-2 pl-2 text-left group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
               onClick={onSelect}
             />
           }
         >
-          <span className="inline-flex size-3 shrink-0 items-center justify-center text-muted-foreground">
-            <MessageCircle className="size-3" />
+          <span className="inline-flex size-3 shrink-0 items-center justify-center text-muted-foreground group-data-[collapsible=icon]:size-4 group-data-[collapsible=icon]:text-sidebar-foreground/80">
+            <MessageCircle className="size-3 group-data-[collapsible=icon]:size-4" />
           </span>
           {thread.pinned ? (
             <PinIcon className="size-2.5 shrink-0 text-muted-foreground" aria-hidden />

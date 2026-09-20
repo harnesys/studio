@@ -91,7 +91,7 @@ export function AgentsSection({
     });
   };
   return (
-    <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
+    <div className="flex flex-col gap-1 group-data-[collapsible=icon]:items-center">
       {groups.map((group) => (
         <div key={group.workspace.id}>
           <WorkspaceGroupLabel

@@ -40,6 +40,7 @@ function changelog(): string {
             .filter((line) => line !== '' && !line.startsWith('- release v'));
         body += `${commits.join('\n')}\n`;
     }
+    body += '\nOther improvements to the stability and security of the app.\n';
     return body;
 }
 

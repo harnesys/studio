@@ -262,10 +262,6 @@ export function ChatComposer() {
           <Kbd>#</Kbd>
           <span>attachments</span>
         </span>
-        <span className="inline-flex items-center gap-1">
-          <Kbd>@</Kbd>
-          <span>agent mention</span>
-        </span>
       </div>
     </div>
   );

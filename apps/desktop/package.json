@@ -1,7 +1,7 @@
 {
   "name": "@harnesys/desktop",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Harnesys desktop: Tauri shell around @harnesys/webui",
   "type": "module",
   "scripts": {

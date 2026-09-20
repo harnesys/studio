@@ -6,6 +6,7 @@ import {
   installUpdate,
   readAutoUpdatePreference,
   relaunchApp,
+  stopHost,
   writeAutoUpdatePreference,
 } from './app-update';
 
@@ -77,6 +78,7 @@ export const useAppUpdateStore = create<AppUpdateState>((set, get) => ({
     }
     set({ status: 'downloading', progress: 0, error: null });
     try {
+      await stopHost();
       await installUpdate(update, (downloaded, total) => {
         set({ progress: total ? downloaded / total : null });
       });

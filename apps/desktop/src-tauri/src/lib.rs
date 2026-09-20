@@ -58,6 +58,14 @@ fn wait_host(timeout_ms: u64) -> bool {
     host_alive()
 }
 
+/// Kill the host sidecar so the updater can replace its binary (Windows NSIS).
+#[tauri::command]
+fn stop_host(app: AppHandle) {
+    if let Some(child) = app.state::<HostProcess>().0.lock().unwrap().take() {
+        let _ = child.kill();
+    }
+}
+
 fn show_main(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
@@ -120,6 +128,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .invoke_handler(tauri::generate_handler![stop_host])
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();

@@ -1,5 +1,5 @@
 import { getVersion } from '@tauri-apps/api/app';
-import { isTauri } from '@tauri-apps/api/core';
+import { invoke, isTauri } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { relaunch } from '@tauri-apps/plugin-process';
 import type { Update } from '@tauri-apps/plugin-updater';
@@ -53,6 +53,17 @@ export async function desktopVersion(): Promise<string | null> {
 
 export function fetchUpdate(): Promise<Update | null> {
   return check();
+}
+
+export async function stopHost(): Promise<void> {
+  if (!isDesktop()) {
+    return;
+  }
+  try {
+    await invoke('stop_host');
+  } catch {
+    return;
+  }
 }
 
 export async function installUpdate(

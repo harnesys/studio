@@ -82,7 +82,7 @@ export function UpdatePane() {
           <div className="flex flex-col gap-1">
             <FieldLabel htmlFor="auto-update">Auto update</FieldLabel>
             <FieldDescription>
-              Download updates in the background. Applied on restart.
+              Check for updates on startup. Installing always asks first.
             </FieldDescription>
           </div>
           <Switch

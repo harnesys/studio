@@ -27,6 +27,7 @@ const DEFAULT_COLLAPSED: Record<string, boolean> = {
   terminal: true,
 };
 const DEFAULT_ORDER: string[] = ['agents', 'explorer', 'automations', 'git', 'terminal'];
+const ALL_SECTION_IDS: string[] = ['inbox', ...DEFAULT_ORDER];
 function isValidSize(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
@@ -76,7 +77,7 @@ function sanitizeOrder(input: string[] | undefined): string[] {
 }
 function sanitizeHidden(input: Record<string, boolean> | undefined): Record<string, boolean> {
   const next: Record<string, boolean> = {};
-  for (const id of DEFAULT_ORDER) {
+  for (const id of ALL_SECTION_IDS) {
     next[id] = Boolean(input?.[id]);
   }
   return next;
@@ -172,7 +173,7 @@ export const useAccordionStore = create<AccordionState>((set) => {
     },
     setVisibility: (id, visible) => {
       const state = useAccordionStore.getState();
-      if (!DEFAULT_ORDER.includes(id)) {
+      if (!ALL_SECTION_IDS.includes(id)) {
         return;
       }
       const hidden = { ...state.hidden, [id]: !visible };

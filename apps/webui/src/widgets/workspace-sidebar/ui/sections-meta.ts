@@ -1,12 +1,13 @@
 import {
   FolderTreeIcon,
   GitBranchIcon,
+  InboxIcon,
   type LucideIcon,
   SparkleIcon,
   SquareTerminalIcon,
   ZapIcon,
 } from 'lucide-react';
-export type SidebarSectionId = 'agents' | 'explorer' | 'automations' | 'git' | 'terminal';
+export type SidebarSectionId = 'inbox' | 'agents' | 'explorer' | 'automations' | 'git' | 'terminal';
 export const SECTION_META: Record<
   SidebarSectionId,
   {
@@ -14,6 +15,7 @@ export const SECTION_META: Record<
     icon: LucideIcon;
   }
 > = {
+  inbox: { label: 'Inbox', icon: InboxIcon },
   agents: { label: 'Agents', icon: SparkleIcon },
   explorer: { label: 'Explorer', icon: FolderTreeIcon },
   automations: { label: 'Automations', icon: ZapIcon },

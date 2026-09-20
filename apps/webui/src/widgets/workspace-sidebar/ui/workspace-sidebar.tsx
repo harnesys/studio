@@ -42,6 +42,8 @@ import { SECTION_META, type SidebarSectionId } from './sections-meta';
 import { SidebarSectionsConfig } from './sidebar-sections-config';
 import { TerminalSection, TerminalSectionActions } from './terminal-section';
 import { WorkspaceHeader } from './workspace-header';
+
+type OrderedSectionId = Exclude<SidebarSectionId, 'inbox'>;
 export function WorkspaceSidebar() {
   const { data: meta } = useQuery(appMetaQuery);
   const focus = useStudioLocation();
@@ -70,10 +72,11 @@ export function WorkspaceSidebar() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragPair, setDragPair] = useState<string | null>(null);
   const { draggingId, dropHintFor, headerProps } = useSectionDnd();
-  const visibleSections = order.filter((id): id is SidebarSectionId => !hidden[id]);
+  const visibleSections = order.filter((id): id is OrderedSectionId => !hidden[id]);
   const expanded = visibleSections.filter((id) => !(collapsed[id] ?? false));
-  const inboxCollapsed = collapsed.inbox ?? false;
-  const expandedWithInbox = inboxCollapsed ? expanded : ['inbox', ...expanded];
+  const inboxVisible = !hidden.inbox;
+  const inboxExpanded = inboxVisible && !(collapsed.inbox ?? false);
+  const expandedWithInbox = inboxExpanded ? ['inbox', ...expanded] : expanded;
   const shares = normalizeShares(expandedWithInbox, sizes);
   const resizePairs: {
     upper: string;
@@ -87,7 +90,7 @@ export function WorkspaceSidebar() {
     lastExpanded = id;
   }
   const pairBefore = (id: string) => resizePairs.find((pair) => pair.lower === id) ?? null;
-  const resizeNode = (id: SidebarSectionId) => {
+  const resizeNode = (id: OrderedSectionId) => {
     const pair = pairBefore(id);
     if (!pair) {
       return null;
@@ -136,7 +139,7 @@ export function WorkspaceSidebar() {
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
-  const renderSection = (id: SidebarSectionId) => {
+  const renderSection = (id: OrderedSectionId) => {
     const Icon = SECTION_META[id].icon;
     const drag = {
       headerDragProps: headerProps(id),
@@ -298,23 +301,25 @@ export function WorkspaceSidebar() {
 
       <SidebarContent className="gap-1 group-data-[collapsible=icon]:overflow-y-auto">
         <div ref={containerRef} className="flex min-h-0 flex-auto flex-col gap-1 px-2 pb-2">
-          <AccordionSection
-            id="inbox"
-            icon={<InboxIcon />}
-            title="Inbox"
-            count={inboxThreads.length}
-            size={shares.inbox ?? 1}
-          >
-            <InboxSection
-              workspaceIds={workspaceIds}
-              threads={inboxThreads}
-              activeThreadId={activeThreadId}
-              onSelectDone={() => setOpenMobile(false)}
-            />
-          </AccordionSection>
+          {inboxVisible ? (
+            <AccordionSection
+              id="inbox"
+              icon={<InboxIcon />}
+              title="Inbox"
+              count={inboxThreads.length}
+              size={shares.inbox ?? 1}
+            >
+              <InboxSection
+                workspaceIds={workspaceIds}
+                threads={inboxThreads}
+                activeThreadId={activeThreadId}
+                onSelectDone={() => setOpenMobile(false)}
+              />
+            </AccordionSection>
+          ) : null}
           {visibleSections.map((id, index) => (
             <Fragment key={id}>
-              {index > 0 || !inboxCollapsed ? resizeNode(id) : null}
+              {index > 0 || inboxExpanded ? resizeNode(id) : null}
               {renderSection(id)}
             </Fragment>
           ))}

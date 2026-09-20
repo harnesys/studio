@@ -38,7 +38,7 @@ export function SidebarSectionsConfig() {
       <DropdownMenuContent align="end" side="top" className="min-w-44">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Sections</DropdownMenuLabel>
-          {order.map((id) => {
+          {['inbox', ...order].map((id) => {
             const meta = SECTION_META[id as SidebarSectionId];
             if (!meta) {
               return null;

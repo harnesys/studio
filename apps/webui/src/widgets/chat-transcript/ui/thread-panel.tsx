@@ -16,6 +16,7 @@ import { useOpenSpawnTab } from '@/features/ide';
 import { retryRun } from '@/features/send-message';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { prefersReducedMotion } from '@/shared/lib/motion';
+import { LiveRunScrollGuard } from '@/shared/ui/live-run-scroll-guard';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -195,6 +196,7 @@ export function ThreadPanel({
                 <CompactionPendingCard />
               </MessageScrollerItem>
             ) : null}
+            <LiveRunScrollGuard active={streaming || compacting} />
           </MessageScrollerContent>
         </MessageScrollerViewport>
         {active ? <LiveEdgeControls threadId={threadId} /> : null}

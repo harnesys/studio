@@ -8,6 +8,7 @@ import { useCompactingStore } from '@/features/compact-thread';
 import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
 import { retryRun } from '@/features/send-message';
 import { prefersReducedMotion } from '@/shared/lib/motion';
+import { LiveRunScrollGuard } from '@/shared/ui/live-run-scroll-guard';
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -100,6 +101,7 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
                   <CompactionPendingCard />
                 </MessageScrollerItem>
               ) : null}
+              <LiveRunScrollGuard active={streaming || compacting} />
             </MessageScrollerContent>
           </MessageScrollerViewport>
           <MessageScrollerButton behavior={prefersReducedMotion() ? 'auto' : 'smooth'} />

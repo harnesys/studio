@@ -42,7 +42,7 @@ export function ActivityLine({
     <Collapsible open={collapsible ? open : false} onOpenChange={setManual}>
       <div
         ref={headerRef}
-        className="flex min-h-6 w-full min-w-0 items-center gap-2 text-[13px] leading-none opacity-80"
+        className="flex min-h-6 w-full min-w-0 items-center gap-2 text-[13px] leading-none opacity-60"
       >
         <CollapsibleTrigger
           disabled={!collapsible}

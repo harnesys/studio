@@ -55,7 +55,7 @@ function targetPlatform(rustTarget: string | undefined): TargetPlatform {
 
 function bundlesFor(platform: TargetPlatform): string[] {
     if (platform === 'darwin') {
-        return ['dmg'];
+        return ['dmg', 'app'];
     }
     if (platform === 'windows') {
         return ['nsis'];

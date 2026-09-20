@@ -15,6 +15,7 @@ import { SettingsNav } from '@/widgets/settings-nav';
 import { AppearancePane } from './appearance-pane';
 import { ChatPane } from './chat-pane';
 import { HostsPane } from './hosts-pane';
+import { UpdatePane } from './update-pane';
 export function SettingsPage() {
   const { category } = useParams();
   const { openDesk, openSettings } = useStudioNavigation();
@@ -106,5 +107,7 @@ function SettingsPane({ category }: { category: WindowSettingsCategory }) {
       return <ChatPane />;
     case 'hosts':
       return <HostsPane />;
+    case 'update':
+      return <UpdatePane />;
   }
 }

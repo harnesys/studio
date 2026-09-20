@@ -335,7 +335,7 @@ export function WorkspaceSidebar() {
               title="Harnesys"
             >
               <AppLogo className="size-6" />
-              <span className="flex items-center gap-1 font-medium text-sm tracking-tight">
+              <span className="flex items-center gap-1 font-medium text-sm tracking-tight group-data-[collapsible=icon]:hidden">
                 Harnesys
                 {meta ? (
                   <Badge variant="secondary" className="text-muted-foreground">

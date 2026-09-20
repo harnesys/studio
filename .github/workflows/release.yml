@@ -84,14 +84,35 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: bun run build:desktop --target ${{ matrix.target }}
+      - name: Rename macOS updater artifact
+        if: runner.os == 'macOS'
+        working-directory: apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos
+        shell: bash
+        run: |
+          case "${{ matrix.target }}" in
+            *aarch64*) arch=aarch64 ;;
+            *) arch=x64 ;;
+          esac
+          for f in *.app.tar.gz; do
+            [ -e "$f" ] || continue
+            [ "$f" = "Harnesys_${arch}.app.tar.gz" ] && continue
+            mv -f "$f" "Harnesys_${arch}.app.tar.gz"
+            mv -f "$f.sig" "Harnesys_${arch}.app.tar.gz.sig"
+          done
+          ls -la
       - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.target }}
           path: |
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz.sig
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe.sig
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage.sig
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
           if-no-files-found: error
 
@@ -106,14 +127,17 @@ jobs:
       - name: Flatten desktop bundle names
         working-directory: dist
         run: |
-          find . -mindepth 2 -type f \( -name '*.dmg' -o -name '*-setup.exe' -o -name '*.AppImage' -o -name '*.deb' \) -exec mv -f {} . \;
+          find . -mindepth 2 -type f \( -name '*.dmg' -o -name '*-setup.exe' -o -name '*.AppImage' -o -name '*.deb' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' -o -name '*-setup.exe.sig' -o -name '*.AppImage.sig' \) -exec mv -f {} . \;
           find . -mindepth 1 -type d -empty -delete
           shopt -s nullglob
           for f in *_aarch64.dmg; do mv -f "$f" Harnesys_aarch64.dmg; done
           for f in *_x64.dmg; do mv -f "$f" Harnesys_x64.dmg; done
           for f in *_x64-setup.exe; do mv -f "$f" Harnesys_x64-setup.exe; done
+          for f in *_x64-setup.exe.sig; do mv -f "$f" Harnesys_x64-setup.exe.sig; done
           for f in *_arm64-setup.exe; do mv -f "$f" Harnesys_arm64-setup.exe; done
+          for f in *_arm64-setup.exe.sig; do mv -f "$f" Harnesys_arm64-setup.exe.sig; done
           for f in *_amd64.AppImage; do mv -f "$f" Harnesys_amd64.AppImage; done
+          for f in *_amd64.AppImage.sig; do mv -f "$f" Harnesys_amd64.AppImage.sig; done
           for f in *_amd64.deb; do mv -f "$f" Harnesys_amd64.deb; done
           ls -la
       - name: Create release
@@ -121,3 +145,41 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh release create "$GITHUB_REF_NAME" --generate-notes dist/*
+      - name: Publish latest.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          version="${tag#v}"
+          base="https://github.com/harnesys/studio/releases/download/${tag}"
+          notes="$(gh release view "$tag" --json body -q .body)"
+          jq -n \
+            --arg version "$version" \
+            --arg notes "$notes" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg da_url "${base}/Harnesys_aarch64.app.tar.gz" \
+            --arg da_sig "$(cat dist/Harnesys_aarch64.app.tar.gz.sig)" \
+            --arg dx_url "${base}/Harnesys_x64.app.tar.gz" \
+            --arg dx_sig "$(cat dist/Harnesys_x64.app.tar.gz.sig)" \
+            --arg wx_url "${base}/Harnesys_x64-setup.exe" \
+            --arg wx_sig "$(cat dist/Harnesys_x64-setup.exe.sig)" \
+            --arg wa_url "${base}/Harnesys_arm64-setup.exe" \
+            --arg wa_sig "$(cat dist/Harnesys_arm64-setup.exe.sig)" \
+            --arg lx_url "${base}/Harnesys_amd64.AppImage" \
+            --arg lx_sig "$(cat dist/Harnesys_amd64.AppImage.sig)" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "darwin-aarch64": { signature: $da_sig, url: $da_url },
+                "darwin-x86_64": { signature: $dx_sig, url: $dx_url },
+                "windows-x86_64": { signature: $wx_sig, url: $wx_url },
+                "windows-aarch64": { signature: $wa_sig, url: $wa_url },
+                "linux-x86_64": { signature: $lx_sig, url: $lx_url }
+              }
+            }' > dist/latest.json
+          cat dist/latest.json
+          gh release upload "$tag" dist/latest.json --clobber

@@ -1,4 +1,12 @@
-import { type LucideIcon, MessageSquareIcon, ServerIcon, SunIcon, UserIcon } from 'lucide-react';
+import {
+  type LucideIcon,
+  MessageSquareIcon,
+  RefreshCwIcon,
+  ServerIcon,
+  SunIcon,
+  UserIcon,
+} from 'lucide-react';
+import { isDesktop } from '@/features/app-update';
 import { WINDOW_SETTINGS_GROUPS, type WindowSettingsCategory } from '@/shared/config/settings-nav';
 import { cn } from '@/shared/lib/utils';
 
@@ -7,6 +15,7 @@ const NAV_ICONS: Record<WindowSettingsCategory, LucideIcon> = {
   appearance: SunIcon,
   chat: MessageSquareIcon,
   hosts: ServerIcon,
+  update: RefreshCwIcon,
 };
 type SettingsNavProps = {
   active: WindowSettingsCategory;
@@ -24,6 +33,9 @@ export function SettingsNav({ active, onSelect }: SettingsNavProps) {
             {group.label}
           </p>
           {group.items.map((item) => {
+            if (item.id === 'update' && !isDesktop()) {
+              return null;
+            }
             const selected = item.id === active;
             const Icon = NAV_ICONS[item.id];
             return (

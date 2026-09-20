@@ -178,9 +178,10 @@ docker compose -f deploy/docker-compose.yml up -d
 - CLI-managed VPS: `harnesys update` — downloads the newest release assets for
   your OS/arch, replaces the binaries in place, restarts what was running. The
   asset names are the same `<bin>-<os>-<arch>` contract the installer uses.
-- Desktop: download the new installer (DMG / NSIS exe / AppImage / deb) from
-  the releases page and install over the old app; there is no in-app
-  auto-update.
+- Desktop: in-app auto-update (checks GitHub Releases on every start; installs
+  on restart). See [updater.md](updater.md) for the key handling and the
+  release flow. deb installs are the exception — update them by downloading the
+  new package from the releases page.
 - Checkout install: `git pull && bun install && bun run build:client && bun run
   build:host && bun run build:web && bun run build:cli`, then `harnesys restart all`.
 - Compose: `git pull`, then `docker compose -f deploy/docker-compose.yml up -d --build`.
@@ -192,6 +193,11 @@ for macOS (Apple silicon and Intel), NSIS `-setup.exe` for Windows (x64 and
 ARM64), AppImage and deb for Linux (x64). The `harnesys-host` binary ships
 inside each app as a sidecar — no separate host install; Quit in the tray
 menu stops it on exit.
+
+Installed apps update themselves: on startup they fetch a signed `latest.json`
+manifest from the releases page and offer the update (toast + Settings →
+Update, with an auto-update toggle). Key handling and the release flow are in
+[updater.md](updater.md).
 
 The build is ad-hoc signed (no Developer ID yet), so the first launch needs a
 bypass: right-click the app → Open, or `xattr -cr /Applications/Harnesys.app`.

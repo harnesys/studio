@@ -1,4 +1,10 @@
-export const WINDOW_SETTINGS_CATEGORIES = ['profile', 'appearance', 'chat', 'hosts'] as const;
+export const WINDOW_SETTINGS_CATEGORIES = [
+  'profile',
+  'appearance',
+  'chat',
+  'hosts',
+  'update',
+] as const;
 export type WindowSettingsCategory = (typeof WINDOW_SETTINGS_CATEGORIES)[number];
 export const WINDOW_SETTINGS_GROUPS = [
   {
@@ -24,6 +30,11 @@ export const WINDOW_SETTINGS_GROUPS = [
         id: 'hosts' as const,
         label: 'Hosts',
         description: 'Paired hosts for this window.',
+      },
+      {
+        id: 'update' as const,
+        label: 'Update',
+        description: 'App version and updates.',
       },
     ],
   },

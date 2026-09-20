@@ -38,23 +38,23 @@
         border-radius: 50%;
         background: radial-gradient(
           circle closest-side,
-          rgba(126, 150, 190, 0.07),
-          rgba(126, 150, 190, 0.025) 45%,
+          rgba(196, 98, 45, 0.1),
+          rgba(196, 98, 45, 0.04) 45%,
           transparent 100%
         );
-        animation: app-logo-aura 4.5s ease-in-out infinite;
+        animation: app-logo-aura 3.6s ease-in-out infinite;
       }
       html:not(.dark) #app-splash::before {
         background: radial-gradient(
           circle closest-side,
-          rgba(28, 36, 48, 0.05),
-          rgba(28, 36, 48, 0.015) 45%,
+          rgba(196, 98, 45, 0.07),
+          rgba(196, 98, 45, 0.025) 45%,
           transparent 100%
         );
       }
       #app-splash svg {
         grid-area: 1 / 1;
-        animation: app-logo-pulse 4.5s ease-in-out infinite;
+        animation: app-logo-breathe 3.6s ease-in-out 1.2s infinite;
       }
       html.dark #app-splash svg {
         filter: drop-shadow(0 26px 56px rgba(0, 0, 0, 0.75));
@@ -73,60 +73,54 @@
           transform: scale(1.06);
         }
       }
-      @keyframes app-logo-pulse {
+      @keyframes app-logo-breathe {
         0%,
         100% {
           transform: scale(1);
         }
         50% {
-          transform: scale(1.035);
+          transform: scale(1.05);
         }
       }
-      .app-logo-spec {
-        animation: app-logo-shimmer 3.2s ease-in-out infinite;
-      }
-      @keyframes app-logo-shimmer {
-        0%,
-        100% {
-          opacity: 0.65;
-        }
-        50% {
-          opacity: 1;
-        }
-      }
-      .app-logo-sweep {
-        transform-box: fill-box;
-        transform-origin: center;
-        animation: app-logo-sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-      }
-      @keyframes app-logo-sweep {
+      @keyframes app-splash-bracket-left {
         0% {
-          transform: translateX(0) skewX(-14deg);
-          opacity: 0;
+          transform: translateX(-200px);
         }
-        8% {
-          opacity: 1;
+        62% {
+          transform: translateX(12px);
         }
-        38% {
-          transform: translateX(2050px) skewX(-14deg);
-          opacity: 1;
+        80% {
+          transform: translateX(-5px);
         }
-        45%,
         100% {
-          transform: translateX(2050px) skewX(-14deg);
-          opacity: 0;
+          transform: translateX(0);
         }
+      }
+      @keyframes app-splash-bracket-right {
+        0% {
+          transform: translateX(200px);
+        }
+        62% {
+          transform: translateX(-12px);
+        }
+        80% {
+          transform: translateX(5px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+      #app-splash .bracket-left {
+        animation: app-splash-bracket-left 0.85s cubic-bezier(0.3, 0.7, 0.4, 1) 0.1s both;
+      }
+      #app-splash .bracket-right {
+        animation: app-splash-bracket-right 0.85s cubic-bezier(0.3, 0.7, 0.4, 1) 0.1s both;
       }
       @media (prefers-reduced-motion: reduce) {
-        .app-logo-spec,
-        .app-logo-sweep {
-          animation: none;
-        }
-        .app-logo-sweep {
-          opacity: 0;
-        }
         #app-splash::before,
-        #app-splash svg {
+        #app-splash svg,
+        #app-splash .bracket-left,
+        #app-splash .bracket-right {
           animation: none;
         }
       }
@@ -178,55 +172,12 @@
   </head>
   <body>
     <div id="app-splash" aria-hidden="true">
-      <svg viewBox="0 0 1024 1024" fill="none" width="140" height="140">
-        <defs>
-          <linearGradient id="splash-body" x1="512" y1="152" x2="512" y2="872" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#2e3947"/>
-            <stop offset="0.45" stop-color="#161b22"/>
-            <stop offset="1" stop-color="#080b0f"/>
-          </linearGradient>
-          <linearGradient id="splash-spec" x1="512" y1="152" x2="512" y2="352" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ccd4dc"/>
-            <stop offset="1" stop-color="#93a5b4"/>
-          </linearGradient>
-          <linearGradient id="splash-glint" x1="512" y1="652" x2="512" y2="872" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#c7d3dd"/>
-            <stop offset="1" stop-color="#5d6b78"/>
-          </linearGradient>
-          <linearGradient id="splash-edge" x1="512" y1="152" x2="512" y2="872" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#d2d8de" stop-opacity="0.3"/>
-            <stop offset="1" stop-color="#d2d8de" stop-opacity="0.02"/>
-          </linearGradient>
-          <clipPath id="splash-clip">
-            <path d="M152 152h250v280h220V152h250v720H622V592H402v280H152Z"/>
-          </clipPath>
-          <linearGradient id="splash-sweep" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
-            <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.22"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <g clip-path="url(#splash-clip)">
-          <path d="M152 152h250v280h220V152h250v720H622V592H402v280H152Z" fill="url(#splash-body)"/>
-          <polygon points="402,152 402,712 152,772" fill="#0a0d11" opacity="0.9"/>
-          <polygon class="app-logo-spec" points="152,152 402,152 152,352" fill="url(#splash-spec)" opacity="0.9"/>
-          <polygon points="402,152 362,152 402,252" fill="#b8c1ca" opacity="0.35"/>
-          <polygon points="152,872 372,872 152,652" fill="url(#splash-glint)" opacity="0.55"/>
-          <rect x="152" y="152" width="10" height="720" fill="url(#splash-edge)"/>
-          <polygon points="252,252 278,252 218,432 198,432" fill="#b7c0c9" opacity="0.22"/>
-          <polygon points="622,152 622,712 872,772" fill="#0a0d11" opacity="0.9"/>
-          <polygon class="app-logo-spec" points="872,152 622,152 872,352" fill="url(#splash-spec)" opacity="0.9"/>
-          <polygon points="622,152 662,152 622,252" fill="#b8c1ca" opacity="0.35"/>
-          <polygon points="872,872 652,872 872,652" fill="url(#splash-glint)" opacity="0.55"/>
-          <rect x="862" y="152" width="10" height="720" fill="url(#splash-edge)"/>
-          <polygon points="792,552 812,552 762,712 742,712" fill="#b7c0c9" opacity="0.15"/>
-          <polygon points="402,432 622,432 402,532" fill="#b5bec8" opacity="0.6"/>
-          <polygon points="402,592 622,592 522,702" fill="#090c10" opacity="0.9"/>
-          <polygon points="402,332 402,432 492,432" fill="#aeb8c2" opacity="0.4"/>
-          <polygon points="622,332 622,432 532,432" fill="#aeb8c2" opacity="0.25"/>
-        </g>
-        <g clip-path="url(#splash-clip)">
-          <rect class="app-logo-sweep" x="-620" y="0" width="420" height="1024" fill="url(#splash-sweep)"/>
+      <svg viewBox="0 0 512 512" fill="none" width="64" height="64">
+        <rect width="512" height="512" rx="115" fill="#c4622d"/>
+        <g fill="none" stroke="#f6f7f8" stroke-width="46">
+          <path class="bracket-left" d="M 188 188 A 28 28 0 0 0 160 160 H 116 A 28 28 0 0 0 88 188 V 324 A 28 28 0 0 0 116 352 H 160 A 28 28 0 0 0 188 324"/>
+          <path class="bracket-right" d="M 324 188 A 28 28 0 0 1 352 160 H 396 A 28 28 0 0 1 424 188 V 324 A 28 28 0 0 1 396 352 H 352 A 28 28 0 0 1 324 324"/>
+          <line x1="195" y1="256" x2="317" y2="256" stroke-linecap="round"/>
         </g>
       </svg>
     </div>

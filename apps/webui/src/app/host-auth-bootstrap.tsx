@@ -1,5 +1,9 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { ensureHostCredential } from '@/shared/api/host-credential';
+
+const SPLASH_MIN_MS = 2000;
+const splashShownAt = performance.now();
+
 export function HostAuthBootstrap({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +32,11 @@ export function HostAuthBootstrap({ children }: { children: ReactNode }) {
     if (!splash) {
       return;
     }
-    splash.classList.add('is-done');
-    const timer = window.setTimeout(() => splash.remove(), 260);
+    const remaining = Math.max(0, SPLASH_MIN_MS - (performance.now() - splashShownAt));
+    const timer = window.setTimeout(() => {
+      splash.classList.add('is-done');
+      window.setTimeout(() => splash.remove(), 260);
+    }, remaining);
     return () => window.clearTimeout(timer);
   }, [ready, error]);
   if (error) {

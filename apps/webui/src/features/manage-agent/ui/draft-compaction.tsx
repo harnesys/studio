@@ -52,20 +52,6 @@ export function DraftCompaction({
       description="Context compaction policy for this agent."
       extra={
         <div className="flex items-center gap-2">
-          <FieldLabel htmlFor="draft-compaction-auto" className="font-normal text-xs">
-            Auto
-          </FieldLabel>
-          <Switch
-            id="draft-compaction-auto"
-            size="sm"
-            checked={draft.auto}
-            onCheckedChange={(value) => patch({ auto: Boolean(value) })}
-          />
-        </div>
-      }
-    >
-      <FieldGroup className="gap-2">
-        <Field orientation="horizontal" className="items-center justify-between gap-2">
           <FieldLabel htmlFor="draft-compaction-enabled" className="font-normal text-xs">
             Enabled
           </FieldLabel>
@@ -75,7 +61,10 @@ export function DraftCompaction({
             checked={draft.enabled}
             onCheckedChange={(value) => patch({ enabled: Boolean(value) })}
           />
-        </Field>
+        </div>
+      }
+    >
+      <FieldGroup className="gap-2">
         {draft.enabled ? (
           <>
             <div className="grid grid-cols-3 gap-2">
@@ -163,6 +152,25 @@ export function DraftCompaction({
             Off — window never compresses.
           </p>
         )}
+        <Field
+          orientation="horizontal"
+          className="items-center justify-between gap-4 rounded-lg border px-3 py-2"
+        >
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <FieldLabel htmlFor="draft-compaction-auto" className="font-normal text-sm">
+              Auto
+            </FieldLabel>
+            <FieldDescription className="text-[11px] text-muted-foreground leading-snug">
+              Compact automatically when the context reaches the threshold.
+            </FieldDescription>
+          </div>
+          <Switch
+            id="draft-compaction-auto"
+            size="sm"
+            checked={draft.auto}
+            onCheckedChange={(value) => patch({ auto: Boolean(value) })}
+          />
+        </Field>
       </FieldGroup>
     </Pane>
   );

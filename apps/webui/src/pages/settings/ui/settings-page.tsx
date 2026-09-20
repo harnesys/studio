@@ -51,7 +51,7 @@ export function SettingsPage() {
             Harnesys
             {appMeta ? (
               <Badge variant="secondary" className="text-muted-foreground">
-                v{appMeta.version}
+                v{appMeta.version} Beta
               </Badge>
             ) : null}
           </span>

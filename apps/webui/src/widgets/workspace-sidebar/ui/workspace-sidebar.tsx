@@ -339,7 +339,7 @@ export function WorkspaceSidebar() {
                 Harnesys
                 {meta ? (
                   <Badge variant="secondary" className="text-muted-foreground">
-                    v{meta.version}
+                    v{meta.version} Beta
                   </Badge>
                 ) : null}
               </span>

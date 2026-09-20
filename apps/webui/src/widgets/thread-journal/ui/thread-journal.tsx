@@ -2,7 +2,7 @@ import type { SessionEvent } from '@harnesys/studio-shared';
 import { type ReactNode, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Agent } from '@/entities/agent';
-import { type RunFailure, useSessionStore } from '@/entities/session';
+import { isCompactRun, type RunFailure, useSessionStore, useThreadFeed } from '@/entities/session';
 import { useThreadStore } from '@/entities/thread';
 import { useCompactingStore } from '@/features/compact-thread';
 import { scheduleMarkThreadRead, useThreadEvents } from '@/features/desk';
@@ -20,12 +20,8 @@ import {
 import {
   ChatSkeleton,
   CompactionPendingCard,
-  extractMaps,
-  extractSpawns,
   FailedMessageView,
-  isCompactRun,
   RunTurn,
-  splitRuns,
   ThreadEmpty,
   useSyncedThread,
 } from '@/widgets/chat-transcript';
@@ -40,12 +36,7 @@ export type ThreadJournalProps = {
 };
 export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
   const events = useThreadEvents(threadId);
-  const seenAt = useSessionStore((state) => state.seenAt[threadId]);
-  const spawned = extractSpawns(events, seenAt);
-  const { feedEvents, maps } = extractMaps(spawned.feedEvents, seenAt, {
-    spawnIds: spawned.spawns.map((s) => s.spawnId),
-  });
-  const spawns = spawned.spawns;
+  const feed = useThreadFeed(threadId);
   const streaming = useSessionStore((state) => Boolean(state.activeRuns[threadId]));
   const compacting = useCompactingStore((state) => Boolean(state.byThread[threadId]));
   const synced = useSyncedThread(threadId, agent.workspaceId);
@@ -66,7 +57,7 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
       </>
     );
   } else {
-    const runs = splitRuns(feedEvents);
+    const runs = feed?.runs ?? [];
     const compactLive = compacting && runs.some(isCompactRun);
     body = (
       <MessageScrollerProvider autoScroll>
@@ -78,10 +69,7 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
                 const runStreaming =
                   (streaming && last && !compacting) || (compacting && last && isCompactRun(run));
                 return (
-                  <MessageScrollerItem
-                    key={run.id ?? `run-${index}`}
-                    messageId={run.id ?? `run-${index}`}
-                  >
+                  <MessageScrollerItem key={run.key} messageId={run.key}>
                     <RunDivider
                       index={index}
                       task={runTask(run.events)}
@@ -89,13 +77,10 @@ export function ThreadJournal({ threadId, agent }: ThreadJournalProps) {
                       running={runStreaming}
                     />
                     <RunTurn
-                      events={run.events}
-                      runId={run.id ?? ''}
+                      run={run}
+                      runId={run.runId ?? run.id ?? ''}
                       threadId={threadId}
-                      spawns={spawns}
-                      maps={maps}
                       streaming={runStreaming}
-                      error={run.error}
                       onRetry={
                         run.runId && last && !streaming && !compacting
                           ? () => void retryRun(threadId, run.runId ?? '').catch(() => {})

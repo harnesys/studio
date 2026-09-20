@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import type { Thread } from '@/entities/thread';
 import {
   useAgentThreads,
@@ -44,36 +44,43 @@ export function ChatTranscript() {
             )}
             aria-hidden={!active}
           >
-            <ThreadPanel threadId={threadId} agent={agent} />
+            <ThreadPanel threadId={threadId} agent={agent} active={active} />
           </div>
         );
       })}
     </div>
   );
 }
+function sameIds(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every((id, index) => id === b[index]);
+}
 function useMountedThreadIds(
   agentId: string | null,
   activeId: string | null,
   threads: Thread[],
 ): string[] {
-  const agentRef = useRef<string | null>(null);
-  const mountedRef = useRef<string[]>([]);
-  if (agentRef.current !== agentId) {
-    agentRef.current = agentId;
-    mountedRef.current = preferThreadIds(threads, activeId);
+  const [prevAgent, setPrevAgent] = useState(agentId);
+  const [mounted, setMounted] = useState<string[]>(() => preferThreadIds(threads, activeId));
+  if (prevAgent !== agentId) {
+    setPrevAgent(agentId);
+    setMounted(preferThreadIds(threads, activeId));
   }
   const existing = new Set(threads.map((item) => item.id));
-  let mounted = mountedRef.current.filter((id) => existing.has(id));
-  if (activeId && existing.has(activeId) && !mounted.includes(activeId)) {
-    mounted = [activeId, ...mounted].slice(0, MAX_MOUNTED_THREADS);
-  } else if (activeId && existing.has(activeId)) {
-    mounted = [activeId, ...mounted.filter((id) => id !== activeId)];
+  let desired = mounted.filter((id) => existing.has(id));
+  if (activeId && existing.has(activeId)) {
+    desired = desired.includes(activeId)
+      ? [activeId, ...desired.filter((id) => id !== activeId)]
+      : [activeId, ...desired].slice(0, MAX_MOUNTED_THREADS);
+  } else if (desired.length === 0 && threads.length > 0) {
+    desired = preferThreadIds(threads, activeId);
   }
-  if (mounted.length === 0 && threads.length > 0) {
-    mounted = preferThreadIds(threads, activeId);
+  if (!sameIds(desired, mounted)) {
+    setMounted(desired);
   }
-  mountedRef.current = mounted;
-  return mounted;
+  return desired;
 }
 function preferThreadIds(threads: Thread[], activeId: string | null): string[] {
   const ranked = [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));

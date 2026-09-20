@@ -42,7 +42,19 @@ const TERMINAL_EVENT_TYPES = new Set([
   'run.failed',
   'run.cancelled',
 ]);
-function isWaiting(events: SessionEvent[]): boolean {
+const waitingCache = new WeakMap<SessionEvent[], boolean>();
+const runningCache = new WeakMap<SessionEvent[], boolean>();
+export function isWaiting(events: SessionEvent[]): boolean {
+  const cached = waitingCache.get(events);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeWaiting(events);
+  waitingCache.set(events, result);
+  return result;
+}
+
+function computeWaiting(events: SessionEvent[]): boolean {
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i];
     if (event.type === 'text-delta' || event.type === 'reasoning-delta') {
@@ -61,8 +73,12 @@ function isWaiting(events: SessionEvent[]): boolean {
   return false;
 }
 
-export { isWaiting };
-
 function hasRunningSession(events: SessionEvent[]): boolean {
-  return events.length > 0 && !events.some((e) => TERMINAL_EVENT_TYPES.has(e.type));
+  const cached = runningCache.get(events);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = events.length > 0 && !events.some((e) => TERMINAL_EVENT_TYPES.has(e.type));
+  runningCache.set(events, result);
+  return result;
 }

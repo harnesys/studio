@@ -1,5 +1,5 @@
 import { BotIcon } from 'lucide-react';
-import type { MapInfo, MapItemInfo } from '../model/map-groups';
+import type { MapInfo, MapItemInfo } from '@/entities/session';
 import { useSpawnStream } from '../model/use-spawn-stream';
 import { type ActivityBadge, ActivityLine } from './activity-line';
 

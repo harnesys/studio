@@ -8,13 +8,11 @@ import {
   SquareTerminalIcon,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { MapInfo, ToolEventPair } from '@/entities/session';
+import { mapLineHint, useFeedMap } from '@/entities/session';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import type { MapInfo } from '../model/map-groups';
-import { mapForToolCall, mapLineHint } from '../model/map-groups';
-import type { ToolEventPair } from '../model/session-event-groups';
-import { toolInput } from '../model/session-event-groups';
 import { toolCaption } from '../model/tool-caption';
 import { toolDetail, toolMeta } from '../model/tool-output';
 import type { ActivityBadge } from './activity-line';
@@ -22,6 +20,18 @@ import { ActivityLine } from './activity-line';
 import { MapItems } from './map-items';
 import { ToolDetailView } from './tool-detail';
 import { ToolInputDialog } from './tool-input-dialog';
+
+function toolInput(pair: ToolEventPair): string {
+  const input = pair.call.input;
+  if (input != null) {
+    return typeof input === 'string' ? input : JSON.stringify(input);
+  }
+  const delta = (pair.call as { delta?: string }).delta;
+  if (typeof delta === 'string' && delta) {
+    return delta;
+  }
+  return '';
+}
 
 const ICONS = {
   terminal: SquareTerminalIcon,
@@ -52,13 +62,11 @@ export function ToolLine({
   live,
   runLive = live,
   threadId,
-  maps,
 }: {
   pair: ToolEventPair;
   live: boolean;
   runLive?: boolean;
   threadId?: string;
-  maps?: MapInfo[];
 }) {
   const feedDetail = useChatPreferences((state) => state.feedDetail);
   const [inputOpen, setInputOpen] = useState(false);
@@ -69,7 +77,7 @@ export function ToolLine({
   const awaitingConfirm = pair.call.phase === 'requested' && !pair.result;
   const askPrompt = pair.ask?.prompt?.trim() ? pair.ask.prompt.trim() : null;
   const hasConfirm = Boolean(pair.ask) || awaitingConfirm;
-  const map = maps ? mapForToolCall(maps, pair.call.toolCallId) : undefined;
+  const map = useFeedMap(threadId ?? null, pair.call.toolCallId);
   const mapRunning = map?.status === 'running';
   const mapHint = map ? mapLineHint(map) : null;
   const mapBadges = mapBadgesFor(map);

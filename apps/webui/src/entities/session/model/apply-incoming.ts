@@ -1,6 +1,7 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { isToolInputStream, mergeDeltaContinuation, mergeIncomingEvent } from './coalesce-events';
 import { eventKey, stableEventKey } from './event-keys';
+import type { FeedDecision } from './feed/feed-types';
 export type ThreadLog = {
   events: SessionEvent[];
   seenAt: Record<string, number>;
@@ -19,6 +20,7 @@ export function applyIncomingEvents(
   current: ThreadLog,
   incoming: SessionEvent[],
   now: number,
+  sink?: FeedDecision[],
 ): ApplyIncomingResult {
   let events = current.events;
   let eventsCopy: SessionEvent[] | undefined;
@@ -58,10 +60,12 @@ export function applyIncomingEvents(
         const merged = mergeDeltaContinuation(tail, event);
         if (merged !== null) {
           list[list.length - 1] = merged;
+          sink?.push({ ev: event, merged: true, index: list.length - 1 });
           continue;
         }
       }
       list.push(event);
+      sink?.push({ ev: event, merged: false, index: list.length - 1 });
       immediateEpoch = true;
       rememberSeen(event, now, () => {
         if (seenCopy === undefined) {
@@ -77,8 +81,10 @@ export function applyIncomingEvents(
     const index = list.findIndex((ev) => eventKey(ev) === key);
     if (index === -1) {
       list.push(event);
+      sink?.push({ ev: event, merged: false, index: list.length - 1 });
     } else {
       list[index] = mergeIncomingEvent(list[index], event);
+      sink?.push({ ev: event, merged: true, index, replaces: true });
     }
     immediateEpoch = true;
     rememberSeen(event, now, () => {

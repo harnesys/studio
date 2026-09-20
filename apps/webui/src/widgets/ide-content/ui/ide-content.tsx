@@ -36,7 +36,7 @@ export function IdeTabContent({ tab, workspaceId }: { tab: IdeTab; workspaceId: 
       return (
         <div className="flex min-h-0 flex-1 flex-col" data-testid="ide-thread">
           <div className="min-h-0 flex-1">
-            <ThreadPanel threadId={thread.id} agent={agent} />
+            <ThreadPanel threadId={thread.id} agent={agent} active />
           </div>
           <HitlPrompt />
           <ChatComposer />

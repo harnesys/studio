@@ -1,6 +1,6 @@
 import { Layers2Icon } from 'lucide-react';
+import type { CompactionSegmentMeta } from '@/entities/session';
 import { Markdown } from '@/shared/ui/markdown';
-import type { CompactionSegmentMeta } from '../model/turn-segments';
 import { FeedNotice, FeedNoticeMetaSep } from './feed-notice';
 export function CompactionPendingCard() {
   return (

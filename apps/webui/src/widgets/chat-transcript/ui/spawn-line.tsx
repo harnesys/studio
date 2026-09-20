@@ -1,11 +1,11 @@
 import { BotIcon, WrenchIcon } from 'lucide-react';
 import { useAgentStore } from '@/entities/agent';
-import { formatDuration, formatTokenCount } from '@/entities/session';
+import type { SpawnToolStat } from '@/entities/session';
+import { formatDuration, formatTokenCount, useFeedSpawn } from '@/entities/session';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
 import { Button } from '@/shared/ui/button';
 import { ExpandableScroll } from '@/shared/ui/expandable-scroll';
 import { agentFallbackName } from '../model/agent-label';
-import type { SpawnInfo, SpawnToolStat } from '../model/spawn-groups';
 import { useNow } from '../model/use-now';
 import { useSpawnStream } from '../model/use-spawn-stream';
 import { type ActivityBadge, ActivityLine } from './activity-line';
@@ -15,22 +15,24 @@ const STALLED_AFTER_MS = 90000;
 export function SpawnLine({
   threadId,
   spawnId,
-  spawn,
   live,
   onOpen,
 }: {
   threadId: string;
   spawnId: string;
-  spawn: SpawnInfo;
   live: boolean;
   onOpen?: (spawnId: string) => void;
 }) {
-  useSpawnStream(threadId, spawnId, spawn.status === 'running');
+  const spawn = useFeedSpawn(threadId, spawnId);
+  const running = spawn?.status === 'running';
+  useSpawnStream(threadId, spawnId, Boolean(running));
   const feedDetail = useChatPreferences((state) => state.feedDetail);
-  const agent = useAgentStore((state) => state.byId(spawn.agentId));
-  const name = agent?.name ?? agentFallbackName(spawn.agentId);
-  const running = spawn.status === 'running';
+  const agent = useAgentStore((state) => (spawn ? state.byId(spawn.agentId) : undefined));
   const now = useNow(running ? LIVE_TICK_MS : 0);
+  if (!spawn) {
+    return null;
+  }
+  const name = agent?.name ?? agentFallbackName(spawn.agentId);
   const elapsed =
     running && spawn.spawnedAt !== undefined
       ? formatDuration(Math.max(0, now - spawn.spawnedAt))

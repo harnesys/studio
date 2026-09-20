@@ -1,21 +1,4 @@
 export { type DirectiveBadge, splitDirectiveTags } from './model/directive-tag';
-export {
-  extractMaps,
-  type MapInfo,
-  type MapItemInfo,
-  type MapItemStatus,
-  mapForToolCall,
-} from './model/map-groups';
-export type { RunGroup } from './model/run-groups';
-export { isCompactRun, splitRuns } from './model/run-groups';
-export {
-  extractSpawns,
-  type SpawnInfo,
-  type SpawnSeenAt,
-  type SpawnToolChip,
-  type SpawnToolPhase,
-  type SpawnToolStat,
-} from './model/spawn-groups';
 export { useSyncedThread } from './model/thread-sync';
 export { useNow } from './model/use-now';
 export { AssistantMessageView, FailedMessageView, SystemMessageView } from './ui/agent-turn';

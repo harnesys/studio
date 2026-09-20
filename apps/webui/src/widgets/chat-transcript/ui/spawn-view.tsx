@@ -1,16 +1,14 @@
 import type { SessionEvent } from '@harnesys/studio-shared';
 import { useEffect, useState } from 'react';
 import { agentColorClass, useAgentStore } from '@/entities/agent';
-import { useSessionStore } from '@/entities/session';
+import type { SpawnStatus } from '@/entities/session';
+import { spawnSubtreeIds, spawnTaskText, splitRuns, useThreadFeeds } from '@/entities/session';
 import { refreshThread, useDeskStore, useThreadEvents } from '@/features/desk';
 import type { IdeTab } from '@/features/ide';
 import { useOpenSpawnTab } from '@/features/ide';
 import { cn } from '@/shared/lib/utils';
 import { StatusDot } from '@/shared/ui/status-dot';
 import { agentFallbackName } from '../model/agent-label';
-import { splitRuns } from '../model/run-groups';
-import type { SpawnStatus } from '../model/spawn-groups';
-import { extractSpawns, spawnSubtreeIds, spawnTaskText } from '../model/spawn-groups';
 import { useSpawnStream } from '../model/use-spawn-stream';
 import { RunTurn } from './run-turn';
 
@@ -35,11 +33,11 @@ export function SpawnView({
   spawnId: string;
 }) {
   const events = useThreadEvents(threadId);
-  const seenAt = useSessionStore((state) => state.seenAt[threadId]);
+  const feeds = useThreadFeeds(threadId);
+  const spawns = [...(feeds?.inherited.spawns ?? []), ...(feeds?.own.spawns ?? [])];
   const hasEvents = events.length > 0;
   const deskReady = useDeskStore((state) => state.hydrated[tab.workspaceId] === 'ready');
   const openSpawnTab = useOpenSpawnTab();
-  const { spawns } = extractSpawns(events, seenAt);
   const spawn = spawns.find((item) => item.spawnId === spawnId);
   const agent = useAgentStore((state) => (spawn ? state.byId(spawn.agentId) : undefined));
   const subtreeIds = spawnSubtreeIds(events, spawnId);
@@ -61,7 +59,7 @@ export function SpawnView({
     void refreshThread(threadId).catch(() => {});
   }, [hasEvents, deskReady, threadId]);
   const running = spawn?.status === 'running';
-  useSpawnStream(threadId, spawnId, running);
+  useSpawnStream(threadId, spawnId, Boolean(running));
   if (!spawn) {
     return (
       <div
@@ -123,13 +121,11 @@ export function SpawnView({
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-8 text-[length:var(--chat-font-size)]">
           {runs.map((run, index) => (
             <RunTurn
-              key={run.runId ?? `run-${index}`}
-              events={run.events}
+              key={run.key}
+              run={run}
               runId={run.runId ?? spawnId}
-              streaming={running && index === runs.length - 1}
-              error={run.error}
+              streaming={Boolean(running) && index === runs.length - 1}
               threadId={threadId}
-              spawns={spawns}
               onOpenSpawn={onOpenSpawn}
               readOnly
             />

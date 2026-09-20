@@ -1,220 +1,41 @@
-import type { SessionEvent } from '@harnesys/studio-shared';
-import { memo } from 'react';
-import type { MapInfo, MapItemInfo } from '../model/map-groups';
-import type { SpawnInfo, SpawnToolChip, SpawnToolStat } from '../model/spawn-groups';
+import type { FeedRun } from '@/entities/session';
 import { AssistantMessageView, FailedMessageView } from './agent-turn';
 import type { BranchChild } from './branch-point-badge';
 
-function sameEventList(a: SessionEvent[], b: SessionEvent[]): boolean {
-  if (a === b) {
-    return true;
-  }
-  if (a.length !== b.length) {
-    return false;
-  }
-  if (a.length === 0) {
-    return true;
-  }
-  return a[0] === b[0] && a[a.length - 1] === b[b.length - 1];
+export function RunTurn({
+  run,
+  runId,
+  streaming = false,
+  threadId,
+  onOpenSpawn,
+  onRetry,
+  readOnly = false,
+  inherited = false,
+  branchChildren,
+}: {
+  run: FeedRun;
+  runId: string;
+  streaming?: boolean;
+  threadId?: string;
+  onOpenSpawn?: (spawnId: string) => void;
+  onRetry?: () => void;
+  readOnly?: boolean;
+  inherited?: boolean;
+  branchChildren?: BranchChild[];
+}) {
+  return (
+    <div className="group/turn flex flex-col gap-3">
+      <AssistantMessageView
+        run={run}
+        runId={runId}
+        streaming={streaming}
+        threadId={threadId}
+        onOpenSpawn={onOpenSpawn}
+        readOnly={readOnly}
+        inherited={inherited}
+        branchChildren={branchChildren}
+      />
+      {run.error ? <FailedMessageView text={run.error} onRetry={onRetry} /> : null}
+    </div>
+  );
 }
-type DeltaEvent = SessionEvent & {
-  type: 'text-delta' | 'reasoning-delta';
-};
-const isDelta = (ev: SessionEvent): ev is DeltaEvent =>
-  ev.type === 'text-delta' || ev.type === 'reasoning-delta';
-function sameEventsIgnoringLiveTail(a: SessionEvent[], b: SessionEvent[]): boolean {
-  if (a === b) {
-    return true;
-  }
-  if (a.length !== b.length || a.length === 0) {
-    return false;
-  }
-  if (a[0] !== b[0]) {
-    return false;
-  }
-  const ta = a[a.length - 1];
-  const tb = b[b.length - 1];
-  if (isDelta(ta) && isDelta(tb) && ta.id === tb.id) {
-    return true;
-  }
-  return ta === tb;
-}
-function sameSpawns(a: SpawnInfo[] | undefined, b: SpawnInfo[] | undefined): boolean {
-  if (a === b) {
-    return true;
-  }
-  if (a === undefined || b === undefined || a.length !== b.length) {
-    return false;
-  }
-  return a.every((item, index) => {
-    const other = b[index];
-    return (
-      other !== undefined &&
-      item.spawnId === other.spawnId &&
-      item.agentId === other.agentId &&
-      item.status === other.status &&
-      item.lastActivity === other.lastActivity &&
-      item.taskText === other.taskText &&
-      item.steps === other.steps &&
-      item.tokens === other.tokens &&
-      item.preview === other.preview &&
-      item.spawnedAt === other.spawnedAt &&
-      item.lastSeenAt === other.lastSeenAt &&
-      sameToolChips(item.recentTools, other.recentTools) &&
-      sameToolStats(item.toolStats, other.toolStats)
-    );
-  });
-}
-function sameMaps(a: MapInfo[] | undefined, b: MapInfo[] | undefined): boolean {
-  if (a === b) {
-    return true;
-  }
-  if (a === undefined || b === undefined || a.length !== b.length) {
-    return false;
-  }
-  return a.every((item, index) => {
-    const other = b[index];
-    return (
-      other !== undefined &&
-      item.nodeId === other.nodeId &&
-      item.toolCallId === other.toolCallId &&
-      item.status === other.status &&
-      item.ok === other.ok &&
-      item.failed === other.failed &&
-      item.count === other.count &&
-      sameMapItems(item.items, other.items)
-    );
-  });
-}
-function sameMapItems(a: MapItemInfo[], b: MapItemInfo[]): boolean {
-  if (a === b) {
-    return true;
-  }
-  if (a.length !== b.length) {
-    return false;
-  }
-  return a.every((item, index) => {
-    const other = b[index];
-    return (
-      other !== undefined &&
-      item.workerId === other.workerId &&
-      item.index === other.index &&
-      item.status === other.status &&
-      item.preview === other.preview &&
-      item.message === other.message
-    );
-  });
-}
-function sameToolChips(a: SpawnToolChip[], b: SpawnToolChip[]): boolean {
-  if (a === b) {
-    return true;
-  }
-  if (a.length !== b.length) {
-    return false;
-  }
-  return a.every((chip, index) => {
-    const other = b[index];
-    return other !== undefined && chip.name === other.name && chip.phase === other.phase;
-  });
-}
-function sameToolStats(
-  a: Record<string, SpawnToolStat>,
-  b: Record<string, SpawnToolStat>,
-): boolean {
-  if (a === b) {
-    return true;
-  }
-  const keys = Object.keys(a);
-  if (keys.length !== Object.keys(b).length) {
-    return false;
-  }
-  return keys.every((name) => {
-    const stat = a[name];
-    const other = b[name];
-    return (
-      stat !== undefined &&
-      other !== undefined &&
-      stat.requested === other.requested &&
-      stat.completed === other.completed &&
-      stat.failed === other.failed
-    );
-  });
-}
-export const RunTurn = memo(
-  function RunTurn({
-    events,
-    runId,
-    streaming,
-    error,
-    onRetry,
-    threadId,
-    spawns,
-    maps,
-    onOpenSpawn,
-    readOnly,
-    inherited,
-    branchChildren,
-  }: {
-    events: SessionEvent[];
-    runId: string;
-    streaming: boolean;
-    error: string | null;
-    onRetry?: () => void;
-    threadId?: string;
-    spawns?: SpawnInfo[];
-    maps?: MapInfo[];
-    onOpenSpawn?: (spawnId: string) => void;
-    readOnly?: boolean;
-    inherited?: boolean;
-    branchChildren?: BranchChild[];
-  }) {
-    return (
-      <div className="group/turn flex flex-col gap-3">
-        <AssistantMessageView
-          events={events}
-          runId={runId}
-          streaming={streaming}
-          threadId={threadId}
-          spawns={spawns}
-          maps={maps}
-          onOpenSpawn={onOpenSpawn}
-          readOnly={readOnly}
-          inherited={inherited}
-          branchChildren={branchChildren}
-        />
-        {error ? <FailedMessageView text={error} onRetry={onRetry} /> : null}
-      </div>
-    );
-  },
-  (prev, next) => {
-    if (prev.streaming || next.streaming) {
-      return (
-        prev.streaming === next.streaming &&
-        prev.runId === next.runId &&
-        prev.error === next.error &&
-        prev.onRetry === next.onRetry &&
-        prev.threadId === next.threadId &&
-        prev.onOpenSpawn === next.onOpenSpawn &&
-        prev.readOnly === next.readOnly &&
-        prev.inherited === next.inherited &&
-        prev.branchChildren === next.branchChildren &&
-        sameSpawns(prev.spawns, next.spawns) &&
-        sameMaps(prev.maps, next.maps) &&
-        sameEventsIgnoringLiveTail(prev.events, next.events)
-      );
-    }
-    return (
-      prev.runId === next.runId &&
-      prev.error === next.error &&
-      prev.onRetry === next.onRetry &&
-      prev.threadId === next.threadId &&
-      prev.onOpenSpawn === next.onOpenSpawn &&
-      prev.readOnly === next.readOnly &&
-      prev.inherited === next.inherited &&
-      prev.branchChildren === next.branchChildren &&
-      sameSpawns(prev.spawns, next.spawns) &&
-      sameMaps(prev.maps, next.maps) &&
-      sameEventList(prev.events, next.events)
-    );
-  },
-);

@@ -5,7 +5,7 @@ import {
   visibleScheduledText,
 } from '@harnesys/studio-shared';
 import { AlertCircleIcon, CalendarClockIcon, RotateCcwIcon, TerminalIcon } from 'lucide-react';
-import { useLiveTail, useSessionStore } from '@/entities/session';
+import { type FeedRun, type FeedSegment, useLiveTail, useSessionStore } from '@/entities/session';
 import { useDeskStore, useSelectedAgent, useSelectedThread } from '@/features/desk';
 import { branchThread } from '@/features/switch-thread';
 import { attachmentUrl } from '@/shared/api';
@@ -15,23 +15,17 @@ import { FileChip } from '@/shared/ui/file-chip';
 import { Markdown } from '@/shared/ui/markdown';
 import { toast } from '@/shared/ui/toast';
 import { splitDirectiveTags } from '../model/directive-tag';
-import type { MapInfo } from '../model/map-groups';
-import type { SpawnInfo } from '../model/spawn-groups';
-import {
-  groupSegments,
-  segmentKey,
-  segmentSpacing,
-  type TurnSegment,
-} from '../model/turn-segments';
+import { useStreamText } from '../model/stream-text';
 import { ActivityItems } from './activity-items';
 import { ActivityRail } from './activity-rail';
-import { type BranchChild, BranchPointBadge } from './branch-point-badge';
+import { BranchPointBadge } from './branch-point-badge';
 import { CompactionMessageCard } from './compaction-card';
 import { FeedNotice } from './feed-notice';
 import { HandoffLine } from './handoff-line';
 import { MessageActions } from './message-actions';
 import { ModeTagBadges } from './mode-tag-badge';
 import { ThinkingLine } from './thinking-line';
+
 export function FailedMessageView({ text, onRetry }: { text: string; onRetry?: () => void }) {
   return (
     <FeedNotice
@@ -67,88 +61,45 @@ export function SystemMessageView({ text }: { text: string }) {
     </FeedNotice>
   );
 }
-export function ActivityBlock({
-  events,
-  last,
-  streaming = false,
-  threadId,
-}: {
-  events: SessionEvent[];
-  last: boolean;
-  streaming?: boolean;
-  threadId?: string;
-}) {
-  const live = last && streaming;
-  if (events.length === 0 && live) {
-    return (
-      <ActivityRail live={true}>
-        <ThinkingLine text="" live={true} threadId={threadId} />
-      </ActivityRail>
-    );
-  }
-  return <ActivityItems events={events} live={live} threadId={threadId} />;
-}
 export function AssistantMessageView({
-  events,
+  run,
   runId,
   streaming = false,
   threadId,
-  spawns,
-  maps,
   onOpenSpawn,
   readOnly = false,
   inherited = false,
   branchChildren,
 }: {
-  events: SessionEvent[];
+  run: FeedRun;
   runId: string;
   streaming?: boolean;
   threadId?: string;
-  spawns?: SpawnInfo[];
-  maps?: MapInfo[];
   onOpenSpawn?: (spawnId: string) => void;
   readOnly?: boolean;
   inherited?: boolean;
-  branchChildren?: BranchChild[];
+  branchChildren?: { id: string; agentId: string; title: string }[];
 }) {
-  const agent = useSelectedAgent();
-  const thread = useSelectedThread();
-  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
-  const { openThread } = useStudioNavigation();
-  const segments = groupSegments(events);
-  const textBlocks = segments.filter(
-    (
-      segment,
-    ): segment is Extract<
-      TurnSegment,
-      {
-        type: 'text' | 'compaction';
-      }
-    > => segment.type === 'text' || segment.type === 'compaction',
-  );
-  const answerText = textBlocks.map((segment) => segment.text).join('\n\n');
-  const hasDone = events.some((ev) => ev.type === 'done');
-  const hasInFlight = events.some(
-    (ev) =>
-      (ev.type === 'tool' && (ev.phase === 'streaming' || ev.phase === 'requested')) ||
-      ev.type === 'ask',
-  );
+  const segments = run.segments;
   const lastSegment = segments[segments.length - 1];
-  const lastIsUser = lastSegment?.type === 'user';
   const pendingReply =
-    streaming && !hasDone && !hasInFlight && (segments.length === 0 || lastIsUser);
+    streaming &&
+    run.terminal === null &&
+    !run.hasInFlight &&
+    (!lastSegment || lastSegment.kind === 'user');
+  const answerText = segments
+    .filter((segment) => segment.kind === 'text' || segment.kind === 'compaction')
+    .map((segment) => segment.text)
+    .join('\n\n');
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col">
         {segments.map((segment, index) => (
-          <div key={segmentKey(segment, index)} className={segmentSpacing(segments, index)}>
+          <div key={segment.key} className={segmentSpacing(segments[index - 1], segment)}>
             <TurnSegmentView
               segment={segment}
               live={streaming && index === segments.length - 1 && !pendingReply}
-              runId={runId}
               threadId={threadId}
-              spawns={spawns}
-              maps={maps}
               onOpenSpawn={onOpenSpawn}
             />
           </div>
@@ -167,100 +118,90 @@ export function AssistantMessageView({
           <BranchPointBadge runId={runId} branches={branchChildren} />
         ) : null}
         {answerText && !readOnly ? (
-          <MessageActions
-            entryId={runId}
-            inherited={inherited}
-            onCopy={() => {
-              void navigator.clipboard.writeText(answerText);
-              toast.add({ title: 'Copied.' });
-            }}
-            onBranch={() => {
-              if (!agent || !thread || !workspaceId) {
-                return;
-              }
-              void branchThread(runId, agent.id, thread.id, workspaceId).then((nextId) => {
-                if (nextId) {
-                  useDeskStore.getState().setFocusedThreadId(nextId);
-                  openThread(workspaceId, nextId);
-                }
-              });
-            }}
-          />
+          <TurnMessageActions runId={runId} answerText={answerText} inherited={inherited} />
         ) : null}
       </div>
     </div>
   );
 }
+
+function segmentSpacing(prev: FeedSegment | undefined, curr: FeedSegment): string | undefined {
+  if (!prev) {
+    return undefined;
+  }
+  if (prev.kind === 'user' || curr.kind === 'user') {
+    return 'mt-5';
+  }
+  if (prev.kind === 'activity' && curr.kind !== 'activity') {
+    return 'mt-4';
+  }
+  return 'mt-3';
+}
+
+function TurnMessageActions({
+  runId,
+  answerText,
+  inherited,
+}: {
+  runId: string;
+  answerText: string;
+  inherited: boolean;
+}) {
+  const agent = useSelectedAgent();
+  const thread = useSelectedThread();
+  const workspaceId = studioFocusWorkspaceId(useStudioLocation());
+  const { openThread } = useStudioNavigation();
+  return (
+    <MessageActions
+      entryId={runId}
+      inherited={inherited}
+      onCopy={() => {
+        void navigator.clipboard.writeText(answerText);
+        toast.add({ title: 'Copied.' });
+      }}
+      onBranch={() => {
+        if (!agent || !thread || !workspaceId) {
+          return;
+        }
+        void branchThread(runId, agent.id, thread.id, workspaceId).then((nextId) => {
+          if (nextId) {
+            useDeskStore.getState().setFocusedThreadId(nextId);
+            openThread(workspaceId, nextId);
+          }
+        });
+      }}
+    />
+  );
+}
+
 function TurnSegmentView({
   segment,
   live,
-  runId,
   threadId,
-  spawns,
-  maps,
   onOpenSpawn,
 }: {
-  segment: TurnSegment;
+  segment: FeedSegment;
   live: boolean;
-  runId: string;
   threadId?: string;
-  spawns?: SpawnInfo[];
-  maps?: MapInfo[];
   onOpenSpawn?: (spawnId: string) => void;
 }) {
-  const thread = useSelectedThread();
-  if (segment.type === 'user') {
-    const tid = thread?.id ?? '';
-    const atts = segment.event.attachments;
-    const wake = isScheduleWakeEvent(segment.event);
-    const rawText = segment.event.text ?? '';
-    const { text: visibleText, badges } = splitDirectiveTags(rawText);
-    const clientEventId = segment.event.clientEventId;
-    const sidecarSkills =
-      !badges.some((badge) => badge.kind === 'skill') && clientEventId
-        ? useSessionStore.getState().sentSkillsFor(clientEventId)
-        : undefined;
-    return (
-      <div className="flex flex-col items-end gap-2">
-        {wake ? (
-          <ScheduleWakeBanner text={rawText} />
-        ) : (
-          <>
-            {atts?.length ? (
-              <div className="flex max-w-[80%] flex-wrap justify-end gap-2">
-                {uniqueAttachments(atts).map((item) => (
-                  <AttachmentPreview key={item.id} threadId={tid} item={item} />
-                ))}
-              </div>
-            ) : null}
-            <ModeTagBadges badges={badges} sidecarSkills={sidecarSkills} />
-            {visibleText ? (
-              <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3.5 py-1.5 text-secondary-foreground shadow-xs">
-                {visibleText}
-              </div>
-            ) : null}
-          </>
-        )}
-      </div>
-    );
+  if (segment.kind === 'user') {
+    return <UserSegment event={segment.event} threadId={threadId} />;
   }
-  if (segment.type === 'activity') {
+  if (segment.kind === 'activity') {
     return (
       <ActivityItems
-        events={segment.events}
+        items={segment.items}
         live={live}
-        runId={runId}
         threadId={threadId}
-        maps={maps}
-        spawns={spawns}
         onOpenSpawn={onOpenSpawn}
       />
     );
   }
-  if (segment.type === 'compaction') {
+  if (segment.kind === 'compaction') {
     return <CompactionMessageCard text={segment.text} meta={segment.meta} />;
   }
-  if (segment.type === 'handoff') {
+  if (segment.kind === 'handoff') {
     return (
       <ActivityRail>
         <HandoffLine agentId={segment.agentId} />
@@ -269,6 +210,45 @@ function TurnSegmentView({
   }
   return <LiveMarkdown text={segment.text} live={live} threadId={threadId} blockId={segment.id} />;
 }
+
+function UserSegment({
+  event,
+  threadId,
+}: {
+  event: SessionEvent & { type: 'user' };
+  threadId?: string;
+}) {
+  const atts = event.attachments;
+  const wake = isScheduleWakeEvent(event);
+  const rawText = event.text ?? '';
+  const { text: visibleText, badges } = splitDirectiveTags(rawText);
+  const clientEventId = event.clientEventId;
+  const sidecarSkills =
+    !badges.some((badge) => badge.kind === 'skill') && clientEventId
+      ? useSessionStore.getState().sentSkillsFor(clientEventId)
+      : undefined;
+  if (wake) {
+    return <ScheduleWakeBanner text={rawText} />;
+  }
+  return (
+    <div className="flex flex-col items-end gap-2">
+      {atts?.length ? (
+        <div className="flex max-w-[80%] flex-wrap justify-end gap-2">
+          {uniqueAttachments(atts).map((item) => (
+            <AttachmentPreview key={item.id} threadId={threadId ?? ''} item={item} />
+          ))}
+        </div>
+      ) : null}
+      <ModeTagBadges badges={badges} sidecarSkills={sidecarSkills} />
+      {visibleText ? (
+        <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3.5 py-1.5 text-secondary-foreground shadow-xs">
+          {visibleText}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function LiveMarkdown({
   text,
   live,
@@ -281,12 +261,15 @@ function LiveMarkdown({
   blockId?: string;
 }) {
   const tail = useLiveTail(live ? threadId : undefined);
-  const display =
-    live && tail.kind === 'text' && tail.text && (blockId === undefined || tail.id === blockId)
-      ? tail.text
-      : text;
-  return <Markdown text={display} streaming={live} />;
+  const applies =
+    live &&
+    tail.kind === 'text' &&
+    tail.text !== '' &&
+    (blockId === undefined || tail.id === blockId);
+  const shown = useStreamText(applies ? tail.text : text, applies);
+  return <Markdown text={shown} streaming={live} />;
 }
+
 function isScheduleWakeEvent(
   event: SessionEvent & {
     type: 'user';

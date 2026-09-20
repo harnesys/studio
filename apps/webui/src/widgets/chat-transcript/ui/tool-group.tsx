@@ -1,10 +1,9 @@
 import { WrenchIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import type { GroupFeedChunk } from '@/entities/session';
+import { useFeedSpawns } from '@/entities/session';
 import { ACTIVITY_COLLAPSE_MIN } from '@/shared/config/constants';
 import { useChatPreferences } from '@/shared/lib/chat-preferences';
-import type { MapInfo } from '../model/map-groups';
-import type { SpawnInfo } from '../model/spawn-groups';
-import type { GroupActivityChunk } from '../model/tool-run-summary';
 import { summarizeActivity } from '../model/tool-run-summary';
 import type { ActivityBadge } from './activity-line';
 import { ActivityLine } from './activity-line';
@@ -18,16 +17,12 @@ export function ToolGroup({
   live,
   runLive = live,
   threadId,
-  maps,
-  spawns,
   onOpenSpawn,
 }: {
-  chunks: GroupActivityChunk[];
+  chunks: GroupFeedChunk[];
   live: boolean;
   runLive?: boolean;
   threadId?: string;
-  maps?: MapInfo[];
-  spawns?: SpawnInfo[];
   onOpenSpawn?: (spawnId: string) => void;
 }) {
   const feedDetail = useChatPreferences((state) => state.feedDetail);
@@ -38,20 +33,47 @@ export function ToolGroup({
         {chunks.map((chunk, index) =>
           renderChunk({
             chunk,
-            index,
             live: live && index === chunks.length - 1,
             runLive,
             threadId,
-            maps,
-            spawns,
             onOpenSpawn,
           }),
         )}
       </div>
     );
   }
-  const spawnsById = new Map((spawns ?? []).map((item) => [item.spawnId, item]));
-  const summary = summarizeActivity(chunks, spawnsById);
+  return (
+    <CollapsedGroup
+      chunks={chunks}
+      threadId={threadId}
+      renderChunk={renderChunk}
+      runLive={runLive}
+      onOpenSpawn={onOpenSpawn}
+    />
+  );
+}
+
+function CollapsedGroup({
+  chunks,
+  threadId,
+  runLive,
+  onOpenSpawn,
+  renderChunk,
+}: {
+  chunks: GroupFeedChunk[];
+  threadId?: string;
+  runLive: boolean;
+  onOpenSpawn?: (spawnId: string) => void;
+  renderChunk: (args: {
+    chunk: GroupFeedChunk;
+    live: boolean;
+    runLive?: boolean;
+    threadId?: string;
+    onOpenSpawn?: (spawnId: string) => void;
+  }) => ReactNode;
+}) {
+  const spawns = useFeedSpawns(threadId ?? null);
+  const summary = summarizeActivity(chunks, spawns);
   const hint = summary.parts.slice(0, HINT_PARTS).join(' · ');
   const extra = summary.parts.length > HINT_PARTS ? ` +${summary.parts.length - HINT_PARTS}` : null;
   const badges: ActivityBadge[] =
@@ -67,69 +89,47 @@ export function ToolGroup({
       indentContent={false}
     >
       <div className="flex flex-col gap-1 pr-1">
-        {chunks.map((chunk, index) =>
-          renderChunk({
-            chunk,
-            index,
-            live: false,
-            runLive,
-            threadId,
-            maps,
-            spawns,
-            onOpenSpawn,
-          }),
-        )}
+        {chunks.map((chunk) => renderChunk({ chunk, live: false, runLive, threadId, onOpenSpawn }))}
       </div>
     </ActivityLine>
   );
 }
+
 function renderChunk({
   chunk,
-  index,
   live,
   runLive,
   threadId,
-  maps,
-  spawns,
   onOpenSpawn,
 }: {
-  chunk: GroupActivityChunk;
-  index: number;
+  chunk: GroupFeedChunk;
   live: boolean;
   runLive?: boolean;
   threadId?: string;
-  maps?: MapInfo[];
-  spawns?: SpawnInfo[];
   onOpenSpawn?: (spawnId: string) => void;
 }): ReactNode {
   if (chunk.type === 'reasoning') {
     const text = chunk.events.map((e) => e.text).join('');
-    return <ThinkingLine key={`reasoning-${index}`} text={text} live={live} threadId={threadId} />;
+    return <ThinkingLine key={chunk.key} text={text} live={live} threadId={threadId} />;
   }
   if (chunk.type === 'spawn') {
-    const spawn = spawns?.find((item) => item.spawnId === chunk.event.spawnId);
-    if (!spawn) {
-      return null;
-    }
     return (
       <SpawnLine
-        key={chunk.event.spawnId}
+        key={chunk.key}
         threadId={threadId ?? ''}
         spawnId={chunk.event.spawnId}
-        spawn={spawn}
         live={live}
         onOpen={onOpenSpawn}
       />
     );
   }
-  return chunk.pairs.map((pair, pairIndex) => (
+  return chunk.pairs.map((pair) => (
     <ToolLine
       key={pair.call.toolCallId}
       pair={pair}
-      live={live && pairIndex === chunk.pairs.length - 1}
+      live={live && pair === chunk.pairs.at(-1)}
       runLive={runLive}
       threadId={threadId}
-      maps={maps}
     />
   ));
 }

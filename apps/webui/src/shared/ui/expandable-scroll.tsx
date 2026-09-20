@@ -1,5 +1,4 @@
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
-import { prefersReducedMotion } from '@/shared/lib/motion';
 import { useScrollAnchor } from '@/shared/lib/scroll-anchor';
 import { cn } from '@/shared/lib/utils';
 
@@ -41,12 +40,7 @@ export function ExpandableScroll({
       if (!pinnedRef.current) {
         return;
       }
-      const target = el.scrollHeight;
-      if (prefersReducedMotion()) {
-        el.scrollTop = target;
-        return;
-      }
-      el.scrollTo({ top: target, behavior: 'smooth' });
+      el.scrollTop = el.scrollHeight;
     };
     const scheduleStick = () => {
       if (frameRef.current) {
@@ -105,7 +99,7 @@ export function ExpandableScroll({
         ref={ref}
         onScroll={handleScroll}
         className={cn(
-          'select-text overflow-auto overscroll-contain scroll-smooth transition-[max-height] duration-300 ease-out motion-reduce:scroll-auto',
+          'select-text overflow-auto overscroll-contain transition-[max-height] duration-300 ease-out motion-reduce:transition-none',
           expanded ? fullClassName : previewClassName,
         )}
       >

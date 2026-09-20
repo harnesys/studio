@@ -1,8 +1,9 @@
-import type { SessionEvent, SessionEventType } from '@harnesys/studio-shared';
+import type { SessionEvent } from '@harnesys/studio-shared';
 import { create } from 'zustand';
-import { applyIncomingEvents } from './apply-incoming';
 import { coalesceStreamDeltas, isToolInputStream } from './coalesce-events';
 import { ceilFromEvents, eventKey, fillSeenAt, stableEventKey, stableKeys } from './event-keys';
+import { feedDrop, feedSetBoundary, feedUpdate } from './feed/feed-engine';
+import type { ThreadFeeds } from './feed/feed-types';
 import { clearLiveTail, clearLiveTails, ingestLiveDelta, sealLiveTail } from './live-tail';
 import {
   cancelEpochFlush,
@@ -12,6 +13,7 @@ import {
   scheduleEpochFlush,
   takePending,
 } from './pending-appends';
+import { applyBatches, EMPTY_EVENTS, isStreamDeltaType } from './session-batches';
 export type ActiveRun = {
   runId: string;
   controller: AbortController;
@@ -21,8 +23,9 @@ export type RunFailure = {
   threadId: string;
   text: string;
 };
-type SessionStoreState = {
+export type SessionStoreState = {
   events: Record<string, SessionEvent[]>;
+  feeds: Record<string, ThreadFeeds>;
   seenAt: Record<string, Record<string, number>>;
   seqCeil: Record<string, Record<string, number>>;
   activeRuns: Record<string, ActiveRun>;
@@ -47,47 +50,10 @@ type SessionStoreActions = {
   setFailure: (failure: RunFailure) => void;
   removeForThreads: (threadIds: string[]) => void;
   copyEvents: (fromThreadId: string, toThreadId: string) => void;
+  refreshThreadFeed: (threadId: string) => void;
+  setThreadFeedBoundary: (threadId: string, count: number) => void;
 };
-const EMPTY_EVENTS: SessionEvent[] = [];
 const EPOCH_DELTA_MS = 400;
-function isStreamDeltaType(type: SessionEventType): boolean {
-  return type === 'text-delta' || type === 'reasoning-delta';
-}
-function bumpEpoch(state: SessionStoreState, threadId: string): Record<string, number> {
-  return { ...state.contentEpoch, [threadId]: Date.now() };
-}
-function applyBatches(
-  state: SessionStoreState,
-  batches: Map<string, SessionEvent[]>,
-): SessionStoreState {
-  if (batches.size === 0) {
-    return state;
-  }
-  const now = Date.now();
-  let next = state;
-  for (const [threadId, incoming] of batches) {
-    const result = applyIncomingEvents(
-      {
-        events: next.events[threadId] ?? EMPTY_EVENTS,
-        seenAt: next.seenAt[threadId] ?? {},
-        seqCeil: next.seqCeil[threadId] ?? {},
-      },
-      incoming,
-      now,
-    );
-    if (result.accepted === 0) {
-      continue;
-    }
-    next = {
-      ...next,
-      events: { ...next.events, [threadId]: result.events },
-      seenAt: { ...next.seenAt, [threadId]: result.seenAt },
-      seqCeil: { ...next.seqCeil, [threadId]: result.seqCeil },
-      contentEpoch: bumpEpoch(next, threadId),
-    };
-  }
-  return next;
-}
 export const useSessionStore = create<SessionStoreState & SessionStoreActions>((set, get) => {
   const flushPending = () => {
     cancelEpochFlush();
@@ -98,6 +64,7 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
   };
   return {
     events: {},
+    feeds: {},
     seenAt: {},
     seqCeil: {},
     activeRuns: {},
@@ -113,9 +80,14 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
       const now = Date.now();
       set((state) => {
         const base = applyBatches(state, takePending());
+        const seenAt = fillSeenAt(base.seenAt, threadId, stableKeys(coalesced), now);
         return {
           events: { ...base.events, [threadId]: coalesced },
-          seenAt: fillSeenAt(base.seenAt, threadId, stableKeys(coalesced), now),
+          feeds: {
+            ...base.feeds,
+            [threadId]: feedUpdate(threadId, coalesced, seenAt[threadId] ?? {}, null),
+          },
+          seenAt,
           seqCeil: { ...base.seqCeil, [threadId]: ceilFromEvents(events) },
           contentEpoch: { ...base.contentEpoch, [threadId]: now },
         };
@@ -141,9 +113,14 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         for (const [runId, seq] of Object.entries(prevCeil)) {
           ceil[runId] = Math.max(ceil[runId] ?? 0, seq);
         }
+        const seenAt = fillSeenAt(base.seenAt, threadId, stableKeys(merged), now);
         return {
           events: { ...base.events, [threadId]: merged },
-          seenAt: fillSeenAt(base.seenAt, threadId, stableKeys(merged), now),
+          feeds: {
+            ...base.feeds,
+            [threadId]: feedUpdate(threadId, merged, seenAt[threadId] ?? {}, null),
+          },
+          seenAt,
           seqCeil: { ...base.seqCeil, [threadId]: ceil },
           contentEpoch: { ...base.contentEpoch, [threadId]: now },
         };
@@ -189,6 +166,10 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         const stripped = {
           ...base,
           events: { ...base.events, [threadId]: next },
+          feeds: {
+            ...base.feeds,
+            [threadId]: feedUpdate(threadId, next, base.seenAt[threadId] ?? {}, null),
+          },
           sentSkills,
           contentEpoch: { ...base.contentEpoch, [threadId]: Date.now() },
         };
@@ -264,9 +245,11 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
     removeForThreads(threadIds) {
       dropPendingThreads(threadIds);
       clearLiveTails(threadIds);
+      feedDrop(threadIds);
       set((state) => {
         const base = applyBatches(state, takePending());
         const events = { ...base.events };
+        const feeds = { ...base.feeds };
         const seenAt = { ...base.seenAt };
         const seqCeil = { ...base.seqCeil };
         const activeRuns = { ...base.activeRuns };
@@ -277,12 +260,13 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
             delete sentSkills[stableEventKey(ev) ?? ''];
           }
           delete events[id];
+          delete feeds[id];
           delete seenAt[id];
           delete seqCeil[id];
           delete activeRuns[id];
           delete contentEpoch[id];
         }
-        return { ...base, events, seenAt, seqCeil, activeRuns, contentEpoch, sentSkills };
+        return { ...base, events, feeds, seenAt, seqCeil, activeRuns, contentEpoch, sentSkills };
       });
     },
     copyEvents(fromThreadId, toThreadId) {
@@ -294,18 +278,42 @@ export const useSessionStore = create<SessionStoreState & SessionStoreActions>((
         }
         const sourceSeen = base.seenAt[fromThreadId];
         const sourceCeil = base.seqCeil[fromThreadId];
+        const seenAt =
+          sourceSeen === undefined
+            ? base.seenAt
+            : { ...base.seenAt, [toThreadId]: { ...sourceSeen } };
         return {
           ...base,
           events: { ...base.events, [toThreadId]: [...source] },
-          ...(sourceSeen === undefined
-            ? {}
-            : { seenAt: { ...base.seenAt, [toThreadId]: { ...sourceSeen } } }),
+          feeds: {
+            ...base.feeds,
+            [toThreadId]: feedUpdate(toThreadId, source, seenAt[toThreadId] ?? {}, null),
+          },
+          ...(sourceSeen === undefined ? {} : { seenAt }),
           ...(sourceCeil === undefined
             ? {}
             : { seqCeil: { ...base.seqCeil, [toThreadId]: { ...sourceCeil } } }),
           contentEpoch: { ...base.contentEpoch, [toThreadId]: Date.now() },
         };
       });
+    },
+    refreshThreadFeed(threadId) {
+      const state = get();
+      const events = state.events[threadId];
+      if (!events) {
+        return;
+      }
+      set((current) => ({
+        feeds: {
+          ...current.feeds,
+          [threadId]: feedUpdate(threadId, events, current.seenAt[threadId] ?? {}, null),
+        },
+      }));
+    },
+    setThreadFeedBoundary(threadId, count) {
+      if (feedSetBoundary(threadId, count)) {
+        get().refreshThreadFeed(threadId);
+      }
     },
   };
 });

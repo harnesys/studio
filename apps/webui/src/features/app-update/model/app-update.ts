@@ -1,5 +1,6 @@
 import { getVersion } from '@tauri-apps/api/app';
 import { isTauri } from '@tauri-apps/api/core';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { relaunch } from '@tauri-apps/plugin-process';
 import type { Update } from '@tauri-apps/plugin-updater';
 import { check } from '@tauri-apps/plugin-updater';
@@ -13,6 +14,14 @@ export function isDesktop(): boolean {
 
 export function releaseUrl(version: string | null): string {
   return version ? `${RELEASES_URL}/tag/v${version}` : RELEASES_URL;
+}
+
+export async function openReleaseNotes(version: string | null): Promise<void> {
+  if (!isDesktop()) {
+    window.open(releaseUrl(version), '_blank', 'noreferrer');
+    return;
+  }
+  await openUrl(releaseUrl(version));
 }
 
 export function readAutoUpdatePreference(): boolean {

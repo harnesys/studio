@@ -1,5 +1,6 @@
 import { isAbsolute, resolve } from 'node:path';
 import type { LspServerSpec } from 'harnesys';
+import { hasBinary, userPath } from './effective-path.ts';
 export function lspServerRoot(config: LspServerSpec, workspaceRoot: string): string {
   if (config.workspaceFolder === undefined || config.workspaceFolder.length === 0) {
     return workspaceRoot;
@@ -28,6 +29,7 @@ function spawnEnv(config: LspServerSpec): Record<string, string> {
       env[key] = value;
     }
   }
+  env.PATH = userPath();
   Object.assign(env, config.env);
   return env;
 }
@@ -35,6 +37,5 @@ function commandExists(command: string): boolean {
   if (command.includes('/') || command.includes('\\')) {
     return true;
   }
-  const result = Bun.spawnSync(['which', command], { stdout: 'pipe', stderr: 'pipe' });
-  return result.exitCode === 0;
+  return hasBinary(command);
 }

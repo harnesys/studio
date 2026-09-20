@@ -27,6 +27,7 @@ export type WorkspaceLspEntry = {
   granted: boolean;
   binaryOk: boolean;
   status: 'live' | 'off' | 'error';
+  lastError?: string;
 };
 export type WorkspaceLspListResponse = {
   servers: WorkspaceLspEntry[];

@@ -128,6 +128,7 @@ export class LspController {
         node.store.workspaceRepo,
         node.host.workspaceHarnesys,
         node.store.pluginRepo,
+        (cwd) => node.host.lsp.errorsFor(cwd),
       ),
     };
   }

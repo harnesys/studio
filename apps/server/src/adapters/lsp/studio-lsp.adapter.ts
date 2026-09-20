@@ -14,7 +14,18 @@ type WorkspaceServers = {
 export class StudioLspAdapter implements LspPort {
   private readonly sessions = new Map<string, Promise<StdioLspSession>>();
   private readonly serversByCwd = new Map<string, Promise<WorkspaceServers>>();
+  private readonly lastErrors = new Map<string, string>();
   constructor(private readonly deps: StudioLspAdapterDeps) {}
+  errorsFor(cwd: string): Record<string, string> {
+    const prefix = `${cwd}::`;
+    const errors: Record<string, string> = {};
+    for (const [key, message] of this.lastErrors) {
+      if (key.startsWith(prefix)) {
+        errors[key.slice(prefix.length)] = message;
+      }
+    }
+    return errors;
+  }
   async diagnostics(request: { cwd: string; path: string }): Promise<LspDiagnostic[]> {
     const config = await this.configFor(request.cwd, request.path);
     if (config.diagnostics === false) {
@@ -69,6 +80,7 @@ export class StudioLspAdapter implements LspPort {
     const doomed = [...this.sessions.entries()].filter(([k]) => k.startsWith(prefix));
     for (const [k] of doomed) {
       this.sessions.delete(k);
+      this.lastErrors.delete(k);
     }
     for (const [, p] of doomed) {
       try {
@@ -183,12 +195,13 @@ export class StudioLspAdapter implements LspPort {
         this.sessions.delete(key);
       }
       const detail = err instanceof Error ? err.message : String(err);
-      throw new Error(
-        `Failed to start LSP "${request.config.serverId}" (${request.config.command}): ${detail}. Install the binary or ensure it is on PATH (e.g. npm i -g typescript-language-server typescript).`,
-      );
+      const message = `Failed to start LSP "${request.config.serverId}" (${request.config.command}): ${detail}. Install the binary or ensure it is on PATH (e.g. npm i -g typescript-language-server typescript).`;
+      this.lastErrors.set(key, message);
+      throw new Error(message);
     });
     void promise
       .then((session) => {
+        this.lastErrors.delete(key);
         void session.exited.then(() => {
           if (this.sessions.get(key) !== promise) {
             return;

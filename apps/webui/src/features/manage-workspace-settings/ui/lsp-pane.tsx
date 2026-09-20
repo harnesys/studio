@@ -201,7 +201,10 @@ export function LspPane({ workspaceId }: { workspaceId: string }) {
                 <RowField label="Disabled" value={server.disabled ? 'true' : 'false'} />
                 <RowField label="Granted" value={server.granted ? 'true' : 'false'} />
                 <RowField label="Binary found" value={server.binaryOk ? 'true' : 'false'} />
-                {!server.binaryOk && (
+                {server.lastError !== undefined && (
+                  <p className="text-destructive text-xs">{server.lastError}</p>
+                )}
+                {!server.binaryOk && server.lastError === undefined && (
                   <p className="text-muted-foreground text-xs">
                     Install hint: npm i -g typescript-language-server typescript
                   </p>

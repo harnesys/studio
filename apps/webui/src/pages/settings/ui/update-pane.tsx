@@ -1,6 +1,6 @@
 import { ExternalLinkIcon } from 'lucide-react';
 import { useEffect } from 'react';
-import { isDesktop, releaseUrl, useAppUpdateStore } from '@/features/app-update';
+import { isDesktop, openReleaseNotes, releaseUrl, useAppUpdateStore } from '@/features/app-update';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/ui/field';
@@ -45,6 +45,13 @@ export function UpdatePane() {
             href={releaseUrl(currentVersion)}
             target="_blank"
             rel="noreferrer"
+            onClick={(event) => {
+              if (!isDesktop()) {
+                return;
+              }
+              event.preventDefault();
+              void openReleaseNotes(currentVersion);
+            }}
           >
             Release notes
             <ExternalLinkIcon className="size-3" />

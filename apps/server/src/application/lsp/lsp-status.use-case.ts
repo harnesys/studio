@@ -1,5 +1,6 @@
 import type { WorkspaceLspEntry, WorkspaceLspListResponse } from '@harnesys/studio-shared';
 import type { LspServerSpec, PluginComponent } from 'harnesys';
+import { hasBinary } from '../../adapters/lsp/effective-path.ts';
 import {
   readWorkspaceLspFile,
   resolveWorkspaceLsp,
@@ -22,6 +23,7 @@ export class LspStatusUseCase implements LspStatusInput {
     private readonly workspaces: WorkspaceRepository,
     private readonly workspaceHarnesys: WorkspaceHarnesysRegistry,
     private readonly pluginRepo?: PluginRepository,
+    private readonly lspErrors?: (cwd: string) => Record<string, string>,
   ) {}
   async execute(request: LspStatusRequest): Promise<LspStatusResponse> {
     const workspace = this.workspaces.findById(request.workspaceId);
@@ -53,10 +55,12 @@ export class LspStatusUseCase implements LspStatusInput {
       }
     }
     const merged = resolveWorkspaceLsp(workspace.path, nativePluginServers);
+    const errors = this.lspErrors?.(workspace.path) ?? {};
     const servers: WorkspaceLspEntry[] = merged.map((server) =>
       this.toEntry(server, {
         disabled: isDisabledServer(this.pluginRepo, server, workspace.id, file.raw),
         granted: true,
+        lastError: errors[server.serverId],
       }),
     );
     for (const entry of blocked) {
@@ -91,14 +95,15 @@ export class LspStatusUseCase implements LspStatusInput {
     flags: {
       disabled?: boolean;
       granted: boolean;
+      lastError?: string;
     },
   ): WorkspaceLspEntry {
     const disabled = flags.disabled ?? false;
-    const binaryOk = checkBinary(server.command);
+    const binaryOk = hasBinary(server.command);
     let status: 'live' | 'off' | 'error' = 'live';
     if (disabled || !flags.granted) {
       status = 'off';
-    } else if (!binaryOk) {
+    } else if (!binaryOk || flags.lastError !== undefined) {
       status = 'error';
     }
     return {
@@ -111,20 +116,8 @@ export class LspStatusUseCase implements LspStatusInput {
       granted: flags.granted,
       binaryOk,
       status,
+      ...(flags.lastError !== undefined ? { lastError: flags.lastError } : {}),
     };
-  }
-}
-function checkBinary(command: string): boolean {
-  try {
-    if (Bun.spawnSync(['which', command]).exitCode === 0) {
-      return true;
-    }
-    if (command.includes('/') || command.includes('\\')) {
-      return false;
-    }
-    return Bun.spawnSync(['which', 'bunx']).exitCode === 0;
-  } catch {
-    return false;
   }
 }
 function isLspSpec(component: PluginComponent): component is PluginComponent & {

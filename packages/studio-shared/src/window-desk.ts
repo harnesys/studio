@@ -9,6 +9,16 @@ export type PairingStartResponse = {
   code: string;
   expiresAt: string;
 };
+export type HostNetworkAddress = {
+  address: string;
+  scope: 'lan' | 'vpn' | 'external';
+  iface?: string;
+};
+export type HostNetworkResponse = {
+  port: number;
+  mdnsName: string | null;
+  addresses: HostNetworkAddress[];
+};
 export type PairingRedeemRequest = {
   code: string;
 };

@@ -11,5 +11,6 @@ export {
 } from './model/hosts.store';
 export { openCreateWorkspaceDialog } from './model/workspace-dialogs';
 export { HostPairFields } from './ui/host-pair-fields';
+export { HostPairingCodeCard } from './ui/host-pairing-code-card';
 export { WorkspaceDetailsDialog } from './ui/workspace-details-dialog';
 export { WorkspaceFields } from './ui/workspace-fields';

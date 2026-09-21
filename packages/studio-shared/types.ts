@@ -181,6 +181,8 @@ export type { TranscriptItem } from './src/transcript.ts';
 export { toTranscript } from './src/transcript.ts';
 export { WEBHOOK_HUMAN_ORIGIN, webhookTaskText } from './src/webhook-prompt.ts';
 export type {
+  HostNetworkAddress,
+  HostNetworkResponse,
   HostNodeStatus,
   IdeTabKind,
   PairingRedeemRequest,

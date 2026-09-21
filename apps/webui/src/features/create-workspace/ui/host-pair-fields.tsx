@@ -33,13 +33,13 @@ export function HostPairFields({ onPaired }: { onPaired: (host: StudioHost) => v
             id="host-pair-address"
             value={address}
             onChange={(event) => setAddress(event.target.value)}
-            placeholder="100.64.0.5"
+            placeholder="192.168.1.42"
             autoComplete="off"
           />
         </Field>
         <FieldDescription>
           Run <code>harnesys host pair</code> on the new host and enter the code from its output.
-          The code lives 10 minutes, one attempt.
+          The code lives 10 minutes, one attempt. Port 47474 is added automatically when omitted.
         </FieldDescription>
         <Field>
           <FieldLabel htmlFor="host-pair-code">Pairing code</FieldLabel>

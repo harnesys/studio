@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 import { createHarnesysModelsPort } from '../adapters/harnesys-models-port.ts';
 import { requireHostToken } from '../adapters/http/auth.middleware.ts';
 import { HealthController } from '../adapters/http/health.controller.ts';
+import { HostNetworkController } from '../adapters/http/host/host-network.controller.ts';
 import { handleHttpError } from '../adapters/http/http.error.ts';
 import { MetaController } from '../adapters/http/meta.controller.ts';
 import { PairingController } from '../adapters/http/pairing/pairing.controller.ts';
@@ -71,6 +72,7 @@ export function registerStudioHttp(args: RegisterStudioHttpArgs): Hono {
   app.use('*', requireHostToken(hostToken));
   new PairingController({ machineConfig }).register(app);
   new MetaController().register(app);
+  new HostNetworkController().register(app);
   const workspaceRepo = createRoutingWorkspaceRepo(supervisor);
   const agentRepo = createRoutingAgentRepo(supervisor);
   const threadRepo = createRoutingThreadRepo(supervisor);

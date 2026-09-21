@@ -1,4 +1,9 @@
-import type { PairingRedeemResponse, WindowHostRecord } from '@harnesys/studio-shared';
+import type {
+  HostNetworkResponse,
+  PairingRedeemResponse,
+  PairingStartResponse,
+  WindowHostRecord,
+} from '@harnesys/studio-shared';
 import { create } from 'zustand';
 import { apiJson } from '@/shared/api/client';
 import { getWindowHosts, setWindowHosts } from '@/shared/api/host-credential';
@@ -10,6 +15,12 @@ import {
 } from '@/shared/api/host-router';
 export const LOCAL_HOST_ID = 'local';
 export const NEW_HOST_ID = '__new__';
+const DEFAULT_HOST_PORT = 47474;
+const PAIR_ERROR_MESSAGES: Record<string, string> = {
+  pairing_code_missing: 'No pairing request is active on the host. Generate a new code there.',
+  pairing_code_expired: 'The code expired. Generate a new one on the host.',
+  pairing_code_invalid: 'Wrong code. Check it and try again.',
+};
 export type StudioHostStatus = StudioHostOnlineStatus;
 export type StudioHost = {
   id: string;
@@ -30,6 +41,8 @@ type HostsState = {
   remotes: StudioHost[];
   syncFromWindowHosts: () => void;
   pairHost: (input: { address: string; code: string }) => Promise<StudioHost>;
+  showPairingCode: () => Promise<PairingStartResponse>;
+  fetchNetworkInfo: () => Promise<HostNetworkResponse>;
   revokeHost: (hostId: string) => Promise<void>;
 };
 function toStudioHost(record: WindowHostRecord): StudioHost {
@@ -50,10 +63,17 @@ function remotesFromWindow(): StudioHost[] {
 }
 function normalizePairAddress(address: string): string {
   const trimmed = address.trim();
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimBaseUrl(trimmed);
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+  try {
+    const url = new URL(withScheme);
+    const hasPath = url.pathname.length > 1 || url.search.length > 0 || url.hash.length > 0;
+    if (!url.port && !hasPath) {
+      url.port = String(DEFAULT_HOST_PORT);
+    }
+    return trimBaseUrl(url.toString());
+  } catch {
+    return trimBaseUrl(withScheme);
   }
-  return trimBaseUrl(`http://${trimmed}`);
 }
 async function persistHosts(hosts: WindowHostRecord[]): Promise<WindowHostRecord[]> {
   const response = await apiJson<{
@@ -73,11 +93,16 @@ export const useStudioHostsStore = create<HostsState>((set, get) => ({
   },
   pairHost: async ({ address, code }) => {
     const baseUrl = normalizePairAddress(address);
-    const redeem = await fetch(`${baseUrl}/api/host/pair/redeem`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
-    });
+    let redeem: Response;
+    try {
+      redeem = await fetch(`${baseUrl}/api/host/pair/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+    } catch {
+      throw new Error('Host is not reachable at that address.');
+    }
     if (!redeem.ok) {
       let message = redeem.statusText || 'Pairing failed';
       try {
@@ -85,7 +110,7 @@ export const useStudioHostsStore = create<HostsState>((set, get) => ({
           error?: string;
         };
         if (body.error) {
-          message = body.error;
+          message = PAIR_ERROR_MESSAGES[body.error] ?? body.error;
         }
       } catch {}
       throw new Error(message);
@@ -105,6 +130,17 @@ export const useStudioHostsStore = create<HostsState>((set, get) => ({
     setHostOnlineStatus(record.id, 'online');
     get().syncFromWindowHosts();
     return toStudioHost(record);
+  },
+  showPairingCode: () => {
+    return apiJson<PairingStartResponse>('/api/host/pair/start', {
+      method: 'POST',
+      hostId: LOCAL_HOST_ID,
+    });
+  },
+  fetchNetworkInfo: () => {
+    return apiJson<HostNetworkResponse>('/api/host/network', {
+      hostId: LOCAL_HOST_ID,
+    });
   },
   revokeHost: async (hostId) => {
     if (hostId === LOCAL_HOST_ID) {

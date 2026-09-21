@@ -19,8 +19,15 @@ export class PairingController {
     });
     app.post('/api/host/pair/redeem', async (c) => {
       const body = pairingRedeemBody.parse(await c.req.json());
-      if (redeemPairing(body.code) !== 'ok') {
-        return c.json({ error: 'invalid pairing code' }, 401);
+      const outcome = redeemPairing(body.code);
+      if (outcome === 'no_challenge') {
+        return c.json({ error: 'pairing_code_missing' }, 410);
+      }
+      if (outcome === 'expired') {
+        return c.json({ error: 'pairing_code_expired' }, 410);
+      }
+      if (outcome === 'mismatch') {
+        return c.json({ error: 'pairing_code_invalid' }, 401);
       }
       const host = this.deps.machineConfig.read().host;
       return c.json({

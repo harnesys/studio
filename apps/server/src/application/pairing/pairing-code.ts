@@ -14,19 +14,19 @@ export function startPairing(): PairingStartResult {
   active = { code, expiresAtMs };
   return { code, expiresAt: new Date(expiresAtMs).toISOString() };
 }
-export type PairingRedeemOutcome = 'ok' | 'invalid';
+export type PairingRedeemOutcome = 'ok' | 'no_challenge' | 'expired' | 'mismatch';
 export function redeemPairing(code: string): PairingRedeemOutcome {
   const challenge = active;
   active = null;
   if (!challenge) {
-    return 'invalid';
+    return 'no_challenge';
   }
   if (Date.now() > challenge.expiresAtMs) {
-    return 'invalid';
+    return 'expired';
   }
   const normalized = code.replace(/\s+/g, '').trim();
   if (normalized !== challenge.code) {
-    return 'invalid';
+    return 'mismatch';
   }
   return 'ok';
 }

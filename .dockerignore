@@ -17,4 +17,5 @@ temp
 docs
 landing
 apps/desktop/src-tauri/target
+skills-lock.json
 apps/webui/dist

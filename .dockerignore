@@ -2,11 +2,8 @@
 .git
 .env
 .env.*
-**/.env
-**/.env.*
 !.env.example
 node_modules
-**/node_modules
 dist
 build
 out
@@ -18,4 +15,3 @@ docs
 landing
 apps/desktop/src-tauri/target
 skills-lock.json
-apps/webui/dist

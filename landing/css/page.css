@@ -364,7 +364,7 @@
 }
 
 .f-cap {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono) monospace;
   font-size: 10.5px;
   color: var(--ink-3);
 }
@@ -600,7 +600,7 @@
 
 .step-body h3::before {
   content: counter(step, decimal-leading-zero);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono) monospace;
   font-size: 0.8rem;
   font-weight: 400;
   color: var(--accent);

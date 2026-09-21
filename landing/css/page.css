@@ -271,6 +271,245 @@
   margin: 0 auto;
 }
 
+.net-diagram {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 34px 26px 26px;
+  background: var(--bg-raise);
+  border: 1px solid var(--win-line);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px -32px rgba(0, 0, 0, 0.85);
+}
+
+.net-diagram figcaption {
+  margin-top: 26px;
+  padding-top: 14px;
+  border-top: 1px solid var(--win-line);
+  font-size: 0.85rem;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.net-diagram figcaption em {
+  color: var(--accent-deep);
+  font-style: normal;
+}
+
+.dg-you,
+.dg-coord {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.dg-ring {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--accent);
+  color: var(--accent-deep);
+  background: var(--bg-panel);
+}
+
+.dg-ring svg {
+  width: 28px;
+  height: 28px;
+}
+
+.dg-ring-soft {
+  border-color: var(--win-line);
+  color: var(--ink-2);
+}
+
+.dg-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.dg-flows {
+  display: flex;
+  justify-content: center;
+  gap: 72px;
+  margin: 10px 0;
+}
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.flow svg {
+  width: 15px;
+  height: 15px;
+}
+
+.f-up {
+  color: var(--accent-deep);
+}
+
+.f-down {
+  color: var(--allow);
+}
+
+.f-line {
+  width: 1.5px;
+  height: 22px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.f-cap {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.dg-split {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.v-line {
+  width: 1.5px;
+  height: 26px;
+  background: var(--win-line);
+  margin: 0 auto;
+}
+
+.dg-machines {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.machine {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.m-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-raise);
+  border: 1px solid var(--win-line);
+  color: var(--ink-2);
+}
+
+.m-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.m-name {
+  margin-top: 9px;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.m-role {
+  font-size: 0.7rem;
+  color: var(--ink-3);
+}
+
+.proj {
+  margin-top: 12px;
+  width: 100%;
+  border: 1px dashed var(--win-line);
+  border-radius: 10px;
+  padding: 10px 10px 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.p-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.p-name svg {
+  width: 15px;
+  height: 15px;
+  color: var(--ink-2);
+}
+
+.p-agents {
+  display: flex;
+  gap: 12px;
+  color: var(--ink-3);
+}
+
+.p-agents svg {
+  width: 15px;
+  height: 15px;
+}
+
+.p-agents .lead {
+  color: var(--accent);
+}
+
+.dg-mesh {
+  max-width: 900px;
+  margin: 0 auto;
+  border-top: 1.5px dashed var(--win-line);
+}
+
+.dg-mesh-label {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  margin-top: 7px;
+}
+
+.dg-shared {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.chip2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed var(--win-line);
+  border-radius: 999px;
+  padding: 7px 14px;
+  color: var(--ink-2);
+}
+
+.chip2 svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.chip2 span {
+  font-size: 0.8rem;
+}
+
 .duo {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -647,6 +886,19 @@
 
   .chips {
     gap: 28px;
+  }
+
+  .dg-machines {
+    grid-template-columns: 1fr;
+    max-width: 340px;
+  }
+
+  .dg-split {
+    display: none;
+  }
+
+  .dg-flows {
+    gap: 48px;
   }
 }
 

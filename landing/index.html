@@ -87,6 +87,96 @@ harnesys up --with-ui</code></pre>
     </div>
   </section>
 
+  <section class="sec" id="network">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2>How it fits together</h2>
+        <p>Workspaces live on separate machines and mesh into one network. A coordinator agent assigns the work, and decisions come back to you as cards. Journal, gates and inbox are shared across the whole network.</p>
+      </div>
+      <figure class="net-diagram reveal">
+        <div class="dg-you">
+          <span class="dg-ring"><i data-lucide="user-round"></i></span>
+          <span class="dg-label">You</span>
+        </div>
+        <div class="dg-flows">
+          <div class="flow f-up">
+            <i data-lucide="arrow-up"></i>
+            <span class="f-line"></span>
+            <i data-lucide="file-text"></i>
+            <span class="f-cap">decisions</span>
+          </div>
+          <div class="flow f-down">
+            <i data-lucide="check"></i>
+            <span class="f-line"></span>
+            <i data-lucide="arrow-down"></i>
+            <span class="f-cap">approvals</span>
+          </div>
+        </div>
+        <div class="dg-coord">
+          <span class="dg-ring dg-ring-soft"><i data-lucide="bot"></i></span>
+          <span class="dg-label">Coordinator</span>
+        </div>
+        <div class="dg-split">
+          <span class="v-line"></span><span class="v-line"></span><span class="v-line"></span>
+        </div>
+        <div class="dg-machines">
+          <div class="machine">
+            <span class="m-icon"><i data-lucide="laptop"></i></span>
+            <span class="m-name mono">MacBook</span>
+            <span class="m-role mono">control node</span>
+            <div class="proj">
+              <span class="p-name"><i data-lucide="briefcase"></i>Product A</span>
+              <span class="p-agents">
+                <i data-lucide="bot" class="lead"></i>
+                <i data-lucide="bot"></i>
+                <i data-lucide="bot"></i>
+                <i data-lucide="bot"></i>
+              </span>
+            </div>
+          </div>
+          <div class="machine">
+            <span class="m-icon"><i data-lucide="monitor"></i></span>
+            <span class="m-name mono">Home PC</span>
+            <span class="m-role mono">files · memory</span>
+            <div class="proj">
+              <span class="p-name"><i data-lucide="briefcase"></i>Product B</span>
+              <span class="p-agents">
+                <i data-lucide="bot" class="lead"></i>
+                <i data-lucide="bot"></i>
+                <i data-lucide="bot"></i>
+              </span>
+            </div>
+          </div>
+          <div class="machine">
+            <span class="m-icon"><i data-lucide="server"></i></span>
+            <span class="m-name mono">VPS</span>
+            <span class="m-role mono">night runs</span>
+            <div class="proj">
+              <span class="p-name"><i data-lucide="briefcase"></i>Product C</span>
+              <span class="p-agents">
+                <i data-lucide="bot" class="lead"></i>
+                <i data-lucide="bot"></i>
+                <i data-lucide="bot"></i>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="dg-split">
+          <span class="v-line"></span><span class="v-line"></span><span class="v-line"></span>
+        </div>
+        <div class="dg-mesh"></div>
+        <div class="dg-mesh-label mono">one network · paired hosts</div>
+        <div class="dg-shared">
+          <span class="chip2"><i data-lucide="file-text"></i><span>journal</span></span>
+          <span class="chip2"><i data-lucide="shield"></i><span>gates</span></span>
+          <span class="chip2"><i data-lucide="inbox"></i><span>inbox</span></span>
+          <span class="chip2"><i data-lucide="smartphone"></i><span>phone · remote</span></span>
+        </div>
+        <figcaption>MacBook as the control node, a home PC and a VPS as hosts, a phone as the remote. Agents stay on their machines; the network stays <em>yours</em>.</figcaption>
+      </figure>
+    </div>
+  </section>
+
   <section class="sec" id="get">
     <div class="wrap">
       <div class="sec-head reveal">

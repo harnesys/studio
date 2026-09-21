@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bunTargetFor, prepareHostBinary } from './desktop-host';
 
@@ -17,6 +18,13 @@ function signingEnv(): NodeJS.ProcessEnv {
     const env = { ...process.env };
     for (const key of SIGN_ENV_KEYS) {
         if (!env[key]) delete env[key];
+    }
+    if (!env.TAURI_SIGNING_PRIVATE_KEY) {
+        const keyPath = join(root, 'keys', 'updater.key');
+        if (existsSync(keyPath)) {
+            const key = readFileSync(keyPath, 'utf8').trim();
+            if (key) env.TAURI_SIGNING_PRIVATE_KEY = key;
+        }
     }
     return env;
 }
